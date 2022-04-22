@@ -1,0 +1,33 @@
+{
+  "name": "doc-unit-test",
+  "version": "1.0.0",
+  "description": "Unit test documentation (and record videos of those tests).",
+  "main": "bin/index.js",
+  "bin": {
+    "test": "./bin/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hawkeyexl/doc-unit-test.git"
+  },
+  "keywords": [
+    "documentation",
+    "unit",
+    "test",
+    "doc",
+    "docs"
+  ],
+  "author": "Manny Silva",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/hawkeyexl/doc-unit-test/issues"
+  },
+  "homepage": "https://github.com/hawkeyexl/doc-unit-test#readme",
+  "dependencies": {
+    "selenium-webdriver": "^4.1.1"
+  },
+  "devDependencies": {}
+}
