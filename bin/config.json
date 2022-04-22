@@ -1,0 +1,10 @@
+{
+    "openTestStatement": "// test",
+    "closeTestStatement": "",
+    "openBlockTestStatement": "/* test",
+    "closeBlockTestStatement": "*/",
+    "supportedFileTypes": [
+        ".md",
+        ".mdx"
+    ]
+}
