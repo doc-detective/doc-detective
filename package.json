@@ -29,5 +29,7 @@
   "dependencies": {
     "selenium-webdriver": "^4.1.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "n-readlines": "^1.0.1"
+  }
 }
