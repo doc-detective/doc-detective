@@ -1,5 +1,6 @@
 {
-  "defaultTestDirectory": "",
+  "testDirectory": "./tests",
+  "videoDirectory": "./videos",
   "fileTypes": [
     {
       "extensions": [
