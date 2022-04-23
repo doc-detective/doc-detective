@@ -1,10 +1,25 @@
 {
-    "openTestStatement": "// test",
-    "closeTestStatement": "",
-    "openBlockTestStatement": "/* test",
-    "closeBlockTestStatement": "*/",
-    "supportedFileTypes": [
-        ".md",
-        ".mdx"
-    ]
+  "fileTypes": [
+    {
+      "extensions": [
+        "md",
+        "mdx"
+      ],
+      "openTestStatement": "// test",
+      "closeTestStatement": "",
+      "openBlockTestStatement": "/* test",
+      "closeBlockTestStatement": "*/"
+    },
+    {
+      "extensions": [
+        "html",
+        "htm",
+        "xml"
+      ],
+      "openTestStatement": "<!-- test",
+      "closeTestStatement": "-->",
+      "openBlockTestStatement": "<!-- test",
+      "closeBlockTestStatement": "-->"
+    }
+  ]
 }
