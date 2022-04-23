@@ -3,6 +3,7 @@
 const {Builder, By, Key, until} = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const nReadlines = require('n-readlines');
+const config = require('./config.json');
 
 async function testReadLines(file) {
     let inputFile = new nReadlines(file);
