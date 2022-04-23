@@ -1,5 +1,6 @@
 {
   "testDirectory": "./tests",
+  "imageDirectory": "./images",
   "videoDirectory": "./videos",
   "fileTypes": [
     {
