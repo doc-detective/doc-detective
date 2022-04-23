@@ -5,6 +5,38 @@ const chrome = require("selenium-webdriver/chrome");
 const nReadlines = require("n-readlines");
 const path = require("path");
 const config = require("./config.json");
+const yargs = require("yargs/yargs");
+const { hideBin } = require("yargs/helpers");
+
+// Define args
+const argv = yargs(hideBin(process.argv))
+  .option("config", {
+    alias: "c",
+    description: "Path to a custom config file",
+    type: "string",
+  })
+  .option("testFile", {
+    alias: "f",
+    description: "Path to a test",
+    type: "string",
+  })
+  .option("testDir", {
+    alias: "d",
+    description: "Path to a ditectory of tests",
+    type: "string",
+  })
+  .option("imageDir", {
+    alias: "i",
+    description: "Path to image output directory",
+    type: "string",
+  })
+  .option("videoDir", {
+    alias: "v",
+    description: "Path to video output directory",
+    type: "string",
+  })
+  .help()
+  .alias("help", "h").argv;
 
 // Parse args
 
