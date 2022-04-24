@@ -4,9 +4,13 @@ const { Builder, By, Key, until } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 const nReadlines = require("n-readlines");
 const path = require("path");
-const config = require("./config.json");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
+const fs = require("fs");
+
+let config = require("./config.json");
+let files = [];
+let tests = [];
 
 // Define args
 const argv = yargs(hideBin(process.argv))
@@ -38,15 +42,18 @@ const argv = yargs(hideBin(process.argv))
   .help()
   .alias("help", "h").argv;
 
-// Parse args
+// Set config overrides from args
+if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
+if (argv.testFile) files[0] = argv.testFile;
+if (argv.testDirectory) config.testDirectory = argv.testDir;
+if (argv.imageDir) config.imageDirectory = argv.imageDir;
+if (argv.videoDir) config.videoDirectory = argv.videoDir;
 
 // Set array of test files
 
 // Loop through test files
 
 // Set values based on args/config
-let ext = path.extname(file);
-let openTestStatement;
 
 // Loop through lines in file
 
@@ -109,5 +116,5 @@ async function testSelenium() {
   }
 }
 
-console.log(config);
+console.log(data);
 //testReadLines("./temp/test.md");
