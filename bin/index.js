@@ -29,6 +29,16 @@ const argv = yargs(hideBin(process.argv))
     description: "Path to a ditectory of tests",
     type: "string",
   })
+  .option("recursive", {
+    alias: "r",
+    description: "Recursively find test files in the test directory",
+    type: "string",
+  })
+  .option("ext", {
+    alias: "e",
+    description: "Comma-separated list of file extensions to test",
+    type: "string",
+  })
   .option("imageDir", {
     alias: "i",
     description: "Path to image output directory",
