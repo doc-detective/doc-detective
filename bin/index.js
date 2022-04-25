@@ -7,8 +7,11 @@ const path = require("path");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
+const { exit } = require("process");
 
 let config = require("./config.json");
+const { dir } = require("console");
+let dirs = [];
 let files = [];
 let tests = [];
 
@@ -31,12 +34,13 @@ const argv = yargs(hideBin(process.argv))
   })
   .option("recursive", {
     alias: "r",
-    description: "Recursively find test files in the test directory",
+    description: "Recursively find test files in the test directory.",
     type: "string",
   })
   .option("ext", {
     alias: "e",
-    description: "Comma-separated list of file extensions to test",
+    description:
+      "Comma-separated list of file extensions to test, including the leading period",
     type: "string",
   })
   .option("imageDir", {
@@ -54,26 +58,73 @@ const argv = yargs(hideBin(process.argv))
 
 // Set config overrides from args
 if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
-if (argv.testFile) files[0] = argv.testFile;
-if (argv.testDirectory) config.testDirectory = argv.testDir;
-if (argv.imageDir) config.imageDirectory = argv.imageDir;
-if (argv.videoDir) config.videoDirectory = argv.videoDir;
+if (argv.testDir) config.testDirectory = path.resolve(argv.testDir);
+if (argv.imageDir) config.imageDirectory = path.resolve(argv.imageDir);
+if (argv.videoDir) config.videoDirectory = path.resolve(argv.videoDir);
+if (argv.recursive) {
+  switch (argv.recursive) {
+    case "true":
+      config.recursive = true;
+      break;
+    case "false":
+      config.recursive = false;
+      break;
+  }
+}
+if (argv.ext) config.testExtensions = argv.ext.split(",");
 
+console.log(config.recursive);
 // Set array of test files
-
+if (argv.testFile) {
+  // if single file specified from -f flag
+  let file = path.resolve(argv.testFile);
+  // TODO: Valid file validation
+  if (fs.statSync(file).isFile()) {
+    files[0] = file;
+  } else {
+    console.log("Error: Specified path isn't a valid file.");
+    exit(1);
+  }
+} else {
+  // Load files from drectory
+  dirs[0] = config.testDirectory;
+  for (let i = 0; i < dirs.length; i++) {
+    fs.readdirSync(dirs[i]).forEach((object) => {
+      let content = path.resolve(dirs[i] + "/" + object);
+      console.log(content);
+      if (fs.statSync(content).isFile()) {
+        // is a file
+        if (
+          // No specified extensions, or file extension is present in extensions list.
+          config.testExtensions === "" ||
+          config.testExtensions.includes(path.extname(content))
+        ) {
+          files.push(content);
+        }
+      } else if (fs.statSync(content).isDirectory) {
+        // is a directory, and recursive is set to true
+        if (config.recursive) {
+          dirs.push(content);
+        }
+      } else {
+        console.log("Error: " + content + " isn't a valid file or directory.");
+        exit(1);
+      }
+    });
+  }
+}
 // Loop through test files
+files.forEach((file) => {
+  console.log(file);
+  // Loop through lines in file
 
-// Set values based on args/config
+  // Detect test params
 
-// Loop through lines in file
+  // Convert to Selenium commands + add to array
 
-// Detect test params
-
-// Convert to Selenium commands + add to array
-
-// End line loop
-
-// End file loop
+  // End line loop
+});
+exit();
 
 // Loop through selenium commands
 
@@ -126,5 +177,5 @@ async function testSelenium() {
   }
 }
 
-console.log(data);
+console.log(files);
 //testReadLines("./temp/test.md");
