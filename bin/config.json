@@ -1,5 +1,7 @@
 {
   "testDirectory": "./tests",
+  "recursive": true,
+  "excludeExtensions": "",
   "imageDirectory": "./images",
   "videoDirectory": "./videos",
   "fileTypes": [
@@ -23,6 +25,6 @@
       "closeTestStatement": "-->",
       "openBlockTestStatement": "<!-- test",
       "closeBlockTestStatement": "-->"
-    }
+    }    
   ]
 }
