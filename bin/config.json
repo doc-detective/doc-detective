@@ -1,14 +1,20 @@
 {
   "testDirectory": "./tests",
   "recursive": true,
-  "testExtensions": "",
+  "testExtensions": [
+    ".md",
+    ".mdx",
+    ".html",
+    ".htm",
+    ".xml"
+  ],
   "imageDirectory": "./images",
   "videoDirectory": "./videos",
   "fileTypes": [
     {
       "extensions": [
-        "md",
-        "mdx"
+        ".md",
+        ".mdx"
       ],
       "openTestStatement": "// test",
       "closeTestStatement": "",
@@ -17,9 +23,9 @@
     },
     {
       "extensions": [
-        "html",
-        "htm",
-        "xml"
+        ".html",
+        ".htm",
+        ".xml"
       ],
       "openTestStatement": "<!-- test",
       "closeTestStatement": "-->",
