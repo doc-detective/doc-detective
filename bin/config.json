@@ -1,7 +1,7 @@
 {
   "testDirectory": "./tests",
   "recursive": true,
-  "excludeExtensions": "",
+  "testExtensions": "",
   "imageDirectory": "./images",
   "videoDirectory": "./videos",
   "fileTypes": [
