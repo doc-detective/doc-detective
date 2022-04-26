@@ -10,7 +10,6 @@ const fs = require("fs");
 const { exit } = require("process");
 
 let config = require("./config.json");
-const { dir } = require("console");
 let dirs = [];
 let files = [];
 let tests = [];
@@ -71,9 +70,8 @@ if (argv.recursive) {
       break;
   }
 }
-if (argv.ext) config.testExtensions = argv.ext.split(",");
+if (argv.ext) config.testExtensions = argv.ext.replace(/\s+/g,"").split(",");
 
-console.log(config.recursive);
 // Set array of test files
 if (argv.testFile) {
   // if single file specified from -f flag
@@ -91,7 +89,6 @@ if (argv.testFile) {
   for (let i = 0; i < dirs.length; i++) {
     fs.readdirSync(dirs[i]).forEach((object) => {
       let content = path.resolve(dirs[i] + "/" + object);
-      console.log(content);
       if (fs.statSync(content).isFile()) {
         // is a file
         if (
