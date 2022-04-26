@@ -4,6 +4,7 @@ It includes a few markdown styles, though file type doesn't really matter as lon
 
 1.  In the **Navigation** section, click **Open > File > Type**.
 
+    // test {"action":"open", "uri":"www.google.com", "wait":1000}
     // test {"action":"find", "text":"Navigation", "css":"", "wait":1000}
     // test {"action":"click", "text":"Open", "css":"#open .menu", "wait": 1000}
     // test {"action":"click", "text":"File", "css":"", "wait": 1000}
