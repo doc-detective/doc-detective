@@ -70,7 +70,7 @@ if (argv.recursive) {
       break;
   }
 }
-if (argv.ext) config.testExtensions = argv.ext.replace(/\s+/g,"").split(",");
+if (argv.ext) config.testExtensions = argv.ext.replace(/\s+/g, "").split(",");
 
 // Set array of test files
 if (argv.testFile) {
@@ -110,18 +110,38 @@ if (argv.testFile) {
     });
   }
 }
+
 // Loop through test files
 files.forEach((file) => {
-  console.log(file);
-  // Loop through lines in file
-
-  // Detect test params
-
-  // Convert to Selenium commands + add to array
-
-  // End line loop
+  let lines = [];
+  let line;
+  let inputFile = new nReadlines(file);
+  let extension = path.extname(file);
+  let fileType = config.fileTypes.find((fileType) =>
+    fileType.extensions.includes(extension)
+  );
+  while ((line = inputFile.next())) {
+    if (line.includes(fileType.openTestStatement)) {
+      let lineAscii = line.toString("ascii");
+      let regexOpen = new RegExp(fileType.openTestStatement,"g");
+      let lineJson = JSON.parse(lineAscii.replace(regexOpen,""));
+      lines.push(lineJson);
+    }
+  }
+  console.log(lines);
 });
 exit();
+
+// Loop through lines in file
+lines.forEach((line) => {
+  console.log(line);
+});
+
+// Detect test params
+
+// Convert to Selenium commands + add to array
+
+// End line loop
 
 // Loop through selenium commands
 
@@ -146,8 +166,9 @@ exit();
 
 async function parseOpenTest(args, file, line) {}
 
-async function testReadLines(file) {
+async function readLines(file) {
   let inputFile = new nReadlines(file);
+  let lines = [];
   let line;
   let lineNumber = 1;
 
@@ -174,5 +195,4 @@ async function testSelenium() {
   }
 }
 
-console.log(files);
 //testReadLines("./temp/test.md");
