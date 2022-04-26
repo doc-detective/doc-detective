@@ -113,31 +113,39 @@ if (argv.testFile) {
 
 // Loop through test files
 files.forEach((file) => {
-  let lines = [];
+  let json = {
+    "file": file,
+    "tests": []
+  };
   let line;
+  let lineNumber = 1;
   let inputFile = new nReadlines(file);
   let extension = path.extname(file);
   let fileType = config.fileTypes.find((fileType) =>
     fileType.extensions.includes(extension)
   );
   while ((line = inputFile.next())) {
+    // TODO figure out how to handle closeTestStatement when empty
     if (line.includes(fileType.openTestStatement)) {
       let lineAscii = line.toString("ascii");
-      let regexOpen = new RegExp(fileType.openTestStatement,"g");
-      let lineJson = JSON.parse(lineAscii.replace(regexOpen,""));
-      lines.push(lineJson);
+      let regexOpen = new RegExp(fileType.openTestStatement, "g");
+      let lineJson = JSON.parse(lineAscii.replace(regexOpen, ""));
+      lineJson.line = lineNumber;
+      json.tests.push(lineJson);
+      console.log(json);
+      tests.push(json);
     }
+    lineNumber++;
   }
-  console.log(lines);
 });
 exit();
-
 // Loop through lines in file
 lines.forEach((line) => {
   console.log(line);
 });
 
 // Detect test params
+exit();
 
 // Convert to Selenium commands + add to array
 
