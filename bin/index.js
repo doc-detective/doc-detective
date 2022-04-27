@@ -9,6 +9,7 @@ const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
 const { exit } = require("process");
 
+const debug = true;
 let config = require("./config.json");
 let dirs = [];
 let files = [];
@@ -42,6 +43,10 @@ const argv = yargs(hideBin(process.argv))
       "Comma-separated list of file extensions to test, including the leading period",
     type: "string",
   })
+  .option("seleniumServer", {
+    description: "Path to video output directory",
+    type: "string",
+  })
   .option("imageDir", {
     alias: "i",
     description: "Path to image output directory",
@@ -71,6 +76,7 @@ if (argv.recursive) {
   }
 }
 if (argv.ext) config.testExtensions = argv.ext.replace(/\s+/g, "").split(",");
+if (argv.seleniumServer) config.seleniumServer = argv.seleniumServer;
 
 // Set array of test files
 if (argv.testFile) {
@@ -114,8 +120,8 @@ if (argv.testFile) {
 // Loop through test files
 files.forEach((file) => {
   let json = {
-    "file": file,
-    "tests": []
+    file: file,
+    tests: [],
   };
   let line;
   let lineNumber = 1;
@@ -138,21 +144,51 @@ files.forEach((file) => {
     lineNumber++;
   }
 });
-exit();
-// Loop through lines in file
-lines.forEach((line) => {
-  console.log(line);
+
+console.log(tests);
+// Loop through tests
+let output = async function runTests (tests) {
+  tests.forEach((object) => {
+    let options = new chrome.Options();
+    if (config.seleniumServer) {
+      let driver = new Builder()
+        .forBrowser("chrome")
+        .setChromeOptions(options)
+        .usingServer(config.seleniumServer)
+        .build();
+    } else {
+      let driver = new Builder()
+        .forBrowser("chrome")
+        .setChromeOptions(options)
+        .build(); 
+    }
+    object.tests.forEach((test) => {
+    console.log(test.action);
+    switch (test.action) {
+      case "open":
+        if (!test.hasOwnProperty("uri"))
+          console.log(JSON.stringify(test) + " doesn't have a uri field.") && exit(1);
+          try { driver.get(test.uri); } catch {};
+        break;
+      case "find":
+        if (!test.hasOwnProperty("text") && !test.hasOwnProperty("css"))
+          console.log(JSON.stringify(test) + " doesn't have text or css fields.") && exit(1);
+        break;
+      case "click":
+        if (!test.hasOwnProperty("text") && !test.hasOwnProperty("css"))
+          console.log(JSON.stringify(test) + " doesn't have text or css fields.") && exit(1);
+        break;
+      case "sendKeys":
+        if (!test.hasOwnProperty("text") && !test.hasOwnProperty("css"))
+          console.log(JSON.stringify(test) + " doesn't have text or css fields.") && exit(1);
+        if (!test.hasOwnProperty("keys"))
+          console.log(JSON.stringify(test) + " doesn't have keys object.") && exit(1);
+        break;
+    }
+  });
 });
-
-// Detect test params
+}
 exit();
-
-// Convert to Selenium commands + add to array
-
-// End line loop
-
-// Loop through selenium commands
-
 // Execute commands
 
 // Log results to array

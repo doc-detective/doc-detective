@@ -32,5 +32,6 @@
       "openBlockTestStatement": "<!-- test",
       "closeBlockTestStatement": "-->"
     }    
-  ]
+  ],
+  "seleniumServer": ""
 }
