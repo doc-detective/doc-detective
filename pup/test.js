@@ -2,9 +2,7 @@ const puppeteer = require("puppeteer");
 const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 
 (async () => {
-  const browser = await puppeteer.launch({
-    headless: false,
-  });
+  const browser = await puppeteer.launch();
   const page = await browser.newPage();
   const recorder = new PuppeteerScreenRecorder(page);
   await recorder.start("./demo.mp4");
