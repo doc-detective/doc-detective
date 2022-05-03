@@ -1,4 +1,5 @@
 {
+  "testFile": "",
   "testDirectory": "./tests",
   "recursive": true,
   "testExtensions": [
@@ -32,6 +33,5 @@
       "openBlockTestStatement": "<!-- test",
       "closeBlockTestStatement": "-->"
     }    
-  ],
-  "seleniumServer": ""
+  ]
 }
