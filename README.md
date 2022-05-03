@@ -6,18 +6,17 @@ Unit test documentation
 
 *   Iterate through files/folders to identify, parse, and execute tests
 *   Tests may be defined in their own files or single-sourced within documentation
-*   Test that a page element exists based on CSS or text
-*   Test that a page element contains exact matching text
-*   One test per file
+*   Configurable test file types and test opening/closing markup
+*   Test that a page element exists based on CSS
+*   Test that a page element exists based on exact matching text
 *   Single-line test actions
 
 ## Post-MVP features
 
-*   Multiple tests per file
 *   Multi-line test actions
-*   Take a screenshot
+*   Take screenshots
 *   Compare in-test screenshots to previously captured screenshots
-*   Record a video
+*   Record videos
 *   Record videos only when encountering errors
 *   Suggest tests by parsing document text
 *   Automatically insert suggested tests based on document text
