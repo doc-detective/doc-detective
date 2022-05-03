@@ -1,3 +1,4 @@
+const uuid = require("uuid");
 const puppeteer = require("puppeteer");
 const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const nReadlines = require("n-readlines");
@@ -9,21 +10,41 @@ const { exit } = require("process");
 
 const debug = true;
 let argv = setArgs(process.argv);
-let config = setConfig(require("./config.json"), argv);
-let files = setFiles(config);
-let tests = setTests(files);
+if (debug) {
+  console.log("ARGV:");
+  console.log(argv);
+}
 
-console.log(tests);
+let config = setConfig(require("./config.json"), argv);
+if (debug) {
+  console.log("CONFIG:");
+  console.log(config);
+}
+
+let files = setFiles(config);
+if (debug) {
+  console.log("FILES:");
+  console.log(files);
+}
+
+let tests = setTests(files);
+if (debug) {
+  console.log("TESTS:");
+  console.log(tests);
+}
+
 exit();
 
 // Parse files for tests
 function setTests(files) {
   let tests = [];
+
   // Loop through test files
   files.forEach((file) => {
-    let json = {
+    let testJson = {
+      id: uuid.v4(),
       file: file,
-      tests: [],
+      actions: [],
     };
     let line;
     let lineNumber = 1;
@@ -32,6 +53,8 @@ function setTests(files) {
     let fileType = config.fileTypes.find((fileType) =>
       fileType.extensions.includes(extension)
     );
+
+    // Loop through lines
     while ((line = inputFile.next())) {
       // TODO figure out how to handle closeTestStatement when empty
       if (line.includes(fileType.openTestStatement)) {
@@ -39,12 +62,15 @@ function setTests(files) {
         let regexOpen = new RegExp(fileType.openTestStatement, "g");
         let lineJson = JSON.parse(lineAscii.replace(regexOpen, ""));
         lineJson.line = lineNumber;
-        json.tests.push(lineJson);
-        tests.push(json);
+        testJson.actions.push(lineJson);
       }
       lineNumber++;
     }
+    if (testJson.actions.length > 0) {
+      tests.push(testJson);
+    }
   });
+  
   return tests;
 }
 
