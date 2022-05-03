@@ -6,7 +6,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 
 `doc-unit-test` handles test parsing and web-based UI testing; it doesn't support results reporting or notifications. This script is a part of the testing infrastructure and needs to be complimented by other componenets.
 
-`doc-unit-test` uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browsers and enables easy screenshoting and video recording.
+`doc-unit-test` uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshoting and video recording.
 
 ## MVP features
 
