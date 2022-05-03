@@ -8,6 +8,7 @@ const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
 const { exit } = require("process");
 
+// Debug flag
 const debug = true;
 
 // Set args
@@ -43,11 +44,51 @@ let results = runTests(tests);
 
 // Output test results
 console.log(results);
+
 exit();
 
-function runTests(tests) {
+async function runTests(tests) {
   let results = [];
-  
+  tests.forEach(async (test) => {
+    // Instantiate browser
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    const recorder = new PuppeteerScreenRecorder(page);
+    // Iterate through actions
+    for (var i = 0; i < test.actions.length(); i++) {
+      let action = test.actions[i];
+      let path = "";
+      switch (action.action) {
+        case "open":
+          await page.goto(action.url);
+          break;
+        case "find":
+          break;
+        case "click":
+          break;
+        case "sendKeys":
+          break;
+        case "wait":
+          break;
+        case "screenshot":
+          path = "";
+          await page.screenshot({ path });
+          break;
+        case "imageDiff":
+          break;
+        case "imageFind":
+          break;
+        case "recordStart":
+          path = "";
+          await recorder.start(path);
+          break;
+        case "recordStop":
+          await recorder.stop();
+          break;
+      }
+    }
+    await browser.close();
+  });
   return results;
 }
 
@@ -201,16 +242,3 @@ function setConfig(config, argv) {
   if (argv.ext) config.testExtensions = argv.ext.replace(/\s+/g, "").split(",");
   return config;
 }
-
-(async () => {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  const recorder = new PuppeteerScreenRecorder(page);
-  // await recorder.start("./demo.mp4");
-  await page.goto("https://www.google.com");
-  await page.screenshot({ path: "1.png" });
-  await page.goto("https://www.bing.com");
-  // await page.screenshot({ path: "2.png" });
-  // await recorder.stop();
-  await browser.close();
-})();
