@@ -11,7 +11,42 @@ const debug = true;
 let argv = setArgs(process.argv);
 let config = setConfig(require("./config.json"), argv);
 let files = setFiles(config);
-let tests = [];
+let tests = setTests(files);
+
+console.log(tests);
+exit();
+
+// Parse files for tests
+function setTests(files) {
+  let tests = [];
+  // Loop through test files
+  files.forEach((file) => {
+    let json = {
+      file: file,
+      tests: [],
+    };
+    let line;
+    let lineNumber = 1;
+    let inputFile = new nReadlines(file);
+    let extension = path.extname(file);
+    let fileType = config.fileTypes.find((fileType) =>
+      fileType.extensions.includes(extension)
+    );
+    while ((line = inputFile.next())) {
+      // TODO figure out how to handle closeTestStatement when empty
+      if (line.includes(fileType.openTestStatement)) {
+        let lineAscii = line.toString("ascii");
+        let regexOpen = new RegExp(fileType.openTestStatement, "g");
+        let lineJson = JSON.parse(lineAscii.replace(regexOpen, ""));
+        lineJson.line = lineNumber;
+        json.tests.push(lineJson);
+        tests.push(json);
+      }
+      lineNumber++;
+    }
+  });
+  return tests;
+}
 
 // Set array of test files
 function setFiles(config) {
@@ -58,8 +93,6 @@ function setFiles(config) {
   }
   return files;
 }
-
-exit();
 
 // Define args
 function setArgs(args) {
