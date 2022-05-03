@@ -9,31 +9,47 @@ const fs = require("fs");
 const { exit } = require("process");
 
 const debug = true;
+
+// Set args
 let argv = setArgs(process.argv);
 if (debug) {
   console.log("ARGV:");
   console.log(argv);
 }
 
+// Set config
 let config = setConfig(require("./config.json"), argv);
 if (debug) {
   console.log("CONFIG:");
   console.log(config);
 }
 
+// Set files
 let files = setFiles(config);
 if (debug) {
   console.log("FILES:");
   console.log(files);
 }
 
+// Set tests
 let tests = setTests(files);
 if (debug) {
   console.log("TESTS:");
   console.log(tests);
 }
 
+// Run tests
+let results = runTests(tests);
+
+// Output test results
+console.log(results);
 exit();
+
+function runTests(tests) {
+  let results = [];
+  
+  return results;
+}
 
 // Parse files for tests
 function setTests(files) {
@@ -70,7 +86,7 @@ function setTests(files) {
       tests.push(testJson);
     }
   });
-  
+
   return tests;
 }
 
