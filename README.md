@@ -24,6 +24,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 *   Multi-line test actions
 *   Take screenshots
 *   Compare in-test screenshots to previously captured screenshots
+*   Test if a referenced image (such as an icon) is present in captured screenshot
 *   Move the cursor to a page element
 *   Scroll the window
 *   Record videos
