@@ -48,7 +48,6 @@ async function runTests(tests) {
     // Instantiate browser
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    const recorder = new PuppeteerScreenRecorder(page);
     // Iterate through actions
     for (var i = 0; i < test.actions.length; i++) {
       let action = test.actions[i];
@@ -111,32 +110,33 @@ async function runTests(tests) {
         case "imageFind":
           console.log("imagefind");
           break;
-        case "recordStart":
-          console.log("recordstart");
-          // Set filename
-          if (action.filename) {
-            filename = action.filename;
-          } else {
-            filename = `${test.id}-${uuid.v4()}-${i}.mp4`;
-          }
-          // Set directory
-          if (action.imageDirectory) {
-            filePath = action.videoDirectory;
-          } else {
-            filePath = config.videoDirectory;
-          }
-          if (!fs.existsSync(filePath)) {
-            console.log("Error: Invalid videoDirectory");
-            continue;
-          }
-          filePath = path.join(filePath, filename);
-          console.log(filePath);
-          await recorder.start(path);
-          break;
-        case "recordStop":
-          console.log("recordstop");
-          await recorder.stop();
-          break;
+        // case "recordStart":
+        //   console.log("recordstart");
+        //   // Set filename
+        //   if (action.filename) {
+        //     filename = action.filename;
+        //   } else {
+        //     filename = `${test.id}-${uuid.v4()}-${i}.mp4`;
+        //   }
+        //   // Set directory
+        //   if (action.imageDirectory) {
+        //     filePath = action.videoDirectory;
+        //   } else {
+        //     filePath = config.videoDirectory;
+        //   }
+        //   if (!fs.existsSync(filePath)) {
+        //     console.log("Error: Invalid videoDirectory");
+        //     continue;
+        //   }
+        //   filePath = path.join(filePath, filename);
+        //   console.log(filePath);
+        //   const recorder = new PuppeteerScreenRecorder(page);
+        //   await recorder.start(filePath);
+        //   break;
+        // case "recordStop":
+        //   console.log("recordstop");
+        //   await recorder.stop();
+        //   break;
       }
     }
     await browser.close();

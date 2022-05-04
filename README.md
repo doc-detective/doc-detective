@@ -13,22 +13,23 @@ Unit test documentation that references a UI with test or images. Primarily usef
 *   Maintain consisntent test IDs
 *   Support close test tags
 *   Add PASS/WARNING/FAIL results to results array
+*   Break test action code into functions
 
 ## MVP features
 
-*   Iterate through files/folders to identify, parse, and execute tests
-*   Tests may be defined in their own files or single-sourced within documentation
+*   **Done!** Iterate through files/folders to identify, parse, and execute tests
+*   **Done!** Tests may be defined in their own files or single-sourced within documentation
 *   Configurable test file types and test opening/closing markup
 *   Find a page element based on CSS
 *   Find a page element based on exact matching text
 *   Click a page element
 *   Send key strokes to a page element
-*   Single-line test actions
+*   **Done!** Single-line test actions
 
 ## Post-MVP features
 
 *   Multi-line test actions
-*   Take screenshots
+*   **Done!** Take screenshots
 *   Compare in-test screenshots to previously captured screenshots
 *   Test if a referenced image (such as an icon) is present in captured screenshot
 *   Move the cursor to a page element
