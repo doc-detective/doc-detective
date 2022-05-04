@@ -107,7 +107,24 @@ async function runTests(tests) {
           break;
         case "recordStart":
           console.log("recordstart");
-          path = "";
+          // Set filename
+          if (action.filename) {
+            filename = action.filename;
+          } else {
+            filename = `${test.id}-${uuid.v4()}-${i}.mp4`;
+          }
+          // Set directory
+          if (action.imageDirectory) {
+            filePath = action.videoDirectory;
+          } else {
+            filePath = config.videoDirectory;
+          }
+          if (!fs.existsSync(filePath)) {
+            console.log("Error: Invalid videoDirectory");
+            continue;
+          }
+          filePath = path.join(filePath, filename);
+          console.log(filePath);
           await recorder.start(path);
           break;
         case "recordStop":
