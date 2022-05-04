@@ -12,7 +12,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 
 *   Maintain consisntent test IDs
 *   Support close test tags
-*   Add results to results array
+*   Add PASS/WARNING/FAIL results to results array
 
 ## MVP features
 
