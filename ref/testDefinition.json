@@ -13,8 +13,9 @@
         "ENTER is a reserved enum that triggers the Enter key."
       ],
       "duration": "In seconds. Only for wait action.",
-      "imagePath": "Override for the default imagePath config. Default is config.imageDir + test.id + action object number",
-      "videoPath": "Override for the default videoPath config."
+      "imageDirectory": "Override for the default imagePath config. Default is config.imageDir.",
+      "videoDirectory": "Override for the default videoPath config. Default is config.videoDirectory.",
+      "filename": "Default is test.id + action object number."
     }
   ]
 }

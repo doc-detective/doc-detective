@@ -40,12 +40,7 @@ if (debug) {
 }
 
 // Run tests
-let results = runTests(tests);
-
-// Output test results
-console.log(results);
-
-exit();
+runTests(tests);
 
 async function runTests(tests) {
   let results = [];
@@ -55,41 +50,75 @@ async function runTests(tests) {
     const page = await browser.newPage();
     const recorder = new PuppeteerScreenRecorder(page);
     // Iterate through actions
-    for (var i = 0; i < test.actions.length(); i++) {
+    for (var i = 0; i < test.actions.length; i++) {
       let action = test.actions[i];
-      let path = "";
+      let filename = "";
+      let filePath = "";
       switch (action.action) {
         case "open":
-          await page.goto(action.url);
+          if (debug) console.log("open");
+          let uri = action.uri;
+          // Check necessary values
+          if (uri === "") console.log("error");
+          // Catch common formatting errors
+          if (!uri.includes("://")) uri = "https://" + uri;
+          // Run action
+          await page.goto(uri);
           break;
         case "find":
+          console.log("find");
           break;
         case "click":
+          console.log("click");
           break;
         case "sendKeys":
+          console.log("keys");
           break;
         case "wait":
+          console.log("wait");
           break;
         case "screenshot":
-          path = "";
-          await page.screenshot({ path });
+          console.log("screenshot");
+          // Set filename
+          if (action.filename) {
+            filename = action.filename;
+          } else {
+            filename = `${test.id}-${uuid.v4()}-${i}.png`;
+          }
+          // Set directory
+          if (action.imageDirectory) {
+            filePath = action.imageDirectory;
+          } else {
+            filePath = config.imageDirectory;
+          }
+          if (!fs.existsSync(filePath)) {
+            console.log("Error: Invalid imageDirectory");
+            continue;
+          }
+          filePath = path.join(filePath, filename);
+          console.log(filePath);
+          await page.screenshot({ path: filePath });
           break;
         case "imageDiff":
+          console.log("imagediff");
           break;
         case "imageFind":
+          console.log("imagefind");
           break;
         case "recordStart":
+          console.log("recordstart");
           path = "";
           await recorder.start(path);
           break;
         case "recordStop":
+          console.log("recordstop");
           await recorder.stop();
           break;
       }
     }
     await browser.close();
   });
-  return results;
+  console.log(results);
 }
 
 // Parse files for tests
