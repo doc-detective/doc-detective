@@ -12,7 +12,7 @@
         "Strings of keys of enter. Only for sendKeys action.",
         "ENTER is a reserved enum that triggers the Enter key."
       ],
-      "duration": "In seconds. Only for wait action.",
+      "duration": "In milliseconds. Only for wait action.",
       "imageDirectory": "Override for the default imagePath config. Default is config.imageDir.",
       "videoDirectory": "Override for the default videoPath config. Default is config.videoDirectory.",
       "filename": "Default is test.id + action object number."

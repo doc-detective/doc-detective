@@ -76,6 +76,12 @@ async function runTests(tests) {
           break;
         case "wait":
           console.log("wait");
+          if (action.duration === "") {
+            let duration = 1000;
+          } else {
+            duration = action.duration;
+          }
+          page.waitForTimeout(duration);
           break;
         case "screenshot":
           console.log("screenshot");
