@@ -53,63 +53,54 @@ async function runTests(tests) {
       let action = test.actions[i];
       let filename = "";
       let filePath = "";
-      switch (action.action) {
-        case "open":
-          if (debug) console.log("open");
-          let uri = action.uri;
-          // Check necessary values
-          if (uri === "") console.log("error");
-          // Catch common formatting errors
-          if (!uri.includes("://")) uri = "https://" + uri;
-          // Run action
-          await page.goto(uri);
-          break;
-        case "find":
-          console.log("find");
-          break;
-        case "click":
-          console.log("click");
-          break;
-        case "sendKeys":
-          console.log("keys");
-          break;
-        case "wait":
-          console.log("wait");
-          if (action.duration === "") {
-            let duration = 1000;
-          } else {
-            duration = action.duration;
-          }
-          page.waitForTimeout(duration);
-          break;
-        case "screenshot":
-          console.log("screenshot");
-          // Set filename
-          if (action.filename) {
-            filename = action.filename;
-          } else {
-            filename = `${test.id}-${uuid.v4()}-${i}.png`;
-          }
-          // Set directory
-          if (action.imageDirectory) {
-            filePath = action.imageDirectory;
-          } else {
-            filePath = config.imageDirectory;
-          }
-          if (!fs.existsSync(filePath)) {
-            console.log("Error: Invalid imageDirectory");
-            continue;
-          }
-          filePath = path.join(filePath, filename);
-          console.log(filePath);
-          await page.screenshot({ path: filePath });
-          break;
-        case "imageDiff":
-          console.log("imagediff");
-          break;
-        case "imageFind":
-          console.log("imagefind");
-          break;
+      if (action.action === "open") {
+        if (debug) console.log("open");
+        let uri = action.uri;
+        // Check necessary values
+        if (uri === "") console.log("error");
+        // Catch common formatting errors
+        if (!uri.includes("://")) uri = "https://" + uri;
+        // Run action
+        await page.goto(uri);
+      } else if (action.action === "find") {
+        console.log("find");
+      } else if (action.action === "click") {
+        console.log("click");
+      } else if (action.action === "sendKeys") {
+        console.log("keys");
+      } else if (action.action === "wait") {
+        console.log("wait");
+        if (action.duration === "") {
+          duration = 1000;
+        } else {
+          duration = action.duration;
+        }
+        await page.waitForTimeout(duration);
+      } else if (action.action === "screenshot") {
+        console.log("screenshot");
+        // Set filename
+        if (action.filename) {
+          filename = action.filename;
+        } else {
+          filename = `${test.id}-${uuid.v4()}-${i}.png`;
+        }
+        // Set directory
+        if (action.imageDirectory) {
+          filePath = action.imageDirectory;
+        } else {
+          filePath = config.imageDirectory;
+        }
+        if (!fs.existsSync(filePath)) {
+          console.log("Error: Invalid imageDirectory");
+          continue;
+        }
+        filePath = path.join(filePath, filename);
+        console.log(filePath);
+        await page.screenshot({ path: filePath });
+        // } else if (action.action === "imageDiff") {
+        //   console.log("imagediff");
+        // } else if (action.action === "imageFind") {
+        //   console.log("imagefind");
         // case "recordStart":
         //   console.log("recordstart");
         //   // Set filename
