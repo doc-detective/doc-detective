@@ -8,6 +8,12 @@ Unit test documentation that references a UI with test or images. Primarily usef
 
 `doc-unit-test` uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshoting and video recording.
 
+## Open issues
+
+*   Maintain consisntent test IDs
+*   Support close test tags
+*   Add results to results array
+
 ## MVP features
 
 *   Iterate through files/folders to identify, parse, and execute tests
