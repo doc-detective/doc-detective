@@ -51,8 +51,10 @@ async function runTests(tests) {
     // Iterate through actions
     for (var i = 0; i < test.actions.length; i++) {
       let action = test.actions[i];
+      if (debug) console.log(action);
       let filename = "";
       let filePath = "";
+      let selector = "";
       if (action.action === "open") {
         if (debug) console.log("open");
         let uri = action.uri;
@@ -64,10 +66,23 @@ async function runTests(tests) {
         await page.goto(uri);
       } else if (action.action === "find") {
         console.log("find");
+        if (action.element_xpath) {
+          selector = action.element_xpath;
+        } else {
+          selector = "//";
+          if (action.element_type) selector = selector + action.element_type;
+          if (!action.element_type) selector = selector + "*";          
+          if (action.element_id) selector = `${selector}[@id="${action.element_id}"]`;
+          if (action.element_class) selector = `${selector}[contains(concat(' ',normalize-space(@class),' '),' ${action.element_class} ')]`;
+          if (action.element_text) selector = `${selector}[contains(., "${action.element_text}")]`;
+        }
+        await page.$x(selector);
       } else if (action.action === "click") {
         console.log("click");
       } else if (action.action === "sendKeys") {
         console.log("keys");
+        // let selector = "";
+        // await page.type(selector, action.keys);
       } else if (action.action === "wait") {
         console.log("wait");
         if (action.duration === "") {
