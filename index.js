@@ -55,6 +55,7 @@ async function runTests(tests) {
       let filename = "";
       let filePath = "";
       let selector = "";
+      let elements = [];
       if (action.action === "open") {
         if (debug) console.log("open");
         let uri = action.uri;
@@ -66,17 +67,30 @@ async function runTests(tests) {
         await page.goto(uri);
       } else if (action.action === "find") {
         console.log("find");
-        if (action.element_xpath) {
-          selector = action.element_xpath;
+        if (!action.css) console.log("Error: 'css' is a required field.");
+        elements = await page.$$eval(action.css, (elements) =>
+          elements.map((element) => element.outerHTML)
+        );
+        if (elements.length === 0)
+          console.log("Error: No elements matched CSS selectors.");
+        if (elements.length > 1)
+          console.log("Error: More than one element matched CSS selectors.");
+        let elementTag = await page.$eval(action.css, (element) =>
+          element.tagName.toLowerCase()
+        );
+        let elementText = await page.$eval(
+          action.css,
+          (element) => element.textContent
+        );
+        let elementValue = await page.$eval(
+          action.css,
+          (element) => element.value
+        );
+        if (elementTag === "button" || elementTag === "input") {
+          if (elementValue === action.text) console.log("Text match!");
         } else {
-          selector = "//";
-          if (action.element_type) selector = selector + action.element_type;
-          if (!action.element_type) selector = selector + "*";          
-          if (action.element_id) selector = `${selector}[@id="${action.element_id}"]`;
-          if (action.element_class) selector = `${selector}[contains(concat(' ',normalize-space(@class),' '),' ${action.element_class} ')]`;
-          if (action.element_text) selector = `${selector}[contains(., "${action.element_text}")]`;
+          if (elementText === action.text) console.log("Text match!");
         }
-        await page.$x(selector);
       } else if (action.action === "click") {
         console.log("click");
       } else if (action.action === "sendKeys") {
