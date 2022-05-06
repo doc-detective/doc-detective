@@ -44,9 +44,10 @@ runTests(tests);
 
 async function runTests(tests) {
   let results = [];
-  tests.forEach(async (test) => {
     // Instantiate browser
     const browser = await puppeteer.launch();
+  tests.forEach(async (test) => {
+    // Instantiate page
     const page = await browser.newPage();
     // Iterate through actions
     for (var i = 0; i < test.actions.length; i++) {
@@ -159,8 +160,9 @@ async function runTests(tests) {
         //   break;
       }
     }
-    await browser.close();
+    await page.close();
   });
+    await browser.close();
   console.log(results);
 }
 
