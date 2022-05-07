@@ -57,6 +57,11 @@ async function runAction(actions, page, results) {
       if (result.result.status === "FAIL") break;
       result = await matchText(action, page);
       break;
+    case "click":
+      result = await findElement(action, page);
+      if (result.result.status === "FAIL") break;
+      result = await clickElement(action, result.elementHandle);
+      break;
   }
   // console.log(result);
   results.push(result.result);
@@ -68,6 +73,26 @@ async function runAction(actions, page, results) {
   return results;
 }
 
+// Click an element.  Assumes findElement() only found one matching element.
+async function clickElement(action, elementHandle) {
+  let status;
+  let description;
+  let result;
+  try {
+    elementHandle.click();
+  } catch {
+    // FAIL: Text didn't match
+    status = "FAIL";
+    description = `Couldn't click element.`;
+    result = { action, status, description };
+    return { result };
+  }
+  // PASS
+  status = "PASS";
+  description = `Clicked element.`;
+  result = { action, status, description };
+  return { result };
+}
 // Identify if text in element matches expected text. Assumes findElement() only found one matching element.
 async function matchText(action, page) {
   let status;
