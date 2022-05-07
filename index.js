@@ -7,6 +7,7 @@ const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
 const { exit } = require("process");
+const { isAsyncFunction } = require("util/types");
 
 // Debug flag
 const debug = true;
@@ -62,6 +63,11 @@ async function runAction(actions, page, results) {
       if (result.result.status === "FAIL") break;
       result = await clickElement(action, result.elementHandle);
       break;
+    case "type":
+      result = await findElement(action, page);
+      if (result.result.status === "FAIL") break;
+      result = await typeElement(action, result.elementHandle);
+      break;
   }
   // console.log(result);
   results.push(result.result);
@@ -71,6 +77,47 @@ async function runAction(actions, page, results) {
     results = await runAction(actions, page, results);
   }
   return results;
+}
+
+// Click an element.  Assumes findElement() only found one matching element.
+async function typeElement(action, elementHandle) {
+  let status;
+  let description;
+  let result;
+  if (!action.keys && !action.trailingSpecialKey) {
+    // Fail: No keys specified
+    status = "FAIL";
+    description = `Specified values for 'keys and/ot 'trailingSpecialKey'."`;
+    result = { action, status, description };
+    return { result };
+  }
+  if (action.keys) {
+    try {
+      elementHandle.type(action.keys);
+    } catch {
+      // FAIL: Text didn't match
+      status = "FAIL";
+      description = `Couldn't type keys.`;
+      result = { action, status, description };
+      return { result };
+    }
+  }
+  if (action.trailingSpecialKey) {
+    try {
+      elementHandle.press(action.trailingSpecialKey);
+    } catch {
+      // FAIL: Text didn't match
+      status = "FAIL";
+      description = `Couldn't type special key.`;
+      result = { action, status, description };
+      return { result };
+    }
+  }
+  // PASS
+  status = "PASS";
+  description = `Typed keys.`;
+  result = { action, status, description };
+  return { result };
 }
 
 // Click an element.  Assumes findElement() only found one matching element.
