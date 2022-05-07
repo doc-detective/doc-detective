@@ -50,11 +50,10 @@ async function runAction(actions, page, results) {
       result = await openUri(action, page);
       break;
     case "find":
-      console.log("find");
-      results.push("find");
+      result = await findElement(action, page);
       break;
   }
-  results.push(result);
+  results.push(result.result);
   actions.shift();
   if (actions.length > 0) {
     results = await runAction(actions, page, results);
@@ -62,14 +61,48 @@ async function runAction(actions, page, results) {
   return results;
 }
 
+// Find a single element
+async function findElement(action, page) {
+  if (!action.css) {
+    // FAIL: No CSS
+    let status = "FAIL";
+    let description = "'css' is a required field.";
+    let result = { action, status, description };
+    return { result };
+  }
+  let elements = await page.$$eval(action.css, (elements) =>
+    elements.map((element) => element.outerHTML)
+  );
+  if (elements.length === 0) {
+    // FAIL: No CSS
+    let status = "FAIL";
+    let description = " No elements matched CSS selectors.";
+    let result = { action, status, description };
+    return { result };
+  } else if (elements.length > 1) {
+    // FAIL: No CSS
+    let status = "FAIL";
+    let description = "More than one element matched CSS selectors.";
+    let result = { action, status, description };
+    return { result };
+  } else {
+    // PASS
+    let element = elements[0];
+    let status = "PASS";
+    let description = "Found one element matching CSS selectors.";
+    let result = { action, status, description };
+    return { result, element };
+  }
+}
+
 // Open a URI in the browser
 async function openUri(action, page) {
   if (!action.uri) {
-    // Failure: No URI
+    // FAIL: No URI
     let status = "FAIL";
     let description = "'uri' is a required field.";
     let result = { action, status, description };
-    return result;
+    return { result };
   }
   let uri = action.uri;
   // Check necessary values
@@ -80,17 +113,17 @@ async function openUri(action, page) {
   try {
     await page.goto(uri);
   } catch {
-    // Failure: Error opening URI
+    // FAIL: Error opening URI
     let status = "FAIL";
     let description = "Couldn't open URI.";
     let result = { action, status, description };
-    return result;
+    return { result };
   }
   // PASS
   let status = "PASS";
   let description = "Opened URI.";
   let result = { action, status, description };
-  return result;
+  return { result };
 }
 
 async function runTests(tests) {
