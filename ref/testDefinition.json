@@ -4,7 +4,7 @@
   "actions": [
     {
       "line": "The line number that the test action definition begins on.",
-      "action": "open/find/match/click/sendKeys/wait/screenshot/recordStart/recordStop/imageDiff/curl",
+      "action": "open/find/matchText/click/sendKeys/wait/screenshot/recordStart/recordStop/imageDiff/curl",
       "uri": "www.google.com",
       "css": "CSS selectors that resolve to the element. Only returns the first element that matches the selectors.",
       "keys": "Strings of keys of enter. Only for sendKeys action. ENTER is a reserved enum that triggers the Enter key.",
