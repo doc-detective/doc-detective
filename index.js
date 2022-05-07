@@ -89,14 +89,12 @@ async function matchText(action, page) {
   }
   if (elementText === action.text) {
     // PASS
-    console.log("match pass");
     status = "PASS";
     description = "Element text matched expected text.";
     result = { action, status, description };
     return { result };
   } else {
     // FAIL: Text didn't match
-    console.log("match fail");
     status = "FAIL";
     description = `Element text didn't match expected text. Element text: ${elementText}`;
     result = { action, status, description };
@@ -130,11 +128,11 @@ async function findElement(action, page) {
     return { result };
   } else {
     // PASS
-    let element = elements[0];
+    let elementHandle = await page.$(action.css);
     let status = "PASS";
     let description = "Found one element matching CSS selectors.";
     let result = { action, status, description };
-    return { result, element };
+    return { result, elementHandle };
   }
 }
 
