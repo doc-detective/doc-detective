@@ -20,8 +20,8 @@ Unit test documentation that references a UI with test or images. Primarily usef
 *   **Done!** Iterate through files/folders to identify, parse, and execute tests
 *   **Done!** Tests may be defined in their own files or single-sourced within documentation
 *   Configurable test file types and test opening/closing markup
-*   **Done!**Find a page element based on CSS
-*   **Done!**Find a page element based on exact matching text
+*   **Done!** Find a page element based on CSS
+*   **Done!** Check if a found element matches expected text
 *   Click a page element
 *   Send key strokes to a page element
 *   **Done!** Single-line test actions
@@ -29,7 +29,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 ## Post-MVP features
 
 *   Multi-line test actions
-*   Find element by CSS selectors
+*   Test curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
 *   **Done!** Take screenshots
 *   Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)
 *   Test if a referenced image (such as an icon) is present in captured screenshot
