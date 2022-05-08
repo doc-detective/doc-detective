@@ -29,6 +29,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 ## Post-MVP features
 
 *   Multi-line test actions
+*   Ingest array of tests as an argument
 *   Test curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
 *   **Done!** Take screenshots
 *   Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)
