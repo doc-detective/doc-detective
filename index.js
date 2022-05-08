@@ -68,6 +68,9 @@ async function runAction(actions, page, results) {
       if (result.result.status === "FAIL") break;
       result = await typeElement(action, result.elementHandle);
       break;
+    case "wait":
+      result = await wait(action, page);
+      break;
   }
   // console.log(result);
   results.push(result.result);
@@ -77,6 +80,23 @@ async function runAction(actions, page, results) {
     results = await runAction(actions, page, results);
   }
   return results;
+}
+
+async function wait(action, page) {
+  let status;
+  let description;
+  let result;
+  if (action.duration === "") {
+    duration = 1000;
+  } else {
+    duration = action.duration;
+  }
+  await page.waitForTimeout(duration);
+  // PASS
+  status = "PASS";
+  description = `Wait complete.`;
+  result = { action, status, description };
+  return { result };
 }
 
 // Click an element.  Assumes findElement() only found one matching element.

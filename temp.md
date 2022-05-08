@@ -3,3 +3,4 @@
 // test {"action":"type", "css":"[title=Search]", "trailingSpecialKey":"Enter"}
 // test {"action":"matchText", "css":"#gbqfbb", "text":"I'm Feeling Lucky"}
 // test {"action":"click", "css":"#gbqfbb"}
+// test {"action":"wait", "duration":"500"}
