@@ -43,37 +43,68 @@ if (debug) {
 // Run tests
 runTests(tests);
 
+async function runTests(tests) {
+  const testResults = [];
+  // Instantiate browser
+  const browser = await puppeteer.launch({ headless: false, slowMo: 50 });
+
+  // Iterate tests
+  for (const test of tests) {
+    // Instantiate page
+    const page = await browser.newPage();
+    // Iterate through actions
+
+    // XANDER CODE
+    const results = [];
+    for (const action of test.actions) {
+      results.push(await runAction(action, page));
+    }
+    testResults.push(results);
+
+    // MANUEL CODE
+    // const resolve = test.actions.reduce(async (previousPromise, nextAction) => {
+    //   await previousPromise;
+    //   return runAction(nextAction, page);
+    // }, Promise.resolve());
+    // testResults.push(await resolve);
+  }
+  await browser.close();
+  console.log("RESULTS:");
+  console.log(testResults);
+}
+
 async function runAction(action, page) {
   let result = "";
   switch (action.action) {
     case "goTo":
       result = await openUri(action, page);
-      return await result.result;
+      break;
     case "find":
       result = await findElement(action, page);
-      return await result.result;
+      break;
     case "matchText":
       find = await findElement(action, page);
       if (find.result.status === "FAIL") return find;
       result = await matchText(action, page);
-      return await result.result;
+      break;
     case "click":
       find = await findElement(action, page);
       if (find.result.status === "FAIL") return find;
       result = await clickElement(action, find.elementHandle);
-      return await result.result;
+      break;
     case "type":
       find = await findElement(action, page);
       if (find.result.status === "FAIL") return find;
       result = await typeElement(action, find.elementHandle);
-      return await result.result;
+      break;
     case "wait":
       result = await wait(action, page);
-      return await result.result;
+      break;
     case "screenshot":
       // result = await screenshot(action, page);
       break;
   }
+  return await result.result;
 }
 
 async function screenshot(action, page) {
@@ -293,36 +324,6 @@ async function openUri(action, page) {
   let description = "Opened URI.";
   let result = { action, status, description };
   return { result };
-}
-
-async function runTests(tests) {
-  const testResults = [];
-  // Instantiate browser
-  const browser = await puppeteer.launch({ headless: false, slowMo: 50 });
-
-  // Iterate tests
-  for (const test of tests) {
-    // Instantiate page
-    const page = await browser.newPage();
-    // Iterate through actions
-
-    // XANDER CODE
-    const results = [];
-    for (const action of test.actions) {
-      results.push(await runAction(action, page));
-    }
-    testResults.push(results);
-
-    // MANUEL CODE
-    // const resolve = test.actions.reduce(async (previousPromise, nextAction) => {
-    //   await previousPromise;
-    //   return runAction(nextAction, page);
-    // }, Promise.resolve());
-    // testResults.push(await resolve);
-  }
-  await browser.close();
-  console.log("RESULTS:");
-  console.log(testResults);
 }
 
 // async function runTests(tests) {
