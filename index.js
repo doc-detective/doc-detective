@@ -179,7 +179,7 @@ async function typeElement(action, elementHandle) {
   }
   if (action.keys) {
     try {
-      elementHandle.type(action.keys);
+      await elementHandle.type(action.keys);
     } catch {
       // FAIL: Text didn't match
       status = "FAIL";
@@ -190,7 +190,7 @@ async function typeElement(action, elementHandle) {
   }
   if (action.trailingSpecialKey) {
     try {
-      elementHandle.press(action.trailingSpecialKey);
+      await elementHandle.press(action.trailingSpecialKey);
     } catch {
       // FAIL: Text didn't match
       status = "FAIL";
@@ -212,7 +212,7 @@ async function clickElement(action, elementHandle) {
   let description;
   let result;
   try {
-    elementHandle.click();
+    await elementHandle.click();
   } catch {
     // FAIL: Text didn't match
     status = "FAIL";
