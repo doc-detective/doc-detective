@@ -12,8 +12,6 @@ Unit test documentation that references a UI with test or images. Primarily usef
 
 *   Maintain consisntent test IDs
 *   Support close test tags
-*   Add PASS/WARNING/FAIL results to results array
-*   Break test action code into functions
 
 ## MVP features
 
@@ -22,8 +20,8 @@ Unit test documentation that references a UI with test or images. Primarily usef
 *   Configurable test file types and test opening/closing markup
 *   **Done!** Find a page element based on CSS
 *   **Done!** Check if a found element matches expected text
-*   Click a page element
-*   Send key strokes to a page element
+*   **Done!** Click a page element
+*   **Done!** Send key strokes to a page element
 *   **Done!** Single-line test actions
 
 ## Post-MVP features
