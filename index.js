@@ -101,7 +101,7 @@ async function runAction(action, page) {
       result = await wait(action, page);
       break;
     case "screenshot":
-      // result = await screenshot(action, page);
+      result = await screenshot(action, page);
       break;
   }
   return await result.result;
@@ -326,7 +326,6 @@ async function openUri(action, page) {
   return { result };
 }
 
-// async function runTests(tests) {
 //   let results = [];
 //   // Instantiate browser
 //   const browser = await puppeteer.launch();
