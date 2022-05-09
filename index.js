@@ -43,43 +43,78 @@ if (debug) {
 // Run tests
 runTests(tests);
 
-async function runAction(actions, page, results) {
-  let action = actions[0];
-  let result;
+async function runAction(action, page) {
+  let result = "";
   switch (action.action) {
-    case "open":
+    case "goTo":
       result = await openUri(action, page);
-      break;
+      return await result.result;
     case "find":
       result = await findElement(action, page);
-      break;
+      return await result.result;
     case "matchText":
-      result = await findElement(action, page);
-      if (result.result.status === "FAIL") break;
+      find = await findElement(action, page);
+      if (find.result.status === "FAIL") return find;
       result = await matchText(action, page);
-      break;
+      return await result.result;
     case "click":
-      result = await findElement(action, page);
-      if (result.result.status === "FAIL") break;
-      result = await clickElement(action, result.elementHandle);
-      break;
+      find = await findElement(action, page);
+      if (find.result.status === "FAIL") return find;
+      result = await clickElement(action, find.elementHandle);
+      return await result.result;
     case "type":
-      result = await findElement(action, page);
-      if (result.result.status === "FAIL") break;
-      result = await typeElement(action, result.elementHandle);
-      break;
+      find = await findElement(action, page);
+      if (find.result.status === "FAIL") return find;
+      result = await typeElement(action, find.elementHandle);
+      return await result.result;
     case "wait":
       result = await wait(action, page);
+      return await result.result;
+    case "screenshot":
+      // result = await screenshot(action, page);
       break;
   }
-  // console.log(result);
-  results.push(result.result);
-  // Remove first item from array
-  actions.shift();
-  if (actions.length > 0) {
-    results = await runAction(actions, page, results);
+}
+
+async function screenshot(action, page) {
+  let status;
+  let description;
+  let result;
+  // Set filename
+  if (action.filename) {
+    filename = action.filename;
+  } else {
+    filename = `${test.id}-${uuid.v4()}-${i}.png`;
   }
-  return results;
+  // Set directory
+  if (action.directory) {
+    filePath = action.directory;
+  } else {
+    filePath = config.imageDirectory;
+  }
+  if (!fs.existsSync(filePath)) {
+    // FAIL: Invalid path
+    status = "FAIL";
+    description = `Invalid directory path.`;
+    result = { action, status, description };
+    return { result };
+  }
+  filePath = path.join(filePath, filename);
+  console.log(filePath);
+  try {
+    await page.screenshot({ path: filePath });
+  } catch {
+    // FAIL: Couldn't capture screenshot
+    status = "FAIL";
+    description = `Couldn't capture screenshot.`;
+    result = { action, status, description };
+    return { result };
+  }
+  // PASS
+  status = "PASS";
+  description = `Captured screenshot: ${filePath}`;
+  result = { action, status, description };
+  return { result };
 }
 
 async function wait(action, page) {
@@ -160,6 +195,7 @@ async function clickElement(action, elementHandle) {
   result = { action, status, description };
   return { result };
 }
+
 // Identify if text in element matches expected text. Assumes findElement() only found one matching element.
 async function matchText(action, page) {
   let status;
@@ -260,17 +296,33 @@ async function openUri(action, page) {
 }
 
 async function runTests(tests) {
+  const testResults = [];
   // Instantiate browser
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({ headless: false, slowMo: 50 });
+
   // Iterate tests
-  tests.forEach(async (test) => {
+  for (const test of tests) {
     // Instantiate page
     const page = await browser.newPage();
     // Iterate through actions
-    let results = await runAction(test.actions, page, []);
-    console.log(results);
-    await browser.close();
-  });
+
+    // XANDER CODE
+    const results = [];
+    for (const action of test.actions) {
+      results.push(await runAction(action, page));
+    }
+    testResults.push(results);
+
+    // MANUEL CODE
+    // const resolve = test.actions.reduce(async (previousPromise, nextAction) => {
+    //   await previousPromise;
+    //   return runAction(nextAction, page);
+    // }, Promise.resolve());
+    // testResults.push(await resolve);
+  }
+  await browser.close();
+  console.log("RESULTS:");
+  console.log(testResults);
 }
 
 // async function runTests(tests) {
