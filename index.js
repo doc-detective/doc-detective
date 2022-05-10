@@ -10,31 +10,31 @@ const { exit } = require("process");
 const { isAsyncFunction } = require("util/types");
 
 // Debug flag
-const debug = true;
+const debug = false;
 
 // Set args
-let argv = setArgs(process.argv);
+const argv = setArgs(process.argv);
 if (debug) {
   console.log("ARGV:");
   console.log(argv);
 }
 
 // Set config
-let config = setConfig(require("./config.json"), argv);
+const config = setConfig(require("./config.json"), argv);
 if (debug) {
   console.log("CONFIG:");
   console.log(config);
 }
 
 // Set files
-let files = setFiles(config);
+const files = setFiles(config);
 if (debug) {
   console.log("FILES:");
   console.log(files);
 }
 
 // Set tests
-let tests = setTests(files);
+const tests = setTests(files);
 if (debug) {
   console.log("TESTS:");
   console.log(tests);
@@ -52,7 +52,7 @@ runTests(tests);
 async function runTests(tests) {
   const testResults = [];
   // Instantiate browser
-  const browser = await puppeteer.launch({ headless: false, slowMo: 50 });
+  const browser = await puppeteer.launch({ headless: true, slowMo: 50 });
 
   // Iterate tests
   for (const test of tests) {
