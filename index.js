@@ -532,8 +532,7 @@ function setTests(files) {
       // TODO figure out how to handle closeTestStatement when empty
       if (line.includes(fileType.openTestStatement)) {
         let lineAscii = line.toString("ascii");
-        let regexOpen = new RegExp(fileType.openTestStatement, "g");
-        let lineJson = JSON.parse(lineAscii.replace(regexOpen, ""));
+        let lineJson = JSON.parse(lineAscii.replace("[comment]: # (test", "").replace(")",""));
         lineJson.line = lineNumber;
         testJson.actions.push(lineJson);
       }

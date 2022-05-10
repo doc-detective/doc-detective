@@ -14,7 +14,7 @@ To use Google Search to find informstion on kittens,
 
 Search results appear on the page.
 
-<img source="results.png" width="200px" alt="Search results for 'kittens'.">
+![Search results for 'kittens'.](results.png)
 
 ## Recommended results
 
