@@ -98,7 +98,7 @@ async function runAction(action, page, recorder) {
       result = await wait(action, page);
       break;
     case "screenshot":
-      // result = await screenshot(action, page);
+      result = await screenshot(action, page);
       break;
     case "startRecording":
       break;
