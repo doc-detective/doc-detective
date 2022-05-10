@@ -38,6 +38,12 @@ let tests = setTests(files);
 if (debug) {
   console.log("TESTS:");
   console.log(tests);
+  console.log("ACTIONS:")
+  tests.forEach(test => {
+    test.actions.forEach(action => {
+      console.log(action);
+    })
+  })
 }
 
 // Run tests
@@ -53,20 +59,11 @@ async function runTests(tests) {
     // Instantiate page
     const page = await browser.newPage();
     // Iterate through actions
-
-    // XANDER CODE
     const results = [];
     for (const action of test.actions) {
       results.push(await runAction(action, page));
     }
     testResults.push(results);
-
-    // MANUEL CODE
-    // const resolve = test.actions.reduce(async (previousPromise, nextAction) => {
-    //   await previousPromise;
-    //   return runAction(nextAction, page);
-    // }, Promise.resolve());
-    // testResults.push(await resolve);
   }
   await browser.close();
   console.log("RESULTS:");
