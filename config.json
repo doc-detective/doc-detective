@@ -17,8 +17,8 @@
         ".md",
         ".mdx"
       ],
-      "openTestStatement": "// test",
-      "closeTestStatement": "",
+      "openTestStatement": "[comment]: # (",
+      "closeTestStatement": ")",
       "openBlockTestStatement": "/* test",
       "closeBlockTestStatement": "*/"
     },
