@@ -73,7 +73,7 @@ async function runTests(tests) {
   console.log(testResults);
 }
 
-async function runAction(action, page) {
+async function runAction(action, page, recorder) {
   let result = "";
   switch (action.action) {
     case "goTo":
@@ -101,13 +101,15 @@ async function runAction(action, page) {
       result = await wait(action, page);
       break;
     case "screenshot":
-      result = await screenshot(action, page);
+      // result = await screenshot(action, page);
+      break;
+    case "startRecording":
       break;
   }
   return await result.result;
 }
 
-async function screenshot(action, page) {
+async function startRecording(action, page) {
   let status;
   let description;
   let result;
@@ -115,7 +117,7 @@ async function screenshot(action, page) {
   if (action.filename) {
     filename = action.filename;
   } else {
-    filename = `${test.id}-${uuid.v4()}-${i}.png`;
+    filename = `${test.id}-${uuid.v4()}.mp4`;
   }
   // Set directory
   if (action.directory) {
@@ -131,7 +133,67 @@ async function screenshot(action, page) {
     return { result };
   }
   filePath = path.join(filePath, filename);
-  console.log(filePath);
+  try {
+    const recorder = new PuppeteerScreenRecorder(page);
+    await recorder.start(filePath);
+  } catch {
+    // FAIL: Couldn't capture screenshot
+    status = "FAIL";
+    description = `Couldn't start recording.`;
+    result = { action, status, description };
+    return { result };
+  }
+  // PASS
+  status = "PASS";
+  description = `Started recording: ${filePath}`;
+  result = { action, status, description };
+  return { result, recorder };
+}
+
+async function stopRecording(recorder) {
+  let status;
+  let description;
+  let result;
+  try {
+    await recorder.stop();
+  } catch {
+    // FAIL: Couldn't capture screenshot
+    status = "FAIL";
+    description = `Couldn't stop recording.`;
+    result = { action, status, description };
+    return { result };
+  }
+  // PASS
+  status = "PASS";
+  description = `Stopped recording: ${filePath}`;
+  result = { action, status, description };
+  return { result };
+}
+
+async function screenshot(action, page) {
+  let status;
+  let description;
+  let result;
+  // Set filename
+  if (action.filename) {
+    filename = action.filename;
+  } else {
+    filename = `${test.id}-${uuid.v4()}.png`;
+  }
+  // Set directory
+  if (action.directory) {
+    filePath = action.directory;
+  } else {
+    filePath = config.imageDirectory;
+  }
+  if (!fs.existsSync(filePath)) {
+    // FAIL: Invalid path
+    status = "FAIL";
+    description = `Invalid directory path.`;
+    result = { action, status, description };
+    return { result };
+  }
+  filePath = path.join(filePath, filename);
   try {
     await page.screenshot({ path: filePath });
   } catch {

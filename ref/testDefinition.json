@@ -1,8 +1,15 @@
 {
   "id": "ID of the test. Must be unique. Generated UUID if not specified.",
   "file": "File the test is defined in. All actions for a given test must be defined in a single file.",
+  "status": "Output only. The status of the test based on test action results. Possible values: PASS, WARNING, FAIL",
   "actions": [
     {
+      "result": {
+        "status": "Output only. The status based on test action results. Possible values: PASS, WARNING, FAIL",
+        "description": "Output only. Explaination of the action result.",
+        "image": "Output only. The file path for an output image.",
+        "video": "Output only. The file path for an output video."
+      },
       "line": "The line number that the test action definition begins on.",
       "action": "goTo/find/matchText/click/type/wait/screenshot/recordStart/recordStop/imageDiff/curl",
       "uri": "www.google.com",
