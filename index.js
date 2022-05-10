@@ -38,12 +38,12 @@ let tests = setTests(files);
 if (debug) {
   console.log("TESTS:");
   console.log(tests);
-  console.log("ACTIONS:")
-  tests.forEach(test => {
-    test.actions.forEach(action => {
+  console.log("ACTIONS:");
+  tests.forEach((test) => {
+    test.actions.forEach((action) => {
       console.log(action);
-    })
-  })
+    });
+  });
 }
 
 // Run tests
@@ -526,13 +526,28 @@ function setTests(files) {
     let fileType = config.fileTypes.find((fileType) =>
       fileType.extensions.includes(extension)
     );
+    if (!fileType) {
+      // Missing filetype options
+      console.log(`Specify options for the ${extension} extension in your config file.`)
+      exit(1);
+    }
 
     // Loop through lines
     while ((line = inputFile.next())) {
-      // TODO figure out how to handle closeTestStatement when empty
+      let lineJson = "";
+      let subStart = "";
+      let subEnd = "";
       if (line.includes(fileType.openTestStatement)) {
-        let lineAscii = line.toString("ascii");
-        let lineJson = JSON.parse(lineAscii.replace("[comment]: # (test", "").replace(")",""));
+        const lineAscii = line.toString("ascii");
+        if (fileType.closeTestStatement) {
+          subEnd = lineAscii.lastIndexOf(fileType.closeTestStatement);
+        } else {
+          subEnd = lineAscii.length;
+        }
+        subStart =
+          lineAscii.indexOf(fileType.openTestStatement) +
+          fileType.openTestStatement.length;
+        lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
         lineJson.line = lineNumber;
         testJson.actions.push(lineJson);
       }

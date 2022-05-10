@@ -11,25 +11,26 @@ Unit test documentation that references a UI with test or images. Primarily usef
 ## Open issues
 
 *   Maintain consisntent test IDs
-*   Support close test tags
+*   Clean results output
+*   Let action-based media filepaths override all directory settings
 
 ## MVP features
 
 *   **Done!** Iterate through files/folders to identify, parse, and execute tests
 *   **Done!** Tests may be defined in their own files or single-sourced within documentation
-*   Configurable test file types and test opening/closing markup
+*   **Done!** Configurable test file types and test opening/closing markup
 *   **Done!** Find a page element based on CSS
 *   **Done!** Check if a found element matches expected text
 *   **Done!** Click a page element
 *   **Done!** Send key strokes to a page element
 *   **Done!** Single-line test actions
+*   **Done!** Take screenshots
 
 ## Post-MVP features
 
 *   Multi-line test actions
-*   Ingest array of tests as an argument
-*   Test curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
-*   **Done!** Take screenshots
+*   Ingest JSON of tests as an argument
+*   Test action for curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
 *   Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)
 *   Test if a referenced image (such as an icon) is present in captured screenshot
 *   Move the cursor to a page element

@@ -17,10 +17,8 @@
         ".md",
         ".mdx"
       ],
-      "openTestStatement": "[comment]: # (",
-      "closeTestStatement": ")",
-      "openBlockTestStatement": "/* test",
-      "closeBlockTestStatement": "*/"
+      "openTestStatement": "[comment]: # (test",
+      "closeTestStatement": ")"
     },
     {
       "extensions": [
@@ -29,9 +27,7 @@
         ".xml"
       ],
       "openTestStatement": "<!-- test",
-      "closeTestStatement": "-->",
-      "openBlockTestStatement": "<!-- test",
-      "closeBlockTestStatement": "-->"
+      "closeTestStatement": "-->"
     }    
   ]
 }
