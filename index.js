@@ -9,54 +9,60 @@ const fs = require("fs");
 const { exit, mainModule } = require("process");
 const { isAsyncFunction } = require("util/types");
 
-// Debug flag
-const debug = false;
+const defaultConfig = require("./config.json");
 
-// Set args
-const argv = setArgs(process.argv);
-if (debug) {
-  console.log("ARGV:");
-  console.log(argv);
-}
+main(defaultConfig, process.argv);
 
-// Set config
-const config = setConfig(require("./config.json"), argv);
-if (debug) {
-  console.log("CONFIG:");
-  console.log(config);
-}
+async function main(config, argv) {
+  // Debug flag
+  const debug = true;
 
-// Set files
-const files = setFiles(config);
-if (debug) {
-  console.log("FILES:");
-  console.log(files);
-}
+  // Set args
+  argv = setArgs(argv);
+  if (debug) {
+    console.log("ARGV:");
+    console.log(argv);
+  }
 
-// Set tests
-const tests = setTests(files);
-if (debug) {
-  console.log("TESTS:");
-  console.log(tests);
-  console.log("ACTIONS:");
-  tests.forEach((test) => {
-    test.actions.forEach((action) => {
-      console.log(action);
+  // Set config
+  config = setConfig(config, argv);
+  if (debug) {
+    console.log("CONFIG:");
+    console.log(config);
+  }
+
+  // Set files
+  const files = setFiles(config);
+  if (debug) {
+    console.log("FILES:");
+    console.log(files);
+  }
+
+  // Set tests
+  const tests = setTests(config, files);
+  if (debug) {
+    console.log("TESTS:");
+    console.log(tests);
+    console.log("ACTIONS:");
+    tests.forEach((test) => {
+      test.actions.forEach((action) => {
+        console.log(action);
+      });
     });
-  });
-}
+  }
 
-main(config, tests);
-
-async function main(config, tests) {
   // Run tests
-  const results = await runTests(tests);
-  console.log(results);
+  const results = await runTests(config, tests);
+  if (debug) {
+    console.log("RESULTS:");
+    console.log(results);
+  }
+
   // Output
   outputResults(config, results);
 }
 
-async function runTests(tests) {
+async function runTests(config, tests) {
   const testResults = [];
   // Instantiate browser
   const browser = await puppeteer.launch({ headless: true, slowMo: 50 });
@@ -68,7 +74,7 @@ async function runTests(tests) {
     // Iterate through actions
     const results = [];
     for (const action of test.actions) {
-      results.push(await runAction(action, page));
+      results.push(await runAction(config, action, page));
     }
     testResults.push(results);
   }
@@ -76,7 +82,7 @@ async function runTests(tests) {
   return await testResults;
 }
 
-async function runAction(action, page, recorder) {
+async function runAction(config, action, page) {
   let result = "";
   switch (action.action) {
     case "goTo":
@@ -104,7 +110,7 @@ async function runAction(action, page, recorder) {
       result = await wait(action, page);
       break;
     case "screenshot":
-      result = await screenshot(action, page);
+      result = await screenshot(action, page, config);
       break;
     case "startRecording":
       break;
@@ -181,7 +187,7 @@ async function stopRecording(recorder) {
   return { result };
 }
 
-async function screenshot(action, page) {
+async function screenshot(action, page, config) {
   let status;
   let description;
   let result;
@@ -400,7 +406,7 @@ async function openUri(action, page) {
 }
 
 // Parse files for tests
-function setTests(files) {
+function setTests(config, files) {
   let tests = [];
 
   // Loop through test files
