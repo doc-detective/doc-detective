@@ -1,6 +1,8 @@
 {
   "testFile": "sample.md",
   "testDirectory": "./tests",
+  "inputPath": "",
+  "outputPath": "results.json",
   "recursive": true,
   "testExtensions": [
     ".md",

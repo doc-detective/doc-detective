@@ -6,7 +6,7 @@ const path = require("path");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
-const { exit } = require("process");
+const { exit, mainModule } = require("process");
 const { isAsyncFunction } = require("util/types");
 
 // Debug flag
@@ -46,8 +46,15 @@ if (debug) {
   });
 }
 
-// Run tests
-runTests(tests);
+main(config, tests);
+
+async function main(config, tests) {
+  // Run tests
+  const results = await runTests(tests);
+  console.log(results);
+  // Output
+  outputResults(config, results);
+}
 
 async function runTests(tests) {
   const testResults = [];
@@ -66,8 +73,7 @@ async function runTests(tests) {
     testResults.push(results);
   }
   await browser.close();
-  console.log("RESULTS:");
-  console.log(testResults);
+  return await testResults;
 }
 
 async function runAction(action, page, recorder) {
@@ -104,6 +110,14 @@ async function runAction(action, page, recorder) {
       break;
   }
   return await result.result;
+}
+
+async function outputResults(config, results) {
+  let data = JSON.stringify(results, null, 2);
+  fs.writeFile(config.outputPath, data, (err) => {
+    if (err) throw err;
+    console.log("The file has been saved!");
+  });
 }
 
 async function startRecording(action, page) {
@@ -405,7 +419,9 @@ function setTests(files) {
     );
     if (!fileType) {
       // Missing filetype options
-      console.log(`Specify options for the ${extension} extension in your config file.`)
+      console.log(
+        `Specify options for the ${extension} extension in your config file.`
+      );
       exit(1);
     }
 
@@ -489,17 +505,27 @@ function setArgs(args) {
   let argv = yargs(hideBin(args))
     .option("config", {
       alias: "c",
-      description: "Path to a custom config file",
+      description: "Path to a custom config file.",
       type: "string",
     })
     .option("testFile", {
       alias: "f",
-      description: "Path to a test",
+      description: "Path to a file to parse for tests.",
       type: "string",
     })
     .option("testDir", {
       alias: "d",
-      description: "Path to a ditectory of tests",
+      description: "Path to a ditectory of files to parse for tests.",
+      type: "string",
+    })
+    .option("inputPath", {
+      alias: "i",
+      description: "Path to a JSON file of tests definitions.",
+      type: "string",
+    })
+    .option("outputPath", {
+      alias: "o",
+      description: "Path for a JSON file of test result output.",
       type: "string",
     })
     .option("recursive", {
@@ -514,12 +540,10 @@ function setArgs(args) {
       type: "string",
     })
     .option("imageDir", {
-      alias: "i",
       description: "Path to image output directory",
       type: "string",
     })
     .option("videoDir", {
-      alias: "v",
       description: "Path to video output directory",
       type: "string",
     })
@@ -532,6 +556,8 @@ function setArgs(args) {
 function setConfig(config, argv) {
   // Set config overrides from args
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
+  if (argv.inputPath) config.inputPath = path.resolve(argv.inputPath);
+  if (argv.outputPath) config.outputPath = path.resolve(argv.outputPath);
   if (argv.testFile) config.testFile = path.resolve(argv.testFile);
   if (argv.testDir) config.testDirectory = path.resolve(argv.testDir);
   if (argv.imageDir) config.imageDirectory = path.resolve(argv.imageDir);
