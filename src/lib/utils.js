@@ -17,22 +17,12 @@ function setArgs(args) {
       description: "Path to a custom config file.",
       type: "string",
     })
-    .option("testFile", {
-      alias: "f",
-      description: "Path to a file to parse for tests.",
-      type: "string",
-    })
-    .option("testDir", {
-      alias: "d",
-      description: "Path to a ditectory of files to parse for tests.",
-      type: "string",
-    })
-    .option("inputPath", {
+    .option("input", {
       alias: "i",
-      description: "Path to a JSON file of tests definitions.",
+      description: "Path to a file or directory to parse for tests.",
       type: "string",
     })
-    .option("outputPath", {
+    .option("output", {
       alias: "o",
       description: "Path for a JSON file of test result output.",
       type: "string",
@@ -65,10 +55,8 @@ function setArgs(args) {
 function setConfig(config, argv) {
   // Set config overrides from args
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
-  if (argv.inputPath) config.inputPath = path.resolve(argv.inputPath);
-  if (argv.outputPath) config.outputPath = path.resolve(argv.outputPath);
-  if (argv.testFile) config.testFile = path.resolve(argv.testFile);
-  if (argv.testDir) config.testDirectory = path.resolve(argv.testDir);
+  if (argv.input) config.input = path.resolve(argv.input);
+  if (argv.output) config.output = path.resolve(argv.output);
   if (argv.imageDir) config.imageDirectory = path.resolve(argv.imageDir);
   if (argv.videoDir) config.videoDirectory = path.resolve(argv.videoDir);
   if (argv.recursive) {
@@ -89,22 +77,30 @@ function setConfig(config, argv) {
 function setFiles(config) {
   let dirs = [];
   let files = [];
-  if (config.testFile) {
+
+  // Validate input
+  const input = path.resolve(config.input);
+  let isFile = fs.statSync(input).isFile();
+  let isDir = fs.statSync(input).isDirectory();
+  if (!isFile && !isDir) {
+    console.log("Error: Input isn't a valid file or directory.");
+    exit(1);
+  }
+
+  // Parse input
+  if (isFile) {
     // if single file specified
-    let file = path.resolve(config.testFile);
-    if (fs.statSync(file).isFile()) {
-      files[0] = file;
-    } else {
-      console.log("Error: Specified path isn't a valid file.");
-      exit(1);
-    }
-  } else {
+    files[0] = input;
+    return files;
+  } else if (isDir) {
     // Load files from drectory
-    dirs[0] = config.testDirectory;
+    dirs[0] = input;
     for (let i = 0; i < dirs.length; i++) {
       fs.readdirSync(dirs[i]).forEach((object) => {
         let content = path.resolve(dirs[i] + "/" + object);
-        if (fs.statSync(content).isFile()) {
+        let isFile = fs.statSync(content).isFile();
+        let isDir = fs.statSync(content).isDirectory();
+        if (isFile) {
           // is a file
           if (
             // No specified extension filter list, or file extension is present in extension filter list.
@@ -113,28 +109,22 @@ function setFiles(config) {
           ) {
             files.push(content);
           }
-        } else if (fs.statSync(content).isDirectory) {
+        } else if (isDir) {
           // is a directory
           if (config.recursive) {
             // recursive set to true
             dirs.push(content);
           }
-        } else {
-          console.log(
-            "Error: " + content + " isn't a valid file or directory."
-          );
-          exit(1);
         }
       });
     }
+    return files;
   }
-  return files;
 }
 
 async function outputResults(config, results) {
   let data = JSON.stringify(results, null, 2);
-  fs.writeFile(config.outputPath, data, (err) => {
+  fs.writeFile(config.output, data, (err) => {
     if (err) throw err;
-    console.log("The file has been saved!");
   });
 }

@@ -14,6 +14,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 *   Clean test open statement parsing (get rid of `nReadlines`.)
 *   Clean results output
 *   Let action-based media filepaths override all directory settings
+*   Minimal docs
 
 ## MVP features
 
@@ -29,6 +30,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 
 ## Post-MVP features
 
+*   Configurable `puppeteer` browser options: headless, viewport height/width
 *   Multi-line test actions
 *   Ingest JSON of tests as an argument
 *   Test action for curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
