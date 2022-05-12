@@ -1,24 +1,28 @@
 {
-  "id": "ID of the test. Must be unique. Generated UUID if not specified.",
-  "file": "File the test is defined in. All actions for a given test must be defined in a single file.",
-  "status": "Output only. The status of the test based on test action results. Possible values: PASS, WARNING, FAIL",
-  "actions": [
+  "tests": [
     {
-      "result": {
-        "status": "Output only. The status based on test action results. Possible values: PASS, WARNING, FAIL",
-        "description": "Output only. Explaination of the action result.",
-        "image": "Output only. The file path for an output image.",
-        "video": "Output only. The file path for an output video."
-      },
-      "line": "The line number that the test action definition begins on.",
-      "action": "goTo/find/matchText/click/type/wait/screenshot/recordStart/recordStop/imageDiff/curl",
-      "uri": "www.google.com",
-      "css": "CSS selectors that resolve to the element. Only returns the first element that matches the selectors.",
-      "keys": "Strings of keys of enter. Only for sendKeys action. ENTER is a reserved enum that triggers the Enter key.",
-      "trailingSpecialKey": "A special key prssed after the 'keys' value. Supported values: https://github.com/puppeteer/puppeteer/blob/main/src/common/USKeyboardLayout.ts",
-      "duration": "How long to wait in milliseconds. Only for wait action.",
-      "directory": "The directory path for the media. Overrides the default directory config. Default is config.imageDirectory or config.videoDirectory depending on the file type.",
-      "filename": "Default is test.id + action object number."
+      "id": "ID of the test. Must be unique. Generated UUID if not specified.",
+      "file": "Output only. File the test is defined in. All actions for a given test must be defined in a single file.",
+      "status": "Output only. The status of the test based on test action results. Possible values: PASS, WARNING, FAIL",
+      "actions": [
+        {
+          "result": {
+            "status": "Output only. The status based on test action results. Possible values: PASS, WARNING, FAIL",
+            "description": "Output only. Explaination of the action result.",
+            "image": "Output only. The file path for an output image.",
+            "video": "Output only. The file path for an output video."
+          },
+          "line": "The line number that the test action definition begins on.",
+          "action": "goTo/find/matchText/click/type/wait/screenshot/recordStart/recordStop/imageDiff/curl",
+          "uri": "www.google.com",
+          "css": "CSS selectors that resolve to the element. Only returns the first element that matches the selectors.",
+          "keys": "Strings of keys of enter. Only for sendKeys action. ENTER is a reserved enum that triggers the Enter key.",
+          "trailingSpecialKey": "A special key prssed after the 'keys' value. Supported values: https://github.com/puppeteer/puppeteer/blob/main/src/common/USKeyboardLayout.ts",
+          "duration": "How long to wait in milliseconds. Only for wait action.",
+          "directory": "The directory path for the media. Overrides the default directory config. Default is config.imageDirectory or config.videoDirectory depending on the file type.",
+          "filename": "Default is test.id + action object number."
+        }
+      ]
     }
   ]
 }

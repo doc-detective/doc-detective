@@ -11,6 +11,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 ## Open issues
 
 *   Maintain consisntent test IDs
+*   Clean test open statement parsing (get rid of `nReadlines`.)
 *   Clean results output
 *   Let action-based media filepaths override all directory settings
 
@@ -39,3 +40,7 @@ Unit test documentation that references a UI with test or images. Primarily usef
 *   Record videos only when encountering errors
 *   Suggest tests by parsing document text
 *   Automatically insert suggested tests based on document text
+
+## License
+
+This project uses the MIT license.

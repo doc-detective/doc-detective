@@ -1,8 +1,8 @@
 {
-  "testFile": "sample.md",
-  "testDirectory": "./tests",
+  "testFile": "sample/doc-content.md",
+  "testDirectory": "sample",
   "inputPath": "",
-  "outputPath": "results.json",
+  "outputPath": "sample/results.json",
   "recursive": true,
   "testExtensions": [
     ".md",
@@ -11,8 +11,8 @@
     ".htm",
     ".xml"
   ],
-  "imageDirectory": ".",
-  "videoDirectory": ".",
+  "imageDirectory": "sample",
+  "videoDirectory": "sample",
   "fileTypes": [
     {
       "extensions": [

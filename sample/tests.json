@@ -1,0 +1,41 @@
+{
+  "tests": [
+    {
+      "id": "process-search-kittens",
+      "actions": [
+        { "action": "goTo", "uri": "www.google.com" },
+        {
+          "action": "type",
+          "css": "[title=Search]",
+          "keys": "kittens",
+          "trailingSpecialKey": "Enter"
+        },
+        { "action": "wait", "duration": "5000" },
+        { "action": "screenshot", "filename": "results.png" }
+      ]
+    },
+    {
+      "id": "text-match-lucky",
+      "actions": [
+        { "action": "goTo", "uri": "www.google.com" },
+        {
+          "action": "matchText",
+          "css": "#gbqfbb",
+          "text": "I'm Feeling Lucky"
+        }
+      ]
+    },
+    {
+      "id": "process-lucky-shorthair",
+      "actions": [
+        { "action": "goTo", "uri": "www.google.com" },
+        {
+          "action": "type",
+          "css": "[title=Search]",
+          "keys": "american shorthair cats"
+        },
+        { "action": "click", "css": "#gbqfbb" }
+      ]
+    }
+  ]
+}
