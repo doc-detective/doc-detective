@@ -2,7 +2,7 @@
   "name": "doc-unit-test",
   "version": "0.1.0",
   "description": "Unit test documentation (and record videos of those tests).",
-  "main": "index.js",
+  "main": "src/index.js",
   "bin": {
     "test": "./bin/index.js"
   },
@@ -21,7 +21,7 @@
     "docs"
   ],
   "author": "Manny Silva",
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/hawkeyexl/doc-unit-test/issues"
   },
