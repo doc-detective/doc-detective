@@ -12,7 +12,8 @@
             "image": "Output only. The file path for an output image.",
             "video": "Output only. The file path for an output video."
           },
-          "line": "The line number that the test action definition begins on.",
+          "testId": "Input only. Only valid for non-JSON test files. The ID of the test the action belongs to.",
+          "line": "Output only. The line number that the test action definition begins on.",
           "action": "goTo/find/matchText/click/type/wait/screenshot/recordStart/recordStop/imageDiff/curl",
           "uri": "www.google.com",
           "css": "CSS selectors that resolve to the element. Only returns the first element that matches the selectors.",
