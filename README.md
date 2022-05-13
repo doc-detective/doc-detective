@@ -10,7 +10,6 @@ Unit test documentation that references a UI with test or images. Primarily usef
 
 ## Open issues
 
-*   Let action-based media filepaths override all directory settings
 *   Minimal docs
 
 ## MVP features
