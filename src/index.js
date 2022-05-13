@@ -40,12 +40,12 @@ async function main(config, argv) {
   }
 
   // // Run tests
-  // const results = await runTests(config, tests);
-  // if (debug) {
-  //   console.log("RESULTS:");
-  //   console.log(results);
-  // }
+  const results = await runTests(config, tests);
+  if (debug) {
+    console.log("RESULTS:");
+    console.log(results);
+  }
 
   // // Output
-  // outputResults(config, results);
+  outputResults(config, results);
 }

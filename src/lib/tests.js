@@ -2,27 +2,44 @@ const path = require("path");
 const puppeteer = require("puppeteer");
 const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
+const { exit } = require("process");
 
 exports.runTests = runTests;
 
 async function runTests(config, tests) {
-  const testResults = [];
   // Instantiate browser
   const browser = await puppeteer.launch({ headless: true, slowMo: 50 });
 
   // Iterate tests
-  for (const test of tests) {
+  for (const test of tests.tests) {
+    let pass = 0;
+    let warning = 0;
+    let fail = 0; 
     // Instantiate page
     const page = await browser.newPage();
     // Iterate through actions
-    const results = [];
+    const results = {};
     for (const action of test.actions) {
-      results.push(await runAction(config, action, page));
+      action.result = await runAction(config, action, page);
+      if (action.result.status === "FAIL") fail++;
+      if (action.result.status === "WARNING") warning++;
+      if (action.result.status === "PASS") pass++;
     }
-    testResults.push(results);
+
+    // Calc overall test result
+    if (fail) {
+      test.status = "FAIL";
+    } else if (warning) {
+      test.status = "WARNING";
+    } else if (pass) {
+      test.status = "PASS";
+    } else {
+      console.log("Error: Couldn't read test action results.");
+      exit(1);
+    }
   }
   await browser.close();
-  return await testResults;
+  return tests;
 }
 
 async function runAction(config, action, page) {
@@ -81,7 +98,7 @@ async function startRecording(action, page) {
     // FAIL: Invalid path
     status = "FAIL";
     description = `Invalid directory path.`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
   filePath = path.join(filePath, filename);
@@ -92,13 +109,13 @@ async function startRecording(action, page) {
     // FAIL: Couldn't capture screenshot
     status = "FAIL";
     description = `Couldn't start recording.`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
   // PASS
   status = "PASS";
   description = `Started recording: ${filePath}`;
-  result = { action, status, description };
+  result = { status, description };
   return { result, recorder };
 }
 
@@ -112,13 +129,13 @@ async function stopRecording(recorder) {
     // FAIL: Couldn't capture screenshot
     status = "FAIL";
     description = `Couldn't stop recording.`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
   // PASS
   status = "PASS";
   description = `Stopped recording: ${filePath}`;
-  result = { action, status, description };
+  result = { status, description };
   return { result };
 }
 
@@ -142,7 +159,7 @@ async function screenshot(action, page, config) {
     // FAIL: Invalid path
     status = "FAIL";
     description = `Invalid directory path.`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
   filePath = path.join(filePath, filename);
@@ -152,13 +169,13 @@ async function screenshot(action, page, config) {
     // FAIL: Couldn't capture screenshot
     status = "FAIL";
     description = `Couldn't capture screenshot.`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
   // PASS
   status = "PASS";
-  description = `Captured screenshot: ${filePath}`;
-  result = { action, status, description };
+  description = `Captured screenshot.`;
+  result = { status, description, image: filePath };
   return { result };
 }
 
@@ -175,7 +192,7 @@ async function wait(action, page) {
   // PASS
   status = "PASS";
   description = `Wait complete.`;
-  result = { action, status, description };
+  result = { status, description };
   return { result };
 }
 
@@ -188,7 +205,7 @@ async function typeElement(action, elementHandle) {
     // Fail: No keys specified
     status = "FAIL";
     description = `Specified values for 'keys and/ot 'trailingSpecialKey'."`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
   if (action.keys) {
@@ -198,7 +215,7 @@ async function typeElement(action, elementHandle) {
       // FAIL: Text didn't match
       status = "FAIL";
       description = `Couldn't type keys.`;
-      result = { action, status, description };
+      result = { status, description };
       return { result };
     }
   }
@@ -209,14 +226,14 @@ async function typeElement(action, elementHandle) {
       // FAIL: Text didn't match
       status = "FAIL";
       description = `Couldn't type special key.`;
-      result = { action, status, description };
+      result = { status, description };
       return { result };
     }
   }
   // PASS
   status = "PASS";
   description = `Typed keys.`;
-  result = { action, status, description };
+  result = { status, description };
   return { result };
 }
 
@@ -231,13 +248,13 @@ async function clickElement(action, elementHandle) {
     // FAIL: Text didn't match
     status = "FAIL";
     description = `Couldn't click element.`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
   // PASS
   status = "PASS";
   description = `Clicked element.`;
-  result = { action, status, description };
+  result = { status, description };
   return { result };
 }
 
@@ -264,13 +281,13 @@ async function matchText(action, page) {
     // PASS
     status = "PASS";
     description = "Element text matched expected text.";
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   } else {
     // FAIL: Text didn't match
     status = "FAIL";
     description = `Element text didn't match expected text. Element text: ${elementText}`;
-    result = { action, status, description };
+    result = { status, description };
     return { result };
   }
 }
@@ -281,7 +298,7 @@ async function findElement(action, page) {
     // FAIL: No CSS
     let status = "FAIL";
     let description = "'css' is a required field.";
-    let result = { action, status, description };
+    let result = { status, description };
     return { result };
   }
   let elements = await page.$$eval(action.css, (elements) =>
@@ -291,20 +308,20 @@ async function findElement(action, page) {
     // FAIL: No CSS
     let status = "FAIL";
     let description = " No elements matched CSS selectors.";
-    let result = { action, status, description };
+    let result = { status, description };
     return { result };
   } else if (elements.length > 1) {
     // FAIL: No CSS
     let status = "FAIL";
     let description = "More than one element matched CSS selectors.";
-    let result = { action, status, description };
+    let result = { status, description };
     return { result };
   } else {
     // PASS
     let elementHandle = await page.$(action.css);
     let status = "PASS";
     let description = "Found one element matching CSS selectors.";
-    let result = { action, status, description };
+    let result = { status, description };
     return { result, elementHandle };
   }
 }
@@ -315,7 +332,7 @@ async function openUri(action, page) {
     // FAIL: No URI
     let status = "FAIL";
     let description = "'uri' is a required field.";
-    let result = { action, status, description };
+    let result = { status, description };
     return { result };
   }
   let uri = action.uri;
@@ -330,12 +347,12 @@ async function openUri(action, page) {
     // FAIL: Error opening URI
     let status = "FAIL";
     let description = "Couldn't open URI.";
-    let result = { action, status, description };
+    let result = { status, description };
     return { result };
   }
   // PASS
   let status = "PASS";
   let description = "Opened URI.";
-  let result = { action, status, description };
+  let result = { status, description };
   return { result };
 }
