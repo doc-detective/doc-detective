@@ -89,10 +89,10 @@ async function startRecording(action, page) {
     filename = `${test.id}-${uuid.v4()}.mp4`;
   }
   // Set directory
-  if (action.directory) {
-    filePath = action.directory;
+  if (action.mediaDirectory) {
+    filePath = action.mediaDirectory;
   } else {
-    filePath = config.imageDirectory;
+    filePath = config.mediaDirectory;
   }
   if (!fs.existsSync(filePath)) {
     // FAIL: Invalid path
@@ -150,10 +150,10 @@ async function screenshot(action, page, config) {
     filename = `${test.id}-${uuid.v4()}.png`;
   }
   // Set directory
-  if (action.directory) {
-    filePath = action.directory;
+  if (action.mediaDirectory) {
+    filePath = action.mediaDirectory;
   } else {
-    filePath = config.imageDirectory;
+    filePath = config.mediaDirectory;
   }
   if (!fs.existsSync(filePath)) {
     // FAIL: Invalid path

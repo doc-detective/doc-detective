@@ -41,12 +41,8 @@ function setArgs(args) {
         "Comma-separated list of file extensions to test, including the leading period",
       type: "string",
     })
-    .option("imageDir", {
-      description: "Path to image output directory",
-      type: "string",
-    })
-    .option("videoDir", {
-      description: "Path to video output directory",
+    .option("mediaDir", {
+      description: "Path to the media output directory",
       type: "string",
     })
     .help()
@@ -60,8 +56,7 @@ function setConfig(config, argv) {
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
   if (argv.input) config.input = path.resolve(argv.input);
   if (argv.output) config.output = path.resolve(argv.output);
-  if (argv.imageDir) config.imageDirectory = path.resolve(argv.imageDir);
-  if (argv.videoDir) config.videoDirectory = path.resolve(argv.videoDir);
+  if (argv.mediaDir) config.mediaDirectory = path.resolve(argv.mediaDir);
   if (argv.recursive) {
     switch (argv.recursive) {
       case "true":
