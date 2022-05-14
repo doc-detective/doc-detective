@@ -133,7 +133,7 @@ Format:
 ```
 {
   "action": "screenshot",
-  "directory": "samples",
+  "mediaDirectory": "samples",
   "filename": "results.png"
 }
 ``` 
