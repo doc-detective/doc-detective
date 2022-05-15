@@ -1,22 +1,26 @@
 # doc-unit-test
 
-## Status
+Unit test documentation to validate UX flows, display text, and images. Primarily useful for process docs, `doc-unit-test` supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
 
-MVP released, but still under heavy development.
+`doc-unit-test` ingests text files, parses them for test actions, then executes those actions in a headless Chromium browser. The results (PASS/FAIL and context) are output as a JSON object so that other pieces of infrastructure can parse and manipulate them as needed.
 
-## About
-
-Unit test documentation that references a UI with test or images. Primarily useful for process docs, `doc-unit-test` supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
-
-`doc-unit-test` ingests text files, parses them for test actions, then executes those actions in a headless Chromium browser. The results (PASS/FAIL and context) are output as an array so that other pieces of infrastructure can parse and manipulate them as needed.
-
-This project handles test parsing and web-based UI testing; it doesn't support results reporting or notifications. This script is a part of the testing infrastructure and needs to be complimented by other componenets.
+This project handles test parsing and web-based UI testing--it doesn't support results reporting or notifications. This framework is a part of testing infrastructures and needs to be complimented by other componenets.
 
 `doc-unit-test` uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshoting and video recording.
 
 **Note:** By default, Chromium does't run in a Docker container, which means that `puppeteer` doesn't work either. Don't run `doc-unit-test` in a Docker container unless you first confirm that you have a custom implementation of headless Chromium functional in the container.
 
+## Status
+
+MVP released, but still under heavy development.
+
 ## Get started
+
+### Prerequisites
+
+*   Node.js
+
+### Run tests
 
 Run the tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:
 
@@ -33,7 +37,7 @@ To customize your test, file type, and ditectory options, update [src/config.jso
 
 ## Tests
 
-You can define tests within your documentation (see [doc-content.md](samples/doc-content.md)), or as separate files. Non-JSON files only support single-line test action definitions, so make sure to keep the entire action definition on one line.
+You can define tests within your documentation (see [doc-content.md](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/doc-content.md)), or as separate files. Non-JSON files only support single-line test action definitions, so make sure to keep the entire action definition on one line.
 
 JSON files must follow the format and structure defined in [testDefinition](https://github.com/hawkeyexl/doc-unit-test/blob/master/ref/testDefinition.json). For an example, see [samples/tests.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/tests.json).
 
