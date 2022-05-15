@@ -10,8 +10,7 @@
     ".xml",
     ".json"
   ],
-  "imageDirectory": "sample",
-  "videoDirectory": "sample",
+  "mediaDirectory": "sample",
   "fileTypes": [
     {
       "extensions": [
