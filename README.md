@@ -144,7 +144,7 @@ Format:
 
 ### Start recording
 
-Start recording the current browser viewport. Supported extensions: .mp4
+Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4
 
 Format:
 
@@ -177,7 +177,6 @@ Format:
   - Test if a referenced image (such as an icon) is present in captured screenshot
   - Move the cursor to a page element
   - Scroll the window
-  - Record videos
 - Suggest tests by parsing document text
 - Automatically insert suggested tests based on document text
 

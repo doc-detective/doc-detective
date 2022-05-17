@@ -36,11 +36,16 @@ async function runTests(config, tests) {
         recorder = action.result.recorder;
       }
       action.result = action.result.result;
-      console.log(action.result);
       if (action.result.status === "FAIL") fail++;
       if (action.result.status === "WARNING") warning++;
       if (action.result.status === "PASS") pass++;
     }
+
+    // Close open recorders/pages
+    if (recorder) {
+      await runAction("", {action: "stopRecording"}, "", recorder)
+    }
+    await page.close();
 
     // Calc overall test result
     if (fail) {
