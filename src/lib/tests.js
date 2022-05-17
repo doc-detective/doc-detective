@@ -148,7 +148,6 @@ async function stopRecording(recorder) {
   let status;
   let description;
   let result;
-  console.log(recorder);
   try {
     await recorder.stop();
     // PASS
