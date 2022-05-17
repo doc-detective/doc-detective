@@ -130,7 +130,7 @@ Format:
 
 ### Screenshot
 
-Capture an image of the current browser viewport.
+Capture an image of the current browser viewport. Supported extensions: .png
 
 Format:
 
@@ -139,6 +139,32 @@ Format:
   "action": "screenshot",
   "mediaDirectory": "samples",
   "filename": "results.png"
+}
+``` 
+
+### Start recording
+
+Start recording the current browser viewport. Supported extensions: .mp4
+
+Format:
+
+```
+{
+  "action": "startRecording",
+  "mediaDirectory": "samples",
+  "filename": "results.mp4"
+}
+``` 
+
+### Stop recording
+
+Stop recording the current browser viewport.
+
+Format:
+
+```
+{
+  "action": "stopRecording"
 }
 ``` 
 

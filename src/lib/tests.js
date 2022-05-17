@@ -12,17 +12,13 @@ async function runTests(config, tests) {
     headless: config.browserOptions.headless,
     slowMo: 50,
     executablePath: config.browserOptions.path,
+    args: ["--no-sandbox"],
   };
   try {
-    let browser = await puppeteer.launch(browserConfig);
+    browser = await puppeteer.launch(browserConfig);
   } catch {
-    try {
-      browserConfig.args = ["--no-sandbox"];
-      browser = await puppeteer.launch(browserConfig);
-    } catch {
-      console.log("Error: Couldn't open browser.");
-      exit(1);
-    }
+    console.log("Error: Couldn't open browser.");
+    exit(1);
   }
 
   // Iterate tests
@@ -30,12 +26,17 @@ async function runTests(config, tests) {
     let pass = 0;
     let warning = 0;
     let fail = 0;
+    let recorder;
     // Instantiate page
     const page = await browser.newPage();
     // Iterate through actions
-    const results = {};
     for (const action of test.actions) {
-      action.result = await runAction(config, action, page);
+      action.result = await runAction(config, action, page, recorder);
+      if (action.result.recorder) {
+        recorder = action.result.recorder;
+      }
+      action.result = action.result.result;
+      console.log(action.result);
       if (action.result.status === "FAIL") fail++;
       if (action.result.status === "WARNING") warning++;
       if (action.result.status === "PASS") pass++;
@@ -57,7 +58,7 @@ async function runTests(config, tests) {
   return tests;
 }
 
-async function runAction(config, action, page) {
+async function runAction(config, action, page, recorder) {
   let result = "";
   switch (action.action) {
     case "goTo":
@@ -88,12 +89,16 @@ async function runAction(config, action, page) {
       result = await screenshot(action, page, config);
       break;
     case "startRecording":
+      result = await startRecording(action, page, config);
+      break;
+    case "stopRecording":
+      result = await stopRecording(recorder);
       break;
   }
-  return await result.result;
+  return await result;
 }
 
-async function startRecording(action, page) {
+async function startRecording(action, page, config) {
   let status;
   let description;
   let result;
@@ -120,6 +125,11 @@ async function startRecording(action, page) {
   try {
     const recorder = new PuppeteerScreenRecorder(page);
     await recorder.start(filePath);
+    // PASS
+    status = "PASS";
+    description = `Started recording: ${filePath}`;
+    result = { status, description, video: filePath };
+    return { result, recorder };
   } catch {
     // FAIL: Couldn't capture screenshot
     status = "FAIL";
@@ -127,19 +137,20 @@ async function startRecording(action, page) {
     result = { status, description };
     return { result };
   }
-  // PASS
-  status = "PASS";
-  description = `Started recording: ${filePath}`;
-  result = { status, description };
-  return { result, recorder };
 }
 
 async function stopRecording(recorder) {
   let status;
   let description;
   let result;
+  console.log(recorder);
   try {
     await recorder.stop();
+    // PASS
+    status = "PASS";
+    description = `Stopped recording: ${filePath}`;
+    result = { status, description };
+    return { result };
   } catch {
     // FAIL: Couldn't capture screenshot
     status = "FAIL";
@@ -147,11 +158,6 @@ async function stopRecording(recorder) {
     result = { status, description };
     return { result };
   }
-  // PASS
-  status = "PASS";
-  description = `Stopped recording: ${filePath}`;
-  result = { status, description };
-  return { result };
 }
 
 async function screenshot(action, page, config) {
