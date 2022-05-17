@@ -8,13 +8,20 @@ exports.runTests = runTests;
 
 async function runTests(config, tests) {
   // Instantiate browser
-  const browser = await puppeteer.launch({ headless: true, slowMo: 50 });
+  const browser = await puppeteer.launch({
+    headless: true,
+    slowMo: 50,
+    executablePath: "/usr/bin/google-chrome",
+    args: [
+      "--no-sandbox"
+    ]
+  });
 
   // Iterate tests
   for (const test of tests.tests) {
     let pass = 0;
     let warning = 0;
-    let fail = 0; 
+    let fail = 0;
     // Instantiate page
     const page = await browser.newPage();
     // Iterate through actions
