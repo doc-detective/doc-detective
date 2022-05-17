@@ -28,6 +28,10 @@
       ],
       "openTestStatement": "<!-- test",
       "closeTestStatement": "-->"
-    }    
-  ]
+    }
+  ],
+  "browserOptions": {
+    "headless": "true",
+    "path": ""
+  }
 }

@@ -32,17 +32,28 @@ function setArgs(args) {
     })
     .option("recursive", {
       alias: "r",
-      description: "Recursively find test files in the test directory.",
+      description:
+        "Boolean. Recursively find test files in the test directory. Defaults to true.",
       type: "string",
     })
     .option("ext", {
       alias: "e",
       description:
-        "Comma-separated list of file extensions to test, including the leading period",
+        "Comma-separated list of file extensions to test, including the leading period.",
       type: "string",
     })
     .option("mediaDir", {
-      description: "Path to the media output directory",
+      description: "Path to the media output directory.",
+      type: "string",
+    })
+    .option("browserHeadless", {
+      description:
+        "Boolean. Whether to run the browser in headless mode. Defaults to true.",
+      type: "string",
+    })
+    .option("browserPath", {
+      description:
+        "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
       type: "string",
     })
     .help()
@@ -68,6 +79,9 @@ function setConfig(config, argv) {
     }
   }
   if (argv.ext) config.testExtensions = argv.ext.replace(/\s+/g, "").split(",");
+  if (argv.browserHeadless)
+    config.browserOptions.headless = argv.browserHeadless;
+  if (argv.browserPath) config.browserOptions.path = argv.browserPath;
   return config;
 }
 
@@ -172,7 +186,7 @@ function parseFiles(config, files) {
           }
           let test = json.tests.find((item) => item.id === lineJson.testId);
           if (!test) {
-            json.tests.push({id: lineJson.testId, file, actions: []});
+            json.tests.push({ id: lineJson.testId, file, actions: [] });
             test = json.tests.find((item) => item.id === lineJson.testId);
           }
           delete lineJson.testId;

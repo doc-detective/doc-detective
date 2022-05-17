@@ -8,14 +8,22 @@ exports.runTests = runTests;
 
 async function runTests(config, tests) {
   // Instantiate browser
-  const browser = await puppeteer.launch({
-    headless: true,
+  let browserConfig = {
+    headless: config.browserOptions.headless,
     slowMo: 50,
-    executablePath: "/usr/bin/google-chrome",
-    args: [
-      "--no-sandbox"
-    ]
-  });
+    executablePath: config.browserOptions.path,
+  };
+  try {
+    let browser = await puppeteer.launch(browserConfig);
+  } catch {
+    try {
+      browserConfig.args = ["--no-sandbox"];
+      browser = await puppeteer.launch(browserConfig);
+    } catch {
+      console.log("Error: Couldn't open browser.");
+      exit(1);
+    }
+  }
 
   // Iterate tests
   for (const test of tests.tests) {
