@@ -170,9 +170,8 @@ Format:
 
 ## Post-release features
 
-- Configurable `puppeteer` browser options: headless, viewport height/width, browser URI
 - New test actions
-  - curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
+  - Shell commands (Support substitution/setting env vars. Only check for `200 OK`.)
   - Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)
   - Test if a referenced image (such as an icon) is present in captured screenshot
   - Move the cursor to a page element

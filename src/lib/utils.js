@@ -56,6 +56,14 @@ function setArgs(args) {
         "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
       type: "string",
     })
+    .option("browserHeight", {
+      description: "Height of the browser viewport in pixels. Default is 600 px.",
+      type: "number",
+    })
+    .option("browserWidth", {
+      description: "Width of the browser viewport in pixels. Default is 800 px.",
+      type: "number",
+    })
     .help()
     .alias("help", "h").argv;
 
@@ -82,6 +90,8 @@ function setConfig(config, argv) {
   if (argv.browserHeadless)
     config.browserOptions.headless = argv.browserHeadless;
   if (argv.browserPath) config.browserOptions.path = argv.browserPath;
+  if (argv.browserHeight) config.browserOptions.height = argv.browserHeight;
+  if (argv.browserWidth) config.browserOptions.width = argv.browserWidth;
   return config;
 }
 

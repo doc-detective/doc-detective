@@ -32,6 +32,8 @@
   ],
   "browserOptions": {
     "headless": "true",
-    "path": ""
+    "path": "",
+    "height": "",
+    "width": ""
   }
 }

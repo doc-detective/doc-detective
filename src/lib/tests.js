@@ -13,7 +13,14 @@ async function runTests(config, tests) {
     slowMo: 50,
     executablePath: config.browserOptions.path,
     args: ["--no-sandbox"],
+    defaultViewport: {
+      height: 600,
+      width: 800,
+    },
   };
+  if (config.browserOptions.width)
+    browserConfig.defaultViewport.width = config.browserOptions.width;
+  if (config.browserOptions.height) browserConfig.defaultViewport.height = 800;
   try {
     browser = await puppeteer.launch(browserConfig);
   } catch {
@@ -43,7 +50,7 @@ async function runTests(config, tests) {
 
     // Close open recorders/pages
     if (recorder) {
-      await runAction("", {action: "stopRecording"}, "", recorder)
+      await runAction("", { action: "stopRecording" }, "", recorder);
     }
     await page.close();
 
