@@ -9,6 +9,9 @@ To use Google Search to find information on kittens,
 
 2.  In the search bar, enter "kittens", then press Enter.
 
+    [comment]: # (test {"testId":"process-search-kittens", "action":"moveMouse", "css":"#gbqfbb", "alignH": "center", "alignV": "center"})
+    [comment]: # (test {"testId":"process-search-kittens", "action":"wait", "duration":"5000"})
+    [comment]: # (test {"testId":"process-search-kittens", "action":"moveMouse", "css":"[title=Search]", "alignV": "center"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"type", "css":"[title=Search]", "keys":"kittens", "trailingSpecialKey":"Enter"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"wait", "duration":"5000"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"stopRecording"})

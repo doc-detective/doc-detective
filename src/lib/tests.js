@@ -3,6 +3,7 @@ const puppeteer = require("puppeteer");
 const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
 const { exit } = require("process");
+const { installMouseHelper } = require("./install-mouse-helper");
 
 exports.runTests = runTests;
 
@@ -36,6 +37,8 @@ async function runTests(config, tests) {
     let recorder;
     // Instantiate page
     const page = await browser.newPage();
+    // Instantiate mouse cursor
+    await installMouseHelper(page);
     // Iterate through actions
     for (const action of test.actions) {
       action.result = await runAction(config, action, page, recorder);
@@ -93,6 +96,11 @@ async function runAction(config, action, page, recorder) {
       find = await findElement(action, page);
       if (find.result.status === "FAIL") return find;
       result = await typeElement(action, find.elementHandle);
+      break;
+    case "moveMouse":
+      find = await findElement(action, page);
+      if (find.result.status === "FAIL") return find;
+      result = await moveMouse(action, page, find.elementHandle);
       break;
     case "wait":
       result = await wait(action, page);
@@ -196,6 +204,11 @@ async function screenshot(action, page, config) {
   }
   filePath = path.join(filePath, filename);
   try {
+    // Display mouse cursor
+    await page.$eval(
+      "puppeteer-mouse-pointer",
+      (e) => (e.style.display = "none")
+    );
     await page.screenshot({ path: filePath });
   } catch {
     // FAIL: Couldn't capture screenshot
@@ -288,6 +301,71 @@ async function clickElement(action, elementHandle) {
   description = `Clicked element.`;
   result = { status, description };
   return { result };
+}
+
+// Move mouse to an element.  Assumes findElement() only found one matching element.
+async function moveMouse(action, page, elementHandle) {
+  let status;
+  let description;
+  let result;
+  try {
+    // Calc coordinates
+    const bounds = await elementHandle.boundingBox();
+    let x = bounds.x;
+    if (action.offsetX) x = x + Number(action.offsetX);
+    if (action.alignH) {
+      if (action.alignH === "left") {
+        alignHOffset = 10;
+      } else if (action.alignH === "center") {
+        alignHOffset = bounds.width / 2;
+      } else if (action.alignH === "right") {
+        alignHOffset = bounds.width - 10;
+      } else {
+        // FAIL
+        status = "FAIL";
+        description = `Invalid 'alignH' value.`;
+        result = { status, description };
+        return { result };
+      }
+      x = x + alignHOffset;
+    }
+    let y = bounds.y;
+    if (action.offsetY) y = y + Number(action.offsetY);
+    if (action.alignV) {
+      if (action.alignV === "top") {
+        alignVOffset = 10;
+      } else if (action.alignV === "center") {
+        alignVOffset = bounds.height / 2;
+      } else if (action.alignV === "bottom") {
+        alignVOffset = bounds.height - 10;
+      } else {
+        // FAIL
+        status = "FAIL";
+        description = `Invalid 'alignV' value.`;
+        result = { status, description };
+        return { result };
+      }
+      y = y + alignVOffset;
+    }
+    // Move
+    await page.mouse.move(x, y, { steps: 25 });
+    // Display mouse cursor
+    await page.$eval(
+      "puppeteer-mouse-pointer",
+      (e) => (e.style.display = "block")
+    );
+    // PASS
+    status = "PASS";
+    description = `Moved mouse to element.`;
+    result = { status, description };
+    return { result };
+  } catch {
+    // FAIL
+    status = "FAIL";
+    description = `Couldn't move mouse to element.`;
+    result = { status, description };
+    return { result };
+  }
 }
 
 // Identify if text in element matches expected text. Assumes findElement() only found one matching element.

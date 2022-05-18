@@ -115,6 +115,25 @@ Format:
 }
 ```
 
+### Mouse mouse
+
+Move the mouse to an element specified by CSS selectors.
+
+**Note:** The mouse cursor is visible in both recordings and screenshots.
+
+Format:
+
+```
+{
+  "action": "moveMouse",
+  "css": "[title=Search]",
+  "alignH": "center",
+  "alignV": "center",
+  "offsetX": 10,
+  "offsetY": 10
+}
+```
+
 ### Wait
 
 Pause before performing the next action.
