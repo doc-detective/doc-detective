@@ -115,7 +115,7 @@ Format:
 }
 ```
 
-### Mouse mouse
+### Move mouse
 
 Move the mouse to an element specified by CSS selectors.
 
@@ -131,6 +131,20 @@ Format:
   "alignV": "center",
   "offsetX": 10,
   "offsetY": 10
+}
+```
+
+### Scroll
+
+Scroll the current page by a specified number of pixels. For `x`, positive values scroll right and negative values scroll left. For `y`, positive values scroll down and negative values scroll up.
+
+Format:
+
+```
+{
+  "action": "scroll",
+  "x": 100,
+  "y": 100
 }
 ```
 
@@ -190,11 +204,10 @@ Format:
 ## Post-release features
 
 - New test actions
-  - Shell commands (Support substitution/setting env vars. Only check for `200 OK`.)
+  - Shell commands (Support substitution/setting env vars.)
+  - Curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
   - Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)
   - Test if a referenced image (such as an icon) is present in captured screenshot
-  - Move the cursor to a page element
-  - Scroll the window
 - Suggest tests by parsing document text
 - Automatically insert suggested tests based on document text
 

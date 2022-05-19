@@ -102,6 +102,9 @@ async function runAction(config, action, page, recorder) {
       if (find.result.status === "FAIL") return find;
       result = await moveMouse(action, page, find.elementHandle);
       break;
+    case "scroll":
+      result = await scroll(action, page);
+      break;
     case "wait":
       result = await wait(action, page);
       break;
@@ -239,6 +242,26 @@ async function wait(action, page) {
   description = `Wait complete.`;
   result = { status, description };
   return { result };
+}
+
+async function scroll(action, page) {
+  let status;
+  let description;
+  let result;
+  try {
+    await page.mouse.wheel({ deltaX: action.x, deltaY: action.y });
+    // PASS
+    status = "PASS";
+    description = `Scroll complete.`;
+    result = { status, description };
+    return { result };
+  } catch {
+    // FAIL
+    status = "PASS";
+    description = `Couldn't scroll.`;
+    result = { status, description };
+    return { result };
+  }
 }
 
 // Click an element.  Assumes findElement() only found one matching element.
