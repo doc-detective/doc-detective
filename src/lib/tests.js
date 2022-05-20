@@ -4,6 +4,7 @@ const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
 const { exit } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
+const { convertToGif } = require("./utils");
 
 exports.runTests = runTests;
 
@@ -19,8 +20,11 @@ async function runTests(config, tests) {
       width: 800,
     },
   };
-  if (config.browserOptions.width)
+  if (config.browserOptions.width) {
     browserConfig.defaultViewport.width = config.browserOptions.width;
+  } else {
+    config.browserOptions.width = 800;
+  }
   if (config.browserOptions.height) browserConfig.defaultViewport.height = 800;
   try {
     browser = await puppeteer.launch(browserConfig);
@@ -34,16 +38,16 @@ async function runTests(config, tests) {
     let pass = 0;
     let warning = 0;
     let fail = 0;
-    let recorder;
+    let videoDetails;
     // Instantiate page
     const page = await browser.newPage();
     // Instantiate mouse cursor
     await installMouseHelper(page);
     // Iterate through actions
     for (const action of test.actions) {
-      action.result = await runAction(config, action, page, recorder);
-      if (action.result.recorder) {
-        recorder = action.result.recorder;
+      action.result = await runAction(config, action, page, videoDetails);
+      if (action.result.videoDetails) {
+        videoDetails = action.result.videoDetails;
       }
       action.result = action.result.result;
       if (action.result.status === "FAIL") fail++;
@@ -52,8 +56,8 @@ async function runTests(config, tests) {
     }
 
     // Close open recorders/pages
-    if (recorder) {
-      await runAction("", { action: "stopRecording" }, "", recorder);
+    if (videoDetails) {
+      await runAction("", { action: "stopRecording" }, "", videoDetails);
     }
     await page.close();
 
@@ -73,7 +77,7 @@ async function runTests(config, tests) {
   return tests;
 }
 
-async function runAction(config, action, page, recorder) {
+async function runAction(config, action, page, videoDetails) {
   let result = "";
   switch (action.action) {
     case "goTo":
@@ -115,7 +119,7 @@ async function runAction(config, action, page, recorder) {
       result = await startRecording(action, page, config);
       break;
     case "stopRecording":
-      result = await stopRecording(recorder);
+      result = await stopRecording(videoDetails, config);
       break;
   }
   return await result;
@@ -126,8 +130,9 @@ async function startRecording(action, page, config) {
   let description;
   let result;
   // Set filename
+  let targetExtension = path.extname(action.filename);
   if (action.filename) {
-    filename = action.filename;
+    filename = `${path.basename(action.filename, ".gif")}.mp4`;
   } else {
     filename = `${test.id}-${uuid.v4()}.mp4`;
   }
@@ -152,7 +157,17 @@ async function startRecording(action, page, config) {
     status = "PASS";
     description = `Started recording: ${filePath}`;
     result = { status, description, video: filePath };
-    return { result, recorder };
+    videoDetails = {
+      recorder,
+      targetExtension,
+      filePath,
+      width: config.browserOptions.width,
+    };
+    if (action.gifOptions) {
+      if (action.gifOptions.fps) videoDetails.fps = action.gifOptions.fps;
+      if (action.gifOptions.width) videoDetails.width = action.gifOptions.width;
+    }
+    return { result, videoDetails };
   } catch {
     // FAIL: Couldn't capture screenshot
     status = "FAIL";
@@ -162,12 +177,20 @@ async function startRecording(action, page, config) {
   }
 }
 
-async function stopRecording(recorder) {
+async function stopRecording(videoDetails, config) {
   let status;
   let description;
   let result;
   try {
-    await recorder.stop();
+    await videoDetails.recorder.stop();
+    if (videoDetails.targetExtension === ".gif") {
+      let output = await convertToGif(
+        videoDetails.filePath,
+        videoDetails.fps,
+        videoDetails.width
+      );
+      videoDetails.filePath = output;
+    }
     // PASS
     status = "PASS";
     description = `Stopped recording: ${filePath}`;

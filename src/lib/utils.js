@@ -5,12 +5,14 @@ const { exit } = require("process");
 const path = require("path");
 const uuid = require("uuid");
 const nReadlines = require("n-readlines");
+const { exec } = require("child_process");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
 exports.setFiles = setFiles;
 exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
+exports.convertToGif = convertToGif;
 
 // Define args
 function setArgs(args) {
@@ -57,11 +59,13 @@ function setArgs(args) {
       type: "string",
     })
     .option("browserHeight", {
-      description: "Height of the browser viewport in pixels. Default is 600 px.",
+      description:
+        "Height of the browser viewport in pixels. Default is 600 px.",
       type: "number",
     })
     .option("browserWidth", {
-      description: "Width of the browser viewport in pixels. Default is 800 px.",
+      description:
+        "Width of the browser viewport in pixels. Default is 800 px.",
       type: "number",
     })
     .help()
@@ -215,4 +219,28 @@ async function outputResults(config, results) {
   fs.writeFile(config.output, data, (err) => {
     if (err) throw err;
   });
+}
+
+async function convertToGif(input, fps, width) {
+  if (!fs.existsSync(input)) return { error: "Invalid input." };
+  let output = path.join(
+    path.parse(input).dir,
+    path.parse(input).name + ".gif"
+  );
+  console.log(input, output);
+  if (!fps) fps = 15;
+  let command = `ffmpeg -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.log(error.message);
+      return { error: error.message };
+    }
+    if (stderr) {
+      console.log(stderr);
+      return { stderr };
+    }
+    console.log(stdout);
+    return { stdout };
+  });
+  return output;
 }

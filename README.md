@@ -177,7 +177,9 @@ Format:
 
 ### Start recording
 
-Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4
+Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif
+
+**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files requires `ffmpeg` installed on the machine that runs `doc-unit-test` and also creates  `.mp4` files of the recordings.
 
 Format:
 
@@ -185,7 +187,11 @@ Format:
 {
   "action": "startRecording",
   "mediaDirectory": "samples",
-  "filename": "results.mp4"
+  "filename": "results.mp4",
+  "gifOptions": {
+    "fps": 15,
+    "width": 400
+  }
 }
 ``` 
 

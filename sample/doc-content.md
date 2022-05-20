@@ -4,7 +4,7 @@ To use Google Search to find information on kittens,
 
 1.  Open [Google Search](https://www.google.com).
 
-    [comment]: # (test {"testId":"process-search-kittens", "action":"startRecording", "filename":"results.mp4"})
+    [comment]: # (test {"testId":"process-search-kittens", "action":"startRecording", "filename":"results.gif", "gifOptions": {"fps":15, "width":300}})
     [comment]: # (test {"testId":"process-search-kittens", "action":"goTo", "uri":"www.google.com"})
 
 2.  In the search bar, enter "kittens", then press Enter.
@@ -14,8 +14,8 @@ To use Google Search to find information on kittens,
     [comment]: # (test {"testId":"process-search-kittens", "action":"moveMouse", "css":"[title=Search]", "alignV": "center"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"type", "css":"[title=Search]", "keys":"kittens", "trailingSpecialKey":"Enter"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"wait", "duration":"5000"})
-    [comment]: # (test {"testId":"process-search-kittens", "action":"wait", "duration":"5000"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"scroll", "y": 300})
+    [comment]: # (test {"testId":"process-search-kittens", "action":"stopRecording"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"screenshot", "filename":"results.png"})
 
 Search results appear on the page.
