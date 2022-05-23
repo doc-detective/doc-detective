@@ -227,7 +227,6 @@ Format:
 
 - New test actions
   - Add `file` parameter to `type` action to allow typing content without including the exact strings in the test. Handy for secrets, credentials, and such.
-  - Shell commands (Support substitution/setting env vars.)
   - Curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
   - Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)
   - Test if a referenced image (such as an icon) is present in captured screenshot
