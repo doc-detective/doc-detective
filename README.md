@@ -207,9 +207,26 @@ Format:
 }
 ``` 
 
+### Run shell command
+
+Perform a native shell command on the machine running `doc-unit-test`. This can be a single command or a script. Set environment variables before running the command by specifying an env file in the `env` field. See [variables.env]() for reference.
+
+Returns `PASS` if the command has an exit code of `0`. Returns `FAIL` if the comnand had a non-`0` exit code out outputs a `stderr` value.
+
+Format:
+
+```
+{
+  "action": "runShell",
+  "command": "echo $username",
+  "env": "./variables.env"
+}
+```
+
 ## Post-release features
 
 - New test actions
+  - Add `file` parameter to `type` action to allow typing content without including the exact strings in the test. Handy for secrets, credentials, and such.
   - Shell commands (Support substitution/setting env vars.)
   - Curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
   - Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)

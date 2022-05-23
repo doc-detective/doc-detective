@@ -2,9 +2,11 @@ const path = require("path");
 const puppeteer = require("puppeteer");
 const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
-const { exit } = require("process");
+const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
 const { convertToGif } = require("./utils");
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
 
 exports.runTests = runTests;
 
@@ -121,8 +123,52 @@ async function runAction(config, action, page, videoDetails) {
     case "stopRecording":
       result = await stopRecording(videoDetails, config);
       break;
+    case "runShell":
+      result = await runShell(action);
+      break;
   }
-  return await result;
+  return result;
+}
+
+async function runShell(action) {
+  let status;
+  let description;
+  let result;
+  let exitCode;
+  if (action.env) {
+    const isFile = fs.statSync(action.env).isFile();
+    if (isFile) {
+      const text = fs.readFileSync(action.env, { encoding: "utf8" });
+      const lines = text.split("\n");
+      lines.forEach(line => {
+        parts = line.split("=");
+        env = parts[0].trim();
+        value = parts[1].trim();
+        process.env[env] = value;
+      });
+    }
+  }
+  const promise = exec(action.command);
+  const child = promise.child;
+
+  child.on("close", function (code) {
+    exitCode = code;
+  });
+
+  // i.e. can then await for promisified exec call to complete
+  let { stdout, stderr } = await promise;
+  stdout = stdout.trim();
+  stderr = stderr.trim();
+
+  if (exitCode || stderr) {
+    status = "FAIL";
+    description = `Error during execution.`;
+  } else {
+    status = "PASS";
+    description = `Executed command.`;
+  }
+  result = { status, description, stdout, stderr, exitCode };
+  return { result };
 }
 
 async function startRecording(action, page, config) {
@@ -230,11 +276,6 @@ async function screenshot(action, page, config) {
   }
   filePath = path.join(filePath, filename);
   try {
-    // Display mouse cursor
-    await page.$eval(
-      "puppeteer-mouse-pointer",
-      (e) => (e.style.display = "none")
-    );
     await page.screenshot({ path: filePath });
   } catch {
     // FAIL: Couldn't capture screenshot

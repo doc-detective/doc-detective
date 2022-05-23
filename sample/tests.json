@@ -36,6 +36,16 @@
         },
         { "action": "click", "css": "#gbqfbb" }
       ]
+    },
+    {
+      "id": "non-ui-tests",
+      "actions": [
+        {
+          "action": "runShell",
+          "command": "echo $username",
+          "env": "./sample/variables.env"
+        }
+      ]
     }
   ]
 }
