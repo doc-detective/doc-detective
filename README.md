@@ -18,7 +18,7 @@ MVP released, but still under heavy development.
 
 ### Prerequisites
 
-*   Node.js
+- Node.js
 
 ### Run tests
 
@@ -165,21 +165,25 @@ Format:
 
 Capture an image of the current browser viewport. Supported extensions: .png
 
+To match previously captured screenshots to the current viewport, set `matchPrevious` to `true` and specify a `matchThreshold` value. `matchThreshold` is a value between 0 and 1 that specifies what percentage of an screenshot can change before the action fails. For example, a `matchThreshold` value of `0.1` makes the action pass of the screenshots are <= 10% different or fail if the screenshots are 11% or more different. Screenshot comparison is based on pixel-level image analysis.
+
 Format:
 
 ```
 {
   "action": "screenshot",
   "mediaDirectory": "samples",
-  "filename": "results.png"
+  "filename": "results.png",
+  "matchPrevious": true,
+  "matchThreshold": 0.1
 }
-``` 
+```
 
 ### Start recording
 
 Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif
 
-**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files requires `ffmpeg` installed on the machine that runs `doc-unit-test` and also creates  `.mp4` files of the recordings.
+**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files requires `ffmpeg` installed on the machine that runs `doc-unit-test` and also creates `.mp4` files of the recordings.
 
 Format:
 
@@ -193,7 +197,7 @@ Format:
     "width": 400
   }
 }
-``` 
+```
 
 ### Stop recording
 
@@ -205,7 +209,7 @@ Format:
 {
   "action": "stopRecording"
 }
-``` 
+```
 
 ### Run shell command
 
@@ -228,8 +232,8 @@ Format:
 - New test actions
   - Add `file` parameter to `type` action to allow typing content without including the exact strings in the test. Handy for secrets, credentials, and such.
   - Curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
-  - Compare in-test screenshots to previously captured screenshots (upgrade screenshot() to compare to existing image at path, if present)
   - Test if a referenced image (such as an icon) is present in captured screenshot
+  - Upgrade wait action to support waiting for a specific element to be present, regardless of duration
 - Suggest tests by parsing document text
 - Automatically insert suggested tests based on document text
 

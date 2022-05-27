@@ -16,7 +16,7 @@ To use Google Search to find information on kittens,
     [comment]: # (test {"testId":"process-search-kittens", "action":"wait", "duration":"5000"})
     [comment]: # (test {"testId":"process-search-kittens", "action":"scroll", "y": 300})
     [comment]: # (test {"testId":"process-search-kittens", "action":"stopRecording"})
-    [comment]: # (test {"testId":"process-search-kittens", "action":"screenshot", "filename":"results.png"})
+    [comment]: # (test {"testId":"process-search-kittens", "action":"screenshot", "filename":"results.png", "matchPrevious": true, "matchThreshold": 0.1})
 
 Search results appear on the page.
 

@@ -7,6 +7,9 @@ const { installMouseHelper } = require("./install-mouse-helper");
 const { convertToGif } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
+const PNG = require("pngjs").PNG;
+const pixelmatch = require("pixelmatch");
+const uuid = require("uuid");
 
 exports.runTests = runTests;
 
@@ -136,11 +139,11 @@ async function runShell(action) {
   let result;
   let exitCode;
   if (action.env) {
-    const isFile = fs.statSync(action.env).isFile();
-    if (isFile) {
+    const fileExists = fs.existsSync(action.env);
+    if (fileExists) {
       const text = fs.readFileSync(action.env, { encoding: "utf8" });
       const lines = text.split("\n");
-      lines.forEach(line => {
+      lines.forEach((line) => {
         parts = line.split("=");
         env = parts[0].trim();
         value = parts[1].trim();
@@ -255,12 +258,7 @@ async function screenshot(action, page, config) {
   let status;
   let description;
   let result;
-  // Set filename
-  if (action.filename) {
-    filename = action.filename;
-  } else {
-    filename = `${test.id}-${uuid.v4()}.png`;
-  }
+
   // Set directory
   if (action.mediaDirectory) {
     filePath = action.mediaDirectory;
@@ -274,9 +272,43 @@ async function screenshot(action, page, config) {
     result = { status, description };
     return { result };
   }
+
+  if (action.matchPrevious && action.filename) {
+    let testPath = path.join(filePath, action.filename);
+    const fileExists = fs.existsSync(testPath);
+    if (fileExists) {
+      filename = `${uuid.v4()}.png`;
+      previousFilename = action.filename;
+      previousFilePath = path.join(filePath, previousFilename);
+      // Set threshold
+      if (!(action.matchThreshold >= 0 && action.matchThreshold <= 1)) {
+        action.matchThreshold = 0.1;
+      }
+    } else {
+      action.matchPrevious = false;
+      console.log("WARNING: Specified filename doesn't exist. Capturing screenshot. Not matching.");
+      filename = action.filename;
+    }
+  } else if (action.matchPrevious && !action.filename) {
+    action.matchPrevious = false;
+    console.log("WARNING: No filename specified. Not matching.");
+    filename = `${uuid.v4()}.png`;
+  } else if (!action.matchPrevious && action.filename) {
+    filename = action.filename;
+  } else {
+    filename = `${uuid.v4()}.png`;
+  }
   filePath = path.join(filePath, filename);
+
   try {
     await page.screenshot({ path: filePath });
+    if (!action.matchPrevious) {
+      // PASS
+      status = "PASS";
+      description = `Captured screenshot.`;
+      result = { status, description, image: filePath };
+      return { result };
+    }
   } catch {
     // FAIL: Couldn't capture screenshot
     status = "FAIL";
@@ -284,11 +316,35 @@ async function screenshot(action, page, config) {
     result = { status, description };
     return { result };
   }
-  // PASS
-  status = "PASS";
-  description = `Captured screenshot.`;
-  result = { status, description, image: filePath };
-  return { result };
+  if (action.matchPrevious) {
+    const expected = PNG.sync.read(fs.readFileSync(previousFilePath));
+    const actual = PNG.sync.read(fs.readFileSync(filePath));
+    const numDiffPixels = pixelmatch(
+      expected.data,
+      actual.data,
+      null,
+      expected.width,
+      expected.height,
+      {
+        threshold: action.matchThreshold,
+      }
+    );
+    fs.unlinkSync(filePath);
+    if (numDiffPixels) {
+      // FAIL: Couldn't capture screenshot
+      const diffPercentage = numDiffPixels / (expected.width * expected.height);
+      status = "FAIL";
+      description = `Screenshot comparison had larger diff (${diffPercentage}) than threshold (${action.matchThreshold}).`;
+      result = { status, description };
+      return { result };
+    } else {
+      // PASS
+      status = "PASS";
+      description = `Screenshot matches previously captured image.`;
+      result = { status, description, image: previousFilePath };
+      return { result };
+    }
+  }
 }
 
 async function wait(action, page) {

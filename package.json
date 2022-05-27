@@ -28,6 +28,8 @@
   "homepage": "https://github.com/hawkeyexl/doc-unit-test#readme",
   "dependencies": {
     "n-readlines": "^1.0.1",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^6.0.0",
     "puppeteer": "^13.7.0",
     "puppeteer-screen-recorder": "^2.0.2",
     "uuid": "^8.3.2",

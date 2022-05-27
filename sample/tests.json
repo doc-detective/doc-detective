@@ -3,21 +3,35 @@
     {
       "id": "process-search-kittens",
       "actions": [
-        { "action": "goTo", "uri": "www.google.com" },
+        {
+          "action": "goTo",
+          "uri": "www.google.com"
+        },
         {
           "action": "type",
           "css": "[title=Search]",
           "keys": "kittens",
           "trailingSpecialKey": "Enter"
         },
-        { "action": "wait", "duration": "5000" },
-        { "action": "screenshot", "filename": "results.png" }
+        {
+          "action": "wait",
+          "duration": "5000"
+        },
+        {
+          "action": "screenshot",
+          "filename": "results.png",
+          "matchPrevious": true,
+          "matchThreshold": 0.1
+        }
       ]
     },
     {
       "id": "text-match-lucky",
       "actions": [
-        { "action": "goTo", "uri": "www.google.com" },
+        {
+          "action": "goTo",
+          "uri": "www.google.com"
+        },
         {
           "action": "matchText",
           "css": "#gbqfbb",
@@ -28,13 +42,19 @@
     {
       "id": "process-lucky-shorthair",
       "actions": [
-        { "action": "goTo", "uri": "www.google.com" },
+        {
+          "action": "goTo",
+          "uri": "www.google.com"
+        },
         {
           "action": "type",
           "css": "[title=Search]",
           "keys": "american shorthair cats"
         },
-        { "action": "click", "css": "#gbqfbb" }
+        {
+          "action": "click",
+          "css": "#gbqfbb"
+        }
       ]
     },
     {
