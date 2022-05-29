@@ -68,6 +68,11 @@ function setArgs(args) {
         "Width of the browser viewport in pixels. Default is 800 px.",
       type: "number",
     })
+    .option("verbose", {
+      alias: "v",
+      description: "Boolean. Log command in-progress output to the console. Defaults to false.",
+      type: "string",
+    })
     .help()
     .alias("help", "h").argv;
 
@@ -96,6 +101,7 @@ function setConfig(config, argv) {
   if (argv.browserPath) config.browserOptions.path = argv.browserPath;
   if (argv.browserHeight) config.browserOptions.height = argv.browserHeight;
   if (argv.browserWidth) config.browserOptions.width = argv.browserWidth;
+  if (argv.verbose) config.verbose = argv.verbose;
   return config;
 }
 
@@ -150,12 +156,11 @@ function setFiles(config) {
 
 // Parse files for tests
 function parseFiles(config, files) {
-  const debug = true;
   let json = { tests: [] };
 
   // Loop through test files
   files.forEach((file) => {
-    if (debug) console.log(`file: ${file}`);
+    if (config.verbose) console.log(`file: ${file}`);
     let id = uuid.v4();
     let line;
     let lineNumber = 1;
@@ -221,25 +226,24 @@ async function outputResults(config, results) {
   });
 }
 
-async function convertToGif(input, fps, width) {
+async function convertToGif(config, input, fps, width) {
   if (!fs.existsSync(input)) return { error: "Invalid input." };
   let output = path.join(
     path.parse(input).dir,
     path.parse(input).name + ".gif"
   );
-  console.log(input, output);
   if (!fps) fps = 15;
   let command = `ffmpeg -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
   exec(command, (error, stdout, stderr) => {
     if (error) {
-      console.log(error.message);
+      if (config.verbose) console.log(error.message);
       return { error: error.message };
     }
     if (stderr) {
-      console.log(stderr);
+      if (config.verbose) console.log(stderr);
       return { stderr };
     }
-    console.log(stdout);
+    if (config.verbosev) console.log(stdout);
     return { stdout };
   });
   return output;

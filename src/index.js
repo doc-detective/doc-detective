@@ -6,33 +6,30 @@ const defaultConfig = require("./config.json");
 main(defaultConfig, process.argv);
 
 async function main(config, argv) {
-  // Debug flag
-  const debug = true;
-
   // Set args
   argv = setArgs(argv);
-  if (debug) {
+  if (config.verbose) {
     console.log("ARGV:");
     console.log(argv);
   }
 
   // Set config
   config = setConfig(config, argv);
-  if (debug) {
+  if (config.verbose) {
     console.log("CONFIG:");
     console.log(config);
   }
 
   // Set files
   const files = setFiles(config);
-  if (debug) {
+  if (config.verbose) {
     console.log("FILES:");
     console.log(files);
   }
 
   // Set tests
   const tests = parseFiles(config, files);
-  if (debug) {
+  if (config.verbose) {
     console.log("TESTS:");
     tests.tests.forEach((test) => {
       console.log(test);
@@ -41,7 +38,7 @@ async function main(config, argv) {
 
   // // Run tests
   const results = await runTests(config, tests);
-  if (debug) {
+  if (config.verbose) {
     console.log("RESULTS:");
     console.log(results);
   }

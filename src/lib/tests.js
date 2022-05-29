@@ -234,6 +234,7 @@ async function stopRecording(videoDetails, config) {
     await videoDetails.recorder.stop();
     if (videoDetails.targetExtension === ".gif") {
       let output = await convertToGif(
+        config,
         videoDetails.filePath,
         videoDetails.fps,
         videoDetails.width
@@ -286,12 +287,12 @@ async function screenshot(action, page, config) {
       }
     } else {
       action.matchPrevious = false;
-      console.log("WARNING: Specified filename doesn't exist. Capturing screenshot. Not matching.");
+      if (config.verbose) console.log("WARNING: Specified filename doesn't exist. Capturing screenshot. Not matching.");
       filename = action.filename;
     }
   } else if (action.matchPrevious && !action.filename) {
     action.matchPrevious = false;
-    console.log("WARNING: No filename specified. Not matching.");
+    if (config.verbose) console.log("WARNING: No filename specified. Not matching.");
     filename = `${uuid.v4()}.png`;
   } else if (!action.matchPrevious && action.filename) {
     filename = action.filename;
@@ -589,8 +590,6 @@ async function openUri(action, page) {
     return { result };
   }
   let uri = action.uri;
-  // Check necessary values
-  if (uri === "") console.log("error");
   // Catch common formatting errors
   if (!uri.includes("://")) uri = "https://" + uri;
   // Run action
