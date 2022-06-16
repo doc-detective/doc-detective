@@ -179,6 +179,20 @@ Format:
 }
 ```
 
+### Check a URI
+
+Check if a URI returns an acceptable status code from a GET request. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statuscodes` isn't specified, defaults to `[200]`.
+
+Format:
+
+```
+{
+  "action": "checkLink",
+  "uri": "https://www.google.com",
+  "statusCodes": [ 200 ]
+}
+```
+
 ### Start recording
 
 Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif

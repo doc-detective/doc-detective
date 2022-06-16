@@ -10,6 +10,7 @@ const exec = util.promisify(require("child_process").exec);
 const PNG = require("pngjs").PNG;
 const pixelmatch = require("pixelmatch");
 const uuid = require("uuid");
+const axios = require("axios");
 
 exports.runTests = runTests;
 
@@ -129,8 +130,57 @@ async function runAction(config, action, page, videoDetails) {
     case "runShell":
       result = await runShell(action);
       break;
+    case "checkLink":
+      result = await checkLink(action);
+      break;
   }
   return result;
+}
+async function checkLink(action) {
+  let status;
+  let description;
+  let result;
+
+  // Validate protocol
+  if (action.uri.indexOf("://") < 0) {
+    // Insert https if no protocol present
+    action.uri = `https://${action.uri}`;
+  }
+
+  // Default to 200 status code
+  if (!action.statusCodes) {
+    action.statusCodes = [200];
+  }
+  let req = await axios
+    .get(action.uri)
+    .then((res) => {
+      return { statusCode: res.status };
+    })
+    .catch((error) => {
+      return { error };
+    });
+
+  // If request returned an error
+  if (req.error) {
+    status = "FAIL";
+    description = `Invalid or unresolvable URI: ${action.uri}`;
+    result = { status, description };
+    return { result };
+  }
+
+  // Compare status codes
+  if (action.statusCodes.indexOf(req.statusCode) >= 0) {
+    status = "PASS";
+    description = `Returned ${req.statusCode}`;
+  } else {
+    status = "FAIL";
+    description = `Returned ${req.statusCode}. Expected one of ${JSON.stringify(
+      action.statusCodes
+    )}`;
+  }
+
+  result = { status, description };
+  return { result };
 }
 
 async function runShell(action) {
@@ -287,12 +337,16 @@ async function screenshot(action, page, config) {
       }
     } else {
       action.matchPrevious = false;
-      if (config.verbose) console.log("WARNING: Specified filename doesn't exist. Capturing screenshot. Not matching.");
+      if (config.verbose)
+        console.log(
+          "WARNING: Specified filename doesn't exist. Capturing screenshot. Not matching."
+        );
       filename = action.filename;
     }
   } else if (action.matchPrevious && !action.filename) {
     action.matchPrevious = false;
-    if (config.verbose) console.log("WARNING: No filename specified. Not matching.");
+    if (config.verbose)
+      console.log("WARNING: No filename specified. Not matching.");
     filename = `${uuid.v4()}.png`;
   } else if (!action.matchPrevious && action.filename) {
     filename = action.filename;

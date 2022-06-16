@@ -64,6 +64,13 @@
           "action": "runShell",
           "command": "echo $username",
           "env": "./sample/variables.env"
+        },
+        {
+          "action": "checkLink",
+          "uri": "https://www.google.com",
+          "statusCodes": [
+            200
+          ]
         }
       ]
     }
