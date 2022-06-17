@@ -179,9 +179,9 @@ Format:
 }
 ```
 
-### Check a URI
+### Check a link
 
-Check if a URI returns an acceptable status code from a GET request. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statuscodes` isn't specified, defaults to `[200]`.
+Check if a link returns an acceptable status code from a GET request. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statuscodes` isn't specified, defaults to `[200]`.
 
 Format:
 
