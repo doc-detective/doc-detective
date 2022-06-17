@@ -17,10 +17,11 @@
           "mediaDirectory": "Optional. Applicable actions: screenshot. The directory path for media created by the action. Overrides the default directory config. Default is config.imageDirectory or config.videoDirectory depending on the file type.",
           "offsetX": "Optional. Applicable actions: moveMouse. How many pixels to offset the mouse along the X axis, relative to the element center.",
           "offsetY": "Optional. Applicable actions: moveMouse. How many pixels to offset the mouse along the Y axis, relative to the element center.",
+          "statusCodes": "Optional. Applicable action: checkLink. The HTTP status codes accepted from makeing a GET request to the specified URI.",
           "testId": "Optional. Input only. Only valid for non-JSON test files. ID of the test the action belongs to.",
           "text": "Required. Applicable actions: matchText. Exact text expected to display in the element.",
           "trailingSpecialKey": "Optional. Applicable actions: type. A special key pressed after the 'keys' value, if present. Supported values: https://github.com/puppeteer/puppeteer/blob/main/src/common/USKeyboardLayout.ts",
-          "uri": "Required. Applicable actions: goTo. URI to navigate to in the browser.",
+          "uri": "Required. Applicable actions: goTo, checkLink. URI to check or to navigate to in the browser.",
           "result": {
             "status": "Output only. Status based on test action results. Possible values: PASS, WARNING, FAIL",
             "description": "Output only. Explaination of the action result.",
