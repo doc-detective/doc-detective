@@ -16,6 +16,7 @@ exports.convertToGif = convertToGif;
 
 // Define args
 function setArgs(args) {
+  if (!args) return;
   let argv = yargs(hideBin(args))
     .option("config", {
       alias: "c",
@@ -80,6 +81,7 @@ function setArgs(args) {
 }
 
 function setConfig(config, argv) {
+  if (!argv) return config;
   // Set config overrides from args
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
   if (argv.input) config.input = path.resolve(argv.input);
@@ -233,7 +235,7 @@ async function convertToGif(config, input, fps, width) {
     path.parse(input).name + ".gif"
   );
   if (!fps) fps = 15;
-  let command = `ffmpeg -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
+  let command = `ffmpeg -nostats -loglevel 0 -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
   exec(command, (error, stdout, stderr) => {
     if (error) {
       if (config.verbose) console.log(error.message);
