@@ -65,7 +65,9 @@ async function runTests(config, tests) {
     if (videoDetails) {
       await runAction("", { action: "stopRecording" }, "", videoDetails);
     }
-    await page.close();
+    try {
+      await page.close();
+    } catch {}
 
     // Calc overall test result
     if (fail) {
@@ -328,7 +330,7 @@ async function screenshot(action, page, config) {
     let testPath = path.join(filePath, action.filename);
     const fileExists = fs.existsSync(testPath);
     if (fileExists) {
-      filename = `${uuid.v4()}.png`;
+      filename = 'temp_' + action.filename;
       previousFilename = action.filename;
       previousFilePath = path.join(filePath, previousFilename);
       // Set threshold
@@ -347,11 +349,11 @@ async function screenshot(action, page, config) {
     action.matchPrevious = false;
     if (config.verbose)
       console.log("WARNING: No filename specified. Not matching.");
-    filename = `${uuid.v4()}.png`;
+    filename = 'temp_' + action.filename;
   } else if (!action.matchPrevious && action.filename) {
     filename = action.filename;
   } else {
-    filename = `${uuid.v4()}.png`;
+    filename = 'temp_' + action.filename;
   }
   filePath = path.join(filePath, filename);
 
