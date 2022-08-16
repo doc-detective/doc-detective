@@ -1,8 +1,11 @@
 const { setArgs, setConfig, setFiles, parseFiles, outputResults } = require("./lib/utils");
 const { runTests } = require("./lib/tests");
 
-const defaultConfig = require("./config.json");
+exports.run = function(config){
+  main(config);
+};
 
+const defaultConfig = require("./config.json");
 main(defaultConfig, process.argv);
 
 async function main(config, argv) {
@@ -45,4 +48,5 @@ async function main(config, argv) {
 
   // // Output
   outputResults(config, results);
+  process.exit(0);
 }
