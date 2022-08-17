@@ -4,36 +4,63 @@ Unit test documentation to validate UX flows, display text, and images. Primaril
 
 `doc-unit-test` ingests text files, parses them for test actions, then executes those actions in a headless Chromium browser. The results (PASS/FAIL and context) are output as a JSON object so that other pieces of infrastructure can parse and manipulate them as needed.
 
-This project handles test parsing and web-based UI testing--it doesn't support results reporting or notifications. This framework is a part of testing infrastructures and needs to be complimented by other componenets.
+This project handles test parsing and web-based UI testing--it doesn't support results reporting or notifications. This framework is a part of testing infrastructures and needs to be complimented by other components.
 
-`doc-unit-test` uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshoting and video recording.
+`doc-unit-test` uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshotting and video recording.
 
-**Note:** By default, Chromium does't run in a Docker container, which means that `puppeteer` doesn't work either. Don't run `doc-unit-test` in a Docker container unless you first confirm that you have a custom implementation of headless Chromium functional in the container.
-
-## Status
-
-MVP released, but still under heavy development.
+**Note:** By default, `puppeteer`'s Chromium doesn't run in Docker containers, which means that `puppeteer` doesn't work either. Don't run `doc-unit-test` in a Docker container unless you first confirm that you have a custom implementation of headless Chrome/Chromium functional in the container. The approved answer to [this question](https://askubuntu.com/questions/79280/how-to-install-chrome-browser-properly-via-command-line) works for me, but it may not work in all environments.
 
 ## Get started
 
-### Prerequisites
+You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [CLI tool](#cli-tool).
 
-- Node.js
+### NPM package
 
-### Run tests
+`doc-unit-test` integrates with Node projects as an NPM package. When using the NPM package, you must specify all options in the `run()` method's `config` argument, which is a JSON object with the same structure as [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/config.json).
 
-Run the tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:
+0.  Install prerequisites:
+    *   [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
+1.  In a terminal, navigate to your Node project, then install `doc-unit-test`:
 
-```bash
-git clone https://github.com/hawkeyexl/doc-unit-test.git
-cd doc-unit-test
-npm install
-node .
-```
+    ```bash
+    npm i doc-unit-test
+    ```
 
-To customize your test, file type, and ditectory options, update [src/config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/config.json).
+1.  Add a reference to the package in your project:
 
-## Features
+    ```node
+    const docTest = require("doc-unit-test");
+    ```
+
+1.  Run tests with the `run()` method:
+
+    ```node
+    docTest.run(config);
+    ```
+
+### CLI tool
+
+You can run `doc-unit-test` as a standalone CLI tool. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `node . -h`.)
+
+0.  Install prerequisites:
+    *   [Node.js](https://nodejs.org/)
+    *   [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
+
+1.  In a terminal, clone the repo and install dependencies:
+
+    ```bash
+    git clone https://github.com/hawkeyexl/doc-unit-test.git
+    cd doc-unit-test
+    npm install
+    ```
+
+1.  Run tests according to your config. By default, runs tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:
+
+    ```bash
+    node .
+    ```
+
+To customize your test, file type, and directory options, update [src/config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/config.json).
 
 ## Tests
 
@@ -165,7 +192,7 @@ Format:
 
 Capture an image of the current browser viewport. Supported extensions: .png
 
-To match previously captured screenshots to the current viewport, set `matchPrevious` to `true` and specify a `matchThreshold` value. `matchThreshold` is a value between 0 and 1 that specifies what percentage of an screenshot can change before the action fails. For example, a `matchThreshold` value of `0.1` makes the action pass of the screenshots are <= 10% different or fail if the screenshots are 11% or more different. Screenshot comparison is based on pixel-level image analysis.
+To match previously captured screenshots to the current viewport, set `matchPrevious` to `true` and specify a `matchThreshold` value. `matchThreshold` is a value between 0 and 1 that specifies what percentage of a screenshot can change before the action fails. For example, a `matchThreshold` value of `0.1` makes the action pass if the screenshots are up to 10% different or fail if the screenshots are 11% or more different. Screenshot comparison is based on pixel-level image analysis.
 
 Format:
 
@@ -227,9 +254,9 @@ Format:
 
 ### Run shell command
 
-Perform a native shell command on the machine running `doc-unit-test`. This can be a single command or a script. Set environment variables before running the command by specifying an env file in the `env` field. See [variables.env]() for reference.
+Perform a native shell command on the machine running `doc-unit-test`. This can be a single command or a script. Set environment variables before running the command by specifying an env file in the `env` field. For reference, see [variables.env](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/variables.env).
 
-Returns `PASS` if the command has an exit code of `0`. Returns `FAIL` if the comnand had a non-`0` exit code out outputs a `stderr` value.
+Returns `PASS` if the command has an exit code of `0`. Returns `FAIL` if the command had a non-`0` exit code and outputs a `stderr` value.
 
 Format:
 
@@ -241,13 +268,12 @@ Format:
 }
 ```
 
-## Post-release features
+## Potential future features
 
 - New test actions
-  - Add `file` parameter to `type` action to allow typing content without including the exact strings in the test. Handy for secrets, credentials, and such.
   - Curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
-  - Test if a referenced image (such as an icon) is present in captured screenshot
-  - Upgrade wait action to support waiting for a specific element to be present, regardless of duration
+  - Test if a referenced image (such as an icon) is present in the captured screenshot
+  - Upgrade `wait` action to support waiting for a specific element to be present, regardless of duration
 - Suggest tests by parsing document text
 - Automatically insert suggested tests based on document text
 
