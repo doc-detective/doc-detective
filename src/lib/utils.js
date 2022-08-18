@@ -81,9 +81,13 @@ function setArgs(args) {
 }
 
 function setConfig(config, argv) {
-  if (!argv) return config;
+  // Set config
+  if (!argv.config) {
+    console.log("Error: No config specified. If using the 'run(config)' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument.");
+    exit(1);
+  }
+  config = JSON.parse(fs.readFileSync(argv.config));
   // Set config overrides from args
-  if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
   if (argv.input) config.input = path.resolve(argv.input);
   if (argv.output) config.output = path.resolve(argv.output);
   if (argv.mediaDir) config.mediaDirectory = path.resolve(argv.mediaDir);

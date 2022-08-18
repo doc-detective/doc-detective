@@ -5,8 +5,7 @@ exports.run = function(config){
   main(config);
 };
 
-const defaultConfig = require("./config.json");
-main(defaultConfig, process.argv);
+main('',process.argv);
 
 async function main(config, argv) {
   // Set args
@@ -39,14 +38,13 @@ async function main(config, argv) {
     });
   }
 
-  // // Run tests
+  // Run tests
   const results = await runTests(config, tests);
   if (config.verbose) {
     console.log("RESULTS:");
     console.log(results);
   }
 
-  // // Output
+  // Output
   outputResults(config, results);
-  process.exit(0);
 }
