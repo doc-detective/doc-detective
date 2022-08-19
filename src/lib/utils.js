@@ -16,7 +16,7 @@ exports.convertToGif = convertToGif;
 
 // Define args
 function setArgs(args) {
-  if (!args) return;
+  if (!args) return {};
   let argv = yargs(hideBin(args))
     .option("config", {
       alias: "c",
@@ -82,11 +82,11 @@ function setArgs(args) {
 
 function setConfig(config, argv) {
   // Set config
-  if (!argv.config) {
-    console.log("Error: No config specified. If using the 'run(config)' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument.");
+  if (!config && !argv.config) {
+    console.log("Error: No config specified.");
     exit(1);
   }
-  config = JSON.parse(fs.readFileSync(argv.config));
+  if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
   // Set config overrides from args
   if (argv.input) config.input = path.resolve(argv.input);
   if (argv.output) config.output = path.resolve(argv.output);

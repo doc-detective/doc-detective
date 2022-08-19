@@ -12,10 +12,6 @@ This project handles test parsing and web-based UI testing--it doesn't support r
 
 ## Get started
 
-You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [CLI tool](#cli-tool).
-
-### NPM package
-
 `doc-unit-test` integrates with Node projects as an NPM package. When using the NPM package, you must specify all options in the `run()` method's `config` argument, which is a JSON object with the same structure as [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
 
 0.  Install prerequisites:
@@ -37,30 +33,6 @@ You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [C
     ```node
     docTest.run(config);
     ```
-
-### CLI tool
-
-You can run `doc-unit-test` as a standalone CLI tool. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `node . -h`.)
-
-0.  Install prerequisites:
-    *   [Node.js](https://nodejs.org/)
-    *   [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
-
-1.  In a terminal, clone the repo and install dependencies:
-
-    ```bash
-    git clone https://github.com/hawkeyexl/doc-unit-test.git
-    cd doc-unit-test
-    npm install
-    ```
-
-1.  Run tests according to your config. The `-c` argument is required and specifies the path to your config. The following example runs tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:
-
-    ```bash
-    node . -c sample/config.json
-    ```
-
-To customize your test, file type, and directory options, update [sample/config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
 
 ## Tests
 

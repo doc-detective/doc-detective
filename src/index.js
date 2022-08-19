@@ -5,8 +5,6 @@ exports.run = function(config){
   main(config);
 };
 
-main('',process.argv);
-
 async function main(config, argv) {
   // Set args
   argv = setArgs(argv);
