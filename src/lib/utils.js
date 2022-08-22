@@ -71,7 +71,8 @@ function setArgs(args) {
     })
     .option("verbose", {
       alias: "v",
-      description: "Boolean. Log command in-progress output to the console. Defaults to false.",
+      description:
+        "Boolean. Log command in-progress output to the console. Defaults to false.",
       type: "string",
     })
     .help()
@@ -82,8 +83,8 @@ function setArgs(args) {
 
 function setConfig(config, argv) {
   // Set config
-  if (!config && !argv.config) {
-    console.log("Error: No config specified.");
+  if (JSON.stringify(config) === JSON.stringify({}) && !argv.config) {
+    console.log("Error: No config specified. If using the 'run()' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument.");
     exit(1);
   }
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));

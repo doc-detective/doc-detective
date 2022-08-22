@@ -1,8 +1,14 @@
-const { setArgs, setConfig, setFiles, parseFiles, outputResults } = require("./lib/utils");
+const {
+  setArgs,
+  setConfig,
+  setFiles,
+  parseFiles,
+  outputResults,
+} = require("./lib/utils");
 const { runTests } = require("./lib/tests");
 
-exports.run = function(config){
-  main(config);
+exports.run = function (config, argv) {
+  main(config, argv);
 };
 
 async function main(config, argv) {

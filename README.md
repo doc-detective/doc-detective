@@ -12,6 +12,10 @@ This project handles test parsing and web-based UI testing--it doesn't support r
 
 ## Get started
 
+You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [CLI tool](#cli-tool).		
+
+### NPM package
+
 `doc-unit-test` integrates with Node projects as an NPM package. When using the NPM package, you must specify all options in the `run()` method's `config` argument, which is a JSON object with the same structure as [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
 
 0.  Install prerequisites:
@@ -25,14 +29,38 @@ This project handles test parsing and web-based UI testing--it doesn't support r
 1.  Add a reference to the package in your project:
 
     ```node
-    const docTest = require("doc-unit-test");
+    const { run } = require("doc-unit-test");
     ```
 
 1.  Run tests with the `run()` method:
 
     ```node
-    docTest.run(config);
+    run(config);
     ```
+
+### CLI tool		
+
+You can run `doc-unit-test` as a standalone CLI tool. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `npm run test -- -h`.)		
+
+0.  Install prerequisites:		
+    *   [Node.js](https://nodejs.org/)		
+    *   [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)		
+
+1.  In a terminal, clone the repo and install dependencies:		
+
+    ```bash		
+    git clone https://github.com/hawkeyexl/doc-unit-test.git		
+    cd doc-unit-test		
+    npm install		
+    ```		
+
+1.  Run tests according to your config. The `-c` argument is required and specifies the path to your config. The following example runs tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:		
+
+    ```bash		
+    npm run test -- -c sample/config.json		
+    ```		
+
+To customize your test, file type, and directory options, update [sample/config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
 
 ## Tests
 
@@ -242,12 +270,14 @@ Format:
 
 ## Potential future features
 
-- New test actions
-  - Curl commands (Support substitution/setting env vars. Only check for `200 OK`.)
-  - Test if a referenced image (such as an icon) is present in the captured screenshot
-  - Upgrade `wait` action to support waiting for a specific element to be present, regardless of duration
-- Suggest tests by parsing document text
-- Automatically insert suggested tests based on document text
+- New/upgraded test actions:
+  - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
+  - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
+  - Upgrade: `type` action to support env vars (Particularly useful for passing credentials).
+  - Upgrade: `wait` action to support waiting for a specific element to be present, regardless of duration.
+  - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
+- Suggest tests by parsing document text.
+  - Automatically insert suggested tests based on document text.
 
 ## License
 
