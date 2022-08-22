@@ -32,7 +32,7 @@
   ],
   "browserOptions": {
     "headless": "true",
-    "path": "/usr/bin/google-chrome",
+    "path": "",
     "height": "",
     "width": ""
   },
