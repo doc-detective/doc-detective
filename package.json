@@ -3,9 +3,6 @@
   "version": "0.1.4",
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
-  "bin": {
-    "test": "./bin/index.js"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
