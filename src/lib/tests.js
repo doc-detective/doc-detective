@@ -264,9 +264,9 @@ async function startRecording(action, page, config) {
       filePath,
       width: config.browserOptions.width,
     };
-    if (action.gifOptions) {
-      if (action.gifOptions.fps) videoDetails.fps = action.gifOptions.fps;
-      if (action.gifOptions.width) videoDetails.width = action.gifOptions.width;
+    if (action.gifFps || action.gifWidth) {
+      if (action.gifFps) videoDetails.fps = action.gifFps;
+      if (action.gifWidth) videoDetails.width = action.gifWidth;
     }
     return { result, videoDetails };
   } catch {
