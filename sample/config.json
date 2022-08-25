@@ -32,9 +32,14 @@
   ],
   "browserOptions": {
     "headless": "true",
-    "path": "",
+    "path": "/usr/bin/google-chrome",
     "height": "",
     "width": ""
+  },
+  "analytics": {
+    "send": false,
+    "userId": "",
+    "detailLevel": "action"
   },
   "verbose": false
 }

@@ -12,6 +12,7 @@ exports.setConfig = setConfig;
 exports.setFiles = setFiles;
 exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
+exports.sendAnalytics = sendAnalytics;
 exports.convertToGif = convertToGif;
 
 // Define args
@@ -84,7 +85,9 @@ function setArgs(args) {
 function setConfig(config, argv) {
   // Set config
   if (JSON.stringify(config) === JSON.stringify({}) && !argv.config) {
-    console.log("Error: No config specified. If using the 'run()' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument.");
+    console.log(
+      "Error: No config specified. If using the 'run()' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument."
+    );
     exit(1);
   }
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
@@ -231,6 +234,179 @@ async function outputResults(config, results) {
   fs.writeFile(config.output, data, (err) => {
     if (err) throw err;
   });
+}
+
+async function sendAnalytics(config, results) {
+  let data = {
+    userId: config.analytics.userId,
+    detailLevel: config.analytics.detailLevel,
+    tests: {
+      numberTests: 0,
+      passed: 0,
+      failed: 0,
+      actions: {
+        numberActions: 0,
+        averageNumberActionsPerTest: 0,
+        maxActionsPerTest: 0,
+        minActionsPerTest: 0,
+        passed: 0,
+        failed: 0,
+        goTo: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          uri: 0,
+        },
+        find: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          css: 0,
+        },
+        matchText: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          css: 0,
+          text: 0,
+        },
+        click: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          css: 0,
+        },
+        type: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          css: 0,
+          keys: 0,
+          trailingSpecialKey: 0,
+        },
+        moveMouse: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          css: 0,
+          alignH: 0,
+          alignV: 0,
+          offsetX: 0,
+          offsetY: 0,
+        },
+        scroll: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          x: 0,
+          y: 0,
+        },
+        wait: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          duration: 0,
+        },
+        screenshot: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          mediaDirectory: 0,
+          filename: 0,
+          matchPrevious: 0,
+          matchThreshold: 0,
+        },
+        startRecording: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          mediaDirectory: 0,
+          filename: 0,
+          gifFps: 0,
+          gifWidth: 0,
+        },
+        stopRecording: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+        },
+        checkLink: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          uri: 0,
+          statusCodes: 0,
+        },
+        runShell: {
+          numberInstances: 0,
+          passed: 0,
+          failed: 0,
+          command: 0,
+          env: 0,
+        },
+      },
+    },
+  };
+  let actionsPerTest = [];
+
+  // Preventatively remove unneeded sections based on detailLevel
+  if (data.detailLevel === "run") {
+    delete data.tests;
+  } else if (data.detailLevel === "test") {
+    delete data.tests.actions;
+  }
+
+  // detailLeval: test
+  if (data.detailLevel === "test" || data.detailLevel === "action") {
+    data.tests.numberTests = results.tests.length;
+    results.tests.forEach((test) => {
+      if (test.status === "PASS") data.tests.passed++;
+      if (test.status === "FAIL") data.tests.failed++;
+
+      // detailLevel: action
+      if (data.detailLevel === "action") {
+        actionsPerTest.push(test.actions.length);
+
+        // loop through actions
+        test.actions.forEach((action) => {
+          if (action.result.status === "PASS") {
+            data.tests.actions.passed++;
+            data.tests.actions[action.action].passed++;
+          }
+          if (action.result.status === "FAIL") {
+            data.tests.actions.failed++;
+            data.tests.actions[action.action].failed++;
+          }
+
+          // loop through keys
+          data.tests.actions[action.action].numberInstances++;
+          Object.keys(action).forEach((key) => {
+            if (key != "result" && key != "action" && key != "line") {
+              data.tests.actions[action.action][key]++;
+            }
+          });
+        });
+      }
+    });
+  }
+
+  // Calculate actions per test numbers
+  if (data.detailLevel === "action") {
+    data.tests.actions.numberActions = actionsPerTest.reduce(
+      (a, b) => a + b,
+      0
+    );
+    data.tests.actions.averageNumberActionsPerTest =
+      data.tests.actions.numberActions / actionsPerTest.length;
+    data.tests.actions.maxActionsPerTest = actionsPerTest.reduce((a, b) =>
+      Math.max(a, b)
+    );
+    data.tests.actions.minActionsPerTest = actionsPerTest.reduce((a, b) =>
+      Math.min(a, b)
+    );
+  }
+
+  console.log(data);
 }
 
 async function convertToGif(config, input, fps, width) {
