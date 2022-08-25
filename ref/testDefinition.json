@@ -12,6 +12,8 @@
           "css": "Required for the following actions: find, matchText, click, type, moveMouse. CSS selectors that resolve to the element. Only returns the first element that matches the selectors.",
           "duration": "Optional. Applicable actions: wait. How long to wait in milliseconds.",
           "filename": "Optional. Applicable actions: screenshot. Name of the media file. If not specified, the filename is randomized.",
+          "gifFps": "Optional. Application action: startRecording. Frames per second of the output GIF file.",
+          "gifWidth": "Optional. Application action: startRecording. Width of the output GIF file.",
           "keys": "Optional. Applicable actions: type. Strings of keys of enter. To send special keys like 'ENTER', see 'trailingSpecialKey'.",
           "line": "Output only. Line number that the test action definition begins on.",
           "mediaDirectory": "Optional. Applicable actions: screenshot. The directory path for media created by the action. Overrides the default directory config. Default is config.imageDirectory or config.videoDirectory depending on the file type.",
