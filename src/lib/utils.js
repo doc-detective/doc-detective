@@ -73,7 +73,23 @@ function setArgs(args) {
     .option("verbose", {
       alias: "v",
       description:
-        "Boolean. Log command in-progress output to the console. Defaults to false.",
+        "Boolean. Defaults to false. Log command in-progress output to the console.",
+      type: "string",
+    })
+    .option("analytics", {
+      alias: "a",
+      description:
+        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-unit-test#analytics.",
+      type: "string",
+    })
+    .option("analyticsUserId", {
+      description:
+        "Identifier of the organization or individual running tests.",
+      type: "string",
+    })
+    .option("analyticsDetailLevel", {
+      description:
+        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-unit-test#analytics.",
       type: "string",
     })
     .help()
@@ -112,6 +128,10 @@ function setConfig(config, argv) {
   if (argv.browserHeight) config.browserOptions.height = argv.browserHeight;
   if (argv.browserWidth) config.browserOptions.width = argv.browserWidth;
   if (argv.verbose) config.verbose = argv.verbose;
+  if (argv.analytics) config.analytics.send = argv.analytics;
+  if (argv.analyticsUserId) config.analytics.userId = argv.analyticsUserId;
+  if (argv.analyticsDetailLevel) config.analytics.detailLevel = argv.analyticsDetailLevel;
+  
   return config;
 }
 
