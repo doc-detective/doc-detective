@@ -6,6 +6,7 @@ const path = require("path");
 const uuid = require("uuid");
 const nReadlines = require("n-readlines");
 const { exec } = require("child_process");
+const axios = require("axios");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
@@ -130,8 +131,9 @@ function setConfig(config, argv) {
   if (argv.verbose) config.verbose = argv.verbose;
   if (argv.analytics) config.analytics.send = argv.analytics;
   if (argv.analyticsUserId) config.analytics.userId = argv.analyticsUserId;
-  if (argv.analyticsDetailLevel) config.analytics.detailLevel = argv.analyticsDetailLevel;
-  
+  if (argv.analyticsDetailLevel)
+    config.analytics.detailLevel = argv.analyticsDetailLevel;
+
   return config;
 }
 
@@ -256,114 +258,314 @@ async function outputResults(config, results) {
   });
 }
 
+async function sendToGa(data) {
+  let gaData = {
+    client_id: "doc-unit-test",
+    non_personalized_ads: true,
+    events: [
+      {
+        name: "analytics_report",
+        params: {
+          engagement_time_msec: "",
+          session_id: "",
+        },
+      },
+    ],
+  };
+  // Transform to flat object
+  if (
+    data.detailLevel === "test" ||
+    data.detailLevel === "action-simple" ||
+    data.detailLevel === "action-detailed"
+  ) {
+    gaData.events[0].params.tests_numberTests = data.tests.numberTests;
+    gaData.events[0].params.tests_passed = data.tests.passed;
+    gaData.events[0].params.tests_failed = data.tests.failed;
+    delete data.tests;
+    if (
+      data.detailLevel === "action-simple" ||
+      data.detailLevel === "action-detailed"
+    ) {
+      gaData.events[0].params.actions_numberTests = data.actions.numberTests;
+      gaData.events[0].params.actions_passed = data.actions.passed;
+      gaData.events[0].params.actions_failed = data.actions.failed;
+      gaData.events[0].params.actions_averageNumberActionsPerTest =
+        data.actions.averageNumberActionsPerTest;
+      gaData.events[0].params.actions_maxActionsPerTest =
+        data.actions.maxActionsPerTest;
+      gaData.events[0].params.actions_minActionsPerTest =
+        data.actions.minActionsPerTest;
+      delete data.actions;
+      if (data.detailLevel === "action-detailed") {
+        gaData.events[0].params.actionDetails_goTo_numberInstances =
+          data.actionDetails.goTo.numberInstances;
+        gaData.events[0].params.actionDetails_goTo_passed =
+          data.actionDetails.goTo.passed;
+        gaData.events[0].params.actionDetails_goTo_failed =
+          data.actionDetails.goTo.failed;
+        gaData.events[0].params.actionDetails_goTo_uri =
+          data.actionDetails.goTo.uri;
+        gaData.events[0].params.actionDetails_find_numberInstances =
+          data.actionDetails.find.numberInstances;
+        gaData.events[0].params.actionDetails_find_passed =
+          data.actionDetails.find.passed;
+        gaData.events[0].params.actionDetails_find_failed =
+          data.actionDetails.find.failed;
+        gaData.events[0].params.actionDetails_find_css =
+          data.actionDetails.find.css;
+        gaData.events[0].params.actionDetails_matchText_numberInstances =
+          data.actionDetails.matchText.numberInstances;
+        gaData.events[0].params.actionDetails_matchText_passed =
+          data.actionDetails.matchText.passed;
+        gaData.events[0].params.actionDetails_matchText_failed =
+          data.actionDetails.matchText.failed;
+        gaData.events[0].params.actionDetails_matchText_css =
+          data.actionDetails.matchText.css;
+        gaData.events[0].params.actionDetails_matchText_text =
+          data.actionDetails.matchText.text;
+        gaData.events[0].params.actionDetails_click_numberInstances =
+          data.actionDetails.click.numberInstances;
+        gaData.events[0].params.actionDetails_click_passed =
+          data.actionDetails.click.passed;
+        gaData.events[0].params.actionDetails_click_failed =
+          data.actionDetails.click.failed;
+        gaData.events[0].params.actionDetails_click_css =
+          data.actionDetails.click.css;
+        gaData.events[0].params.actionDetails_type_numberInstances =
+          data.actionDetails.type.numberInstances;
+        gaData.events[0].params.actionDetails_type_passed =
+          data.actionDetails.type.passed;
+        gaData.events[0].params.actionDetails_type_failed =
+          data.actionDetails.type.failed;
+        gaData.events[0].params.actionDetails_type_css =
+          data.actionDetails.type.css;
+        gaData.events[0].params.actionDetails_type_keys =
+          data.actionDetails.type.keys;
+        gaData.events[0].params.actionDetails_type_trailingSpecialKey =
+          data.actionDetails.type.trailingSpecialKey;
+        gaData.events[0].params.actionDetails_moveMouse_numberInstances =
+          data.actionDetails.moveMouse.numberInstances;
+        gaData.events[0].params.actionDetails_moveMouse_passed =
+          data.actionDetails.moveMouse.passed;
+        gaData.events[0].params.actionDetails_moveMouse_failed =
+          data.actionDetails.moveMouse.failed;
+        gaData.events[0].params.actionDetails_moveMouse_css =
+          data.actionDetails.moveMouse.css;
+        gaData.events[0].params.actionDetails_moveMouse_alignH =
+          data.actionDetails.moveMouse.alignH;
+        gaData.events[0].params.actionDetails_moveMouse_alignV =
+          data.actionDetails.moveMouse.alignV;
+        gaData.events[0].params.actionDetails_moveMouse_offsetX =
+          data.actionDetails.moveMouse.offsetX;
+        gaData.events[0].params.actionDetails_moveMouse_offsetY =
+          data.actionDetails.moveMouse.offsetY;
+        gaData.events[0].params.actionDetails_scroll_numberInstances =
+          data.actionDetails.scroll.numberInstances;
+        gaData.events[0].params.actionDetails_scroll_passed =
+          data.actionDetails.scroll.passed;
+        gaData.events[0].params.actionDetails_scroll_failed =
+          data.actionDetails.scroll.failed;
+        gaData.events[0].params.actionDetails_scroll_x =
+          data.actionDetails.scroll.x;
+        gaData.events[0].params.actionDetails_scroll_y =
+          data.actionDetails.scroll.y;
+        gaData.events[0].params.actionDetails_wait_numberInstances =
+          data.actionDetails.wait.numberInstances;
+        gaData.events[0].params.actionDetails_wait_passed =
+          data.actionDetails.wait.passed;
+        gaData.events[0].params.actionDetails_wait_failed =
+          data.actionDetails.wait.failed;
+        gaData.events[0].params.actionDetails_wait_duration =
+          data.actionDetails.wait.duration;
+        gaData.events[0].params.actionDetails_screenshot_numberInstances =
+          data.actionDetails.screenshot.numberInstances;
+        gaData.events[0].params.actionDetails_screenshot_passed =
+          data.actionDetails.screenshot.passed;
+        gaData.events[0].params.actionDetails_screenshot_failed =
+          data.actionDetails.screenshot.failed;
+        gaData.events[0].params.actionDetails_screenshot_mediaDirectory =
+          data.actionDetails.screenshot.mediaDirectory;
+        gaData.events[0].params.actionDetails_screenshot_filename =
+          data.actionDetails.screenshot.filename;
+        gaData.events[0].params.actionDetails_screenshot_matchPrevious =
+          data.actionDetails.screenshot.matchPrevious;
+        gaData.events[0].params.actionDetails_screenshot_matchThreshold =
+          data.actionDetails.screenshot.matchThreshold;
+        gaData.events[0].params.actionDetails_startRecording_numberInstances =
+          data.actionDetails.startRecording.numberInstances;
+        gaData.events[0].params.actionDetails_startRecording_passed =
+          data.actionDetails.startRecording.passed;
+        gaData.events[0].params.actionDetails_startRecording_failed =
+          data.actionDetails.startRecording.failed;
+        gaData.events[0].params.actionDetails_startRecording_mediaDirectory =
+          data.actionDetails.startRecording.mediaDirectory;
+        gaData.events[0].params.actionDetails_startRecording_filename =
+          data.actionDetails.startRecording.filename;
+        gaData.events[0].params.actionDetails_startRecording_gifFps =
+          data.actionDetails.startRecording.gifFps;
+        gaData.events[0].params.actionDetails_startRecording_gifWidth =
+          data.actionDetails.startRecording.gifWidth;
+        gaData.events[0].params.actionDetails_stopRecording_numberInstances =
+          data.actionDetails.stopRecording.numberInstances;
+        gaData.events[0].params.actionDetails_stopRecording_passed =
+          data.actionDetails.stopRecording.passed;
+        gaData.events[0].params.actionDetails_stopRecording_failed =
+          data.actionDetails.stopRecording.failed;
+        gaData.events[0].params.actionDetails_checkLink_numberInstances =
+          data.actionDetails.checkLink.numberInstances;
+        gaData.events[0].params.actionDetails_checkLink_passed =
+          data.actionDetails.checkLink.passed;
+        gaData.events[0].params.actionDetails_checkLink_failed =
+          data.actionDetails.checkLink.failed;
+        gaData.events[0].params.actionDetails_checkLink_uri =
+          data.actionDetails.checkLink.uri;
+        gaData.events[0].params.actionDetails_checkLink_statusCodes =
+          data.actionDetails.checkLink.statusCodes;
+        gaData.events[0].params.actionDetails_runShell_numberInstances =
+          data.actionDetails.runShell.numberInstances;
+        gaData.events[0].params.actionDetails_runShell_passed =
+          data.actionDetails.runShell.passed;
+        gaData.events[0].params.actionDetails_runShell_failed =
+          data.actionDetails.runShell.failed;
+        gaData.events[0].params.actionDetails_runShell_command =
+          data.actionDetails.runShell.command;
+        gaData.events[0].params.actionDetails_runShell_env =
+          data.actionDetails.runShell.env;
+        delete data.actionDetails;
+      }
+    }
+  }
+
+  // Send to GA
+  let req = await axios({
+    method: "post",
+    url: "https://www.google-analytics.com/mp/collect",
+    params: {
+      api_secret: "J_RJCtf0Rk-G42nX6XQBLQ",
+      measurement_id: "G-5VDP3TNPWC",
+    },
+    data: gaData,
+  })
+    .then(() => {
+      console.log(`INFO: Sucessfully sent analytics. Thanks for contributing to the project!`);
+    })
+    .catch((error) => {
+      console.log(`WARNING: Problem sending analytics. Status: ${error.status}. Status text: ${error.statusText}`);
+    });
+}
+
 async function sendAnalytics(config, results) {
+  const packageJson = require("../../package.json");
   let data = {
-    userId: config.analytics.userId,
+    version: packageJson.version,
     detailLevel: config.analytics.detailLevel,
+    userId: config.analytics.userId,
     tests: {
       numberTests: 0,
       passed: 0,
       failed: 0,
-      actions: {
-        numberActions: 0,
-        averageNumberActionsPerTest: 0,
-        maxActionsPerTest: 0,
-        minActionsPerTest: 0,
+    },
+    actions: {
+      numberActions: 0,
+      averageNumberActionsPerTest: 0,
+      maxActionsPerTest: 0,
+      minActionsPerTest: 0,
+      passed: 0,
+      failed: 0,
+    },
+    actionDetails: {
+      goTo: {
+        numberInstances: 0,
         passed: 0,
         failed: 0,
-        goTo: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          uri: 0,
-        },
-        find: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          css: 0,
-        },
-        matchText: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          css: 0,
-          text: 0,
-        },
-        click: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          css: 0,
-        },
-        type: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          css: 0,
-          keys: 0,
-          trailingSpecialKey: 0,
-        },
-        moveMouse: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          css: 0,
-          alignH: 0,
-          alignV: 0,
-          offsetX: 0,
-          offsetY: 0,
-        },
-        scroll: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          x: 0,
-          y: 0,
-        },
-        wait: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          duration: 0,
-        },
-        screenshot: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          mediaDirectory: 0,
-          filename: 0,
-          matchPrevious: 0,
-          matchThreshold: 0,
-        },
-        startRecording: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          mediaDirectory: 0,
-          filename: 0,
-          gifFps: 0,
-          gifWidth: 0,
-        },
-        stopRecording: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-        },
-        checkLink: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          uri: 0,
-          statusCodes: 0,
-        },
-        runShell: {
-          numberInstances: 0,
-          passed: 0,
-          failed: 0,
-          command: 0,
-          env: 0,
-        },
+        uri: 0,
+      },
+      find: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        css: 0,
+      },
+      matchText: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        css: 0,
+        text: 0,
+      },
+      click: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        css: 0,
+      },
+      type: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        css: 0,
+        keys: 0,
+        trailingSpecialKey: 0,
+      },
+      moveMouse: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        css: 0,
+        alignH: 0,
+        alignV: 0,
+        offsetX: 0,
+        offsetY: 0,
+      },
+      scroll: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        x: 0,
+        y: 0,
+      },
+      wait: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        duration: 0,
+      },
+      screenshot: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        mediaDirectory: 0,
+        filename: 0,
+        matchPrevious: 0,
+        matchThreshold: 0,
+      },
+      startRecording: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        mediaDirectory: 0,
+        filename: 0,
+        gifFps: 0,
+        gifWidth: 0,
+      },
+      stopRecording: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+      },
+      checkLink: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        uri: 0,
+        statusCodes: 0,
+      },
+      runShell: {
+        numberInstances: 0,
+        passed: 0,
+        failed: 0,
+        command: 0,
+        env: 0,
       },
     },
   };
@@ -373,60 +575,74 @@ async function sendAnalytics(config, results) {
   if (data.detailLevel === "run") {
     delete data.tests;
   } else if (data.detailLevel === "test") {
-    delete data.tests.actions;
+    delete data.actions;
   }
 
   // detailLeval: test
-  if (data.detailLevel === "test" || data.detailLevel === "action") {
+  if (
+    data.detailLevel === "test" ||
+    data.detailLevel === "action-simple" ||
+    data.detailLevel === "action-detailed"
+  ) {
     data.tests.numberTests = results.tests.length;
     results.tests.forEach((test) => {
       if (test.status === "PASS") data.tests.passed++;
       if (test.status === "FAIL") data.tests.failed++;
 
       // detailLevel: action
-      if (data.detailLevel === "action") {
+      if (
+        data.detailLevel === "action-simple" ||
+        data.detailLevel === "action-detailed"
+      ) {
         actionsPerTest.push(test.actions.length);
 
         // loop through actions
         test.actions.forEach((action) => {
           if (action.result.status === "PASS") {
-            data.tests.actions.passed++;
-            data.tests.actions[action.action].passed++;
+            data.actions.passed++;
+            if (data.detailLevel === "action-detailed")
+              data.actionDetails[action.action].passed++;
           }
           if (action.result.status === "FAIL") {
-            data.tests.actions.failed++;
-            data.tests.actions[action.action].failed++;
+            data.actions.failed++;
+            if (data.detailLevel === "action-detailed")
+              data.actionDetails[action.action].failed++;
           }
 
-          // loop through keys
-          data.tests.actions[action.action].numberInstances++;
-          Object.keys(action).forEach((key) => {
-            if (key != "result" && key != "action" && key != "line") {
-              data.tests.actions[action.action][key]++;
-            }
-          });
+          if (data.detailLevel === "action-detailed") {
+            // loop through keys
+            data.actionDetails[action.action].numberInstances++;
+            Object.keys(action).forEach((key) => {
+              if (key != "result" && key != "action" && key != "line") {
+                data.actionDetails[action.action][key]++;
+              }
+            });
+          }
         });
       }
     });
   }
 
   // Calculate actions per test numbers
-  if (data.detailLevel === "action") {
-    data.tests.actions.numberActions = actionsPerTest.reduce(
+  if (
+    data.detailLevel === "action-simple" ||
+    data.detailLevel === "action-detailed"
+  ) {
+    data.actions.numberActions = actionsPerTest.reduce(
       (a, b) => a + b,
       0
     );
-    data.tests.actions.averageNumberActionsPerTest =
-      data.tests.actions.numberActions / actionsPerTest.length;
-    data.tests.actions.maxActionsPerTest = actionsPerTest.reduce((a, b) =>
+    data.actions.averageNumberActionsPerTest =
+      data.actions.numberActions / actionsPerTest.length;
+    data.actions.maxActionsPerTest = actionsPerTest.reduce((a, b) =>
       Math.max(a, b)
     );
-    data.tests.actions.minActionsPerTest = actionsPerTest.reduce((a, b) =>
+    data.actions.minActionsPerTest = actionsPerTest.reduce((a, b) =>
       Math.min(a, b)
     );
   }
 
-  console.log(data);
+  sendToGa(data);
 }
 
 async function convertToGif(config, input, fps, width) {

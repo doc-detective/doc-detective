@@ -39,7 +39,7 @@
   "analytics": {
     "send": false,
     "userId": "",
-    "detailLevel": "action",
+    "detailLevel": "action-detailed",
     "servers": [
       {
         "uri": "https://analytics.doc-unit-test.com",
