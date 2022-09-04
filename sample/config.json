@@ -40,16 +40,7 @@
     "send": false,
     "userId": "",
     "detailLevel": "action-detailed",
-    "servers": [
-      {
-        "uri": "https://analytics.doc-unit-test.com",
-        "method": "POST",
-        "headers": [
-          "X-DOC-UNIT-TEST: $DOC-UNIT-TEST"
-        ],
-        "envs": "$DOC-UNIT-TEST-ENVS"
-      }
-    ]
+    "customServers": []
   },
   "verbose": false
 }

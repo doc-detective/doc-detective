@@ -7,6 +7,7 @@ const uuid = require("uuid");
 const nReadlines = require("n-readlines");
 const { exec } = require("child_process");
 const axios = require("axios");
+const { setServers } = require("dns");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
@@ -15,6 +16,18 @@ exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
 exports.sendAnalytics = sendAnalytics;
 exports.convertToGif = convertToGif;
+
+const defaultAnalyticsServers = [
+  {
+    name: "GA",
+    method: "post",
+    url: "https://www.google-analytics.com/mp/collect",
+    params: {
+      api_secret: "J_RJCtf0Rk-G42nX6XQBLQ",
+      measurement_id: "G-5VDP3TNPWC",
+    }
+  }
+];
 
 // Define args
 function setArgs(args) {
@@ -133,6 +146,13 @@ function setConfig(config, argv) {
   if (argv.analyticsUserId) config.analytics.userId = argv.analyticsUserId;
   if (argv.analyticsDetailLevel)
     config.analytics.detailLevel = argv.analyticsDetailLevel;
+  if (config.analytics.customServers.length > 0) {
+    config.analytics.servers = defaultAnalyticsServers.concat(
+      config.analytics.customServers
+    );
+  } else {
+    config.analytics.servers = defaultAnalyticsServers;
+  }
 
   return config;
 }
@@ -258,7 +278,7 @@ async function outputResults(config, results) {
   });
 }
 
-async function sendToGa(data) {
+async function transformForGa(data) {
   let gaData = {
     client_id: "doc-unit-test",
     non_personalized_ads: true,
@@ -436,8 +456,9 @@ async function sendToGa(data) {
     }
   }
 
+  return gaData;
   // Send to GA
-  let req = await axios({
+  await axios({
     method: "post",
     url: "https://www.google-analytics.com/mp/collect",
     params: {
@@ -447,10 +468,15 @@ async function sendToGa(data) {
     data: gaData,
   })
     .then(() => {
-      console.log(`INFO: Sucessfully sent analytics. Thanks for contributing to the project!`);
+      console.log(
+        `INFO: Sucessfully sent analytics to GA. Thanks for contributing to the project!`
+      );
     })
     .catch((error) => {
-      console.log(`WARNING: Problem sending analytics. Status: ${error.status}. Status text: ${error.statusText}`);
+      console.log(
+        `WARNING: Problem sending analytics.`
+      );
+      console.log(error);
     });
 }
 
@@ -628,10 +654,7 @@ async function sendAnalytics(config, results) {
     data.detailLevel === "action-simple" ||
     data.detailLevel === "action-detailed"
   ) {
-    data.actions.numberActions = actionsPerTest.reduce(
-      (a, b) => a + b,
-      0
-    );
+    data.actions.numberActions = actionsPerTest.reduce((a, b) => a + b, 0);
     data.actions.averageNumberActionsPerTest =
       data.actions.numberActions / actionsPerTest.length;
     data.actions.maxActionsPerTest = actionsPerTest.reduce((a, b) =>
@@ -642,7 +665,36 @@ async function sendAnalytics(config, results) {
     );
   }
 
-  sendToGa(data);
+  if (config.analytics.servers.length > 0) {
+    config.analytics.servers.forEach(async (server) => {
+
+      // Transform for GA
+      if (server.name == "GA") data = await transformForGa(data);
+      server.displayname = server.name || server.url;
+
+      // Construct request
+      let req = {
+        method: server.method,
+        url: server.url,
+        data,
+      };
+      if (server.params != undefined) req.params = server.params;
+      if (server.headers != undefined) req.headers = server.headers;
+
+      await axios(req)
+        .then(() => {
+          console.log(
+            `INFO: Sucessfully sent analytics to ${server.displayname}.`
+          );
+        })
+        .catch((error) => {
+          console.log(server.displayname);
+          console.log(
+            `WARNING: Problem sending analytics.`
+          );
+        });
+    });
+  }
 }
 
 async function convertToGif(config, input, fps, width) {
