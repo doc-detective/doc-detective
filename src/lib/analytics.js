@@ -372,7 +372,17 @@ async function sendAnalytics(config, results) {
     config.analytics.servers.forEach(async (server) => {
       // Transform for GA
       if (server.name == "GA") data = await transformForGa(data);
+      
+      // Per-server validation
       server.displayname = server.name || server.url;
+      if (!server.method) {
+        console.log(`WARNING: Can't send analytics to ${server.displayname}. Missing 'method' value.`);
+        return;
+      }
+      if (!server.url) {
+        console.log(`WARNING: Can't send analytics to ${server.displayname}. Missing 'url' value.`);
+        return;
+      }
 
       // Construct request
       let req = {
