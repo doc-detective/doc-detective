@@ -14,6 +14,18 @@ exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
 exports.convertToGif = convertToGif;
 
+const defaultAnalyticsServers = [
+  {
+    name: "GA",
+    method: "post",
+    url: "https://www.google-analytics.com/mp/collect",
+    params: {
+      api_secret: "J_RJCtf0Rk-G42nX6XQBLQ",
+      measurement_id: "G-5VDP3TNPWC",
+    },
+  },
+];
+
 // Define args
 function setArgs(args) {
   if (!args) return {};
@@ -72,7 +84,23 @@ function setArgs(args) {
     .option("verbose", {
       alias: "v",
       description:
-        "Boolean. Log command in-progress output to the console. Defaults to false.",
+        "Boolean. Defaults to false. Log command in-progress output to the console.",
+      type: "string",
+    })
+    .option("analytics", {
+      alias: "a",
+      description:
+        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-unit-test#analytics.",
+      type: "string",
+    })
+    .option("analyticsUserId", {
+      description:
+        "Identifier of the organization or individual running tests.",
+      type: "string",
+    })
+    .option("analyticsDetailLevel", {
+      description:
+        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-unit-test#analytics.",
       type: "string",
     })
     .help()
@@ -84,7 +112,9 @@ function setArgs(args) {
 function setConfig(config, argv) {
   // Set config
   if (JSON.stringify(config) === JSON.stringify({}) && !argv.config) {
-    console.log("Error: No config specified. If using the 'run()' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument.");
+    console.log(
+      "Error: No config specified. If using the 'run()' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument."
+    );
     exit(1);
   }
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
@@ -109,6 +139,31 @@ function setConfig(config, argv) {
   if (argv.browserHeight) config.browserOptions.height = argv.browserHeight;
   if (argv.browserWidth) config.browserOptions.width = argv.browserWidth;
   if (argv.verbose) config.verbose = argv.verbose;
+  if (argv.analytics) config.analytics.send = argv.analytics;
+  if (argv.analyticsUserId) config.analytics.userId = argv.analyticsUserId;
+  if (argv.analyticsDetailLevel)
+    config.analytics.detailLevel = argv.analyticsDetailLevel;
+  if (config.analytics.customServers.length > 0) {
+    config.analytics.servers = defaultAnalyticsServers.concat(
+      config.analytics.customServers
+    );
+  } else {
+    config.analytics.servers = defaultAnalyticsServers;
+  }
+
+  // Analytics notice
+  if (!config.analytics.send) {
+    console.log("INFO: Thanks for using doc-unit-test!");
+    console.log(
+      "If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps."
+    );
+    console.log(
+      "To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument."
+    );
+    console.log("See https://github.com/hawkeyexl/doc-unit-test#analytics");
+    console.log("");
+  }
+
   return config;
 }
 

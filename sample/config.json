@@ -36,5 +36,11 @@
     "height": "",
     "width": ""
   },
+  "analytics": {
+    "send": false,
+    "userId": "",
+    "detailLevel": "action-detailed",
+    "customServers": []
+  },
   "verbose": false
 }

@@ -5,6 +5,7 @@ const {
   parseFiles,
   outputResults,
 } = require("./lib/utils");
+const { sendAnalytics } = require("./lib/analytics.js");
 const { runTests } = require("./lib/tests");
 
 exports.run = function (config, argv) {
@@ -51,4 +52,7 @@ async function main(config, argv) {
 
   // Output
   outputResults(config, results);
+  if (config.analytics.send) {
+    sendAnalytics(config, results);
+  }
 }
