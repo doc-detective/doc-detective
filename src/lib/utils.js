@@ -22,8 +22,8 @@ const defaultAnalyticsServers = [
     params: {
       api_secret: "J_RJCtf0Rk-G42nX6XQBLQ",
       measurement_id: "G-5VDP3TNPWC",
-    }
-  }
+    },
+  },
 ];
 
 // Define args
@@ -149,6 +149,19 @@ function setConfig(config, argv) {
     );
   } else {
     config.analytics.servers = defaultAnalyticsServers;
+  }
+
+  // Analytics notice
+  if (!config.analytics.send) {
+    console.log("INFO: Thanks for using doc-unit-test!");
+    console.log(
+      "If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps."
+    );
+    console.log(
+      "To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument."
+    );
+    console.log("See https://github.com/hawkeyexl/doc-unit-test#analytics");
+    console.log("");
   }
 
   return config;
