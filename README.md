@@ -12,14 +12,14 @@ This project handles test parsing and web-based UI testing--it doesn't support r
 
 ## Get started
 
-You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [CLI tool](#cli-tool).		
+You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [CLI tool](#cli-tool).
 
 ### NPM package
 
 `doc-unit-test` integrates with Node projects as an NPM package. When using the NPM package, you must specify all options in the `run()` method's `config` argument, which is a JSON object with the same structure as [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
 
 0.  Install prerequisites:
-    *   [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
+    - [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
 1.  In a terminal, navigate to your Node project, then install `doc-unit-test`:
 
     ```bash
@@ -38,27 +38,28 @@ You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [C
     run(config);
     ```
 
-### CLI tool		
+### CLI tool
 
-You can run `doc-unit-test` as a standalone CLI tool. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `npm run test -- -h`.)		
+You can run `doc-unit-test` as a standalone CLI tool. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `npm run test -- -h`.)
 
-0.  Install prerequisites:		
-    *   [Node.js](https://nodejs.org/)		
-    *   [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)		
+0.  Install prerequisites:
 
-1.  In a terminal, clone the repo and install dependencies:		
+    - [Node.js](https://nodejs.org/)
+    - [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
 
-    ```bash		
-    git clone https://github.com/hawkeyexl/doc-unit-test.git		
-    cd doc-unit-test		
-    npm install		
-    ```		
+1.  In a terminal, clone the repo and install dependencies:
 
-1.  Run tests according to your config. The `-c` argument is required and specifies the path to your config. The following example runs tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:		
+    ```bash
+    git clone https://github.com/hawkeyexl/doc-unit-test.git
+    cd doc-unit-test
+    npm install
+    ```
 
-    ```bash		
-    npm run test -- -c sample/config.json		
-    ```		
+1.  Run tests according to your config. The `-c` argument is required and specifies the path to your config. The following example runs tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:
+
+    ```bash
+    npm run test -- -c sample/config.json
+    ```
 
 To customize your test, file type, and directory options, update [sample/config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
 
@@ -268,8 +269,189 @@ Format:
 }
 ```
 
+## Analytics
+
+By default, `doc-unit-test` doesn't collect any information about tests, devices, users, or documentation and doesn't check in with any external service or server. If you want to help inform decisions about the future development of `doc-unit-test`—such as feature development and documentation creation—you can opt into sending anonymized analytics after you run tests at one of the multiple levels of detail.
+
+There are multiple ways to turn on analytics:
+
+- config setting: In your [config](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json), set `analytics.send` to true.
+- CLI argument: When running `doc-unit-test` as a CLI tool, include `-a true` or `--analytics true`. This overrides any setting you specified in your config.
+
+Most fields are self-explanatory, but a few merit additional description:
+
+- `version` is populated with the version of your `doc-unit-test` instance.
+- `userId` is whatever arbitrary string, if any, you specify to identify the individual, workgroup, or organization running the tests.
+- `detailLevel` must match one of the four supported levels of detail:
+  - `run` indicates that tests were run, and that's about it. It omits the `tests`, `actions`, and `actionDetails` objects.
+  - `test` includes aggregate data on the number of tests you ran and the tests' PASS/FAIL rates. It omits the `actions`, and `actionDetails` objects.
+  - `action-simple` includes aggregate data on the number of actions in tests you ran and the actions' PASS/FAIL rates. It omits the `actionDetails` object.
+  - `action-detailed` includes aggregate data on the kinds of actions you ran and the actions' PASS/FAIL rates. It doesn't omit any objects.
+
+The analytics object has the following schema:
+
+```json
+{
+  "version": "0.1.8",
+  "userId": "",
+  "detailLevel": "action-detailed",
+  "tests": {
+    "numberTests": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "actions": {
+    "numberActions": 0,
+    "averageNumberActionsPerTest": 0,
+    "maxActionsPerTest": 0,
+    "minActionsPerTest": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "actionDetails": {
+    "goTo": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "uri": 0
+    },
+    "find": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "css": 0
+    },
+    "matchText": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "css": 0,
+      "text": 0
+    },
+    "click": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "css": 0
+    },
+    "type": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "css": 0,
+      "keys": 0,
+      "trailingSpecialKey": 0
+    },
+    "moveMouse": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "css": 0,
+      "alignH": 0,
+      "alignV": 0,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "scroll": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "x": 0,
+      "y": 0
+    },
+    "wait": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "duration": 0
+    },
+    "screenshot": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "mediaDirectory": 0,
+      "filename": 0,
+      "matchPrevious": 0,
+      "matchThreshold": 0
+    },
+    "startRecording": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "mediaDirectory": 0,
+      "filename": 0,
+      "gifFps": 0,
+      "gifWidth": 0
+    },
+    "stopRecording": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0
+    },
+    "checkLink": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "uri": 0,
+      "statusCodes": 0
+    },
+    "runShell": {
+      "numberInstances": 0,
+      "passed": 0,
+      "failed": 0,
+      "command": 0,
+      "env": 0
+    }
+  }
+}
+```
+
+### Custom analytics servers
+
+If you opt into sending analytics, you can add additional servers that `doc-unit-test` should send the analytics object to. Custom servers are specified in your config and have the following schema.
+
+`params` and `headers` are optional.
+
+```json
+{
+  ...
+  "analytics": {
+    ...
+    "customServers": [
+      {
+        "name": "My Analytics Server",
+        "method": "post",
+        "url": "https://my.analytics-server.com/endpoint",
+        "params": {
+          "param_secret": "LifeTheUniverseAndEverything"
+        },
+        "headers": {
+          "header_secret": "42"
+        }
+      }
+    ]
+  }
+  ...
+}
+```
+
+### Turn off analytics
+
+Analytics reporting is off by default. If you want to make extra sure that `doc-unit-test` doesn't collect analytics, you have a few options:
+
+- config setting: In your [config](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json), set `analytics.send` to false.
+- CLI argument: When running `doc-unit-test` as a CLI tool, include `-a false` or `--analytics false`. This overrides any setting you specified in your config.
+- Modify the code (if you're paranoid):
+  1. In [src/index.js](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/index.js), remove all references to `sendAnalytics()`.
+  1. Delete [src/libs/analytics.js](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/libs/analytics.js).
+
+**Note:** Updating `doc-unit-test` may revert any modified code, so be ready to make code edits repeatedly.
+
 ## Potential future features
 
+- Browser auto-detection and fallback.
+- Environment variable overrides for config options.
+- Docker image with bundled Chromium/Chrome/Firefox.
 - New/upgraded test actions:
   - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
