@@ -1,5 +1,5 @@
 {
-  "version": "Doc-Unit-Test version that ran the tests.",
+  "version": "doc-unit-test version that ran the tests.",
   "detailLevel": "How much detail is included in the analytics object. Values: ['parameter', 'action', 'test', 'run']",
   "userId": "Optional. Identifier of the organization or individual running tests.",
   "tests": {
