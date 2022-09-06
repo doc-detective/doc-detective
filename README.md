@@ -234,10 +234,8 @@ Format:
   "action": "startRecording",
   "mediaDirectory": "samples",
   "filename": "results.mp4",
-  "gifOptions": {
-    "fps": 15,
-    "width": 400
-  }
+  "gifFps": 15,
+  "gifWidth": 400
 }
 ```
 
