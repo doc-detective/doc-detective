@@ -4,8 +4,8 @@ const {
   setFiles,
   parseFiles,
   outputResults,
-  sendAnalytics,
 } = require("./lib/utils");
+const { sendAnalytics } = require("./lib/analytics.js");
 const { runTests } = require("./lib/tests");
 
 exports.run = function (config, argv) {
