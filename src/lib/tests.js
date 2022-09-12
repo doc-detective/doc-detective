@@ -587,7 +587,7 @@ async function matchText(action, page) {
       (element) => element.textContent
     );
   }
-  if (elementText === action.text) {
+  if (elementText.trim() === action.text) {
     // PASS
     status = "PASS";
     description = "Element text matched expected text.";
