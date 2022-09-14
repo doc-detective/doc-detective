@@ -102,6 +102,10 @@ async function runAction(config, action, page, videoDetails) {
     case "click":
       find = await findElement(action, page);
       if (find.result.status === "FAIL") return find;
+      if (action.moveMouse === "true" || action.moveMouse === true) {
+        move = await moveMouse(action, page, find.elementHandle);
+        if (move.result.status === "FAIL") return move;
+      }
       result = await clickElement(action, find.elementHandle);
       break;
     case "type":
