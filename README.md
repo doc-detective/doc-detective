@@ -124,7 +124,13 @@ Format:
 ```
 {
   "action": "click",
-  "css": "#gbqfbb"
+  "css": "#gbqfbb",
+  "moveMouse": "true",
+  "alignH": "center",
+  "alignV": "center",
+  "offsetX": 10,
+  "offsetY": 10
+
 }
 ```
 
