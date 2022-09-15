@@ -242,7 +242,7 @@ async function runShell(action) {
   // Load environment variables
   if (action.env) {
     let result = await setEnvs(action.env);
-    if (envs.status === "FAIL") return { result };
+    if (result.status === "FAIL") return { result };
   }
 
   // Promisify and execute command

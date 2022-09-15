@@ -521,10 +521,12 @@ Analytics reporting is off by default. If you want to make extra sure that `doc-
 - New/upgraded test actions:
   - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
-  - Upgrade: `type` action to support env vars (Particularly useful for passing credentials).
-  - Upgrade: `wait` action to support waiting for a specific element to be present, regardless of duration.
+  - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
+  - Upgrade: `startRecording` to remove MP4 when the output is a GIF.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
-- In-content test framing to identify when some content is covered by a test defined in another file. This could enable content coverage analysis.
+  - Upgrade: `startRecording` to store the output file in a different location if a recorded action fails. This could help with debugging.
+  - Upgrade: `wait` action to support waiting for a specific element to be present, regardless of duration.
+- In-content test framing to identify when content is covered by a test defined in another file. This could enable content coverage analysis.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
 
