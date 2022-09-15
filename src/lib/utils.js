@@ -13,6 +13,7 @@ exports.setFiles = setFiles;
 exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
 exports.convertToGif = convertToGif;
+exports.setEnvs = setEnvs;
 
 const defaultAnalyticsServers = [
   {
@@ -309,4 +310,14 @@ async function convertToGif(config, input, fps, width) {
     return { stdout };
   });
   return output;
+}
+
+async function setEnvs(envsFile) {
+  const fileExists = fs.existsSync(envsFile);
+  if (fileExists) {
+    require('dotenv').config({ path: envsFile, override: true })
+    return { status: "PASS", description: "Envs set."}
+  } else {
+    return { status: "FAIL", description: "Invalid file."}
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "doc-unit-test",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
   "scripts": {
@@ -25,6 +25,7 @@
   "homepage": "https://github.com/hawkeyexl/doc-unit-test#readme",
   "dependencies": {
     "axios": "^0.27.2",
+    "dotenv": "^16.0.2",
     "n-readlines": "^1.0.1",
     "pixelmatch": "^5.3.0",
     "pngjs": "^6.0.0",

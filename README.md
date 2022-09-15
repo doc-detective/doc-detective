@@ -1,6 +1,6 @@
 # doc-unit-test
 
-Unit test documentation to validate UX flows, display text, and images. Primarily useful for process docs, `doc-unit-test` supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
+Unit test documentation to validate UX flows, in-GUI text, and images. Primarily useful for process docs, `doc-unit-test` supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
 
 `doc-unit-test` ingests text files, parses them for test actions, then executes those actions in a headless Chromium browser. The results (PASS/FAIL and context) are output as a JSON object so that other pieces of infrastructure can parse and manipulate them as needed.
 
@@ -81,7 +81,7 @@ Navigate to a specified URI.
 
 Format:
 
-```
+```json
 {
   "action": "goTo",
   "uri": "https://www.google.com"
@@ -92,12 +92,37 @@ Format:
 
 Identify if an element is on the current page based on CSS selectors.
 
-Format:
+Optionally, perform additional actions on the element in the specified order: [`matchText`](#match-text) > [`moveMouse`](#move-mouse) > [`click`](#click) > [`type`](#type). Payloads for these additional actions are nested within the `find` action's definition and (other than omitting the `css` field) match the format for running each action separately.
 
-```
+Simple format:
+
+```json
 {
   "action": "find",
   "css": "[title=Search]"
+}
+```
+Advanced format:
+
+```json
+{
+  "action": "find",
+  "css": "[title=Search]",
+  "matchText": {
+    "text": "Search"
+  }
+  "moveMouse": {
+    "alignH": "center",
+    "alignV": "center",
+    "offsetX": 0,
+    "offsetY": 0
+  },
+  "click": {},
+  "type": {
+    "keys": "$SHORTHAIR_CAT_SEARCH",
+    "trailingSpecialKey": "Enter",
+    "envs": "./sample/variables.env"
+  }
 }
 ```
 
@@ -107,7 +132,7 @@ Identify if an element displays the expected text.
 
 Format:
 
-```
+```json
 {
   "action": "matchText",
   "css": "#gbqfbb",
@@ -121,10 +146,16 @@ Click an element specified by CSS selectors.
 
 Format:
 
-```
+```json
 {
   "action": "click",
-  "css": "#gbqfbb"
+  "css": "#gbqfbb",
+  "moveMouse": "true",
+  "alignH": "center",
+  "alignV": "center",
+  "offsetX": 10,
+  "offsetY": 10
+
 }
 ```
 
@@ -132,14 +163,30 @@ Format:
 
 Enter text in an element specified by CSS selectors.
 
+`keys` can be either a string or an environment variable. Environment variables are identified by a leading '$', and you can set environment variables by passing a .env file ([sample](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/variables.env)) to the `env` field. If the variable is undefined on the machine running the test, the `keys` value is typed as a string. For example, if `keys` is "$KITTENS" and the `KITTENS` environment variable is set to "cute kittens", the test types "cute kittens", but if the `KITTENS` environment variable isn't defined, the test types the string "$KITTENS".
+
+**Warning:** If you want to pass sensitive strings like usernames or passwords into the `type` action, store those values in a local .env file, point `env` to that file, and reference the variable in `keys`. Don't include cleartext passwords in your tests. Don't check .env files with sensitive data into a repository. Be careful with your credentials! Consult your security team if you have concerns.
+
 Format:
 
-```
+```json
 {
   "action": "type",
   "css": "[title=Search]",
   "keys": "kittens",
   "trailingSpecialKey": "Enter"
+}
+```
+
+Advanced format with an environment variable:
+
+```json
+{
+  "action": "type",
+  "css": "input#password",
+  "keys": "$PASSWORD",
+  "trailingSpecialKey": "Enter",
+  "envs": "./sample/variables.env"
 }
 ```
 
@@ -151,7 +198,7 @@ Move the mouse to an element specified by CSS selectors.
 
 Format:
 
-```
+```json
 {
   "action": "moveMouse",
   "css": "[title=Search]",
@@ -168,7 +215,7 @@ Scroll the current page by a specified number of pixels. For `x`, positive value
 
 Format:
 
-```
+```json
 {
   "action": "scroll",
   "x": 100,
@@ -182,7 +229,7 @@ Pause before performing the next action.
 
 Format:
 
-```
+```json
 {
   "action": "wait",
   "duration": 500
@@ -197,7 +244,7 @@ To match previously captured screenshots to the current viewport, set `matchPrev
 
 Format:
 
-```
+```json
 {
   "action": "screenshot",
   "mediaDirectory": "samples",
@@ -213,7 +260,7 @@ Check if a link returns an acceptable status code from a GET request. If `uri` d
 
 Format:
 
-```
+```json
 {
   "action": "checkLink",
   "uri": "https://www.google.com",
@@ -229,7 +276,7 @@ Start recording the current browser viewport. Must be followed by a `stopRecordi
 
 Format:
 
-```
+```json
 {
   "action": "startRecording",
   "mediaDirectory": "samples",
@@ -245,7 +292,7 @@ Stop recording the current browser viewport.
 
 Format:
 
-```
+```json
 {
   "action": "stopRecording"
 }
@@ -259,7 +306,7 @@ Returns `PASS` if the command has an exit code of `0`. Returns `FAIL` if the com
 
 Format:
 
-```
+```json
 {
   "action": "runShell",
   "command": "echo $username",
@@ -317,7 +364,26 @@ The analytics object has the following schema:
       "numberInstances": 0,
       "passed": 0,
       "failed": 0,
-      "css": 0
+      "matchText": {
+        "numberInstances": 0,
+        "text": 0
+      },
+      "moveMouse": {
+        "numberInstances": 0,
+        "alignH": 0,
+        "alignV": 0,
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      "click": {
+        "numberInstances": 0
+      },
+      "type": {
+        "numberInstances": 0,
+        "keys": 0,
+        "trailingSpecialKey": 0,
+        "env": 0
+      }
     },
     "matchText": {
       "numberInstances": 0,
@@ -338,7 +404,8 @@ The analytics object has the following schema:
       "failed": 0,
       "css": 0,
       "keys": 0,
-      "trailingSpecialKey": 0
+      "trailingSpecialKey": 0,
+      "env": 0
     },
     "moveMouse": {
       "numberInstances": 0,
@@ -448,14 +515,18 @@ Analytics reporting is off by default. If you want to make extra sure that `doc-
 ## Potential future features
 
 - Browser auto-detection and fallback.
+- Improved default config experience.
 - Environment variable overrides for config options.
 - Docker image with bundled Chromium/Chrome/Firefox.
 - New/upgraded test actions:
   - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
-  - Upgrade: `type` action to support env vars (Particularly useful for passing credentials).
-  - Upgrade: `wait` action to support waiting for a specific element to be present, regardless of duration.
+  - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
+  - Upgrade: `startRecording` to remove MP4 when the output is a GIF.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
+  - Upgrade: `startRecording` to store the output file in a different location if a recorded action fails. This could help with debugging.
+  - Upgrade: `wait` action to support waiting for a specific element to be present, regardless of duration.
+- In-content test framing to identify when content is covered by a test defined in another file. This could enable content coverage analysis.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
 

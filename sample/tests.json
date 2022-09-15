@@ -49,7 +49,8 @@
         {
           "action": "type",
           "css": "[title=Search]",
-          "keys": "american shorthair cats"
+          "keys": "SHORTHAIR_CAT_SEARCH",
+          "env": "./sample/variables.env"
         },
         {
           "action": "click",
@@ -62,7 +63,7 @@
       "actions": [
         {
           "action": "runShell",
-          "command": "echo $username",
+          "command": "echo $USERNAME",
           "env": "./sample/variables.env"
         },
         {

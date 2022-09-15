@@ -1,0 +1,36 @@
+{
+  "tests": [
+    {
+      "id": "process-lucky-shorthair",
+      "actions": [
+        {
+          "action": "goTo",
+          "uri": "www.google.com",
+          "result": {
+            "status": "PASS",
+            "description": "Opened URI."
+          }
+        },
+        {
+          "action": "type",
+          "css": "[title=Search]",
+          "keys": "american shorthair cats",
+          "result": {
+            "status": "PASS",
+            "description": "Typed keys."
+          }
+        },
+        {
+          "action": "click",
+          "moveMouse": true,
+          "css": "#gbqfbb",
+          "result": {
+            "status": "PASS",
+            "description": "Clicked element."
+          }
+        }
+      ],
+      "status": "PASS"
+    }
+  ]
+}

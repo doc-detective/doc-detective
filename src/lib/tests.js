@@ -4,7 +4,7 @@ const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
-const { convertToGif } = require("./utils");
+const { convertToGif, setEnvs } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const PNG = require("pngjs").PNG;
@@ -93,6 +93,54 @@ async function runAction(config, action, page, videoDetails) {
       break;
     case "find":
       result = await findElement(action, page);
+      if (result.result.status === "FAIL") return result;
+      // Perform sub-action: matchText
+      if (action.matchText) {
+        action.matchText.css = action.css;
+        matchResult = await matchText(action.matchText, result.elementHandle);
+        delete action.matchText.css;
+        result.result.description =
+          result.result.description + " " + matchResult.result.description;
+        if (matchResult.result.status === "FAIL") {
+          result.result.status = "FAIL";
+          return result;
+        }
+      }
+      // Perform sub-action: moveMouse
+      if (action.moveMouse) {
+        action.moveMouse.css = action.css;
+        move = await moveMouse(action.moveMouse, page, result.elementHandle);
+        delete action.moveMouse.css;
+        result.result.description =
+          result.result.description + " " + move.result.description;
+        if (move.result.status === "FAIL") {
+          result.result.status = "FAIL";
+          return result;
+        }
+      }
+      // Perform sub-action: click
+      if (action.click) {
+        action.click.css = action.css;
+        click = await clickElement(action.click, result.elementHandle);
+        delete action.click.css;
+        result.result.description =
+          result.result.description + " " + click.result.description;
+        if (click.result.status === "FAIL") {
+          result.result.status = "FAIL";
+          return result;
+        }
+      }
+      // Perform sub-action: type
+      if (action.type) {
+        action.type.css = action.css;
+        type = await typeElement(action.type, result.elementHandle);
+        delete action.type.css;
+        result.result.description =
+          result.result.description + " " + type.result.description;
+        if (type.result.status === "FAIL") {
+          result.result.status = "FAIL";
+        }
+      }
       break;
     case "matchText":
       find = await findElement(action, page);
@@ -190,27 +238,21 @@ async function runShell(action) {
   let description;
   let result;
   let exitCode;
+
+  // Load environment variables
   if (action.env) {
-    const fileExists = fs.existsSync(action.env);
-    if (fileExists) {
-      const text = fs.readFileSync(action.env, { encoding: "utf8" });
-      const lines = text.split("\n");
-      lines.forEach((line) => {
-        parts = line.split("=");
-        env = parts[0].trim();
-        value = parts[1].trim();
-        process.env[env] = value;
-      });
-    }
+    let result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
   }
+
+  // Promisify and execute command
   const promise = exec(action.command);
   const child = promise.child;
-
   child.on("close", function (code) {
     exitCode = code;
   });
 
-  // i.e. can then await for promisified exec call to complete
+  // Await for promisified command to complete
   let { stdout, stderr } = await promise;
   stdout = stdout.trim();
   stderr = stderr.trim();
@@ -330,7 +372,7 @@ async function screenshot(action, page, config) {
     let testPath = path.join(filePath, action.filename);
     const fileExists = fs.existsSync(testPath);
     if (fileExists) {
-      filename = 'temp_' + action.filename;
+      filename = "temp_" + action.filename;
       previousFilename = action.filename;
       previousFilePath = path.join(filePath, previousFilename);
       // Set threshold
@@ -349,11 +391,11 @@ async function screenshot(action, page, config) {
     action.matchPrevious = false;
     if (config.verbose)
       console.log("WARNING: No filename specified. Not matching.");
-    filename = 'temp_' + action.filename;
+    filename = "temp_" + action.filename;
   } else if (!action.matchPrevious && action.filename) {
     filename = action.filename;
   } else {
-    filename = 'temp_' + action.filename;
+    filename = "temp_" + action.filename;
   }
   filePath = path.join(filePath, filename);
 
@@ -446,6 +488,7 @@ async function typeElement(action, elementHandle) {
   let status;
   let description;
   let result;
+  let keys;
   if (!action.keys && !action.trailingSpecialKey) {
     // Fail: No keys specified
     status = "FAIL";
@@ -453,17 +496,33 @@ async function typeElement(action, elementHandle) {
     result = { status, description };
     return { result };
   }
+  // Load environment variables
+  if (action.env) {
+    result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  // Type keys
   if (action.keys) {
+    // Detect if using an environment variable and sub in value
+    if (
+      action.keys[0] === "$" &&
+      process.env[action.keys.substring(1)] != undefined
+    ) {
+      keys = process.env[action.keys.substring(1)];
+    } else {
+      keys = action.keys;
+    }
     try {
-      await elementHandle.type(action.keys);
+      await elementHandle.type(keys);
     } catch {
-      // FAIL: Text didn't match
+      // FAIL
       status = "FAIL";
       description = `Couldn't type keys.`;
       result = { status, description };
       return { result };
     }
   }
+  // Type training special key
   if (action.trailingSpecialKey) {
     try {
       await elementHandle.press(action.trailingSpecialKey);
@@ -587,7 +646,7 @@ async function matchText(action, page) {
       (element) => element.textContent
     );
   }
-  if (elementText === action.text) {
+  if (elementText.trim() === action.text) {
     // PASS
     status = "PASS";
     description = "Element text matched expected text.";
