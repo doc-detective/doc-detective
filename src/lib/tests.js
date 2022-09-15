@@ -512,7 +512,6 @@ async function typeElement(action, elementHandle) {
     } else {
       keys = action.keys;
     }
-    console.log(keys);
     try {
       await elementHandle.type(keys);
     } catch {
