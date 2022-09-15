@@ -238,17 +238,21 @@ async function runShell(action) {
   let description;
   let result;
   let exitCode;
+
+  // Load environment variables
   if (action.env) {
-    const envs = await setEnvs(action.env);
+    let envs = await setEnvs(action.env);
+    if (envs.status === "FAIL") return envs;
   }
+
+  // Promisify and execute command
   const promise = exec(action.command);
   const child = promise.child;
-
   child.on("close", function (code) {
     exitCode = code;
   });
 
-  // i.e. can then await for promisified exec call to complete
+  // Await for promisified command to complete
   let { stdout, stderr } = await promise;
   stdout = stdout.trim();
   stderr = stderr.trim();
