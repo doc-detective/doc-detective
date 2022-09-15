@@ -119,8 +119,9 @@ Advanced format:
   },
   "click": {},
   "type": {
-    "keys": "american shorthair cats",
-    "trailingSpecialKey": "Enter"
+    "keys": "$SHORTHAIR_CAT_SEARCH",
+    "trailingSpecialKey": "Enter",
+    "envs": "./sample/variables.env"
   }
 }
 ```
@@ -162,6 +163,10 @@ Format:
 
 Enter text in an element specified by CSS selectors.
 
+`keys` can be either a string or an environment variable. Environment variables are identified by a leading '$', and you can set environment variables by passing a .env file ([sample](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/variables.env)) to the `env` field. If the variable is undefined on the machine running the test, the `keys` value is typed as a string. For example, if `keys` is "$KITTENS" and the `KITTENS` environment variable is set to "cute kittens", the test types "cute kittens", but if the `KITTENS` environment variable isn't defined, the test types the string "$KITTENS".
+
+**Warning:** If you want to pass sensitive strings like usernames or passwords into the `type` action, store those values in a local .env file, point `env` to that file, and reference the variable in `keys`. Don't include cleartext passwords in your tests. Don't check .env files with sensitive data into a repository. Be careful with your credentials! Consult your security team if you have concerns.
+
 Format:
 
 ```json
@@ -170,6 +175,18 @@ Format:
   "css": "[title=Search]",
   "keys": "kittens",
   "trailingSpecialKey": "Enter"
+}
+```
+
+Advanced format with an environment variable:
+
+```json
+{
+  "action": "type",
+  "css": "input#password",
+  "keys": "$PASSWORD",
+  "trailingSpecialKey": "Enter",
+  "envs": "./sample/variables.env"
 }
 ```
 
@@ -364,7 +381,8 @@ The analytics object has the following schema:
       "type": {
         "numberInstances": 0,
         "keys": 0,
-        "trailingSpecialKey": 0
+        "trailingSpecialKey": 0,
+        "env": 0
       }
     },
     "matchText": {
@@ -386,7 +404,8 @@ The analytics object has the following schema:
       "failed": 0,
       "css": 0,
       "keys": 0,
-      "trailingSpecialKey": 0
+      "trailingSpecialKey": 0,
+      "env": 0
     },
     "moveMouse": {
       "numberInstances": 0,

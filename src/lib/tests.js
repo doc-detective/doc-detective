@@ -241,8 +241,8 @@ async function runShell(action) {
 
   // Load environment variables
   if (action.env) {
-    let envs = await setEnvs(action.env);
-    if (envs.status === "FAIL") return envs;
+    let result = await setEnvs(action.env);
+    if (envs.status === "FAIL") return { result };
   }
 
   // Promisify and execute command
@@ -488,6 +488,7 @@ async function typeElement(action, elementHandle) {
   let status;
   let description;
   let result;
+  let keys;
   if (!action.keys && !action.trailingSpecialKey) {
     // Fail: No keys specified
     status = "FAIL";
@@ -495,17 +496,34 @@ async function typeElement(action, elementHandle) {
     result = { status, description };
     return { result };
   }
+  // Load environment variables
+  if (action.env) {
+    result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  // Type keys
   if (action.keys) {
+    // Detect if using an environment variable and sub in value
+    if (
+      action.keys[0] === "$" &&
+      process.env[action.keys.substring(1)] != undefined
+    ) {
+      keys = process.env[action.keys.substring(1)];
+    } else {
+      keys = action.keys;
+    }
+    console.log(keys);
     try {
-      await elementHandle.type(action.keys);
+      await elementHandle.type(keys);
     } catch {
-      // FAIL: Text didn't match
+      // FAIL
       status = "FAIL";
       description = `Couldn't type keys.`;
       result = { status, description };
       return { result };
     }
   }
+  // Type training special key
   if (action.trailingSpecialKey) {
     try {
       await elementHandle.press(action.trailingSpecialKey);

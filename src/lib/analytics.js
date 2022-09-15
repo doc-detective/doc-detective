@@ -79,6 +79,8 @@ async function transformForGa(data) {
           data.actionDetails.find.type.keys;
         gaData.events[0].params.actionDetails_find_type_trailingSpecialKey =
           data.actionDetails.find.type.trailingSpecialKey;
+          gaData.events[0].params.actionDetails_find_type_env =
+          data.actionDetails.find.type.env;
         gaData.events[0].params.actionDetails_matchText_numberInstances =
           data.actionDetails.matchText.numberInstances;
         gaData.events[0].params.actionDetails_matchText_passed =
@@ -109,6 +111,8 @@ async function transformForGa(data) {
           data.actionDetails.type.keys;
         gaData.events[0].params.actionDetails_type_trailingSpecialKey =
           data.actionDetails.type.trailingSpecialKey;
+          gaData.events[0].params.actionDetails_type_env =
+          data.actionDetails.type.env;
         gaData.events[0].params.actionDetails_moveMouse_numberInstances =
           data.actionDetails.moveMouse.numberInstances;
         gaData.events[0].params.actionDetails_moveMouse_passed =
@@ -254,6 +258,7 @@ async function sendAnalytics(config, results) {
           numberInstances: 0,
           keys: 0,
           trailingSpecialKey: 0,
+          env: 0,
         },
       },
       matchText: {
@@ -276,6 +281,7 @@ async function sendAnalytics(config, results) {
         css: 0,
         keys: 0,
         trailingSpecialKey: 0,
+        env: 0,
       },
       moveMouse: {
         numberInstances: 0,
