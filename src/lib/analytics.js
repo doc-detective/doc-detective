@@ -57,6 +57,28 @@ async function transformForGa(data) {
           data.actionDetails.find.failed;
         gaData.events[0].params.actionDetails_find_css =
           data.actionDetails.find.css;
+        gaData.events[0].params.actionDetails_find_matchText_numberInstances =
+          data.actionDetails.find.matchText.numberInstances;
+        gaData.events[0].params.actionDetails_find_matchText_text =
+          data.actionDetails.find.matchText.text;
+        gaData.events[0].params.actionDetails_find_moveMouse_numberInstances =
+          data.actionDetails.find.moveMouse.numberInstances;
+        gaData.events[0].params.actionDetails_find_moveMouse_alignH =
+          data.actionDetails.find.moveMouse.alignH;
+        gaData.events[0].params.actionDetails_find_moveMouse_alignV =
+          data.actionDetails.find.moveMouse.alignV;
+        gaData.events[0].params.actionDetails_find_moveMouse_offsetX =
+          data.actionDetails.find.moveMouse.offsetX;
+        gaData.events[0].params.actionDetails_find_moveMouse_offsetY =
+          data.actionDetails.find.moveMouse.offsetY;
+        gaData.events[0].params.actionDetails_find_click_numberInstances =
+          data.actionDetails.find.click.numberInstances;
+        gaData.events[0].params.actionDetails_find_type_numberInstances =
+          data.actionDetails.find.type.numberInstances;
+        gaData.events[0].params.actionDetails_find_type_keys =
+          data.actionDetails.find.type.keys;
+        gaData.events[0].params.actionDetails_find_type_trailingSpecialKey =
+          data.actionDetails.find.type.trailingSpecialKey;
         gaData.events[0].params.actionDetails_matchText_numberInstances =
           data.actionDetails.matchText.numberInstances;
         gaData.events[0].params.actionDetails_matchText_passed =
@@ -214,6 +236,25 @@ async function sendAnalytics(config, results) {
         passed: 0,
         failed: 0,
         css: 0,
+        matchText: {
+          numberInstances: 0,
+          text: 0,
+        },
+        moveMouse: {
+          numberInstances: 0,
+          alignH: 0,
+          alignV: 0,
+          offsetX: 0,
+          offsetY: 0,
+        },
+        click: {
+          numberInstances: 0,
+        },
+        type: {
+          numberInstances: 0,
+          keys: 0,
+          trailingSpecialKey: 0,
+        },
       },
       matchText: {
         numberInstances: 0,
@@ -343,7 +384,14 @@ async function sendAnalytics(config, results) {
             data.actionDetails[action.action].numberInstances++;
             Object.keys(action).forEach((key) => {
               if (key != "result" && key != "action" && key != "line") {
-                data.actionDetails[action.action][key]++;
+                if (typeof action[key] === "object") {
+                  data.actionDetails[action.action][key].numberInstances++;
+                  Object.keys(action[key]).forEach((key2) => {
+                    data.actionDetails[action.action][key][key2]++;
+                  });
+                } else {
+                  data.actionDetails[action.action][key]++;
+                }
               }
             });
           }

@@ -93,6 +93,54 @@ async function runAction(config, action, page, videoDetails) {
       break;
     case "find":
       result = await findElement(action, page);
+      if (result.result.status === "FAIL") return result;
+      // Perform sub-action: matchText
+      if (action.matchText) {
+        action.matchText.css = action.css;
+        matchResult = await matchText(action.matchText, result.elementHandle);
+        delete action.matchText.css;
+        result.result.description =
+          result.result.description + " " + matchResult.result.description;
+        if (matchResult.result.status === "FAIL") {
+          result.result.status = "FAIL";
+          return result;
+        }
+      }
+      // Perform sub-action: moveMouse
+      if (action.moveMouse) {
+        action.moveMouse.css = action.css;
+        move = await moveMouse(action.moveMouse, page, result.elementHandle);
+        delete action.moveMouse.css;
+        result.result.description =
+          result.result.description + " " + move.result.description;
+        if (move.result.status === "FAIL") {
+          result.result.status = "FAIL";
+          return result;
+        }
+      }
+      // Perform sub-action: click
+      if (action.click) {
+        action.click.css = action.css;
+        click = await clickElement(action.click, result.elementHandle);
+        delete action.click.css;
+        result.result.description =
+          result.result.description + " " + click.result.description;
+        if (click.result.status === "FAIL") {
+          result.result.status = "FAIL";
+          return result;
+        }
+      }
+      // Perform sub-action: type
+      if (action.type) {
+        action.type.css = action.css;
+        type = await typeElement(action.type, result.elementHandle);
+        delete action.type.css;
+        result.result.description =
+          result.result.description + " " + type.result.description;
+        if (type.result.status === "FAIL") {
+          result.result.status = "FAIL";
+        }
+      }
       break;
     case "matchText":
       find = await findElement(action, page);
@@ -330,7 +378,7 @@ async function screenshot(action, page, config) {
     let testPath = path.join(filePath, action.filename);
     const fileExists = fs.existsSync(testPath);
     if (fileExists) {
-      filename = 'temp_' + action.filename;
+      filename = "temp_" + action.filename;
       previousFilename = action.filename;
       previousFilePath = path.join(filePath, previousFilename);
       // Set threshold
@@ -349,11 +397,11 @@ async function screenshot(action, page, config) {
     action.matchPrevious = false;
     if (config.verbose)
       console.log("WARNING: No filename specified. Not matching.");
-    filename = 'temp_' + action.filename;
+    filename = "temp_" + action.filename;
   } else if (!action.matchPrevious && action.filename) {
     filename = action.filename;
   } else {
-    filename = 'temp_' + action.filename;
+    filename = "temp_" + action.filename;
   }
   filePath = path.join(filePath, filename);
 

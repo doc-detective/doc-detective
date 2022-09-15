@@ -1,6 +1,6 @@
 # doc-unit-test
 
-Unit test documentation to validate UX flows, display text, and images. Primarily useful for process docs, `doc-unit-test` supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
+Unit test documentation to validate UX flows, in-GUI text, and images. Primarily useful for process docs, `doc-unit-test` supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
 
 `doc-unit-test` ingests text files, parses them for test actions, then executes those actions in a headless Chromium browser. The results (PASS/FAIL and context) are output as a JSON object so that other pieces of infrastructure can parse and manipulate them as needed.
 
@@ -81,7 +81,7 @@ Navigate to a specified URI.
 
 Format:
 
-```
+```json
 {
   "action": "goTo",
   "uri": "https://www.google.com"
@@ -92,12 +92,36 @@ Format:
 
 Identify if an element is on the current page based on CSS selectors.
 
-Format:
+Optionally, perform additional actions on the element in the specified order: [`matchText`](#match-text) > [`moveMouse`](#move-mouse) > [`click`](#click) > [`type`](#type). Payloads for these additional actions are nested within the `find` action's definition and (other than omitting the `css` field) match the format for running each action separately.
 
-```
+Simple format:
+
+```json
 {
   "action": "find",
   "css": "[title=Search]"
+}
+```
+Advanced format:
+
+```json
+{
+  "action": "find",
+  "css": "[title=Search]",
+  "matchText": {
+    "text": "Search"
+  }
+  "moveMouse": {
+    "alignH": "center",
+    "alignV": "center",
+    "offsetX": 0,
+    "offsetY": 0
+  },
+  "click": {},
+  "type": {
+    "keys": "american shorthair cats",
+    "trailingSpecialKey": "Enter"
+  }
 }
 ```
 
@@ -107,7 +131,7 @@ Identify if an element displays the expected text.
 
 Format:
 
-```
+```json
 {
   "action": "matchText",
   "css": "#gbqfbb",
@@ -121,7 +145,7 @@ Click an element specified by CSS selectors.
 
 Format:
 
-```
+```json
 {
   "action": "click",
   "css": "#gbqfbb",
@@ -140,7 +164,7 @@ Enter text in an element specified by CSS selectors.
 
 Format:
 
-```
+```json
 {
   "action": "type",
   "css": "[title=Search]",
@@ -157,7 +181,7 @@ Move the mouse to an element specified by CSS selectors.
 
 Format:
 
-```
+```json
 {
   "action": "moveMouse",
   "css": "[title=Search]",
@@ -174,7 +198,7 @@ Scroll the current page by a specified number of pixels. For `x`, positive value
 
 Format:
 
-```
+```json
 {
   "action": "scroll",
   "x": 100,
@@ -188,7 +212,7 @@ Pause before performing the next action.
 
 Format:
 
-```
+```json
 {
   "action": "wait",
   "duration": 500
@@ -203,7 +227,7 @@ To match previously captured screenshots to the current viewport, set `matchPrev
 
 Format:
 
-```
+```json
 {
   "action": "screenshot",
   "mediaDirectory": "samples",
@@ -219,7 +243,7 @@ Check if a link returns an acceptable status code from a GET request. If `uri` d
 
 Format:
 
-```
+```json
 {
   "action": "checkLink",
   "uri": "https://www.google.com",
@@ -235,7 +259,7 @@ Start recording the current browser viewport. Must be followed by a `stopRecordi
 
 Format:
 
-```
+```json
 {
   "action": "startRecording",
   "mediaDirectory": "samples",
@@ -251,7 +275,7 @@ Stop recording the current browser viewport.
 
 Format:
 
-```
+```json
 {
   "action": "stopRecording"
 }
@@ -265,7 +289,7 @@ Returns `PASS` if the command has an exit code of `0`. Returns `FAIL` if the com
 
 Format:
 
-```
+```json
 {
   "action": "runShell",
   "command": "echo $username",
@@ -323,7 +347,25 @@ The analytics object has the following schema:
       "numberInstances": 0,
       "passed": 0,
       "failed": 0,
-      "css": 0
+      "matchText": {
+        "numberInstances": 0,
+        "text": 0
+      },
+      "moveMouse": {
+        "numberInstances": 0,
+        "alignH": 0,
+        "alignV": 0,
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      "click": {
+        "numberInstances": 0
+      },
+      "type": {
+        "numberInstances": 0,
+        "keys": 0,
+        "trailingSpecialKey": 0
+      }
     },
     "matchText": {
       "numberInstances": 0,
@@ -454,6 +496,7 @@ Analytics reporting is off by default. If you want to make extra sure that `doc-
 ## Potential future features
 
 - Browser auto-detection and fallback.
+- Improved default config experience.
 - Environment variable overrides for config options.
 - Docker image with bundled Chromium/Chrome/Firefox.
 - New/upgraded test actions:
@@ -462,6 +505,7 @@ Analytics reporting is off by default. If you want to make extra sure that `doc-
   - Upgrade: `type` action to support env vars (Particularly useful for passing credentials).
   - Upgrade: `wait` action to support waiting for a specific element to be present, regardless of duration.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
+- In-content test framing to identify when some content is covered by a test defined in another file. This could enable content coverage analysis.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
 
