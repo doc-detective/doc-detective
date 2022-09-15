@@ -13,6 +13,7 @@ exports.setFiles = setFiles;
 exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
 exports.convertToGif = convertToGif;
+exports.setEnvs = setEnvs;
 
 const defaultAnalyticsServers = [
   {
@@ -309,4 +310,21 @@ async function convertToGif(config, input, fps, width) {
     return { stdout };
   });
   return output;
+}
+
+async function setEnvs(envsFile) {
+  const fileExists = fs.existsSync(envsFile);
+  if (fileExists) {
+    const text = fs.readFileSync(envsFile, { encoding: "utf8" });
+    const lines = text.split("\n");
+    lines.forEach((line) => {
+      parts = line.split("=");
+      env = parts[0].trim();
+      value = parts[1].trim();
+      process.env[env] = value;
+    });
+    return { status: "PASS", description: "Envs set."}
+  } else {
+    return { status: "FAIL", description: "Invalid file."}
+  }
 }

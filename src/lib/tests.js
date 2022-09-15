@@ -4,7 +4,7 @@ const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
-const { convertToGif } = require("./utils");
+const { convertToGif, setEnvs } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const PNG = require("pngjs").PNG;
@@ -239,17 +239,7 @@ async function runShell(action) {
   let result;
   let exitCode;
   if (action.env) {
-    const fileExists = fs.existsSync(action.env);
-    if (fileExists) {
-      const text = fs.readFileSync(action.env, { encoding: "utf8" });
-      const lines = text.split("\n");
-      lines.forEach((line) => {
-        parts = line.split("=");
-        env = parts[0].trim();
-        value = parts[1].trim();
-        process.env[env] = value;
-      });
-    }
+    const envs = await setEnvs(action.env);
   }
   const promise = exec(action.command);
   const child = promise.child;

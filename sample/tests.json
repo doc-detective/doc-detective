@@ -62,7 +62,7 @@
       "actions": [
         {
           "action": "runShell",
-          "command": "echo $username",
+          "command": "echo $USERNAME",
           "env": "./sample/variables.env"
         },
         {
