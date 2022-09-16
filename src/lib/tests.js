@@ -106,7 +106,7 @@ async function runAction(config, action, page, videoDetails) {
       // Perform sub-action: matchText
       if (action.matchText) {
         action.matchText.css = action.css;
-        matchResult = await matchText(action.matchText, result.elementHandle);
+        matchResult = await matchText(action.matchText, page);
         delete action.matchText.css;
         result.result.description =
           result.result.description + " " + matchResult.result.description;
