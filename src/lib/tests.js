@@ -97,8 +97,6 @@ async function runAction(config, action, page, videoDetails) {
         action.wait.css = action.css;
         waitResult = await wait(action.wait, page);
         delete action.wait.css;
-        result.result.description =
-          result.result.description + " " + waitResult.result.description;
       }
       // Perform find
       result = await findElement(action, page);
