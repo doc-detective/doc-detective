@@ -92,7 +92,7 @@ Format:
 
 Identify if an element is on the current page based on CSS selectors.
 
-Optionally, perform additional actions on the element in the specified order: [`matchText`](#match-text) > [`moveMouse`](#move-mouse) > [`click`](#click) > [`type`](#type). Payloads for these additional actions are nested within the `find` action's definition and (other than omitting the `css` field) match the format for running each action separately.
+Optionally, `find` canperform additional actions on the element in the specified order: [`wait`](#wait) (always waiting for the `css` value) > `find` > [`matchText`](#match-text) > [`moveMouse`](#move-mouse) > [`click`](#click) > [`type`](#type). Payloads for these additional actions are nested within the `find` action's definition and (other than omitting the `css` field) match the format for running each action separately.
 
 Simple format:
 
@@ -108,9 +108,12 @@ Advanced format:
 {
   "action": "find",
   "css": "[title=Search]",
+  "wait": {
+    "duration": 10000,
+  },
   "matchText": {
     "text": "Search"
-  }
+  },
   "moveMouse": {
     "alignH": "center",
     "alignV": "center",
