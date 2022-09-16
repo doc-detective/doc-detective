@@ -59,6 +59,10 @@ async function transformForGa(data) {
           data.actionDetails.find.failed;
         gaData.events[0].params.actionDetails_find_css =
           data.actionDetails.find.css;
+        gaData.events[0].params.actionDetails_find_wait_numberInstances =
+          data.actionDetails.find.wait.numberInstances;
+        gaData.events[0].params.actionDetails_find_wait_duration =
+          data.actionDetails.find.wait.duration;
         gaData.events[0].params.actionDetails_find_matchText_numberInstances =
           data.actionDetails.find.matchText.numberInstances;
         gaData.events[0].params.actionDetails_find_matchText_text =
@@ -251,6 +255,10 @@ async function sendAnalytics(config, results) {
         passed: 0,
         failed: 0,
         css: 0,
+        wait: {
+          numberInstances: 0,
+          duration: 0,
+        },
         matchText: {
           numberInstances: 0,
           text: 0,
@@ -318,6 +326,7 @@ async function sendAnalytics(config, results) {
         passed: 0,
         failed: 0,
         duration: 0,
+        css: 0,
       },
       screenshot: {
         numberInstances: 0,

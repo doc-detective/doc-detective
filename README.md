@@ -225,13 +225,14 @@ Format:
 
 ### Wait
 
-Pause before performing the next action.
+Pause before performing the next action. If `css` is set, this action waits until the element is available or the `duration` is met, whichever comes first. If not set, `duration` defaults to `10000` milliseconds.
 
 Format:
 
 ```json
 {
   "action": "wait",
+  "css": "[title=Search]",
   "duration": 500
 }
 ```
@@ -364,6 +365,10 @@ The analytics object has the following schema:
       "numberInstances": 0,
       "passed": 0,
       "failed": 0,
+      "wait": {
+        "numberInstances": 0,
+        "duration": 0
+      },
       "matchText": {
         "numberInstances": 0,
         "text": 0
@@ -428,7 +433,8 @@ The analytics object has the following schema:
       "numberInstances": 0,
       "passed": 0,
       "failed": 0,
-      "duration": 0
+      "duration": 0,
+      "css": 0
     },
     "screenshot": {
       "numberInstances": 0,

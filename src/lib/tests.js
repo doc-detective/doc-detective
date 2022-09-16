@@ -92,6 +92,15 @@ async function runAction(config, action, page, videoDetails) {
       result = await openUri(action, page);
       break;
     case "find":
+      // Perform sub-action: wait
+      if (action.wait) {
+        action.wait.css = action.css;
+        waitResult = await wait(action.wait, page);
+        delete action.wait.css;
+        result.result.description =
+          result.result.description + " " + waitResult.result.description;
+      }
+      // Perform find
       result = await findElement(action, page);
       if (result.result.status === "FAIL") return result;
       // Perform sub-action: matchText
@@ -465,12 +474,19 @@ async function wait(action, page) {
   let status;
   let description;
   let result;
+
   if (action.duration === "") {
-    duration = 1000;
+    duration = 10000;
   } else {
     duration = action.duration;
   }
-  await page.waitForTimeout(duration);
+
+  if (action.css) {
+    await page.mainFrame().waitForSelector(action.css, { timeout: duration });
+  } else {
+    await new Promise((r) => setTimeout(r, duration));
+  }
+
   // PASS
   status = "PASS";
   description = `Wait complete.`;
