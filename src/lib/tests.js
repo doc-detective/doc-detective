@@ -190,11 +190,26 @@ async function checkLink(action) {
   let status;
   let description;
   let result;
+  let uri;
+
+  // Load environment variables
+  if (action.env) {
+    let result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  if (
+    action.uri[0] === "$" &&
+    process.env[action.uri.substring(1)] != undefined
+  ) {
+    uri = process.env[action.uri.substring(1)];
+  } else {
+    uri = action.uri;
+  }
 
   // Validate protocol
-  if (action.uri.indexOf("://") < 0) {
+  if (uri.indexOf("://") < 0) {
     // Insert https if no protocol present
-    action.uri = `https://${action.uri}`;
+    uri = `https://${uri}`;
   }
 
   // Default to 200 status code
@@ -202,7 +217,7 @@ async function checkLink(action) {
     action.statusCodes = [200];
   }
   let req = await axios
-    .get(action.uri)
+    .get(uri)
     .then((res) => {
       return { statusCode: res.status };
     })
@@ -633,6 +648,23 @@ async function matchText(action, page) {
   let description;
   let result;
   let elementText;
+  let text;
+
+  // Load environment variables
+  if (action.env) {
+    let result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  // Set text
+  if (
+    action.text[0] === "$" &&
+    process.env[action.text.substring(1)] != undefined
+  ) {
+    text = process.env[action.text.substring(1)];
+  } else {
+    text = action.text;
+  }
+  console.log(process.env[action.text.substring(1)]);
   let elementTag = await page.$eval(action.css, (element) =>
     element.tagName.toLowerCase()
   );
@@ -646,7 +678,7 @@ async function matchText(action, page) {
       (element) => element.textContent
     );
   }
-  if (elementText.trim() === action.text) {
+  if (elementText.trim() === text) {
     // PASS
     status = "PASS";
     description = "Element text matched expected text.";
@@ -697,6 +729,7 @@ async function findElement(action, page) {
 
 // Open a URI in the browser
 async function openUri(action, page) {
+  let uri;
   if (!action.uri) {
     // FAIL: No URI
     let status = "FAIL";
@@ -704,7 +737,19 @@ async function openUri(action, page) {
     let result = { status, description };
     return { result };
   }
-  let uri = action.uri;
+  // Load environment variables
+  if (action.env) {
+    let result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  if (
+    action.uri[0] === "$" &&
+    process.env[action.uri.substring(1)] != undefined
+  ) {
+    uri = process.env[action.uri.substring(1)];
+  } else {
+    uri = action.uri;
+  }
   // Catch common formatting errors
   if (!uri.includes("://")) uri = "https://" + uri;
   // Run action
