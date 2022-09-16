@@ -92,12 +92,21 @@ async function runAction(config, action, page, videoDetails) {
       result = await openUri(action, page);
       break;
     case "find":
+      // Perform sub-action: wait
+      if (action.wait) {
+        action.wait.css = action.css;
+        waitResult = await wait(action.wait, page);
+        delete action.wait.css;
+        result.result.description =
+          result.result.description + " " + waitResult.result.description;
+      }
+      // Perform find
       result = await findElement(action, page);
       if (result.result.status === "FAIL") return result;
       // Perform sub-action: matchText
       if (action.matchText) {
         action.matchText.css = action.css;
-        matchResult = await matchText(action.matchText, result.elementHandle);
+        matchResult = await matchText(action.matchText, page);
         delete action.matchText.css;
         result.result.description =
           result.result.description + " " + matchResult.result.description;
@@ -190,11 +199,26 @@ async function checkLink(action) {
   let status;
   let description;
   let result;
+  let uri;
+
+  // Load environment variables
+  if (action.env) {
+    let result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  if (
+    action.uri[0] === "$" &&
+    process.env[action.uri.substring(1)] != undefined
+  ) {
+    uri = process.env[action.uri.substring(1)];
+  } else {
+    uri = action.uri;
+  }
 
   // Validate protocol
-  if (action.uri.indexOf("://") < 0) {
+  if (uri.indexOf("://") < 0) {
     // Insert https if no protocol present
-    action.uri = `https://${action.uri}`;
+    uri = `https://${uri}`;
   }
 
   // Default to 200 status code
@@ -202,7 +226,7 @@ async function checkLink(action) {
     action.statusCodes = [200];
   }
   let req = await axios
-    .get(action.uri)
+    .get(uri)
     .then((res) => {
       return { statusCode: res.status };
     })
@@ -450,12 +474,19 @@ async function wait(action, page) {
   let status;
   let description;
   let result;
+
   if (action.duration === "") {
-    duration = 1000;
+    duration = 10000;
   } else {
     duration = action.duration;
   }
-  await page.waitForTimeout(duration);
+
+  if (action.css) {
+    await page.mainFrame().waitForSelector(action.css, { timeout: duration });
+  } else {
+    await new Promise((r) => setTimeout(r, duration));
+  }
+
   // PASS
   status = "PASS";
   description = `Wait complete.`;
@@ -633,6 +664,22 @@ async function matchText(action, page) {
   let description;
   let result;
   let elementText;
+  let text;
+
+  // Load environment variables
+  if (action.env) {
+    let result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  // Set text
+  if (
+    action.text[0] === "$" &&
+    process.env[action.text.substring(1)] != undefined
+  ) {
+    text = process.env[action.text.substring(1)];
+  } else {
+    text = action.text;
+  }
   let elementTag = await page.$eval(action.css, (element) =>
     element.tagName.toLowerCase()
   );
@@ -646,7 +693,7 @@ async function matchText(action, page) {
       (element) => element.textContent
     );
   }
-  if (elementText.trim() === action.text) {
+  if (elementText.trim() === text) {
     // PASS
     status = "PASS";
     description = "Element text matched expected text.";
@@ -697,6 +744,7 @@ async function findElement(action, page) {
 
 // Open a URI in the browser
 async function openUri(action, page) {
+  let uri;
   if (!action.uri) {
     // FAIL: No URI
     let status = "FAIL";
@@ -704,7 +752,19 @@ async function openUri(action, page) {
     let result = { status, description };
     return { result };
   }
-  let uri = action.uri;
+  // Load environment variables
+  if (action.env) {
+    let result = await setEnvs(action.env);
+    if (result.status === "FAIL") return { result };
+  }
+  if (
+    action.uri[0] === "$" &&
+    process.env[action.uri.substring(1)] != undefined
+  ) {
+    uri = process.env[action.uri.substring(1)];
+  } else {
+    uri = action.uri;
+  }
   // Catch common formatting errors
   if (!uri.includes("://")) uri = "https://" + uri;
   // Run action

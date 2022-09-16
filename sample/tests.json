@@ -36,6 +36,12 @@
           "action": "matchText",
           "css": "#gbqfbb",
           "text": "I'm Feeling Lucky"
+        },
+        {
+          "action": "matchText",
+          "css": "#gbqfbb",
+          "text": "$TEXT",
+          "env": "./sample/variables.env"
         }
       ]
     },
@@ -44,13 +50,13 @@
       "actions": [
         {
           "action": "goTo",
-          "uri": "www.google.com"
+          "uri": "$URL",
+          "env": "./sample/variables.env"
         },
         {
           "action": "type",
           "css": "[title=Search]",
-          "keys": "SHORTHAIR_CAT_SEARCH",
-          "env": "./sample/variables.env"
+          "keys": "$SHORTHAIR_CAT_SEARCH"
         },
         {
           "action": "click",
@@ -69,6 +75,13 @@
         {
           "action": "checkLink",
           "uri": "https://www.google.com",
+          "statusCodes": [
+            200
+          ]
+        },
+        {
+          "action": "checkLink",
+          "uri": "$URL",
           "statusCodes": [
             200
           ]

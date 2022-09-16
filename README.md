@@ -225,13 +225,14 @@ Format:
 
 ### Wait
 
-Pause before performing the next action.
+Pause before performing the next action. If `css` is set, this action waits until the element is available or the `duration` is met, whichever comes first. If not set, `duration` defaults to `10000` milliseconds.
 
 Format:
 
 ```json
 {
   "action": "wait",
+  "css": "[title=Search]",
   "duration": 500
 }
 ```
@@ -364,6 +365,10 @@ The analytics object has the following schema:
       "numberInstances": 0,
       "passed": 0,
       "failed": 0,
+      "wait": {
+        "numberInstances": 0,
+        "duration": 0
+      },
       "matchText": {
         "numberInstances": 0,
         "text": 0
@@ -428,7 +433,8 @@ The analytics object has the following schema:
       "numberInstances": 0,
       "passed": 0,
       "failed": 0,
-      "duration": 0
+      "duration": 0,
+      "css": 0
     },
     "screenshot": {
       "numberInstances": 0,
@@ -525,7 +531,6 @@ Analytics reporting is off by default. If you want to make extra sure that `doc-
   - Upgrade: `startRecording` to remove MP4 when the output is a GIF.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
   - Upgrade: `startRecording` to store the output file in a different location if a recorded action fails. This could help with debugging.
-  - Upgrade: `wait` action to support waiting for a specific element to be present, regardless of duration.
 - In-content test framing to identify when content is covered by a test defined in another file. This could enable content coverage analysis.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.

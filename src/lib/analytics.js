@@ -49,6 +49,8 @@ async function transformForGa(data) {
           data.actionDetails.goTo.failed;
         gaData.events[0].params.actionDetails_goTo_uri =
           data.actionDetails.goTo.uri;
+        gaData.events[0].params.actionDetails_goTo_env =
+          data.actionDetails.goTo.env;
         gaData.events[0].params.actionDetails_find_numberInstances =
           data.actionDetails.find.numberInstances;
         gaData.events[0].params.actionDetails_find_passed =
@@ -57,10 +59,16 @@ async function transformForGa(data) {
           data.actionDetails.find.failed;
         gaData.events[0].params.actionDetails_find_css =
           data.actionDetails.find.css;
+        gaData.events[0].params.actionDetails_find_wait_numberInstances =
+          data.actionDetails.find.wait.numberInstances;
+        gaData.events[0].params.actionDetails_find_wait_duration =
+          data.actionDetails.find.wait.duration;
         gaData.events[0].params.actionDetails_find_matchText_numberInstances =
           data.actionDetails.find.matchText.numberInstances;
         gaData.events[0].params.actionDetails_find_matchText_text =
           data.actionDetails.find.matchText.text;
+        gaData.events[0].params.actionDetails_find_matchText_env =
+          data.actionDetails.find.matchText.env;
         gaData.events[0].params.actionDetails_find_moveMouse_numberInstances =
           data.actionDetails.find.moveMouse.numberInstances;
         gaData.events[0].params.actionDetails_find_moveMouse_alignH =
@@ -79,7 +87,7 @@ async function transformForGa(data) {
           data.actionDetails.find.type.keys;
         gaData.events[0].params.actionDetails_find_type_trailingSpecialKey =
           data.actionDetails.find.type.trailingSpecialKey;
-          gaData.events[0].params.actionDetails_find_type_env =
+        gaData.events[0].params.actionDetails_find_type_env =
           data.actionDetails.find.type.env;
         gaData.events[0].params.actionDetails_matchText_numberInstances =
           data.actionDetails.matchText.numberInstances;
@@ -91,6 +99,8 @@ async function transformForGa(data) {
           data.actionDetails.matchText.css;
         gaData.events[0].params.actionDetails_matchText_text =
           data.actionDetails.matchText.text;
+        gaData.events[0].params.actionDetails_matchText_env =
+          data.actionDetails.matchText.env;
         gaData.events[0].params.actionDetails_click_numberInstances =
           data.actionDetails.click.numberInstances;
         gaData.events[0].params.actionDetails_click_passed =
@@ -109,9 +119,11 @@ async function transformForGa(data) {
           data.actionDetails.type.css;
         gaData.events[0].params.actionDetails_type_keys =
           data.actionDetails.type.keys;
+        gaData.events[0].params.actionDetails_type_env =
+          data.actionDetails.type.env;
         gaData.events[0].params.actionDetails_type_trailingSpecialKey =
           data.actionDetails.type.trailingSpecialKey;
-          gaData.events[0].params.actionDetails_type_env =
+        gaData.events[0].params.actionDetails_type_env =
           data.actionDetails.type.env;
         gaData.events[0].params.actionDetails_moveMouse_numberInstances =
           data.actionDetails.moveMouse.numberInstances;
@@ -191,6 +203,8 @@ async function transformForGa(data) {
           data.actionDetails.checkLink.uri;
         gaData.events[0].params.actionDetails_checkLink_statusCodes =
           data.actionDetails.checkLink.statusCodes;
+        gaData.events[0].params.actionDetails_checkLink_env =
+          data.actionDetails.checkLink.env;
         gaData.events[0].params.actionDetails_runShell_numberInstances =
           data.actionDetails.runShell.numberInstances;
         gaData.events[0].params.actionDetails_runShell_passed =
@@ -234,15 +248,21 @@ async function sendAnalytics(config, results) {
         passed: 0,
         failed: 0,
         uri: 0,
+        env: 0,
       },
       find: {
         numberInstances: 0,
         passed: 0,
         failed: 0,
         css: 0,
+        wait: {
+          numberInstances: 0,
+          duration: 0,
+        },
         matchText: {
           numberInstances: 0,
           text: 0,
+          env: 0,
         },
         moveMouse: {
           numberInstances: 0,
@@ -267,6 +287,7 @@ async function sendAnalytics(config, results) {
         failed: 0,
         css: 0,
         text: 0,
+        env: 0,
       },
       click: {
         numberInstances: 0,
@@ -305,6 +326,7 @@ async function sendAnalytics(config, results) {
         passed: 0,
         failed: 0,
         duration: 0,
+        css: 0,
       },
       screenshot: {
         numberInstances: 0,
@@ -335,6 +357,7 @@ async function sendAnalytics(config, results) {
         failed: 0,
         uri: 0,
         statusCodes: 0,
+        env: 0,
       },
       runShell: {
         numberInstances: 0,
