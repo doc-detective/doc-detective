@@ -86,7 +86,8 @@ async function runTests(config, tests) {
 }
 
 async function runAction(config, action, page, videoDetails) {
-  let result = "";
+  let result = {};
+  result.result = {};
   switch (action.action) {
     case "goTo":
       result = await openUri(action, page);
@@ -97,6 +98,9 @@ async function runAction(config, action, page, videoDetails) {
         action.wait.css = action.css;
         waitResult = await wait(action.wait, page);
         delete action.wait.css;
+        if (waitResult.result.status === "FAIL") {
+          return waitResult;
+        }
       }
       // Perform find
       result = await findElement(action, page);
@@ -480,7 +484,14 @@ async function wait(action, page) {
   }
 
   if (action.css) {
-    await page.mainFrame().waitForSelector(action.css, { timeout: duration });
+    try {
+      await page.mainFrame().waitForSelector(action.css, { timeout: duration });
+    } catch {
+      status = "FAIL";
+      description = `Couldn't find an element matching 'css' within the duration.`;
+      result = { status, description };
+      return { result };
+    }
   } else {
     await new Promise((r) => setTimeout(r, duration));
   }
