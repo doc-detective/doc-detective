@@ -53,9 +53,14 @@ function setArgs(args) {
       type: "string",
     })
     .option("ext", {
-      alias: "e",
       description:
         "Comma-separated list of file extensions to test, including the leading period.",
+      type: "string",
+    })
+    .option("env", {
+      alias: "e",
+      description:
+        "Path to file of environment variables to set before running tests.",
       type: "string",
     })
     .option("mediaDir", {
@@ -120,6 +125,8 @@ function setConfig(config, argv) {
   }
   if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
   // Set config overrides from args
+  if (argv.env) config.env = path.resolve(argv.env);
+  if (config.env) setEnvs(config.env);
   if (argv.input) config.input = path.resolve(argv.input);
   if (argv.output) config.output = path.resolve(argv.output);
   if (argv.mediaDir) config.mediaDirectory = path.resolve(argv.mediaDir);

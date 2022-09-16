@@ -664,7 +664,6 @@ async function matchText(action, page) {
   } else {
     text = action.text;
   }
-  console.log(process.env[action.text.substring(1)]);
   let elementTag = await page.$eval(action.css, (element) =>
     element.tagName.toLowerCase()
   );
