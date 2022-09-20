@@ -407,16 +407,16 @@ async function screenshot(action, page, config) {
       }
     } else {
       action.matchPrevious = false;
-      if (config.verbose)
-        console.log(
-          "WARNING: Specified filename doesn't exist. Capturing screenshot. Not matching."
-        );
+      log(
+        config,
+        "warning",
+        "Specified filename doesn't exist. Capturing screenshot. Not matching."
+      );
       filename = action.filename;
     }
   } else if (action.matchPrevious && !action.filename) {
     action.matchPrevious = false;
-    if (config.verbose)
-      console.log("WARNING: No filename specified. Not matching.");
+    log(config, "warning", "No filename specified. Not matching.");
     filename = "temp_" + action.filename;
   } else if (!action.matchPrevious && action.filename) {
     filename = action.filename;

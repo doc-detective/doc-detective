@@ -94,7 +94,7 @@ function setArgs(args) {
     .option("logLevel", {
       alias: "l",
       description:
-        "Detail level of logging events. Accepted values: silent, error, warning (default), info, verbose",
+        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
       type: "string",
     })
     .option("analytics", {
@@ -120,7 +120,7 @@ function setArgs(args) {
 }
 
 function setLogLevel(config, argv) {
-  let enums = ["debug", "info", "warning", "error"];
+  let enums = ["debug", "info", "warning", "error", "silent"];
   logLevel = argv.logLevel | process.env.DOC_LOG_LEVEL | config.logLevel;
   logLevel = String(logLevel).toLowerCase();
   if (enums.indexOf(logLevel) >= 0) {
@@ -177,17 +177,9 @@ function setEnv(config, argv) {
     if (envResult.status === "PASS")
       log(config, "debug", `Env file set: ${config.env}`);
     if (envResult.status === "FAIL")
-      log(
-        config,
-        "warning",
-        `File format issue. Can't load env file.`
-      );
+      log(config, "warning", `File format issue. Can't load env file.`);
   } else if (config.env && !fs.existsSync(config.env)) {
-    log(
-      config,
-      "warning",
-      `Invalid file path. Can't load env file.`
-    );
+    log(config, "warning", `Invalid file path. Can't load env file.`);
   } else if (!config.env) {
     log(config, "debug", "No env file specified.");
   }
@@ -555,7 +547,7 @@ function parseFiles(config, files) {
 
   // Loop through test files
   files.forEach((file) => {
-    if (config.verbose) console.log(`file: ${file}`);
+    log(config, "debug", `file: ${file}`);
     let id = uuid.v4();
     let line;
     let lineNumber = 1;
@@ -631,14 +623,14 @@ async function convertToGif(config, input, fps, width) {
   let command = `ffmpeg -nostats -loglevel 0 -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
   exec(command, (error, stdout, stderr) => {
     if (error) {
-      if (config.verbose) console.log(error.message);
+      log(config, "debug", error.message);
       return { error: error.message };
     }
     if (stderr) {
-      if (config.verbose) console.log(stderr);
+      log(config, "debug", stderr);
       return { stderr };
     }
-    if (config.verbosev) console.log(stdout);
+    log(config, "debug", stdout);
     return { stdout };
   });
   return output;
