@@ -5,7 +5,7 @@ exports.sendAnalytics = sendAnalytics;
 
 async function transformForGa(data) {
   let gaData = {
-    client_id: "doc-unit-test",
+    client_id: "doc-detective",
     non_personalized_ads: true,
     events: [
       {

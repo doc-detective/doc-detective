@@ -18,7 +18,7 @@ exports.setEnvs = setEnvs;
 exports.log = log;
 
 const analyticsRequest =
-  "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-unit-test#analytics";
+  "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-detective#analytics";
 const defaultAnalyticsServers = [
   {
     name: "GA",
@@ -100,7 +100,7 @@ function setArgs(args) {
     .option("analytics", {
       alias: "a",
       description:
-        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-unit-test#analytics.",
+        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .option("analyticsUserId", {
@@ -110,7 +110,7 @@ function setArgs(args) {
     })
     .option("analyticsDetailLevel", {
       description:
-        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-unit-test#analytics.",
+        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .help()

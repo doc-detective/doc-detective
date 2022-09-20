@@ -1,6 +1,6 @@
 {
-  "name": "doc-unit-test",
-  "version": "0.1.13",
+  "name": "doc-detective",
+  "version": "1.0.0",
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hawkeyexl/doc-unit-test.git"
+    "url": "git+https://github.com/hawkeyexl/doc-detective.git"
   },
   "keywords": [
     "documentation",
@@ -20,9 +20,9 @@
   "author": "Manny Silva",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hawkeyexl/doc-unit-test/issues"
+    "url": "https://github.com/hawkeyexl/doc-detective/issues"
   },
-  "homepage": "https://github.com/hawkeyexl/doc-unit-test#readme",
+  "homepage": "https://github.com/hawkeyexl/doc-detective#readme",
   "dependencies": {
     "axios": "^0.27.2",
     "dotenv": "^16.0.2",

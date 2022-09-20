@@ -1,35 +1,35 @@
-# doc-unit-test
+# Doc Detective: A Documentation Unit Testing Framework
 
-Unit test documentation to validate UX flows, in-GUI text, and images. Primarily useful for process docs, `doc-unit-test` supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
+Unit test documentation to validate UX flows, in-GUI text, and images. Primarily useful for process docs, Doc Detective supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
 
-`doc-unit-test` ingests text files, parses them for test actions, then executes those actions in a headless Chromium browser. The results (PASS/FAIL and context) are output as a JSON object so that other pieces of infrastructure can parse and manipulate them as needed.
+Doc Detective ingests text files, parses them for test actions, then executes those actions in a headless Chromium browser. The results (PASS/FAIL and context) are output as a JSON object so that other pieces of infrastructure can parse and manipulate them as needed.
 
 This project handles test parsing and web-based UI testing--it doesn't support results reporting or notifications. This framework is a part of testing infrastructures and needs to be complimented by other components.
 
-`doc-unit-test` uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshotting and video recording.
+Doc Detective uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshotting and video recording.
 
-**Note:** By default, `puppeteer`'s Chromium doesn't run in Docker containers, which means that `puppeteer` doesn't work either. Don't run `doc-unit-test` in a Docker container unless you first confirm that you have a custom implementation of headless Chrome/Chromium functional in the container. The approved answer to [this question](https://askubuntu.com/questions/79280/how-to-install-chrome-browser-properly-via-command-line) works for me, but it may not work in all environments.
+**Note:** By default, `puppeteer`'s Chromium doesn't run in Docker containers, which means that `puppeteer` doesn't work either. Don't run Doc Detective in a Docker container unless you first confirm that you have a custom implementation of headless Chrome/Chromium functional in the container. The approved answer to [this question](https://askubuntu.com/questions/79280/how-to-install-chrome-browser-properly-via-command-line) works for me, but it may not work in all environments.
 
 ## Get started
 
-You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [CLI tool](#cli-tool).
+You can use Doc Detective as an [NPM package](#npm-package) or a standalone [CLI tool](#cli-tool).
 
 ### NPM package
 
-`doc-unit-test` integrates with Node projects as an NPM package. When using the NPM package, you must specify all options in the `run()` method's `config` argument, which is a JSON object with the same structure as [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
+Doc Detective integrates with Node projects as an NPM package. When using the NPM package, you must specify all options in the `run()` method's `config` argument, which is a JSON object with the same structure as [config.json](https://github.com/hawkeyexl/doc-detective/blob/master/sample/config.json).
 
 0.  Install prerequisites:
     - [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
-1.  In a terminal, navigate to your Node project, then install `doc-unit-test`:
+1.  In a terminal, navigate to your Node project, then install Doc Detective:
 
     ```bash
-    npm i doc-unit-test
+    npm i doc-detective
     ```
 
 1.  Add a reference to the package in your project:
 
     ```node
-    const { run } = require("doc-unit-test");
+    const { run } = require("doc-detective");
     ```
 
 1.  Run tests with the `run()` method:
@@ -40,7 +40,7 @@ You can use `doc-unit-test` as an [NPM package](#npm-package) or a standalone [C
 
 ### CLI tool
 
-You can run `doc-unit-test` as a standalone CLI tool. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `npm run test -- -h`.)
+You can run Doc Detective as a standalone CLI tool. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/hawkeyexl/doc-detective/blob/master/sample/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `npm run test -- -h`.)
 
 0.  Install prerequisites:
 
@@ -50,30 +50,30 @@ You can run `doc-unit-test` as a standalone CLI tool. When running as a CLI tool
 1.  In a terminal, clone the repo and install dependencies:
 
     ```bash
-    git clone https://github.com/hawkeyexl/doc-unit-test.git
-    cd doc-unit-test
+    git clone https://github.com/hawkeyexl/doc-detective.git
+    cd doc-detective
     npm install
     ```
 
-1.  Run tests according to your config. The `-c` argument is required and specifies the path to your config. The following example runs tests in the [sample/](https://github.com/hawkeyexl/doc-unit-test/tree/master/sample) directory:
+1.  Run tests according to your config. The `-c` argument is required and specifies the path to your config. The following example runs tests in the [sample/](https://github.com/hawkeyexl/doc-detective/tree/master/sample) directory:
 
     ```bash
     npm run test -- -c sample/config.json
     ```
 
-To customize your test, file type, and directory options, update [sample/config.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json).
+To customize your test, file type, and directory options, update [sample/config.json](https://github.com/hawkeyexl/doc-detective/blob/master/sample/config.json).
 
 ## Tests
 
-You can define tests within your documentation (see [doc-content.md](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/doc-content.md)), or as separate files. Non-JSON files only support single-line test action definitions, so make sure to keep the entire action definition on one line.
+You can define tests within your documentation (see [doc-content.md](https://github.com/hawkeyexl/doc-detective/blob/master/sample/doc-content.md)), or as separate files. Non-JSON files only support single-line test action definitions, so make sure to keep the entire action definition on one line.
 
-JSON files must follow the format and structure defined in [testDefinition](https://github.com/hawkeyexl/doc-unit-test/blob/master/ref/testDefinition.json). For an example, see [samples/tests.json](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/tests.json).
+JSON files must follow the format and structure defined in [testDefinition](https://github.com/hawkeyexl/doc-detective/blob/master/ref/testDefinition.json). For an example, see [samples/tests.json](https://github.com/hawkeyexl/doc-detective/blob/master/sample/tests.json).
 
 ## Actions
 
 Each test is composed of multiple actions. Actions in a test perform sequentially as they're defined. If one or more actions fail, the test fails.
 
-For information on each field, see [testDefinition](https://github.com/hawkeyexl/doc-unit-test/blob/master/ref/testDefinition.json).
+For information on each field, see [testDefinition](https://github.com/hawkeyexl/doc-detective/blob/master/ref/testDefinition.json).
 
 ### goTo
 
@@ -166,7 +166,7 @@ Format:
 
 Enter text in an element specified by CSS selectors.
 
-`keys` can be either a string or an environment variable. Environment variables are identified by a leading '$', and you can set environment variables by passing a .env file ([sample](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/variables.env)) to the `env` field. If the variable is undefined on the machine running the test, the `keys` value is typed as a string. For example, if `keys` is "$KITTENS" and the `KITTENS` environment variable is set to "cute kittens", the test types "cute kittens", but if the `KITTENS` environment variable isn't defined, the test types the string "$KITTENS".
+`keys` can be either a string or an environment variable. Environment variables are identified by a leading '$', and you can set environment variables by passing a .env file ([sample](https://github.com/hawkeyexl/doc-detective/blob/master/sample/variables.env)) to the `env` field. If the variable is undefined on the machine running the test, the `keys` value is typed as a string. For example, if `keys` is "$KITTENS" and the `KITTENS` environment variable is set to "cute kittens", the test types "cute kittens", but if the `KITTENS` environment variable isn't defined, the test types the string "$KITTENS".
 
 **Warning:** If you want to pass sensitive strings like usernames or passwords into the `type` action, store those values in a local .env file, point `env` to that file, and reference the variable in `keys`. Don't include cleartext passwords in your tests. Don't check .env files with sensitive data into a repository. Be careful with your credentials! Consult your security team if you have concerns.
 
@@ -276,7 +276,7 @@ Format:
 
 Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif
 
-**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files requires `ffmpeg` installed on the machine that runs `doc-unit-test` and also creates `.mp4` files of the recordings.
+**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files requires `ffmpeg` installed on the machine that runs Doc Detective and also creates `.mp4` files of the recordings.
 
 Format:
 
@@ -304,7 +304,7 @@ Format:
 
 ### Run shell command
 
-Perform a native shell command on the machine running `doc-unit-test`. This can be a single command or a script. Set environment variables before running the command by specifying an env file in the `env` field. For reference, see [variables.env](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/variables.env).
+Perform a native shell command on the machine running Doc Detective. This can be a single command or a script. Set environment variables before running the command by specifying an env file in the `env` field. For reference, see [variables.env](https://github.com/hawkeyexl/doc-detective/blob/master/sample/variables.env).
 
 Returns `PASS` if the command has an exit code of `0`. Returns `FAIL` if the command had a non-`0` exit code and outputs a `stderr` value.
 
@@ -320,16 +320,16 @@ Format:
 
 ## Analytics
 
-By default, `doc-unit-test` doesn't collect any information about tests, devices, users, or documentation and doesn't check in with any external service or server. If you want to help inform decisions about the future development of `doc-unit-test`—such as feature development and documentation creation—you can opt into sending anonymized analytics after you run tests at one of the multiple levels of detail.
+By default, Doc Detective doesn't collect any information about tests, devices, users, or documentation and doesn't check in with any external service or server. If you want to help inform decisions about the future development of Doc Detective—such as feature development and documentation creation—you can opt into sending anonymized analytics after you run tests at one of the multiple levels of detail.
 
 There are multiple ways to turn on analytics:
 
-- config setting: In your [config](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json), set `analytics.send` to true.
-- CLI argument: When running `doc-unit-test` as a CLI tool, include `-a true` or `--analytics true`. This overrides any setting you specified in your config.
+- config setting: In your [config](https://github.com/hawkeyexl/doc-detective/blob/master/sample/config.json), set `analytics.send` to true.
+- CLI argument: When running Doc Detective as a CLI tool, include `-a true` or `--analytics true`. This overrides any setting you specified in your config.
 
 Most fields are self-explanatory, but a few merit additional description:
 
-- `version` is populated with the version of your `doc-unit-test` instance.
+- `version` is populated with the version of your Doc Detective instance.
 - `userId` is whatever arbitrary string, if any, you specify to identify the individual, workgroup, or organization running the tests.
 - `detailLevel` must match one of the four supported levels of detail:
   - `run` indicates that tests were run, and that's about it. It omits the `tests`, `actions`, and `actionDetails` objects.
@@ -482,7 +482,7 @@ The analytics object has the following schema:
 
 ### Custom analytics servers
 
-If you opt into sending analytics, you can add additional servers that `doc-unit-test` should send the analytics object to. Custom servers are specified in your config and have the following schema.
+If you opt into sending analytics, you can add additional servers that Doc Detective should send the analytics object to. Custom servers are specified in your config and have the following schema.
 
 `params` and `headers` are optional.
 
@@ -511,15 +511,15 @@ If you opt into sending analytics, you can add additional servers that `doc-unit
 
 ### Turn off analytics
 
-Analytics reporting is off by default. If you want to make extra sure that `doc-unit-test` doesn't collect analytics, you have a few options:
+Analytics reporting is off by default. If you want to make extra sure that Doc Detective doesn't collect analytics, you have a few options:
 
-- config setting: In your [config](https://github.com/hawkeyexl/doc-unit-test/blob/master/sample/config.json), set `analytics.send` to false.
-- CLI argument: When running `doc-unit-test` as a CLI tool, include `-a false` or `--analytics false`. This overrides any setting you specified in your config.
+- config setting: In your [config](https://github.com/hawkeyexl/doc-detective/blob/master/sample/config.json), set `analytics.send` to false.
+- CLI argument: When running Doc Detective as a CLI tool, include `-a false` or `--analytics false`. This overrides any setting you specified in your config.
 - Modify the code (if you're paranoid):
-  1. In [src/index.js](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/index.js), remove all references to `sendAnalytics()`.
-  1. Delete [src/libs/analytics.js](https://github.com/hawkeyexl/doc-unit-test/blob/master/src/libs/analytics.js).
+  1. In [src/index.js](https://github.com/hawkeyexl/doc-detective/blob/master/src/index.js), remove all references to `sendAnalytics()`.
+  1. Delete [src/libs/analytics.js](https://github.com/hawkeyexl/doc-detective/blob/master/src/libs/analytics.js).
 
-**Note:** Updating `doc-unit-test` may revert any modified code, so be ready to make code edits repeatedly.
+**Note:** Updating Doc Detective may revert any modified code, so be ready to make code edits repeatedly.
 
 ## Potential future features
 
@@ -540,4 +540,4 @@ Analytics reporting is off by default. If you want to make extra sure that `doc-
 
 ## License
 
-This project uses the [MIT license](https://github.com/hawkeyexl/doc-unit-test/blob/master/LICENSE).
+This project uses the [MIT license](https://github.com/hawkeyexl/doc-detective/blob/master/LICENSE).
