@@ -15,6 +15,7 @@ exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
 exports.convertToGif = convertToGif;
 exports.setEnvs = setEnvs;
+exports.log = log;
 
 const analyticsRequest =
   "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-unit-test#analytics";
@@ -293,11 +294,15 @@ function setBrowserHeadless(config, argv) {
         "debug",
         `Browser headless set to: ${config.browserOptions.headless}`
       );
-      config.browserOptions.headless = false;
       break;
     case false:
     case "false":
       config.browserOptions.headless = false;
+      log(
+        config,
+        "debug",
+        `Browser headless set to: ${config.browserOptions.headless}`
+      );
       break;
     default:
       config.browserOptions.headless = defaultConfig.browserOptions.headless;
@@ -671,7 +676,13 @@ async function log(config, level, message) {
   }
 
   if (logLevelMatch) {
-    let logMessage = `(${level.toUpperCase()}) ${message}`;
-    console.log(logMessage);
+    if (typeof message === "string") {
+      let logMessage = `(${level.toUpperCase()}) ${message}`;
+      console.log(logMessage);
+    } else if (typeof message === "object") {
+      let logMessage = `(${level.toUpperCase()})`;
+      console.log(logMessage);
+      console.log(message);
+    }
   }
 }
