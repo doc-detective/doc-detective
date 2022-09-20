@@ -134,13 +134,10 @@ function setLogLevel(config, argv) {
       `Invalid log level. Reverted to default: ${config.logLevel}`
     );
   }
+  return config;
 }
 
-function setConfig(config, argv) {
-  // Set log level from args/env to allow override prior to loading config
-  setLogLevel(config, argv);
-
-  // Set config
+function selectConfig(config, argv) {
   if (argv.config && fs.existsSync(argv.config)) {
     // Argument
     config = JSON.parse(fs.readFileSync(argv.config));
@@ -169,8 +166,10 @@ function setConfig(config, argv) {
       "No custom config specified. Loading default config."
     );
   }
+  return config;
+}
 
-  // Set env
+function setEnv(config, argv) {
   config.env = argv.env | process.env.DOC_ENV_PATH | config.env;
   config.env = path.resolve(config.env);
   if (config.env && fs.existsSync(config.env)) {
@@ -192,8 +191,10 @@ function setConfig(config, argv) {
   } else if (!config.env) {
     log(config, "debug", "No env file specified.");
   }
+  return config;
+}
 
-  // Set input
+function setInput(config, argv) {
   config.input = argv.input | process.env.DOC_INPUT_PATH | config.input;
   config.input = path.resolve(config.input);
   if (fs.existsSync(config.input)) {
@@ -206,13 +207,17 @@ function setConfig(config, argv) {
     );
     config.input = defaultConfig.input;
   }
+  return config;
+}
 
-  // Set output
+function setOutput(config, argv) {
   config.output = argv.output | process.env.DOC_OUTPUT_PATH | config.output;
   config.output = path.resolve(config.output);
   log(config, "debug", `Resolved output path: ${config.output}`);
+  return config;
+}
 
-  // Set media directory
+function setMediaDirectory(config, argv) {
   config.mediaDirectory =
     argv.mediaDir |
     process.env.DOC_MEDIA_DIRECTORY_PATH |
@@ -239,8 +244,10 @@ function setConfig(config, argv) {
     );
     config.mediaDirectory = path.resolve(defaultConfig.mediaDirectory);
   }
+  return config;
+}
 
-  // Recursion
+function setRecursion(config, argv) {
   config.recursive =
     argv.recursive | process.env.DOC_RECURSIVE | config.recursive;
   switch (config.recursive) {
@@ -252,8 +259,10 @@ function setConfig(config, argv) {
       break;
   }
   log(config, "debug", `Recursion set to ${config.recursive}.`);
+  return config;
+}
 
-  // Test file extensions
+function setTestFileExtensions(config, argv) {
   config.testExtensions =
     argv.ext | process.env.DOC_TEST_EXTENSTIONS | config.testExtensions;
   if (typeof config.testExtensions === "string")
@@ -265,8 +274,10 @@ function setConfig(config, argv) {
     "debug",
     `Test file extensions set to: ${JSON.stringify(config.testExtensions)}`
   );
+  return config;
+}
 
-  // Browser headless
+function setBrowserHeadless(config, argv) {
   config.browserOptions.headless =
     argv.browserHeadless |
     process.env.DOC_BROWSER_HEADLESS |
@@ -294,8 +305,10 @@ function setConfig(config, argv) {
         `Invalid browser headless value. Reverted to default value: ${config.browserOptions.headless}`
       );
   }
+  return config;
+}
 
-  // Browser path
+function setBrowserPath(config, argv) {
   config.browserOptions.path =
     argv.browserPath |
     process.env.DOC_BROWSER_PATH |
@@ -311,8 +324,10 @@ function setConfig(config, argv) {
       `Invalid browser path. Reverted to default Chromium install.`
     );
   }
+  return config;
+}
 
-  // Browser height
+function setBrowserHeight(config, argv) {
   config.browserOptions.height =
     argv.browserHeight |
     process.env.DOC_BROWSER_HEIGHT |
@@ -339,8 +354,10 @@ function setConfig(config, argv) {
       `Invalid browser height. Reverted to default value: ${config.browserOptions.height}`
     );
   }
+  return config;
+}
 
-  // Browser width
+function setBrowserWidth(config, argv) {
   config.browserOptions.width =
     argv.browserWidth |
     process.env.DOC_BROWSER_WIDTH |
@@ -367,8 +384,10 @@ function setConfig(config, argv) {
       `Invalid browser width. Reverted to default value: ${config.browserOptions.width}`
     );
   }
+  return config;
+}
 
-  // Analytics
+function setAnalytics(config, argv) {
   config.analytics.send =
     argv.analytics | process.env.DOC_ANALYTICS | config.analytics.send;
   switch (config.analytics.send) {
@@ -382,23 +401,40 @@ function setConfig(config, argv) {
       config.analytics.send = false;
       log(config, "debug", `Analytics set: ${config.analytics.send}`);
       log(config, "info", analyticsRequest);
+    default:
+      config.analytics.send = defaultConfig.analytics.send;
+      log(
+        config,
+        "warning",
+        `Invalid analytics value. Reverted to default: ${config.analytics.send}`
+      );
   }
+  return config;
+}
 
-  // Analytics user ID
+function setAnalyticsUserId(config, argv) {
   config.analytics.userId =
     argv.analyticsUserId |
     process.env.DOC_ANALYTICS_USER_ID |
     config.analytics.userId;
   log(config, "debug", `Analytics user ID set: ${config.analytics.userId}`);
+  return config;
+}
 
-  // Analytics detail level
+function setAnalyticsDetailLevel(config, argv) {
   config.analytics.detailLevel =
     argv.analyticsDetailLevel |
     process.env.DOC_ANALYTCS_DETAIL_LEVEL |
     config.analytics.detailLevel;
-  log(config,"debug",`Analytics detail level set: ${config.analytics.detailLevel}`);
+  log(
+    config,
+    "debug",
+    `Analytics detail level set: ${config.analytics.detailLevel}`
+  );
+  return config;
+}
 
-  // Analytics servers
+function setAnalyticsServers(config, argv) {
   // Note: No validation on server info. It's up to users to get this right.
   if (config.analytics.customServers.length > 0) {
     config.analytics.servers = defaultAnalyticsServers.concat(
@@ -407,6 +443,42 @@ function setConfig(config, argv) {
   } else {
     config.analytics.servers = defaultAnalyticsServers;
   }
+  return config;
+}
+
+function setConfig(config, argv) {
+  
+  config = setLogLevel(config, argv);
+
+  config = selectConfig(config, argv);
+
+  config = setEnv(config, argv);
+
+  config = setInput(config, argv);
+
+  config = setOutput(config, argv);
+
+  config = setMediaDirectory(config, argv);
+
+  config = setRecursion(config, argv);
+
+  config = setTestFileExtensions(config, argv);
+
+  config = setBrowserHeadless(config, argv);
+
+  config = setBrowserPath(config, argv);
+
+  config = setBrowserHeight(config, argv);
+
+  config = setBrowserWidth(config, argv);
+
+  config = setAnalytics(config, argv);
+
+  config = setAnalyticsUserId(config, argv);
+
+  config = setAnalyticsDetailLevel(config, argv);
+
+  config = setAnalyticsServers(config, argv);
 
   return config;
 }
