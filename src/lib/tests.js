@@ -35,7 +35,7 @@ async function runTests(config, tests) {
   try {
     browser = await puppeteer.launch(browserConfig);
   } catch {
-    console.log("Error: Couldn't open browser.");
+    log(config,"error","Couldn't open browser.");
     exit(1);
   }
 
