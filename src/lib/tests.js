@@ -4,7 +4,7 @@ const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
-const { convertToGif, setEnvs } = require("./utils");
+const { convertToGif, setEnvs, log } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const PNG = require("pngjs").PNG;
@@ -22,16 +22,10 @@ async function runTests(config, tests) {
     executablePath: config.browserOptions.path,
     args: ["--no-sandbox"],
     defaultViewport: {
-      height: 600,
-      width: 800,
+      height: config.browserOptions.height,
+      width: config.browserOptions.width,
     },
   };
-  if (config.browserOptions.width) {
-    browserConfig.defaultViewport.width = config.browserOptions.width;
-  } else {
-    config.browserOptions.width = 800;
-  }
-  if (config.browserOptions.height) browserConfig.defaultViewport.height = 800;
   try {
     browser = await puppeteer.launch(browserConfig);
   } catch {
