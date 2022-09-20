@@ -422,15 +422,23 @@ function setAnalyticsUserId(config, argv) {
 }
 
 function setAnalyticsDetailLevel(config, argv) {
-  config.analytics.detailLevel =
+  let enums = ["run", "test", "action-simple", "action-detailed"];
+  detailLevel =
     argv.analyticsDetailLevel |
     process.env.DOC_ANALYTCS_DETAIL_LEVEL |
     config.analytics.detailLevel;
-  log(
-    config,
-    "debug",
-    `Analytics detail level set: ${config.analytics.detailLevel}`
-  );
+  detailLevel = String(detailLevel).toLowerCase();
+  if (enums.indexOf(detailLevel) >= 0) {
+    config.analytics.detailLevel = detailLevel;
+    log(config, "debug", `Analytics detail level set: ${detailLevel}`);
+  } else {
+    config.analytics.detailLevel = defaultConfig.analytics.detailLevel;
+    log(
+      config,
+      "warning",
+      `Invalid analytics detail level. Reverted to default: ${config.analytics.detailLevel}`
+    );
+  }
   return config;
 }
 
@@ -447,7 +455,6 @@ function setAnalyticsServers(config, argv) {
 }
 
 function setConfig(config, argv) {
-  
   config = setLogLevel(config, argv);
 
   config = selectConfig(config, argv);
