@@ -302,7 +302,7 @@ function setBrowserHeadless(config, argv) {
       log(
         config,
         "warning",
-        `Invalid browser headless value. Reverted to default value: ${config.browserOptions.headless}`
+        `Invalid browser headless value. Reverted to default: ${config.browserOptions.headless}`
       );
   }
   return config;
@@ -340,7 +340,7 @@ function setBrowserHeight(config, argv) {
       log(
         config,
         "warning",
-        `Invalid browser height. Reverted to default value: ${config.browserOptions.height}`
+        `Invalid browser height. Reverted to default: ${config.browserOptions.height}`
       );
     }
   }
@@ -351,7 +351,7 @@ function setBrowserHeight(config, argv) {
     log(
       config,
       "warning",
-      `Invalid browser height. Reverted to default value: ${config.browserOptions.height}`
+      `Invalid browser height. Reverted to default: ${config.browserOptions.height}`
     );
   }
   return config;
@@ -370,7 +370,7 @@ function setBrowserWidth(config, argv) {
       log(
         config,
         "warning",
-        `Invalid browser width. Reverted to default value: ${config.browserOptions.width}`
+        `Invalid browser width. Reverted to default: ${config.browserOptions.width}`
       );
     }
   }
@@ -381,7 +381,7 @@ function setBrowserWidth(config, argv) {
     log(
       config,
       "warning",
-      `Invalid browser width. Reverted to default value: ${config.browserOptions.width}`
+      `Invalid browser width. Reverted to default: ${config.browserOptions.width}`
     );
   }
   return config;
