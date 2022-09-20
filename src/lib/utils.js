@@ -6,6 +6,8 @@ const path = require("path");
 const uuid = require("uuid");
 const nReadlines = require("n-readlines");
 const { exec } = require("child_process");
+const { env, parserConfiguration } = require("yargs");
+const defaultConfig = require("../config.json");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
@@ -15,6 +17,8 @@ exports.outputResults = outputResults;
 exports.convertToGif = convertToGif;
 exports.setEnvs = setEnvs;
 
+const analyticsRequest =
+  "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-unit-test#analytics";
 const defaultAnalyticsServers = [
   {
     name: "GA",
@@ -87,10 +91,10 @@ function setArgs(args) {
         "Width of the browser viewport in pixels. Default is 800 px.",
       type: "number",
     })
-    .option("verbose", {
-      alias: "v",
+    .option("logLevel", {
+      alias: "l",
       description:
-        "Boolean. Defaults to false. Log command in-progress output to the console.",
+        "Detail level of logging events. Accepted values: silent, error, warning (default), info, verbose",
       type: "string",
     })
     .option("analytics", {
@@ -115,61 +119,293 @@ function setArgs(args) {
   return argv;
 }
 
-function setConfig(config, argv) {
-  // Set config
-  if (JSON.stringify(config) === JSON.stringify({}) && !argv.config) {
-    console.log(
-      "Error: No config specified. If using the 'run()' method, specify the 'config' argument. If running as a CLI tool, use the '-c' argument."
+function setLogLevel(config, argv) {
+  let enums = ["debug", "info", "warning", "error"];
+  logLevel = argv.logLevel | process.env.DOC_LOG_LEVEL | config.logLevel;
+  logLevel = String(logLevel).toLowerCase();
+  if (enums.indexOf(logLevel) >= 0) {
+    config.logLevel = logLevel;
+    log(config, "debug", `Log level set: ${logLevel}`);
+  } else {
+    config.logLevel = defaultConfig.logLevel;
+    log(
+      config,
+      "warning",
+      `Invalid log level. Reverted to default: ${config.logLevel}`
     );
-    exit(1);
   }
-  if (argv.config) config = JSON.parse(fs.readFileSync(argv.config));
-  // Set config overrides from args
-  if (argv.env) config.env = path.resolve(argv.env);
-  if (config.env) setEnvs(config.env);
-  if (argv.input) config.input = path.resolve(argv.input);
-  if (argv.output) config.output = path.resolve(argv.output);
-  if (argv.mediaDir) config.mediaDirectory = path.resolve(argv.mediaDir);
-  if (argv.recursive) {
-    switch (argv.recursive) {
-      case "true":
-        config.recursive = true;
-        break;
-      case "false":
-        config.recursive = false;
-        break;
+}
+
+function setConfig(config, argv) {
+  // Set log level from args/env to allow override prior to loading config
+  setLogLevel(config, argv);
+
+  // Set config
+  if (argv.config && fs.existsSync(argv.config)) {
+    // Argument
+    config = JSON.parse(fs.readFileSync(argv.config));
+    setLogLevel(config, argv);
+    log(config, "debug", "Loading config from argument.");
+  } else if (
+    process.env.DOC_CONFIG_PATH &&
+    fs.existsSync(process.env.DOC_CONFIG_PATH)
+  ) {
+    // Env
+    config = JSON.parse(fs.readFileSync(process.env.DOC_CONFIG_PATH));
+    setLogLevel(config, argv);
+    log(config, "debug", "Loading config from environment variable.");
+  } else if (JSON.stringify(config) != JSON.stringify({})) {
+    // Function param
+    config = config;
+    setLogLevel(config, argv);
+    log(config, "debug", "Loading config from function parameter.");
+  } else {
+    // Default
+    config = defaultConfig;
+    setLogLevel(config, argv);
+    log(
+      config,
+      "warning",
+      "No custom config specified. Loading default config."
+    );
+  }
+
+  // Set env
+  config.env = argv.env | process.env.DOC_ENV_PATH | config.env;
+  config.env = path.resolve(config.env);
+  if (config.env && fs.existsSync(config.env)) {
+    let envResult = setEnvs(config.env);
+    if (envResult.status === "PASS")
+      log(config, "debug", `Loaded env file: ${config.env}`);
+    if (envResult.status === "FAIL")
+      log(
+        config,
+        "warning",
+        `File format issue. Can't load env file: ${config.env}`
+      );
+  } else if (config.env && !fs.existsSync(config.env)) {
+    log(
+      config,
+      "warning",
+      `Can't load env file. Invalid file path: ${config.env}`
+    );
+  } else if (!config.env) {
+    log(config, "debug", "No env file specified.");
+  }
+
+  // Set input
+  config.input = argv.input | process.env.DOC_INPUT_PATH | config.input;
+  config.input = path.resolve(config.input);
+  if (fs.existsSync(config.input)) {
+    log(config, "info", "Set input path.");
+  } else {
+    log(
+      config,
+      "warning",
+      "Reverted to default input path. Specified path is invalid."
+    );
+    config.input = defaultConfig.input;
+  }
+
+  // Set output
+  config.output = argv.output | process.env.DOC_OUTPUT_PATH | config.output;
+  config.output = path.resolve(config.output);
+  log(config, "debug", `Resolved output path: ${config.output}`);
+
+  // Set media directory
+  config.mediaDirectory =
+    argv.mediaDir |
+    process.env.DOC_MEDIA_DIRECTORY_PATH |
+    config.mediaDirectory;
+  config.mediaDirectory = path.resolve(config.mediaDirectory);
+  if (fs.existsSync(config.mediaDirectory)) {
+    log(
+      config,
+      "debug",
+      `Resolved media directory path: ${config.mediaDirectory}`
+    );
+  } else {
+    log(
+      config,
+      "warning",
+      `Reverted to default media directory path: ${path.resolve(
+        defaultConfig.mediaDirectory
+      )}`
+    );
+    log(
+      config,
+      "warning",
+      `Specified media directory path is invalid: ${config.mediaDirectory}`
+    );
+    config.mediaDirectory = path.resolve(defaultConfig.mediaDirectory);
+  }
+
+  // Recursion
+  config.recursive =
+    argv.recursive | process.env.DOC_RECURSIVE | config.recursive;
+  switch (config.recursive) {
+    case "true":
+      config.recursive = true;
+      break;
+    case "false":
+      config.recursive = false;
+      break;
+  }
+  log(config, "debug", `Recursion set to ${config.recursive}.`);
+
+  // Test file extensions
+  config.testExtensions =
+    argv.ext | process.env.DOC_TEST_EXTENSTIONS | config.testExtensions;
+  if (typeof config.testExtensions === "string")
+    config.testExtensions = config.testExtensions
+      .replace(/\s+/g, "")
+      .split(",");
+  log(
+    config,
+    "debug",
+    `Test file extensions set to: ${JSON.stringify(config.testExtensions)}`
+  );
+
+  // Browser headless
+  config.browserOptions.headless =
+    argv.browserHeadless |
+    process.env.DOC_BROWSER_HEADLESS |
+    config.browserOptions.headless;
+  switch (config.browserOptions.headless) {
+    case true:
+    case "true":
+      config.browserOptions.headless = true;
+      log(
+        config,
+        "debug",
+        `Browser headless set to: ${config.browserOptions.headless}`
+      );
+      config.browserOptions.headless = false;
+      break;
+    case false:
+    case "false":
+      config.browserOptions.headless = false;
+      break;
+    default:
+      config.browserOptions.headless = defaultConfig.browserOptions.headless;
+      log(
+        config,
+        "warning",
+        `Invalid browser headless value. Reverted to default value: ${config.browserOptions.headless}`
+      );
+  }
+
+  // Browser path
+  config.browserOptions.path =
+    argv.browserPath |
+    process.env.DOC_BROWSER_PATH |
+    config.browserOptions.path;
+  config.browserOptions.path = path.resolve(config.browserOptions.path);
+  if (fs.existsSync(config.browserOptions.path)) {
+    log(config, "debug", `Browser path set: ${config.browserOptions.path}`);
+  } else {
+    config.browserOptions.path = defaultConfig.browserOptions.path;
+    log(
+      config,
+      "warning",
+      `Invalid browser path. Reverted to default Chromium install.`
+    );
+  }
+
+  // Browser height
+  config.browserOptions.height =
+    argv.browserHeight |
+    process.env.DOC_BROWSER_HEIGHT |
+    config.browserOptions.height;
+  if (typeof config.browserOptions.height === "string") {
+    try {
+      config.browserOptions.height = Number(config.browserOptions.height);
+    } catch {
+      config.browserOptions.height = defaultConfig.browserOptions.height;
+      log(
+        config,
+        "warning",
+        `Invalid browser height. Reverted to default value: ${config.browserOptions.height}`
+      );
     }
   }
-  if (argv.ext) config.testExtensions = argv.ext.replace(/\s+/g, "").split(",");
-  if (argv.browserHeadless)
-    config.browserOptions.headless = argv.browserHeadless;
-  if (argv.browserPath) config.browserOptions.path = argv.browserPath;
-  if (argv.browserHeight) config.browserOptions.height = argv.browserHeight;
-  if (argv.browserWidth) config.browserOptions.width = argv.browserWidth;
-  if (argv.verbose) config.verbose = argv.verbose;
-  if (argv.analytics) config.analytics.send = argv.analytics;
-  if (argv.analyticsUserId) config.analytics.userId = argv.analyticsUserId;
-  if (argv.analyticsDetailLevel)
-    config.analytics.detailLevel = argv.analyticsDetailLevel;
+  if (typeof config.browserOptions.height === "number") {
+    log(config, "debug", `Browser width set: ${config.browserOptions.width}`);
+  } else {
+    config.browserOptions.height = defaultConfig.browserOptions.height;
+    log(
+      config,
+      "warning",
+      `Invalid browser height. Reverted to default value: ${config.browserOptions.height}`
+    );
+  }
+
+  // Browser width
+  config.browserOptions.width =
+    argv.browserWidth |
+    process.env.DOC_BROWSER_WIDTH |
+    config.browserOptions.width;
+  if (typeof config.browserOptions.width === "string") {
+    try {
+      config.browserOptions.width = Number(config.browserOptions.width);
+    } catch {
+      config.browserOptions.width = defaultConfig.browserOptions.width;
+      log(
+        config,
+        "warning",
+        `Invalid browser width. Reverted to default value: ${config.browserOptions.width}`
+      );
+    }
+  }
+  if (typeof config.browserOptions.width === "number") {
+    log(config, "debug", `Browser width set: ${config.browserOptions.width}`);
+  } else {
+    config.browserOptions.width = defaultConfig.browserOptions.width;
+    log(
+      config,
+      "warning",
+      `Invalid browser width. Reverted to default value: ${config.browserOptions.width}`
+    );
+  }
+
+  // Analytics
+  config.analytics.send =
+    argv.analytics | process.env.DOC_ANALYTICS | config.analytics.send;
+  switch (config.analytics.send) {
+    case true:
+    case "true":
+      config.analytics.send = true;
+      log(config, "debug", `Analytics set: ${config.analytics.send}`);
+      break;
+    case false:
+    case "false":
+      config.analytics.send = false;
+      log(config, "debug", `Analytics set: ${config.analytics.send}`);
+      log(config, "info", analyticsRequest);
+  }
+
+  // Analytics user ID
+  config.analytics.userId =
+    argv.analyticsUserId |
+    process.env.DOC_ANALYTICS_USER_ID |
+    config.analytics.userId;
+  log(config, "debug", `Analytics user ID set: ${config.analytics.userId}`);
+
+  // Analytics detail level
+  config.analytics.detailLevel =
+    argv.analyticsDetailLevel |
+    process.env.DOC_ANALYTCS_DETAIL_LEVEL |
+    config.analytics.detailLevel;
+  log(config,"debug",`Analytics detail level set: ${config.analytics.detailLevel}`);
+
+  // Analytics servers
+  // Note: No validation on server info. It's up to users to get this right.
   if (config.analytics.customServers.length > 0) {
     config.analytics.servers = defaultAnalyticsServers.concat(
       config.analytics.customServers
     );
   } else {
     config.analytics.servers = defaultAnalyticsServers;
-  }
-
-  // Analytics notice
-  if (!config.analytics.send) {
-    console.log("INFO: Thanks for using doc-unit-test!");
-    console.log(
-      "If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps."
-    );
-    console.log(
-      "To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument."
-    );
-    console.log("See https://github.com/hawkeyexl/doc-unit-test#analytics");
-    console.log("");
   }
 
   return config;
@@ -185,7 +421,7 @@ function setFiles(config) {
   let isFile = fs.statSync(input).isFile();
   let isDir = fs.statSync(input).isDirectory();
   if (!isFile && !isDir) {
-    console.log("Error: Input isn't a valid file or directory.");
+    log(config, "error", "Input isn't a valid file or directory.");
     exit(1);
   }
 
@@ -322,9 +558,39 @@ async function convertToGif(config, input, fps, width) {
 async function setEnvs(envsFile) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
-    require('dotenv').config({ path: envsFile, override: true })
-    return { status: "PASS", description: "Envs set."}
+    require("dotenv").config({ path: envsFile, override: true });
+    return { status: "PASS", description: "Envs set." };
   } else {
-    return { status: "FAIL", description: "Invalid file."}
+    return { status: "FAIL", description: "Invalid file." };
+  }
+}
+
+async function log(config, level, message) {
+  let logLevelMatch = false;
+  if (config.logLevel === "error" && level === "error") {
+    logLevelMatch = true;
+  } else if (
+    config.logLevel === "warning" &&
+    (level === "error" || level === "warning")
+  ) {
+    logLevelMatch = true;
+  } else if (
+    config.logLevel === "info" &&
+    (level === "error" || level === "warning" || level === "info")
+  ) {
+    logLevelMatch = true;
+  } else if (
+    config.logLevel === "debug" &&
+    (level === "error" ||
+      level === "warning" ||
+      level === "info" ||
+      level === "debug")
+  ) {
+    logLevelMatch = true;
+  }
+
+  if (logLevelMatch) {
+    let logMessage = `${level.toUpperCase()}: ${message}`;
+    console.log(logMessage);
   }
 }
