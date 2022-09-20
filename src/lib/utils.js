@@ -6,7 +6,6 @@ const path = require("path");
 const uuid = require("uuid");
 const nReadlines = require("n-readlines");
 const { exec } = require("child_process");
-const { env, parserConfiguration } = require("yargs");
 const defaultConfig = require("../config.json");
 
 exports.setArgs = setArgs;
@@ -120,8 +119,9 @@ function setArgs(args) {
 }
 
 function setLogLevel(config, argv) {
+  let logLevel = "";
   let enums = ["debug", "info", "warning", "error", "silent"];
-  logLevel = argv.logLevel | process.env.DOC_LOG_LEVEL | config.logLevel;
+  logLevel = argv.logLevel || process.env.DOC_LOG_LEVEL || config.logLevel || "info";
   logLevel = String(logLevel).toLowerCase();
   if (enums.indexOf(logLevel) >= 0) {
     config.logLevel = logLevel;
@@ -170,7 +170,7 @@ function selectConfig(config, argv) {
 }
 
 function setEnv(config, argv) {
-  config.env = argv.env | process.env.DOC_ENV_PATH | config.env;
+  config.env = argv.env || process.env.DOC_ENV_PATH || config.env;
   config.env = path.resolve(config.env);
   if (config.env && fs.existsSync(config.env)) {
     let envResult = setEnvs(config.env);
@@ -187,10 +187,10 @@ function setEnv(config, argv) {
 }
 
 function setInput(config, argv) {
-  config.input = argv.input | process.env.DOC_INPUT_PATH | config.input;
+  config.input = argv.input || process.env.DOC_INPUT_PATH || config.input;
   config.input = path.resolve(config.input);
   if (fs.existsSync(config.input)) {
-    log(config, "info", "Set input path.");
+    log(config, "debug", `Input path set: ${config.input}`);
   } else {
     config.input = path.resolve(defaultConfig.input);
     log(
@@ -203,7 +203,7 @@ function setInput(config, argv) {
 }
 
 function setOutput(config, argv) {
-  config.output = argv.output | process.env.DOC_OUTPUT_PATH | config.output;
+  config.output = argv.output || process.env.DOC_OUTPUT_PATH || config.output;
   config.output = path.resolve(config.output);
   log(config, "debug", `Output path set: ${config.output}`);
   return config;
@@ -211,8 +211,8 @@ function setOutput(config, argv) {
 
 function setMediaDirectory(config, argv) {
   config.mediaDirectory =
-    argv.mediaDir |
-    process.env.DOC_MEDIA_DIRECTORY_PATH |
+    argv.mediaDir ||
+    process.env.DOC_MEDIA_DIRECTORY_PATH ||
     config.mediaDirectory;
   config.mediaDirectory = path.resolve(config.mediaDirectory);
   if (fs.existsSync(config.mediaDirectory)) {
@@ -230,7 +230,7 @@ function setMediaDirectory(config, argv) {
 
 function setRecursion(config, argv) {
   config.recursive =
-    argv.recursive | process.env.DOC_RECURSIVE | config.recursive;
+    argv.recursive || process.env.DOC_RECURSIVE || config.recursive;
   switch (config.recursive) {
     case true:
     case "true":
@@ -255,7 +255,7 @@ function setRecursion(config, argv) {
 
 function setTestFileExtensions(config, argv) {
   config.testExtensions =
-    argv.ext | process.env.DOC_TEST_EXTENSTIONS | config.testExtensions;
+    argv.ext || process.env.DOC_TEST_EXTENSTIONS || config.testExtensions;
   if (typeof config.testExtensions === "string")
     config.testExtensions = config.testExtensions
       .replace(/\s+/g, "")
@@ -281,8 +281,8 @@ function setTestFileExtensions(config, argv) {
 
 function setBrowserHeadless(config, argv) {
   config.browserOptions.headless =
-    argv.browserHeadless |
-    process.env.DOC_BROWSER_HEADLESS |
+    argv.browserHeadless ||
+    process.env.DOC_BROWSER_HEADLESS ||
     config.browserOptions.headless;
   switch (config.browserOptions.headless) {
     case true:
@@ -312,8 +312,8 @@ function setBrowserHeadless(config, argv) {
 
 function setBrowserPath(config, argv) {
   config.browserOptions.path =
-    argv.browserPath |
-    process.env.DOC_BROWSER_PATH |
+    argv.browserPath ||
+    process.env.DOC_BROWSER_PATH ||
     config.browserOptions.path;
   config.browserOptions.path = path.resolve(config.browserOptions.path);
   if (fs.existsSync(config.browserOptions.path)) {
@@ -331,8 +331,8 @@ function setBrowserPath(config, argv) {
 
 function setBrowserHeight(config, argv) {
   config.browserOptions.height =
-    argv.browserHeight |
-    process.env.DOC_BROWSER_HEIGHT |
+    argv.browserHeight ||
+    process.env.DOC_BROWSER_HEIGHT ||
     config.browserOptions.height;
   if (typeof config.browserOptions.height === "string") {
     try {
@@ -347,7 +347,7 @@ function setBrowserHeight(config, argv) {
     }
   }
   if (typeof config.browserOptions.height === "number") {
-    log(config, "debug", `Browser width set: ${config.browserOptions.width}`);
+    log(config, "debug", `Browser height set: ${config.browserOptions.height}`);
   } else {
     config.browserOptions.height = defaultConfig.browserOptions.height;
     log(
@@ -361,8 +361,8 @@ function setBrowserHeight(config, argv) {
 
 function setBrowserWidth(config, argv) {
   config.browserOptions.width =
-    argv.browserWidth |
-    process.env.DOC_BROWSER_WIDTH |
+    argv.browserWidth ||
+    process.env.DOC_BROWSER_WIDTH ||
     config.browserOptions.width;
   if (typeof config.browserOptions.width === "string") {
     try {
@@ -391,7 +391,7 @@ function setBrowserWidth(config, argv) {
 
 function setAnalytics(config, argv) {
   config.analytics.send =
-    argv.analytics | process.env.DOC_ANALYTICS | config.analytics.send;
+    argv.analytics || process.env.DOC_ANALYTICS || config.analytics.send;
   switch (config.analytics.send) {
     case true:
     case "true":
@@ -416,8 +416,8 @@ function setAnalytics(config, argv) {
 
 function setAnalyticsUserId(config, argv) {
   config.analytics.userId =
-    argv.analyticsUserId |
-    process.env.DOC_ANALYTICS_USER_ID |
+    argv.analyticsUserId ||
+    process.env.DOC_ANALYTICS_USER_ID ||
     config.analytics.userId;
   log(config, "debug", `Analytics user ID set: ${config.analytics.userId}`);
   return config;
@@ -426,8 +426,8 @@ function setAnalyticsUserId(config, argv) {
 function setAnalyticsDetailLevel(config, argv) {
   let enums = ["run", "test", "action-simple", "action-detailed"];
   detailLevel =
-    argv.analyticsDetailLevel |
-    process.env.DOC_ANALYTCS_DETAIL_LEVEL |
+    argv.analyticsDetailLevel ||
+    process.env.DOC_ANALYTCS_DETAIL_LEVEL ||
     config.analytics.detailLevel;
   detailLevel = String(detailLevel).toLowerCase();
   if (enums.indexOf(detailLevel) >= 0) {
@@ -671,7 +671,7 @@ async function log(config, level, message) {
   }
 
   if (logLevelMatch) {
-    let logMessage = `${level.toUpperCase()}: ${message}`;
+    let logMessage = `(${level.toUpperCase()}) ${message}`;
     console.log(logMessage);
   }
 }
