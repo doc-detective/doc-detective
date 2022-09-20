@@ -142,7 +142,7 @@ function selectConfig(config, argv) {
     // Argument
     config = JSON.parse(fs.readFileSync(argv.config));
     setLogLevel(config, argv);
-    log(config, "debug", "Loading config from argument.");
+    log(config, "debug", "Loaded config from argument.");
   } else if (
     process.env.DOC_CONFIG_PATH &&
     fs.existsSync(process.env.DOC_CONFIG_PATH)
@@ -150,12 +150,12 @@ function selectConfig(config, argv) {
     // Env
     config = JSON.parse(fs.readFileSync(process.env.DOC_CONFIG_PATH));
     setLogLevel(config, argv);
-    log(config, "debug", "Loading config from environment variable.");
+    log(config, "debug", "Loaded config from environment variable.");
   } else if (JSON.stringify(config) != JSON.stringify({})) {
     // Function param
     config = config;
     setLogLevel(config, argv);
-    log(config, "debug", "Loading config from function parameter.");
+    log(config, "debug", "Loaded config from function parameter.");
   } else {
     // Default
     config = defaultConfig;
@@ -163,7 +163,7 @@ function selectConfig(config, argv) {
     log(
       config,
       "warning",
-      "No custom config specified. Loading default config."
+      "No custom config specified. Loaded default config."
     );
   }
   return config;
@@ -175,18 +175,18 @@ function setEnv(config, argv) {
   if (config.env && fs.existsSync(config.env)) {
     let envResult = setEnvs(config.env);
     if (envResult.status === "PASS")
-      log(config, "debug", `Loaded env file: ${config.env}`);
+      log(config, "debug", `Env file set: ${config.env}`);
     if (envResult.status === "FAIL")
       log(
         config,
         "warning",
-        `File format issue. Can't load env file: ${config.env}`
+        `File format issue. Can't load env file.`
       );
   } else if (config.env && !fs.existsSync(config.env)) {
     log(
       config,
       "warning",
-      `Can't load env file. Invalid file path: ${config.env}`
+      `Invalid file path. Can't load env file.`
     );
   } else if (!config.env) {
     log(config, "debug", "No env file specified.");
@@ -200,12 +200,12 @@ function setInput(config, argv) {
   if (fs.existsSync(config.input)) {
     log(config, "info", "Set input path.");
   } else {
+    config.input = path.resolve(defaultConfig.input);
     log(
       config,
       "warning",
-      "Reverted to default input path. Specified path is invalid."
+      `Invalid input path. Reverted to default: ${config.input}`
     );
-    config.input = defaultConfig.input;
   }
   return config;
 }
@@ -213,7 +213,7 @@ function setInput(config, argv) {
 function setOutput(config, argv) {
   config.output = argv.output | process.env.DOC_OUTPUT_PATH | config.output;
   config.output = path.resolve(config.output);
-  log(config, "debug", `Resolved output path: ${config.output}`);
+  log(config, "debug", `Output path set: ${config.output}`);
   return config;
 }
 
@@ -224,25 +224,14 @@ function setMediaDirectory(config, argv) {
     config.mediaDirectory;
   config.mediaDirectory = path.resolve(config.mediaDirectory);
   if (fs.existsSync(config.mediaDirectory)) {
-    log(
-      config,
-      "debug",
-      `Resolved media directory path: ${config.mediaDirectory}`
-    );
+    log(config, "debug", `Media directory set: ${config.mediaDirectory}`);
   } else {
-    log(
-      config,
-      "warning",
-      `Reverted to default media directory path: ${path.resolve(
-        defaultConfig.mediaDirectory
-      )}`
-    );
-    log(
-      config,
-      "warning",
-      `Specified media directory path is invalid: ${config.mediaDirectory}`
-    );
     config.mediaDirectory = path.resolve(defaultConfig.mediaDirectory);
+    log(
+      config,
+      "warning",
+      `Invalid media directory. Reverted to default: ${config.mediaDirectory}`
+    );
   }
   return config;
 }
@@ -251,14 +240,24 @@ function setRecursion(config, argv) {
   config.recursive =
     argv.recursive | process.env.DOC_RECURSIVE | config.recursive;
   switch (config.recursive) {
+    case true:
     case "true":
       config.recursive = true;
+      log(config, "debug", `Recursion set: ${config.recursive}.`);
       break;
+    case false:
     case "false":
       config.recursive = false;
+      log(config, "debug", `Recursion set: ${config.recursive}.`);
       break;
+    default:
+      config.recursive = defaultConfig.recursive;
+      log(
+        config,
+        "warning",
+        `Invalid recursion valie. Reverted to default: ${config.recursive}.`
+      );
   }
-  log(config, "debug", `Recursion set to ${config.recursive}.`);
   return config;
 }
 
@@ -273,7 +272,7 @@ function setTestFileExtensions(config, argv) {
     log(
       config,
       "debug",
-      `Test file extensions set to: ${JSON.stringify(config.testExtensions)}`
+      `Test file extensions set: ${JSON.stringify(config.testExtensions)}`
     );
   } else {
     config.testExtensions = defaultConfig.testExtensions;
