@@ -269,11 +269,22 @@ function setTestFileExtensions(config, argv) {
     config.testExtensions = config.testExtensions
       .replace(/\s+/g, "")
       .split(",");
-  log(
-    config,
-    "debug",
-    `Test file extensions set to: ${JSON.stringify(config.testExtensions)}`
-  );
+  if (config.testExtensions.length > 0) {
+    log(
+      config,
+      "debug",
+      `Test file extensions set to: ${JSON.stringify(config.testExtensions)}`
+    );
+  } else {
+    config.testExtensions = defaultConfig.testExtensions;
+    log(
+      config,
+      "debug",
+      `Invalid test file extension value(s). Reverted to default: ${JSON.stringify(
+        config.testExtensions
+      )}`
+    );
+  }
   return config;
 }
 
