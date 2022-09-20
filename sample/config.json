@@ -43,5 +43,5 @@
     "detailLevel": "action-detailed",
     "customServers": []
   },
-  "logLevel": "warning"
+  "logLevel": "info"
 }
