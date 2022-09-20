@@ -1,3 +1,4 @@
+const { log } = require("./utils.js");
 const axios = require("axios");
 
 exports.sendAnalytics = sendAnalytics;
@@ -453,14 +454,18 @@ async function sendAnalytics(config, results) {
       // Per-server validation
       server.displayname = server.name || server.url;
       if (!server.method) {
-        console.log(
-          `WARNING: Can't send analytics to ${server.displayname}. Missing 'method' value.`
+        log(
+          config,
+          "warning",
+          `Can't send analytics to ${server.displayname}. Missing 'method' value.`
         );
         return;
       }
       if (!server.url) {
-        console.log(
-          `WARNING: Can't send analytics to ${server.displayname}. Missing 'url' value.`
+        log(
+          config,
+          "warning",
+          `Can't send analytics to ${server.displayname}. Missing 'url' value.`
         );
         return;
       }
@@ -476,15 +481,17 @@ async function sendAnalytics(config, results) {
 
       await axios(req)
         .then(() => {
-          if (config.verbose) {
-            console.log(
-              `INFO: Sucessfully sent analytics to ${server.displayname}.`
-            );
-          }
+          log(
+            config,
+            "info",
+            `Sucessfully sent analytics to ${server.displayname}.`
+          );
         })
         .catch((error) => {
-          console.log(
-            `WARNING: Problem sending analytics to ${server.displayname}.`
+          log(
+            config,
+            "warning",
+            `Problem sending analytics to ${server.displayname}.`
           );
         });
     });

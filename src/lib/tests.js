@@ -4,7 +4,7 @@ const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
-const { convertToGif, setEnvs } = require("./utils");
+const { convertToGif, setEnvs, log } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const PNG = require("pngjs").PNG;
@@ -22,20 +22,14 @@ async function runTests(config, tests) {
     executablePath: config.browserOptions.path,
     args: ["--no-sandbox"],
     defaultViewport: {
-      height: 600,
-      width: 800,
+      height: config.browserOptions.height,
+      width: config.browserOptions.width,
     },
   };
-  if (config.browserOptions.width) {
-    browserConfig.defaultViewport.width = config.browserOptions.width;
-  } else {
-    config.browserOptions.width = 800;
-  }
-  if (config.browserOptions.height) browserConfig.defaultViewport.height = 800;
   try {
     browser = await puppeteer.launch(browserConfig);
   } catch {
-    console.log("Error: Couldn't open browser.");
+    log(config,"error","Couldn't open browser.");
     exit(1);
   }
 
@@ -407,16 +401,16 @@ async function screenshot(action, page, config) {
       }
     } else {
       action.matchPrevious = false;
-      if (config.verbose)
-        console.log(
-          "WARNING: Specified filename doesn't exist. Capturing screenshot. Not matching."
-        );
+      log(
+        config,
+        "warning",
+        "Specified filename doesn't exist. Capturing screenshot. Not matching."
+      );
       filename = action.filename;
     }
   } else if (action.matchPrevious && !action.filename) {
     action.matchPrevious = false;
-    if (config.verbose)
-      console.log("WARNING: No filename specified. Not matching.");
+    log(config, "warning", "No filename specified. Not matching.");
     filename = "temp_" + action.filename;
   } else if (!action.matchPrevious && action.filename) {
     filename = action.filename;

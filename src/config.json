@@ -1,7 +1,7 @@
 {
-  "env": "sample/variables.env",
-  "input": "sample/doc-content.md",
-  "output": "sample/results.json",
+  "env": "",
+  "input": ".",
+  "output": "./results.json",
   "recursive": true,
   "testExtensions": [
     ".md",
@@ -11,7 +11,7 @@
     ".xml",
     ".json"
   ],
-  "mediaDirectory": "sample",
+  "mediaDirectory": ".",
   "fileTypes": [
     {
       "extensions": [
@@ -34,8 +34,8 @@
   "browserOptions": {
     "headless": "true",
     "path": "",
-    "height": 600,
-    "width": 800
+    "height": 800,
+    "width": 1200
   },
   "analytics": {
     "send": false,
