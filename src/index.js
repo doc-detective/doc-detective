@@ -4,6 +4,7 @@ const {
   setFiles,
   parseFiles,
   outputResults,
+  log,
 } = require("./lib/utils");
 const { sendAnalytics } = require("./lib/analytics.js");
 const { runTests } = require("./lib/tests");
@@ -15,29 +16,23 @@ exports.run = function (config, argv) {
 async function main(config, argv) {
   // Set args
   argv = setArgs(argv);
-  if (config.verbose) {
-    console.log("ARGV:");
-    console.log(argv);
-  }
+  log(config, "debug", `ARGV:`);
+  log(config, "debug", argv);
 
   // Set config
   config = setConfig(config, argv);
-  if (config.verbose) {
-    console.log("CONFIG:");
-    console.log(config);
-  }
+  log(config, "debug", `CONFIG:`);
+  log(config, "debug", config);
 
   // Set files
   const files = setFiles(config);
-  if (config.verbose) {
-    console.log("FILES:");
-    console.log(files);
-  }
+  log(config, "debug", `FILES:`);
+  log(config, "debug", files);
 
   // Set tests
   const tests = parseFiles(config, files);
-  if (config.verbose) {
-    console.log("TESTS:");
+  if (config.logLevel === "debug") {
+    console.log("(DEBUG) TESTS:");
     tests.tests.forEach((test) => {
       console.log(test);
     });
@@ -45,10 +40,8 @@ async function main(config, argv) {
 
   // Run tests
   const results = await runTests(config, tests);
-  if (config.verbose) {
-    console.log("RESULTS:");
-    console.log(results);
-  }
+  log(config, "debug", `RESULTS:`);
+  log(config, "debug", results);
 
   // Output
   outputResults(config, results);
