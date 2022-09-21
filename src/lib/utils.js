@@ -320,19 +320,24 @@ function setBrowserPath(config, argv) {
     argv.browserPath ||
     process.env.DOC_BROWSER_PATH ||
     config.browserOptions.path;
-  config.browserOptions.path = path.resolve(config.browserOptions.path);
-  if (fs.existsSync(config.browserOptions.path)) {
-    log(config, "debug", `Browser path set: ${config.browserOptions.path}`);
-  } else {
-    config.browserOptions.path = defaultConfig.browserOptions.path;
-    log(
-      config,
-      "warning",
-      `Invalid browser path. Reverted to default Chromium install.`
-    );
+    if (config.browserOptions.path === "") {
+      log(config, "debug", `Browser set to default Chromium install.`);
+      return config;
+    } else {
+      config.browserOptions.path = path.resolve(config.browserOptions.path);
+      if (fs.existsSync(config.browserOptions.path)) {
+          log(config, "debug", `Browser path set: ${config.browserOptions.path}`);
+      } else {
+          config.browserOptions.path = defaultConfig.browserOptions.path;
+          log(
+          config,
+          "warning",
+          `Invalid browser path. Reverted to default Chromium install.`
+          );
+      }
+      return config;
+    }
   }
-  return config;
-}
 
 function setBrowserHeight(config, argv) {
   config.browserOptions.height =
