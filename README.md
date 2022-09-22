@@ -530,6 +530,7 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 - New/upgraded test actions:
   - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
+  - New: Bundle ffmpeg to avoid separate installation.
   - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
   - Upgrade: `startRecording` to remove MP4 when the output is a GIF.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
