@@ -50,6 +50,16 @@ function setArgs(args) {
       description: "Path for a JSON file of test result output.",
       type: "string",
     })
+    .option("setup", {
+      alias: "s",
+      description: "Path to a file or directory to parse for tests to run before 'input' tests. Useful for preparing environments to perform tests.",
+      type: "string",
+    })
+    .option("cleanup", {
+      alias: "c",
+      description: "Path to a file or directory to parse for tests to run after 'input' tests. Useful for resetting environments after tests run.",
+      type: "string",
+    })
     .option("recursive", {
       alias: "r",
       description: "Boolean. Recursively find test files in the test directory. Defaults to true.",
