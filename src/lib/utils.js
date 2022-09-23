@@ -51,27 +51,30 @@ function setArgs(args) {
       type: "string",
     })
     .option("setup", {
-      alias: "s",
-      description: "Path to a file or directory to parse for tests to run before 'input' tests. Useful for preparing environments to perform tests.",
+      description:
+        "Path to a file or directory to parse for tests to run before 'input' tests. Useful for preparing environments to perform tests.",
       type: "string",
     })
     .option("cleanup", {
-      alias: "c",
-      description: "Path to a file or directory to parse for tests to run after 'input' tests. Useful for resetting environments after tests run.",
+      description:
+        "Path to a file or directory to parse for tests to run after 'input' tests. Useful for resetting environments after tests run.",
       type: "string",
     })
     .option("recursive", {
       alias: "r",
-      description: "Boolean. Recursively find test files in the test directory. Defaults to true.",
+      description:
+        "Boolean. Recursively find test files in the test directory. Defaults to true.",
       type: "string",
     })
     .option("ext", {
-      description: "Comma-separated list of file extensions to test, including the leading period.",
+      description:
+        "Comma-separated list of file extensions to test, including the leading period.",
       type: "string",
     })
     .option("env", {
       alias: "e",
-      description: "Path to file of environment variables to set before running tests.",
+      description:
+        "Path to file of environment variables to set before running tests.",
       type: "string",
     })
     .option("mediaDir", {
@@ -79,37 +82,45 @@ function setArgs(args) {
       type: "string",
     })
     .option("browserHeadless", {
-      description: "Boolean. Whether to run the browser in headless mode. Defaults to true.",
+      description:
+        "Boolean. Whether to run the browser in headless mode. Defaults to true.",
       type: "string",
     })
     .option("browserPath", {
-      description: "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
+      description:
+        "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
       type: "string",
     })
     .option("browserHeight", {
-      description: "Height of the browser viewport in pixels. Default is 600 px.",
+      description:
+        "Height of the browser viewport in pixels. Default is 600 px.",
       type: "number",
     })
     .option("browserWidth", {
-      description: "Width of the browser viewport in pixels. Default is 800 px.",
+      description:
+        "Width of the browser viewport in pixels. Default is 800 px.",
       type: "number",
     })
     .option("logLevel", {
       alias: "l",
-      description: "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
+      description:
+        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
       type: "string",
     })
     .option("analytics", {
       alias: "a",
-      description: "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
+      description:
+        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .option("analyticsUserId", {
-      description: "Identifier of the organization or individual running tests.",
+      description:
+        "Identifier of the organization or individual running tests.",
       type: "string",
     })
     .option("analyticsDetailLevel", {
-      description: "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
+      description:
+        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .help()
