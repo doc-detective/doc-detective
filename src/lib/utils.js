@@ -554,34 +554,39 @@ function setFiles(config) {
   const sequence = [setup, input, cleanup];
 
   for (s = 0; s < sequence.length; s++) {
-    let isFile = fs.statSync(s).isFile();
-    let isDir = fs.statSync(s).isDirectory();
+    let isFile = fs.statSync(sequence[s]).isFile();
+    let isDir = fs.statSync(sequence[s]).isDirectory();
 
     // Parse input
-    if (isFile && (
-        // No specified extension filter list, or file extension is present in extension filter list.
-        config.testExtensions === "" ||
-        config.testExtensions.includes(path.extname(s))
-      )) {
-      files.push(s);
+    if (
+      // Is a file
+      isFile &&
+      // Isn't present in files array already
+      files.indexOf(sequence[s]) < 0 &&
+      // No extension filter or extension included in filter
+      (config.testExtensions === "" ||
+        config.testExtensions.includes(path.extname(sequence[s])))
+    ) {
+      files.push(sequence[s]);
     } else if (isDir) {
       // Load files from directory
       dirs = [];
-      dirs[0] = s;
+      dirs[0] = sequence[s];
       for (let i = 0; i < dirs.length; i++) {
         fs.readdirSync(dirs[i]).forEach((object) => {
           let content = path.resolve(dirs[i] + "/" + object);
           let isFile = fs.statSync(content).isFile();
           let isDir = fs.statSync(content).isDirectory();
-          if (isFile) {
-            // is a file
             if (
-              // No specified extension filter list, or file extension is present in extension filter list.
-              config.testExtensions === "" ||
-              config.testExtensions.includes(path.extname(content))
+            // Is a file
+            isFile &&
+            // Isn't present in files array already
+            files.indexOf(s) < 0 &&
+            // No extension filter or extension included in filter
+            (config.testExtensions === "" ||
+              config.testExtensions.includes(path.extname(content)))
             ) {
               files.push(content);
-            }
           } else if (isDir && config.recursive) {
             // recursive set to true
             dirs.push(content);
