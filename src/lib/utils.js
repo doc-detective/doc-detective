@@ -184,15 +184,15 @@ function selectConfig(config, argv) {
 function setEnv(config, argv) {
   config.env = argv.env || process.env.DOC_ENV_PATH || config.env;
   if (config.env) {
-  config.env = path.resolve(config.env);
+    config.env = path.resolve(config.env);
     if (fs.existsSync(config.env)) {
-    let envResult = setEnvs(config.env);
-    if (envResult.status === "PASS")
-      log(config, "debug", `Env file set: ${config.env}`);
-    if (envResult.status === "FAIL")
-      log(config, "warning", `File format issue. Can't load env file.`);
+      let envResult = setEnvs(config.env);
+      if (envResult.status === "PASS")
+        log(config, "debug", `Env file set: ${config.env}`);
+      if (envResult.status === "FAIL")
+        log(config, "warning", `File format issue. Can't load env file.`);
     } else {
-    log(config, "warning", `Invalid file path. Can't load env file.`);
+      log(config, "warning", `Invalid file path. Can't load env file.`);
     }
   } else {
     log(config, "debug", "No env file specified.");
@@ -203,9 +203,9 @@ function setEnv(config, argv) {
 function setInput(config, argv) {
   config.input = argv.input || process.env.DOC_INPUT_PATH || config.input;
   if (config.input) {
-  config.input = path.resolve(config.input);
-  if (fs.existsSync(config.input)) {
-    log(config, "debug", `Input path set: ${config.input}`);
+    config.input = path.resolve(config.input);
+    if (fs.existsSync(config.input)) {
+      log(config, "debug", `Input path set: ${config.input}`);
     } else {
       log(
         config,
@@ -232,10 +232,7 @@ function setOutput(config, argv) {
 }
 
 function setSetup(config, argv) {
-  config.setup =
-    argv.setup ||
-    process.env.DOC_SETUP ||
-    config.setup;
+  config.setup = argv.setup || process.env.DOC_SETUP || config.setup;
   if (config.setup === "") {
     log(config, "debug", `No setup tests.`);
     return config;
@@ -245,21 +242,14 @@ function setSetup(config, argv) {
       log(config, "debug", `Setup tests path set: ${config.setup}`);
     } else {
       config.setup = defaultConfig.setup;
-      log(
-        config,
-        "warning",
-        `Invalid setup tests path.`
-      );
+      log(config, "warning", `Invalid setup tests path.`);
     }
     return config;
   }
 }
 
 function setCleanup(config, argv) {
-  config.cleanup =
-    argv.cleanup ||
-    process.env.DOC_CLEANUP ||
-    config.cleanup;
+  config.cleanup = argv.cleanup || process.env.DOC_CLEANUP || config.cleanup;
   if (config.cleanup === "") {
     log(config, "debug", `No cleanup tests.`);
     return config;
@@ -269,11 +259,7 @@ function setCleanup(config, argv) {
       log(config, "debug", `Cleanup tests path set: ${config.cleanup}`);
     } else {
       config.cleanup = defaultConfig.cleanup;
-      log(
-        config,
-        "warning",
-        `Invalid cleanup tests path.`
-      );
+      log(config, "warning", `Invalid cleanup tests path.`);
     }
     return config;
   }
@@ -328,8 +314,8 @@ function setTestFileExtensions(config, argv) {
     argv.ext || process.env.DOC_TEST_EXTENSTIONS || config.testExtensions;
   if (typeof config.testExtensions === "string")
     config.testExtensions = config.testExtensions
-    .replace(/\s+/g, "")
-    .split(",");
+      .replace(/\s+/g, "")
+      .split(",");
   if (config.testExtensions.length > 0) {
     log(
       config,
@@ -611,7 +597,7 @@ function setFiles(config) {
           let content = path.resolve(dirs[i] + "/" + object);
           let isFile = fs.statSync(content).isFile();
           let isDir = fs.statSync(content).isDirectory();
-            if (
+          if (
             // Is a file
             isFile &&
             // Isn't present in files array already
@@ -619,8 +605,8 @@ function setFiles(config) {
             // No extension filter or extension included in filter
             (config.testExtensions === "" ||
               config.testExtensions.includes(path.extname(content)))
-            ) {
-              files.push(content);
+          ) {
+            files.push(content);
           } else if (isDir && config.recursive) {
             // recursive set to true
             dirs.push(content);
@@ -705,13 +691,16 @@ async function outputResults(config, results) {
 }
 
 async function convertToGif(config, input, fps, width) {
+  const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+
   if (!fs.existsSync(input)) return { error: "Invalid input." };
   let output = path.join(
     path.parse(input).dir,
     path.parse(input).name + ".gif"
   );
   if (!fps) fps = 15;
-  let command = `ffmpeg -nostats -loglevel 0 -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
+
+  let command = `${ffmpegPath} -nostats -loglevel 0 -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
   exec(command, (error, stdout, stderr) => {
     if (error) {
       log(config, "debug", error.message);
