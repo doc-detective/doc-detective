@@ -52,19 +52,16 @@ function setArgs(args) {
     })
     .option("recursive", {
       alias: "r",
-      description:
-        "Boolean. Recursively find test files in the test directory. Defaults to true.",
+      description: "Boolean. Recursively find test files in the test directory. Defaults to true.",
       type: "string",
     })
     .option("ext", {
-      description:
-        "Comma-separated list of file extensions to test, including the leading period.",
+      description: "Comma-separated list of file extensions to test, including the leading period.",
       type: "string",
     })
     .option("env", {
       alias: "e",
-      description:
-        "Path to file of environment variables to set before running tests.",
+      description: "Path to file of environment variables to set before running tests.",
       type: "string",
     })
     .option("mediaDir", {
@@ -72,45 +69,37 @@ function setArgs(args) {
       type: "string",
     })
     .option("browserHeadless", {
-      description:
-        "Boolean. Whether to run the browser in headless mode. Defaults to true.",
+      description: "Boolean. Whether to run the browser in headless mode. Defaults to true.",
       type: "string",
     })
     .option("browserPath", {
-      description:
-        "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
+      description: "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
       type: "string",
     })
     .option("browserHeight", {
-      description:
-        "Height of the browser viewport in pixels. Default is 600 px.",
+      description: "Height of the browser viewport in pixels. Default is 600 px.",
       type: "number",
     })
     .option("browserWidth", {
-      description:
-        "Width of the browser viewport in pixels. Default is 800 px.",
+      description: "Width of the browser viewport in pixels. Default is 800 px.",
       type: "number",
     })
     .option("logLevel", {
       alias: "l",
-      description:
-        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
+      description: "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
       type: "string",
     })
     .option("analytics", {
       alias: "a",
-      description:
-        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
+      description: "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .option("analyticsUserId", {
-      description:
-        "Identifier of the organization or individual running tests.",
+      description: "Identifier of the organization or individual running tests.",
       type: "string",
     })
     .option("analyticsDetailLevel", {
-      description:
-        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
+      description: "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .help()
@@ -210,6 +199,54 @@ function setOutput(config, argv) {
   return config;
 }
 
+function setSetup(config, argv) {
+  config.setup =
+    argv.setup ||
+    process.env.DOC_SETUP ||
+    config.setup;
+  if (config.setup === "") {
+    log(config, "debug", `No setup tests.`);
+    return config;
+  } else {
+    config.setup = path.resolve(config.setup);
+    if (fs.existsSync(config.setup)) {
+      log(config, "debug", `Setup tests path set: ${config.setup}`);
+    } else {
+      config.setup = defaultConfig.setup;
+      log(
+        config,
+        "warning",
+        `Invalid setup tests path.`
+      );
+    }
+    return config;
+  }
+}
+
+function setCleanup(config, argv) {
+  config.cleanup =
+    argv.cleanup ||
+    process.env.DOC_CLEANUP ||
+    config.cleanup;
+  if (config.cleanup === "") {
+    log(config, "debug", `No cleanup tests.`);
+    return config;
+  } else {
+    config.cleanup = path.resolve(config.cleanup);
+    if (fs.existsSync(config.cleanup)) {
+      log(config, "debug", `Cleanup tests path set: ${config.cleanup}`);
+    } else {
+      config.cleanup = defaultConfig.cleanup;
+      log(
+        config,
+        "warning",
+        `Invalid cleanup tests path.`
+      );
+    }
+    return config;
+  }
+}
+
 function setMediaDirectory(config, argv) {
   config.mediaDirectory =
     argv.mediaDir ||
@@ -259,8 +296,8 @@ function setTestFileExtensions(config, argv) {
     argv.ext || process.env.DOC_TEST_EXTENSTIONS || config.testExtensions;
   if (typeof config.testExtensions === "string")
     config.testExtensions = config.testExtensions
-      .replace(/\s+/g, "")
-      .split(",");
+    .replace(/\s+/g, "")
+    .split(",");
   if (config.testExtensions.length > 0) {
     log(
       config,
@@ -320,24 +357,24 @@ function setBrowserPath(config, argv) {
     argv.browserPath ||
     process.env.DOC_BROWSER_PATH ||
     config.browserOptions.path;
-    if (config.browserOptions.path === "") {
-      log(config, "debug", `Browser set to default Chromium install.`);
-      return config;
+  if (config.browserOptions.path === "") {
+    log(config, "debug", `Browser set to default Chromium install.`);
+    return config;
+  } else {
+    config.browserOptions.path = path.resolve(config.browserOptions.path);
+    if (fs.existsSync(config.browserOptions.path)) {
+      log(config, "debug", `Browser path set: ${config.browserOptions.path}`);
     } else {
-      config.browserOptions.path = path.resolve(config.browserOptions.path);
-      if (fs.existsSync(config.browserOptions.path)) {
-          log(config, "debug", `Browser path set: ${config.browserOptions.path}`);
-      } else {
-          config.browserOptions.path = defaultConfig.browserOptions.path;
-          log(
-          config,
-          "warning",
-          `Invalid browser path. Reverted to default Chromium install.`
-          );
-      }
-      return config;
+      config.browserOptions.path = defaultConfig.browserOptions.path;
+      log(
+        config,
+        "warning",
+        `Invalid browser path. Reverted to default Chromium install.`
+      );
     }
+    return config;
   }
+}
 
 function setBrowserHeight(config, argv) {
   config.browserOptions.height =
@@ -477,6 +514,10 @@ function setConfig(config, argv) {
 
   config = setOutput(config, argv);
 
+  config = setSetup(config, argv);
+
+  config = setCleanup(config, argv);
+
   config = setMediaDirectory(config, argv);
 
   config = setRecursion(config, argv);
@@ -508,47 +549,50 @@ function setFiles(config) {
   let files = [];
 
   // Validate input
-  const input = path.resolve(config.input);
-  let isFile = fs.statSync(input).isFile();
-  let isDir = fs.statSync(input).isDirectory();
-  if (!isFile && !isDir) {
-    log(config, "error", "Input isn't a valid file or directory.");
-    exit(1);
-  }
+  const input = config.input;
+  const setup = config.setup;
+  const cleanup = config.cleanup;
 
-  // Parse input
-  if (isFile) {
-    // if single file specified
-    files[0] = input;
-    return files;
-  } else if (isDir) {
-    // Load files from drectory
-    dirs[0] = input;
-    for (let i = 0; i < dirs.length; i++) {
-      fs.readdirSync(dirs[i]).forEach((object) => {
-        let content = path.resolve(dirs[i] + "/" + object);
-        let isFile = fs.statSync(content).isFile();
-        let isDir = fs.statSync(content).isDirectory();
-        if (isFile) {
-          // is a file
-          if (
-            // No specified extension filter list, or file extension is present in extension filter list.
-            config.testExtensions === "" ||
-            config.testExtensions.includes(path.extname(content))
-          ) {
-            files.push(content);
-          }
-        } else if (isDir) {
-          // is a directory
-          if (config.recursive) {
+  const sequence = [setup, input, cleanup];
+
+  for (s = 0; s < sequence.length; s++) {
+    let isFile = fs.statSync(s).isFile();
+    let isDir = fs.statSync(s).isDirectory();
+
+    // Parse input
+    if (isFile && (
+        // No specified extension filter list, or file extension is present in extension filter list.
+        config.testExtensions === "" ||
+        config.testExtensions.includes(path.extname(s))
+      )) {
+      files.push(s);
+    } else if (isDir) {
+      // Load files from directory
+      dirs = [];
+      dirs[0] = s;
+      for (let i = 0; i < dirs.length; i++) {
+        fs.readdirSync(dirs[i]).forEach((object) => {
+          let content = path.resolve(dirs[i] + "/" + object);
+          let isFile = fs.statSync(content).isFile();
+          let isDir = fs.statSync(content).isDirectory();
+          if (isFile) {
+            // is a file
+            if (
+              // No specified extension filter list, or file extension is present in extension filter list.
+              config.testExtensions === "" ||
+              config.testExtensions.includes(path.extname(content))
+            ) {
+              files.push(content);
+            }
+          } else if (isDir && config.recursive) {
             // recursive set to true
             dirs.push(content);
           }
-        }
-      });
+        });
+      }
     }
-    return files;
   }
+  return files;
 }
 
 // Parse files for tests
