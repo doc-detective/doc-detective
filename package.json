@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
   "scripts": {
@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/hawkeyexl/doc-detective#readme",
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "axios": "^0.27.2",
     "dotenv": "^16.0.2",
     "n-readlines": "^1.0.1",

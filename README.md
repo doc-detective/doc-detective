@@ -18,8 +18,6 @@ You can use Doc Detective as an [NPM package](#npm-package) or a standalone [CLI
 
 Doc Detective integrates with Node projects as an NPM package. When using the NPM package, you must specify all options in the `run()` method's `config` argument, which is a JSON object with the same structure as [config.json](https://github.com/hawkeyexl/doc-detective/blob/master/sample/config.json).
 
-0.  Install prerequisites:
-    - [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
 1.  In a terminal, navigate to your Node project, then install Doc Detective:
 
     ```bash
@@ -45,7 +43,6 @@ You can run Doc Detective as a standalone CLI tool. When running as a CLI tool, 
 0.  Install prerequisites:
 
     - [Node.js](https://nodejs.org/)
-    - [FFmpeg](https://ffmpeg.org/) (Only required if you want the [Start recording](#start-recording) action to output GIFs. Not required for MP4 output.)
 
 1.  In a terminal, clone the repo and install dependencies:
 
@@ -276,7 +273,7 @@ Format:
 
 Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif
 
-**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files requires `ffmpeg` installed on the machine that runs Doc Detective and also creates `.mp4` files of the recordings.
+**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files also creates `.mp4` files of the recordings.
 
 Format:
 
@@ -524,13 +521,10 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 ## Potential future features
 
 - Browser auto-detection and fallback.
-- Improved default config experience.
-- Environment variable overrides for config options.
 - Docker image with bundled Chromium/Chrome/Firefox.
 - New/upgraded test actions:
   - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
-  - New: Bundle ffmpeg to avoid separate installation.
   - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
   - Upgrade: `startRecording` to remove MP4 when the output is a GIF.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.

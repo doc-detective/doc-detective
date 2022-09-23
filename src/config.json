@@ -2,6 +2,8 @@
   "env": "",
   "input": ".",
   "output": "./results.json",
+  "setup": "",
+  "cleanup": "",
   "recursive": true,
   "testExtensions": [
     ".md",

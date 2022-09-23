@@ -2,6 +2,8 @@
   "env": "sample/variables.env",
   "input": "sample/doc-content.md",
   "output": "sample/results.json",
+  "setup": "",
+  "cleanup": "",
   "recursive": true,
   "testExtensions": [
     ".md",
