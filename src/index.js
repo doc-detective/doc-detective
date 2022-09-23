@@ -40,8 +40,6 @@ async function main(config, argv) {
 
   // Run tests
   const results = await runTests(config, tests);
-  log(config, "debug", `RESULTS:`);
-  log(config, "debug", results);
 
   // Output
   outputResults(config, results);
