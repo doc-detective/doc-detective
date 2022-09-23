@@ -132,7 +132,8 @@ function setArgs(args) {
 function setLogLevel(config, argv) {
   let logLevel = "";
   let enums = ["debug", "info", "warning", "error", "silent"];
-  logLevel = argv.logLevel || process.env.DOC_LOG_LEVEL || config.logLevel || "info";
+  logLevel =
+    argv.logLevel || process.env.DOC_LOG_LEVEL || config.logLevel || "info";
   logLevel = String(logLevel).toLowerCase();
   if (enums.indexOf(logLevel) >= 0) {
     config.logLevel = logLevel;
@@ -576,13 +577,15 @@ function setConfig(config, argv) {
 function setFiles(config) {
   let dirs = [];
   let files = [];
+  let sequence = [];
 
   // Validate input
-  const input = config.input;
   const setup = config.setup;
+  if (setup) sequence.push(setup);
+  const input = config.input;
+  sequence.push(input);
   const cleanup = config.cleanup;
-
-  const sequence = [setup, input, cleanup];
+  if (cleanup) sequence.push(cleanup);
 
   for (s = 0; s < sequence.length; s++) {
     let isFile = fs.statSync(sequence[s]).isFile();
