@@ -51,30 +51,27 @@ function setArgs(args) {
       type: "string",
     })
     .option("setup", {
-      description:
-        "Path to a file or directory to parse for tests to run before 'input' tests. Useful for preparing environments to perform tests.",
+      alias: "s",
+      description: "Path to a file or directory to parse for tests to run before 'input' tests. Useful for preparing environments to perform tests.",
       type: "string",
     })
     .option("cleanup", {
-      description:
-        "Path to a file or directory to parse for tests to run after 'input' tests. Useful for resetting environments after tests run.",
+      alias: "c",
+      description: "Path to a file or directory to parse for tests to run after 'input' tests. Useful for resetting environments after tests run.",
       type: "string",
     })
     .option("recursive", {
       alias: "r",
-      description:
-        "Boolean. Recursively find test files in the test directory. Defaults to true.",
+      description: "Boolean. Recursively find test files in the test directory. Defaults to true.",
       type: "string",
     })
     .option("ext", {
-      description:
-        "Comma-separated list of file extensions to test, including the leading period.",
+      description: "Comma-separated list of file extensions to test, including the leading period.",
       type: "string",
     })
     .option("env", {
       alias: "e",
-      description:
-        "Path to file of environment variables to set before running tests.",
+      description: "Path to file of environment variables to set before running tests.",
       type: "string",
     })
     .option("mediaDir", {
@@ -82,45 +79,37 @@ function setArgs(args) {
       type: "string",
     })
     .option("browserHeadless", {
-      description:
-        "Boolean. Whether to run the browser in headless mode. Defaults to true.",
+      description: "Boolean. Whether to run the browser in headless mode. Defaults to true.",
       type: "string",
     })
     .option("browserPath", {
-      description:
-        "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
+      description: "Path to a browser executable to run instead of puppeteer's bundled Chromium.",
       type: "string",
     })
     .option("browserHeight", {
-      description:
-        "Height of the browser viewport in pixels. Default is 600 px.",
+      description: "Height of the browser viewport in pixels. Default is 600 px.",
       type: "number",
     })
     .option("browserWidth", {
-      description:
-        "Width of the browser viewport in pixels. Default is 800 px.",
+      description: "Width of the browser viewport in pixels. Default is 800 px.",
       type: "number",
     })
     .option("logLevel", {
       alias: "l",
-      description:
-        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
+      description: "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
       type: "string",
     })
     .option("analytics", {
       alias: "a",
-      description:
-        "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
+      description: "Boolean. Defaults to false. Sends anonymous, aggregate analytics for usage and trend analysis. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .option("analyticsUserId", {
-      description:
-        "Identifier of the organization or individual running tests.",
+      description: "Identifier of the organization or individual running tests.",
       type: "string",
     })
     .option("analyticsDetailLevel", {
-      description:
-        "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
+      description: "How much detail is included in the analytics object. Defaults to 'action'. Values: ['action', 'test', 'run']. For details, see https://github.com/hawkeyexl/doc-detective#analytics.",
       type: "string",
     })
     .help()
@@ -132,8 +121,7 @@ function setArgs(args) {
 function setLogLevel(config, argv) {
   let logLevel = "";
   let enums = ["debug", "info", "warning", "error", "silent"];
-  logLevel =
-    argv.logLevel || process.env.DOC_LOG_LEVEL || config.logLevel || "info";
+  logLevel = argv.logLevel || process.env.DOC_LOG_LEVEL || config.logLevel || "info";
   logLevel = String(logLevel).toLowerCase();
   if (enums.indexOf(logLevel) >= 0) {
     config.logLevel = logLevel;
@@ -183,18 +171,16 @@ function selectConfig(config, argv) {
 
 function setEnv(config, argv) {
   config.env = argv.env || process.env.DOC_ENV_PATH || config.env;
-  if (config.env) {
   config.env = path.resolve(config.env);
-    if (fs.existsSync(config.env)) {
+  if (config.env && fs.existsSync(config.env)) {
     let envResult = setEnvs(config.env);
     if (envResult.status === "PASS")
       log(config, "debug", `Env file set: ${config.env}`);
     if (envResult.status === "FAIL")
       log(config, "warning", `File format issue. Can't load env file.`);
-    } else {
+  } else if (config.env && !fs.existsSync(config.env)) {
     log(config, "warning", `Invalid file path. Can't load env file.`);
-    }
-  } else {
+  } else if (!config.env) {
     log(config, "debug", "No env file specified.");
   }
   return config;
@@ -202,17 +188,9 @@ function setEnv(config, argv) {
 
 function setInput(config, argv) {
   config.input = argv.input || process.env.DOC_INPUT_PATH || config.input;
-  if (config.input) {
   config.input = path.resolve(config.input);
   if (fs.existsSync(config.input)) {
     log(config, "debug", `Input path set: ${config.input}`);
-    } else {
-      log(
-        config,
-        "warning",
-        `Invalid input path. Reverted to default: ${config.input}`
-      );
-    }
   } else {
     config.input = path.resolve(defaultConfig.input);
     log(
@@ -577,21 +555,13 @@ function setConfig(config, argv) {
 function setFiles(config) {
   let dirs = [];
   let files = [];
-  let sequence = [];
 
   // Validate input
-  const setup = config.setup;
-  if (setup) sequence.push(setup);
   const input = config.input;
-  sequence.push(input);
+  const setup = config.setup;
   const cleanup = config.cleanup;
-  if (cleanup) sequence.push(cleanup);
 
-  console.log(setup);
-  console.log(input);
-  console.log(cleanup);
-  console.log(sequence);
-  exit();
+  const sequence = [setup, input, cleanup];
 
   for (s = 0; s < sequence.length; s++) {
     let isFile = fs.statSync(sequence[s]).isFile();
