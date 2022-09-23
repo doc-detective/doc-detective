@@ -171,16 +171,18 @@ function selectConfig(config, argv) {
 
 function setEnv(config, argv) {
   config.env = argv.env || process.env.DOC_ENV_PATH || config.env;
+  if (config.env) {
   config.env = path.resolve(config.env);
-  if (config.env && fs.existsSync(config.env)) {
+    if (fs.existsSync(config.env)) {
     let envResult = setEnvs(config.env);
     if (envResult.status === "PASS")
       log(config, "debug", `Env file set: ${config.env}`);
     if (envResult.status === "FAIL")
       log(config, "warning", `File format issue. Can't load env file.`);
-  } else if (config.env && !fs.existsSync(config.env)) {
+    } else {
     log(config, "warning", `Invalid file path. Can't load env file.`);
-  } else if (!config.env) {
+    }
+  } else {
     log(config, "debug", "No env file specified.");
   }
   return config;
@@ -188,9 +190,17 @@ function setEnv(config, argv) {
 
 function setInput(config, argv) {
   config.input = argv.input || process.env.DOC_INPUT_PATH || config.input;
+  if (config.input) {
   config.input = path.resolve(config.input);
   if (fs.existsSync(config.input)) {
     log(config, "debug", `Input path set: ${config.input}`);
+    } else {
+      log(
+        config,
+        "warning",
+        `Invalid input path. Reverted to default: ${config.input}`
+      );
+    }
   } else {
     config.input = path.resolve(defaultConfig.input);
     log(
