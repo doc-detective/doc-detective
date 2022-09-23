@@ -504,8 +504,6 @@ function setAnalyticsServers(config, argv) {
 }
 
 function setConfig(config, argv) {
-  config = setLogLevel(config, argv);
-
   config = selectConfig(config, argv);
 
   config = setEnv(config, argv);
