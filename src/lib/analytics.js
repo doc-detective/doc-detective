@@ -483,7 +483,7 @@ async function sendAnalytics(config, results) {
         .then(() => {
           log(
             config,
-            "info",
+            "debug",
             `Sucessfully sent analytics to ${server.displayname}.`
           );
         })
