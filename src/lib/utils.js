@@ -716,6 +716,13 @@ async function convertToGif(config, input, fps, width) {
       return { stderr };
     }
     log(config, "debug", stdout);
+    fs.unlink(input, function (err) {
+      if (err) {
+        log(config, "warning", `Couldn't delete intermediate file: ${input}`);
+      } else {
+        log(config, "debug", `Deleted intermediate file: ${input}`);
+      }
+    });
     return { stdout };
   });
   return output;
