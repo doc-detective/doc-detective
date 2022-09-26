@@ -14,6 +14,23 @@ const axios = require("axios");
 
 exports.runTests = runTests;
 
+const defaultBrowserPaths = {
+  linux: [
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "/usr/bin/firefox",
+  ],
+  darwin: [
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
+  ],
+  win32: [
+    "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files/Mozilla Firefox/firefox.exe",
+  ],
+};
+
 async function runTests(config, tests) {
   // Instantiate browser
   let browserConfig = {
@@ -29,8 +46,40 @@ async function runTests(config, tests) {
   try {
     browser = await puppeteer.launch(browserConfig);
   } catch {
-    log(config,"error","Couldn't open browser.");
+    if (
+      process.platform === "linux" ||
+      process.platform === "darwin" ||
+      process.platform === "win32"
+    ) {
+      for (i = 0; i < defaultBrowserPaths[process.platform].length; i++) {
+        if (fs.existsSync(defaultBrowserPaths[process.platform][i])) {
+          log(
+            config,
+            "debug",
+            `Attempting browser fallback: ${
+              defaultBrowserPaths[process.platform][i]
+            }`
+          );
+          browserConfig.executablePath =
+            defaultBrowserPaths[process.platform][i];
+          try {
+            browser = await puppeteer.launch(browserConfig);
+            break;
+          } catch {}
+        }
+        if (i === defaultBrowserPaths[process.platform].length) {
+          log(
+            config,
+            "error",
+            "Couldn't open browser. Failed browser fallback."
+          );
+          exit(1);
+        }
+      }
+    } else {
+      log(config, "error", "Couldn't open browser.");
     exit(1);
+    }
   }
 
   // Iterate tests
