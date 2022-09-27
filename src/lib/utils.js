@@ -688,6 +688,9 @@ async function outputResults(config, results) {
   fs.writeFile(config.output, data, (err) => {
     if (err) throw err;
   });
+  log(config, "info", "RESULTS:");
+  log(config, "info", results);
+  log(config, "info", `See detailed results at ${config.output}`);
 }
 
 async function convertToGif(config, input, fps, width) {
@@ -711,6 +714,13 @@ async function convertToGif(config, input, fps, width) {
       return { stderr };
     }
     log(config, "debug", stdout);
+    fs.unlink(input, function (err) {
+      if (err) {
+        log(config, "warning", `Couldn't delete intermediate file: ${input}`);
+      } else {
+        log(config, "debug", `Deleted intermediate file: ${input}`);
+      }
+    });
     return { stdout };
   });
   return output;

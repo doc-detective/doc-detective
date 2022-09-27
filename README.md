@@ -6,7 +6,7 @@ Doc Detective ingests text files, parses them for test actions, then executes th
 
 This project handles test parsing and web-based UI testing--it doesn't support results reporting or notifications. This framework is a part of testing infrastructures and needs to be complimented by other components.
 
-Doc Detective uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshotting and video recording.
+Doc Detective uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshotting and video recording. In the event `puppeteer` fails to launch Chromium, Doc Detective tries to fall back to local installs of Chromium, Chrome, and Firefox.
 
 **Note:** By default, `puppeteer`'s Chromium doesn't run in Docker containers, which means that `puppeteer` doesn't work either. Don't run Doc Detective in a Docker container unless you first confirm that you have a custom implementation of headless Chrome/Chromium functional in the container. The approved answer to [this question](https://askubuntu.com/questions/79280/how-to-install-chrome-browser-properly-via-command-line) works for me, but it may not work in all environments.
 
@@ -121,7 +121,7 @@ Advanced format:
   "type": {
     "keys": "$SHORTHAIR_CAT_SEARCH",
     "trailingSpecialKey": "Enter",
-    "envs": "./sample/variables.env"
+    "env": "./sample/variables.env"
   }
 }
 ```
@@ -186,7 +186,7 @@ Advanced format with an environment variable:
   "css": "input#password",
   "keys": "$PASSWORD",
   "trailingSpecialKey": "Enter",
-  "envs": "./sample/variables.env"
+  "env": "./sample/variables.env"
 }
 ```
 
@@ -255,9 +255,33 @@ Format:
 }
 ```
 
+### HTTP request
+
+Perform a generic HTTP request, for example to a REST API. Checks if the server returns an acceptable status code. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statusCodes` isn't specified, defaults to `[200]`.
+
+Format:
+
+```json
+{
+  "action": "httpRequest",
+  "uri": "https://www.api-server.com",
+  "method": "post",
+  "requestHeaders": {
+    "header": "value"
+  },
+  "requestParams": {
+    "param": "value"
+  },
+  "requestData": {
+    "field": "value"
+  },
+  "statusCodes": [ 200 ]
+}
+```
+
 ### Check a link
 
-Check if a link returns an acceptable status code from a GET request. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statuscodes` isn't specified, defaults to `[200]`.
+Check if a link returns an acceptable status code from a GET request. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statusCodes` isn't specified, defaults to `[200]`.
 
 Format:
 
@@ -273,7 +297,7 @@ Format:
 
 Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif
 
-**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here. Creating `.gif` files also creates `.mp4` files of the recordings.
+**Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here.
 
 Format:
 
@@ -518,20 +542,24 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 
 **Note:** Updating Doc Detective may revert any modified code, so be ready to make code edits repeatedly.
 
-## Potential future features
+## Potential future updates
 
-- Browser auto-detection and fallback.
 - Docker image with bundled Chromium/Chrome/Firefox.
 - New/upgraded test actions:
-  - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
+  - Upgrade: `httpRequest` response data validation.
+  - Upgrade: `httpRequest` response header validation.
+  - Upgrade: Additional `httpRequest` input sanitization.
   - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
-  - Upgrade: `startRecording` to remove MP4 when the output is a GIF.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
   - Upgrade: `startRecording` to store the output file in a different location if a recorded action fails. This could help with debugging.
 - In-content test framing to identify when content is covered by a test defined in another file. This could enable content coverage analysis.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
+  - Detailed field descriptions per action.
+- Refactor tests into individual files.
+- Rewrite cross-action recording status tracking.
+
 
 ## License
 

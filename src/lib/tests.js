@@ -11,8 +11,26 @@ const PNG = require("pngjs").PNG;
 const pixelmatch = require("pixelmatch");
 const uuid = require("uuid");
 const axios = require("axios");
+const { httpRequest } = require("./tests/httpRequest");
 
 exports.runTests = runTests;
+
+const defaultBrowserPaths = {
+  linux: [
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "/usr/bin/firefox",
+  ],
+  darwin: [
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
+  ],
+  win32: [
+    "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files/Mozilla Firefox/firefox.exe",
+  ],
+};
 
 async function runTests(config, tests) {
   // Instantiate browser
@@ -27,14 +45,49 @@ async function runTests(config, tests) {
     },
   };
   try {
+    log(config, "debug", "Launching browser.");
     browser = await puppeteer.launch(browserConfig);
   } catch {
-    log(config,"error","Couldn't open browser.");
-    exit(1);
+    if (
+      process.platform === "linux" ||
+      process.platform === "darwin" ||
+      process.platform === "win32"
+    ) {
+      for (i = 0; i < defaultBrowserPaths[process.platform].length; i++) {
+        if (fs.existsSync(defaultBrowserPaths[process.platform][i])) {
+          log(
+            config,
+            "debug",
+            `Attempting browser fallback: ${
+              defaultBrowserPaths[process.platform][i]
+            }`
+          );
+          browserConfig.executablePath =
+            defaultBrowserPaths[process.platform][i];
+          try {
+            browser = await puppeteer.launch(browserConfig);
+            break;
+          } catch {}
+        }
+        if (i === defaultBrowserPaths[process.platform].length) {
+          log(
+            config,
+            "error",
+            "Couldn't open browser. Failed browser fallback."
+          );
+          exit(1);
+        }
+      }
+    } else {
+      log(config, "error", "Couldn't open browser.");
+      exit(1);
+    }
   }
 
   // Iterate tests
+  log(config, "info", "Running tests.");
   for (const test of tests.tests) {
+    log(config, "debug", `TEST: ${test.id}`);
     let pass = 0;
     let warning = 0;
     let fail = 0;
@@ -45,6 +98,7 @@ async function runTests(config, tests) {
     await installMouseHelper(page);
     // Iterate through actions
     for (const action of test.actions) {
+      log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
       action.result = await runAction(config, action, page, videoDetails);
       if (action.result.videoDetails) {
         videoDetails = action.result.videoDetails;
@@ -53,6 +107,7 @@ async function runTests(config, tests) {
       if (action.result.status === "FAIL") fail++;
       if (action.result.status === "WARNING") warning++;
       if (action.result.status === "PASS") pass++;
+      log(config, "debug", `RESULT: ${action.result.status}. ${action.result.description}`);
     }
 
     // Close open recorders/pages
@@ -188,9 +243,13 @@ async function runAction(config, action, page, videoDetails) {
     case "checkLink":
       result = await checkLink(action);
       break;
+    case "httpRequest":
+      result = await httpRequest(action);
+      break;
   }
   return result;
 }
+
 async function checkLink(action) {
   let status;
   let description;
