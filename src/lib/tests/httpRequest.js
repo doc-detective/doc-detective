@@ -1,6 +1,5 @@
 const axios = require("axios");
-const { exit } = require("yargs");
-const { setEnvs, log } = require("../utils");
+const { setEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
 

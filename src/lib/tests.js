@@ -11,6 +11,7 @@ const PNG = require("pngjs").PNG;
 const pixelmatch = require("pixelmatch");
 const uuid = require("uuid");
 const axios = require("axios");
+const { httpRequest } = require("./tests/httpRequest");
 
 exports.runTests = runTests;
 
@@ -78,7 +79,7 @@ async function runTests(config, tests) {
       }
     } else {
       log(config, "error", "Couldn't open browser.");
-    exit(1);
+      exit(1);
     }
   }
 
@@ -237,9 +238,13 @@ async function runAction(config, action, page, videoDetails) {
     case "checkLink":
       result = await checkLink(action);
       break;
+    case "httpRequest":
+      result = await httpRequest(action);
+      break;
   }
   return result;
 }
+
 async function checkLink(action) {
   let status;
   let description;
