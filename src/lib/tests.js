@@ -45,6 +45,7 @@ async function runTests(config, tests) {
     },
   };
   try {
+    log(config, "debug", "Launching browser.");
     browser = await puppeteer.launch(browserConfig);
   } catch {
     if (
@@ -84,7 +85,9 @@ async function runTests(config, tests) {
   }
 
   // Iterate tests
+  log(config, "info", "Running tests.");
   for (const test of tests.tests) {
+    log(config, "debug", `TEST: ${test.id}`);
     let pass = 0;
     let warning = 0;
     let fail = 0;
@@ -95,6 +98,7 @@ async function runTests(config, tests) {
     await installMouseHelper(page);
     // Iterate through actions
     for (const action of test.actions) {
+      log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
       action.result = await runAction(config, action, page, videoDetails);
       if (action.result.videoDetails) {
         videoDetails = action.result.videoDetails;
@@ -103,6 +107,7 @@ async function runTests(config, tests) {
       if (action.result.status === "FAIL") fail++;
       if (action.result.status === "WARNING") warning++;
       if (action.result.status === "PASS") pass++;
+      log(config, "debug", `RESULT: ${action.result.status}. ${action.result.description}`);
     }
 
     // Close open recorders/pages

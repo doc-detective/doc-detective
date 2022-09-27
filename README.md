@@ -121,7 +121,7 @@ Advanced format:
   "type": {
     "keys": "$SHORTHAIR_CAT_SEARCH",
     "trailingSpecialKey": "Enter",
-    "envs": "./sample/variables.env"
+    "env": "./sample/variables.env"
   }
 }
 ```
@@ -186,7 +186,7 @@ Advanced format with an environment variable:
   "css": "input#password",
   "keys": "$PASSWORD",
   "trailingSpecialKey": "Enter",
-  "envs": "./sample/variables.env"
+  "env": "./sample/variables.env"
 }
 ```
 
