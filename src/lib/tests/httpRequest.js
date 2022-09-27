@@ -49,7 +49,7 @@ async function httpRequest(action) {
 
   // Method
   //// Define
-  if (action.method[0] === "$") {
+  if (action.method && action.method[0] === "$") {
     method = process.env[action.method.substring(1)];
   } else {
     method = action.method || defaultPayload.method;
@@ -72,12 +72,13 @@ async function httpRequest(action) {
     //// Define
     if (action.headers[0] === "$") {
       headers = process.env[action.headers.substring(1)];
+      headers = JSON.parse(headers);
     } else {
       headers = action.headers || defaultPayload.headers;
     }
     //// Validate
     //// Set request
-    if (headers != {}) request.headers = headers;
+    if (JSON.stringify(headers) != "{}") request.headers = headers;
   }
 
   // Params
@@ -85,6 +86,7 @@ async function httpRequest(action) {
     //// Define
     if (action.params[0] === "$") {
       params = process.env[action.params.substring(1)];
+      params = JSON.parse(params);
     } else {
       params = action.params || defaultPayload.params;
     }
@@ -98,6 +100,7 @@ async function httpRequest(action) {
     //// Define
     if (action.requestData[0] === "$") {
       requestData = process.env[action.requestData.substring(1)];
+      requestData = JSON.parse(requestData);
     } else {
       requestData = action.requestData || defaultPayload.requestData;
     }
@@ -118,6 +121,11 @@ async function httpRequest(action) {
   // Status codes
   //// Define
   statusCodes = action.statusCodes || defaultPayload.statusCodes;
+  //// Sanitize
+  for (i = 0; i < statusCodes.length; i++) {
+    if (typeof statusCodes[i] === "string")
+      statusCodes[i] = Number(statusCodes[i]);
+  }
   //// Validate
   if (statusCodes === []) statusCodes = defaultPayload.statusCodes;
 

@@ -85,6 +85,13 @@
           "statusCodes": [
             200
           ]
+        },
+        {
+          "action": "httpRequest",
+          "uri": "$URL",
+          "statusCodes": [
+            200
+          ]
         }
       ]
     }
