@@ -255,9 +255,33 @@ Format:
 }
 ```
 
+### HTTP request
+
+Perform a generic HTTP request, for example to a REST API. Checks if the server returns an acceptable status code. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statusCodes` isn't specified, defaults to `[200]`.
+
+Format:
+
+```json
+{
+  "action": "httpRequest",
+  "uri": "https://www.api-server.com",
+  "method": "post",
+  "requestHeaders": {
+    "header": "value"
+  },
+  "requestParams": {
+    "param": "value"
+  },
+  "requestData": {
+    "field": "value"
+  },
+  "statusCodes": [ 200 ]
+}
+```
+
 ### Check a link
 
-Check if a link returns an acceptable status code from a GET request. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statuscodes` isn't specified, defaults to `[200]`.
+Check if a link returns an acceptable status code from a GET request. If `uri` doesn't include a protocol, the protocol defaults to HTTPS. If `statusCodes` isn't specified, defaults to `[200]`.
 
 Format:
 
@@ -522,9 +546,12 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 
 - Browser auto-detection and fallback.
 - Docker image with bundled Chromium/Chrome/Firefox.
+- Detailed field descriptions per action.
 - New/upgraded test actions:
-  - New: Curl commands. (Support substitution/setting env vars. Only check for `200 OK`.)
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
+  - Upgrade: `httpRequest` response data validation.
+  - Upgrade: `httpRequest` response header validation.
+  - Upgrade: Additional `httpRequest` input sanitization.
   - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
   - Upgrade: `startRecording` to store the output file in a different location if a recorded action fails. This could help with debugging.
