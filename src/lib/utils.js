@@ -688,10 +688,8 @@ async function outputResults(config, results) {
   fs.writeFile(config.output, data, (err) => {
     if (err) throw err;
   });
-  if (config.logLevel === "info") {
-    log(config, "info", "RESULTS");
-    log(config, "info", results);
-  }
+  log(config, "info", "RESULTS:");
+  log(config, "info", results);
   log(config, "info", `See detailed results at ${config.output}`);
 }
 
