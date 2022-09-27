@@ -6,7 +6,7 @@ Doc Detective ingests text files, parses them for test actions, then executes th
 
 This project handles test parsing and web-based UI testing--it doesn't support results reporting or notifications. This framework is a part of testing infrastructures and needs to be complimented by other components.
 
-Doc Detective uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshotting and video recording.
+Doc Detective uses `puppeteer` to install, launch, and drive Chromium to perform tests. `puppeteer` removes the requirement to manually configure a local web browser and enables easy screenshotting and video recording. In the event `puppeteer` fails to launch Chromium, Doc Detective tries to fall back to local installs of Chromium, Chrome, and Firefox.
 
 **Note:** By default, `puppeteer`'s Chromium doesn't run in Docker containers, which means that `puppeteer` doesn't work either. Don't run Doc Detective in a Docker container unless you first confirm that you have a custom implementation of headless Chrome/Chromium functional in the container. The approved answer to [this question](https://askubuntu.com/questions/79280/how-to-install-chrome-browser-properly-via-command-line) works for me, but it may not work in all environments.
 
@@ -542,11 +542,9 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 
 **Note:** Updating Doc Detective may revert any modified code, so be ready to make code edits repeatedly.
 
-## Potential future features
+## Potential future updates
 
-- Browser auto-detection and fallback.
 - Docker image with bundled Chromium/Chrome/Firefox.
-- Detailed field descriptions per action.
 - New/upgraded test actions:
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
   - Upgrade: `httpRequest` response data validation.
@@ -558,6 +556,10 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 - In-content test framing to identify when content is covered by a test defined in another file. This could enable content coverage analysis.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
+  - Detailed field descriptions per action.
+- Refactor tests into individual files.
+- Rewrite cross-action recording status tracking.
+
 
 ## License
 
