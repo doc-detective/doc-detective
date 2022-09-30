@@ -564,8 +564,6 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 - Docker image with bundled Chromium/Chrome/Firefox.
 - New/upgraded test actions:
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
-  - Upgrade: `httpRequest` response data validation.
-  - Upgrade: `httpRequest` response header validation.
   - Upgrade: Additional `httpRequest` input sanitization.
   - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
