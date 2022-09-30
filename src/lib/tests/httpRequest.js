@@ -1,5 +1,6 @@
 const axios = require("axios");
 const { async } = require("q");
+const { exit } = require("yargs");
 const { setEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
@@ -78,11 +79,15 @@ async function httpRequest(action) {
     } else {
       headers = action.headers || defaultPayload.headers;
     }
+    //// Load environment variables
+    Object.keys(headers).forEach(key => {
+      if (headers[key][0] === "$") headers[key] = process.env[headers[key].substring(1)];
+    })
     //// Validate
     //// Set request
     if (JSON.stringify(headers) != "{}") request.headers = headers;
   }
-
+  
   // Params
   if (action.params && JSON.stringify(action.params) != "{}") {
     //// Define
@@ -92,6 +97,10 @@ async function httpRequest(action) {
     } else {
       params = action.params || defaultPayload.params;
     }
+    //// Load environment variables
+    Object.keys(params).forEach(key => {
+      if (params[key][0] === "$") params[key] = process.env[params[key].substring(1)];
+    })
     //// Validate
     //// Set request
     if (params != {}) request.params = params;
@@ -106,6 +115,10 @@ async function httpRequest(action) {
     } else {
       requestData = action.requestData || defaultPayload.requestData;
     }
+    //// Load environment variables
+    Object.keys(requestData).forEach(key => {
+      if (requestData[key][0] === "$") requestData[key] = process.env[requestData[key].substring(1)];
+    })
     //// Validate
     //// Set request
     if (requestData != {}) request.data = requestData;
@@ -119,6 +132,10 @@ async function httpRequest(action) {
   } else {
     responseData = action.responseData || defaultPayload.responseData;
   }
+    //// Load environment variables
+    Object.keys(responseData).forEach(key => {
+      if (responseData[key][0] === "$") responseData[key] = process.env[responseData[key].substring(1)];
+    })
   //// Validate
 
   // responseHeaders
@@ -129,6 +146,10 @@ async function httpRequest(action) {
   } else {
     responseHeaders = action.responseHeaders || defaultPayload.responseHeaders;
   }
+    //// Load environment variables
+    Object.keys(responseHeaders).forEach(key => {
+      if (responseHeaders[key][0] === "$") responseHeaders[key] = process.env[responseHeaders[key].substring(1)];
+    })
   //// Validate
 
   // Status codes
