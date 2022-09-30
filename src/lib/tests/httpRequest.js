@@ -17,10 +17,11 @@ async function httpRequest(action) {
   let response;
   let defaultPayload = {
     uri: "",
-    method: "GET",
+    method: "get",
     headers: {},
     params: {},
     requestData: {},
+    responseHeaders: {},
     responseData: {},
     statusCodes: ["200"],
   };
@@ -120,6 +121,16 @@ async function httpRequest(action) {
   }
   //// Validate
 
+  // responseHeaders
+  //// Define
+  if (action.responseHeaders && action.responseHeaders[0] === "$") {
+    responseHeaders = process.env[action.responseHeaders.substring(1)];
+    responseHeaders = JSON.parse(responseHeaders);
+  } else {
+    responseHeaders = action.responseHeaders || defaultPayload.responseHeaders;
+  }
+  //// Validate
+
   // Status codes
   //// Define
   statusCodes = action.statusCodes || defaultPayload.statusCodes;
@@ -159,14 +170,28 @@ async function httpRequest(action) {
     }. Expected one of ${JSON.stringify(statusCodes)}`;
   }
 
-  // Compare response and responseData
+  // Compare response.data and responseData
   if (JSON.stringify(responseData) != "{}") {
     dataComparison = objectExistsInObject(responseData, response.data);
-    if ((dataComparison.result.status = "PASS")) {
-      status = "PASS";
+    if ((dataComparison.result.status === "PASS")) {
+      if (status != "FAIL") status = "PASS";
       description =
         description +
         ` Expected response data was present in actual response data.`;
+    } else {
+      status = "FAIL";
+      description = description + " " + dataComparison.result.description;
+    }
+  }
+
+  // Compare response.headers and responseHeaders
+  if (JSON.stringify(responseHeaders) != "{}") {
+    dataComparison = objectExistsInObject(responseHeaders, response.headers);
+    if ((dataComparison.result.status === "PASS")) {
+      if (status != "FAIL") status = "PASS";
+      description =
+        description +
+        ` Expected response headers were present in actual response headers.`;
     } else {
       status = "FAIL";
       description = description + " " + dataComparison.result.description;
