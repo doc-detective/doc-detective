@@ -468,6 +468,7 @@ function setAnalytics(config, argv) {
       config.analytics.send = false;
       log(config, "debug", `Analytics set: ${config.analytics.send}`);
       log(config, "info", analyticsRequest);
+      break;
     default:
       config.analytics.send = defaultConfig.analytics.send;
       log(
