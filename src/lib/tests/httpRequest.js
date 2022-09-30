@@ -185,8 +185,54 @@ function arrayExistsInArray(expected, actual) {
     if (Array.isArray(expected[i])) {
       // Array
       //// Check if any arrays in actual
-      arrayMatches;
-      arraysExist = actual.some((element) => Array.isArray(element));
+      // Gather info about array to make comparison
+      numExpectedArrays = 0;
+      numExpectedObjects = 0;
+      expected[i].forEach((value) => {
+        if (Array.isArray(value)) {
+          numExpectedArrays++;
+        } else if (typeof value === "object") {
+          numExpectedObjects++;
+        }
+      });
+      // Iterate through actual to find arrays that might match expected[i]
+      arrayMatches = 0;
+      arrayIndexMatches = [];
+      actual.forEach((value) => {
+        numActualArrays = 0;
+        numActualObjects = 0;
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (Array.isArray(item)) {
+              numActualArrays++;
+            } else if (typeof value === "object") {
+              numActualObjects++;
+            }
+          });
+        }
+        if (
+          numActualArrays >= numExpectedArrays &&
+          numActualObjects >= numExpectedObjects &&
+          value.length >= expected[i].length
+        ) {
+          arrayIndexMatches.push(value);
+        }
+      });
+      // Loop through and test potential array matches
+      arrayIndexMatches.forEach((array) => {
+        arrayMatchResult = arrayExistsInArray(expected[i], array);
+        if (arrayMatchResult.result.status === "PASS") {
+          arrayMatches++;
+        }
+      });
+      if (!arrayMatches) {
+        status = "FAIL";
+        description =
+          description +
+          ` Array '${JSON.stringify(
+            expected[i]
+          )}' isn't present in expected array.`;
+      }
     } else if (typeof expected[i] === "object") {
       // Object
       //// Check if any objects in actual
@@ -211,26 +257,23 @@ function arrayExistsInArray(expected, actual) {
         status = "FAIL";
         description =
           description +
-          ` Object '${JSON.stringify(
+          ` Object ${JSON.stringify(
             expected[i]
-          )}' isn't present in expected array.`;
+          )} isn't present in expected array.`;
       }
-    } else if (!actual.includes(expected[i])) {
+    } else {
       // Anything else that isn't present
-      status = "FAIL";
-      description =
-        description +
-        ` Value '${expected[i]}' isn't present in expected array.`;
+      if (!actual.includes(expected[i])) {
+        status = "FAIL";
+        description =
+          description +
+          ` Value '${expected[i]}' isn't present in expected array.`;
+      }
     }
   }
   result = { status, description };
-  console.log(result);
   return { result };
 }
-// arrayExistsInArray(
-//   [{ bool: true }],
-//   [{ bool: true }, { type: false }, { bool: false }]
-// );
 
 function objectExistsInObject(expected, actual) {
   let status = "PASS";
@@ -270,5 +313,3 @@ function objectExistsInObject(expected, actual) {
   result = { status, description };
   return { result };
 }
-
-// objectExistsInObject({ hi: [1, 2, 3, "hi"] }, { hi: [1, 2, 3, "hi"] });
