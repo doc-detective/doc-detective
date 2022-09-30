@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { async } = require("q");
 const { setEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
@@ -109,14 +110,15 @@ async function httpRequest(action) {
     if (requestData != {}) request.data = requestData;
   }
 
-  // // responseData
-  // //// Define
-  // if (action.responseData && action.responseData[0] === "$") {
-  //   responseData = process.env[action.responseData.substring(1)];
-  // } else {
-  //   responseData = action.responseData || defaultPayload.responseData;
-  // }
-  // //// Validate
+  // responseData
+  //// Define
+  if (action.responseData && action.responseData[0] === "$") {
+    responseData = process.env[action.responseData.substring(1)];
+    responseData = JSON.parse(responseData);
+  } else {
+    responseData = action.responseData || defaultPayload.responseData;
+  }
+  //// Validate
 
   // Status codes
   //// Define
@@ -157,26 +159,80 @@ async function httpRequest(action) {
     }. Expected one of ${JSON.stringify(statusCodes)}`;
   }
 
-  // // Compare response and responseData
-  // if (JSON.stringify(responseData) != "{}") {
-  //   dataComparison = containsJsonValues(responseData, response.data);
-  //   if ((dataComparison.result.status = "PASS")) {
-  //     status = "PASS";
-  //     description =
-  //       description +
-  //       ` Expected response data was present in actual response data.`;
-  //   } else {
-  //     status = "FAIL";
-  //     description = description + " " + dataComparison.result.description;
-  //   }
-  // }
+  // Compare response and responseData
+  if (JSON.stringify(responseData) != "{}") {
+    dataComparison = objectExistsInObject(responseData, response.data);
+    if ((dataComparison.result.status = "PASS")) {
+      status = "PASS";
+      description =
+        description +
+        ` Expected response data was present in actual response data.`;
+    } else {
+      status = "FAIL";
+      description = description + " " + dataComparison.result.description;
+    }
+  }
 
   description = description.trim();
   result = { status, description };
   return { result };
 }
 
-function containsJsonValues(expected, actual) {
+function arrayExistsInArray(expected, actual) {
+  let status = "PASS";
+  let description = "";
+  for (i = 0; i < expected.length; i++) {
+    if (Array.isArray(expected[i])) {
+      // Array
+      //// Check if any arrays in actual
+      arrayMatches;
+      arraysExist = actual.some((element) => Array.isArray(element));
+    } else if (typeof expected[i] === "object") {
+      // Object
+      //// Check if any objects in actual
+      keys = Object.keys(expected[i]);
+      objectMatches = 0;
+      objectKeyMatches = actual.filter(
+        (value) =>
+          // Is an object
+          typeof value === "object" &&
+          // Is not an array
+          !Array.isArray(value) &&
+          // Contains all the specified keys
+          keys.every((key) => value.hasOwnProperty(key))
+      );
+      objectKeyMatches.forEach((object) => {
+        objectMatchResult = objectExistsInObject(expected[i], object);
+        if (objectMatchResult.result.status === "PASS") {
+          objectMatches++;
+        }
+      });
+      if (!objectMatches) {
+        status = "FAIL";
+        description =
+          description +
+          ` Object '${JSON.stringify(
+            expected[i]
+          )}' isn't present in expected array.`;
+      }
+    } else if (!actual.includes(expected[i])) {
+      // Anything else that isn't present
+      status = "FAIL";
+      description =
+        description +
+        ` Value '${expected[i]}' isn't present in expected array.`;
+    }
+  }
+  result = { status, description };
+  console.log(result);
+  return { result };
+}
+// arrayExistsInArray(
+//   [{ bool: true }],
+//   [{ bool: true }, { type: false }, { bool: false }]
+// );
+
+function objectExistsInObject(expected, actual) {
   let status = "PASS";
   let description = "";
   Object.keys(expected).forEach((key) => {
@@ -186,16 +242,24 @@ function containsJsonValues(expected, actual) {
         description + `The '${key}' key did't exist in returned JSON. `;
       status = "FAIL";
     } else if (typeof expected[key] === "object") {
-      // Nested object recursion
-      result = containsJsonValues(expected[key], actual[key]);
-      if (result.result.status === "FAIL") status = "FAIL";
-      if (result.result.description != "")
-        description = description + " " + result.result.description;
+      if (Array.isArray(expected[key])) {
+        // Punt to array comparison function
+        result = arrayExistsInArray(expected[key], actual[key]);
+        if (result.result.status === "FAIL") status = "FAIL";
+        if (result.result.description != "")
+          description = description + " " + result.result.description;
+      } else {
+        // Nested object recursion
+        result = objectExistsInObject(expected[key], actual[key]);
+        if (result.result.status === "FAIL") status = "FAIL";
+        if (result.result.description != "")
+          description = description + " " + result.result.description;
+      }
     } else if (expected[key] != actual[key]) {
       // Actual value doesn't match expected
       description =
         description +
-        `The '${key}' key did't match the expected value. Expected: ${expected[key]}. Actual: ${actual[key]}. `;
+        `The '${key}' key did't match the expected value. Expected: '${expected[key]}'. Actual: '${actual[key]}'. `;
       status = "FAIL";
     }
 
@@ -206,3 +270,5 @@ function containsJsonValues(expected, actual) {
   result = { status, description };
   return { result };
 }
+
+// objectExistsInObject({ hi: [1, 2, 3, "hi"] }, { hi: [1, 2, 3, "hi"] });
