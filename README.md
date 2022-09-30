@@ -275,9 +275,26 @@ Format:
   "requestData": {
     "field": "value"
   },
+  "responseHeaders": {
+    "header": "value"
+  },
+  "responseData": {
+    "field": "value"
+  },
   "statusCodes": [ 200 ]
 }
 ```
+
+Field | Description | Example
+--- | --- | ---
+`action` | Required. The action to perform. | "httpRequest"
+`uri` | Required. The URI to send the request to. | "https://www.api-server.com"
+`method` | Optional. The HTTP method for the request. Similar to curl's `-X` option.<br>Defaults to "get". Accepted values: ["get", "post", "put", "patch", "delete"] | "get"
+`requestHeaders` | Optional. Headers to include in the request formatted as a JSON object. Similar to curl's `-H` option. | {<br>&nbsp;&nbsp;"Content-Type": "application/json"<br>}
+`requestData` | Optional. Data to send with the request. Similar to curl's `-d` option. | {<br>&nbsp;&nbsp;"id": 1,<br>&nbsp;&nbsp;"first_name": "George",<br>&nbsp;&nbsp;"last_name": "Washington"<br>}
+ `responseHeaders` | Optional. A non-exhaustive object of headers that should be included in the response. If a specified header is missing, or if a specified header value is incorrect, the action fails.  If the response headers include headers that aren't specified by this option, the test can still pass.| {<br>&nbsp;&nbsp;"Content-Type": "application/json"<br>}
+ `responseData` | Optional. A non-exhaustive data object that should be included in the response. If a specified data field is missing, or if a specified value is incorrect, the action fails. If the response data payload includes additional fields that aren't specified by this option, the test can still pass. | {<br>&nbsp;&nbsp;"id": 1,<br>&nbsp;&nbsp;"last_name": "Washington"<br>}
+ `statusCodes` | Optional. An array of accepted HTTP status response codes. Defaults to `[200]`. If the response's status code isn't included in this array, the action fails. | [ 200, 204 ]
 
 ### Check a link
 
