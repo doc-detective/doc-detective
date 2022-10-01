@@ -1,7 +1,7 @@
 const axios = require("axios");
 const { async } = require("q");
 const { exit } = require("yargs");
-const { setEnvs } = require("../utils");
+const { setEnvs, loadEnvsForObject } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
@@ -80,14 +80,12 @@ async function httpRequest(action) {
       headers = action.headers || defaultPayload.headers;
     }
     //// Load environment variables
-    Object.keys(headers).forEach(key => {
-      if (headers[key][0] === "$") headers[key] = process.env[headers[key].substring(1)];
-    })
+    headers = loadEnvsForObject(headers);
     //// Validate
     //// Set request
     if (JSON.stringify(headers) != "{}") request.headers = headers;
   }
-  
+
   // Params
   if (action.params && JSON.stringify(action.params) != "{}") {
     //// Define
@@ -98,9 +96,7 @@ async function httpRequest(action) {
       params = action.params || defaultPayload.params;
     }
     //// Load environment variables
-    Object.keys(params).forEach(key => {
-      if (params[key][0] === "$") params[key] = process.env[params[key].substring(1)];
-    })
+    params = loadEnvsForObject(params);
     //// Validate
     //// Set request
     if (params != {}) request.params = params;
@@ -116,9 +112,7 @@ async function httpRequest(action) {
       requestData = action.requestData || defaultPayload.requestData;
     }
     //// Load environment variables
-    Object.keys(requestData).forEach(key => {
-      if (requestData[key][0] === "$") requestData[key] = process.env[requestData[key].substring(1)];
-    })
+    requestData = loadEnvsForObject(requestData);
     //// Validate
     //// Set request
     if (requestData != {}) request.data = requestData;
@@ -132,10 +126,8 @@ async function httpRequest(action) {
   } else {
     responseData = action.responseData || defaultPayload.responseData;
   }
-    //// Load environment variables
-    Object.keys(responseData).forEach(key => {
-      if (responseData[key][0] === "$") responseData[key] = process.env[responseData[key].substring(1)];
-    })
+  //// Load environment variables
+  responseData = loadEnvsForObject(responseData);
   //// Validate
 
   // responseHeaders
@@ -146,10 +138,8 @@ async function httpRequest(action) {
   } else {
     responseHeaders = action.responseHeaders || defaultPayload.responseHeaders;
   }
-    //// Load environment variables
-    Object.keys(responseHeaders).forEach(key => {
-      if (responseHeaders[key][0] === "$") responseHeaders[key] = process.env[responseHeaders[key].substring(1)];
-    })
+  //// Load environment variables
+  responseHeaders = loadEnvsForObject(responseHeaders);
   //// Validate
 
   // Status codes
@@ -194,7 +184,7 @@ async function httpRequest(action) {
   // Compare response.data and responseData
   if (JSON.stringify(responseData) != "{}") {
     dataComparison = objectExistsInObject(responseData, response.data);
-    if ((dataComparison.result.status === "PASS")) {
+    if (dataComparison.result.status === "PASS") {
       if (status != "FAIL") status = "PASS";
       description =
         description +
@@ -208,7 +198,7 @@ async function httpRequest(action) {
   // Compare response.headers and responseHeaders
   if (JSON.stringify(responseHeaders) != "{}") {
     dataComparison = objectExistsInObject(responseHeaders, response.headers);
-    if ((dataComparison.result.status === "PASS")) {
+    if (dataComparison.result.status === "PASS") {
       if (status != "FAIL") status = "PASS";
       description =
         description +

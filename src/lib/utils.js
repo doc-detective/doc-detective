@@ -15,6 +15,7 @@ exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
 exports.convertToGif = convertToGif;
 exports.setEnvs = setEnvs;
+exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
 
 const analyticsRequest =
@@ -771,4 +772,15 @@ async function log(config, level, message) {
       console.log(message);
     }
   }
+}
+
+function loadEnvsForObject(object) {
+  Object.keys(object).forEach((key) => {
+    if (typeof object[key] === "object") {
+      object[key] = loadEnvsForObject(object[key]);
+    } else if (object[key][0] === "$") {
+      object[key] = process.env[object[key].substring(1)];
+    }
+  });
+  return object;
 }
