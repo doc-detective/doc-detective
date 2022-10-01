@@ -793,5 +793,3 @@ function loadEnvsForObject(object) {
   });
   return object;
 }
-
-console.log(loadEnvsForObject({ obj: "$OBJ" }));
