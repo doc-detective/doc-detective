@@ -75,7 +75,9 @@ async function httpRequest(action) {
     //// Define
     if (action.headers[0] === "$") {
       headers = process.env[action.headers.substring(1)];
-      headers = JSON.parse(headers);
+      try {
+        headers = JSON.parse(headers);
+      } catch {}
     } else {
       headers = action.headers || defaultPayload.headers;
     }
@@ -91,7 +93,9 @@ async function httpRequest(action) {
     //// Define
     if (action.params[0] === "$") {
       params = process.env[action.params.substring(1)];
-      params = JSON.parse(params);
+      try {
+        params = JSON.parse(params);
+      } catch {}
     } else {
       params = action.params || defaultPayload.params;
     }
@@ -107,7 +111,9 @@ async function httpRequest(action) {
     //// Define
     if (action.requestData[0] === "$") {
       requestData = process.env[action.requestData.substring(1)];
-      requestData = JSON.parse(requestData);
+      try {
+        requestData = JSON.parse(requestData);
+      } catch {}
     } else {
       requestData = action.requestData || defaultPayload.requestData;
     }
@@ -122,7 +128,9 @@ async function httpRequest(action) {
   //// Define
   if (action.responseData && action.responseData[0] === "$") {
     responseData = process.env[action.responseData.substring(1)];
-    responseData = JSON.parse(responseData);
+    try {
+      responseData = JSON.parse(responseData);
+    } catch {}
   } else {
     responseData = action.responseData || defaultPayload.responseData;
   }
@@ -134,7 +142,9 @@ async function httpRequest(action) {
   //// Define
   if (action.responseHeaders && action.responseHeaders[0] === "$") {
     responseHeaders = process.env[action.responseHeaders.substring(1)];
-    responseHeaders = JSON.parse(responseHeaders);
+    try {
+      responseHeaders = JSON.parse(responseHeaders);
+    } catch {}
   } else {
     responseHeaders = action.responseHeaders || defaultPayload.responseHeaders;
   }

@@ -776,11 +776,22 @@ async function log(config, level, message) {
 
 function loadEnvsForObject(object) {
   Object.keys(object).forEach((key) => {
+    if (
+      object[key][0] === "$" &&
+      process.env[object[key].substring(1)] != undefined
+    ) {
+      object[key] = process.env[object[key].substring(1)];
+    }
+    try {
+      if (typeof JSON.parse(object[key]) === "object") {
+        object[key] = JSON.parse(object[key]);
+      }
+    } catch {}
     if (typeof object[key] === "object") {
       object[key] = loadEnvsForObject(object[key]);
-    } else if (object[key][0] === "$") {
-      object[key] = process.env[object[key].substring(1)];
     }
   });
   return object;
 }
+
+console.log(loadEnvsForObject({ obj: "$OBJ" }));
