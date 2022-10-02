@@ -114,12 +114,10 @@ async function startRecording(action, page, config) {
       recorder,
       targetExtension,
       filepath,
-      width: config.browserOptions.width,
+      fps,
+      height,
+      width,
     };
-    if (action.gifFps || action.gifWidth) {
-      if (action.gifFps) videoDetails.fps = action.gifFps;
-      if (action.gifWidth) videoDetails.width = action.gifWidth;
-    }
     return { result, videoDetails };
   } catch {
     // FAIL: Couldn't capture screenshot
