@@ -29,6 +29,14 @@ async function screenshot(action, page, config) {
     return { result };
   }
 
+  // if (fs.existsSync(filePath) && !action.matchPrevious && !action.overwrite) {
+  //   // PASS
+  //   status = "PASS";
+  //   description = `Skipping action. Output file already exists, and 'overwrite' set to 'false', and 'matchPrevious' is set to 'false'.`;
+  //   result = { status, description };
+  //   return { result };
+  // }
+
   if (action.matchPrevious && action.filename) {
     let testPath = path.join(filePath, action.filename);
     const fileExists = fs.existsSync(testPath);
@@ -89,7 +97,7 @@ async function screenshot(action, page, config) {
         threshold: action.matchThreshold,
       }
     );
-    fs.unlinkSync(filePath);
+    fs.unlink(filePath);
     if (numDiffPixels) {
       // FAIL: Couldn't capture screenshot
       const diffPercentage = numDiffPixels / (expected.width * expected.height);
