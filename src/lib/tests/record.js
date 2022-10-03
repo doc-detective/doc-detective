@@ -87,7 +87,7 @@ async function startRecording(action, page, config) {
   }
 
   // Set FPS
-  fps = action.fps || defaultPayload.fps;
+  fps = action.fps || action.gifFps || defaultPayload.fps;
   try {
     fps = Number(fps);
   } catch {
@@ -105,7 +105,7 @@ async function startRecording(action, page, config) {
   }
 
   // Set width
-  width = action.width || defaultPayload.width;
+  width = action.width || action.gifWidth || defaultPayload.width;
   try {
     width = Number(width);
   } catch {
