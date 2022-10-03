@@ -2,6 +2,7 @@ const fs = require("fs");
 const PNG = require("pngjs").PNG;
 const pixelmatch = require("pixelmatch");
 const path = require("path");
+const { log } = require("../utils");
 
 exports.screenshot = screenshot;
 
