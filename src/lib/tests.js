@@ -1,16 +1,13 @@
-const path = require("path");
 const puppeteer = require("puppeteer");
-const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
-const { convertToGif, setEnvs, log } = require("./utils");
+const { setEnvs, log } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
-const PNG = require("pngjs").PNG;
-const pixelmatch = require("pixelmatch");
-const uuid = require("uuid");
 const axios = require("axios");
+const { screenshot } = require("./tests/screenshot");
+const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
 
 exports.runTests = runTests;
@@ -345,184 +342,6 @@ async function runShell(action) {
   }
   result = { status, description, stdout, stderr, exitCode };
   return { result };
-}
-
-async function startRecording(action, page, config) {
-  let status;
-  let description;
-  let result;
-  // Set filename
-  let targetExtension = path.extname(action.filename);
-  if (action.filename) {
-    filename = `${path.basename(action.filename, ".gif")}.mp4`;
-  } else {
-    filename = `${test.id}-${uuid.v4()}.mp4`;
-  }
-  // Set directory
-  if (action.mediaDirectory) {
-    filePath = action.mediaDirectory;
-  } else {
-    filePath = config.mediaDirectory;
-  }
-  if (!fs.existsSync(filePath)) {
-    // FAIL: Invalid path
-    status = "FAIL";
-    description = `Invalid directory path.`;
-    result = { status, description };
-    return { result };
-  }
-  filePath = path.join(filePath, filename);
-  try {
-    const recorder = new PuppeteerScreenRecorder(page);
-    await recorder.start(filePath);
-    // PASS
-    status = "PASS";
-    description = `Started recording: ${filePath}`;
-    result = { status, description, video: filePath };
-    videoDetails = {
-      recorder,
-      targetExtension,
-      filePath,
-      width: config.browserOptions.width,
-    };
-    if (action.gifFps || action.gifWidth) {
-      if (action.gifFps) videoDetails.fps = action.gifFps;
-      if (action.gifWidth) videoDetails.width = action.gifWidth;
-    }
-    return { result, videoDetails };
-  } catch {
-    // FAIL: Couldn't capture screenshot
-    status = "FAIL";
-    description = `Couldn't start recording.`;
-    result = { status, description };
-    return { result };
-  }
-}
-
-async function stopRecording(videoDetails, config) {
-  let status;
-  let description;
-  let result;
-  try {
-    await videoDetails.recorder.stop();
-    if (videoDetails.targetExtension === ".gif") {
-      let output = await convertToGif(
-        config,
-        videoDetails.filePath,
-        videoDetails.fps,
-        videoDetails.width
-      );
-      videoDetails.filePath = output;
-    }
-    // PASS
-    status = "PASS";
-    description = `Stopped recording: ${filePath}`;
-    result = { status, description };
-    return { result };
-  } catch {
-    // FAIL: Couldn't capture screenshot
-    status = "FAIL";
-    description = `Couldn't stop recording.`;
-    result = { status, description };
-    return { result };
-  }
-}
-
-async function screenshot(action, page, config) {
-  let status;
-  let description;
-  let result;
-
-  // Set directory
-  if (action.mediaDirectory) {
-    filePath = action.mediaDirectory;
-  } else {
-    filePath = config.mediaDirectory;
-  }
-  if (!fs.existsSync(filePath)) {
-    // FAIL: Invalid path
-    status = "FAIL";
-    description = `Invalid directory path.`;
-    result = { status, description };
-    return { result };
-  }
-
-  if (action.matchPrevious && action.filename) {
-    let testPath = path.join(filePath, action.filename);
-    const fileExists = fs.existsSync(testPath);
-    if (fileExists) {
-      filename = "temp_" + action.filename;
-      previousFilename = action.filename;
-      previousFilePath = path.join(filePath, previousFilename);
-      // Set threshold
-      if (!(action.matchThreshold >= 0 && action.matchThreshold <= 1)) {
-        action.matchThreshold = 0.1;
-      }
-    } else {
-      action.matchPrevious = false;
-      log(
-        config,
-        "warning",
-        "Specified filename doesn't exist. Capturing screenshot. Not matching."
-      );
-      filename = action.filename;
-    }
-  } else if (action.matchPrevious && !action.filename) {
-    action.matchPrevious = false;
-    log(config, "warning", "No filename specified. Not matching.");
-    filename = "temp_" + action.filename;
-  } else if (!action.matchPrevious && action.filename) {
-    filename = action.filename;
-  } else {
-    filename = "temp_" + action.filename;
-  }
-  filePath = path.join(filePath, filename);
-
-  try {
-    await page.screenshot({ path: filePath });
-    if (!action.matchPrevious) {
-      // PASS
-      status = "PASS";
-      description = `Captured screenshot.`;
-      result = { status, description, image: filePath };
-      return { result };
-    }
-  } catch {
-    // FAIL: Couldn't capture screenshot
-    status = "FAIL";
-    description = `Couldn't capture screenshot.`;
-    result = { status, description };
-    return { result };
-  }
-  if (action.matchPrevious) {
-    const expected = PNG.sync.read(fs.readFileSync(previousFilePath));
-    const actual = PNG.sync.read(fs.readFileSync(filePath));
-    const numDiffPixels = pixelmatch(
-      expected.data,
-      actual.data,
-      null,
-      expected.width,
-      expected.height,
-      {
-        threshold: action.matchThreshold,
-      }
-    );
-    fs.unlinkSync(filePath);
-    if (numDiffPixels) {
-      // FAIL: Couldn't capture screenshot
-      const diffPercentage = numDiffPixels / (expected.width * expected.height);
-      status = "FAIL";
-      description = `Screenshot comparison had larger diff (${diffPercentage}) than threshold (${action.matchThreshold}).`;
-      result = { status, description };
-      return { result };
-    } else {
-      // PASS
-      status = "PASS";
-      description = `Screenshot matches previously captured image.`;
-      result = { status, description, image: previousFilePath };
-      return { result };
-    }
-  }
 }
 
 async function wait(action, page) {

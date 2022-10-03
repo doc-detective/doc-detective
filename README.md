@@ -1,4 +1,4 @@
-# Doc Detective: A Documentation Unit Testing Framework
+# Doc Detective: The Documentation Testing Framework
 
 Unit test documentation to validate UX flows, in-GUI text, and images. Primarily useful for process docs, Doc Detective supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
 
@@ -99,6 +99,7 @@ Simple format:
   "css": "[title=Search]"
 }
 ```
+
 Advanced format:
 
 ```json
@@ -106,7 +107,7 @@ Advanced format:
   "action": "find",
   "css": "[title=Search]",
   "wait": {
-    "duration": 10000,
+    "duration": 10000
   },
   "matchText": {
     "text": "Search"
@@ -155,7 +156,6 @@ Format:
   "alignV": "center",
   "offsetX": 10,
   "offsetY": 10
-
 }
 ```
 
@@ -264,6 +264,7 @@ Format:
 ```json
 {
   "action": "httpRequest",
+  "env": "path/to/variables.env",
   "uri": "https://www.api-server.com",
   "method": "post",
   "requestHeaders": {
@@ -275,9 +276,27 @@ Format:
   "requestData": {
     "field": "value"
   },
-  "statusCodes": [ 200 ]
+  "responseHeaders": {
+    "header": "value"
+  },
+  "responseData": {
+    "field": "value"
+  },
+  "statusCodes": [200]
 }
 ```
+
+| Field             | Description                                                                                                                                                                                                                                                                                                                                                                                             | Example                                                                                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `action`          | Required. The action to perform.                                                                                                                                                                                                                                                                                                                                                                        | `"httpRequest"`                                                                                                                                                                            |
+| `env`             | Optional. File path for a .env file of variables to load.                                                                                                                                                                                                                                                                                                                                               | `"./path/to/variables.env"`                                                                                                                                                                |
+| `uri`             | Required. The URI to send the request to.<br>Supports setting values from environment variables.                                                                                                                                                                                                                                                                                                        | <ul><li>`"https://www.api-server.com"`</li><li>`"$URI"`</li></ul>                                                                                                                          |
+| `method`          | Optional. The HTTP method for the request. Similar to curl's `-X` option.<br>Defaults to "get". Accepted values: ["get", "post", "put", "patch", "delete"]                                                                                                                                                                                                                                              | `"get"`                                                                                                                                                                                    |
+| `requestHeaders`  | Optional. Headers to include in the request formatted as a JSON object. Similar to curl's `-H` option. <br> Supports setting the whole headers object and individual header values from environment variables.                                                                                                                                                                                          | <ul><li>`{ "Content-Type": "application/json" }`</li><li>`"$REQUEST_HEADERS"`</li><li>`{ "Content-Type": "$CONTENT_TYPE" }`</li></ul>                                                      |
+| `requestData`     | Optional. Data to send with the request. Similar to curl's `-d` option. <br> Supports setting the whole data object and individual data values from environment variables.                                                                                                                                                                                                                              | <ul><li>`{ "id": 1, "first_name": "George", "last_name": "Washington" }`</li><li>`"$REQUEST_DATA"`</li><li>`{ "id": 1, "first_name": "$FIRST_NAME", "last_name": "$LAST_NAME" }`</li></ul> |
+| `responseHeaders` | Optional. A non-exhaustive object of headers that should be included in the response. If a specified header is missing, or if a specified header value is incorrect, the action fails. If the response headers include headers that aren't specified by this option, the test can still pass. <br> Supports setting the whole headers object and individual header values from environment variables.   | <ul><li>`{ "Content-Type": "application/json" }`</li><li>`$RESPONSE_HEADERS`</li><li>`{ "Content-Type": "$CONTENT_TYPE" }`</li></ul>                                                       |
+| `responseData`    | Optional. A non-exhaustive data object that should be included in the response. If a specified data field is missing, or if a specified value is incorrect, the action fails. If the response data payload includes additional fields that aren't specified by this option, the test can still pass. <br> Supports setting the whole data object and individual data values from environment variables. | <ul><li>`{ "id": 1, "last_name": "Washington" }`</li><li>`"$REQUEST_DATA"`</li><li>`{ "id": 1, "last_name": "$LAST_NAME" }`</li></ul>                                                      |
+| `statusCodes`     | Optional. An array of accepted HTTP status response codes. Defaults to `[200]`. If the response's status code isn't included in this array, the action fails.                                                                                                                                                                                                                                           | [ 200, 204 ]                                                                                                                                                                               |
 
 ### Check a link
 
@@ -289,13 +308,13 @@ Format:
 {
   "action": "checkLink",
   "uri": "https://www.google.com",
-  "statusCodes": [ 200 ]
+  "statusCodes": [200]
 }
 ```
 
 ### Start recording
 
-Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif
+Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .webm, .gif
 
 **Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here.
 
@@ -304,10 +323,12 @@ Format:
 ```json
 {
   "action": "startRecording",
-  "mediaDirectory": "samples",
+  "overwrite": false,
+  "mediaDirectory": "./samples",
   "filename": "results.mp4",
-  "gifFps": 15,
-  "gifWidth": 400
+  "fps": 30,
+  "width": 1200,
+  "height": 800
 }
 ```
 
@@ -547,8 +568,6 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 - Docker image with bundled Chromium/Chrome/Firefox.
 - New/upgraded test actions:
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
-  - Upgrade: `httpRequest` response data validation.
-  - Upgrade: `httpRequest` response header validation.
   - Upgrade: Additional `httpRequest` input sanitization.
   - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
@@ -559,7 +578,6 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
   - Detailed field descriptions per action.
 - Refactor tests into individual files.
 - Rewrite cross-action recording status tracking.
-
 
 ## License
 

@@ -36,8 +36,8 @@
   "browserOptions": {
     "headless": "true",
     "path": "",
-    "height": 600,
-    "width": 800
+    "height": 800,
+    "width": 1200
   },
   "analytics": {
     "send": false,

@@ -13,8 +13,8 @@ exports.setConfig = setConfig;
 exports.setFiles = setFiles;
 exports.parseFiles = parseFiles;
 exports.outputResults = outputResults;
-exports.convertToGif = convertToGif;
 exports.setEnvs = setEnvs;
+exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
 
 const analyticsRequest =
@@ -468,6 +468,7 @@ function setAnalytics(config, argv) {
       config.analytics.send = false;
       log(config, "debug", `Analytics set: ${config.analytics.send}`);
       log(config, "info", analyticsRequest);
+      break;
     default:
       config.analytics.send = defaultConfig.analytics.send;
       log(
@@ -693,39 +694,6 @@ async function outputResults(config, results) {
   log(config, "info", `See detailed results at ${config.output}`);
 }
 
-async function convertToGif(config, input, fps, width) {
-  const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
-
-  if (!fs.existsSync(input)) return { error: "Invalid input." };
-  let output = path.join(
-    path.parse(input).dir,
-    path.parse(input).name + ".gif"
-  );
-  if (!fps) fps = 15;
-
-  let command = `${ffmpegPath} -nostats -loglevel 0 -y -i ${input} -vf "fps=${fps},scale=${width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ${output}`;
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      log(config, "debug", error.message);
-      return { error: error.message };
-    }
-    if (stderr) {
-      log(config, "debug", stderr);
-      return { stderr };
-    }
-    log(config, "debug", stdout);
-    fs.unlink(input, function (err) {
-      if (err) {
-        log(config, "warning", `Couldn't delete intermediate file: ${input}`);
-      } else {
-        log(config, "debug", `Deleted intermediate file: ${input}`);
-      }
-    });
-    return { stdout };
-  });
-  return output;
-}
-
 async function setEnvs(envsFile) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
@@ -770,4 +738,24 @@ async function log(config, level, message) {
       console.log(message);
     }
   }
+}
+
+function loadEnvsForObject(object) {
+  Object.keys(object).forEach((key) => {
+    if (
+      object[key][0] === "$" &&
+      process.env[object[key].substring(1)] != undefined
+    ) {
+      object[key] = process.env[object[key].substring(1)];
+    }
+    try {
+      if (typeof JSON.parse(object[key]) === "object") {
+        object[key] = JSON.parse(object[key]);
+      }
+    } catch {}
+    if (typeof object[key] === "object") {
+      object[key] = loadEnvsForObject(object[key]);
+    }
+  });
+  return object;
 }
