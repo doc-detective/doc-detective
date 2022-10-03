@@ -97,7 +97,13 @@ async function screenshot(action, page, config) {
         threshold: action.matchThreshold,
       }
     );
-    fs.unlink(filePath);
+    fs.unlink(filePath, function (err) {
+      if (err) {
+        log(config, "warning", `Couldn't delete intermediate file: ${filePath}`);
+      } else {
+        log(config, "debug", `Deleted intermediate file: ${filePath}`);
+      }
+    });
     if (numDiffPixels) {
       // FAIL: Couldn't capture screenshot
       const diffPercentage = numDiffPixels / (expected.width * expected.height);
