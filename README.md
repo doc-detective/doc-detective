@@ -314,7 +314,7 @@ Format:
 
 ### Start recording
 
-Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .gif
+Start recording the current browser viewport. Must be followed by a `stopRecording` action. Supported extensions: .mp4, .webm, .gif
 
 **Note:** `.gif` format is **not** recommended. Because of file format and encoding differences, `.gif` files tend to be ~6.5 times larger than `.mp4` files, and with lower visual fidelity. But if `.gif` is a hard requirement for you, it's here.
 
@@ -324,10 +324,11 @@ Format:
 {
   "action": "startRecording",
   "overwrite": false,
-  "mediaDirectory": "samples",
+  "mediaDirectory": "./samples",
   "filename": "results.mp4",
-  "gifFps": 15,
-  "gifWidth": 400
+  "fps": 30,
+  "width": 1200,
+  "height": 800
 }
 ```
 

@@ -4,7 +4,7 @@ To use Google Search to find information on kittens,
 
 1.  Open [Google Search](https://www.google.com).
 
-    [comment]: # (test {"testId":"process-search-kittens", "action":"startRecording", "overwrite":false, "filename":"results.gif", "gifFps":15, "gifWidth":300})
+    [comment]: # (test {"testId":"process-search-kittens", "action":"startRecording", "overwrite":false, "filename":"results.gif", "fps":15})
     [comment]: # (test {"testId":"process-search-kittens", "action":"goTo", "uri":"www.google.com"})
 
 2.  In the search bar, enter "kittens", then press Enter.

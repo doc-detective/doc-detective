@@ -1,9 +1,9 @@
 const fs = require("fs");
 const { PuppeteerScreenRecorder } = require("puppeteer-screen-recorder");
-const { convertToGif, log } = require("../utils");
+const { log } = require("../utils");
 const uuid = require("uuid");
 const path = require("path");
-const { fileURLToPath } = require("url");
+const { exec } = require("child_process");
 
 exports.startRecording = startRecording;
 exports.stopRecording = stopRecording;
@@ -12,10 +12,11 @@ async function startRecording(action, page, config) {
   let status;
   let description;
   let result;
-  let defaultPayload = {
+  const formats = [".mp4", ".webm", ".gif"];
+  const defaultPayload = {
     overwrite: false,
     mediaDirectory: config.mediaDirectory,
-    filename: test.id + uuid.v4 + ".mp4",
+    filename: `${uuid.v4()}.mp4`,
     fps: 30,
     height: config.browserOptions.height,
     width: config.browserOptions.width,
@@ -56,7 +57,7 @@ async function startRecording(action, page, config) {
   // Set filename
   let filename = action.filename || defaultPayload.filename;
   let targetExtension = path.extname(action.filename);
-  if (targetExtension != ".mp4" && targetExtension != ".gif") {
+  if (formats.indexOf(targetExtension) === -1) {
     filename = defaultPayload.filename;
     log(
       config,
@@ -64,9 +65,26 @@ async function startRecording(action, page, config) {
       `Invalid filename. Reverting to default: ${filename}`
     );
   }
+  if (targetExtension === ".gif") {
+    tempExtension = ".mp4";
+  } else {
+    tempExtension = targetExtension;
+  }
 
   // Set filepath
-  filepath = path.join(filepath, filename);
+  filepath = path.join(mediaDirectory, filename);
+  tempFilepath = path.join(
+    mediaDirectory,
+    "temp_" + path.parse(filename).name + tempExtension
+  );
+
+  if (fs.existsSync(filepath) && !action.overwrite) {
+    // PASS: Don't record/overwrite
+    status = "PASS";
+    description = `Skipping action. Output file already exists, and overwrite set to 'false'.`;
+    result = { status, description };
+    return { result };
+  }
 
   // Set FPS
   fps = action.fps || defaultPayload.fps;
@@ -95,25 +113,18 @@ async function startRecording(action, page, config) {
     log(config, "warning", `Invalid width. Reverting to default: ${width}`);
   }
 
-  if (fs.existsSync(filepath) && !action.overwrite) {
-    // PASS: Don't record/overwrite
-    status = "PASS";
-    description = `Skipping action. Output file already exists, and overwrite set to 'false'.`;
-    result = { status, description };
-    return { result };
-  }
-
   try {
-    const recorder = new PuppeteerScreenRecorder(page);
-    await recorder.start(filepath);
+    const recorder = new PuppeteerScreenRecorder(page, { fps });
+    await recorder.start(tempFilepath);
     // PASS
     status = "PASS";
-    description = `Started recording: ${filepath}`;
-    result = { status, description, video: filepath };
+    description = `Started recording: ${tempFilepath}`;
+    result = { status, description, video: tempFilepath };
     videoDetails = {
       recorder,
       targetExtension,
       filepath,
+      tempFilepath,
       fps,
       height,
       width,
@@ -134,14 +145,16 @@ async function stopRecording(videoDetails, config) {
   let result;
   try {
     await videoDetails.recorder.stop();
-    if (videoDetails.targetExtension === ".gif") {
-      let output = await convertToGif(
-        config,
-        videoDetails.filepath,
-        videoDetails.fps,
-        videoDetails.width
-      );
-      videoDetails.filepath = output;
+    if (
+      videoDetails.targetExtension === ".gif" ||
+      videoDetails.height != config.browserOptions.height ||
+      videoDetails.width != config.browserOptions.width
+    ) {
+      let output = await convertVideo(config, videoDetails);
+      filepath = output;
+    } else {
+      fs.renameSync(tempFilepath, filepath);
+      log(config, "debug", `Removed intermediate file: ${tempFilepath}`);
     }
     // PASS
     status = "PASS";
@@ -155,4 +168,60 @@ async function stopRecording(videoDetails, config) {
     result = { status, description };
     return { result };
   }
+}
+
+async function convertVideo(config, videoDetails) {
+  const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+
+  input = videoDetails.tempFilepath;
+  output = videoDetails.filepath;
+  fps = videoDetails.fps;
+  targetExtension = videoDetails.targetExtension;
+  height = videoDetails.height;
+  if (
+    height === config.browserOptions.height &&
+    width != config.browserOptions.height
+  ) {
+    height = -2;
+  }
+  width = videoDetails.width;
+  if (
+    width === config.browserOptions.width &&
+    height != config.browserOptions.width
+  ) {
+    width = -2;
+  }
+
+  if (!fs.existsSync(input)) return { error: "Invalid input." };
+
+  switch (targetExtension) {
+    case ".mp4":
+    case ".webm":
+      vf = `scale=${width}:${height}`;
+      break;
+    case ".gif":
+      vf = `fps=${fps},scale=${width}:${height}:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`;
+  }
+
+  let command = `${ffmpegPath} -nostats -loglevel 0 -y -i "${input}" -vf "${vf}" -loop 0 "${output}"`;
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      log(config, "debug", error.message);
+      return { error: error.message };
+    }
+    if (stderr) {
+      log(config, "debug", stderr);
+      return { stderr };
+    }
+    log(config, "debug", stdout);
+    fs.unlink(input, function (err) {
+      if (err) {
+        log(config, "warning", `Couldn't delete intermediate file: ${input}`);
+      } else {
+        log(config, "debug", `Deleted intermediate file: ${input}`);
+      }
+    });
+    return { stdout };
+  });
+  return output;
 }
