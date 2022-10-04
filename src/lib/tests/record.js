@@ -143,12 +143,20 @@ async function stopRecording(videoDetails, config) {
   let status;
   let description;
   let result;
+
+  recorder = videoDetails.recorder;
+  targetExtension = videoDetails.targetExtension;
+  height = videoDetails.height;
+  width = videoDetails.width;
+  filepath = videoDetails.filepath;
+  tempFilepath = videoDetails.tempFilepath;
+
   try {
-    await videoDetails.recorder.stop();
+    await recorder.stop();
     if (
-      videoDetails.targetExtension === ".gif" ||
-      videoDetails.height != config.browserOptions.height ||
-      videoDetails.width != config.browserOptions.width
+      targetExtension === ".gif" ||
+      height != config.browserOptions.height ||
+      width != config.browserOptions.width
     ) {
       let output = await convertVideo(config, videoDetails);
       filepath = output;
