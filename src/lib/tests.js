@@ -88,17 +88,31 @@ async function runTests(config, tests) {
     let pass = 0;
     let warning = 0;
     let fail = 0;
-    let videoDetails;
+    config.videoDetails = {};
+    config.debugRecording = {};
     // Instantiate page
     const page = await browser.newPage();
+    if (true) {
+      debugRecordingOptions = {
+        action: "startRecording",
+        mediaDirectory: config.mediaDirectory,
+        filename: `${test.id}.mp4`,
+        overwrite: true
+      };
+      config.debugRecording = await startRecording(
+        debugRecordingOptions,
+        page,
+        config
+      );
+    }
     // Instantiate mouse cursor
     await installMouseHelper(page);
     // Iterate through actions
     for (const action of test.actions) {
       log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
-      action.result = await runAction(config, action, page, videoDetails);
+      action.result = await runAction(config, action, page, config.videoDetails);
       if (action.result.videoDetails) {
-        videoDetails = action.result.videoDetails;
+        config.videoDetails = action.result.videoDetails;
       }
       action.result = action.result.result;
       if (action.result.status === "FAIL") fail++;
@@ -108,9 +122,10 @@ async function runTests(config, tests) {
     }
 
     // Close open recorders/pages
-    if (videoDetails) {
-      await runAction("", { action: "stopRecording" }, "", videoDetails);
-    }
+    config.debugRecording = await stopRecording(
+      config.debugRecording.videoDetails,
+      config
+    );
     try {
       await page.close();
     } catch {}
