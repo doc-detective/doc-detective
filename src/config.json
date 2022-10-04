@@ -14,6 +14,8 @@
     ".json"
   ],
   "mediaDirectory": ".",
+  "saveFailedTestRecordings": true,
+  "failedTestDirectory": ".",
   "fileTypes": [
     {
       "extensions": [
