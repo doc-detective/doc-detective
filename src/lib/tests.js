@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
-const { setEnvs, log } = require("./utils");
+const { setEnvs, log, timestamp } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
@@ -92,12 +92,18 @@ async function runTests(config, tests) {
     config.debugRecording = {};
     // Instantiate page
     const page = await browser.newPage();
-    if (true) {
+    if (
+      test.saveFailedTestRecordings ||
+      (config.saveFailedTestRecordings &&
+        test.saveFailedTestRecordings != false)
+    ) {
+      failedTestDirectory =
+        test.failedTestDirectory || config.failedTestDirectory;
       debugRecordingOptions = {
         action: "startRecording",
-        mediaDirectory: config.mediaDirectory,
-        filename: `${test.id}.mp4`,
-        overwrite: true
+        mediaDirectory: failedTestDirectory,
+        filename: `${test.id}-${timestamp()}.mp4`,
+        overwrite: true,
       };
       config.debugRecording = await startRecording(
         debugRecordingOptions,
@@ -110,7 +116,12 @@ async function runTests(config, tests) {
     // Iterate through actions
     for (const action of test.actions) {
       log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
-      action.result = await runAction(config, action, page, config.videoDetails);
+      action.result = await runAction(
+        config,
+        action,
+        page,
+        config.videoDetails
+      );
       if (action.result.videoDetails) {
         config.videoDetails = action.result.videoDetails;
       }
@@ -118,17 +129,12 @@ async function runTests(config, tests) {
       if (action.result.status === "FAIL") fail++;
       if (action.result.status === "WARNING") warning++;
       if (action.result.status === "PASS") pass++;
-      log(config, "debug", `RESULT: ${action.result.status}. ${action.result.description}`);
+      log(
+        config,
+        "debug",
+        `RESULT: ${action.result.status}. ${action.result.description}`
+      );
     }
-
-    // Close open recorders/pages
-    config.debugRecording = await stopRecording(
-      config.debugRecording.videoDetails,
-      config
-    );
-    try {
-      await page.close();
-    } catch {}
 
     // Calc overall test result
     if (fail) {
@@ -141,6 +147,33 @@ async function runTests(config, tests) {
       console.log("Error: Couldn't read test action results.");
       exit(1);
     }
+
+    // Close open recorders/pages
+    if (config.debugRecording.videoDetails) {
+      await stopRecording(config.debugRecording.videoDetails, config);
+      if (!fail) {
+        fs.unlink(config.debugRecording.videoDetails.filepath, function (err) {
+          if (err) {
+            log(
+              config,
+              "warning",
+              `Couldn't delete debug recording: ${config.debugRecording.videoDetails.filepath}`
+            );
+          } else {
+            log(
+              config,
+              "debug",
+              `Deleted debug recording: ${config.debugRecording.videoDetails.filepath}`
+            );
+          }
+        });
+      }
+    }
+
+    // Close page
+    try {
+      await page.close();
+    } catch {}
   }
   await browser.close();
   return tests;
