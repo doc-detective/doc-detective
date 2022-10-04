@@ -87,19 +87,41 @@ async function screenshot(action, page, config) {
   if (action.matchPrevious) {
     const expected = PNG.sync.read(fs.readFileSync(previousFilePath));
     const actual = PNG.sync.read(fs.readFileSync(filePath));
-    const numDiffPixels = pixelmatch(
-      expected.data,
-      actual.data,
-      null,
-      expected.width,
-      expected.height,
-      {
-        threshold: action.matchThreshold,
-      }
-    );
+    try {
+      const numDiffPixels = pixelmatch(
+        expected.data,
+        actual.data,
+        null,
+        expected.width,
+        expected.height,
+        {
+          threshold: action.matchThreshold,
+        }
+      );
+    } catch {
+      fs.unlink(filePath, function (err) {
+        if (err) {
+          log(
+            config,
+            "warning",
+            `Couldn't delete intermediate file: ${filePath}`
+          );
+        } else {
+          log(config, "debug", `Deleted intermediate file: ${filePath}`);
+        }
+      });
+      status = "FAIL";
+      description = `Image sizes don't match.`;
+      result = { status, description };
+      return { result };
+    }
     fs.unlink(filePath, function (err) {
       if (err) {
-        log(config, "warning", `Couldn't delete intermediate file: ${filePath}`);
+        log(
+          config,
+          "warning",
+          `Couldn't delete intermediate file: ${filePath}`
+        );
       } else {
         log(config, "debug", `Deleted intermediate file: ${filePath}`);
       }
