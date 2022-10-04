@@ -87,35 +87,58 @@ async function screenshot(action, page, config) {
   if (action.matchPrevious) {
     const expected = PNG.sync.read(fs.readFileSync(previousFilePath));
     const actual = PNG.sync.read(fs.readFileSync(filePath));
-    const numDiffPixels = pixelmatch(
-      expected.data,
-      actual.data,
-      null,
-      expected.width,
-      expected.height,
-      {
-        threshold: action.matchThreshold,
-      }
-    );
-    fs.unlink(filePath, function (err) {
-      if (err) {
-        log(config, "warning", `Couldn't delete intermediate file: ${filePath}`);
+    try {
+      const numDiffPixels = pixelmatch(
+        expected.data,
+        actual.data,
+        null,
+        expected.width,
+        expected.height,
+        {
+          threshold: action.matchThreshold,
+        }
+      );
+      fs.unlink(filePath, function (err) {
+        if (err) {
+          log(
+            config,
+            "warning",
+            `Couldn't delete intermediate file: ${filePath}`
+          );
+        } else {
+          log(config, "debug", `Deleted intermediate file: ${filePath}`);
+        }
+      });
+      if (numDiffPixels) {
+        // FAIL: Couldn't capture screenshot
+        const diffPercentage =
+          numDiffPixels / (expected.width * expected.height);
+        status = "FAIL";
+        description = `Screenshot comparison had larger diff (${diffPercentage}) than threshold (${action.matchThreshold}).`;
+        result = { status, description };
+        return { result };
       } else {
-        log(config, "debug", `Deleted intermediate file: ${filePath}`);
+        // PASS
+        status = "PASS";
+        description = `Screenshot matches previously captured image.`;
+        result = { status, description, image: previousFilePath };
+        return { result };
       }
-    });
-    if (numDiffPixels) {
-      // FAIL: Couldn't capture screenshot
-      const diffPercentage = numDiffPixels / (expected.width * expected.height);
+    } catch {
+      fs.unlink(filePath, function (err) {
+        if (err) {
+          log(
+            config,
+            "warning",
+            `Couldn't delete intermediate file: ${filePath}`
+          );
+        } else {
+          log(config, "debug", `Deleted intermediate file: ${filePath}`);
+        }
+      });
       status = "FAIL";
-      description = `Screenshot comparison had larger diff (${diffPercentage}) than threshold (${action.matchThreshold}).`;
+      description = `Image sizes don't match.`;
       result = { status, description };
-      return { result };
-    } else {
-      // PASS
-      status = "PASS";
-      description = `Screenshot matches previously captured image.`;
-      result = { status, description, image: previousFilePath };
       return { result };
     }
   }

@@ -14,14 +14,16 @@
     ".json"
   ],
   "mediaDirectory": "sample",
+  "saveFailedTestRecordings": true,
+  "failedTestDirectory": "sample/failedTests",
   "fileTypes": [
     {
       "extensions": [
         ".md",
         ".mdx"
       ],
-      "openTestStatement": "[comment]: # (test",
-      "closeTestStatement": ")"
+      "openActionStatement": "[comment]: # (action",
+      "closeActionStatement": ")"
     },
     {
       "extensions": [
@@ -29,8 +31,8 @@
         ".htm",
         ".xml"
       ],
-      "openTestStatement": "<!-- test",
-      "closeTestStatement": "-->"
+      "openActionStatement": "<!-- action",
+      "closeActionStatement": "-->"
     }
   ],
   "browserOptions": {

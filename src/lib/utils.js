@@ -16,6 +16,7 @@ exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
 exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
+exports.timestamp = timestamp;
 
 const analyticsRequest =
   "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-detective#analytics";
@@ -284,6 +285,67 @@ function setMediaDirectory(config, argv) {
   return config;
 }
 
+function setFailedTestRecording(config, argv) {
+  config.saveFailedTestRecordings =
+    argv.saveFailedTestRecordings ||
+    process.env.DOC_SAVE_FAILED_RECORDINGS ||
+    config.saveFailedTestRecordings;
+  switch (config.saveFailedTestRecordings) {
+    case true:
+    case "true":
+      config.saveFailedTestRecordings = true;
+      log(
+        config,
+        "debug",
+        `Save failed test recordings set: ${config.saveFailedTestRecordings}`
+      );
+      break;
+    case false:
+    case "false":
+      config.saveFailedTestRecordings = false;
+      log(
+        config,
+        "debug",
+        `Save failed test recordings set: ${config.saveFailedTestRecordings}`
+      );
+      log(config, "info", analyticsRequest);
+      break;
+    default:
+      config.saveFailedTestRecordings = defaultConfig.saveFailedTestRecordings;
+      log(
+        config,
+        "warning",
+        `Invalid save failed test recordings value. Reverted to default: ${config.saveFailedTestRecordings}`
+      );
+  }
+  return config;
+}
+
+function setFailedTestDirectory(config, argv) {
+  config.failedTestDirectory =
+    argv.failedTestDirectory ||
+    process.env.DOC_FAILED_TEST_DIRECTORY_PATH ||
+    config.failedTestDirectory;
+  config.failedTestDirectory = path.resolve(config.failedTestDirectory);
+  if (fs.existsSync(config.failedTestDirectory)) {
+    log(
+      config,
+      "debug",
+      `Failed test directory set: ${config.failedTestDirectory}`
+    );
+  } else {
+    config.failedTestDirectory = path.resolve(
+      defaultConfig.failedTestDirectory
+    );
+    log(
+      config,
+      "warning",
+      `Invalid failed test directory. Reverted to default: ${config.failedTestDirectory}`
+    );
+  }
+  return config;
+}
+
 function setRecursion(config, argv) {
   config.recursive =
     argv.recursive || process.env.DOC_RECURSIVE || config.recursive;
@@ -537,6 +599,10 @@ function setConfig(config, argv) {
 
   config = setMediaDirectory(config, argv);
 
+  config = setFailedTestRecording(config, argv);
+
+  config = setFailedTestDirectory(config, argv);
+
   config = setRecursion(config, argv);
 
   config = setTestFileExtensions(config, argv);
@@ -654,16 +720,16 @@ function parseFiles(config, files) {
         let lineJson = "";
         let subStart = "";
         let subEnd = "";
-        if (line.includes(fileType.openTestStatement)) {
+        if (line.includes(fileType.openActionStatement)) {
           const lineAscii = line.toString("ascii");
-          if (fileType.closeTestStatement) {
-            subEnd = lineAscii.lastIndexOf(fileType.closeTestStatement);
+          if (fileType.closeActionStatement) {
+            subEnd = lineAscii.lastIndexOf(fileType.closeActionStatement);
           } else {
             subEnd = lineAscii.length;
           }
           subStart =
-            lineAscii.indexOf(fileType.openTestStatement) +
-            fileType.openTestStatement.length;
+            lineAscii.indexOf(fileType.openActionStatement) +
+            fileType.openActionStatement.length;
           lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
           if (!lineJson.testId) {
             lineJson.testId = id;
@@ -692,6 +758,7 @@ async function outputResults(config, results) {
   log(config, "info", "RESULTS:");
   log(config, "info", results);
   log(config, "info", `See detailed results at ${config.output}`);
+  log(config, "info", "Cleaning up and finishing post-processing.");
 }
 
 async function setEnvs(envsFile) {
@@ -758,4 +825,15 @@ function loadEnvsForObject(object) {
     }
   });
   return object;
+}
+
+function timestamp() {
+  let timestamp = new Date();
+  return `${timestamp.getFullYear()}${("0" + (timestamp.getMonth() + 1)).slice(
+    -2
+  )}${("0" + timestamp.getDate()).slice(-2)}-${(
+    "0" + timestamp.getHours()
+  ).slice(-2)}${("0" + timestamp.getMinutes()).slice(-2)}${(
+    "0" + timestamp.getSeconds()
+  ).slice(-2)}`;
 }

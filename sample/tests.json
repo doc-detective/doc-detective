@@ -2,6 +2,8 @@
   "tests": [
     {
       "id": "process-search-kittens",
+      "saveFailedTestRecordings": true,
+      "failedTestDirectory": "sample",
       "actions": [
         {
           "action": "goTo",
