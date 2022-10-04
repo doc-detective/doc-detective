@@ -1,6 +1,4 @@
 const axios = require("axios");
-const { async } = require("q");
-const { exit } = require("yargs");
 const { setEnvs, loadEnvsForObject } = require("../utils");
 
 exports.httpRequest = httpRequest;
