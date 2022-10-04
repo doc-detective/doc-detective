@@ -98,6 +98,32 @@ async function screenshot(action, page, config) {
           threshold: action.matchThreshold,
         }
       );
+      fs.unlink(filePath, function (err) {
+        if (err) {
+          log(
+            config,
+            "warning",
+            `Couldn't delete intermediate file: ${filePath}`
+          );
+        } else {
+          log(config, "debug", `Deleted intermediate file: ${filePath}`);
+        }
+      });
+      if (numDiffPixels) {
+        // FAIL: Couldn't capture screenshot
+        const diffPercentage =
+          numDiffPixels / (expected.width * expected.height);
+        status = "FAIL";
+        description = `Screenshot comparison had larger diff (${diffPercentage}) than threshold (${action.matchThreshold}).`;
+        result = { status, description };
+        return { result };
+      } else {
+        // PASS
+        status = "PASS";
+        description = `Screenshot matches previously captured image.`;
+        result = { status, description, image: previousFilePath };
+        return { result };
+      }
     } catch {
       fs.unlink(filePath, function (err) {
         if (err) {
@@ -113,31 +139,6 @@ async function screenshot(action, page, config) {
       status = "FAIL";
       description = `Image sizes don't match.`;
       result = { status, description };
-      return { result };
-    }
-    fs.unlink(filePath, function (err) {
-      if (err) {
-        log(
-          config,
-          "warning",
-          `Couldn't delete intermediate file: ${filePath}`
-        );
-      } else {
-        log(config, "debug", `Deleted intermediate file: ${filePath}`);
-      }
-    });
-    if (numDiffPixels) {
-      // FAIL: Couldn't capture screenshot
-      const diffPercentage = numDiffPixels / (expected.width * expected.height);
-      status = "FAIL";
-      description = `Screenshot comparison had larger diff (${diffPercentage}) than threshold (${action.matchThreshold}).`;
-      result = { status, description };
-      return { result };
-    } else {
-      // PASS
-      status = "PASS";
-      description = `Screenshot matches previously captured image.`;
-      result = { status, description, image: previousFilePath };
       return { result };
     }
   }
