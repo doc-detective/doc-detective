@@ -720,16 +720,16 @@ function parseFiles(config, files) {
         let lineJson = "";
         let subStart = "";
         let subEnd = "";
-        if (line.includes(fileType.openTestStatement)) {
+        if (line.includes(fileType.openActionStatement)) {
           const lineAscii = line.toString("ascii");
-          if (fileType.closeTestStatement) {
-            subEnd = lineAscii.lastIndexOf(fileType.closeTestStatement);
+          if (fileType.closeActionStatement) {
+            subEnd = lineAscii.lastIndexOf(fileType.closeActionStatement);
           } else {
             subEnd = lineAscii.length;
           }
           subStart =
-            lineAscii.indexOf(fileType.openTestStatement) +
-            fileType.openTestStatement.length;
+            lineAscii.indexOf(fileType.openActionStatement) +
+            fileType.openActionStatement.length;
           lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
           if (!lineJson.testId) {
             lineJson.testId = id;
