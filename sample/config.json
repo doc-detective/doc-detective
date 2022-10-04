@@ -15,7 +15,7 @@
   ],
   "mediaDirectory": "sample",
   "saveFailedTestRecordings": true,
-  "failedTestDirectory": "sample",
+  "failedTestDirectory": "sample/failedTests",
   "fileTypes": [
     {
       "extensions": [
