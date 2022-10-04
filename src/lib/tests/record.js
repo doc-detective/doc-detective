@@ -87,12 +87,17 @@ async function startRecording(action, page, config) {
   }
 
   // Set FPS
-  fps = action.fps || action.gifFps || defaultPayload.fps;
+  targetFps = action.fps || action.gifFps || defaultPayload.fps;
   try {
-    fps = Number(fps);
+    targetFps = Number(targetFps);
+    if (targetFps >= 30) {
+      fps = targetFps;
+    } else {
+      fps = 30;
+    }
   } catch {
-    fps = defaultPayload;
-    log(config, "warning", `Invalid FPS. Reverting to default: ${fps}`);
+    targetFps = defaultPayload.fps;
+    log(config, "warning", `Invalid FPS. Reverting to default: ${targetFps}`);
   }
 
   // Set height
@@ -126,6 +131,7 @@ async function startRecording(action, page, config) {
       filepath,
       tempFilepath,
       fps,
+      targetFps,
       height,
       width,
     };
@@ -157,13 +163,16 @@ async function stopRecording(videoDetails, config) {
   width = videoDetails.width;
   filepath = videoDetails.filepath;
   tempFilepath = videoDetails.tempFilepath;
+  fps = videoDetails.fps;
+  targetFps = videoDetails.targetFps;
 
   try {
     await recorder.stop();
     if (
       targetExtension === ".gif" ||
       height != config.browserOptions.height ||
-      width != config.browserOptions.width
+      width != config.browserOptions.width ||
+      targetFps != fps
     ) {
       let output = await convertVideo(config, videoDetails);
       filepath = output;
