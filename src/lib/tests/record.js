@@ -144,6 +144,13 @@ async function stopRecording(videoDetails, config) {
   let description;
   let result;
 
+  if (typeof videoDetails.recorder === "undefined") {
+    status = "PASS";
+    description = `Skipping action. No action-defined recording in progress.`;
+    result = { status, description };
+    return { result };
+  }
+
   recorder = videoDetails.recorder;
   targetExtension = videoDetails.targetExtension;
   height = videoDetails.height;
