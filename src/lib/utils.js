@@ -758,6 +758,7 @@ async function outputResults(config, results) {
   log(config, "info", "RESULTS:");
   log(config, "info", results);
   log(config, "info", `See detailed results at ${config.output}`);
+  log(config, "info", "Cleaning up and finishing post-processing.");
 }
 
 async function setEnvs(envsFile) {
