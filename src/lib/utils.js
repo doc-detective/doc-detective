@@ -16,6 +16,7 @@ exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
 exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
+exports.timestamp = timestamp;
 
 const analyticsRequest =
   "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-detective#analytics";
@@ -286,17 +287,27 @@ function setMediaDirectory(config, argv) {
 
 function setFailedTestRecording(config, argv) {
   config.saveFailedTestRecordings =
-    argv.saveFailedTestRecordings || process.env.DOC_SAVE_FAILED_RECORDINGS || config.saveFailedTestRecordings;
+    argv.saveFailedTestRecordings ||
+    process.env.DOC_SAVE_FAILED_RECORDINGS ||
+    config.saveFailedTestRecordings;
   switch (config.saveFailedTestRecordings) {
     case true:
     case "true":
       config.saveFailedTestRecordings = true;
-      log(config, "debug", `Save failed test recordings set: ${config.saveFailedTestRecordings}`);
+      log(
+        config,
+        "debug",
+        `Save failed test recordings set: ${config.saveFailedTestRecordings}`
+      );
       break;
     case false:
     case "false":
       config.saveFailedTestRecordings = false;
-      log(config, "debug", `Save failed test recordings set: ${config.saveFailedTestRecordings}`);
+      log(
+        config,
+        "debug",
+        `Save failed test recordings set: ${config.saveFailedTestRecordings}`
+      );
       log(config, "info", analyticsRequest);
       break;
     default:
@@ -317,9 +328,15 @@ function setFailedTestDirectory(config, argv) {
     config.failedTestDirectory;
   config.failedTestDirectory = path.resolve(config.failedTestDirectory);
   if (fs.existsSync(config.failedTestDirectory)) {
-    log(config, "debug", `Failed test directory set: ${config.failedTestDirectory}`);
+    log(
+      config,
+      "debug",
+      `Failed test directory set: ${config.failedTestDirectory}`
+    );
   } else {
-    config.failedTestDirectory = path.resolve(defaultConfig.failedTestDirectory);
+    config.failedTestDirectory = path.resolve(
+      defaultConfig.failedTestDirectory
+    );
     log(
       config,
       "warning",
@@ -583,7 +600,7 @@ function setConfig(config, argv) {
   config = setMediaDirectory(config, argv);
 
   config = setFailedTestRecording(config, argv);
-  
+
   config = setFailedTestDirectory(config, argv);
 
   config = setRecursion(config, argv);
@@ -807,4 +824,15 @@ function loadEnvsForObject(object) {
     }
   });
   return object;
+}
+
+function timestamp() {
+  let timestamp = new Date();
+  return `${timestamp.getFullYear()}${("0" + (timestamp.getMonth() + 1)).slice(
+    -2
+  )}${("0" + timestamp.getDate()).slice(-2)}-${(
+    "0" + timestamp.getHours()
+  ).slice(-2)}${("0" + timestamp.getMinutes()).slice(-2)}${(
+    "0" + timestamp.getSeconds()
+  ).slice(-2)}`;
 }
