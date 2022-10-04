@@ -284,6 +284,51 @@ function setMediaDirectory(config, argv) {
   return config;
 }
 
+function setFailedTestRecording(config, argv) {
+  config.saveFailedTestRecordings =
+    argv.saveFailedTestRecordings || process.env.DOC_SAVE_FAILED_RECORDINGS || config.saveFailedTestRecordings;
+  switch (config.saveFailedTestRecordings) {
+    case true:
+    case "true":
+      config.saveFailedTestRecordings = true;
+      log(config, "debug", `Save failed test recordings set: ${config.saveFailedTestRecordings}`);
+      break;
+    case false:
+    case "false":
+      config.saveFailedTestRecordings = false;
+      log(config, "debug", `Save failed test recordings set: ${config.saveFailedTestRecordings}`);
+      log(config, "info", analyticsRequest);
+      break;
+    default:
+      config.saveFailedTestRecordings = defaultConfig.saveFailedTestRecordings;
+      log(
+        config,
+        "warning",
+        `Invalid save failed test recordings value. Reverted to default: ${config.saveFailedTestRecordings}`
+      );
+  }
+  return config;
+}
+
+function setFailedTestDirectory(config, argv) {
+  config.failedTestDirectory =
+    argv.failedTestDirectory ||
+    process.env.DOC_FAILED_TEST_DIRECTORY_PATH ||
+    config.failedTestDirectory;
+  config.failedTestDirectory = path.resolve(config.failedTestDirectory);
+  if (fs.existsSync(config.failedTestDirectory)) {
+    log(config, "debug", `Failed test directory set: ${config.failedTestDirectory}`);
+  } else {
+    config.failedTestDirectory = path.resolve(defaultConfig.failedTestDirectory);
+    log(
+      config,
+      "warning",
+      `Invalid failed test directory. Reverted to default: ${config.failedTestDirectory}`
+    );
+  }
+  return config;
+}
+
 function setRecursion(config, argv) {
   config.recursive =
     argv.recursive || process.env.DOC_RECURSIVE || config.recursive;
@@ -536,6 +581,10 @@ function setConfig(config, argv) {
   config = setCleanup(config, argv);
 
   config = setMediaDirectory(config, argv);
+
+  config = setFailedTestRecording(config, argv);
+  
+  config = setFailedTestDirectory(config, argv);
 
   config = setRecursion(config, argv);
 
