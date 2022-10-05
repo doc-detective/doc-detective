@@ -692,7 +692,8 @@ function parseTests(config, files) {
   // Loop through test files
   files.forEach((file) => {
     log(config, "debug", `file: ${file}`);
-    let id = `${uuid.v4()}`;
+    let fileId = `${uuid.v4()}`;
+    let id = fileId;
     let line;
     let lineNumber = 1;
     let inputFile = new nReadlines(file);
@@ -709,6 +710,11 @@ function parseTests(config, files) {
       );
       return;
     }
+    let openTestStartStatement = fileType.openTestStartStatement;
+    let closeTestStartStatement = fileType.closeTestStartStatement;
+    let TestEndStatement = fileType.TestEndStatement;
+    let openActionStatement = fileType.openActionStatement;
+    let closeActionStatement = fileType.closeActionStatement;
 
     // If file is JSON, add tests straight to array
     if (path.extname(file) === ".json") {
@@ -728,19 +734,47 @@ function parseTests(config, files) {
     } else {
       // Loop through lines
       while ((line = inputFile.next())) {
-        let lineJson = "";
-        let subStart = "";
-        let subEnd = "";
-        if (line.includes(fileType.openActionStatement)) {
-          const lineAscii = line.toString("ascii");
-          if (fileType.closeActionStatement) {
-            subEnd = lineAscii.lastIndexOf(fileType.closeActionStatement);
+        let lineJson = 0;
+        let subStart;
+        let subEnd;
+        const lineAscii = line.toString("ascii");
+
+        if (line.includes(openTestStartStatement)) {
+          // Test start
+          if (closeTestStartStatement) {
+            subEnd = lineAscii.lastIndexOf(closeTestStartStatement);
           } else {
             subEnd = lineAscii.length;
           }
           subStart =
-            lineAscii.indexOf(fileType.openActionStatement) +
-            fileType.openActionStatement.length;
+            lineAscii.indexOf(openTestStartStatement) +
+            openTestStartStatement.length;
+          lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
+          // If test is defined in this file instead of referencing a test defined in another file
+          if (!lineJson.file) {
+            test = { id, file, actions: [] };
+            if (lineJson.id) {
+              test.id = lineJson.id;
+              // Set ID for following actions
+              id = lineJson.id;
+            }
+            if (lineJson.saveFailedTestRecordings)
+              test.saveFailedTestRecordings = lineJson.saveFailedTestRecordings;
+            if (lineJson.failedTestDirectory)
+              test.failedTestDirectory = lineJson.failedTestDirectory;
+            json.tests.push(test);
+          }
+        } else if (line.includes(TestEndStatement)) {
+          // Revert back to file-based ID
+          id = fileId;
+        } else if (line.includes(openActionStatement)) {
+          if (closeActionStatement) {
+            subEnd = lineAscii.lastIndexOf(closeActionStatement);
+          } else {
+            subEnd = lineAscii.length;
+          }
+          subStart =
+            lineAscii.indexOf(openActionStatement) + openActionStatement.length;
           lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
           if (!lineJson.testId) {
             lineJson.testId = id;
