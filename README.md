@@ -569,9 +569,7 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 - New/upgraded test actions:
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
   - Upgrade: Additional `httpRequest` input sanitization.
-  - Upgrade: `screenshot` and `startRecording` boolean for whether to perform the action or not if the expected output file already exists.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
-  - Upgrade: `startRecording` to store the output file in a different location if a recorded action fails. This could help with debugging.
 - In-content test framing to identify when content is covered by a test defined in another file. This could enable content coverage analysis.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
