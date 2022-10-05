@@ -701,6 +701,20 @@ function parseTests(config, files) {
     let fileType = config.fileTypes.find((fileType) =>
       fileType.extensions.includes(extension)
     );
+    let openTestStartStatement;
+    let closeTestStartStatement;
+    let TestEndStatement;
+    let openActionStatement;
+    let closeActionStatement;
+    
+    if (typeof fileType != "undefined") {
+      openTestStartStatement = fileType.openTestStartStatement;
+      closeTestStartStatement = fileType.closeTestStartStatement;
+      TestEndStatement = fileType.TestEndStatement;
+      openActionStatement = fileType.openActionStatement;
+      closeActionStatement = fileType.closeActionStatement;
+    }
+
     if (!fileType && extension !== ".json") {
       // Missing filetype options
       log(
@@ -710,11 +724,6 @@ function parseTests(config, files) {
       );
       return;
     }
-    let openTestStartStatement = fileType.openTestStartStatement;
-    let closeTestStartStatement = fileType.closeTestStartStatement;
-    let TestEndStatement = fileType.TestEndStatement;
-    let openActionStatement = fileType.openActionStatement;
-    let closeActionStatement = fileType.closeActionStatement;
 
     // If file is JSON, add tests straight to array
     if (path.extname(file) === ".json") {
@@ -734,7 +743,7 @@ function parseTests(config, files) {
     } else {
       // Loop through lines
       while ((line = inputFile.next())) {
-        let lineJson = 0;
+        let lineJson;
         let subStart;
         let subEnd;
         const lineAscii = line.toString("ascii");
