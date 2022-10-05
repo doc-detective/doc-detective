@@ -22,6 +22,9 @@
         ".md",
         ".mdx"
       ],
+      "openTestStartStatement": "[comment]: # (test start",
+      "closeTestStartStatement": ")",
+      "TestEndStatement": "[comment]: # (test end)",
       "openActionStatement": "[comment]: # (action",
       "closeActionStatement": ")"
     },
@@ -31,6 +34,9 @@
         ".htm",
         ".xml"
       ],
+      "openTestStartStatement": "<!-- test start",
+      "closeTestStartStatement": "-->",
+      "TestEndStatement": "<!-- test end -->",
       "openActionStatement": "<!-- action",
       "closeActionStatement": "-->"
     }
