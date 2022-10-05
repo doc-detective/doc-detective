@@ -22,8 +22,11 @@
         ".md",
         ".mdx"
       ],
-      "openActionStatement": "[comment]: # (action",
-      "closeActionStatement": ")"
+      "testStartStatementOpen": "[comment]: # (test start",
+      "testStartStatementClose": ")",
+      "testEndStatement": "[comment]: # (test end)",
+      "actionStatementOpen": "[comment]: # (action",
+      "actionStatementClose": ")"
     },
     {
       "extensions": [
@@ -31,8 +34,11 @@
         ".htm",
         ".xml"
       ],
-      "openActionStatement": "<!-- action",
-      "closeActionStatement": "-->"
+      "testStartStatementOpen": "<!-- test start",
+      "testStartStatementClose": "-->",
+      "testEndStatement": "<!-- test end -->",
+      "actionStatementOpen": "<!-- action",
+      "actionStatementClose": "-->"
     }
   ],
   "browserOptions": {

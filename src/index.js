@@ -2,7 +2,7 @@ const {
   setArgs,
   setConfig,
   setFiles,
-  parseFiles,
+  parseTests,
   outputResults,
   log,
 } = require("./lib/utils");
@@ -30,7 +30,7 @@ async function main(config, argv) {
   log(config, "debug", files);
 
   // Set tests
-  const tests = parseFiles(config, files);
+  const tests = parseTests(config, files);
   if (config.logLevel === "debug") {
     console.log("(DEBUG) TESTS:");
     tests.tests.forEach((test) => {

@@ -11,7 +11,7 @@ const defaultConfig = require("../config.json");
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
 exports.setFiles = setFiles;
-exports.parseFiles = parseFiles;
+exports.parseTests = parseTests;
 exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
 exports.loadEnvsForObject = loadEnvsForObject;
@@ -686,13 +686,14 @@ function setFiles(config) {
 }
 
 // Parse files for tests
-function parseFiles(config, files) {
+function parseTests(config, files) {
   let json = { tests: [] };
 
   // Loop through test files
   files.forEach((file) => {
     log(config, "debug", `file: ${file}`);
-    let id = uuid.v4();
+    let fileId = `${uuid.v4()}`;
+    let id = fileId;
     let line;
     let lineNumber = 1;
     let inputFile = new nReadlines(file);
@@ -700,36 +701,109 @@ function parseFiles(config, files) {
     let fileType = config.fileTypes.find((fileType) =>
       fileType.extensions.includes(extension)
     );
+    let testStartStatementOpen;
+    let testStartStatementClose;
+    let testEndStatement;
+    let actionStatementOpen;
+    let actionStatementClose;
+    
+    if (typeof fileType != "undefined") {
+      testStartStatementOpen = fileType.testStartStatementOpen;
+      if (!testStartStatementOpen) {
+        log(config,"warning",`Skipping tests in ${file}. No 'testStartStatementOpen' value specified.`);
+        return;
+      }
+      testStartStatementClose = fileType.testStartStatementClose;
+      if (!testStartStatementClose) {
+        log(config,"warning",`Skipping tests in ${file}. No 'testStartStatementClose' value specified.`);
+        return;
+      }
+      testEndStatement = fileType.testEndStatement;
+      if (!testEndStatement) {
+        log(config,"warning",`Skipping tests in ${file}. No 'testEndStatement' value specified.`);
+        return;
+      }
+      actionStatementOpen = fileType.actionStatementOpen || fileType.openActionStatement || fileType.openTestStatement;
+      if (!actionStatementOpen) {
+        log(config,"warning",`Skipping tests in ${file}. No 'actionStatementOpen' value specified.`);
+        return;
+      }
+      actionStatementClose = fileType.actionStatementClose || fileType.closeActionStatement || fileType.closeTestStatement;
+      if (!actionStatementClose) {
+        log(config,"warning",`Skipping tests in ${file}. No 'actionStatementClose' value specified.`);
+        return;
+      }
+    }
+
     if (!fileType && extension !== ".json") {
       // Missing filetype options
-      console.log(
-        `Error: Specify options for the ${extension} extension in your config file.`
+      log(
+        config,
+        "warning",
+        `Skipping file with ${extension} extension. Specify options for the ${extension} extension in your config file.`
       );
-      exit(1);
+      return;
     }
 
     // If file is JSON, add tests straight to array
     if (path.extname(file) === ".json") {
       content = require(file);
-      content.tests.forEach((test) => {
-        json.tests.push(test);
-      });
+      if (typeof content.tests === "object" && content.tests.length > 0) {
+        content.tests.forEach((test) => {
+          json.tests.push(test);
+        });
+      } else {
+        log(
+          config,
+          "warning",
+          `Skipping ${file} because of unexpected object structure.`
+        );
+        return;
+      }
     } else {
       // Loop through lines
       while ((line = inputFile.next())) {
-        let lineJson = "";
-        let subStart = "";
-        let subEnd = "";
-        if (line.includes(fileType.openActionStatement)) {
-          const lineAscii = line.toString("ascii");
-          if (fileType.closeActionStatement) {
-            subEnd = lineAscii.lastIndexOf(fileType.closeActionStatement);
+        let lineJson;
+        let subStart;
+        let subEnd;
+        const lineAscii = line.toString("ascii");
+
+        if (line.includes(testStartStatementOpen)) {
+          // Test start
+          if (testStartStatementClose) {
+            subEnd = lineAscii.lastIndexOf(testStartStatementClose);
           } else {
             subEnd = lineAscii.length;
           }
           subStart =
-            lineAscii.indexOf(fileType.openActionStatement) +
-            fileType.openActionStatement.length;
+            lineAscii.indexOf(testStartStatementOpen) +
+            testStartStatementOpen.length;
+          lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
+          // If test is defined in this file instead of referencing a test defined in another file
+          if (!lineJson.file) {
+            test = { id, file, actions: [] };
+            if (lineJson.id) {
+              test.id = lineJson.id;
+              // Set ID for following actions
+              id = lineJson.id;
+            }
+            if (lineJson.saveFailedTestRecordings)
+              test.saveFailedTestRecordings = lineJson.saveFailedTestRecordings;
+            if (lineJson.failedTestDirectory)
+              test.failedTestDirectory = lineJson.failedTestDirectory;
+            json.tests.push(test);
+          }
+        } else if (line.includes(testEndStatement)) {
+          // Revert back to file-based ID
+          id = fileId;
+        } else if (line.includes(actionStatementOpen)) {
+          if (actionStatementClose) {
+            subEnd = lineAscii.lastIndexOf(actionStatementClose);
+          } else {
+            subEnd = lineAscii.length;
+          }
+          subStart =
+            lineAscii.indexOf(actionStatementOpen) + actionStatementOpen.length;
           lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
           if (!lineJson.testId) {
             lineJson.testId = id;

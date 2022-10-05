@@ -2,21 +2,25 @@
 
 To use Google Search to find information on kittens,
 
+[comment]: # (test start {"id":"process-search-kittens" })
+
 1.  Open [Google Search](https://www.google.com).
 
-    [comment]: # (action {"testId":"process-search-kittens", "action":"startRecording", "overwrite":false, "filename":"results.gif", "fps":15})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"goTo", "uri":"www.google.com"})
+    [comment]: # (action {"action":"startRecording", "overwrite":false, "filename":"results.gif", "fps":15})
+    [comment]: # (action {"action":"goTo", "uri":"www.google.com"})
 
 2.  In the search bar, enter "kittens", then press Enter.
 
-    [comment]: # (action {"testId":"process-search-kittens", "action":"moveMouse", "css":"#gbqfbb", "alignH": "center", "alignV": "center"})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"wait", "duration":"5000"})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"moveMouse", "css":"[title=Search]", "alignV": "center"})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"type", "css":"[title=Search]", "keys":"kittens", "trailingSpecialKey":"Enter"})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"wait", "duration":"5000"})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"scroll", "y": 300})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"stopRecording"})
-    [comment]: # (action {"testId":"process-search-kittens", "action":"screenshot", "filename":"results.png", "matchPrevious": true, "matchThreshold": 0.1})
+    [comment]: # (action {"action":"moveMouse", "css":"#gbqfbb", "alignH": "center", "alignV": "center"})
+    [comment]: # (action {"action":"wait", "duration":"5000"})
+    [comment]: # (action {"action":"moveMouse", "css":"[title=Search]", "alignV": "center"})
+    [comment]: # (action {"action":"type", "css":"[title=Search]", "keys":"kittens", "trailingSpecialKey":"Enter"})
+    [comment]: # (action {"action":"wait", "duration":"5000"})
+    [comment]: # (action {"action":"scroll", "y": 300})
+    [comment]: # (action {"action":"stopRecording"})
+    [comment]: # (action {"action":"screenshot", "filename":"results.png", "matchPrevious": true, "matchThreshold": 0.1})
+
+[comment]: # (test end {"id":"process-search-kittens" })
 
 Search results appear on the page.
 
