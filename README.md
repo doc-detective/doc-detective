@@ -530,9 +530,7 @@ If you opt into sending analytics, you can add additional servers that Doc Detec
 
 ```json
 {
-  ...
   "analytics": {
-    ...
     "customServers": [
       {
         "name": "My Analytics Server",
@@ -547,7 +545,6 @@ If you opt into sending analytics, you can add additional servers that Doc Detec
       }
     ]
   }
-  ...
 }
 ```
 
@@ -570,12 +567,11 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
   - Upgrade: Additional `httpRequest` input sanitization.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
-- In-content test framing to identify when content is covered by a test defined in another file. This could enable content coverage analysis.
+- Content coverage analysis based on in-content test statements and markup declarations.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
   - Detailed field descriptions per action.
 - Refactor tests into individual files.
-- Rewrite cross-action recording status tracking.
 
 ## License
 
