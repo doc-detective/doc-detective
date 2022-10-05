@@ -11,7 +11,7 @@ const defaultConfig = require("../config.json");
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
 exports.setFiles = setFiles;
-exports.parseFiles = parseFiles;
+exports.parseTests = parseTests;
 exports.outputResults = outputResults;
 exports.setEnvs = setEnvs;
 exports.loadEnvsForObject = loadEnvsForObject;
@@ -686,13 +686,13 @@ function setFiles(config) {
 }
 
 // Parse files for tests
-function parseFiles(config, files) {
+function parseTests(config, files) {
   let json = { tests: [] };
 
   // Loop through test files
   files.forEach((file) => {
     log(config, "debug", `file: ${file}`);
-    let id = uuid.v4();
+    let id = `${uuid.v4()}`;
     let line;
     let lineNumber = 1;
     let inputFile = new nReadlines(file);
@@ -702,18 +702,29 @@ function parseFiles(config, files) {
     );
     if (!fileType && extension !== ".json") {
       // Missing filetype options
-      console.log(
-        `Error: Specify options for the ${extension} extension in your config file.`
+      log(
+        config,
+        "warning",
+        `Skipping file with ${extension} extension. Specify options for the ${extension} extension in your config file.`
       );
-      exit(1);
+      return;
     }
 
     // If file is JSON, add tests straight to array
     if (path.extname(file) === ".json") {
       content = require(file);
-      content.tests.forEach((test) => {
-        json.tests.push(test);
-      });
+      if (typeof content.tests === "object" && content.tests.length > 0) {
+        content.tests.forEach((test) => {
+          json.tests.push(test);
+        });
+      } else {
+        log(
+          config,
+          "warning",
+          `Skipping ${file} because of unexpected object structure.`
+        );
+        return;
+      }
     } else {
       // Loop through lines
       while ((line = inputFile.next())) {
