@@ -183,7 +183,8 @@ function selectConfig(config, argv) {
 }
 
 function setEnv(config, argv) {
-  config.env = argv.env || process.env.DOC_ENV_PATH || config.env;
+  config.env =
+    argv.env || process.env.DOC_ENV_PATH || config.env || defaultConfig.env;
   if (config.env) {
     config.env = path.resolve(config.env);
     if (fs.existsSync(config.env)) {
@@ -202,7 +203,11 @@ function setEnv(config, argv) {
 }
 
 function setInput(config, argv) {
-  config.input = argv.input || process.env.DOC_INPUT_PATH || config.input;
+  config.input =
+    argv.input ||
+    process.env.DOC_INPUT_PATH ||
+    config.input ||
+    defaultConfig.input;
   if (config.input) {
     config.input = path.resolve(config.input);
     if (fs.existsSync(config.input)) {
@@ -226,14 +231,19 @@ function setInput(config, argv) {
 }
 
 function setOutput(config, argv) {
-  config.output = argv.output || process.env.DOC_OUTPUT_PATH || config.output;
+  config.output =
+    argv.output ||
+    process.env.DOC_OUTPUT_PATH ||
+    config.output ||
+    defaultConfig.output;
   config.output = path.resolve(config.output);
   log(config, "debug", `Output path set: ${config.output}`);
   return config;
 }
 
 function setSetup(config, argv) {
-  config.setup = argv.setup || process.env.DOC_SETUP || config.setup;
+  config.setup =
+    argv.setup || process.env.DOC_SETUP || config.setup || defaultConfig.setup;
   if (config.setup === "") {
     log(config, "debug", `No setup tests.`);
     return config;
@@ -250,7 +260,11 @@ function setSetup(config, argv) {
 }
 
 function setCleanup(config, argv) {
-  config.cleanup = argv.cleanup || process.env.DOC_CLEANUP || config.cleanup;
+  config.cleanup =
+    argv.cleanup ||
+    process.env.DOC_CLEANUP ||
+    config.cleanup ||
+    defaultConfig.cleanup;
   if (config.cleanup === "") {
     log(config, "debug", `No cleanup tests.`);
     return config;
@@ -270,7 +284,8 @@ function setMediaDirectory(config, argv) {
   config.mediaDirectory =
     argv.mediaDir ||
     process.env.DOC_MEDIA_DIRECTORY_PATH ||
-    config.mediaDirectory;
+    config.mediaDirectory ||
+    defaultConfig.mediaDirectory;
   config.mediaDirectory = path.resolve(config.mediaDirectory);
   if (fs.existsSync(config.mediaDirectory)) {
     log(config, "debug", `Media directory set: ${config.mediaDirectory}`);
@@ -289,7 +304,8 @@ function setFailedTestRecording(config, argv) {
   config.saveFailedTestRecordings =
     argv.saveFailedTestRecordings ||
     process.env.DOC_SAVE_FAILED_RECORDINGS ||
-    config.saveFailedTestRecordings;
+    config.saveFailedTestRecordings ||
+    defaultConfig.saveFailedTestRecordings;
   switch (config.saveFailedTestRecordings) {
     case true:
     case "true":
@@ -325,7 +341,8 @@ function setFailedTestDirectory(config, argv) {
   config.failedTestDirectory =
     argv.failedTestDirectory ||
     process.env.DOC_FAILED_TEST_DIRECTORY_PATH ||
-    config.failedTestDirectory;
+    config.failedTestDirectory ||
+    defaultConfig.failedTestDirectory;
   config.failedTestDirectory = path.resolve(config.failedTestDirectory);
   if (fs.existsSync(config.failedTestDirectory)) {
     log(
@@ -348,7 +365,10 @@ function setFailedTestDirectory(config, argv) {
 
 function setRecursion(config, argv) {
   config.recursive =
-    argv.recursive || process.env.DOC_RECURSIVE || config.recursive;
+    argv.recursive ||
+    process.env.DOC_RECURSIVE ||
+    config.recursive ||
+    defaultConfig.recursive;
   switch (config.recursive) {
     case true:
     case "true":
@@ -371,9 +391,33 @@ function setRecursion(config, argv) {
   return config;
 }
 
+function setFileTypes(config, argv) {
+  config.fileTypes =
+    argv.fileTypes ||
+    process.env.DOC_FILE_TYPES ||
+    config.fileTypes ||
+    defaultConfig.fileTypes;
+  if (config.fileTypes.length > 0) {
+    log(config, "debug", `File types set: ${JSON.stringify(config.fileTypes)}`);
+  } else {
+    config.fileTypes = defaultConfig.fileTypes;
+    log(
+      config,
+      "debug",
+      `Invalid file type value(s). Reverted to default: ${JSON.stringify(
+        config.fileTypes
+      )}`
+    );
+  }
+  return config;
+}
+
 function setTestFileExtensions(config, argv) {
   config.testExtensions =
-    argv.ext || process.env.DOC_TEST_EXTENSTIONS || config.testExtensions;
+    argv.ext ||
+    process.env.DOC_TEST_EXTENSTIONS ||
+    config.testExtensions ||
+    defaultConfig.testExtensions;
   if (typeof config.testExtensions === "string")
     config.testExtensions = config.testExtensions
       .replace(/\s+/g, "")
@@ -401,7 +445,8 @@ function setBrowserHeadless(config, argv) {
   config.browserOptions.headless =
     argv.browserHeadless ||
     process.env.DOC_BROWSER_HEADLESS ||
-    config.browserOptions.headless;
+    config.browserOptions.headless ||
+    defaultConfig.browserOptions.headless;
   switch (config.browserOptions.headless) {
     case true:
     case "true":
@@ -436,7 +481,8 @@ function setBrowserPath(config, argv) {
   config.browserOptions.path =
     argv.browserPath ||
     process.env.DOC_BROWSER_PATH ||
-    config.browserOptions.path;
+    config.browserOptions.path ||
+    defaultConfig.browserOptions.path;
   if (config.browserOptions.path === "") {
     log(config, "debug", `Browser set to default Chromium install.`);
     return config;
@@ -460,7 +506,8 @@ function setBrowserHeight(config, argv) {
   config.browserOptions.height =
     argv.browserHeight ||
     process.env.DOC_BROWSER_HEIGHT ||
-    config.browserOptions.height;
+    config.browserOptions.height ||
+    defaultConfig.browserOptions.height;
   if (typeof config.browserOptions.height === "string") {
     try {
       config.browserOptions.height = Number(config.browserOptions.height);
@@ -490,7 +537,8 @@ function setBrowserWidth(config, argv) {
   config.browserOptions.width =
     argv.browserWidth ||
     process.env.DOC_BROWSER_WIDTH ||
-    config.browserOptions.width;
+    config.browserOptions.width ||
+    defaultConfig.browserOptions.width;
   if (typeof config.browserOptions.width === "string") {
     try {
       config.browserOptions.width = Number(config.browserOptions.width);
@@ -518,7 +566,10 @@ function setBrowserWidth(config, argv) {
 
 function setAnalytics(config, argv) {
   config.analytics.send =
-    argv.analytics || process.env.DOC_ANALYTICS || config.analytics.send;
+    argv.analytics ||
+    process.env.DOC_ANALYTICS ||
+    config.analytics.send ||
+    defaultConfig.analytics.send;
   switch (config.analytics.send) {
     case true:
     case "true":
@@ -546,7 +597,8 @@ function setAnalyticsUserId(config, argv) {
   config.analytics.userId =
     argv.analyticsUserId ||
     process.env.DOC_ANALYTICS_USER_ID ||
-    config.analytics.userId;
+    config.analytics.userId ||
+    defaultConfig.analytics.userId;
   log(config, "debug", `Analytics user ID set: ${config.analytics.userId}`);
   return config;
 }
@@ -556,7 +608,8 @@ function setAnalyticsDetailLevel(config, argv) {
   detailLevel =
     argv.analyticsDetailLevel ||
     process.env.DOC_ANALYTCS_DETAIL_LEVEL ||
-    config.analytics.detailLevel;
+    config.analytics.detailLevel ||
+    defaultConfig.analytics.detailLevel;
   detailLevel = String(detailLevel).toLowerCase();
   if (enums.indexOf(detailLevel) >= 0) {
     config.analytics.detailLevel = detailLevel;
@@ -604,6 +657,8 @@ function setConfig(config, argv) {
   config = setFailedTestDirectory(config, argv);
 
   config = setRecursion(config, argv);
+
+  config = setFileTypes(config, argv);
 
   config = setTestFileExtensions(config, argv);
 
@@ -706,31 +761,57 @@ function parseTests(config, files) {
     let testEndStatement;
     let actionStatementOpen;
     let actionStatementClose;
-    
+
     if (typeof fileType != "undefined") {
       testStartStatementOpen = fileType.testStartStatementOpen;
       if (!testStartStatementOpen) {
-        log(config,"warning",`Skipping tests in ${file}. No 'testStartStatementOpen' value specified.`);
+        log(
+          config,
+          "warning",
+          `Skipping tests in ${file}. No 'testStartStatementOpen' value specified.`
+        );
         return;
       }
       testStartStatementClose = fileType.testStartStatementClose;
       if (!testStartStatementClose) {
-        log(config,"warning",`Skipping tests in ${file}. No 'testStartStatementClose' value specified.`);
+        log(
+          config,
+          "warning",
+          `Skipping tests in ${file}. No 'testStartStatementClose' value specified.`
+        );
         return;
       }
       testEndStatement = fileType.testEndStatement;
       if (!testEndStatement) {
-        log(config,"warning",`Skipping tests in ${file}. No 'testEndStatement' value specified.`);
+        log(
+          config,
+          "warning",
+          `Skipping tests in ${file}. No 'testEndStatement' value specified.`
+        );
         return;
       }
-      actionStatementOpen = fileType.actionStatementOpen || fileType.openActionStatement || fileType.openTestStatement;
+      actionStatementOpen =
+        fileType.actionStatementOpen ||
+        fileType.openActionStatement ||
+        fileType.openTestStatement;
       if (!actionStatementOpen) {
-        log(config,"warning",`Skipping tests in ${file}. No 'actionStatementOpen' value specified.`);
+        log(
+          config,
+          "warning",
+          `Skipping tests in ${file}. No 'actionStatementOpen' value specified.`
+        );
         return;
       }
-      actionStatementClose = fileType.actionStatementClose || fileType.closeActionStatement || fileType.closeTestStatement;
+      actionStatementClose =
+        fileType.actionStatementClose ||
+        fileType.closeActionStatement ||
+        fileType.closeTestStatement;
       if (!actionStatementClose) {
-        log(config,"warning",`Skipping tests in ${file}. No 'actionStatementClose' value specified.`);
+        log(
+          config,
+          "warning",
+          `Skipping tests in ${file}. No 'actionStatementClose' value specified.`
+        );
         return;
       }
     }
