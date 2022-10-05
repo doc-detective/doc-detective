@@ -701,18 +701,38 @@ function parseTests(config, files) {
     let fileType = config.fileTypes.find((fileType) =>
       fileType.extensions.includes(extension)
     );
-    let openTestStartStatement;
-    let closeTestStartStatement;
-    let TestEndStatement;
-    let openActionStatement;
-    let closeActionStatement;
+    let testStartStatementOpen;
+    let testStartStatementClose;
+    let testEndStatement;
+    let actionStatementOpen;
+    let actionStatementClose;
     
     if (typeof fileType != "undefined") {
-      openTestStartStatement = fileType.openTestStartStatement;
-      closeTestStartStatement = fileType.closeTestStartStatement;
-      TestEndStatement = fileType.TestEndStatement;
-      openActionStatement = fileType.openActionStatement;
-      closeActionStatement = fileType.closeActionStatement;
+      testStartStatementOpen = fileType.testStartStatementOpen;
+      if (!testStartStatementOpen) {
+        log(config,"warning",`Skipping tests in ${file}. No 'testStartStatementOpen' value specified.`);
+        return;
+      }
+      testStartStatementClose = fileType.testStartStatementClose;
+      if (!testStartStatementClose) {
+        log(config,"warning",`Skipping tests in ${file}. No 'testStartStatementClose' value specified.`);
+        return;
+      }
+      testEndStatement = fileType.testEndStatement;
+      if (!testEndStatement) {
+        log(config,"warning",`Skipping tests in ${file}. No 'testEndStatement' value specified.`);
+        return;
+      }
+      actionStatementOpen = fileType.actionStatementOpen || fileType.openActionStatement || fileType.openTestStatement;
+      if (!actionStatementOpen) {
+        log(config,"warning",`Skipping tests in ${file}. No 'actionStatementOpen' value specified.`);
+        return;
+      }
+      actionStatementClose = fileType.actionStatementClose || fileType.closeActionStatement || fileType.closeTestStatement;
+      if (!actionStatementClose) {
+        log(config,"warning",`Skipping tests in ${file}. No 'actionStatementClose' value specified.`);
+        return;
+      }
     }
 
     if (!fileType && extension !== ".json") {
@@ -748,16 +768,16 @@ function parseTests(config, files) {
         let subEnd;
         const lineAscii = line.toString("ascii");
 
-        if (line.includes(openTestStartStatement)) {
+        if (line.includes(testStartStatementOpen)) {
           // Test start
-          if (closeTestStartStatement) {
-            subEnd = lineAscii.lastIndexOf(closeTestStartStatement);
+          if (testStartStatementClose) {
+            subEnd = lineAscii.lastIndexOf(testStartStatementClose);
           } else {
             subEnd = lineAscii.length;
           }
           subStart =
-            lineAscii.indexOf(openTestStartStatement) +
-            openTestStartStatement.length;
+            lineAscii.indexOf(testStartStatementOpen) +
+            testStartStatementOpen.length;
           lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
           // If test is defined in this file instead of referencing a test defined in another file
           if (!lineJson.file) {
@@ -773,17 +793,17 @@ function parseTests(config, files) {
               test.failedTestDirectory = lineJson.failedTestDirectory;
             json.tests.push(test);
           }
-        } else if (line.includes(TestEndStatement)) {
+        } else if (line.includes(testEndStatement)) {
           // Revert back to file-based ID
           id = fileId;
-        } else if (line.includes(openActionStatement)) {
-          if (closeActionStatement) {
-            subEnd = lineAscii.lastIndexOf(closeActionStatement);
+        } else if (line.includes(actionStatementOpen)) {
+          if (actionStatementClose) {
+            subEnd = lineAscii.lastIndexOf(actionStatementClose);
           } else {
             subEnd = lineAscii.length;
           }
           subStart =
-            lineAscii.indexOf(openActionStatement) + openActionStatement.length;
+            lineAscii.indexOf(actionStatementOpen) + actionStatementOpen.length;
           lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
           if (!lineJson.testId) {
             lineJson.testId = id;
