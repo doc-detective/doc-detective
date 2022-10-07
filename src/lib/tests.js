@@ -6,6 +6,8 @@ const { setEnvs, log, timestamp } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
+const { moveMouse } = require("./tests/moveMouse");
+const { scroll } = require("./tests/scroll");
 const { screenshot } = require("./tests/screenshot");
 const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
@@ -233,7 +235,12 @@ async function runAction(config, action, page, videoDetails) {
       // Perform sub-action: moveMouse
       if (action.moveMouse) {
         action.moveMouse.css = action.css;
-        move = await moveMouse(action.moveMouse, page, result.elementHandle);
+        move = await moveMouse(
+          action.moveMouse,
+          page,
+          result.elementHandle,
+          config
+        );
         delete action.moveMouse.css;
         result.result.description =
           result.result.description + " " + move.result.description;
@@ -284,10 +291,10 @@ async function runAction(config, action, page, videoDetails) {
     case "moveMouse":
       find = await findElement(action, page);
       if (find.result.status === "FAIL") return find;
-      result = await moveMouse(action, page, find.elementHandle);
+      result = await moveMouse(action, page, find.elementHandle, config);
       break;
     case "scroll":
-      result = await scroll(action, page);
+      result = await scroll(action, page, config);
       break;
     case "wait":
       result = await wait(action, page);
@@ -442,26 +449,6 @@ async function wait(action, page) {
   return { result };
 }
 
-async function scroll(action, page) {
-  let status;
-  let description;
-  let result;
-  try {
-    await page.mouse.wheel({ deltaX: action.x, deltaY: action.y });
-    // PASS
-    status = "PASS";
-    description = `Scroll complete.`;
-    result = { status, description };
-    return { result };
-  } catch {
-    // FAIL
-    status = "PASS";
-    description = `Couldn't scroll.`;
-    result = { status, description };
-    return { result };
-  }
-}
-
 // Click an element.  Assumes findElement() only found one matching element.
 async function typeElement(action, elementHandle) {
   let status;
@@ -539,71 +526,6 @@ async function clickElement(action, elementHandle) {
   description = `Clicked element.`;
   result = { status, description };
   return { result };
-}
-
-// Move mouse to an element.  Assumes findElement() only found one matching element.
-async function moveMouse(action, page, elementHandle) {
-  let status;
-  let description;
-  let result;
-  try {
-    // Calc coordinates
-    const bounds = await elementHandle.boundingBox();
-    let x = bounds.x;
-    if (action.offsetX) x = x + Number(action.offsetX);
-    if (action.alignH) {
-      if (action.alignH === "left") {
-        alignHOffset = 10;
-      } else if (action.alignH === "center") {
-        alignHOffset = bounds.width / 2;
-      } else if (action.alignH === "right") {
-        alignHOffset = bounds.width - 10;
-      } else {
-        // FAIL
-        status = "FAIL";
-        description = `Invalid 'alignH' value.`;
-        result = { status, description };
-        return { result };
-      }
-      x = x + alignHOffset;
-    }
-    let y = bounds.y;
-    if (action.offsetY) y = y + Number(action.offsetY);
-    if (action.alignV) {
-      if (action.alignV === "top") {
-        alignVOffset = 10;
-      } else if (action.alignV === "center") {
-        alignVOffset = bounds.height / 2;
-      } else if (action.alignV === "bottom") {
-        alignVOffset = bounds.height - 10;
-      } else {
-        // FAIL
-        status = "FAIL";
-        description = `Invalid 'alignV' value.`;
-        result = { status, description };
-        return { result };
-      }
-      y = y + alignVOffset;
-    }
-    // Move
-    await page.mouse.move(x, y, { steps: 25 });
-    // Display mouse cursor
-    await page.$eval(
-      "puppeteer-mouse-pointer",
-      (e) => (e.style.display = "block")
-    );
-    // PASS
-    status = "PASS";
-    description = `Moved mouse to element.`;
-    result = { status, description };
-    return { result };
-  } catch {
-    // FAIL
-    status = "FAIL";
-    description = `Couldn't move mouse to element.`;
-    result = { status, description };
-    return { result };
-  }
 }
 
 // Identify if text in element matches expected text. Assumes findElement() only found one matching element.
