@@ -564,15 +564,22 @@ Analytics reporting is off by default. If you want to make extra sure that Doc D
 ## Potential future updates
 
 - Docker image with bundled Chromium/Chrome/Firefox.
+- Additional input sanitization and improved config/action defaults.
+- Refactor tests into individual files.
 - New/upgraded test actions:
   - New: Test if a referenced image (such as an icon) is present in the captured screenshot.
-  - Upgrade: Additional `httpRequest` input sanitization.
   - Upgrade: `startRecording` and `stopRecording` to support start, stop, and intermediate test action state image matching to track differences between video captures from different runs.
 - Content coverage analysis based on in-content test statements and markup declarations.
 - Suggest tests by parsing document text.
   - Automatically insert suggested tests based on document text.
   - Detailed field descriptions per action.
-- Refactor tests into individual files.
+- Web-based GUI:
+  - Build/update config.
+  - Build/update/run tests.
+  - Run content coverage analysis.
+  - Run test suggestions.
+  - Build tests by clicking elements in an iframe and identifying CSS values.
+- Browser extension to build tests by clicking elements in a browser and identifying CSS values.
 
 ## License
 
