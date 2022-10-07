@@ -28,6 +28,18 @@ const defaultBrowserPaths = {
     "C:/Program Files/Mozilla Firefox/firefox.exe",
   ],
 };
+const browserActions = [
+  "goTo",
+  "find",
+  "matchText",
+  "click",
+  "type",
+  "moveMouse",
+  "scroll",
+  "screenshot",
+  "startRecording",
+  "stopRecording",
+];
 
 async function runTests(config, tests) {
   // Instantiate browser
@@ -90,29 +102,36 @@ async function runTests(config, tests) {
     let fail = 0;
     config.videoDetails = {};
     config.debugRecording = {};
-    // Instantiate page
-    const page = await browser.newPage();
-    if (
-      test.saveFailedTestRecordings ||
-      (config.saveFailedTestRecordings &&
-        test.saveFailedTestRecordings != false)
-    ) {
-      failedTestDirectory =
-        test.failedTestDirectory || config.failedTestDirectory;
-      debugRecordingOptions = {
-        action: "startRecording",
-        mediaDirectory: failedTestDirectory,
-        filename: `${test.id}-${timestamp()}.mp4`,
-        overwrite: true,
-      };
-      config.debugRecording = await startRecording(
-        debugRecordingOptions,
-        page,
-        config
-      );
+    let page = {};
+    const browserRequired = test.actions.some((action) =>
+      browserActions.includes(action.action)
+    );
+    if (browserRequired) {
+      // Instantiate page
+      log(config, "debug", "Instantiating page.");
+      page = await browser.newPage();
+      if (
+        test.saveFailedTestRecordings ||
+        (config.saveFailedTestRecordings &&
+          test.saveFailedTestRecordings != false)
+      ) {
+        failedTestDirectory =
+          test.failedTestDirectory || config.failedTestDirectory;
+        debugRecordingOptions = {
+          action: "startRecording",
+          mediaDirectory: failedTestDirectory,
+          filename: `${test.id}-${timestamp()}.mp4`,
+          overwrite: true,
+        };
+        config.debugRecording = await startRecording(
+          debugRecordingOptions,
+          page,
+          config
+        );
+      }
+      // Instantiate mouse cursor
+      await installMouseHelper(page);
     }
-    // Instantiate mouse cursor
-    await installMouseHelper(page);
     // Iterate through actions
     for (const action of test.actions) {
       log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
