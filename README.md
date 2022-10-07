@@ -151,7 +151,6 @@ Format:
 {
   "action": "click",
   "css": "#gbqfbb",
-  "moveMouse": "true",
   "alignH": "center",
   "alignV": "center",
   "offsetX": 10,
@@ -192,7 +191,7 @@ Advanced format with an environment variable:
 
 ### Move mouse
 
-Move the mouse to an element specified by CSS selectors.
+Move the mouse to an element specified by CSS selectors. Only runs if a test is being recorded.
 
 **Note:** The mouse cursor is visible in both recordings and screenshots.
 
@@ -211,7 +210,9 @@ Format:
 
 ### Scroll
 
-Scroll the current page by a specified number of pixels. For `x`, positive values scroll right and negative values scroll left. For `y`, positive values scroll down and negative values scroll up.
+Scroll the current page by a specified number of pixels. Only runs if a test is being recorded.
+
+For `x`, positive values scroll right and negative values scroll left. For `y`, positive values scroll down and negative values scroll up.
 
 Format:
 
