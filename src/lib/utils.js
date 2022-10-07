@@ -836,7 +836,7 @@ function parseTests(config, files) {
       } else {
         log(
           config,
-          "warning",
+          "debug",
           `Skipping ${file} because of unexpected object structure.`
         );
         return;

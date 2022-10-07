@@ -1,7 +1,7 @@
 {
   "env": "",
-  "input": ".",
-  "output": "./results.json",
+  "input": "./sample/",
+  "output": "./sample/results.json",
   "setup": "",
   "cleanup": "",
   "recursive": true,
@@ -13,9 +13,9 @@
     ".xml",
     ".json"
   ],
-  "mediaDirectory": ".",
+  "mediaDirectory": "./sample/",
   "saveFailedTestRecordings": true,
-  "failedTestDirectory": ".",
+  "failedTestDirectory": "./sample/failedTests",
   "fileTypes": [
     {
       "extensions": [
