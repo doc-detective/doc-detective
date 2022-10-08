@@ -41,7 +41,11 @@
           "^ *?\\* +.*?$",
           "^ *?- +.*?$"
         ],
+        "codeInline": [
+          "`.+?`"
+        ],
         "codeBlock": [
+          ""
         ],
         "interaction": [
           "[cC]lick",
