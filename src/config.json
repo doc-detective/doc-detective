@@ -26,7 +26,26 @@
       "testStartStatementClose": ")",
       "testEndStatement": "[comment]: # (test end)",
       "actionStatementOpen": "[comment]: # (action",
-      "actionStatementClose": ")"
+      "actionStatementClose": ")",
+      "markup": {
+        "onscreenText": [
+          "\\*\\*.+?\\*\\*"
+        ],
+        "hyperlink": [
+          "[^!]\\[.+?\\]\\(.+?\\)"
+        ],
+        "orderedList": [
+          "^ *?[0-9][0-9]?[0-9]?\\. +.*?$"
+        ],
+        "unorderedList": [
+          "^ *?\\* +.*?$",
+          "^ *?- +.*?$"
+        ],
+        "codeBlock": [
+        ],
+        "interaction": [
+        ]
+      }
     },
     {
       "extensions": [
