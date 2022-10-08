@@ -44,6 +44,15 @@
         "codeBlock": [
         ],
         "interaction": [
+          "[cC]lick",
+          "[tT]ap",
+          "[tT]ouch",
+          "[sS]elect",
+          "[cC]hoose",
+          "[tT]oggle",
+          "[eE]nable",
+          "[dD]isable",
+          "[tT]urn [oO][ff|n]"
         ]
       }
     },
