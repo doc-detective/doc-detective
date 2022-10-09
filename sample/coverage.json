@@ -1,0 +1,60 @@
+{
+  "name": "Doc Detective Content Coverage Report",
+  "date": "2022-10-09",
+  "summary": {
+    "percentCovered": 0,
+    "files": 0,
+    "tests": 0,
+    "ignoredBlocks": 0
+  },
+  "files": [
+    {
+      "file": "",
+      "percentCovered": 0,
+      "tests": 0,
+      "ignoredBlocks": 0,
+      "onscreenText": {
+        "percentCovered": 0,
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0,
+        "uncoveredLines": []
+      },
+      "image": {
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0
+      },
+      "hyperlink": {
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0
+      },
+      "orderedList": {
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0
+      },
+      "unorderedList": {
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0
+      },
+      "codeInline": {
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0
+      },
+      "codeBlock": {
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0
+      },
+      "interaction": {
+        "found": 0,
+        "covered": 0,
+        "uncovered": 0
+      }
+    }
+  ]
+}
