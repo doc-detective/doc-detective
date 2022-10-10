@@ -24,6 +24,7 @@
       ],
       "testStartStatementOpen": "[comment]: # (test start",
       "testStartStatementClose": ")",
+      "testIgnoreStatement": "[comment]: # (test ignore)",
       "testEndStatement": "[comment]: # (test end)",
       "actionStatementOpen": "[comment]: # (action",
       "actionStatementClose": ")",
