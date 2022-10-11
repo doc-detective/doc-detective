@@ -14,6 +14,7 @@
     ".json"
   ],
   "mediaDirectory": ".",
+  "downloadDirectory": ".",
   "saveFailedTestRecordings": true,
   "failedTestDirectory": ".",
   "fileTypes": [

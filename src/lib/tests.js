@@ -92,6 +92,10 @@ async function runTests(config, tests) {
     config.debugRecording = {};
     // Instantiate page
     const page = await browser.newPage();
+    await page._client.send("Page.setDownloadBehavior", {
+      behavior: "allow",
+      downloadPath: config.downloadDirectory,
+    });
     if (
       test.saveFailedTestRecordings ||
       (config.saveFailedTestRecordings &&
