@@ -905,14 +905,14 @@ function parseTests(config, files) {
   return json;
 }
 
-async function outputResults(config, results) {
+async function outputResults(path, results, config) {
   let data = JSON.stringify(results, null, 2);
-  fs.writeFile(config.output, data, (err) => {
+  fs.writeFile(path, data, (err) => {
     if (err) throw err;
   });
   log(config, "info", "RESULTS:");
   log(config, "info", results);
-  log(config, "info", `See detailed results at ${config.output}`);
+  log(config, "info", `See results at ${path}`);
   log(config, "info", "Cleaning up and finishing post-processing.");
 }
 
