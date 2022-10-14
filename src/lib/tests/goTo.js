@@ -1,3 +1,5 @@
+const { setEnvs } = require("../utils");
+
 exports.goTo = goTo;
 
 // Open a URI in the browser
