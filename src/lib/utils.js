@@ -241,6 +241,17 @@ function setOutput(config, argv) {
   return config;
 }
 
+function setCoverageOutput(config, argv) {
+  config.coverageOutput =
+    argv.coverageOutput ||
+    process.env.DOC_COVERAGE_OUTPUT_PATH ||
+    config.coverageOutput ||
+    defaultConfig.coverageOutput;
+  config.coverageOutput = path.resolve(config.coverageOutput);
+  log(config, "debug", `Coverage output path set: ${config.coverageOutput}`);
+  return config;
+}
+
 function setSetup(config, argv) {
   config.setup =
     argv.setup || process.env.DOC_SETUP || config.setup || defaultConfig.setup;
@@ -649,6 +660,8 @@ function setConfig(config, argv) {
   config = setSetup(config, argv);
 
   config = setCleanup(config, argv);
+
+  config = setCoverageOutput(config, argv);
 
   config = setMediaDirectory(config, argv);
 
