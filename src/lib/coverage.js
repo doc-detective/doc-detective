@@ -118,7 +118,7 @@ function analyizeTestCoverage(config, files) {
       );
       return;
     }
-    let markup = fileType.markup.sort();
+    let markup = fileType.markup;
 
     // Only keep marks that have a truthy (>0) length
     Object.keys(markup).forEach((mark) => {
@@ -234,8 +234,4 @@ function analyizeTestCoverage(config, files) {
     json.files.push(fileJson);
   });
   return json;
-  let data = JSON.stringify(json, null, 2);
-  fs.writeFile(config.output, data, (err) => {
-    if (err) throw err;
-  });
 }
