@@ -1,60 +1,62 @@
 {
   "name": "Doc Detective Content Coverage Report",
-  "date": "2022-10-09",
+  "timestamp": "20221014-083853",
   "summary": {
-    "percentCovered": 0,
-    "files": 0,
-    "tests": 0,
-    "ignoredBlocks": 0
+    "files": 1,
+    "tests": 3,
+    "ignoreBlocks": 0,
+    "hyperlink": {
+      "found": 2,
+      "covered": 2,
+      "uncovered": 0
+    },
+    "orderedList": {
+      "found": 5,
+      "covered": 5,
+      "uncovered": 0
+    },
+    "image": {
+      "found": 1,
+      "covered": 1,
+      "uncovered": 0
+    },
+    "onscreenText": {
+      "found": 2,
+      "covered": 2,
+      "uncovered": 0
+    }
   },
   "files": [
     {
-      "file": "",
+      "file": "/config/workspace/doc-detective/sample/doc-content.md",
       "percentCovered": 0,
-      "tests": 0,
-      "ignoredBlocks": 0,
-      "onscreenText": {
-        "percentCovered": 0,
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0,
-        "uncoveredLines": []
-      },
-      "image": {
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0
-      },
+      "tests": 3,
+      "ignoreBlocks": 0,
       "hyperlink": {
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0
+        "found": 2,
+        "covered": 2,
+        "uncovered": 0,
+        "uncoveredMatches": []
       },
       "orderedList": {
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0
+        "found": 5,
+        "covered": 5,
+        "uncovered": 0,
+        "uncoveredMatches": []
       },
-      "unorderedList": {
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0
+      "image": {
+        "found": 1,
+        "covered": 1,
+        "uncovered": 0,
+        "uncoveredMatches": []
       },
-      "codeInline": {
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0
-      },
-      "codeBlock": {
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0
-      },
-      "interaction": {
-        "found": 0,
-        "covered": 0,
-        "uncovered": 0
+      "onscreenText": {
+        "found": 2,
+        "covered": 2,
+        "uncovered": 0,
+        "uncoveredMatches": []
       }
     }
-  ]
+  ],
+  "errors": []
 }
