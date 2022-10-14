@@ -1,13 +1,37 @@
+const { log, timestamp } = require("./utils");
+const uuid = require("uuid");
+const nReadlines = require("n-readlines");
+const path = require("path");
+const { exit } = require("process");
+const fs = require("fs");
+
 exports.analyizeTestCoverage = analyizeTestCoverage;
 
 function analyizeTestCoverage(config, files) {
-  let json = { tests: [] };
+  let json = {
+    name: "Doc Detective Content Coverage Report",
+    timestamp: timestamp(),
+    summary: {
+      files: 0,
+      tests: 0,
+      ignoreBlocks: 0,
+    },
+    files: [],
+    errors: [],
+  };
 
   // Loop through test files
   files.forEach((file) => {
     log(config, "debug", `file: ${file}`);
+    fileJson = {
+      file,
+      percentCovered: 0,
+      tests: 0,
+      ignoreBlocks: 0,
+    };
     let fileId = `${uuid.v4()}`;
     let id = fileId;
+    let inTest = false;
     let line;
     let lineNumber = 1;
     let inputFile = new nReadlines(file);
@@ -26,19 +50,13 @@ function analyizeTestCoverage(config, files) {
       return;
     }
 
+    json.summary.files++;
     let testStartStatementOpen;
     let testStartStatementClose;
+    let testIgnoreStatement;
     let testEndStatement;
     let actionStatementOpen;
     let actionStatementClose;
-    let onscreenText;
-    let image;
-    let hyperlink;
-    let orderedList;
-    let unorderedList;
-    let codeInline;
-    let codeBlock;
-    let interactions;
 
     testStartStatementOpen = fileType.testStartStatementOpen;
     if (!testStartStatementOpen) {
@@ -55,6 +73,15 @@ function analyizeTestCoverage(config, files) {
         config,
         "warning",
         `Skipping ${file}. No 'testStartStatementClose' value specified.`
+      );
+      return;
+    }
+    testIgnoreStatement = fileType.testIgnoreStatement;
+    if (!testIgnoreStatement) {
+      log(
+        config,
+        "warning",
+        `Skipping ${file}. No 'testIgnoreStatement' value specified.`
       );
       return;
     }
@@ -91,20 +118,26 @@ function analyizeTestCoverage(config, files) {
       );
       return;
     }
-    onscreenText = fileType.markup.onscreenText;
-    image = fileType.markup.image;
-    hyperlink = fileType.markup.hyperlink;
-    orderedList = fileType.markup.orderedList;
-    unorderedList = fileType.markup.unorderedList;
-    codeInline = fileType.markup.codeInline;
-    codeBlock = fileType.markup.codeBlock;
-    interactions = fileType.markup.interactions;
+    let markup = fileType.markup.sort();
+
+    // Only keep marks that have a truthy (>0) length
+    Object.keys(markup).forEach((mark) => {
+      if (markup[mark].length === 1 && markup[mark][0] === "") {
+        log(
+          config,
+          "warning",
+          `No regex for '${mark}'. Set 'fileType.markup.${mark}' for the '${extension}' extension in your config.`
+        );
+        delete markup[mark];
+      }
+    });
 
     // Loop through lines
     while ((line = inputFile.next())) {
       let lineJson;
       let subStart;
       let subEnd;
+      let matches = [];
       const lineAscii = line.toString("ascii");
 
       if (line.includes(testStartStatementOpen)) {
@@ -118,46 +151,91 @@ function analyizeTestCoverage(config, files) {
           lineAscii.indexOf(testStartStatementOpen) +
           testStartStatementOpen.length;
         lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
-        // If test is defined in this file instead of referencing a test defined in another file
-        if (!lineJson.file) {
-          test = { id, file, actions: [] };
-          if (lineJson.id) {
-            test.id = lineJson.id;
-            // Set ID for following actions
-            id = lineJson.id;
+        // Set inTest to true
+        inTest = true;
+        console.log("test start");
+        // Increment Test statememt count
+        json.summary.tests++;
+        fileJson.tests++;
+        // Check if test is defined externally
+        if (lineJson.file) {
+          // Check to make sure file exists
+          if (fs.existsSync(lineJson.file)) {
+            if (lineJson.id) {
+              remoteJson = require(lineJson.file);
+              // Make sure test of matchibg ID exists in file
+            } else {
+              // log error
+              json.errors.push({
+                file,
+                lineNumber,
+                description: `Test with ID ${lineJson.id} missing from ${file}.`,
+              });
+            }
+          } else {
+            // log error
+            json.errors.push({
+              file,
+              lineNumber,
+              description: `Referenced file missing: ${file}.`,
+            });
           }
-          if (lineJson.saveFailedTestRecordings)
-            test.saveFailedTestRecordings = lineJson.saveFailedTestRecordings;
-          if (lineJson.failedTestDirectory)
-            test.failedTestDirectory = lineJson.failedTestDirectory;
-          json.tests.push(test);
         }
+      } else if (line.includes(testIgnoreStatement)) {
+        inTest = true;
+        // Increment ignore statement count
+        json.summary.ignoreBlocks++;
+        fileJson.ignoreBlocks++;
       } else if (line.includes(testEndStatement)) {
+        inTest = false;
         // Revert back to file-based ID
         id = fileId;
-      } else if (line.includes(actionStatementOpen)) {
-        if (actionStatementClose) {
-          subEnd = lineAscii.lastIndexOf(actionStatementClose);
-        } else {
-          subEnd = lineAscii.length;
-        }
-        subStart =
-          linaeAscii.indexOf(actionStatementOpen) + actionStatementOpen.length;
-        lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
-        if (!lineJson.testId) {
-          lineJson.testId = id;
-        }
-        let test = json.tests.find((item) => item.id === lineJson.testId);
-        if (!test) {
-          json.tests.push({ id: lineJson.testId, file, actions: [] });
-          test = json.tests.find((item) => item.id === lineJson.testId);
-        }
-        delete lineJson.testId;
-        lineJson.line = lineNumber;
-        test.actions.push(lineJson);
+      } else {
+        // Only keep marks that have a truthy (>0) length
+        Object.keys(markup).forEach((mark) => {
+          // Run a match
+          matches = lineAscii.match(markup[mark]);
+          // If result lengthis truthy (>0),
+          if (matches != null) {
+            if (typeof json.summary[mark] === "undefined") {
+              json.summary[mark] = {
+                found: 0,
+                covered: 0,
+                uncovered: 0,
+              };
+            }
+            if (typeof fileJson[mark] === "undefined") {
+              fileJson[mark] = {
+                found: 0,
+                covered: 0,
+                uncovered: 0,
+                uncoveredMatches: [],
+              };
+            }
+            //// increment specific values
+            json.summary[mark].found++;
+            fileJson[mark].found++;
+            if (inTest) {
+              json.summary[mark].covered++;
+              fileJson[mark].covered++;
+            } else {
+              json.summary[mark].uncovered++;
+              fileJson[mark].uncovered++;
+              fileJson[mark].uncoveredMatches.push({
+                line: lineNumber,
+                matches,
+              });
+            }
+          }
+        });
       }
       lineNumber++;
     }
+    json.files.push(fileJson);
   });
   return json;
+  let data = JSON.stringify(json, null, 2);
+  fs.writeFile(config.output, data, (err) => {
+    if (err) throw err;
+  });
 }
