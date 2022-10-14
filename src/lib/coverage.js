@@ -153,31 +153,33 @@ function analyizeTestCoverage(config, files) {
         lineJson = JSON.parse(lineAscii.substring(subStart, subEnd));
         // Set inTest to true
         inTest = true;
-        console.log("test start");
         // Increment Test statememt count
         json.summary.tests++;
         fileJson.tests++;
         // Check if test is defined externally
         if (lineJson.file) {
+          referencePath = path.resolve(path.dirname(file), lineJson.file);
           // Check to make sure file exists
-          if (fs.existsSync(lineJson.file)) {
+          if (fs.existsSync(referencePath)) {
             if (lineJson.id) {
-              remoteJson = require(lineJson.file);
-              // Make sure test of matchibg ID exists in file
-            } else {
-              // log error
-              json.errors.push({
-                file,
-                lineNumber,
-                description: `Test with ID ${lineJson.id} missing from ${file}.`,
-              });
+              remoteJson = require(referencePath);
+              // Make sure test of matching ID exists in file
+              idMatch = remoteJson.tests.find(test => test.id === lineJson.id);
+              if (!idMatch) {
+                // log error
+                json.errors.push({
+                  file,
+                  lineNumber,
+                  description: `Test with ID ${lineJson.id} missing from ${referencePath}.`,
+                });
+              }
             }
           } else {
             // log error
             json.errors.push({
               file,
               lineNumber,
-              description: `Referenced file missing: ${file}.`,
+              description: `Referenced file missing: ${referencePath}.`,
             });
           }
         }
