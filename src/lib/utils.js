@@ -67,6 +67,10 @@ function setArgs(args) {
         "Boolean. Recursively find test files in the test directory. Defaults to true.",
       type: "string",
     })
+    .option("coverageOutput", {
+      description: "Path for a JSON file of coverage result output.",
+      type: "string",
+    })
     .option("ext", {
       description:
         "Comma-separated list of file extensions to test, including the leading period.",
