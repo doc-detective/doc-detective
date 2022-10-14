@@ -4,9 +4,8 @@
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
   "scripts": {
-    "preinstall": "npm i --save-dev install-cmake",
     "test": "node ./cli/index.js",
-    "make": "make.js"
+    "coverage": "node ./cli/coverage.js"
   },
   "repository": {
     "type": "git",
