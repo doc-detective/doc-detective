@@ -1,27 +1,18 @@
 {
   "name": "Doc Detective Content Coverage Report",
-  "timestamp": "20221014-083853",
+  "timestamp": "20221016-111152",
   "summary": {
-    "files": 1,
-    "tests": 3,
-    "ignoreBlocks": 0,
-    "hyperlink": {
-      "found": 2,
+    "covered": 5,
+    "uncovered": 0,
+    "onscreenText": {
       "covered": 2,
       "uncovered": 0
     },
-    "orderedList": {
-      "found": 5,
-      "covered": 5,
-      "uncovered": 0
-    },
     "image": {
-      "found": 1,
       "covered": 1,
       "uncovered": 0
     },
-    "onscreenText": {
-      "found": 2,
+    "hyperlink": {
       "covered": 2,
       "uncovered": 0
     }
@@ -29,29 +20,19 @@
   "files": [
     {
       "file": "/config/workspace/doc-detective/sample/doc-content.md",
-      "percentCovered": 0,
-      "tests": 3,
-      "ignoreBlocks": 0,
-      "hyperlink": {
-        "found": 2,
+      "covered": 5,
+      "uncovered": 0,
+      "onscreenText": {
         "covered": 2,
         "uncovered": 0,
         "uncoveredMatches": []
       },
-      "orderedList": {
-        "found": 5,
-        "covered": 5,
-        "uncovered": 0,
-        "uncoveredMatches": []
-      },
       "image": {
-        "found": 1,
         "covered": 1,
         "uncovered": 0,
         "uncoveredMatches": []
       },
-      "onscreenText": {
-        "found": 2,
+      "hyperlink": {
         "covered": 2,
         "uncovered": 0,
         "uncoveredMatches": []
