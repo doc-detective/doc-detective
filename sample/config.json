@@ -15,6 +15,7 @@
     ".json"
   ],
   "mediaDirectory": "sample",
+  "downloadDirectory": "./sample/",
   "saveFailedTestRecordings": true,
   "failedTestDirectory": "sample/failedTests",
   "fileTypes": [
