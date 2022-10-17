@@ -33,24 +33,27 @@
         "onscreenText": [
           "\\*\\*.+?\\*\\*"
         ],
+        "emphasis": [
+          "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
+        ],
         "image": [
           "!\\[.+?\\]\\(.+?\\)"
         ],
         "hyperlink": [
-          "[^!]\\[.+?\\]\\(.+?\\)"
+          "(?<!!)\\[.+?\\]\\(.+?\\)"
         ],
         "orderedList": [
-          "^ *?[0-9][0-9]?[0-9]?\\. +.*?$"
+          "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
         ],
         "unorderedList": [
-          "^ *?\\* +.*?$",
-          "^ *?- +.*?$"
+          "(?<=\n) *?\\*.\\s*.*",
+          "(?<=\n) *?-.\\s*.*"
         ],
         "codeInline": [
-          "`.+?`"
+          "(?<!`)`(?!`).+?(?<!`)`(?!`)"
         ],
         "codeBlock": [
-          ""
+          "(?=(```))(\\w|\\W)*(?<=```)"
         ],
         "interaction": [
           "[cC]lick",
@@ -75,7 +78,44 @@
       "testStartStatementClose": "-->",
       "testEndStatement": "<!-- test end -->",
       "actionStatementOpen": "<!-- action",
-      "actionStatementClose": "-->"
+      "actionStatementClose": "-->",
+      "markup": {
+        "onscreenText": [
+          "(?=(<b))(\\w|\\W)*(?<=<\/b>)"
+        ],
+        "emphasis": [
+          "(?=(<i))(\\w|\\W)*(?<=<\/i>)"
+        ],
+        "image": [
+          "(?=(<img))(\\w|\\W)*(?<=<\/img>|>)"
+        ],
+        "hyperlink": [
+          "(?=(<a))(\\w|\\W)*(?<=<\/a>)"
+        ],
+        "orderedList": [
+          "(?=(<ol))(\\w|\\W)*(?<=<\/ol>)"
+        ],
+        "unorderedList": [
+          "(?=(<ul))(\\w|\\W)*(?<=<\/ul>)"
+        ],
+        "codeInline": [
+          "(?=(<code))(\\w|\\W)*(?<=<\/code>)"
+        ],
+        "codeBlock": [
+          "(?=(<pre))(\\w|\\W)*(?<=<\/pre>)"
+        ],
+        "interaction": [
+          "[cC]lick",
+          "[tT]ap",
+          "[tT]ouch",
+          "[sS]elect",
+          "[cC]hoose",
+          "[tT]oggle",
+          "[eE]nable",
+          "[dD]isable",
+          "[tT]urn [oO][ff|n]"
+        ]
+      }
     }
   ],
   "browserOptions": {
