@@ -10,6 +10,27 @@
           "uri": "www.google.com"
         },
         {
+          "action": "startRecording",
+          "overwrite": false,
+          "filename": "results.gif",
+          "fps": 15
+        },
+        {
+          "action": "moveMouse",
+          "css": "#gbqfbb",
+          "alignH": "center",
+          "alignV": "center"
+        },
+        {
+          "action": "wait",
+          "duration": "5000"
+        },
+        {
+          "action": "moveMouse",
+          "css": "[title=Search]",
+          "alignV": "center"
+        },
+        {
           "action": "type",
           "css": "[title=Search]",
           "keys": "kittens",
@@ -18,6 +39,13 @@
         {
           "action": "wait",
           "duration": "5000"
+        },
+        {
+          "action": "scroll",
+          "y": 300
+        },
+        {
+          "action": "stopRecording"
         },
         {
           "action": "screenshot",

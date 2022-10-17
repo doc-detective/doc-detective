@@ -6,6 +6,9 @@ const { setEnvs, log, timestamp } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
+const { goTo } = require("./tests/goTo");
+const { moveMouse } = require("./tests/moveMouse");
+const { scroll } = require("./tests/scroll");
 const { screenshot } = require("./tests/screenshot");
 const { startRecording, stopRecording } = require("./tests/record");
 const { httpRequest } = require("./tests/httpRequest");
@@ -28,6 +31,18 @@ const defaultBrowserPaths = {
     "C:/Program Files/Mozilla Firefox/firefox.exe",
   ],
 };
+const browserActions = [
+  "goTo",
+  "find",
+  "matchText",
+  "click",
+  "type",
+  "moveMouse",
+  "scroll",
+  "screenshot",
+  "startRecording",
+  "stopRecording",
+];
 
 async function runTests(config, tests) {
   // Instantiate browser
@@ -90,33 +105,39 @@ async function runTests(config, tests) {
     let fail = 0;
     config.videoDetails = {};
     config.debugRecording = {};
-    // Instantiate page
-    const page = await browser.newPage();
-    await page._client.send("Page.setDownloadBehavior", {
-      behavior: "allow",
-      downloadPath: config.downloadDirectory,
-    });
-    if (
-      test.saveFailedTestRecordings ||
-      (config.saveFailedTestRecordings &&
-        test.saveFailedTestRecordings != false)
-    ) {
-      failedTestDirectory =
-        test.failedTestDirectory || config.failedTestDirectory;
-      debugRecordingOptions = {
-        action: "startRecording",
-        mediaDirectory: failedTestDirectory,
-        filename: `${test.id}-${timestamp()}.mp4`,
-        overwrite: true,
-      };
-      config.debugRecording = await startRecording(
-        debugRecordingOptions,
-        page,
-        config
-      );
+    let page = {};
+    const browserRequired = test.actions.some((action) =>
+      browserActions.includes(action.action)
+    );
+    if (browserRequired) {
+      // Instantiate page
+      log(config, "debug", "Instantiating page.");
+      page = await browser.newPage();
+      await page._client.send("Page.setDownloadBehavior", {
+        behavior: "allow",
+        downloadPath: config.downloadDirectory,
+      });      if (
+        test.saveFailedTestRecordings ||
+        (config.saveFailedTestRecordings &&
+          test.saveFailedTestRecordings != false)
+      ) {
+        failedTestDirectory =
+          test.failedTestDirectory || config.failedTestDirectory;
+        debugRecordingOptions = {
+          action: "startRecording",
+          mediaDirectory: failedTestDirectory,
+          filename: `${test.id}-${timestamp()}.mp4`,
+          overwrite: true,
+        };
+        config.debugRecording = await startRecording(
+          debugRecordingOptions,
+          page,
+          config
+        );
+      }
+      // Instantiate mouse cursor
+      await installMouseHelper(page);
     }
-    // Instantiate mouse cursor
-    await installMouseHelper(page);
     // Iterate through actions
     for (const action of test.actions) {
       log(config, "debug", `ACTION: ${JSON.stringify(action)}`);
@@ -188,7 +209,7 @@ async function runAction(config, action, page, videoDetails) {
   result.result = {};
   switch (action.action) {
     case "goTo":
-      result = await openUri(action, page);
+      result = await goTo(action, page);
       break;
     case "find":
       // Perform sub-action: wait
@@ -218,7 +239,12 @@ async function runAction(config, action, page, videoDetails) {
       // Perform sub-action: moveMouse
       if (action.moveMouse) {
         action.moveMouse.css = action.css;
-        move = await moveMouse(action.moveMouse, page, result.elementHandle);
+        move = await moveMouse(
+          action.moveMouse,
+          page,
+          result.elementHandle,
+          config
+        );
         delete action.moveMouse.css;
         result.result.description =
           result.result.description + " " + move.result.description;
@@ -269,10 +295,10 @@ async function runAction(config, action, page, videoDetails) {
     case "moveMouse":
       find = await findElement(action, page);
       if (find.result.status === "FAIL") return find;
-      result = await moveMouse(action, page, find.elementHandle);
+      result = await moveMouse(action, page, find.elementHandle, config);
       break;
     case "scroll":
-      result = await scroll(action, page);
+      result = await scroll(action, page, config);
       break;
     case "wait":
       result = await wait(action, page);
@@ -427,26 +453,6 @@ async function wait(action, page) {
   return { result };
 }
 
-async function scroll(action, page) {
-  let status;
-  let description;
-  let result;
-  try {
-    await page.mouse.wheel({ deltaX: action.x, deltaY: action.y });
-    // PASS
-    status = "PASS";
-    description = `Scroll complete.`;
-    result = { status, description };
-    return { result };
-  } catch {
-    // FAIL
-    status = "PASS";
-    description = `Couldn't scroll.`;
-    result = { status, description };
-    return { result };
-  }
-}
-
 // Click an element.  Assumes findElement() only found one matching element.
 async function typeElement(action, elementHandle) {
   let status;
@@ -524,71 +530,6 @@ async function clickElement(action, elementHandle) {
   description = `Clicked element.`;
   result = { status, description };
   return { result };
-}
-
-// Move mouse to an element.  Assumes findElement() only found one matching element.
-async function moveMouse(action, page, elementHandle) {
-  let status;
-  let description;
-  let result;
-  try {
-    // Calc coordinates
-    const bounds = await elementHandle.boundingBox();
-    let x = bounds.x;
-    if (action.offsetX) x = x + Number(action.offsetX);
-    if (action.alignH) {
-      if (action.alignH === "left") {
-        alignHOffset = 10;
-      } else if (action.alignH === "center") {
-        alignHOffset = bounds.width / 2;
-      } else if (action.alignH === "right") {
-        alignHOffset = bounds.width - 10;
-      } else {
-        // FAIL
-        status = "FAIL";
-        description = `Invalid 'alignH' value.`;
-        result = { status, description };
-        return { result };
-      }
-      x = x + alignHOffset;
-    }
-    let y = bounds.y;
-    if (action.offsetY) y = y + Number(action.offsetY);
-    if (action.alignV) {
-      if (action.alignV === "top") {
-        alignVOffset = 10;
-      } else if (action.alignV === "center") {
-        alignVOffset = bounds.height / 2;
-      } else if (action.alignV === "bottom") {
-        alignVOffset = bounds.height - 10;
-      } else {
-        // FAIL
-        status = "FAIL";
-        description = `Invalid 'alignV' value.`;
-        result = { status, description };
-        return { result };
-      }
-      y = y + alignVOffset;
-    }
-    // Move
-    await page.mouse.move(x, y, { steps: 25 });
-    // Display mouse cursor
-    await page.$eval(
-      "puppeteer-mouse-pointer",
-      (e) => (e.style.display = "block")
-    );
-    // PASS
-    status = "PASS";
-    description = `Moved mouse to element.`;
-    result = { status, description };
-    return { result };
-  } catch {
-    // FAIL
-    status = "FAIL";
-    description = `Couldn't move mouse to element.`;
-    result = { status, description };
-    return { result };
-  }
 }
 
 // Identify if text in element matches expected text. Assumes findElement() only found one matching element.
@@ -673,46 +614,4 @@ async function findElement(action, page) {
     let result = { status, description };
     return { result, elementHandle };
   }
-}
-
-// Open a URI in the browser
-async function openUri(action, page) {
-  let uri;
-  if (!action.uri) {
-    // FAIL: No URI
-    let status = "FAIL";
-    let description = "'uri' is a required field.";
-    let result = { status, description };
-    return { result };
-  }
-  // Load environment variables
-  if (action.env) {
-    let result = await setEnvs(action.env);
-    if (result.status === "FAIL") return { result };
-  }
-  if (
-    action.uri[0] === "$" &&
-    process.env[action.uri.substring(1)] != undefined
-  ) {
-    uri = process.env[action.uri.substring(1)];
-  } else {
-    uri = action.uri;
-  }
-  // Catch common formatting errors
-  if (!uri.includes("://")) uri = "https://" + uri;
-  // Run action
-  try {
-    await page.goto(uri);
-  } catch {
-    // FAIL: Error opening URI
-    let status = "FAIL";
-    let description = "Couldn't open URI.";
-    let result = { status, description };
-    return { result };
-  }
-  // PASS
-  let status = "PASS";
-  let description = "Opened URI.";
-  let result = { status, description };
-  return { result };
 }

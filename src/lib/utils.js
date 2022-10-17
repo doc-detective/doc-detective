@@ -67,6 +67,10 @@ function setArgs(args) {
         "Boolean. Recursively find test files in the test directory. Defaults to true.",
       type: "string",
     })
+    .option("coverageOutput", {
+      description: "Path for a JSON file of coverage result output.",
+      type: "string",
+    })
     .option("ext", {
       description:
         "Comma-separated list of file extensions to test, including the leading period.",
@@ -251,6 +255,17 @@ function setOutput(config, argv) {
     defaultConfig.output;
   config.output = path.resolve(config.output);
   log(config, "debug", `Output path set: ${config.output}`);
+  return config;
+}
+
+function setCoverageOutput(config, argv) {
+  config.coverageOutput =
+    argv.coverageOutput ||
+    process.env.DOC_COVERAGE_OUTPUT_PATH ||
+    config.coverageOutput ||
+    defaultConfig.coverageOutput;
+  config.coverageOutput = path.resolve(config.coverageOutput);
+  log(config, "debug", `Coverage output path set: ${config.coverageOutput}`);
   return config;
 }
 
@@ -683,6 +698,8 @@ function setConfig(config, argv) {
 
   config = setCleanup(config, argv);
 
+  config = setCoverageOutput(config, argv);
+
   config = setMediaDirectory(config, argv);
 
   config = setDownloadDirectory(config, argv);
@@ -871,7 +888,7 @@ function parseTests(config, files) {
       } else {
         log(
           config,
-          "warning",
+          "debug",
           `Skipping ${file} because of unexpected object structure.`
         );
         return;
@@ -940,14 +957,14 @@ function parseTests(config, files) {
   return json;
 }
 
-async function outputResults(config, results) {
+async function outputResults(path, results, config) {
   let data = JSON.stringify(results, null, 2);
-  fs.writeFile(config.output, data, (err) => {
+  fs.writeFile(path, data, (err) => {
     if (err) throw err;
   });
   log(config, "info", "RESULTS:");
   log(config, "info", results);
-  log(config, "info", `See detailed results at ${config.output}`);
+  log(config, "info", `See results at ${path}`);
   log(config, "info", "Cleaning up and finishing post-processing.");
 }
 

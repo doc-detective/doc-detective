@@ -2,45 +2,40 @@
 
 To use Google Search to find information on kittens,
 
-[comment]: # (test start {"id":"process-search-kittens" })
+[comment]: # (test start {"id":"process-search-kittens", "file":"./tests.json"})
 
 1.  Open [Google Search](https://www.google.com).
-
-    [comment]: # (action {"action":"startRecording", "overwrite":false, "filename":"results.gif", "fps":15})
-    [comment]: # (action {"action":"goTo", "uri":"www.google.com"})
-
 2.  In the search bar, enter "kittens", then press Enter.
-
-    [comment]: # (action {"action":"moveMouse", "css":"#gbqfbb", "alignH": "center", "alignV": "center"})
-    [comment]: # (action {"action":"wait", "duration":"5000"})
-    [comment]: # (action {"action":"moveMouse", "css":"[title=Search]", "alignV": "center"})
-    [comment]: # (action {"action":"type", "css":"[title=Search]", "keys":"kittens", "trailingSpecialKey":"Enter"})
-    [comment]: # (action {"action":"wait", "duration":"5000"})
-    [comment]: # (action {"action":"scroll", "y": 300})
-    [comment]: # (action {"action":"stopRecording"})
-    [comment]: # (action {"action":"screenshot", "filename":"results.png", "matchPrevious": true, "matchThreshold": 0.1})
-
-[comment]: # (test end {"id":"process-search-kittens" })
 
 Search results appear on the page.
 
 ![Search results for 'kittens'.](results.png)
 
+[comment]: # (test end)
+
 ## Recommended results
 
-To go directly to a recommended result for your search, use the **I'm Feeling Lucky** button. If you're searching for american shorthair information,
+[comment]: # (test start {"id":"text-match-lucky"})
 
-[comment]: # (action {"testId":"text-match-lucky", "action":"goTo", "uri":"www.google.com"})
-[comment]: # (action {"testId":"text-match-lucky", "action":"matchText", "css":"#gbqfbb", "text":"I'm Feeling Lucky"})
+To go directly to a recommended result for your search, use the **I'm Feeling Lucky** button.
+
+[comment]: # (action {"action":"goTo", "uri":"www.google.com"})
+[comment]: # (action {"action":"matchText", "css":"#gbqfbb", "text":"I'm Feeling Lucky"})
+[comment]: # (test end)
+
+[comment]: # (test start {"id":"process-lucky-shorthair"})
+
+ If you're searching for american shorthair information,
 
 1.  Open [Google Search](https://www.google.com).
 
-    [comment]: # (action {"testId":"process-lucky-shorthair", "action":"goTo", "uri":"www.google.com"})
+    [comment]: # (action {"action":"goTo", "uri":"www.google.com"})
 
 2.  In the search bar, enter "american shorthair cats".
 
-    [comment]: # (action {"testId":"process-lucky-shorthair", "action":"type", "css":"[title=Search]", "keys":"american shorthair cats"})
+    [comment]: # (action {"action":"type", "css":"[title=Search]", "keys":"american shorthair cats"})
 
 3.  Click **I'm Feeling Lucky**.
 
-    [comment]: # (action {"testId":"process-lucky-shorthair", "action":"click", "css":"#gbqfbb"})
+    [comment]: # (action {"action":"click", "css":"#gbqfbb"})
+    [comment]: # (test end)
