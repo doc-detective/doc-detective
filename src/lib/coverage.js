@@ -211,10 +211,11 @@ function checkMarkupCoverage(config, testCoverage) {
 
     // Only keep marks that have a truthy (>0) length
     Object.keys(markup).forEach((mark) => {
-      // Run a match
-      regex = new RegExp(markup[mark], "g");
-      matches = fileBody.match(regex);
-      if (matches != null) {
+      markup[mark].forEach((matcher) => {
+      console.log(matcher);
+        // Run a match
+        regex = new RegExp(matcher, "g");
+        matches = fileBody.match(regex);
         if (typeof markupCoverage.summary[mark] === "undefined") {
           markupCoverage.summary[mark] = {
             covered: 0,
@@ -230,41 +231,46 @@ function checkMarkupCoverage(config, testCoverage) {
             uncoveredMatches: [],
           };
         }
-        matches.forEach((match) => {
-          // Check for duplicates and handle lines separately
-          matchEscaped = match.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-          start = 0;
-          occuranceRegex = new RegExp(matchEscaped, "g");
-          occurances = fileBody.match(occuranceRegex).length;
-          for (i = 0; i < occurances; i++) {
-            index = fileBody.slice(start).match(matchEscaped).index;
-            line = fileBody.slice(0, start + index).split(/\r\n|\r|\n/).length;
-            start = start + index + 1;
-            if (
-              file.coveredLines.includes(line) &&
-              !fileJson[mark].coveredLines.includes(line)
-            ) {
-              markupCoverage.summary.covered++;
-              markupCoverage.summary[mark].covered++;
-              fileJson[mark].coveredLines.push(line);
-              fileJson.covered++;
-              fileJson[mark].covered++;
-            } else if (
-              file.uncoveredLines.includes(line) &&
-              !fileJson[mark].uncoveredLines.includes(line)
-            ) {
-              markupCoverage.summary.uncovered++;
-              markupCoverage.summary[mark].uncovered++;
-              fileJson[mark].uncoveredLines.push(line);
-              fileJson.uncovered++;
-              fileJson[mark].uncovered++;
-              fileJson[mark].uncoveredMatches.push({ line, text: match });
+        if (matches != null) {
+          matches.forEach((match) => {
+            // Check for duplicates and handle lines separately
+            matchEscaped = match.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+            start = 0;
+            occuranceRegex = new RegExp(matchEscaped, "g");
+            occurances = fileBody.match(occuranceRegex).length;
+            for (i = 0; i < occurances; i++) {
+              index = fileBody.slice(start).match(matchEscaped).index;
+              line = fileBody
+                .slice(0, start + index)
+                .split(/\r\n|\r|\n/).length;
+              start = start + index + 1;
+              if (
+                file.coveredLines.includes(line) &&
+                !fileJson[mark].coveredLines.includes(line)
+              ) {
+                markupCoverage.summary.covered++;
+                markupCoverage.summary[mark].covered++;
+                fileJson[mark].coveredLines.push(line);
+                fileJson.covered++;
+                fileJson[mark].covered++;
+              } else if (
+                file.uncoveredLines.includes(line) &&
+                !fileJson[mark].uncoveredLines.includes(line)
+              ) {
+                markupCoverage.summary.uncovered++;
+                markupCoverage.summary[mark].uncovered++;
+                fileJson[mark].uncoveredLines.push(line);
+                fileJson.uncovered++;
+                fileJson[mark].uncovered++;
+                fileJson[mark].uncoveredMatches.push({ line, text: match });
+              }
             }
-          }
-        });
-        delete fileJson[mark].coveredLines;
-        delete fileJson[mark].uncoveredLines;
-      }
+          });
+        }
+      });
+      delete fileJson[mark].coveredLines;
+      delete fileJson[mark].uncoveredLines;
+
     });
     markupCoverage.files.push(fileJson);
   });
