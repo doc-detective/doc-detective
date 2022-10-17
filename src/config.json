@@ -76,6 +76,7 @@
       ],
       "testStartStatementOpen": "<!-- test start",
       "testStartStatementClose": "-->",
+      "testIgnoreStatement": "<!-- test ignore -->",
       "testEndStatement": "<!-- test end -->",
       "actionStatementOpen": "<!-- action",
       "actionStatementClose": "-->",

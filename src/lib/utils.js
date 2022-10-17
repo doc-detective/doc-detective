@@ -86,6 +86,19 @@ function setArgs(args) {
       description: "Path to the media output directory.",
       type: "string",
     })
+    .option("downloadDir", {
+      description: "Path to the download directory.",
+      type: "string",
+    })
+    .option("saveFailedTestRecordings", {
+      description:
+        "Boolean. Whether to save recordings of failed tests. Defaults to true.",
+      type: "string",
+    })
+    .option("failedTestDir", {
+      description: "Path to the failed test directory.",
+      type: "string",
+    })
     .option("browserHeadless", {
       description:
         "Boolean. Whether to run the browser in headless mode. Defaults to true.",
@@ -315,6 +328,26 @@ function setMediaDirectory(config, argv) {
   return config;
 }
 
+function setDownloadDirectory(config, argv) {
+  config.downloadDirectory =
+    argv.downloadDir ||
+    process.env.DOC_MEDIA_DIRECTORY_PATH ||
+    config.downloadDirectory ||
+    defaultConfig.downloadDirectory;
+  config.downloadDirectory = path.resolve(config.downloadDirectory);
+  if (fs.existsSync(config.downloadDirectory)) {
+    log(config, "debug", `Download directory set: ${config.downloadDirectory}`);
+  } else {
+    config.downloadDirectory = path.resolve(defaultConfig.downloadDirectory);
+    log(
+      config,
+      "warning",
+      `Invalid download directory. Reverted to default: ${config.downloadDirectory}`
+    );
+  }
+  return config;
+}
+
 function setFailedTestRecording(config, argv) {
   config.saveFailedTestRecordings =
     argv.saveFailedTestRecordings ||
@@ -354,7 +387,7 @@ function setFailedTestRecording(config, argv) {
 
 function setFailedTestDirectory(config, argv) {
   config.failedTestDirectory =
-    argv.failedTestDirectory ||
+    argv.failedTestDir ||
     process.env.DOC_FAILED_TEST_DIRECTORY_PATH ||
     config.failedTestDirectory ||
     defaultConfig.failedTestDirectory;
@@ -668,6 +701,8 @@ function setConfig(config, argv) {
   config = setCoverageOutput(config, argv);
 
   config = setMediaDirectory(config, argv);
+
+  config = setDownloadDirectory(config, argv);
 
   config = setFailedTestRecording(config, argv);
 

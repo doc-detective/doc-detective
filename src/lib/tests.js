@@ -113,7 +113,10 @@ async function runTests(config, tests) {
       // Instantiate page
       log(config, "debug", "Instantiating page.");
       page = await browser.newPage();
-      if (
+      await page._client.send("Page.setDownloadBehavior", {
+        behavior: "allow",
+        downloadPath: config.downloadDirectory,
+      });      if (
         test.saveFailedTestRecordings ||
         (config.saveFailedTestRecordings &&
           test.saveFailedTestRecordings != false)
