@@ -6,6 +6,10 @@
       "failedTestDirectory": "sample",
       "actions": [
         {
+          "action": "goTo",
+          "uri": "www.google.com"
+        },
+        {
           "action": "startRecording",
           "overwrite": false,
           "filename": "results.gif",
