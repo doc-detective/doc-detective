@@ -1,11 +1,15 @@
 {
   "name": "Doc Detective Content Coverage Report",
-  "timestamp": "20221016-111152",
+  "timestamp": "20221017-083214",
   "summary": {
-    "covered": 5,
+    "covered": 12,
     "uncovered": 0,
     "onscreenText": {
       "covered": 2,
+      "uncovered": 0
+    },
+    "emphasis": {
+      "covered": 0,
       "uncovered": 0
     },
     "image": {
@@ -15,15 +19,40 @@
     "hyperlink": {
       "covered": 2,
       "uncovered": 0
+    },
+    "orderedList": {
+      "covered": 5,
+      "uncovered": 0
+    },
+    "unorderedList": {
+      "covered": 0,
+      "uncovered": 0
+    },
+    "codeInline": {
+      "covered": 0,
+      "uncovered": 0
+    },
+    "codeBlock": {
+      "covered": 0,
+      "uncovered": 0
+    },
+    "interaction": {
+      "covered": 2,
+      "uncovered": 0
     }
   },
   "files": [
     {
       "file": "/config/workspace/doc-detective/sample/doc-content.md",
-      "covered": 5,
+      "covered": 12,
       "uncovered": 0,
       "onscreenText": {
         "covered": 2,
+        "uncovered": 0,
+        "uncoveredMatches": []
+      },
+      "emphasis": {
+        "covered": 0,
         "uncovered": 0,
         "uncoveredMatches": []
       },
@@ -33,6 +62,31 @@
         "uncoveredMatches": []
       },
       "hyperlink": {
+        "covered": 2,
+        "uncovered": 0,
+        "uncoveredMatches": []
+      },
+      "orderedList": {
+        "covered": 5,
+        "uncovered": 0,
+        "uncoveredMatches": []
+      },
+      "unorderedList": {
+        "covered": 0,
+        "uncovered": 0,
+        "uncoveredMatches": []
+      },
+      "codeInline": {
+        "covered": 0,
+        "uncovered": 0,
+        "uncoveredMatches": []
+      },
+      "codeBlock": {
+        "covered": 0,
+        "uncovered": 0,
+        "uncoveredMatches": []
+      },
+      "interaction": {
         "covered": 2,
         "uncovered": 0,
         "uncoveredMatches": []
