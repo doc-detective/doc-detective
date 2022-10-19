@@ -116,7 +116,8 @@ async function runTests(config, tests) {
       await page._client.send("Page.setDownloadBehavior", {
         behavior: "allow",
         downloadPath: config.downloadDirectory,
-      });      if (
+      });
+      if (
         test.saveFailedTestRecordings ||
         (config.saveFailedTestRecordings &&
           test.saveFailedTestRecordings != false)
@@ -213,13 +214,12 @@ async function runAction(config, action, page, videoDetails) {
       break;
     case "find":
       // Perform sub-action: wait
-      if (action.wait) {
-        action.wait.css = action.css;
-        waitResult = await wait(action.wait, page);
-        delete action.wait.css;
-        if (waitResult.result.status === "FAIL") {
-          return waitResult;
-        }
+      if (typeof action.wait === "undefined") action.wait = {};
+      action.wait.css = action.css;
+      waitResult = await wait(action.wait, page);
+      delete action.wait.css;
+      if (waitResult.result.status === "FAIL") {
+        return waitResult;
       }
       // Perform find
       result = await findElement(action, page);
