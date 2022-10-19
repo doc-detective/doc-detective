@@ -8,7 +8,9 @@ const {
 } = require("./lib/utils");
 const { sendAnalytics } = require("./lib/analytics.js");
 const { runTests } = require("./lib/tests");
-const { checkTestCoverage, checkMarkupCoverage } = require("./lib/coverage");
+const { checkTestCoverage, checkMarkupCoverage } = require("./lib/analysis");
+const { reportCoverage } = require("./lib/coverage");
+const { exit } = require("process");
 
 exports.run = main;
 exports.coverage = coverage;
@@ -72,6 +74,10 @@ async function coverage(config, argv) {
   log(config, "debug", "(DEBUG) MARKUP COVERAGE:");
   log(config, "debug", markupCoverage);
 
+  const coverageReport = reportCoverage(config, markupCoverage);
+  log(config, "debug", "(DEBUG) COVERAGE REPORT:");
+  log(config, "debug", coverageReport);
+
   // Output
-  outputResults(config.coverageOutput, markupCoverage, config);
+  outputResults(config.coverageOutput, coverageReport, config);
 }
