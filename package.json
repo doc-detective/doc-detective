@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
   "scripts": {
