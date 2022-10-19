@@ -6,6 +6,20 @@ async function moveMouse(action, page, elementHandle, config) {
   let description;
   let result;
 
+  // Set defaults
+  defaults = {
+    alignH: "center",
+    alignV: "center",
+    offsetX: 0,
+    offsetY: 0,
+  };
+
+  // Process fallbacks
+  action.alignH = action.alignH || defaults.alignH;
+  action.alignV = action.alignV || defaults.alignV;
+  action.offsetX = action.offsetX || defaults.offsetX;
+  action.offsetY = action.offsetY || defaults.offsetY;
+
   if (
     Object.keys(config.videoDetails).length === 0 &&
     Object.keys(config.debugRecording).length === 0
