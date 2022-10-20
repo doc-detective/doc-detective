@@ -147,6 +147,19 @@ function buildFind(intent, match) {
   };
 }
 
+function transformMatches(fileMarkupObject) {
+  matches = [];
+  Object.keys(fileMarkupObject).forEach((mark) => {
+    fileMarkupObject[mark].uncoveredMatches.forEach((match) => {
+      match.type = mark;
+      matches.push(match);
+    });
+  });
+
+  matches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
+  return matches;
+}
+
 function suggestTests(config, markupCoverage) {
   let suggestions = {
     tests: [],
