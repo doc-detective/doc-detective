@@ -133,7 +133,7 @@ function buildCheckLink(config, match) {
 
   // Prep
   defaults = {
-    action: "goTo",
+    action: "checkLink",
     uri: text[0],
   };
   action = {
@@ -164,28 +164,61 @@ function buildCheckLink(config, match) {
   return action;
 }
 
-function buildFind(match, intent) {
-  prompts = [
-    "What is the unique CSS selector for the element?",
-    "What text do you want to match?",
-    "Do you want to move the mouse to the element?",
-    "Do you want to click the element?",
-    "What keys do you want to type?",
-    "What trailing special keys do you want to press after you type? For example, 'Enter'. Leave blank for none.",
-  ];
-  action = {
+function buildFind(config, match, intent) {
+  // Prep
+  defaults = {
     action: "find",
     css: "",
+    wait: {
+      duration: 10000,
+    },
     matchText: {
-      text: "$TEXT",
+      text: "",
     },
     moveMouse: {},
     click: {},
     type: {
-      keys: "$KEYS",
-      specialTrailingKey: "$SPECIAL_KEY",
+      keys: "",
+      specialTrailingKey: "",
     },
   };
+  action = {
+    action: "find",
+  };
+
+  // Filter input
+  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/);
+
+  // Update defaults
+  switch (intent) {
+    case "type":
+      defaults.type.keys = text;
+      break;
+    default:
+      defaults.matchText.text = text;
+      break;
+  }
+
+  // CSS (Required)
+  // Define
+  console.log("-");
+  let message = constructPrompt(
+    "(Required) What is the unique CSS selector for the element?",
+    defaults.css
+  );
+  let css = prompt(message);
+  css = css || defaults.css;
+  // Required value. Return early if empty.
+  if (!css) {
+    log(config, "warning", "Skipping markup. Required value is empty.");
+    return null;
+  }
+  // Set
+  action.css = css;
+
+  // Report
+  log(config, "debug", action);
+  return action;
 }
 
 function buildScreenshot(match) {
@@ -281,7 +314,7 @@ function suggestTests(config, markupCoverage) {
       if (intent === null) return;
       switch (intent) {
         case "find":
-          action = buildFind(config, match);
+          action = buildFind(config, match, intent);
           break;
         case "matchText":
           action = buildMatchText(config, match);
