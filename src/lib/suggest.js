@@ -35,6 +35,25 @@ function constructPrompt(prompt, defaultValue) {
   if (defaultValue) prompt = `${prompt}[Default: ${defaultValue}] `;
   return prompt;
 }
+function decideIntent(match) {
+  console.log(`Found '${match.text}' on line ${match.line}.`);
+  console.log(
+    `What do you want to do with this ${
+      markupToIntent[match.type].item
+    }? Enter nothing to ignore.`
+  );
+  markupToIntent[match.type].intents.forEach((intent, index) => {
+    console.log(`(${index + 1}) ${intent.description}`);
+  });
+  let choice = prompt("Enter a value: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    return markupToIntent[match.type].intents[choice].intent;
+  } else {
+    // Ignore match
+    return null;
+  }
+}
 
 function buildGoTo(config, match) {
   // Prep
