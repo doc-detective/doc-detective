@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node ./cli/index.js",
-    "coverage": "node ./cli/coverage.js"
+    "coverage": "node ./cli/coverage.js",
+    "suggest": "node ./cli/suggest.js"
   },
   "repository": {
     "type": "git",

@@ -6,6 +6,7 @@
   "cleanup": "",
   "recursive": true,
   "coverageOutput": "./sample/coverage.json",
+  "testSuggestionOutput": "./sample/testSuggestions.json",
   "testExtensions": [
     ".md",
     ".mdx",
