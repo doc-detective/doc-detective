@@ -1,6 +1,7 @@
 const prompt = require("prompt-sync")({ sigint: true });
 const { log } = require("./utils");
 const { sanitizeUri } = require("./sanitize");
+const { exit } = require("process");
 
 exports.suggestTests = suggestTests;
 
@@ -89,7 +90,7 @@ function decideIntent(match) {
   }
 }
 
-function buildGoTo(config, match) {
+function buildGoTo(match) {
   // Prep
   defaults = {
     action: "goTo",
@@ -202,13 +203,14 @@ function buildFind(intent, match) {
 
 function transformMatches(fileMarkupObject) {
   matches = [];
+  // Load array with uncovered matches
   Object.keys(fileMarkupObject).forEach((mark) => {
     fileMarkupObject[mark].uncoveredMatches.forEach((match) => {
       match.type = mark;
       matches.push(match);
     });
   });
-
+  // Sort matches by line, then index
   matches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
   return matches;
 }
@@ -218,6 +220,25 @@ function suggestTests(config, markupCoverage) {
     tests: [],
   };
 
-  markupCoverage.files.forEach((file) => {});
+  markupCoverage.files.forEach((file) => {
+    console.log("------");
+    console.log(`File: ${file.file}`);
+
+    matches = transformMatches(file.markup);
+    matches.forEach((match) => {
+      // Skip over certain match types
+      if (match.type === "unorderedList" || match.type === "orderedList")
+        return;
+      // Deliniate match
+      console.log("---");
+      // Prompt for intent
+      intent = decideIntent(match);
+      // Skip over if user ignored prompt
+      if (intent === null) return;
+      console.log(intent);
+    });
+  });
+
+  exit();
   return suggestions;
 }
