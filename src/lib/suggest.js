@@ -4,30 +4,64 @@ const { sanitizeUri } = require("./sanitize");
 
 exports.suggestTests = suggestTests;
 
-buildGoTo();
-
 const intents = {
-  find: {},
-  matchText: {},
-  type: {},
-  click: {},
-  captureImage: {},
-  matchImage: {},
-  openLink: {},
-  checkLink: {},
-  runScript: {},
-  makeHttpRequest: {},
+  find: { intent: "find", description: "Find an element." },
+  matchText: {
+    intent: "matchText",
+    description: "Verify that an element has this text.",
+  },
+  type: { intent: "type", description: "Type keys in an element." },
+  click: { intent: "click", description: "Click an element." },
+  captureImage: { intent: "captureImage", description: "Capture an image." },
+  openLink: { intent: "openLink", description: "Open the link." },
+  checkLink: {
+    intent: "checkLink",
+    description: "Check that the link is valid.",
+  },
+  runShell: {
+    intent: "runShell",
+    description: "Perform a native command, such as running a script.",
+  },
+  makeHttpRequest: {
+    intent: "makeHttpRequest",
+    description: "Make an HTTP request, such as calling an API.",
+  },
 };
 
 const markupToIntent = {
-  onscreenText: ["find", "matchText", "click"],
-  image: ["capture", "matchImage"],
-  hyperlink: ["openLink", "checkLink"],
-  orderedList: ["click"],
-  unorderedList: [],
-  codeInline: ["runScript", "makeHttpRequest"],
-  codeBlock: ["runScript", "makeHttpRequest"],
-  interction: ["find", "click"],
+  onscreenText: {
+    item: "text",
+    intents: [intents.find, intents.matchText, intents.click],
+  },
+  image: {
+    item: "image",
+    intents: [intents.captureImage],
+  },
+  hyperlink: {
+    item: "link",
+    intents: [intents.openLink, intents.checkLink],
+  },
+  codeInline: {
+    item: "inline code",
+    intents: [intents.makeHttpRequest, intents.runShell],
+  },
+  codeBlock: {
+    item: "code block",
+    intents: [intents.makeHttpRequest, intents.runShell],
+  },
+  interction: {
+    item: "item",
+    intents: [
+      intents.find,
+      intents.matchText,
+      intents.click,
+      intents.type,
+      intents.openLink,
+      intents.checkLink,
+      intents.makeHttpRequest,
+      intents.runShell,
+    ],
+  },
 };
 
 function constructPrompt(prompt, defaultValue) {
