@@ -50,7 +50,7 @@ const markupToIntent = {
     item: "code block",
     intents: [intents.makeHttpRequest, intents.runShell],
   },
-  interction: {
+  interaction: {
     item: "item",
     intents: [
       intents.find,
@@ -67,7 +67,7 @@ const markupToIntent = {
 
 function constructPrompt(prompt, defaultValue) {
   prompt = `${prompt.trim()} `;
-  if (defaultValue) prompt = `${prompt}[Default: ${defaultValue}] `;
+  if (defaultValue) prompt = `${prompt}[${defaultValue}] `;
   return prompt;
 }
 function decideIntent(match) {
@@ -90,11 +90,14 @@ function decideIntent(match) {
   }
 }
 
-function buildGoTo(match) {
+function buildGoTo(config, match) {
+  // Filter input
+  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/);
+
   // Prep
   defaults = {
     action: "goTo",
-    uri: "",
+    uri: text[0],
   };
   action = {
     action: "goTo",
@@ -102,18 +105,62 @@ function buildGoTo(match) {
 
   // URI (Required)
   // Define
+  console.log("-");
   let message = constructPrompt(
-    "(Required) What URI do you want to open?",
+    "(Required) Which URI do you want to open?",
     defaults.uri
   );
   let uri = prompt(message);
+  uri = uri || defaults.uri;
+  // Required value. Return early if empty.
+  if (!uri) {
+    log(config, "warning", "Skipping markup. Required value is empty.");
+    return null;
+  }
   // Sanitize
   uri = sanitizeUri(uri);
   // Set
-  action.uri = uri || defaults.uri;
+  action.uri = uri;
 
   // Report
-  console.log(action);
+  log(config, "debug", action);
+  return action;
+}
+
+function buildCheckLink(config, match) {
+  // Filter input
+  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/);
+
+  // Prep
+  defaults = {
+    action: "goTo",
+    uri: text[0],
+  };
+  action = {
+    action: "checkLink",
+  };
+
+  // URI (Required)
+  // Define
+  console.log("-");
+  let message = constructPrompt(
+    "(Required) Which URI do you want to validate?",
+    defaults.uri
+  );
+  let uri = prompt(message);
+  uri = uri || defaults.uri;
+  // Required value. Return early if empty.
+  if (!uri) {
+    log(config, "warning", "Skipping markup. Required value is empty.");
+    return null;
+  }
+  // Sanitize
+  uri = sanitizeUri(uri);
+  // Set
+  action.uri = uri;
+
+  // Report
+  log(config, "debug", action);
   return action;
 }
 
@@ -145,14 +192,6 @@ function buildScreenshot(match) {
   prompts = [];
   action = {
     action: "goTo",
-    uri: "",
-  };
-}
-
-function buildCheckLink(match) {
-  prompts = [];
-  action = {
-    action: "checkLink",
     uri: "",
   };
 }
@@ -221,6 +260,11 @@ function suggestTests(config, markupCoverage) {
   };
 
   markupCoverage.files.forEach((file) => {
+    test = {
+      file: file.file,
+      actions: [],
+    };
+
     console.log("------");
     console.log(`File: ${file.file}`);
 
@@ -235,10 +279,42 @@ function suggestTests(config, markupCoverage) {
       intent = decideIntent(match);
       // Skip over if user ignored prompt
       if (intent === null) return;
-      console.log(intent);
+      switch (intent) {
+        case "find":
+          action = buildFind(config, match);
+          break;
+        case "matchText":
+          action = buildMatchText(config, match);
+          break;
+        case "type":
+          action = buildType(config, match);
+          break;
+        case "click":
+          action = buildClick(config, match);
+          break;
+        case "captureImage":
+          action = buildScreenshot(config, match);
+          break;
+        case "openLink":
+          action = buildGoTo(config, match);
+          break;
+        case "checkLink":
+          action = buildCheckLink(config, match);
+          break;
+        case "makeHttpRequest":
+          action = buildHttpRequest(config, match);
+          break;
+        case "runShell":
+          action = buildRunShell(config, match);
+          break;
+        default:
+          break;
+      }
+      // Only add to array when action present
+      if (action) test.actions.push(action);
     });
+    suggestions.tests.push(test);
   });
-
-  exit();
+  console.log(suggestions);
   return suggestions;
 }
