@@ -1,6 +1,6 @@
 const prompt = require("prompt-sync")({ sigint: true });
 const { log } = require("./utils");
-const { sanitizeUri } = require("./sanitize");
+const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
 
 exports.suggestTests = suggestTests;
