@@ -1,5 +1,6 @@
 const prompt = require("prompt-sync")({ sigint: true });
 const fs = require("fs");
+const uuid = require("uuid");
 const { log } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
@@ -225,6 +226,7 @@ function buildFind(config, match, intent) {
   // Match text
   // Define
   console.log("-");
+  console.log(intent);
   if (intent === "matchText") {
     matchText = "yes";
   } else {
@@ -248,6 +250,7 @@ function buildFind(config, match, intent) {
       console.log("What text do you expect the element to have?");
       message = constructPrompt("Text", defaults.matchText.text);
       matchText = prompt(message);
+      matchText = matchText || defaults.matchText.text;
       break;
     default:
       matchText = null;
@@ -290,7 +293,7 @@ function buildFind(config, match, intent) {
 
   // Click
   // Define
-  if (intent === "matchText") {
+  if (intent === "click") {
     click = "yes";
   } else {
     console.log("-");
@@ -347,6 +350,7 @@ function buildFind(config, match, intent) {
       console.log("What text do you want to type?");
       message = constructPrompt("Text", defaults.type.keys);
       keys = prompt(message);
+      keys = keys || defaults.type.keys;
       break;
     default:
       keys = null;
@@ -399,9 +403,78 @@ function buildFind(config, match, intent) {
 }
 
 function buildScreenshot(config, match) {
-  action = {
-    action: "goTo",
+  // Filter input
+  text =
+    match.text.match(/(?<=\()(\w|\W)*(?=\))/) ||
+    match.text.match(/(?<=src=")(\w|\W)*(?=")/);
+  if (text) text = text[0];
+
+  defaults = {
+    action: "screenshot",
+    filename: text || `${uuid.v4()}.png`,
+    matchPrevious: "Yes",
+    matchThreshold: 10,
   };
+  action = {
+    action: "screenshot",
+  };
+
+  // Filename
+  // Define
+  console.log("-");
+  let message = constructPrompt("Filename", defaults.filename);
+  console.log(
+    "What do you want the screenshot filename to be? Must end in '.png'. If left empty, defaults to a random string."
+  );
+  let filename = prompt(message);
+  filename = filename || defaults.filename;
+  // Set
+  action.filename = filename;
+
+  // Match previous
+  // Define
+  console.log("-");
+  console.log(
+    "During testing, do you want to check for differences (such as UI changes) between new and old screenshots?"
+  );
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
+  );
+  choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    matchPrevious = responses[choice];
+  } else {
+    matchPrevious = "No";
+  }
+  switch (matchPrevious.toLowerCase()) {
+    case "yes":
+    case "y":
+      matchPrevious = true;
+      console.log();
+      console.log(
+        "On a scale of 0-100, what is the mimumim percentage of a new screenshot that must be different to make this action fail?"
+      );
+      message = constructPrompt("Percentage", defaults.matchThreshold);
+      matchThreshold = prompt(message);
+      matchThreshold = matchThreshold.replace("%", "");
+      matchThreshold = Number(matchThreshold) / 100;
+      break;
+    default:
+      matchPrevious = null;
+      matchThreshold = null;
+      break;
+  }
+  // Optional value. Set if present.
+  if (matchPrevious && matchThreshold) {
+    action.matchPrevious = matchPrevious;
+    action.matchThreshold = matchThreshold;
+  }
+
+  // Report
+  log(config, "debug", action);
+  return action;
 }
 
 function buildHttpRequest(config, match) {
@@ -410,6 +483,8 @@ function buildHttpRequest(config, match) {
     action: "httpRequest",
     uri: "",
   };
+  console.log("Not yet supported.");
+  return null;
 }
 
 function buildRunShell(config, match) {
