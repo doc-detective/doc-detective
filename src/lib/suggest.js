@@ -238,40 +238,74 @@ function buildHttpRequest(match) {
   };
 }
 
-function buildRunShell(match) {
-  prompts = [
-    "Do you want to load environment variables before running the command?",
-    "What command do you want to run?",
-  ];
-  action = {
+function buildRunShell(config, match) {
+  defaults = {
     action: "runShell",
     command: "",
     env: "",
   };
+  action = {
+    action: "runShell",
+  };
+
+  // Command (Required)
+  // Define
+  console.log("-");
+  let message = constructPrompt("Command:", defaults.command);
+  console.log(
+    "(Required) What command do you want to run? If specifying a path, enter a fully qualified file path or a path relative to the current working directory."
+  );
+  let command = prompt(message);
+  command = command || defaults.command;
+  // Required value. Return early if empty.
+  if (!command) {
+    log(config, "warning", "Skipping markup. Required value is empty.");
+    return null;
+  }
+  // Set
+  action.command = command;
+
+  // Env
+  // Define
+  console.log("-");
+  console.log(
+    "Do you want to load environment variables before running the command?"
+  );
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
+  );
+  let choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    env = responses[choice];
+  } else {
+    env = "No";
+  }
+  switch (env.toLowerCase()) {
+    case "yes":
+    case "y":
+      console.log();
+      console.log(
+        "What is the path to your .env file? Enter a fully qualified file path or a path relative to the current working directory."
+      );
+      env = prompt("Path: ");
+      // Sanitize
+      env = sanitizePath(env);
+      break;
+    default:
+      env = null;
+      break;
+  }
+  env = env || defaults.env;
+  // Optional value. Set if present.
+  if (env) {
+    action.env = env;
 }
 
-function buildFind(intent, match) {
-  prompts = [
-    "What is the unique CSS selector for the element?",
-    "What text do you want to match?",
-    "Do you want to move the mouse to the element?",
-    "Do you want to click the element?",
-    "What keys do you want to type?",
-    "What trailing special keys do you want to press after you type? For example, 'Enter'. Leave blank for none.",
-  ];
-  action = {
-    action: "find",
-    css: "",
-    matchText: {
-      text: "$TEXT",
-    },
-    moveMouse: {},
-    click: {},
-    type: {
-      keys: "$KEYS",
-      specialTrailingKey: "$SPECIAL_KEY",
-    },
-  };
+  // Report
+  log(config, "debug", action);
+  return action;
 }
 
 function transformMatches(fileMarkupObject) {
