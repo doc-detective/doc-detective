@@ -46,11 +46,13 @@ const markupToIntent = {
   },
   codeInline: {
     item: "inline code",
-    intents: [intents.makeHttpRequest, intents.runShell],
+    //intents: [intents.makeHttpRequest, intents.runShell],
+    intents: [intents.runShell],
   },
   codeBlock: {
     item: "code block",
-    intents: [intents.makeHttpRequest, intents.runShell],
+    //intents: [intents.makeHttpRequest, intents.runShell],
+    intents: [intents.runShell],
   },
   interaction: {
     item: "item",
@@ -61,7 +63,7 @@ const markupToIntent = {
       intents.type,
       intents.openLink,
       intents.checkLink,
-      intents.makeHttpRequest,
+      // intents.makeHttpRequest,
       intents.runShell,
     ],
   },
@@ -477,6 +479,7 @@ function buildScreenshot(config, match) {
 }
 
 function buildHttpRequest(config, match) {
+  console.log();
   console.log("Not yet supported by this test builder. For action details, see https://github.com/hawkeyexl/doc-detective#http-request");
   return null;
 
@@ -530,7 +533,7 @@ function buildRunShell(config, match) {
   // Command (Required)
   // Define
   console.log("-");
-  let message = constructPrompt("Command:", defaults.command);
+  let message = constructPrompt("Command", defaults.command);
   console.log(
     "(Required) What command do you want to run? If specifying a path, enter a fully qualified file path or a path relative to the current working directory."
   );
