@@ -341,8 +341,6 @@ function suggestTests(config, markupCoverage) {
       // Skip over certain match types
       if (match.type === "unorderedList" || match.type === "orderedList")
         return;
-      // Deliniate match
-      console.log("---");
       // Prompt for intent
       intent = decideIntent(match);
       // Skip over if user ignored prompt
@@ -376,6 +374,7 @@ function suggestTests(config, markupCoverage) {
           action = buildRunShell(config, match);
           break;
         default:
+          action = null;
           break;
       }
       // Only add to array when action present
