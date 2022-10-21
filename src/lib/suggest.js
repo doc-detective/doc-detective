@@ -477,13 +477,44 @@ function buildScreenshot(config, match) {
 }
 
 function buildHttpRequest(config, match) {
-  prompts = [];
+  console.log("Not yet supported by this test builder. For action details, see https://github.com/hawkeyexl/doc-detective#http-request");
+  return null;
+
+  // Filter input
+  text =
+    match.text.match(/(?<=\()(\w|\W)*(?=\))/) ||
+    match.text.match(/(?<=href=")(\w|\W)*(?=")/);
+  if (text) text = text[0];
+
+  // Prep
+  defaults = {
+    action: "httpRequest",
+    uri: text,
+  };
   action = {
     action: "httpRequest",
-    uri: "",
   };
-  console.log("Not yet supported.");
-  return null;
+
+  // URI (Required)
+  // Define
+  console.log("-");
+  let message = constructPrompt("URI", defaults.uri);
+  console.log("(Required) Which URI do you want to validate?");
+  let uri = prompt(message);
+  uri = uri || defaults.uri;
+  // Required value. Return early if empty.
+  if (!uri) {
+    log(config, "warning", "Skipping markup. Required value is empty.");
+    return null;
+  }
+  // Sanitize
+  uri = sanitizeUri(uri);
+  // Set
+  action.uri = uri;
+
+  // Report
+  log(config, "debug", action);
+  return action;
 }
 
 function buildRunShell(config, match) {
