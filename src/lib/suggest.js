@@ -254,6 +254,35 @@ function buildFind(config, match, intent) {
     action.matchText.text = matchText;
   }
 
+  // Move mouse
+  // Define
+  console.log("-");
+  console.log("Do you want to move the mouse to the element?");
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
+  );
+  choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    moveMouse = responses[choice];
+  } else {
+    moveMouse = "No";
+  }
+  switch (moveMouse.toLowerCase()) {
+    case "yes":
+    case "y":
+      moveMouse = {};
+      break;
+    default:
+      moveMouse = null;
+      break;
+  }
+  // Optional value. Set if present.
+  if (moveMouse) {
+    action.moveMouse = moveMouse;
+  }
+
   // Click
   // Define
   console.log("-");
@@ -332,7 +361,9 @@ function buildFind(config, match, intent) {
   switch (click.toLowerCase()) {
     case "yes":
     case "y":
-      console.log("What key do you want to press? For an list of supported key values, see https://pptr.dev/api/puppeteer.keyinput");
+      console.log(
+        "What key do you want to press? For an list of supported key values, see https://pptr.dev/api/puppeteer.keyinput"
+      );
       message = constructPrompt("Key", defaults.type.specialTrailingKey);
       specialKey = prompt(message);
       break;
@@ -351,10 +382,8 @@ function buildFind(config, match, intent) {
 }
 
 function buildScreenshot(config, match) {
-  prompts = [];
   action = {
     action: "goTo",
-    uri: "",
   };
 }
 
@@ -487,13 +516,13 @@ function suggestTests(config, markupCoverage) {
           action = buildFind(config, match, intent);
           break;
         case "matchText":
-          action = buildMatchText(config, match);
+          action = buildFind(config, match, intent);
           break;
         case "type":
-          action = buildType(config, match);
+          action = buildFind(config, match, intent);
           break;
         case "click":
-          action = buildClick(config, match);
+          action = buildFind(config, match, intent);
           break;
         case "captureImage":
           action = buildScreenshot(config, match);
