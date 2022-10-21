@@ -71,6 +71,7 @@ function constructPrompt(prompt, defaultValue) {
   return prompt;
 }
 function decideIntent(match) {
+  console.log("---");
   console.log(`Found '${match.text}' on line ${match.line}.`);
   console.log(
     `What do you want to do with this ${
@@ -80,7 +81,7 @@ function decideIntent(match) {
   markupToIntent[match.type].intents.forEach((intent, index) => {
     console.log(`(${index + 1}) ${intent.description}`);
   });
-  let choice = prompt("Enter a value: ");
+  let choice = prompt("Enter a number: ");
   if (choice) {
     choice = Number(choice) - 1;
     return markupToIntent[match.type].intents[choice].intent;
