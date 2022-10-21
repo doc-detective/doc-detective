@@ -101,11 +101,13 @@ function decideIntent(match, filepath) {
 
 function buildGoTo(config, match) {
   // Filter input
-  text = match.text.match(/(?<=\]\()(\w|\W)*(?=\))/);
+  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/) || match.text.match(/(?<=href=")(\w|\W)*(?=")/);
+  if (text) text = text[0];
+  
   // Prep
   defaults = {
     action: "goTo",
-    uri: text[0],
+    uri: text,
   };
   action = {
     action: "goTo",
@@ -135,12 +137,13 @@ function buildGoTo(config, match) {
 
 function buildCheckLink(config, match) {
   // Filter input
-  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/);
+  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/) || match.text.match(/(?<=href=")(\w|\W)*(?=")/);
+  if (text) text = text[0];
 
   // Prep
   defaults = {
     action: "checkLink",
-    uri: text[0],
+    uri: text,
   };
   action = {
     action: "checkLink",
