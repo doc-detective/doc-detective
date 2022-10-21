@@ -93,8 +93,7 @@ function decideIntent(match) {
 
 function buildGoTo(config, match) {
   // Filter input
-  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/);
-
+  text = match.text.match(/(?<=\]\()(\w|\W)*(?=\))/);
   // Prep
   defaults = {
     action: "goTo",
