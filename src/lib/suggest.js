@@ -194,17 +194,14 @@ function buildFind(config, match, intent) {
   };
 
   // Filter input
-  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/);
-  // TODO: Add html matching
+  text = match.text.match(/\*\*.+?\*\*/) || match.text.match(/(?<=>)(\w|\W)*(?=<)/);
+  if (text) text = text[0];
 
   // Update defaults
-  switch (intent) {
-    case "type":
-      defaults.type.keys = text;
-      break;
-    default:
-      defaults.matchText.text = text;
-      break;
+  if (text && intent === "type") {
+    defaults.type.keys = text;
+  } else if (text) {
+    defaults.matchText.text = text;
   }
 
   // CSS (Required)
