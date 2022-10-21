@@ -101,9 +101,11 @@ function decideIntent(match, filepath) {
 
 function buildGoTo(config, match) {
   // Filter input
-  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/) || match.text.match(/(?<=href=")(\w|\W)*(?=")/);
+  text =
+    match.text.match(/(?<=\()(\w|\W)*(?=\))/) ||
+    match.text.match(/(?<=href=")(\w|\W)*(?=")/);
   if (text) text = text[0];
-  
+
   // Prep
   defaults = {
     action: "goTo",
@@ -137,7 +139,9 @@ function buildGoTo(config, match) {
 
 function buildCheckLink(config, match) {
   // Filter input
-  text = match.text.match(/(?<=\()(\w|\W)*(?=\))/) || match.text.match(/(?<=href=")(\w|\W)*(?=")/);
+  text =
+    match.text.match(/(?<=\()(\w|\W)*(?=\))/) ||
+    match.text.match(/(?<=href=")(\w|\W)*(?=")/);
   if (text) text = text[0];
 
   // Prep
@@ -176,13 +180,10 @@ function buildFind(config, match, intent) {
   defaults = {
     action: "find",
     css: "",
-    wait: {
-      duration: 10000,
-    },
     matchText: {
       text: "",
     },
-    moveMouse: {},
+    moveMouse: "",
     click: {},
     type: {
       keys: "",
@@ -194,7 +195,8 @@ function buildFind(config, match, intent) {
   };
 
   // Filter input
-  text = match.text.match(/\*\*.+?\*\*/) || match.text.match(/(?<=>)(\w|\W)*(?=<)/);
+  text =
+    match.text.match(/\*\*.+?\*\*/) || match.text.match(/(?<=>)(\w|\W)*(?=<)/);
   if (text) text = text[0];
 
   // Update defaults
@@ -224,12 +226,29 @@ function buildFind(config, match, intent) {
   // Match text
   // Define
   console.log("-");
-  message = constructPrompt(
-    "What text do you expect the element to have? Leave empty to skip this option.",
-    defaults.css
+  console.log("Do you want to validate the text of the element?");
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
   );
-  let matchText = prompt(message);
-  matchText = matchText || defaults.matchText.text;
+  choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    matchText = responses[choice];
+  } else {
+    matchText = "No";
+  }
+  switch (click.toLowerCase()) {
+    case "yes":
+    case "y":
+      console.log("What text do you expect the element to have?");
+      message = constructPrompt("Text", defaults.matchText.text);
+      matchText = prompt(message);
+      break;
+    default:
+      matchText = null;
+      break;
+  }
   // Optional value. Set if present.
   if (matchText) {
     action.matchText.text = matchText;
@@ -238,15 +257,92 @@ function buildFind(config, match, intent) {
   // Click
   // Define
   console.log("-");
-  message = constructPrompt(
-    "Do you want to click the element?",
-    defaults.click
+  console.log("Do you want to click the element?");
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
   );
-  let click = prompt(message);
-  click = click || defaults.click;
+  choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    click = responses[choice];
+  } else {
+    click = "No";
+  }
+  switch (click.toLowerCase()) {
+    case "yes":
+    case "y":
+      click = {};
+      break;
+    default:
+      click = null;
+      break;
+  }
   // Optional value. Set if present.
   if (click) {
-    action.click = {};
+    action.click = click;
+  }
+
+  // Type
+  // Define
+  console.log("-");
+  console.log("Do you want to type keys?");
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
+  );
+  choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    keys = responses[choice];
+  } else {
+    keys = "No";
+  }
+  switch (click.toLowerCase()) {
+    case "yes":
+    case "y":
+      console.log("What text do you want to type?");
+      message = constructPrompt("Text", defaults.type.keys);
+      keys = prompt(message);
+      break;
+    default:
+      keys = null;
+      break;
+  }
+  // Optional value. Set if present.
+  if (keys) {
+    action.type.keys = keys;
+  }
+
+  // Trailing special key
+  // Define
+  console.log("-");
+  console.log("Do you want to press a special key (such as 'Enter')?");
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
+  );
+  choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    specialKey = responses[choice];
+  } else {
+    specialKey = "No";
+  }
+  switch (click.toLowerCase()) {
+    case "yes":
+    case "y":
+      console.log("What key do you want to press? For an list of supported key values, see https://pptr.dev/api/puppeteer.keyinput");
+      message = constructPrompt("Key", defaults.type.specialTrailingKey);
+      specialKey = prompt(message);
+      break;
+    default:
+      specialKey = null;
+      break;
+  }
+  // Optional value. Set if present.
+  if (specialKey) {
+    action.type.specialTrailingKey = specialKey;
   }
 
   // Report
