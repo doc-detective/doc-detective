@@ -1,4 +1,5 @@
 const prompt = require("prompt-sync")({ sigint: true });
+const fs = require("fs");
 const { log } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
@@ -66,13 +67,20 @@ const markupToIntent = {
 };
 
 function constructPrompt(prompt, defaultValue) {
-  prompt = `${prompt.trim()} `;
-  if (defaultValue) prompt = `${prompt}[${defaultValue}] `;
+  if (defaultValue) {
+    prompt = `${prompt.trim()} [${defaultValue}]: `;
+  } else {
+    prompt = `${prompt.trim()}: `;
+  }
   return prompt;
 }
-function decideIntent(match) {
+
+function decideIntent(match, filepath) {
+  lineText = getLineFromFile(filepath, match.line);
   console.log("---");
-  console.log(`Found '${match.text}' on line ${match.line}.`);
+  console.log(`Found '${match.text}' on line ${match.line}:`);
+  console.log(lineText);
+  console.log();
   console.log(
     `What do you want to do with this ${
       markupToIntent[match.type].item
@@ -106,10 +114,8 @@ function buildGoTo(config, match) {
   // URI (Required)
   // Define
   console.log("-");
-  let message = constructPrompt(
-    "(Required) Which URI do you want to open?",
-    defaults.uri
-  );
+  let message = constructPrompt("URI", defaults.uri);
+  console.log("(Required) Which URI do you want to open?");
   let uri = prompt(message);
   uri = uri || defaults.uri;
   // Required value. Return early if empty.
@@ -143,10 +149,8 @@ function buildCheckLink(config, match) {
   // URI (Required)
   // Define
   console.log("-");
-  let message = constructPrompt(
-    "(Required) Which URI do you want to validate?",
-    defaults.uri
-  );
+  let message = constructPrompt("URI", defaults.uri);
+  console.log("(Required) Which URI do you want to validate?");
   let uri = prompt(message);
   uri = uri || defaults.uri;
   // Required value. Return early if empty.
@@ -188,6 +192,7 @@ function buildFind(config, match, intent) {
 
   // Filter input
   text = match.text.match(/(?<=\()(\w|\W)*(?=\))/);
+  // TODO: Add html matching
 
   // Update defaults
   switch (intent) {
@@ -216,12 +221,40 @@ function buildFind(config, match, intent) {
   // Set
   action.css = css;
 
+  // Match text
+  // Define
+  console.log("-");
+  message = constructPrompt(
+    "What text do you expect the element to have? Leave empty to skip this option.",
+    defaults.css
+  );
+  let matchText = prompt(message);
+  matchText = matchText || defaults.matchText.text;
+  // Optional value. Set if present.
+  if (matchText) {
+    action.matchText.text = matchText;
+  }
+
+  // Click
+  // Define
+  console.log("-");
+  message = constructPrompt(
+    "Do you want to click the element?",
+    defaults.click
+  );
+  let click = prompt(message);
+  click = click || defaults.click;
+  // Optional value. Set if present.
+  if (click) {
+    action.click = {};
+  }
+
   // Report
   log(config, "debug", action);
   return action;
 }
 
-function buildScreenshot(match) {
+function buildScreenshot(config, match) {
   prompts = [];
   action = {
     action: "goTo",
@@ -229,7 +262,7 @@ function buildScreenshot(match) {
   };
 }
 
-function buildHttpRequest(match) {
+function buildHttpRequest(config, match) {
   prompts = [];
   action = {
     action: "httpRequest",
@@ -300,7 +333,7 @@ function buildRunShell(config, match) {
   // Optional value. Set if present.
   if (env) {
     action.env = env;
-}
+  }
 
   // Report
   log(config, "debug", action);
@@ -319,6 +352,15 @@ function transformMatches(fileMarkupObject) {
   // Sort matches by line, then index
   matches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
   return matches;
+}
+
+function getLineFromFile(filepath, line) {
+  const fileBody = fs.readFileSync(filepath, {
+    encoding: "utf8",
+    flag: "r",
+  });
+  lines = fileBody.split("\n");
+  return lines[line - 1];
 }
 
 function suggestTests(config, markupCoverage) {
@@ -341,7 +383,7 @@ function suggestTests(config, markupCoverage) {
       if (match.type === "unorderedList" || match.type === "orderedList")
         return;
       // Prompt for intent
-      intent = decideIntent(match);
+      intent = decideIntent(match, file.file);
       // Skip over if user ignored prompt
       if (intent === null) return;
       switch (intent) {
