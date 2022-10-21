@@ -226,7 +226,6 @@ function buildFind(config, match, intent) {
   // Match text
   // Define
   console.log("-");
-  console.log(intent);
   if (intent === "matchText") {
     matchText = "yes";
   } else {
