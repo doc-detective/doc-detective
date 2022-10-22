@@ -1,4 +1,5 @@
 const prompt = require("prompt-sync")({ sigint: true });
+const path = require("path");
 const fs = require("fs");
 const uuid = require("uuid");
 const { log } = require("./utils");
@@ -480,7 +481,9 @@ function buildScreenshot(config, match) {
 
 function buildHttpRequest(config, match) {
   console.log();
-  console.log("Not yet supported by this test builder. For action details, see https://github.com/hawkeyexl/doc-detective#http-request");
+  console.log(
+    "Not yet supported by this test builder. For action details, see https://github.com/hawkeyexl/doc-detective#http-request"
+  );
   return null;
 
   // Filter input
@@ -614,14 +617,17 @@ function getLineFromFile(filepath, line) {
 }
 
 function suggestTests(config, markupCoverage) {
-  let suggestions = {
-    tests: [],
-  };
+  let report = { name: "Doc Detective Test Suggestion Report", files: [] };
 
   markupCoverage.files.forEach((file) => {
-    test = {
-      file: file.file,
-      actions: [],
+    suggestions = {
+      tests: [
+        {
+          id: `${uuid.v4()}`,
+          file: file.file,
+          actions: [],
+        },
+      ],
     };
 
     console.log("------");
@@ -669,10 +675,25 @@ function suggestTests(config, markupCoverage) {
           break;
       }
       // Only add to array when action present
-      if (action) test.actions.push(action);
+      if (action) {
+        suggestions.tests[0].actions.push(action);
+        // IF SOURCE UPDATE IS TRUE, UPDATE SOURCE WITH TEST FENCES
+        // IF SOURCE UPDATE IS TRUE AND LAST ARRAY ITEM, CLOSE TEST FENCE
+      }
     });
-    suggestions.tests.push(test);
+    // Write test tonsidecar file
+    testPath = path.resolve(
+      path.dirname(file.file),
+      `${path.basename(file.file, path.extname(file.file))}.${
+        suggestions.tests[0].id
+      }.json`
+    );
+    let data = JSON.stringify(suggestions, null, 2);
+    fs.writeFile(testPath, data, (err) => {
+      if (err) throw err;
+    });
+    report.files.push({ file: file.file, test: testPath });
   });
-  console.log(suggestions);
-  return suggestions;
+  console.log(report);
+  return report;
 }

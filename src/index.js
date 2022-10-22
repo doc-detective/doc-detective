@@ -113,5 +113,5 @@ async function suggest(config, argv) {
   log(config, "debug", testSuggestions);
 
   // Output
-  outputResults(config.testSuggestionOutput, testSuggestions, config);
+  outputResults(config.testSuggestions.reportOutput, testSuggestions, config);
 }
