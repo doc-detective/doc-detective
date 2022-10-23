@@ -2,11 +2,13 @@ const prompt = require("prompt-sync")({ sigint: true });
 const path = require("path");
 const fs = require("fs");
 const uuid = require("uuid");
-const { log } = require("./utils");
+const { log, parseTests } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
+const { runTests } = require("./tests");
 
 exports.suggestTests = suggestTests;
+exports.runSuggestions = runSuggestions;
 
 const intents = {
   find: { intent: "find", description: "Find an element." },
@@ -692,8 +694,46 @@ function suggestTests(config, markupCoverage) {
     fs.writeFile(testPath, data, (err) => {
       if (err) throw err;
     });
-    report.files.push({ file: file.file, test: testPath });
+    report.files.push({
+      file: file.file,
+      test: testPath,
+      suggestions,
+    });
   });
-  console.log(report);
   return report;
+}
+
+async function runSuggestions(config, suggestionReport) {
+  console.log("Do you want to run the suggested tests now?");
+  console.log("Note: Tests that require additional updates may fail.");
+  responses = ["No", "Yes"];
+  responses.forEach((response, index) =>
+    console.log(`(${index + 1}) ${response}`)
+  );
+  let choice = prompt("Enter a number: ");
+  if (choice) {
+    choice = Number(choice) - 1;
+    run = responses[choice];
+  } else {
+    run = "No";
+  }
+  switch (run.toLowerCase()) {
+    case "yes":
+    case "y":
+      let tests = { tests: [] };
+      console.log(suggestionReport.files);
+      prompt("wait");
+      suggestionReport.files.forEach((file) => {
+        file.suggestions.tests.forEach((test) => tests.tests.push(test));
+      });
+      console.log(tests);
+
+      // Run tests
+      suggestionReport.results = await runTests(config, tests);
+
+     break;
+    default:
+      break;
+  }
+  return suggestionReport;
 }

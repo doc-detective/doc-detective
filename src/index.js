@@ -10,7 +10,7 @@ const { sendAnalytics } = require("./lib/analytics.js");
 const { runTests } = require("./lib/tests");
 const { checkTestCoverage, checkMarkupCoverage } = require("./lib/analysis");
 const { reportCoverage } = require("./lib/coverage");
-const { suggestTests } = require("./lib/suggest");
+const { suggestTests, runSuggestions } = require("./lib/suggest");
 const { exit } = require("process");
 
 exports.run = main;
@@ -108,10 +108,16 @@ async function suggest(config, argv) {
   log(config, "debug", "MARKUP COVERAGE:");
   log(config, "debug", markupCoverage);
 
-  const testSuggestions = suggestTests(config, markupCoverage);
+  const suggestionReport = suggestTests(config, markupCoverage);
   log(config, "debug", "TEST SUGGESTIONS:");
-  log(config, "debug", testSuggestions);
+  log(config, "debug", suggestionReport);
+
+  await runSuggestions(config, suggestionReport);
 
   // Output
-  outputResults(config.testSuggestions.reportOutput, testSuggestions, config);
+  outputResults(
+    config.testSuggestions.reportOutput,
+    suggestionReport,
+    config
+  );
 }
