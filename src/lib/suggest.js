@@ -686,10 +686,16 @@ function suggestTests(config, markupCoverage) {
     // Write test tonsidecar file
     testPath = path.resolve(
       path.dirname(file.file),
-      `${path.basename(file.file, path.extname(file.file))}.${
-        suggestions.tests[0].id
-      }.json`
+      `${path.basename(file.file, path.extname(file.file))}.test.json`
     );
+    if (fs.existsSync(testPath)) {
+      testPath = path.resolve(
+        path.dirname(file.file),
+        `${path.basename(file.file, path.extname(file.file))}.test.${
+          suggestions.tests[0].id
+        }.json`
+      );
+    }
     let data = JSON.stringify(suggestions, null, 2);
     fs.writeFile(testPath, data, (err) => {
       if (err) throw err;
@@ -721,8 +727,6 @@ async function runSuggestions(config, suggestionReport) {
     case "yes":
     case "y":
       let tests = { tests: [] };
-      console.log(suggestionReport.files);
-      prompt("wait");
       suggestionReport.files.forEach((file) => {
         file.suggestions.tests.forEach((test) => tests.tests.push(test));
       });
@@ -731,7 +735,7 @@ async function runSuggestions(config, suggestionReport) {
       // Run tests
       suggestionReport.results = await runTests(config, tests);
 
-     break;
+      break;
     default:
       break;
   }
