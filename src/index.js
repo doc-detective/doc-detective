@@ -48,7 +48,7 @@ async function main(config, argv) {
   // Output
   outputResults(config.output, results, config);
   if (config.analytics.send) {
-    sendAnalytics(config, results);
+    // sendAnalytics(config, results);
   }
 }
 
