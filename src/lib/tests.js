@@ -94,8 +94,8 @@ async function runTests(config, tests) {
       log(config, "error", "Couldn't open browser.");
       exit(1);
     }
-    context = await browser.createIncognitoBrowserContext();
   }
+  context = await browser.createIncognitoBrowserContext();
 
   // Iterate tests
   log(config, "info", "Running tests.");
