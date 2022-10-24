@@ -86,7 +86,9 @@
             "[tT]oggle",
             "[eE]nable",
             "[dD]isable",
-            "[tT]urn [oO][ff|n]"
+            "[tT]urn [oO][ff|n]",
+            "[tT]ype",
+            "[eE]nter"
           ]
         }
       }
@@ -154,7 +156,9 @@
             "[tT]oggle",
             "[eE]nable",
             "[dD]isable",
-            "[tT]urn [oO][ff|n]"
+            "[tT]urn [oO][ff|n]",
+            "[tT]ype",
+            "[eE]nter"
           ]
         }
       }
