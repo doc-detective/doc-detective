@@ -7,7 +7,6 @@
   "recursive": true,
   "coverageOutput": "./sample/coverage.json",
   "testSuggestions": {
-    "updateSourceFiles": true,
     "reportOutput": "./sample/suggestions.json"
   },
   "testExtensions": [
