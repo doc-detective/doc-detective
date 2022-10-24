@@ -8,7 +8,7 @@
   "coverageOutput": "./sample/coverage.json",
   "testSuggestions": {
     "updateSourceFiles": true,
-    "reportOutput": "./sample/testSuggestions.json"
+    "reportOutput": "./sample/suggestions.json"
   },
   "testExtensions": [
     ".md",
