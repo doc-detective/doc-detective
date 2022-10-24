@@ -2,7 +2,7 @@ const prompt = require("prompt-sync")({ sigint: true });
 const path = require("path");
 const fs = require("fs");
 const uuid = require("uuid");
-const { log, parseTests } = require("./utils");
+const { log, timestamp } = require("./utils");
 const { sanitizePath, sanitizeUri } = require("./sanitize");
 const { exit } = require("process");
 const { runTests } = require("./tests");
@@ -619,7 +619,11 @@ function getLineFromFile(filepath, line) {
 }
 
 function suggestTests(config, markupCoverage) {
-  let report = { name: "Doc Detective Test Suggestion Report", files: [] };
+  let report = {
+    name: "Doc Detective Test Suggestion Report",
+    timestamp: timestamp(),
+    files: [],
+  };
 
   markupCoverage.files.forEach((file) => {
     suggestions = {
@@ -683,33 +687,42 @@ function suggestTests(config, markupCoverage) {
         // IF SOURCE UPDATE IS TRUE AND LAST ARRAY ITEM, CLOSE TEST FENCE
       }
     });
-    // Write test tonsidecar file
-    testPath = path.resolve(
-      path.dirname(file.file),
-      `${path.basename(file.file, path.extname(file.file))}.test.json`
-    );
-    if (fs.existsSync(testPath)) {
+    // Various outputs
+    if (suggestions.tests[0].actions.length > 0) {
+      // Write test to sidecar file
       testPath = path.resolve(
         path.dirname(file.file),
-        `${path.basename(file.file, path.extname(file.file))}.test.${
-          suggestions.tests[0].id
-        }.json`
+        `${path.basename(file.file, path.extname(file.file))}.test.json`
       );
+      if (fs.existsSync(testPath)) {
+        testPath = path.resolve(
+          path.dirname(file.file),
+          `${path.basename(file.file, path.extname(file.file))}.test.${
+            suggestions.tests[0].id
+          }.json`
+        );
+      }
+      let data = JSON.stringify(suggestions, null, 2);
+      fs.writeFile(testPath, data, (err) => {
+        if (err) throw err;
+      });
+      report.files.push({
+        file: file.file,
+        test: testPath,
+        suggestions,
+      });
     }
-    let data = JSON.stringify(suggestions, null, 2);
-    fs.writeFile(testPath, data, (err) => {
-      if (err) throw err;
-    });
-    report.files.push({
-      file: file.file,
-      test: testPath,
-      suggestions,
-    });
   });
   return report;
 }
 
 async function runSuggestions(config, suggestionReport) {
+  let tests = { tests: [] };
+  suggestionReport.files.forEach((file) => {
+    file.suggestions.tests.forEach((test) => tests.tests.push(test));
+  });
+  if (tests.tests.length == 0) return suggestionReport;
+
   console.log("Do you want to run the suggested tests now?");
   console.log("Note: Tests that require additional updates may fail.");
   responses = ["No", "Yes"];
@@ -726,15 +739,8 @@ async function runSuggestions(config, suggestionReport) {
   switch (run.toLowerCase()) {
     case "yes":
     case "y":
-      let tests = { tests: [] };
-      suggestionReport.files.forEach((file) => {
-        file.suggestions.tests.forEach((test) => tests.tests.push(test));
-      });
-      console.log(tests);
-
       // Run tests
       suggestionReport.results = await runTests(config, tests);
-
       break;
     default:
       break;
