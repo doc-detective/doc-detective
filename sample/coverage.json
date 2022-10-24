@@ -1,6 +1,6 @@
 {
   "name": "Doc Detective Content Coverage Report",
-  "timestamp": "20221019-152141",
+  "timestamp": "20221021-132211",
   "summary": {
     "covered": 11,
     "uncovered": 0,
@@ -43,6 +43,7 @@
   },
   "files": [
     {
+      "file": "/config/workspace/doc-detective/sample/doc-content.md",
       "covered": 11,
       "uncovered": 0,
       "onscreenText": {

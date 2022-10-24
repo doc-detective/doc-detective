@@ -1,11 +1,12 @@
 {
   "name": "doc-detective",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
   "scripts": {
     "test": "node ./cli/index.js",
-    "coverage": "node ./cli/coverage.js"
+    "coverage": "node ./cli/coverage.js",
+    "suggest": "node ./cli/suggest.js"
   },
   "repository": {
     "type": "git",
@@ -33,6 +34,7 @@
     "n-readlines": "^1.0.1",
     "pixelmatch": "^5.3.0",
     "pngjs": "^6.0.0",
+    "prompt-sync": "^4.2.0",
     "puppeteer": "^13.7.0",
     "puppeteer-screen-recorder": "^2.0.2",
     "uuid": "^8.3.2",

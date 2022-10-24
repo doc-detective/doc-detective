@@ -16,6 +16,7 @@ function reportCoverage(config, markupCoverage) {
 
   markupCoverage.files.forEach((file) => {
     fileJson = {
+      file: file.file,
       covered: 0,
       uncovered: 0,
     };
