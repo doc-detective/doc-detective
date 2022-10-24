@@ -186,7 +186,7 @@ function checkMarkupCoverage(config, testCoverage) {
     let markup = file.fileType.markup;
 
     Object.keys(markup).forEach((mark) => {
-      if (markup[mark].length === 1 && markup[mark][0] === "") {
+      if (markup[mark].regex.length === 1 && markup[mark].regex[0] === "") {
         log(
           config,
           "warning",
@@ -210,7 +210,7 @@ function checkMarkupCoverage(config, testCoverage) {
         uncoveredMatches: [],
       }
 
-      markup[mark].forEach((matcher) => {
+      markup[mark].regex.forEach((matcher) => {
         // Run a match
         regex = new RegExp(matcher, "g");
         matches = fileBody.match(regex);
