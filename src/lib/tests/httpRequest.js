@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { setEnvs, loadEnvsForObject } = require("../utils");
+const { setEnvs, loadEnvs } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
@@ -80,7 +80,7 @@ async function httpRequest(action) {
       headers = action.headers || defaultPayload.headers;
     }
     //// Load environment variables
-    headers = loadEnvsForObject(headers);
+    headers = loadEnvs(headers);
     //// Validate
     //// Set request
     if (JSON.stringify(headers) != "{}") request.headers = headers;
@@ -98,7 +98,7 @@ async function httpRequest(action) {
       params = action.params || defaultPayload.params;
     }
     //// Load environment variables
-    params = loadEnvsForObject(params);
+    params = loadEnvs(params);
     //// Validate
     //// Set request
     if (params != {}) request.params = params;
@@ -116,7 +116,7 @@ async function httpRequest(action) {
       requestData = action.requestData || defaultPayload.requestData;
     }
     //// Load environment variables
-    requestData = loadEnvsForObject(requestData);
+    requestData = loadEnvs(requestData);
     //// Validate
     //// Set request
     if (requestData != {}) request.data = requestData;
@@ -133,7 +133,7 @@ async function httpRequest(action) {
     responseData = action.responseData || defaultPayload.responseData;
   }
   //// Load environment variables
-  responseData = loadEnvsForObject(responseData);
+  responseData = loadEnvs(responseData);
   //// Validate
 
   // responseHeaders
@@ -147,7 +147,7 @@ async function httpRequest(action) {
     responseHeaders = action.responseHeaders || defaultPayload.responseHeaders;
   }
   //// Load environment variables
-  responseHeaders = loadEnvsForObject(responseHeaders);
+  responseHeaders = loadEnvs(responseHeaders);
   //// Validate
 
   // Status codes
