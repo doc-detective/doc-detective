@@ -1,4 +1,4 @@
-const { setEnvs } = require("../utils");
+const { setEnvs, loadEnvs } = require("../utils");
 
 exports.goTo = goTo;
 
@@ -17,14 +17,8 @@ async function goTo(action, page) {
     let result = await setEnvs(action.env);
     if (result.status === "FAIL") return { result };
   }
-  if (
-    action.uri[0] === "$" &&
-    process.env[action.uri.substring(1)] != undefined
-  ) {
-    uri = process.env[action.uri.substring(1)];
-  } else {
-    uri = action.uri;
-  }
+  uri = loadEnvs(action.uri);
+
   // Catch common formatting errors
   if (!uri.includes("://")) uri = "https://" + uri;
   // Run action

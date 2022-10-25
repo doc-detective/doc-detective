@@ -36,11 +36,8 @@ async function httpRequest(action, config) {
 
   // URI
   //// Define
-  if (action.uri[0] === "$") {
-    uri = process.env[action.uri.substring(1)];
-  } else {
-    uri = action.uri || defaultPayload.uri;
-  }
+  uri = loadEnvs(action.uri) || defaultPayload.uri;
+
   //// Validate
   if (!uri || typeof uri != "string") {
     //Fail
@@ -53,11 +50,8 @@ async function httpRequest(action, config) {
 
   // Method
   //// Define
-  if (action.method && action.method[0] === "$") {
-    method = process.env[action.method.substring(1)];
-  } else {
-    method = action.method || defaultPayload.method;
-  }
+  method = loadEnvs(action.method) || defaultPayload.method;
+
   //// Sanitize
   method = method.toLowerCase();
   //// Validate
@@ -74,14 +68,8 @@ async function httpRequest(action, config) {
   // Headers
   if (action.headers && JSON.stringify(action.headers) != "{}") {
     //// Define
-    if (action.headers[0] === "$") {
-      headers = process.env[action.headers.substring(1)];
-      try {
-        headers = JSON.parse(headers);
-      } catch {}
-    } else {
-      headers = action.headers || defaultPayload.headers;
-    }
+    headers = loadEnvs(action.headers) || defaultPayload.headers;
+
     //// Load environment variables
     headers = loadEnvs(headers);
     //// Validate
@@ -92,14 +80,8 @@ async function httpRequest(action, config) {
   // Params
   if (action.params && JSON.stringify(action.params) != "{}") {
     //// Define
-    if (action.params[0] === "$") {
-      params = process.env[action.params.substring(1)];
-      try {
-        params = JSON.parse(params);
-      } catch {}
-    } else {
-      params = action.params || defaultPayload.params;
-    }
+    params = loadEnvs(action.params) || defaultPayload.params;
+
     //// Load environment variables
     params = loadEnvs(params);
     //// Validate
@@ -110,14 +92,8 @@ async function httpRequest(action, config) {
   // requestData
   if (action.requestData) {
     //// Define
-    if (action.requestData[0] === "$") {
-      requestData = process.env[action.requestData.substring(1)];
-      try {
-        requestData = JSON.parse(requestData);
-      } catch {}
-    } else {
-      requestData = action.requestData || defaultPayload.requestData;
-    }
+    requestData = loadEnvs(action.requestData) || defaultPayload.requestData;
+
     //// Load environment variables
     requestData = loadEnvs(requestData);
     //// Validate
@@ -127,28 +103,17 @@ async function httpRequest(action, config) {
 
   // responseData
   //// Define
-  if (action.responseData && action.responseData[0] === "$") {
-    responseData = process.env[action.responseData.substring(1)];
-    try {
-      responseData = JSON.parse(responseData);
-    } catch {}
-  } else {
-    responseData = action.responseData || defaultPayload.responseData;
-  }
+  responseData = loadEnvs(action.responseData) || defaultPayload.responseData;
+
   //// Load environment variables
   responseData = loadEnvs(responseData);
   //// Validate
 
   // responseHeaders
   //// Define
-  if (action.responseHeaders && action.responseHeaders[0] === "$") {
-    responseHeaders = process.env[action.responseHeaders.substring(1)];
-    try {
-      responseHeaders = JSON.parse(responseHeaders);
-    } catch {}
-  } else {
-    responseHeaders = action.responseHeaders || defaultPayload.responseHeaders;
-  }
+  responseHeaders =
+    loadEnvs(action.responseHeaders) || defaultPayload.responseHeaders;
+
   //// Load environment variables
   responseHeaders = loadEnvs(responseHeaders);
   //// Validate

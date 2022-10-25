@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const { exit, stdout, exitCode } = require("process");
 const { installMouseHelper } = require("./install-mouse-helper");
-const { setEnvs, log, timestamp } = require("./utils");
+const { setEnvs, log, timestamp, loadEnvs } = require("./utils");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const axios = require("axios");
@@ -337,14 +337,7 @@ async function checkLink(action) {
     let result = await setEnvs(action.env);
     if (result.status === "FAIL") return { result };
   }
-  if (
-    action.uri[0] === "$" &&
-    process.env[action.uri.substring(1)] != undefined
-  ) {
-    uri = process.env[action.uri.substring(1)];
-  } else {
-    uri = action.uri;
-  }
+  uri = loadEnvs(action.uri);
 
   // Validate protocol
   if (uri.indexOf("://") < 0) {
@@ -393,15 +386,20 @@ async function runShell(action) {
   let description;
   let result;
   let exitCode;
+  let command;
 
-  // Load environment variables
+  // Set environment variables
   if (action.env) {
     let result = await setEnvs(action.env);
     if (result.status === "FAIL") return { result };
   }
 
+  // Command
+  //// Load envs
+  command = loadEnvs(action.command);
+
   // Promisify and execute command
-  const promise = exec(action.command);
+  const promise = exec(command);
   const child = promise.child;
   child.on("close", function (code) {
     exitCode = code;
@@ -474,15 +472,9 @@ async function typeElement(action, elementHandle) {
   }
   // Type keys
   if (action.keys) {
-    // Detect if using an environment variable and sub in value
-    if (
-      action.keys[0] === "$" &&
-      process.env[action.keys.substring(1)] != undefined
-    ) {
-      keys = process.env[action.keys.substring(1)];
-    } else {
-      keys = action.keys;
-    }
+    // Resolve environment variables in keys
+    keys = loadEnvs(action.keys);
+
     try {
       await elementHandle.type(keys);
     } catch {
@@ -547,14 +539,8 @@ async function matchText(action, page) {
     if (result.status === "FAIL") return { result };
   }
   // Set text
-  if (
-    action.text[0] === "$" &&
-    process.env[action.text.substring(1)] != undefined
-  ) {
-    text = process.env[action.text.substring(1)];
-  } else {
-    text = action.text;
-  }
+  text = loadEnvs(action.text);
+
   let elementTag = await page.$eval(action.css, (element) =>
     element.tagName.toLowerCase()
   );

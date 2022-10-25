@@ -1016,6 +1016,7 @@ async function log(config, level, message) {
 }
 
 function loadEnvs(stringOrObject) {
+  if (!stringOrObject) return stringOrObject;
   // Try to convert string to object
   try {
     if (
