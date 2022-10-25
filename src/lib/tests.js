@@ -95,6 +95,7 @@ async function runTests(config, tests) {
       exit(1);
     }
   }
+  context = await browser.createIncognitoBrowserContext();
 
   // Iterate tests
   log(config, "info", "Running tests.");
@@ -112,7 +113,7 @@ async function runTests(config, tests) {
     if (browserRequired) {
       // Instantiate page
       log(config, "debug", "Instantiating page.");
-      page = await browser.newPage();
+      page = await context.newPage();
       await page._client.send("Page.setDownloadBehavior", {
         behavior: "allow",
         downloadPath: config.downloadDirectory,
