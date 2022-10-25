@@ -1,9 +1,11 @@
 const axios = require("axios");
-const { setEnvs, loadEnvsForObject } = require("../utils");
+const jq = require("node-jq");
+const { exit } = require("process");
+const { setEnvs, loadEnvs, log } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
-async function httpRequest(action) {
+async function httpRequest(action, config) {
   const methods = ["get", "post", "put", "patch", "delete"];
 
   let status;
@@ -23,6 +25,7 @@ async function httpRequest(action) {
     responseHeaders: {},
     responseData: {},
     statusCodes: ["200"],
+    envsFromResponseData: [],
   };
 
   // Load environment variables
@@ -33,11 +36,8 @@ async function httpRequest(action) {
 
   // URI
   //// Define
-  if (action.uri[0] === "$") {
-    uri = process.env[action.uri.substring(1)];
-  } else {
-    uri = action.uri || defaultPayload.uri;
-  }
+  uri = loadEnvs(action.uri) || defaultPayload.uri;
+
   //// Validate
   if (!uri || typeof uri != "string") {
     //Fail
@@ -50,11 +50,8 @@ async function httpRequest(action) {
 
   // Method
   //// Define
-  if (action.method && action.method[0] === "$") {
-    method = process.env[action.method.substring(1)];
-  } else {
-    method = action.method || defaultPayload.method;
-  }
+  method = loadEnvs(action.method) || defaultPayload.method;
+
   //// Sanitize
   method = method.toLowerCase();
   //// Validate
@@ -71,16 +68,10 @@ async function httpRequest(action) {
   // Headers
   if (action.headers && JSON.stringify(action.headers) != "{}") {
     //// Define
-    if (action.headers[0] === "$") {
-      headers = process.env[action.headers.substring(1)];
-      try {
-        headers = JSON.parse(headers);
-      } catch {}
-    } else {
-      headers = action.headers || defaultPayload.headers;
-    }
+    headers = loadEnvs(action.headers) || defaultPayload.headers;
+
     //// Load environment variables
-    headers = loadEnvsForObject(headers);
+    headers = loadEnvs(headers);
     //// Validate
     //// Set request
     if (JSON.stringify(headers) != "{}") request.headers = headers;
@@ -89,16 +80,10 @@ async function httpRequest(action) {
   // Params
   if (action.params && JSON.stringify(action.params) != "{}") {
     //// Define
-    if (action.params[0] === "$") {
-      params = process.env[action.params.substring(1)];
-      try {
-        params = JSON.parse(params);
-      } catch {}
-    } else {
-      params = action.params || defaultPayload.params;
-    }
+    params = loadEnvs(action.params) || defaultPayload.params;
+
     //// Load environment variables
-    params = loadEnvsForObject(params);
+    params = loadEnvs(params);
     //// Validate
     //// Set request
     if (params != {}) request.params = params;
@@ -107,16 +92,10 @@ async function httpRequest(action) {
   // requestData
   if (action.requestData) {
     //// Define
-    if (action.requestData[0] === "$") {
-      requestData = process.env[action.requestData.substring(1)];
-      try {
-        requestData = JSON.parse(requestData);
-      } catch {}
-    } else {
-      requestData = action.requestData || defaultPayload.requestData;
-    }
+    requestData = loadEnvs(action.requestData) || defaultPayload.requestData;
+
     //// Load environment variables
-    requestData = loadEnvsForObject(requestData);
+    requestData = loadEnvs(requestData);
     //// Validate
     //// Set request
     if (requestData != {}) request.data = requestData;
@@ -124,30 +103,19 @@ async function httpRequest(action) {
 
   // responseData
   //// Define
-  if (action.responseData && action.responseData[0] === "$") {
-    responseData = process.env[action.responseData.substring(1)];
-    try {
-      responseData = JSON.parse(responseData);
-    } catch {}
-  } else {
-    responseData = action.responseData || defaultPayload.responseData;
-  }
+  responseData = loadEnvs(action.responseData) || defaultPayload.responseData;
+
   //// Load environment variables
-  responseData = loadEnvsForObject(responseData);
+  responseData = loadEnvs(responseData);
   //// Validate
 
   // responseHeaders
   //// Define
-  if (action.responseHeaders && action.responseHeaders[0] === "$") {
-    responseHeaders = process.env[action.responseHeaders.substring(1)];
-    try {
-      responseHeaders = JSON.parse(responseHeaders);
-    } catch {}
-  } else {
-    responseHeaders = action.responseHeaders || defaultPayload.responseHeaders;
-  }
+  responseHeaders =
+    loadEnvs(action.responseHeaders) || defaultPayload.responseHeaders;
+
   //// Load environment variables
-  responseHeaders = loadEnvsForObject(responseHeaders);
+  responseHeaders = loadEnvs(responseHeaders);
   //// Validate
 
   // Status codes
@@ -160,6 +128,34 @@ async function httpRequest(action) {
   }
   //// Validate
   if (statusCodes === []) statusCodes = defaultPayload.statusCodes;
+
+  // Envs from response data
+  //// Define
+  envsFromResponseData =
+    action.envsFromResponseData || defaultPayload.envsFromResponseData;
+  //// Sanitize
+  for (i = 0; i < envsFromResponseData.length; i++) {
+    if (typeof statusCodes[i] === "string")
+      statusCodes[i] = Number(statusCodes[i]);
+  }
+  //// Validate
+  let validEnvs = envsFromResponseData.every(
+    (env) =>
+      typeof env === "object" &&
+      env.name.match(/^[a-zA-Z0-9_]+$/gm) &&
+      typeof env.jqFilter === "string" &&
+      env.jqFilter.length > 1
+  );
+  if (!validEnvs) {
+    envsFromResponseData = [];
+    log(
+      config,
+      "warning",
+      "Not setting environment variables. One or more invalid variable definitions."
+    );
+  }
+  if (envsFromResponseData === [])
+    envsFromResponseData = defaultPayload.envsFromResponseData;
 
   // Send request
   response = await axios(request)
@@ -211,9 +207,27 @@ async function httpRequest(action) {
       description =
         description +
         ` Expected response headers were present in actual response headers.`;
-    } else {
       status = "FAIL";
+    } else {
       description = description + " " + dataComparison.result.description;
+    }
+  }
+
+  // Set environment variables from response data
+  for (const variable of envsFromResponseData) {
+    let value = await jq.run(variable.jqFilter, response.data, {
+      input: "json",
+      output: "compact",
+    });
+    if (value) {
+      process.env[variable.name] = value;
+      description =
+        description + ` Set '$${variable.name}' environment variable.`;
+    } else {
+      if (status != "FAIL") status = "WARNING";
+      description =
+        description +
+        ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
     }
   }
 

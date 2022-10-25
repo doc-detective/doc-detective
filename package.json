@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Unit test documentation (and record videos of those tests).",
   "main": "src/index.js",
   "scripts": {
@@ -32,6 +32,7 @@
     "git": "^0.1.5",
     "gnumake": "^0.3.5",
     "n-readlines": "^1.0.1",
+    "node-jq": "^2.3.4",
     "pixelmatch": "^5.3.0",
     "pngjs": "^6.0.0",
     "prompt-sync": "^4.2.0",

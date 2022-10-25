@@ -17,6 +17,7 @@ exports.setEnvs = setEnvs;
 exports.loadEnvsForObject = loadEnvsForObject;
 exports.log = log;
 exports.timestamp = timestamp;
+exports.loadEnvs = loadEnvs;
 
 const analyticsRequest =
   "Thanks for using Doc Detective! If you want to contribute to the project, consider sending analytics to help us understand usage patterns and functional gaps. To turn on analytics, set 'analytics.send = true' in your config, or use the '-a true' argument. See https://github.com/hawkeyexl/doc-detective#analytics";
@@ -1014,22 +1015,59 @@ async function log(config, level, message) {
   }
 }
 
+function loadEnvs(stringOrObject) {
+  if (!stringOrObject) return stringOrObject;
+  // Try to convert string to object
+  try {
+    if (
+      typeof stringOrObject === "string" &&
+      typeof JSON.parse(stringOrObject) === "object"
+    ) {
+      stringOrObject = JSON.parse(stringOrObject);
+    }
+  } catch {}
+  if (typeof stringOrObject === "object") {
+    // Load for object
+    stringOrObject = loadEnvsForObject(stringOrObject);
+  } else {
+    // Load for string
+    stringOrObject = loadEnvsForString(stringOrObject);
+  }
+  // Try to convert resolved string to object
+  try {
+    if (typeof JSON.parse(stringOrObject) === "object") {
+      stringOrObject = JSON.parse(stringOrObject);
+    }
+  } catch {}
+  return stringOrObject;
+}
+
+function loadEnvsForString(string) {
+  // Find all variables
+  variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+  matches = string.match(variableRegex);
+  // If no matches, return
+  if (!matches) return string;
+  // Iterate matches
+  matches.forEach((match) => {
+    // Check if is declared variable
+    value = process.env[match.substring(1)];
+    if (value) {
+      // If variable value might have a nested variable, recurse to try to resolve
+      if (value.includes("$")) value = loadEnvs(value);
+      // Convert to string in case value was a substring of the greater string
+      if (typeof value === "object") value = JSON.stringify(value);
+      // Replace match with variable value
+      string = string.replace(match, value);
+    }
+  });
+  return string;
+}
+
 function loadEnvsForObject(object) {
   Object.keys(object).forEach((key) => {
-    if (
-      object[key][0] === "$" &&
-      process.env[object[key].substring(1)] != undefined
-    ) {
-      object[key] = process.env[object[key].substring(1)];
-    }
-    try {
-      if (typeof JSON.parse(object[key]) === "object") {
-        object[key] = JSON.parse(object[key]);
-      }
-    } catch {}
-    if (typeof object[key] === "object") {
-      object[key] = loadEnvsForObject(object[key]);
-    }
+    // Resolve all variables in key value
+    object[key] = loadEnvs(object[key]);
   });
   return object;
 }
