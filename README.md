@@ -298,6 +298,7 @@ Format:
 | `responseHeaders` | Optional. A non-exhaustive object of headers that should be included in the response. If a specified header is missing, or if a specified header value is incorrect, the action fails. If the response headers include headers that aren't specified by this option, the test can still pass. <br> Supports setting the whole headers object and individual header values from environment variables.   | <ul><li>`{ "Content-Type": "application/json" }`</li><li>`$RESPONSE_HEADERS`</li><li>`{ "Content-Type": "$CONTENT_TYPE" }`</li></ul>                                                       |
 | `responseData`    | Optional. A non-exhaustive data object that should be included in the response. If a specified data field is missing, or if a specified value is incorrect, the action fails. If the response data payload includes additional fields that aren't specified by this option, the test can still pass. <br> Supports setting the whole data object and individual data values from environment variables. | <ul><li>`{ "id": 1, "last_name": "Washington" }`</li><li>`"$REQUEST_DATA"`</li><li>`{ "id": 1, "last_name": "$LAST_NAME" }`</li></ul>                                                      |
 | `statusCodes`     | Optional. An array of accepted HTTP status response codes. Defaults to `[200]`. If the response's status code isn't included in this array, the action fails.                                                                                                                                                                                                                                           | [ 200, 204 ]                                                                                                                                                                               |
+| `envsFromResponseData` | Optional. An array of environment variables to dynamically set from response data using [`jq`](https://stedolan.github.io/jq/) filters to select and transform the JSON data.<br><br>`name` values can contain uppercase letters, lowercase letters, numbers and underscores, but **don't** include a leading "$". | <code>[ { "name": "FIRST_NAME", "jqFilter": ".first_name" } ]</code>
 
 ### Check a link
 
@@ -362,6 +363,8 @@ Format:
 ```
 
 ## Analytics
+
+**Note:** Analytics is currently turned off globally.
 
 By default, Doc Detective doesn't collect any information about tests, devices, users, or documentation and doesn't check in with any external service or server. If you want to help inform decisions about the future development of Doc Detective—such as feature development and documentation creation—you can opt into sending anonymized analytics after you run tests at one of the multiple levels of detail.
 

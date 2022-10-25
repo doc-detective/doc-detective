@@ -1,9 +1,11 @@
 const axios = require("axios");
-const { setEnvs, loadEnvs } = require("../utils");
+const jq = require("node-jq");
+const { exit } = require("process");
+const { setEnvs, loadEnvs, log } = require("../utils");
 
 exports.httpRequest = httpRequest;
 
-async function httpRequest(action) {
+async function httpRequest(action, config) {
   const methods = ["get", "post", "put", "patch", "delete"];
 
   let status;
@@ -23,6 +25,7 @@ async function httpRequest(action) {
     responseHeaders: {},
     responseData: {},
     statusCodes: ["200"],
+    envsFromResponseData: [],
   };
 
   // Load environment variables
@@ -161,6 +164,34 @@ async function httpRequest(action) {
   //// Validate
   if (statusCodes === []) statusCodes = defaultPayload.statusCodes;
 
+  // Envs from response data
+  //// Define
+  envsFromResponseData =
+    action.envsFromResponseData || defaultPayload.envsFromResponseData;
+  //// Sanitize
+  for (i = 0; i < envsFromResponseData.length; i++) {
+    if (typeof statusCodes[i] === "string")
+      statusCodes[i] = Number(statusCodes[i]);
+  }
+  //// Validate
+  let validEnvs = envsFromResponseData.every(
+    (env) =>
+      typeof env === "object" &&
+      env.name.match(/^[a-zA-Z0-9_]+$/gm) &&
+      typeof env.jqFilter === "string" &&
+      env.jqFilter.length > 1
+  );
+  if (!validEnvs) {
+    envsFromResponseData = [];
+    log(
+      config,
+      "warning",
+      "Not setting environment variables. One or more invalid variable definitions."
+    );
+  }
+  if (envsFromResponseData === [])
+    envsFromResponseData = defaultPayload.envsFromResponseData;
+
   // Send request
   response = await axios(request)
     .then((response) => {
@@ -211,9 +242,27 @@ async function httpRequest(action) {
       description =
         description +
         ` Expected response headers were present in actual response headers.`;
-    } else {
       status = "FAIL";
+    } else {
       description = description + " " + dataComparison.result.description;
+    }
+  }
+
+  // Set environment variables from response data
+  for (const variable of envsFromResponseData) {
+    let value = await jq.run(variable.jqFilter, response.data, {
+      input: "json",
+      output: "compact",
+    });
+    if (value) {
+      process.env[variable.name] = value;
+      description =
+        description + ` Set '$${variable.name}' environment variable.`;
+    } else {
+      if (status != "FAIL") status = "WARNING";
+      description =
+        description +
+        ` Couldn't set '${variable.name}' environment variable. The jq filter (${variable.jqFilter}) returned a null result.`;
     }
   }
 

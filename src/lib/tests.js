@@ -320,7 +320,7 @@ async function runAction(config, action, page, videoDetails) {
       result = await checkLink(action);
       break;
     case "httpRequest":
-      result = await httpRequest(action);
+      result = await httpRequest(action, config);
       break;
   }
   return result;
