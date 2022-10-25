@@ -204,6 +204,8 @@ function checkMarkupCoverage(config, testCoverage) {
     // Only keep marks that have a truthy (>0) length
     Object.keys(markup).forEach((mark) => {
       markCoverage = {
+        includeInCoverage: markup[mark].includeInCoverage,
+        includeInSuggestions: markup[mark].includeInSuggestions,
         coveredLines: [],
         coveredMatches: [],
         uncoveredLines: [],

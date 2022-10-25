@@ -35,47 +35,65 @@
       "actionStatementClose": ")",
       "markup": {
         "onscreenText": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "\\*\\*.+?\\*\\*"
           ]
         },
         "emphasis": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
           ]
         },
         "image": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "!\\[.+?\\]\\(.+?\\)"
           ]
         },
         "hyperlink": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?<!!)\\[.+?\\]\\(.+?\\)"
           ]
         },
         "orderedList": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
           ]
         },
         "unorderedList": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?<=\n) *?\\*.\\s*.*",
             "(?<=\n) *?-.\\s*.*"
           ]
         },
         "codeInline": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?<!`)`(?!`).+?(?<!`)`(?!`)"
           ]
         },
         "codeBlock": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(```))(\\w|\\W)*(?<=```)"
           ]
         },
         "interaction": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "[cC]lick",
             "[tT]ap",
@@ -106,46 +124,64 @@
       "actionStatementClose": "-->",
       "markup": {
         "onscreenText": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<b))(\\w|\\W)*(?<=<\/b>)"
           ]
         },
         "emphasis": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<i))(\\w|\\W)*(?<=<\/i>)"
           ]
         },
         "image": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<img))(\\w|\\W)*(?<=<\/img>|>)"
           ]
         },
         "hyperlink": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<a))(\\w|\\W)*(?<=<\/a>)"
           ]
         },
         "orderedList": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<ol))(\\w|\\W)*(?<=<\/ol>)"
           ]
         },
         "unorderedList": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<ul))(\\w|\\W)*(?<=<\/ul>)"
           ]
         },
         "codeInline": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<code))(\\w|\\W)*(?<=<\/code>)"
           ]
         },
         "codeBlock": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "(?=(<pre))(\\w|\\W)*(?<=<\/pre>)"
           ]
         },
         "interaction": {
+          "includeInCoverage": true,
+          "includeInSuggestions": true,
           "regex": [
             "[cC]lick",
             "[tT]ap",

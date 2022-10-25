@@ -599,10 +599,12 @@ function transformMatches(fileMarkupObject) {
   matches = [];
   // Load array with uncovered matches
   Object.keys(fileMarkupObject).forEach((mark) => {
-    fileMarkupObject[mark].uncoveredMatches.forEach((match) => {
-      match.type = mark;
-      matches.push(match);
-    });
+    if (fileMarkupObject[mark].includeInSuggestions) {
+      fileMarkupObject[mark].uncoveredMatches.forEach((match) => {
+        match.type = mark;
+        matches.push(match);
+      });
+    }
   });
   // Sort matches by line, then index
   matches.sort((a, b) => a.line - b.line || a.indexInFile - b.indexInFile);
