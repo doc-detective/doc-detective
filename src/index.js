@@ -13,11 +13,12 @@ const { reportCoverage } = require("./lib/coverage");
 const { suggestTests, runSuggestions } = require("./lib/suggest");
 const { exit } = require("process");
 
-exports.run = main;
+exports.run = test;
+exports.test = test;
 exports.coverage = coverage;
 exports.suggest = suggest;
 
-async function main(config, argv) {
+async function test(config, argv) {
   // Set args
   argv = setArgs(argv);
   log(config, "debug", `ARGV:`);
@@ -50,6 +51,8 @@ async function main(config, argv) {
   if (config.analytics.send) {
     // sendAnalytics(config, results);
   }
+
+  return results;
 }
 
 async function coverage(config, argv) {
@@ -82,6 +85,8 @@ async function coverage(config, argv) {
 
   // Output
   outputResults(config.coverageOutput, coverageReport, config);
+
+  return coverageReport;
 }
 
 async function suggest(config, argv) {
@@ -120,4 +125,6 @@ async function suggest(config, argv) {
     suggestionReport,
     config
   );
+
+  return suggestionReport;
 }

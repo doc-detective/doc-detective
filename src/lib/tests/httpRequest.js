@@ -19,8 +19,8 @@ async function httpRequest(action, config) {
   let defaultPayload = {
     uri: "",
     method: "get",
-    headers: {},
-    params: {},
+    requestHeaders: {},
+    requestParams: {},
     requestData: {},
     responseHeaders: {},
     responseData: {},
@@ -66,27 +66,33 @@ async function httpRequest(action, config) {
   request.method = method;
 
   // Headers
-  if (action.headers && JSON.stringify(action.headers) != "{}") {
+  if (
+    (action.requestHeaders && JSON.stringify(action.requestHeaders) != "{}") ||
+    (action.headers && JSON.stringify(action.headers) != "{}")
+  ) {
     //// Define
-    headers = loadEnvs(action.headers) || defaultPayload.headers;
+    requestHeaders =
+      loadEnvs(action.requestHeaders) ||
+      loadEnvs(action.headers) ||
+      defaultPayload.requestHeaders;
 
-    //// Load environment variables
-    headers = loadEnvs(headers);
     //// Validate
     //// Set request
-    if (JSON.stringify(headers) != "{}") request.headers = headers;
+    if (JSON.stringify(requestHeaders) != "{}")
+      request.headers = requestHeaders;
   }
 
   // Params
-  if (action.params && JSON.stringify(action.params) != "{}") {
+  if ((action.requestParams && JSON.stringify(action.requestParams) != "{}") || (action.params && JSON.stringify(action.params) != "{}")) {
     //// Define
-    params = loadEnvs(action.params) || defaultPayload.params;
+    requestParams =
+      loadEnvs(action.requestParams) ||
+      loadEnvs(action.params) ||
+      defaultPayload.requestParams;
 
-    //// Load environment variables
-    params = loadEnvs(params);
     //// Validate
     //// Set request
-    if (params != {}) request.params = params;
+    if (JSON.stringify(requestParams) != "{}") request.params = requestParams;
   }
 
   // requestData
@@ -94,8 +100,6 @@ async function httpRequest(action, config) {
     //// Define
     requestData = loadEnvs(action.requestData) || defaultPayload.requestData;
 
-    //// Load environment variables
-    requestData = loadEnvs(requestData);
     //// Validate
     //// Set request
     if (requestData != {}) request.data = requestData;
@@ -105,8 +109,6 @@ async function httpRequest(action, config) {
   //// Define
   responseData = loadEnvs(action.responseData) || defaultPayload.responseData;
 
-  //// Load environment variables
-  responseData = loadEnvs(responseData);
   //// Validate
 
   // responseHeaders
@@ -114,8 +116,6 @@ async function httpRequest(action, config) {
   responseHeaders =
     loadEnvs(action.responseHeaders) || defaultPayload.responseHeaders;
 
-  //// Load environment variables
-  responseHeaders = loadEnvs(responseHeaders);
   //// Validate
 
   // Status codes
@@ -169,7 +169,7 @@ async function httpRequest(action, config) {
   // If request returned an error
   if (response.error) {
     status = "FAIL";
-    description = `Error: ${JSON.stringify(response.error.response)}`;
+    description = `Error: ${JSON.stringify(response.error.message)}`;
     result = { status, description };
     return { result };
   }
