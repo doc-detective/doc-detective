@@ -51,6 +51,8 @@ async function test(config, argv) {
   if (config.analytics.send) {
     // sendAnalytics(config, results);
   }
+
+  return results;
 }
 
 async function coverage(config, argv) {
@@ -83,6 +85,8 @@ async function coverage(config, argv) {
 
   // Output
   outputResults(config.coverageOutput, coverageReport, config);
+
+  return coverageReport;
 }
 
 async function suggest(config, argv) {
@@ -121,4 +125,6 @@ async function suggest(config, argv) {
     suggestionReport,
     config
   );
+
+  return suggestionReport;
 }
