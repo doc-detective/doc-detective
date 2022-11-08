@@ -13,11 +13,12 @@ const { reportCoverage } = require("./lib/coverage");
 const { suggestTests, runSuggestions } = require("./lib/suggest");
 const { exit } = require("process");
 
-exports.run = main;
+exports.run = test;
+exports.test = test;
 exports.coverage = coverage;
 exports.suggest = suggest;
 
-async function main(config, argv) {
+async function test(config, argv) {
   // Set args
   argv = setArgs(argv);
   log(config, "debug", `ARGV:`);
