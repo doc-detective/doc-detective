@@ -776,7 +776,7 @@ function setFiles(config) {
             // Is a file
             isFile &&
             // Isn't present in files array already
-            files.indexOf(s) < 0 &&
+            files.indexOf(content) < 0 &&
             // No extension filter or extension included in filter
             (config.testExtensions === "" ||
               config.testExtensions.includes(path.extname(content)))
