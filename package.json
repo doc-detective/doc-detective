@@ -22,9 +22,9 @@
   "author": "Manny Silva",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hawkeyexl/doc-detective/issues"
+    "url": "https://github.com/doc-detective/doc-detective/issues"
   },
-  "homepage": "https://github.com/hawkeyexl/doc-detective#readme",
+  "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "axios": "^0.27.2",
