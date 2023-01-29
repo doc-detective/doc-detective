@@ -1,0 +1,58 @@
+2{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Doc Detective",
+    "version": "1.0.0",
+    "description": "Perform Doc Detective actions on the server."
+  },
+  "servers": [
+    {
+      "url": "https://www.doc-detective.com/api/v1",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Development"
+    }
+  ],
+  "paths": {
+    "/analytics": {
+      "post": {
+        "description": "Insert analytics report.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/run"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "name": "X-DOC-UNIT-TEST",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "analytics": {
+        "$ref": "../node_modules/doc-detective-common/schema/v1/analytics.schema.json"
+      }
+    }
+  },
+  "security": [
+    {
+      "apiKey": []
+    }
+  ]
+}
