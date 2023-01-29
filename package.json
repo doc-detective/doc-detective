@@ -2,7 +2,7 @@
   "name": "doc-detective",
   "version": "1.2.4",
   "description": "Unit test documentation (and record videos of those tests).",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
     "test": "node ./cli/index.js",
     "coverage": "node ./cli/coverage.js",

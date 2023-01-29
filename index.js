@@ -1,22 +1,10 @@
 const {
   setArgs,
   setConfig,
-  setFiles,
-  parseTests,
-  outputResults,
   log,
-} = require("./lib/utils");
-const { sendAnalytics } = require("./lib/analytics.js");
-const { runTests } = require("./lib/tests");
-const { checkTestCoverage, checkMarkupCoverage } = require("./lib/analysis");
-const { reportCoverage } = require("./lib/coverage");
-const { suggestTests, runSuggestions } = require("./lib/suggest");
+} = require("./src/lib/utils");
 const { exit } = require("process");
-
-exports.run = test;
-exports.test = test;
-exports.coverage = coverage;
-exports.suggest = suggest;
+const { test, coverage, suggest } = require("../doc-detective-core");
 
 async function test(config, argv) {
   // Set args
