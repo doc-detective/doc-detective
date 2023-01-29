@@ -14,7 +14,7 @@ function createWindow() {
     });
   }
 
-  mainWindow.loadFile("index.html");
+  mainWindow.loadFile("pages/index.html");
   mainWindow.once('ready-to-show', () => {
     if (isCalledViaCLI) {
       mainWindow.hide();
