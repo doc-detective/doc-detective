@@ -1,4 +1,4 @@
-const { coverage } = require("../src/index.js");
+const { coverage } = require("doc-detective");
 const { argv } = require("node:process");
 
 coverage({}, argv);
