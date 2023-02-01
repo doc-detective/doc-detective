@@ -1,7 +1,7 @@
 # Doc Detective: The Documentation Testing Framework
 
 ![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective?color=orange)
-[![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/mSCCRAhH)
+[![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/tTmczpE4Yd)
 
 Unit test documentation to validate UX flows, in-GUI text, and images. Primarily useful for process docs, Doc Detective supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
 
