@@ -75,7 +75,7 @@ Each test is composed of multiple actions. Actions in a test perform sequentiall
 
 For information on each field, see [testDefinition](https://github.com/doc-detective/doc-detective/blob/master/ref/testDefinition.json).
 
-### goTo
+### Go to URI
 
 Navigate to a specified URI.
 
