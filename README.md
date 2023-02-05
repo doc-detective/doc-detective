@@ -1,4 +1,4 @@
-# Doc Detective: The Documentation Testing Framework
+# <img src="https://github.com/doc-detective/doc-detective/blob/main/icon.png" width=50 style="vertical-align:middle;margin-bottom:7px"/> Doc Detective: The Documentation Testing Framework
 
 ![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective?color=orange)
 [![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/tTmczpE4Yd)
