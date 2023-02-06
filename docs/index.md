@@ -45,4 +45,4 @@ As an open-source and accessible project, Doc Detective is for anyone who is int
 -   **Anything in between:** You can be a team of one or of one thousand and still find a use for Doc Detective. When it comes time to address the documentation of your project, look to Doc Detective to ease the burden and help bring consistency and accuracyto the end user.
 
 ## Next steps
-Want to take Doc Detective for a spin? Check out the [Get Started](https://github.com/doc-detective/doc-detective/docs/get-started.md) guide.
+Want to take Doc Detective for a spin? Check out the [Get Started](https://github.com/doc-detective/doc-detective/blob/main/docs/get-started.md) guide.
