@@ -1,3 +1,9 @@
+---
+title: Home
+layout: default
+nav_order: 1
+---
+
 # What's Doc Detective?
 
 In the current software development ecosystem, documentation needs regular revision and can rapidly become inaccurate. This back-and-forth of updating code and documentation can feel like an accelerating treadmill that prevents you from being as effective as possible.
