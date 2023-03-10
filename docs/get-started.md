@@ -1,3 +1,9 @@
+---
+title: Get Started
+layout: default
+nav_order: 2
+---
+
 # Get Started
 Doc Detective is versatile, and you can deploy it in many ways to suit the requirements of your development environment. This guide covers the three most common deployment methods: NPM, CLI, and Docker.
 
