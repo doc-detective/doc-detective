@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "doc-detective": "^2.0.0-beta.0",
+    "doc-detective-core": "^2.0.0-beta.0",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.4.1"
   }
