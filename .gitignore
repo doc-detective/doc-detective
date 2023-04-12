@@ -104,4 +104,4 @@ dist
 .tern-port
 
 # Browser snapshots
-browser_snapshots/
+browser-snapshots/
