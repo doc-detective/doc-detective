@@ -2,9 +2,11 @@ const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const { validate } = require("doc-detective-common");
 const path = require("path");
+const fs = require("fs");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
+exports.outputResults = outputResults;
 
 // Define args
 function setArgs(args) {
@@ -99,4 +101,12 @@ function setConfig(config, args) {
   }
 
   return config;
+}
+
+async function outputResults(config, path, results) {
+  let data = JSON.stringify(results, null, 2);
+  fs.writeFile(path, data, (err) => {
+    if (err) throw err;
+  });
+  console.log(`See results at ${path}`);
 }

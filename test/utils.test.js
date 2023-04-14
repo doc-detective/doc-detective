@@ -1,4 +1,6 @@
-const { setArgs, setConfig } = require("../src/utils");
+const { setArgs, setConfig, outputResults } = require("../src/utils");
+const path = require("path");
+const fs = require("fs");
 
 // Test that arguments are parsed correctly
 test("Yargs parses arguments correctly", () => {
@@ -162,4 +164,18 @@ test("Config overrides are set correctly", () => {
       configSet.expected
     );
   });
+});
+
+// Test that results output correctly.
+test("Results output correctly", async () => {
+  // Output test-results.json, make sure it exists, and clean it up.
+  const inputResultsPath = path.resolve("./test/test-results.json");
+  const inputResultsJSON = require(inputResultsPath);
+  const outputResultsPath = path.resolve("./test/output-test-results.json");
+  // Output results
+  await outputResults(null, outputResultsPath, inputResultsJSON);
+  // Check that output file exists
+  expect(fs.existsSync(outputResultsPath)).toBe(true);
+  // Clean up
+  fs.unlinkSync(outputResultsPath);
 });

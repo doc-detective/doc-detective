@@ -1,0 +1,125 @@
+{
+  "summary": {
+    "specs": {
+      "pass": 1,
+      "fail": 0,
+      "warning": 0,
+      "skipped": 0
+    },
+    "tests": {
+      "pass": 1,
+      "fail": 0,
+      "warning": 0,
+      "skipped": 0
+    },
+    "contexts": {
+      "pass": 1,
+      "fail": 0,
+      "warning": 0,
+      "skipped": 0
+    },
+    "steps": {
+      "pass": 6,
+      "fail": 0,
+      "warning": 0,
+      "skipped": 0
+    }
+  },
+  "specs": [
+    {
+      "result": "PASS",
+      "id": "Do all the things! - Spec",
+      "tests": [
+        {
+          "result": "PASS",
+          "id": "Do all the things! - Test",
+          "contexts": [
+            {
+              "result": "PASS",
+              "app": "firefox",
+              "platform": "linux",
+              "steps": [
+                {
+                  "result": "PASS",
+                  "resultDescription": "Set variables.",
+                  "action": "setVariables",
+                  "path": ".env",
+                  "id": "2606bcf3-2f45-4c4d-82a1-61392f5e8917"
+                },
+                {
+                  "result": "PASS",
+                  "resultDescription": "Executed command.",
+                  "action": "runShell",
+                  "command": "echo",
+                  "args": [
+                    "hawkeyexl"
+                  ],
+                  "id": "a15d25e8-6fa3-49c5-be3d-ae5aca0715e5"
+                },
+                {
+                  "result": "PASS",
+                  "resultDescription": "Returned 200",
+                  "action": "checkLink",
+                  "url": "https://www.duckduckgo.com",
+                  "id": "a4c44478-9756-4227-a63b-aa2d49aa4511",
+                  "statusCodes": [
+                    200
+                  ]
+                },
+                {
+                  "result": "PASS",
+                  "resultDescription": "Returned 201. Expected response data was present in actual response data.",
+                  "action": "httpRequest",
+                  "url": "https://reqres.in/api/users",
+                  "method": "post",
+                  "requestData": {
+                    "name": "morpheus",
+                    "job": "leader"
+                  },
+                  "responseData": {
+                    "name": "morpheus",
+                    "job": "leader"
+                  },
+                  "statusCodes": [
+                    200,
+                    201
+                  ],
+                  "id": "fd520fd4-f32f-428b-a072-c2b2cffe3a3c",
+                  "requestHeaders": {},
+                  "responseHeaders": {},
+                  "requestParams": {},
+                  "responseParams": {},
+                  "envsFromResponseData": []
+                },
+                {
+                  "result": "PASS",
+                  "resultDescription": "Opened URL.",
+                  "action": "goTo",
+                  "url": "https://www.google.com",
+                  "id": "d6b47d3d-42db-45a7-8fde-3633adf30411"
+                },
+                {
+                  "result": "PASS",
+                  "resultDescription": "Found an element matching selector. Moved to element. Clicked element. Typed keys.",
+                  "action": "find",
+                  "selector": "[title=Search]",
+                  "timeout": 10000,
+                  "moveTo": true,
+                  "click": true,
+                  "typeKeys": {
+                    "keys": [
+                      "shorthair cat",
+                      "$ENTER$"
+                    ]
+                  },
+                  "id": "0d631a5b-6e96-4031-8d04-52d270f6e251"
+                }
+              ]
+            }
+          ],
+          "description": "This test includes nearly every property across all actions."
+        }
+      ]
+    }
+  ]
+}
