@@ -1,0 +1,10 @@
+{
+  "input": ".",
+  "output": ".",
+  "logLevel": "info",
+  "recursive": true,
+  "runTests": {
+    "setup": ".",
+    "cleanup": "."
+  }
+}

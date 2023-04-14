@@ -1,6 +1,7 @@
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const { validate } = require("doc-detective-common");
+const path = require("path");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
@@ -80,9 +81,22 @@ function setConfig(config, args) {
   // Override config values
   if (args.input) config.input = args.input;
   if (args.output) config.output = args.output;
-  if (args.setup) config.runTests.setup = args.setup;
-  if (args.cleanup) config.runTests.cleanup = args.cleanup;
   if (args.recursive) config.recursive = args.recursive;
   if (args.logLevel) config.logLevel = args.logLevel;
+  if ((args.setup || args.cleanup) && !config.runTests) config.runTests = {};
+  if (args.setup) config.runTests.setup = args.setup;
+  if (args.cleanup) config.runTests.cleanup = args.cleanup;
+
+  // Validate config
+  const validation = validate("config_v2", config);
+  if (!validation.valid) {
+    // Output validation errors
+    console.error("Invalid config.");
+    validation.errors.forEach((error) => {
+      console.error(error);
+    });
+    process.exit(1);
+  }
+
   return config;
 }
