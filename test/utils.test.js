@@ -92,13 +92,33 @@ test("Config overrides are set correctly", () => {
     },
     {
       // Input and logLevel overrides
-      args: ["node", "runTests.js", "--input", "input.spec.json", "--logLevel", "debug"],
+      args: [
+        "node",
+        "runTests.js",
+        "--input",
+        "input.spec.json",
+        "--logLevel",
+        "debug",
+      ],
       expected: { input: "input.spec.json", logLevel: "debug" },
     },
     {
       // Input, logLevel, and setup overrides
-      args: ["node", "runTests.js", "--input", "input.spec.json", "--logLevel", "debug", "--setup", "setup.spec.json"],
-      expected: { input: "input.spec.json", logLevel: "debug", runTests: { setup: "setup.spec.json" } },
+      args: [
+        "node",
+        "runTests.js",
+        "--input",
+        "input.spec.json",
+        "--logLevel",
+        "debug",
+        "--setup",
+        "setup.spec.json",
+      ],
+      expected: {
+        input: "input.spec.json",
+        logLevel: "debug",
+        runTests: { setup: "setup.spec.json" },
+      },
     },
     {
       // Referenced config without overrides
