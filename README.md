@@ -34,7 +34,7 @@ After the v2 stable release, future updates may include support for the followin
 
 > This section covers running Doc Detective as a CLI tool. To use Doc Detective via another interface (like as an NPM package), [see the docs](https://doc-detective.com).
 
-You can run Doc Detective as a CLI tool with Node. When running as a CLI tool, you can specify default configuration options in [config.json](https://github.com/doc-detective/doc-detective/blob/master/sample/config.json) and override those defaults with command-line arguments. (For a list of arguments, complete the following steps and run `npm run test -- -h`.)
+You can run Doc Detective as a CLI tool with Node:
 
 0.  Install prerequisites:
 
