@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "2.0.0.beta.0",
+  "version": "2.0.0.beta.2",
   "description": "Unit test documentation (and record videos of those tests).",
   "scripts": {
     "test": "jest",
@@ -25,8 +25,8 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "doc-detective-common": "^1.2.9",
-    "doc-detective-core": "^2.0.0-beta.1",
+    "doc-detective-common": "1.2.9",
+    "doc-detective-core": "2.0.0-beta.2",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.4.1"
   },
