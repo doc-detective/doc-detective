@@ -4,7 +4,7 @@
 [![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/2M7wXEThfF)
 [![Docs Shield](https://img.shields.io/badge/docs-doc--detective.com-blue)](https://doc-detective.com)
 
-Doc Detective is an open-source documentation testing framework that aims to make it easy to keep your docs accurate and up-to-date. You write low-code (soon no-code) tests, and Doc Detective runs them directly against your product to make sure your docs match your user experience. Whether it’s a UI-based process or a series of API calls, Doc Detective can help you find doc bugs before your users do.
+Doc Detective is an open-source documentation testing tool that makes it easy to keep your docs accurate and up-to-date. You write low-code (soon no-code) tests, and Doc Detective runs them directly against your product to make sure your docs match your user experience. Whether it’s a UI-based process or a series of API calls, Doc Detective can help you find doc bugs before your users do.
 
 Doc Detective ingests test specifications and text files, parses them for testable actions, then executes those actions in a browser. The results (PASS/FAIL and context) are output as a JSON object so that other pieces of infrastructure can parse and manipulate them as needed.
 
@@ -76,7 +76,7 @@ You can run Doc Detective as a CLI tool with Node. When running as a CLI tool, y
     -   [**find**](https://doc-detective.com/reference/schemas/find.html): Check if an element exists with the specified selector.
     -   [**goTo**](https://doc-detective.com/reference/schemas/goTo.html): Navigate to a specified URL.
     -   [**httpRequest**](https://doc-detective.com/reference/schemas/httpRequest.html): Perform a generic HTTP request, for example to an API.
-    -   [**runShell**](https://doc-detective.com/reference/schemas/runShell.html): https://doc-detective.com/reference/schemas/runShell.html
+    -   [**runShell**](https://doc-detective.com/reference/schemas/runShell.html): Perform a native shell command.
     -   [**saveScreenshot**](https://doc-detective.com/reference/schemas/saveScreenshot.html): Take a screenshot in PNG format.
     -   [**setVariables**](https://doc-detective.com/reference/schemas/setVariables.html): Load environment variables from a `.env` file.
     -   [**typeKeys**](https://doc-detective.com/reference/schemas/typeKeys.html): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
