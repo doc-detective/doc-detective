@@ -1,7 +1,7 @@
 {
   "input": ".",
   "output": ".",
-  "logLevel": "info",
+  "logLevel": "silent",
   "recursive": true,
   "runTests": {
     "setup": ".",

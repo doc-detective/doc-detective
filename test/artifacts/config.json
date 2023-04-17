@@ -1,0 +1,89 @@
+{
+  "envVariables": "",
+  "input": ".",
+  "output": ".",
+  "recursive": true,
+  "logLevel": "debug",
+  "runTests": {
+    "input": "./dev/doc-conetent.md",
+    "output": ".",
+    "setup": "",
+    "cleanup": "",
+    "recursive": true,
+    "mediaDirectory": ".",
+    "downloadDirectory": "."
+  },
+  "runCoverage": {
+    "recursive": true,
+    "input": ".dev/",
+    "output": ".",
+    "markup": []
+  },
+  "suggestTests": {
+    "recursive": true,
+    "input": ".",
+    "output": ".",
+    "markup": []
+  },
+  "fileTypes": [
+    {
+      "extensions": [".md", ".mdx"],
+      "testStartStatementOpen": "[comment]: # (test start",
+      "testStartStatementClose": ")",
+      "testIgnoreStatement": "[comment]: # (test ignore)",
+      "testEndStatement": "[comment]: # (test end)",
+      "stepStatementOpen": "[comment]: # (step",
+      "stepStatementClose": ")",
+      "markup": [
+        {
+          "name": "onscreenText",
+          "regex": ["\\*\\*.+?\\*\\*"]
+        },
+        {
+          "name": "emphasis",
+          "regex": ["(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"]
+        },
+        {
+          "name": "image",
+          "regex": ["!\\[.+?\\]\\(.+?\\)"]
+        },
+        {
+          "name": "hyperlink",
+          "regex": ["(?<!!)\\[.+?\\]\\(.+?\\)"]
+        },
+        {
+          "name": "orderedList",
+          "regex": ["(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"]
+        },
+        {
+          "name": "unorderedList",
+          "regex": ["(?<=\n) *?\\*.\\s*.*", "(?<=\n) *?-.\\s*.*"]
+        },
+        {
+          "name": "codeInline",
+          "regex": ["(?<!`)`(?!`).+?(?<!`)`(?!`)"]
+        },
+        {
+          "name": "codeBlock",
+          "regex": ["(?=(```))(\\w|\\W)*(?<=```)"]
+        },
+        {
+          "name": "interaction",
+          "regex": [
+            "[cC]lick",
+            "[tT]ap",
+            "[tT]ouch",
+            "[sS]elect",
+            "[cC]hoose",
+            "[tT]oggle",
+            "[eE]nable",
+            "[dD]isable",
+            "[tT]urn [oO][ff|n]",
+            "[tT]ype",
+            "[eE]nter"
+          ]
+        }
+      ]
+    }
+  ]
+}
