@@ -1,21 +1,34 @@
 {
-  "envVariables": "",
+  "envVariables": "./samples/variables.env",
   "input": ".",
   "output": ".",
   "recursive": true,
-  "logLevel": "debug",
+  "logLevel": "info",
   "runTests": {
-    "input": "./dev/doc-conetent.md",
+    "input": "./samples/doc-content.md",
     "output": ".",
     "setup": "",
     "cleanup": "",
     "recursive": true,
     "mediaDirectory": ".",
-    "downloadDirectory": "."
+    "downloadDirectory": ".",
+    "contexts": [
+      {
+        "app": {
+          "name": "firefox",
+          "path": ""
+        },
+        "platforms": [
+          "linux",
+          "mac",
+          "windows"
+        ]
+      }
+    ]
   },
   "runCoverage": {
     "recursive": true,
-    "input": ".dev/",
+    "input": ".",
     "output": ".",
     "markup": []
   },
@@ -27,7 +40,10 @@
   },
   "fileTypes": [
     {
-      "extensions": [".md", ".mdx"],
+      "extensions": [
+        ".md",
+        ".mdx"
+      ],
       "testStartStatementOpen": "[comment]: # (test start",
       "testStartStatementClose": ")",
       "testIgnoreStatement": "[comment]: # (test ignore)",
@@ -37,35 +53,52 @@
       "markup": [
         {
           "name": "onscreenText",
-          "regex": ["\\*\\*.+?\\*\\*"]
+          "regex": [
+            "\\*\\*.+?\\*\\*"
+          ]
         },
         {
           "name": "emphasis",
-          "regex": ["(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"]
+          "regex": [
+            "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
+          ]
         },
         {
           "name": "image",
-          "regex": ["!\\[.+?\\]\\(.+?\\)"]
+          "regex": [
+            "!\\[.+?\\]\\(.+?\\)"
+          ]
         },
         {
           "name": "hyperlink",
-          "regex": ["(?<!!)\\[.+?\\]\\(.+?\\)"]
+          "regex": [
+            "(?<!!)\\[.+?\\]\\(.+?\\)"
+          ]
         },
         {
           "name": "orderedList",
-          "regex": ["(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"]
+          "regex": [
+            "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
+          ]
         },
         {
           "name": "unorderedList",
-          "regex": ["(?<=\n) *?\\*.\\s*.*", "(?<=\n) *?-.\\s*.*"]
+          "regex": [
+            "(?<=\n) *?\\*.\\s*.*",
+            "(?<=\n) *?-.\\s*.*"
+          ]
         },
         {
           "name": "codeInline",
-          "regex": ["(?<!`)`(?!`).+?(?<!`)`(?!`)"]
+          "regex": [
+            "(?<!`)`(?!`).+?(?<!`)`(?!`)"
+          ]
         },
         {
           "name": "codeBlock",
-          "regex": ["(?=(```))(\\w|\\W)*(?<=```)"]
+          "regex": [
+            "(?=(```))(\\w|\\W)*(?<=```)"
+          ]
         },
         {
           "name": "interaction",
@@ -85,5 +118,10 @@
         }
       ]
     }
-  ]
+  ],
+  "integrations": {},
+  "telemetry": {
+    "send": false,
+    "userId": "Doc Detective"
+  }
 }

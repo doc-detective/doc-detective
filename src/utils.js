@@ -3,10 +3,12 @@ const { hideBin } = require("yargs/helpers");
 const { validate } = require("doc-detective-common");
 const path = require("path");
 const fs = require("fs");
+const { spawn } = require("child_process");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
 exports.outputResults = outputResults;
+exports.spawnCommand = spawnCommand;
 
 // Define args
 function setArgs(args) {
@@ -110,4 +112,45 @@ async function outputResults(config, path, results) {
     if (err) throw err;
   });
   console.log(`See results at ${path}`);
+}
+
+// Perform a native command in the current working directory.
+async function spawnCommand(cmd, args) {
+  // Split command into command and arguments
+  if (cmd.includes(" ")) {
+    const cmdArray = cmd.split(" ");
+    cmd = cmdArray[0];
+    cmdArgs = cmdArray.slice(1);
+    // Add arguments to args array
+    if (args) {
+      args = cmdArgs.concat(args);
+    } else {
+      args = cmdArgs;
+    }
+  }
+
+  const runCommand = spawn(cmd, args);
+
+  // Capture stdout
+  let stdout = "";
+  for await (const chunk of runCommand.stdout) {
+    stdout += chunk;
+  }
+  // Remove trailing newline
+  stdout = stdout.replace(/\n$/, "");
+
+  // Capture stderr
+  let stderr = "";
+  for await (const chunk of runCommand.stderr) {
+    stderr += chunk;
+  }
+  // Remove trailing newline
+  stderr = stderr.replace(/\n$/, "");
+
+  // Capture exit code
+  const exitCode = await new Promise((resolve, reject) => {
+    runCommand.on("close", resolve);
+  });
+
+  return { stdout, stderr, exitCode };
 }

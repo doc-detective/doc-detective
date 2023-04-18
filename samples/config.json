@@ -48,7 +48,7 @@
       "testStartStatementClose": ")",
       "testIgnoreStatement": "[comment]: # (test ignore)",
       "testEndStatement": "[comment]: # (test end)",
-      "stepStatementOpen": "[comment]: # (action",
+      "stepStatementOpen": "[comment]: # (step",
       "stepStatementClose": ")",
       "markup": [
         {
