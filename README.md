@@ -48,7 +48,13 @@ You can run Doc Detective as a CLI tool with Node:
     npm install
     ```
 
-1.  Run your tests. To customize your test, file type, and directory options, create a [`config.json`](https://doc-detective.com/reference/schemas/config.html) file and reference it with the `-c` argument.
+1.  Run your tests, specifying your test file with the `--input` argument. For example, to run tests in a file named `doc-content.md` in the `samples` directory, run the following command:
+
+    ```bash
+    npm run runTests -- --input ./samples/doc-content.md
+    ```
+
+    To customize your test, file type, and directory options, create a [`config.json`](https://doc-detective.com/reference/schemas/config.html) file and reference it with the `--config` argument.
 
     ```bash
     npm run runTests -- --config ./samples/config.json
@@ -60,7 +66,7 @@ You can run Doc Detective as a CLI tool with Node:
     npm run runTests -- --config ./samples/config.json --input ./samples/tests.spec.json
     ```
 
-    To see all available options, run the following command:
+    To see all available options, use the `--help` argument:
 
     ```bash
     npm run runTests -- --help
