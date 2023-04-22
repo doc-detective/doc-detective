@@ -1,7 +1,10 @@
 # <img src="https://github.com/doc-detective/doc-detective/blob/main/icon.png" width=50 style="vertical-align:middle;margin-bottom:7px"/> Doc Detective: The Documentation Testing Framework
 
 ![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective?color=orange)
-[![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/tTmczpE4Yd)
+[![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/KVDXQjE7MV)
+
+:exclamation: The v2 beta is available! See the [2.0.0 branch](https://github.com/doc-detective/doc-detective/tree/2.0.0). :exclamation:
+
 
 Unit test documentation to validate UX flows, in-GUI text, and images. Primarily useful for process docs, Doc Detective supports test definitions single-sourced in documentation or defined in separate test files to suit your infrastructure needs.
 
