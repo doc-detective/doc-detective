@@ -29,6 +29,14 @@ After the v2 stable release, future updates may include support for the followin
 - Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
 - Platforms: iOS, Android
 
+## Components
+
+Doc Detective has multiple components to integrate with your workflows as you need it to:
+
+- Doc Detective (this repo): A standalone CLI tool that enables testing without a separate Node project.
+- [Doc Detective Core](https://github.com/doc-detective/doc-detective-core/tree/2.0.0): An NPM package that provides the testing functionality.
+- [Doc Detective Docs](https://github.com/doc-detective/doc-detective.github.io): Source files for [doc-detective.com](https://doc-detective.com).
+
 ## Get started
 
 > This section covers running Doc Detective as a CLI tool. To use Doc Detective via another interface (like as an NPM package), [see the docs](https://doc-detective.com).
