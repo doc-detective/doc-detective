@@ -1,4 +1,4 @@
-const { runTests } = require("../../doc-detective-core");
+const { runTests } = require("doc-detective-core");
 const { argv } = require("node:process");
 const { setArgs, setConfig, outputResults } = require("./utils");
 const path = require("path");
