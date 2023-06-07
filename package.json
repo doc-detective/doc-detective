@@ -1,10 +1,13 @@
 {
   "name": "doc-detective",
-  "version": "2.0.0.beta.5",
+  "version": "2.0.0.beta.6",
   "description": "Unit test documentation (and record videos of those tests).",
   "scripts": {
+    "mocha": "mocha",
     "test": "mocha test/*.test.js",
+    "postinstall": "node scripts/postinstall.js",
     "runTests": "node ./src/runTests.js",
+    "runCoverage": "node ./src/runCoverage.js",
     "dev": "node ./dev"
   },
   "repository": {
@@ -26,7 +29,8 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "doc-detective-common": "^1.2.11",
-    "doc-detective-core": "^2.0.0-beta.6",
+    "doc-detective-core": "^2.0.0-beta.8",
+    "geckodriver": "^4.0.3",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.4.1"
   },

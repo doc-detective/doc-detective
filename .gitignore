@@ -107,3 +107,4 @@ dist
 browser-snapshots/
 
 testResults*
+coverageResults*
