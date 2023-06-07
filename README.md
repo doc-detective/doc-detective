@@ -13,15 +13,14 @@ This project handles test parsing and web-based UI testing--it doesn't support r
 
 Doc Detective v2 is in beta. The beta currently supports the following browsers and platforms:
 
-- Commands: `runTests`
-- Apps: Firefox
+- Commands: `runTests`, `runCoverage`
+- Apps: Firefox, Chrome(ium)
 - Platforms: Windows, macOS, Linux (tested on Ubuntu)
 
 When support for at least the following features, apps, and platforms are implemented, v2 will exit beta:
 
-- Commands: `runCoverage`, `suggestTests`
+- Commands: `suggestTests`
 - Actions: startRecording, stopRecording
-- Apps: Chrome(ium)
 
 After the v2 stable release, future updates may include support for the following items:
 

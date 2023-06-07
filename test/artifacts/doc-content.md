@@ -1,37 +1,18 @@
-# Search for kittens
+# Doc Detective documentation overview
 
-To use Google Search to find information on kittens,
+[comment]: # (test start {"id":"search-kittens"})
 
-1.  Open [Google Search](https://www.google.com).
-2.  In the search bar, enter "kittens", then press Enter.
+[Doc Detective documentation](http://doc-detective.com) is split into a few key sections:
+[comment]: # (step {"action":"goTo", "url":"http://doc-detective.com"})
 
-Search results appear on the page.
+-   The landing page discusses what Doc Detective is, what it does, and who might find it useful.
+-   [Get started](https://doc-detective.com/get-started.html) covers how to quickly get up and running with Doc Detective.
+    [comment]: # (step {"action":"goTo", "url":"https://doc-detective.com/get-started.html"})
+-   The [references](https://doc-detective.com/reference/) detail the various JSON objects that Doc Detective expects for configs, test specifications, tests, actions, and more. Each object schema includes an object description, field definitions, and examples.
+    [comment]: # (step {"action":"goTo", "url":"https://doc-detective.com/reference/"})
+    [comment]: # (step {"action":"goTo", "url":"https://doc-detective.com/reference/schemas/config.html"})
+    [comment]: # (step {"action":"find", "selector":"h2#description", "matchText":"Description"})
+    [comment]: # (step {"action":"find", "selector":"h2#fields", "matchText":"Fields"})
+    [comment]: # (step {"action":"find", "selector":"h2#examples", "matchText":"Examples"})
 
-![Search results for 'kittens'.](results.png)
-
-## Recommended results
-
-[comment]: # (test start {"id":"text-match-lucky"})
-
-To go directly to a recommended result for your search, use the **I'm Feeling Lucky** button.
-
-[comment]: # (step {"action":"goTo", "url":"https://www.google.com"})
-[comment]: # (step {"action":"find", "selector":"#gbqfbb", "matchText":"I'm Feeling Lucky"})
 [comment]: # (test end)
-
-[comment]: # (test start {"id":"process-lucky-shorthair"})
-
- If you're searching for american shorthair information,
-
-1.  Open [Google Search](https://www.google.com).
-
-    [comment]: # (step {"action":"goTo", "url":"https://www.google.com"})
-
-2.  In the search bar, enter "american shorthair cats".
-
-    [comment]: # (step {"action":"find", "selector":"[title=Search]", "typeKeys":"american shorthair cats"})
-
-3.  Click **I'm Feeling Lucky**.
-
-    [comment]: # (step {"action":"find", "selector":"#gbqfbb", "click":true})
-    [comment]: # (test end)
