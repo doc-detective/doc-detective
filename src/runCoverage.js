@@ -10,10 +10,10 @@ async function main(argv) {
   // Set args and config
   argv = setArgs(argv);
   const config = setConfig({}, argv);
-  // Run tests
+  // Run coverage
   const results = await runCoverage(config);
   // Output results
-  const outputDir = config.runTests.output || config.output;
+  const outputDir = config.runCoverage.output || config.output;
   const outputPath = path.resolve(outputDir, `coverageResults-${Date.now()}.json`);
   await outputResults(config, outputPath, results);
 }
