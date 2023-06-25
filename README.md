@@ -9,29 +9,11 @@ Doc Detective ingests test specifications and text files, parses them for testab
 
 This project handles test parsing and web-based UI testing--it doesn't support results reporting or notifications. This framework is a part of testing infrastructures and needs to be complimented by other components.
 
-## Beta status
-
-Doc Detective v2 is in beta. The beta currently supports the following browsers and platforms:
-
-- Commands: `runTests`, `runCoverage`
-- Apps: Firefox, Chrome(ium)
-- Platforms: Windows, macOS, Linux (tested on Ubuntu)
-
-When support for at least the following features, apps, and platforms are implemented, v2 will exit beta:
-
-- Commands: `suggestTests`
-- Actions: startRecording, stopRecording
-
-After the v2 stable release, future updates may include support for the following items:
-
-- Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
-- Platforms: iOS, Android
-
 ## Components
 
-Doc Detective has multiple components to integrate with your workflows as you need it to:
+Doc Detective has multiple components that integrate with your workflows as you need them to:
 
-- Doc Detective (this repo): A standalone CLI tool that enables testing without a separate Node project.
+- Doc Detective (this repo): A standalone tool that enables testing without a separate Node project.
 - [Doc Detective Core](https://github.com/doc-detective/doc-detective-core/tree/2.0.0): An NPM package that provides the testing functionality.
 - [Doc Detective Docs](https://github.com/doc-detective/doc-detective.github.io): Source files for [doc-detective.com](https://doc-detective.com).
 
@@ -48,7 +30,7 @@ You can run Doc Detective as a CLI tool with Node:
 1.  In a terminal, clone the repo and install dependencies:
 
     ```bash
-    git clone --single-branch --branch 2.0.0 https://github.com/doc-detective/doc-detective.git
+    git clone https://github.com/doc-detective/doc-detective.git
     cd doc-detective
     npm install
     ```
