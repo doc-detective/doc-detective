@@ -9,7 +9,13 @@
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
     "suggestTests": "node ./src/suggestTests.js",
-    "dev": "node ./dev"
+    "dev": "node ./dev",
+    "build:react": "cd frontend && npm run build",
+    "build:server": "npm run build:react && npm run start:server",
+    "build:electron": "npm run build:react && npm run start:electron",
+    "start": "npm run build:react && npm run start:server",
+    "start:server": "open http://localhost:3001 && node backend/server.js",
+    "start:electron": "electron backend/electron.js"
   },
   "repository": {
     "type": "git",
@@ -29,8 +35,13 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
+    "@koa/router": "^12.0.0",
     "doc-detective-common": "^1.2.11",
     "doc-detective-core": "^2.0.1",
+    "electron": "^25.2.0",
+    "koa": "^2.14.2",
+    "koa-send": "^5.0.1",
+    "koa-static": "^5.0.0",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.4.1"
   },
