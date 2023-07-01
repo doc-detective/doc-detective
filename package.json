@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Unit test documentation (and record videos of those tests).",
   "scripts": {
     "mocha": "mocha",
