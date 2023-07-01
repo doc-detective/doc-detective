@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
+    "@json-editor/json-editor": "^2.10.1",
     "@koa/router": "^12.0.0",
     "doc-detective-common": "^1.2.11",
     "doc-detective-core": "^2.0.1",

@@ -3,10 +3,20 @@
   "version": "1.0.0",
   "scripts": {
     "build": "react-scripts build && npm run post",
+    "build:server": "cd .. && npm run build:server",
     "start": "react-scripts start",
     "post": "node scripts/postProcessing.js"
   },
   "dependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@json-editor/json-editor": "^2.10.1",
+    "@mui/material": "^5.13.6",
+    "@rjsf/core": "^5.9.0",
+    "@rjsf/mui": "^5.9.0",
+    "@rjsf/utils": "^5.9.0",
+    "@rjsf/validator-ajv8": "^5.9.0",
     "autoprefixer": "^10.3.4",
     "doc-detective-common": "^1.2.11",
     "postcss": "^8.3.6",
