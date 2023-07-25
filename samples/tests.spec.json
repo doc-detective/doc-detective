@@ -1,0 +1,60 @@
+{
+  "id": "Do all the things! - Spec",
+  "contexts": [
+    {
+      "app": {
+        "name": "firefox"
+      },
+      "platforms": ["windows", "mac", "linux"]
+    }
+  ],
+  "tests": [
+    {
+      "id": "Do all the things! - Test",
+      "description": "This test includes nearly every property across all actions.",
+      "steps": [
+        {
+          "action": "setVariables",
+          "path": ".env"
+        },
+        {
+          "action": "runShell",
+          "command": "echo",
+          "args": ["$USER"]
+        },
+        {
+          "action": "checkLink",
+          "url": "https://www.duckduckgo.com"
+        },
+        {
+          "action": "httpRequest",
+          "url": "https://reqres.in/api/users",
+          "method": "post",
+          "requestData": {
+            "name": "morpheus",
+            "job": "leader"
+          },
+          "responseData": {
+            "name": "morpheus",
+            "job": "leader"
+          },
+          "statusCodes": [200, 201]
+        },
+        {
+          "action": "goTo",
+          "url": "https://www.google.com"
+        },
+        {
+          "action": "find",
+          "selector": "[title=Search]",
+          "timeout": 10000,
+          "moveTo": true,
+          "click": true,
+          "typeKeys": {
+            "keys": ["shorthair cat", "$ENTER$"]
+          }
+        }
+      ]
+    }
+  ]
+}
