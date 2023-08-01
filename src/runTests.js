@@ -13,7 +13,14 @@ async function main(argv) {
   // Run tests
   const results = await runTests(config);
   // Output results
-  const outputDir = config.runTests.output || config.output;
-  const outputPath = path.resolve(outputDir, `testResults-${Date.now()}.json`);
+  const output = config.runTests.output || config.output;
+  let outputPath;
+  if (output.includes(".json")) {
+    // Output is a file path
+    outputPath = path.resolve(output);
+  } else {
+    // Output is a directory path
+    outputPath = path.resolve(output, `testResults-${Date.now()}.json`);
+  } 
   await outputResults(config, outputPath, results);
 }

@@ -12,8 +12,7 @@ describe("Run tests sucessfully", function () {
       `node ./src/runTests.js -c ${artifactPath}/config.json -i ${artifactPath}/doc-content.md -o ${artifactPath}`
     );
     // Find output file
-    const outputFiles = runTests.stdout.split("See results at ");
-    const outputFile = outputFiles[outputFiles.length - 1].trim();
+    const outputFile = path.resolve("./runTest-test-results.json");
     const result = JSON.parse(
       fs.readFileSync(outputFile, { encoding: "utf8" })
     );

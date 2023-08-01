@@ -6,7 +6,7 @@
   "logLevel": "info",
   "runTests": {
     "input": "./samples/doc-content.md",
-    "output": ".",
+    "output": "./runTest-test-results.json",
     "setup": "",
     "cleanup": "",
     "recursive": true,
