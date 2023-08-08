@@ -12,18 +12,18 @@
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@json-editor/json-editor": "^2.10.1",
-    "@mui/material": "^5.13.6",
-    "@rjsf/core": "^5.9.0",
-    "@rjsf/mui": "^5.9.0",
-    "@rjsf/utils": "^5.9.0",
-    "@rjsf/validator-ajv8": "^5.9.0",
-    "autoprefixer": "^10.3.4",
+    "@mui/material": "^5.14.4",
+    "@rjsf/core": "^5.11.2",
+    "@rjsf/mui": "^5.11.2",
+    "@rjsf/utils": "^5.11.2",
+    "@rjsf/validator-ajv8": "^5.11.2",
+    "autoprefixer": "^10.4.14",
     "doc-detective-common": "^1.2.11",
-    "postcss": "^8.3.6",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "postcss": "^8.4.27",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1",
-    "tailwindcss": "^2.2.15"
+    "tailwindcss": "^3.3.3"
   },
   "browserslist": {
     "production": [
