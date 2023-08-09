@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import config_v2 from 'doc-detective-common/src/schemas/output_schemas/config_v2.schema.json';
+import checkLink_v2 from 'doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json';
 import validator from '@rjsf/validator-ajv8';
 import Form from '@rjsf/mui';
 import FileUploader from './FileUploader';
@@ -15,7 +16,7 @@ ReactDOM.render(
     <TestButton />
     <FileUploader />
     <Form
-      schema={config_v2}
+      schema={checkLink_v2}
       uiSchema={uiSchema}
       validator={validator}
       onChange={log('changed')}
