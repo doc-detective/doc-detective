@@ -1,9 +1,10 @@
 {
   "name": "doc-detective",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Unit test documentation (and record videos of those tests).",
   "scripts": {
     "mocha": "mocha",
+    "postinstall": "node ./node_modules/doc-detective-core/scripts/postinstall.js",
     "test": "mocha test/*.test.js",
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
