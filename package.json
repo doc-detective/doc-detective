@@ -16,7 +16,7 @@
     "start": "npm run build:react && npm run start:server",
     "start:server": "open http://localhost:3001 && node backend/server.js",
     "start:electron": "electron backend/electron.js",
-    "reset": "cd frontend && (rmdir /s /q node_modules || rm -rf node_modules) && cd .. && (rmdir /s /q node_modules || rm -rf node_modules) && npm i"
+    "reset": "node ./scripts/reset.js && npm i"
   },
   "repository": {
     "type": "git",
