@@ -14,8 +14,9 @@
     "build:server": "npm run build:react && npm run start:server",
     "build:electron": "npm run build:react && npm run start:electron",
     "start": "npm run build:react && npm run start:server",
-    "start:server": "open http://localhost:3001 && node backend/server.js",
+    "start:server": "node backend/server.js",
     "start:electron": "electron backend/electron.js",
+    "watch:server": "nodemon --watch ./ --ignore build/* --ext js,mjs,cjs,json,css,html --exec \"npm run build:server\"",
     "reset": "node ./scripts/reset.js && npm i"
   },
   "repository": {
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "chai": "^4.3.7",
-    "mocha": "^10.2.0"
+    "mocha": "^10.2.0",
+    "nodemon": "^3.0.1"
   }
 }
