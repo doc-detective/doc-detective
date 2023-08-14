@@ -18,7 +18,12 @@ const Form = () => {
       let required = false;
       let label = value.title || value.name || key;
       let helperText = value.description || "";
-      let placeholder = ""; // TODO: Add placeholders in schema
+      let placeholder = "";
+      
+      // Get placeholder
+      if (value.examples && value.examples.length > 0) {
+        placeholder = value.examples[0];
+      }
 
       // Get default value
       if (value.const) {
@@ -45,7 +50,7 @@ const Form = () => {
               label={label}
               required={required}
               helperText={helperText}
-              // placeholder={placeholder}
+              placeholder={placeholder}
               value={defaultValue}
             />
           );
