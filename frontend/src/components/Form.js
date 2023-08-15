@@ -114,6 +114,7 @@ const Form = () => {
       switch (value.type) {
         case "string":
         case "integer":
+        case "number":
           field = textField(
             fieldId,
             label,
