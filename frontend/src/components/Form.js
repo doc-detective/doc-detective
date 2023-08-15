@@ -40,6 +40,43 @@ const Form = () => {
   const [valueState, setValueState] = useState(initValueState(schema));
 
   const generateFormFields = (schema) => {
+    // Create a text field
+    const textField = (
+      fieldId,
+      label = "",
+      type = "string",
+      required = false,
+      disabled = false,
+      helperText = "",
+      placeholder = "",
+      enums = [],
+      onChange = (event) =>
+        setValueState({ ...valueState, [fieldId]: event.target.value })
+    ) => {
+      return (
+        <TextField
+          id={fieldId}
+          label={label}
+          {...(type === "integer" && { type: "number" })}
+          required={required}
+          disabled={disabled}
+          helperText={helperText}
+          placeholder={placeholder}
+          {...(enums.length > 0 && { select: true })}
+          {...(enums.length > 0 && { SelectProps: { native: true } })}
+          {...(enums.length > 0 && { InputLabelProps: { shrink: true } })}
+          value={valueState[fieldId]}
+          onChange={onChange}
+        >
+          {enums.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </TextField>
+      );
+    };
+
     const formFields = [];
 
     for (const [key, value] of Object.entries(schema.properties)) {
@@ -50,6 +87,8 @@ const Form = () => {
       let helperText = value.description || "";
       let placeholder = "";
       let disabled = false;
+      let enums = value.enum || [];
+      console.log(enums);
 
       // Get disabled
       if (key === "action") {
@@ -67,107 +106,73 @@ const Form = () => {
       }
 
       switch (value.type) {
-        case "string":
-          field = (
-            <TextField
-              id={fieldId}
-              label={label}
-              required={required}
-              disabled={disabled}
-              helperText={helperText}
-              placeholder={placeholder}
-              value={valueState[fieldId]}
-              onChange={(event) =>
-                setValueState({ ...valueState, [fieldId]: event.target.value })
-              }
-            />
-          );
-          break;
-        case "integer":
-          field = (
-            <TextField
-              type="number"
-              id={fieldId}
-              label={label}
-              required={required}
-              disabled={disabled}
-              helperText={helperText}
-              placeholder={placeholder}
-              value={valueState[fieldId]}
-              onChange={(event) =>
-                setValueState({ ...valueState, [fieldId]: event.target.value })
-              }
-            />
+        case "string" || "integer":
+          field = textField(
+            fieldId,
+            label,
+            value.type,
+            required,
+            disabled,
+            helperText,
+            placeholder,
+            enums
           );
           break;
         // case "boolean":
-        //   field = (
-        //     <FormControlLabel
-        //       label={label}
-        //       labelPlacement="top"
-        //       control={
-        //         <Checkbox
-        //           id={fieldId}
-        //           required={required}
-        //           helperText={helperText}
-        //           checked={valueState[fieldId]}
-        //           onChange={(event) =>
-        //             setValueState({
-        //               ...valueState,
-        //               fieldId: event.target.value,
-        //             })
-        //           }
-        //         />
-        //       }
-        //     />
-        //   );
+        //   break;
+        // case "object":
         //   break;
         case "array":
+          // TODO: Add detection of supported data types in array
+          // TODO: Add support for array of objects
           field = (
-            <Container>
+            <div>
+              {" "}
               <ReactMarkdown>{label}</ReactMarkdown>
               <ReactMarkdown>{helperText}</ReactMarkdown>
-              {valueState[fieldId].map((value, index) => (
-                <div key={index}>
-                  <TextField
-                    value={value}
-                    onChange={(event) => {
-                      const newValues = [...valueState[fieldId]];
-                      newValues[index] = event.target.value;
-                      setValueState({
-                        ...valueState,
-                        [fieldId]: newValues,
-                      });
-                    }}
-                  />
-                  <IconButton
-                    aria-label="delete"
-                    onClick={() => {
-                      const newValues = [...valueState[fieldId]];
-                      newValues.splice(index, 1);
-                      setValueState({
-                        ...valueState,
-                        [fieldId]: newValues,
-                      });
-                    }}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </div>
-              ))}
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => {
-                  setValueState({
-                    ...valueState,
-                    [fieldId]: [...valueState[fieldId], ""],
-                  });
-                }}
-              >
-                Add Field
-              </Button>
-            </Container>
+              <Container>
+                {valueState[fieldId].map((value, index) => (
+                  <div key={index}>
+                    <TextField
+                      value={value}
+                      onChange={(event) => {
+                        const newValues = [...valueState[fieldId]];
+                        newValues[index] = event.target.value;
+                        setValueState({
+                          ...valueState,
+                          [fieldId]: newValues,
+                        });
+                      }}
+                    />
+                    <IconButton
+                      aria-label="delete"
+                      onClick={() => {
+                        const newValues = [...valueState[fieldId]];
+                        newValues.splice(index, 1);
+                        setValueState({
+                          ...valueState,
+                          [fieldId]: newValues,
+                        });
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </div>
+                ))}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => {
+                    setValueState({
+                      ...valueState,
+                      [fieldId]: [...valueState[fieldId], ""],
+                    });
+                  }}
+                >
+                  Add Field
+                </Button>
+              </Container>
+            </div>
           );
           break;
         case "integer":
