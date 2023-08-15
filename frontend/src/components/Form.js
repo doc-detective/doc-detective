@@ -106,7 +106,8 @@ const Form = () => {
       }
 
       switch (value.type) {
-        case "string" || "integer":
+        case "string":
+        case "integer":
           field = textField(
             fieldId,
             label,
@@ -173,15 +174,6 @@ const Form = () => {
                 </Button>
               </Container>
             </div>
-          );
-          break;
-        case "integer":
-          field = (
-            <Select label={key}>
-              {value.enum.map((option) => (
-                <MenuItem value={option}>{option}</MenuItem>
-              ))}
-            </Select>
           );
           break;
         default:
