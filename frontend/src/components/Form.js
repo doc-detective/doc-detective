@@ -211,76 +211,22 @@ const Form = () => {
   };
 
   const formFields = generateFormFields(schema);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  // const [fields, setFields] = useState([{ value: null }]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
     console.log(`Name: ${name}\nEmail: ${email}\nMessage: ${message}`);
   };
 
-  const handleAddField = (value) => {
-    const values = [...fields];
-    values.push({ value: value });
-    setFields(values);
-  };
-
-  const handleFieldChange = (id, value) => {
-    setValueState({ ...valueState, id: value });
-  };
-
-  // const handleFieldChange = (index, event) => {
-  //   const values = [...fields];
-  //   values[index].value = event.target.value;
-  //   setFields(values);
-  // };
-
-  // const formFields = generateFormFields(checkLink_v2);
 
   return (
     <form onSubmit={handleSubmit}>
       {() => {
         setValueState(initValueState);
       }}
-      {/* <TextField
-                label="Name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                margin="normal"
-                required
-            />
-            <TextField
-                label="Email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                margin="normal"
-                required
-            />
-            <TextField
-                label="Message"
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                margin="normal"
-                multiline
-                rows={4}
-                required
-            /> */}
       {formFields.map((field) => field)}
-      {/* {fields.map((field, index) => (
-                <TextField
-                    key={index}
-                    label={`Field ${index + 1}`}
-                    value={field.value}
-                    onChange={(event) => handleFieldChange(index, event)}
-                    margin="normal"
-                    required
-                />
-            ))} */}
-      <Button type="submit" variant="contained" color="primary">
+      {/* <Button type="submit" variant="contained" color="primary">
         Submit
-      </Button>
+      </Button> */}
     </form>
   );
 };
