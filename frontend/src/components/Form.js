@@ -50,30 +50,33 @@ const Form = () => {
       helperText = "",
       placeholder = "",
       enums = [],
+      value = valueState[fieldId],
       onChange = (event) =>
         setValueState({ ...valueState, [fieldId]: event.target.value })
     ) => {
       return (
-        <TextField
-          fullWidth
-          id={fieldId}
-          label={label}
-          required={required}
-          disabled={disabled}
-          helperText={helperText}
-          placeholder={placeholder}
-          {...(enums.length > 0 && { select: true })}
-          {...(enums.length > 0 && { SelectProps: { native: true } })}
-          {...(enums.length > 0 && { InputLabelProps: { shrink: true } })}
-          value={valueState[fieldId]}
-          onChange={onChange}
-        >
-          {enums.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </TextField>
+        <div class="field">
+          <TextField
+            fullWidth
+            id={fieldId}
+            label={label}
+            required={required}
+            disabled={disabled}
+            helperText={helperText}
+            placeholder={placeholder}
+            {...(enums.length > 0 && { select: true })}
+            {...(enums.length > 0 && { SelectProps: { native: true } })}
+            {...(enums.length > 0 && { InputLabelProps: { shrink: true } })}
+            value={value}
+            onChange={onChange}
+          >
+            {enums.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </TextField>
+        </div>
       );
     };
 
@@ -125,6 +128,13 @@ const Form = () => {
         //   break;
         case "array":
           // TODO: Add detection of supported data types in array
+          // Get accepted type values from items.oneOf or items.anyOf
+          // if (value.items.oneOf) {
+          //   types = value.items.oneOf.map((item) => item.type);
+          // } else if (value.items.anyOf) {
+          //   types = value.items.anyOf.map((item) => item.type);
+          // }
+
           // TODO: Add support for array of objects
           field = (
             <div>
@@ -134,17 +144,25 @@ const Form = () => {
               <Container>
                 {valueState[fieldId].map((value, index) => (
                   <div key={index}>
-                    <TextField
-                      value={value}
-                      onChange={(event) => {
+                    {textField(
+                      fieldId + "_" + index,
+                      "",
+                      value.type,
+                      "",
+                      "",
+                      "",
+                      placeholder,
+                      enums,
+                      value,
+                      (event) => {
                         const newValues = [...valueState[fieldId]];
                         newValues[index] = event.target.value;
                         setValueState({
                           ...valueState,
                           [fieldId]: newValues,
                         });
-                      }}
-                    />
+                      }
+                    )}
                     <IconButton
                       aria-label="delete"
                       onClick={() => {
