@@ -55,9 +55,9 @@ const Form = () => {
     ) => {
       return (
         <TextField
+          fullWidth
           id={fieldId}
           label={label}
-          {...(type === "integer" && { type: "number" })}
           required={required}
           disabled={disabled}
           helperText={helperText}
