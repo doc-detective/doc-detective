@@ -56,13 +56,15 @@ const Form = () => {
     ) => {
       return (
         <div class="field">
+          <ReactMarkdown>{"## " + label}</ReactMarkdown>
+          <ReactMarkdown>{helperText}</ReactMarkdown>
           <TextField
             fullWidth
             id={fieldId}
-            label={label}
+            // label={label}
             required={required}
             disabled={disabled}
-            helperText={helperText}
+            // helperText={helperText}
             placeholder={placeholder}
             {...(enums.length > 0 && { select: true })}
             {...(enums.length > 0 && { SelectProps: { native: true } })}
@@ -138,8 +140,7 @@ const Form = () => {
           // TODO: Add support for array of objects
           field = (
             <div>
-              {" "}
-              <ReactMarkdown>{label}</ReactMarkdown>
+              <ReactMarkdown>{"## " + label}</ReactMarkdown>
               <ReactMarkdown>{helperText}</ReactMarkdown>
               <Container>
                 {valueState[fieldId].map((value, index) => (
@@ -279,9 +280,6 @@ const Form = () => {
             ))} */}
       <Button type="submit" variant="contained" color="primary">
         Submit
-      </Button>
-      <Button onClick={handleAddField} variant="contained" color="secondary">
-        +
       </Button>
     </form>
   );
