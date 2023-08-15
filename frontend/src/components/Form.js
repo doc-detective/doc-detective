@@ -232,10 +232,10 @@ const Form = () => {
         language={"javascript"}
         showLineNumbers={true}
         theme={nord}
-        onCopy={(event) => {
-          // validate(schema, JSON.parse(code));
-          console.log(event);
-        }}
+        // onCopy={(event) => {
+        //   // validate(schema, JSON.parse(code));
+        //   console.log(event);
+        // }}
         codeBlock
       />
     );
