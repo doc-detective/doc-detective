@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
-import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
+import { FormControlLabel, Checkbox, TextField, Button } from "@mui/material";
 import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json";
 import { v4 as uuidv4 } from "uuid";
-
 
 const Form = () => {
   // Temp for development
@@ -29,14 +27,13 @@ const Form = () => {
       initValueState[fieldId] = defaultValue;
     }
     return initValueState;
-  }
+  };
 
   const [valueState, setValueState] = useState(initValueState(schema));
 
   const generateFormFields = (schema) => {
     const formFields = [];
-    const initValueState = {};
-  
+
     for (const [key, value] of Object.entries(schema.properties)) {
       let fieldId = `${schema.title}_${key}`;
       let field;
@@ -44,17 +41,17 @@ const Form = () => {
       let label = value.title || value.name || key;
       let helperText = value.description || "";
       let placeholder = "";
-  
+
       // Get placeholder
       if (value.examples && value.examples.length > 0) {
         placeholder = value.examples[0];
       }
-  
+
       // Check if field is required
       if (schema.required && schema.required.includes(key)) {
         required = true;
       }
-  
+
       switch (value.type) {
         case "string":
           field = (
@@ -66,14 +63,49 @@ const Form = () => {
               placeholder={placeholder}
               value={valueState[fieldId]}
               onChange={(event) =>
-                setValueState({...valueState, fieldId: event.target.value})
+                setValueState({ ...valueState, fieldId: event.target.value })
               }
             />
           );
           break;
-        case "boolean":
-          field = <Checkbox label={key} />;
+        case "integer":
+          field = (
+            <TextField
+              type="number"
+              id={fieldId}
+              label={label}
+              required={required}
+              helperText={helperText}
+              placeholder={placeholder}
+              value={valueState[fieldId]}
+              onChange={(event) =>
+                setValueState({ ...valueState, fieldId: event.target.value })
+              }
+            />
+          );
           break;
+        // case "boolean":
+        //   field = (
+        //     <FormControlLabel
+        //       label={label}
+        //       labelPlacement="top"
+        //       control={
+        //         <Checkbox
+        //           id={fieldId}
+        //           required={required}
+        //           helperText={helperText}
+        //           checked={valueState[fieldId]}
+        //           onChange={(event) =>
+        //             setValueState({
+        //               ...valueState,
+        //               fieldId: event.target.value,
+        //             })
+        //           }
+        //         />
+        //       }
+        //     />
+        //   );
+        //   break;
         case "integer":
           field = (
             <Select label={key}>
@@ -89,15 +121,15 @@ const Form = () => {
           // }
           break;
       }
-  
+
       if (field) {
         formFields.push(field);
       }
     }
-  
+
     return formFields;
-  }
-  
+  };
+
   const formFields = generateFormFields(schema);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -116,7 +148,7 @@ const Form = () => {
   };
 
   const handleFieldChange = (id, value) => {
-    setValueState({ ...valueState, id: value })
+    setValueState({ ...valueState, id: value });
   };
 
   // const handleFieldChange = (index, event) => {
@@ -129,7 +161,9 @@ const Form = () => {
 
   return (
     <form onSubmit={handleSubmit}>
-      {() => {setValueState(initValueState)}}
+      {() => {
+        setValueState(initValueState);
+      }}
       {/* <TextField
                 label="Name"
                 value={name}
