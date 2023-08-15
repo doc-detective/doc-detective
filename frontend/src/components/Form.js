@@ -57,7 +57,7 @@ const Form = () => {
     ) => {
       return (
         <div class="field">
-          <ReactMarkdown>{"## " + label}</ReactMarkdown>
+          <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
           <ReactMarkdown>{helperText}</ReactMarkdown>
           <TextField
             fullWidth
@@ -141,7 +141,7 @@ const Form = () => {
           // TODO: Add support for array of objects
           field = (
             <div>
-              <ReactMarkdown>{"## " + label}</ReactMarkdown>
+              <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
               <ReactMarkdown>{helperText}</ReactMarkdown>
               <Container>
                 {valueState[fieldId].map((value, index) => (
