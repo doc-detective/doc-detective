@@ -6,6 +6,15 @@ body{
     padding: 0 10% 0 10%;
 }
 
-h2 {
+h1, h2 {
     padding-top: 8px;
+    font-weight: bold;
+}
+
+h1 {
+    font-size: 24px;
+}
+
+h2 {
+    font-size: 18px;
 }

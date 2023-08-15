@@ -11,6 +11,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import { CopyBlock, nord } from "react-code-blocks";
 import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json";
+// import { validate } from "doc-detective-common"
 import { v4 as uuidv4 } from "uuid";
 
 const Form = () => {
@@ -94,7 +95,6 @@ const Form = () => {
       let placeholder = "";
       let disabled = false;
       let enums = value.enum || [];
-      console.log(enums);
 
       // Get disabled
       if (key === "action") {
@@ -141,7 +141,9 @@ const Form = () => {
           // TODO: Add support for array of objects
           field = (
             <div>
-              <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+              <ReactMarkdown>{`## ${label}${
+                required ? "*" : ""
+              }`}</ReactMarkdown>
               <ReactMarkdown>{helperText}</ReactMarkdown>
               <Container>
                 {valueState[fieldId].map((value, index) => (
@@ -222,13 +224,19 @@ const Form = () => {
       }
     }
 
+    const codeString = JSON.stringify(code, null, 2);
     const codeBlock = (
       <CopyBlock
-       text={JSON.stringify(code, null, 2)}
+        text={codeString}
         language={"javascript"}
-         showLineNumbers={true}
-         theme={nord}
-         codeBlock />
+        showLineNumbers={true}
+        theme={nord}
+        onCopy={(event) => {
+          // validate(schema, JSON.parse(code));
+          console.log(event);
+        }}
+        codeBlock
+      />
     );
     return codeBlock;
   };
@@ -251,6 +259,7 @@ const Form = () => {
       {() => {
         setValueState(initValueState);
       }}
+      <h1>{schema.title}</h1>
       {formFields.map((field) => field)}
       {/* <Button type="submit" variant="contained" color="primary">
         Submit
