@@ -9,6 +9,7 @@ import {
   IconButton,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { CopyBlock, nord } from "react-code-blocks";
 import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json";
 import { v4 as uuidv4 } from "uuid";
 
@@ -212,11 +213,38 @@ const Form = () => {
 
   const formFields = generateFormFields(schema);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    console.log(`Name: ${name}\nEmail: ${email}\nMessage: ${message}`);
+  const generateCodeBlock = (schema) => {
+    let code = {};
+    for (const [key, value] of Object.entries(schema.properties)) {
+      let fieldId = `${schema.title}_${key}`;
+      if (valueState[fieldId]) {
+        code[key] = valueState[fieldId];
+      }
+    }
+
+    const codeBlock = (
+      <CopyBlock
+       text={JSON.stringify(code, null, 2)}
+        language={"javascript"}
+         showLineNumbers={true}
+         theme={nord}
+         codeBlock />
+    );
+    return codeBlock;
   };
 
+  const codeBlock = generateCodeBlock(schema);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    console.log(event.target);
+    const formData = new FormData(event.target);
+    console.log(formData);
+    // const formValues = Object.fromEntries(formData.entries());
+    // console.log(formValues)
+    // const json = JSON.stringify(formValues, null, 2);
+    // console.log(json);
+  };
 
   return (
     <form onSubmit={handleSubmit}>
@@ -227,6 +255,10 @@ const Form = () => {
       {/* <Button type="submit" variant="contained" color="primary">
         Submit
       </Button> */}
+      <br />
+      <hr />
+      <br />
+      {codeBlock}
     </form>
   );
 };
