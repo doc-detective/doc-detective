@@ -125,6 +125,8 @@ const Form = () => {
         case "array":
           field = (
             <Container>
+              <ReactMarkdown>{label}</ReactMarkdown>
+              <ReactMarkdown>{helperText}</ReactMarkdown>
               {valueState[fieldId].map((value, index) => (
                 <div key={index}>
                   <TextField
