@@ -1,31 +1,20 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json";
 import { v4 as uuidv4 } from "uuid";
 
+
 const Form = () => {
   // Temp for development
   let schema = checkLink_v2;
 
-  const generateFormFields = (schema) => {
-    const formFields = [];
-
+  const initValueState = (schema) => {
+    const initValueState = {};
     for (const [key, value] of Object.entries(schema.properties)) {
-      let field;
+      let fieldId = `${schema.title}_${key}`;
       let defaultValue = "";
-      let required = false;
-      let label = value.title || value.name || key;
-      let helperText = value.description || "";
-      let placeholder = "";
-      
-      // Get placeholder
-      if (value.examples && value.examples.length > 0) {
-        placeholder = value.examples[0];
-      }
-
-      // Get default value
       if (value.const) {
         defaultValue = value.const;
       } else if (value.default) {
@@ -37,21 +26,48 @@ const Form = () => {
       ) {
         defaultValue = uuidv4();
       }
+      initValueState[fieldId] = defaultValue;
+    }
+    return initValueState;
+  }
 
+  const [valueState, setValueState] = useState(initValueState(schema));
+
+  const generateFormFields = (schema) => {
+    const formFields = [];
+    const initValueState = {};
+  
+    for (const [key, value] of Object.entries(schema.properties)) {
+      let fieldId = `${schema.title}_${key}`;
+      let field;
+      let required = false;
+      let label = value.title || value.name || key;
+      let helperText = value.description || "";
+      let placeholder = "";
+  
+      // Get placeholder
+      if (value.examples && value.examples.length > 0) {
+        placeholder = value.examples[0];
+      }
+  
       // Check if field is required
       if (schema.required && schema.required.includes(key)) {
         required = true;
       }
-
+  
       switch (value.type) {
         case "string":
           field = (
             <TextField
+              id={fieldId}
               label={label}
               required={required}
               helperText={helperText}
               placeholder={placeholder}
-              value={defaultValue}
+              value={valueState[fieldId]}
+              onChange={(event) =>
+                setValueState({...valueState, fieldId: event.target.value})
+              }
             />
           );
           break;
@@ -68,46 +84,52 @@ const Form = () => {
           );
           break;
         default:
-          if (value.properties) {
-            field = generateFormFields(value);
-          }
+          // if (value.properties) {
+          //   field = generateFormFields(value);
+          // }
           break;
       }
-
+  
       if (field) {
         formFields.push(field);
       }
     }
-
+  
     return formFields;
-  };
-
+  }
+  
+  const formFields = generateFormFields(schema);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [fields, setFields] = useState([{ value: null }]);
+  // const [fields, setFields] = useState([{ value: null }]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
     console.log(`Name: ${name}\nEmail: ${email}\nMessage: ${message}`);
   };
 
-  const handleAddField = () => {
+  const handleAddField = (value) => {
     const values = [...fields];
-    values.push({ value: null });
+    values.push({ value: value });
     setFields(values);
   };
 
-  const handleFieldChange = (index, event) => {
-    const values = [...fields];
-    values[index].value = event.target.value;
-    setFields(values);
+  const handleFieldChange = (id, value) => {
+    setValueState({ ...valueState, id: value })
   };
 
-  const formFields = generateFormFields(checkLink_v2);
+  // const handleFieldChange = (index, event) => {
+  //   const values = [...fields];
+  //   values[index].value = event.target.value;
+  //   setFields(values);
+  // };
+
+  // const formFields = generateFormFields(checkLink_v2);
 
   return (
     <form onSubmit={handleSubmit}>
+      {() => {setValueState(initValueState)}}
       {/* <TextField
                 label="Name"
                 value={name}
