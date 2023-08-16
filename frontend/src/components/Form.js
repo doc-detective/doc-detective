@@ -11,13 +11,27 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import { CopyBlock, nord } from "react-code-blocks";
 import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json";
+import wait_v2 from "doc-detective-common/src/schemas/output_schemas/wait_v2.schema.json";
 // import { validate } from "doc-detective-common"
 import { v4 as uuidv4 } from "uuid";
 
-const Form = () => {
+const Form = (schema) => {
   // Temp for development
-  let schema = checkLink_v2;
+  // console.log(schema)
 
+  switch (schema.schema) {
+    case "checkLink_v2":
+      schema = checkLink_v2;
+      break;
+    case "wait_v2":
+      schema = wait_v2;
+    default:
+      console.log(`'${schema.schema}' isn't a valid schema name.`);
+      break;
+  }
+
+//  console.log(schema)
+  
   const initValueState = (schema) => {
     const initValueState = {};
     for (const [key, value] of Object.entries(schema.properties)) {
