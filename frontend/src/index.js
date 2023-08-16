@@ -83,7 +83,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Run shell script (Done!)
+            Run a shell script (Done!)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="runShell_v2" />
