@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import {
   Container,
   FormControlLabel,
-  Checkbox,
+  Switch,
   TextField,
   Button,
   IconButton,
@@ -106,10 +106,8 @@ const Form = (schema) => {
           <TextField
             fullWidth
             id={fieldId}
-            // label={label}
             required={required}
             disabled={disabled}
-            // helperText={helperText}
             placeholder={placeholder}
             {...(enums.length > 0 && { select: true })}
             {...(enums.length > 0 && { SelectProps: { native: true } })}
@@ -123,6 +121,32 @@ const Form = (schema) => {
               </option>
             ))}
           </TextField>
+        </div>
+      );
+    };
+
+    const booleanField = (
+      fieldId,
+      label = "",
+      required = false,
+      disabled = false,
+      helperText = "",
+      value = valueState[fieldId],
+      onChange = (event) =>
+        setValueState({ ...valueState, [fieldId]: event.target.checked })
+    ) => {
+      return (
+        <div>
+          <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+          <ReactMarkdown>{helperText}</ReactMarkdown>
+          <FormControlLabel
+            required={required}
+            disabled={disabled}
+            control={<Switch 
+              checked={value}
+              onChange={onChange}
+            />}
+          />
         </div>
       );
     };
@@ -191,8 +215,15 @@ const Form = (schema) => {
             enums
           );
           break;
-        // case "boolean":
-        //   break;
+        case "boolean":
+          field = booleanField(
+            fieldId,
+            label,
+            required,
+            disabled,
+            helperText
+          );
+          break;
         // case "object":
         //   break;
         case "array":
