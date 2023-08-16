@@ -265,6 +265,8 @@ const Form = (schema) => {
       let fieldId = `${schema.title}_${key}`;
       if (valueState[fieldId]) {
         code[key] = valueState[fieldId];
+      } else if (schema.required && schema.required.includes(key)) {
+        code[key] = "";
       }
     }
 
