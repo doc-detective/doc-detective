@@ -14,6 +14,7 @@ import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkL
 import goTo_v2 from "doc-detective-common/src/schemas/output_schemas/goTo_v2.schema.json";
 import find_v2 from "doc-detective-common/src/schemas/output_schemas/find_v2.schema.json";
 import typeKeys_v2 from "doc-detective-common/src/schemas/output_schemas/typeKeys_v2.schema.json";
+import runShell_v2 from "doc-detective-common/src/schemas/output_schemas/runShell_v2.schema.json";
 import saveScreenshot_v2 from "doc-detective-common/src/schemas/output_schemas/saveScreenshot_v2.schema.json";
 import setVariables_v2 from "doc-detective-common/src/schemas/output_schemas/setVariables_v2.schema.json";
 import httpRequest_v2 from "doc-detective-common/src/schemas/output_schemas/httpRequest_v2.schema.json";
@@ -40,6 +41,9 @@ const Form = (schema) => {
       break;
     case "typeKeys_v2":
       schema = typeKeys_v2;
+      break;
+    case "runShell_v2":
+      schema = runShell_v2;
       break;
     case "saveScreenshot_v2":
       schema = saveScreenshot_v2;

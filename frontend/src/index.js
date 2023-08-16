@@ -35,7 +35,7 @@ function App() {
         {/* <FileUploader /> */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Go to a URL
+            Go to a URL (Done!)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="goTo_v2" />
@@ -43,7 +43,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Find (and interact with) an element
+            Find (and interact with) an element (<b>In Progress</b>)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="find_v2" />
@@ -51,7 +51,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Type keys
+            Type keys (<b>In Progress</b>)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="typeKeys_v2" />
@@ -59,7 +59,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Check a link
+            Check a link (<b>In Progress</b>)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="checkLink_v2" />
@@ -67,7 +67,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Wait
+            Wait (Done!)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="wait_v2" />
@@ -75,7 +75,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Save a screenshot
+            Save a screenshot (Done!)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="saveScreenshot_v2" />
@@ -83,7 +83,15 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Set environment variables
+            Run shell script (Done!)
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="runShell_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Set environment variables (Done!)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="setVariables_v2" />
@@ -91,7 +99,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Make an HTTP request
+            Make an HTTP request (<b>In Progress</b>)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="httpRequest_v2" />
