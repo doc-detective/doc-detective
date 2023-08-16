@@ -64,19 +64,19 @@ function App() {
     {
       "steps": [
         {
-          "action": "goTo_v2",
+          "action": "goTo",
           "url": "https://www.google.com"
         },
         {
-          "action": "find_v2",
+          "action": "find",
           "selector": "input[name='q']"
         },
         {
-          "action": "typeKeys_v2",
+          "action": "typeKeys",
           "keys": "Hello, world!"
         },
         {
-          "action": "saveScreenshot_v2",
+          "action": "saveScreenshot",
           "path": "screenshot.png"
         }
       ]
