@@ -43,7 +43,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Find (and interact with) an element (<b>In Progress</b>)
+            Find (and interact with) an element (In Progress. Needs object field support, boolean field support, oneOf support.)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="find_v2" />
@@ -51,7 +51,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Type keys (<b>In Progress</b>)
+            Type keys (In Progress. Needs oneOf support.)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="typeKeys_v2" />
@@ -59,7 +59,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Check a link (<b>In Progress</b>)
+            Check a link (Functional, needs type-aware array values)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="checkLink_v2" />
@@ -99,7 +99,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Make an HTTP request (<b>In Progress</b>)
+            Make an HTTP request (In Progress. Needs object field support, configurable object key/value pair support.)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="httpRequest_v2" />
