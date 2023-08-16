@@ -19,12 +19,17 @@ import saveScreenshot_v2 from "doc-detective-common/src/schemas/output_schemas/s
 import setVariables_v2 from "doc-detective-common/src/schemas/output_schemas/setVariables_v2.schema.json";
 import httpRequest_v2 from "doc-detective-common/src/schemas/output_schemas/httpRequest_v2.schema.json";
 import wait_v2 from "doc-detective-common/src/schemas/output_schemas/wait_v2.schema.json";
+import context_v2 from "doc-detective-common/src/schemas/output_schemas/context_v2.schema.json";
+import test_v2 from "doc-detective-common/src/schemas/output_schemas/test_v2.schema.json";
+import spec_v2 from "doc-detective-common/src/schemas/output_schemas/spec_v2.schema.json";
+import config_v2 from "doc-detective-common/src/schemas/output_schemas/config_v2.schema.json";
+
 // import { validate } from "doc-detective-common"
 import { v4 as uuidv4 } from "uuid";
 
 const Form = (schema) => {
   // Temp for development
-  // console.log(schema)
+  console.log(schema)
 
   switch (schema.schema) {
     case "checkLink_v2":
@@ -54,12 +59,24 @@ const Form = (schema) => {
     case "httpRequest_v2":
       schema = httpRequest_v2;
       break;
+    case "context_v2":
+      schema = context_v2;
+      break;
+    case "test_v2":
+      schema = test_v2;
+      break;
+    case "spec_v2":
+      schema = spec_v2;
+      break;
+    case "config_v2":
+      schema = config_v2;
+      break;
     default:
       console.log(`'${schema.schema}' isn't a valid schema name.`);
       break;
   }
 
-  //  console.log(schema)
+   console.log(schema)
 
   const initValueState = (schema) => {
     const initValueState = {};
@@ -142,10 +159,7 @@ const Form = (schema) => {
           <FormControlLabel
             required={required}
             disabled={disabled}
-            control={<Switch 
-              checked={value}
-              onChange={onChange}
-            />}
+            control={<Switch checked={value} onChange={onChange} />}
           />
         </div>
       );
@@ -216,13 +230,7 @@ const Form = (schema) => {
           );
           break;
         case "boolean":
-          field = booleanField(
-            fieldId,
-            label,
-            required,
-            disabled,
-            helperText
-          );
+          field = booleanField(fieldId, label, required, disabled, helperText);
           break;
         // case "object":
         //   break;

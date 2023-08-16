@@ -100,7 +100,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Find (and interact with) an element (In Progress. Needs object field support, boolean field support, oneOf support.)
+            Find (and interact with) an element (Functional. Needs object field support, oneOf support for typing special keys.)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="find_v2" />
@@ -156,12 +156,44 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Make an HTTP request (In Progress. Needs object field support, configurable object key/value pair support.)
+            Make an HTTP request (Not ready. Needs object field support, configurable object key/value pair support.)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="httpRequest_v2" />
           </AccordionDetails>
         </Accordion>
+        {/* <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Specify contexts to perform tests in. (Nowhere near ready. Don't even ask.)
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="context_v2" />
+          </AccordionDetails>
+        </Accordion> *}
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Define a test. (Nowhere near ready. Don't even ask.)
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="test_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Customize a test specification. (Nowhere near ready. Don't even ask.)
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="spec_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Define a configuration. (Nowhere near ready. Don't even ask.)
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="config_v2" />
+          </AccordionDetails>
+        </Accordion> */}
       </div>
     </div>
   );
