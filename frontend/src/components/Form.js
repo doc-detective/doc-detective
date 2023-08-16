@@ -140,6 +140,11 @@ const Form = (schema) => {
       let disabled = false;
       let enums = value.enum || [];
 
+      // Skip if it has const value
+      if (value.const) {
+        continue;
+      }
+
       // Get type
       // TODO: Add support for multiple types per field
       if (!type) {
