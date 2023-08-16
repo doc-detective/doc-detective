@@ -7,8 +7,9 @@ import Form from "./components/Form";
 import FileUploader from "./FileUploader";
 import TestButton from "./Button";
 import AppBar from "./components/AppBar";
-import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { CopyBlock, nord } from "react-code-blocks";
 
 const uiSchema = {};
 
@@ -94,6 +95,63 @@ function App() {
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="httpRequest_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Test specification skeleton
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography>Put your action objects in the <code>steps</code> array.</Typography>
+            <br />
+            <CopyBlock
+              text={`{
+  "tests": [
+    {
+      "steps": [
+      ]
+    }
+  ]
+}`}
+              language={"javascript"}
+              showLineNumbers={true}
+              theme={nord}
+              codeBlock
+            />
+            <br />
+            <Typography>Example:</Typography>
+            <br />
+            <CopyBlock
+
+              text={`{
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "goTo_v2",
+          "url": "https://www.google.com"
+        },
+        {
+          "action": "find_v2",
+          "selector": "input[name='q']"
+        },
+        {
+          "action": "typeKeys_v2",
+          "keys": "Hello, world!"
+        },
+        {
+          "action": "saveScreenshot_v2",
+          "path": "screenshot.png"
+        }
+      ]
+    }
+  ]
+}`}
+              language={"javascript"}
+              showLineNumbers={true}
+              theme={nord}
+              codeBlock
+            />
           </AccordionDetails>
         </Accordion>
       </div>
