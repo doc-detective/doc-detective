@@ -34,10 +34,34 @@ function App() {
         {/* <FileUploader /> */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Go to a URL
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="goTo_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Find (and interact with) an element
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="find_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Type keys
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="typeKeys_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             Check a link
           </AccordionSummary>
           <AccordionDetails>
-            <Form ref={formRef} key={selectedSchema} schema="checkLink_v2" />
+            <Form schema="checkLink_v2" />
           </AccordionDetails>
         </Accordion>
         <Accordion>
@@ -45,7 +69,31 @@ function App() {
             Wait
           </AccordionSummary>
           <AccordionDetails>
-            <Form ref={formRef} key={selectedSchema} schema="wait_v2" />
+            <Form schema="wait_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Save a screenshot
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="saveScreenshot_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Set environment variables
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="setVariables_v2" />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            Make an HTTP request
+          </AccordionSummary>
+          <AccordionDetails>
+            <Form schema="httpRequest_v2" />
           </AccordionDetails>
         </Accordion>
       </div>

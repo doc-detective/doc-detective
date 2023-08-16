@@ -11,6 +11,12 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import { CopyBlock, nord } from "react-code-blocks";
 import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json";
+import goTo_v2 from "doc-detective-common/src/schemas/output_schemas/goTo_v2.schema.json";
+import find_v2 from "doc-detective-common/src/schemas/output_schemas/find_v2.schema.json";
+import typeKeys_v2 from "doc-detective-common/src/schemas/output_schemas/typeKeys_v2.schema.json";
+import saveScreenshot_v2 from "doc-detective-common/src/schemas/output_schemas/saveScreenshot_v2.schema.json";
+import setVariables_v2 from "doc-detective-common/src/schemas/output_schemas/setVariables_v2.schema.json";
+import httpRequest_v2 from "doc-detective-common/src/schemas/output_schemas/httpRequest_v2.schema.json";
 import wait_v2 from "doc-detective-common/src/schemas/output_schemas/wait_v2.schema.json";
 // import { validate } from "doc-detective-common"
 import { v4 as uuidv4 } from "uuid";
@@ -25,13 +31,32 @@ const Form = (schema) => {
       break;
     case "wait_v2":
       schema = wait_v2;
+      break;
+    case "goTo_v2":
+      schema = goTo_v2;
+      break;
+    case "find_v2":
+      schema = find_v2;
+      break;
+    case "typeKeys_v2":
+      schema = typeKeys_v2;
+      break;
+    case "saveScreenshot_v2":
+      schema = saveScreenshot_v2;
+      break;
+    case "setVariables_v2":
+      schema = setVariables_v2;
+      break;
+    case "httpRequest_v2":
+      schema = httpRequest_v2;
+      break;
     default:
       console.log(`'${schema.schema}' isn't a valid schema name.`);
       break;
   }
 
-//  console.log(schema)
-  
+  //  console.log(schema)
+
   const initValueState = (schema) => {
     const initValueState = {};
     for (const [key, value] of Object.entries(schema.properties)) {
