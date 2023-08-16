@@ -236,7 +236,7 @@ const Form = (schema) => {
                     });
                   }}
                 >
-                  Add Field
+                  Add a value
                 </Button>
               </Container>
             </div>
