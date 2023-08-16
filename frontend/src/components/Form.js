@@ -132,12 +132,29 @@ const Form = (schema) => {
     for (const [key, value] of Object.entries(schema.properties)) {
       let fieldId = `${schema.title}_${key}`;
       let field;
+      let type = value.type || "";
       let required = false;
       let label = value.title || value.name || key;
       let helperText = value.description || "";
       let placeholder = "";
       let disabled = false;
       let enums = value.enum || [];
+
+      // Get type
+      // TODO: Add support for multiple types per field
+      if (!type) {
+        if (value.anyOf || value.oneOf) {
+          let xOfArray = value.anyOf || value.oneOf;
+          let typeOptions = xOfArray.filter((item) => item.type);
+          if (typeOptions.includes((item) => item.type === "string")) {
+            // Find if any types are "string"
+            type = "string";
+          } else if (typeOptions.length > 0) {
+            // Set to first type
+            type = typeOptions[0].type;
+          }
+        }
+      }
 
       // Get disabled
       if (key === "action") {
@@ -154,14 +171,14 @@ const Form = (schema) => {
         required = true;
       }
 
-      switch (value.type) {
+      switch (type) {
         case "string":
         case "integer":
         case "number":
           field = textField(
             fieldId,
             label,
-            value.type,
+            type,
             required,
             disabled,
             helperText,

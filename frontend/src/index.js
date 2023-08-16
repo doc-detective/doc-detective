@@ -51,7 +51,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Type keys (In Progress. Needs oneOf support.)
+            Type keys (Functional. Needs oneOf support for special keys.)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="typeKeys_v2" />
@@ -59,7 +59,7 @@ function App() {
         </Accordion>
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Check a link (Functional, needs type-aware array values)
+            Check a link (Functional. Needs type-aware array values.)
           </AccordionSummary>
           <AccordionDetails>
             <Form schema="checkLink_v2" />
