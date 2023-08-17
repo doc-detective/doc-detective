@@ -29,7 +29,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const Form = (schema) => {
   // Temp for development
-  console.log(schema)
+  // console.log(schema);
 
   switch (schema.schema) {
     case "checkLink_v2":
@@ -76,7 +76,7 @@ const Form = (schema) => {
       break;
   }
 
-   console.log(schema)
+  // console.log(schema);
 
   const initValueState = (schema) => {
     const initValueState = {};
@@ -100,8 +100,59 @@ const Form = (schema) => {
   };
 
   const [valueState, setValueState] = useState(initValueState(schema));
+  const [errorState, setErrorState] = useState({});
 
   const generateFormFields = (schema) => {
+
+    // Error reporting
+    const preValidate = (event, fieldId, validationRules) => {
+      console.log("preValidate");
+      console.log({value: event.target.value, fieldId, validationRules})
+      validationRules.forEach((rule) => {
+        switch (rule.type) {
+          case "minLength":
+            if (event.target.value.length < rule.value) {
+              setErrorState({ ...errorState, [fieldId]: `Minimum length is ${rule.value}.` });
+            }
+            break;
+          case "maxLength":
+            if (event.target.value.length > rule.value) {
+              setErrorState({ ...errorState, [fieldId]: `Max length is ${rule.value}.` });
+            }
+            break;
+          case "min":
+            if (event.target.value < rule.value) {
+              setErrorState({ ...errorState, [fieldId]: `Minimum value is ${rule.value}.` });
+            }
+            break;
+          case "max":
+            if (event.target.value > rule.value) {
+              setErrorState({ ...errorState, [fieldId]: `Max value is ${rule.value}.` });
+            }
+            break;
+          case "pattern":
+            if (!event.target.value.match(rule.value)) {
+              setErrorState({ ...errorState, [fieldId]: `Must match the following regex pattern: ${rule.value}` });
+            }
+            break;
+          // TODO: Enable format validation
+          // case "format":
+          //   if (!event.target.value.match(rule.value)) {
+          //     setErrorState({ ...errorState, [fieldId]: rule.error || `Must be a valid ${rule.value}.` });
+          //   }
+          //   break;
+          default:
+            if (errorState[fieldId]) {
+              let newErrorState = { ...errorState };
+              delete newErrorState[fieldId];
+              setErrorState(newErrorState);
+              break;
+            }
+        }
+      });
+      console.log(errorState)
+    };
+
     // Create a text field
     const textField = (
       fieldId,
@@ -112,9 +163,11 @@ const Form = (schema) => {
       helperText = "",
       placeholder = "",
       enums = [],
+      validationRules = [],
       value = valueState[fieldId],
       onChange = (event) =>
-        setValueState({ ...valueState, [fieldId]: event.target.value })
+        setValueState({ ...valueState, [fieldId]: event.target.value }),
+      onBlur = (event) => preValidate(event, fieldId, validationRules)
     ) => {
       return (
         <div class="field">
@@ -131,6 +184,7 @@ const Form = (schema) => {
             {...(enums.length > 0 && { InputLabelProps: { shrink: true } })}
             value={value}
             onChange={onChange}
+            onBlur={onBlur}
           >
             {enums.map((option) => (
               <option key={option} value={option}>
@@ -177,6 +231,7 @@ const Form = (schema) => {
       let placeholder = "";
       let disabled = false;
       let enums = value.enum || [];
+      let validationRules = [];
 
       // Skip if it has const value
       if (value.const) {
@@ -214,6 +269,50 @@ const Form = (schema) => {
         required = true;
       }
 
+      // Get validation rules
+      if (value.minLength) {
+        validationRules.push({
+          type: "minLength",
+          value: value.minLength,
+        });
+      }
+      if (value.maxLength) {
+        validationRules.push({
+          type: "maxLength",
+          value: value.maxLength,
+        });
+      }
+      if (value.minimum) {
+        validationRules.push({
+          type: "min",
+          value: value.minimum,
+        });
+      }
+      if (value.maximum) {
+        validationRules.push({
+          type: "max",
+          value: value.maximum,
+        });
+      }
+      if (value.pattern) {
+        validationRules.push({
+          type: "pattern",
+          value: value.pattern,
+        });
+      }
+      // TODO: Enable format validation
+      // if (value.format) {
+      //   let error;
+      //   if (value.format === "uri"){
+      //     error = "Must be a valid URI."
+      //   }
+      //   validationRules.push({
+      //     type: "format",
+      //     value: value.format,
+      //     error: error
+      //   });
+      // }
+
       switch (type) {
         case "string":
         case "integer":
@@ -226,7 +325,8 @@ const Form = (schema) => {
             disabled,
             helperText,
             placeholder,
-            enums
+            enums,
+            validationRules
           );
           break;
         case "boolean":
@@ -262,6 +362,7 @@ const Form = (schema) => {
                       "",
                       placeholder,
                       enums,
+                      validationRules,
                       value,
                       (event) => {
                         const newValues = [...valueState[fieldId]];
@@ -320,6 +421,25 @@ const Form = (schema) => {
 
   const formFields = generateFormFields(schema);
 
+  useEffect(() => {
+    const errorBlock = generateErrorBlock(errorState);
+    setErrorBlock(errorBlock);
+  }, [errorState]);
+
+  const generateErrorBlock = () => {
+    console.log(errorState);
+    const errorBlock = (
+      <div>
+        <ReactMarkdown>## Errors</ReactMarkdown>
+        {Object.entries(errorState).map(([key, value]) => (
+          <ReactMarkdown>{`- ${key}: ${value}`}</ReactMarkdown>
+        ))}
+      </div>
+    );
+    return errorBlock;
+  };
+  const [errorBlock, setErrorBlock] = useState(generateErrorBlock(errorState));
+
   const generateCodeBlock = (schema) => {
     let code = {};
     for (const [key, value] of Object.entries(schema.properties)) {
@@ -373,6 +493,8 @@ const Form = (schema) => {
       </Button> */}
       <br />
       <hr />
+      <br />
+      {errorState.length > 0 && errorBlock}
       <br />
       {codeBlock}
     </form>
