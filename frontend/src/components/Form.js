@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { CopyBlock, nord } from "react-code-blocks";
+import ErrorList from "./ErrorList";
 import checkLink_v2 from "doc-detective-common/src/schemas/output_schemas/checkLink_v2.schema.json";
 import goTo_v2 from "doc-detective-common/src/schemas/output_schemas/goTo_v2.schema.json";
 import find_v2 from "doc-detective-common/src/schemas/output_schemas/find_v2.schema.json";
@@ -103,54 +104,78 @@ const Form = (schema) => {
   const [errorState, setErrorState] = useState({});
 
   const generateFormFields = (schema) => {
-
     // Error reporting
     const preValidate = (event, fieldId, validationRules) => {
+      const errors = [];
       console.log("preValidate");
-      console.log({value: event.target.value, fieldId, validationRules})
+      console.log({ value: event.target.value, fieldId, validationRules });
       validationRules.forEach((rule) => {
         switch (rule.type) {
           case "minLength":
             if (event.target.value.length < rule.value) {
-              setErrorState({ ...errorState, [fieldId]: `Minimum length is ${rule.value}.` });
+              errors.push({
+                field: fieldId,
+                value: `Minimum length is ${rule.value}.`,
+              });
             }
             break;
           case "maxLength":
             if (event.target.value.length > rule.value) {
-              setErrorState({ ...errorState, [fieldId]: `Max length is ${rule.value}.` });
+              errors.push({
+                field: fieldId,
+                value: `Max length is ${rule.value}.`,
+              });
             }
             break;
           case "min":
             if (event.target.value < rule.value) {
-              setErrorState({ ...errorState, [fieldId]: `Minimum value is ${rule.value}.` });
+              errors.push({
+                field: fieldId,
+                value: `Minimum value is ${rule.value}.`,
+              });
             }
             break;
           case "max":
             if (event.target.value > rule.value) {
-              setErrorState({ ...errorState, [fieldId]: `Max value is ${rule.value}.` });
+              errors.push({
+                field: fieldId,
+                value: `Max value is ${rule.value}.`,
+              });
             }
             break;
           case "pattern":
             if (!event.target.value.match(rule.value)) {
-              setErrorState({ ...errorState, [fieldId]: `Must match the following regex pattern: ${rule.value}` });
+              errors.push({
+                field: fieldId,
+                value: `Must match the following regex pattern: ${rule.value}`,
+              });
             }
             break;
           // TODO: Enable format validation
           // case "format":
           //   if (!event.target.value.match(rule.value)) {
+          //     errored = true;
           //     setErrorState({ ...errorState, [fieldId]: rule.error || `Must be a valid ${rule.value}.` });
           //   }
           //   break;
           default:
-            if (errorState[fieldId]) {
-              let newErrorState = { ...errorState };
-              delete newErrorState[fieldId];
-              setErrorState(newErrorState);
-              break;
-            }
+            break;
+        }
+        if (errors.length > 0) {
+          // Set errorState to new errors
+          console.log(errors)
+          const errorValues = errors.map((error) => error.value).join(" ");
+          setErrorState({ ...errorState, [fieldId]: errorValues });
+        } else if (errors.length == 0 && errorState[fieldId]) {
+          console.log("Removed old errors")
+          // Clear errorState of old errors
+          const cleanErrorState = { ...errorState };
+          delete cleanErrorState[fieldId];
+          setErrorState(cleanErrorState);
+        } else {
+          console.log("No errors")
         }
       });
-      console.log(errorState)
     };
 
     // Create a text field
@@ -421,24 +446,25 @@ const Form = (schema) => {
 
   const formFields = generateFormFields(schema);
 
-  useEffect(() => {
-    const errorBlock = generateErrorBlock(errorState);
-    setErrorBlock(errorBlock);
-  }, [errorState]);
+  // useEffect(() => {
+  //   console.log(errorState);
+  //   const errorBlock = generateErrorBlock(errorState);
+  //   setErrorBlock(errorBlock);
+  // }, [errorState]);
 
-  const generateErrorBlock = () => {
-    console.log(errorState);
-    const errorBlock = (
-      <div>
-        <ReactMarkdown>## Errors</ReactMarkdown>
-        {Object.entries(errorState).map(([key, value]) => (
-          <ReactMarkdown>{`- ${key}: ${value}`}</ReactMarkdown>
-        ))}
-      </div>
-    );
-    return errorBlock;
-  };
-  const [errorBlock, setErrorBlock] = useState(generateErrorBlock(errorState));
+  // const generateErrorBlock = () => {
+  //   const errorBlock = (
+  //     <div>
+  //       <ReactMarkdown>## Errors</ReactMarkdown>
+  //       {Object.entries(errorState).map(([key, value]) => (
+  //         <ReactMarkdown>{`- ${key}: ${value}`}</ReactMarkdown>
+  //       ))}
+  //     </div>
+  //   );
+  //   return errorBlock;
+  // };
+  // // const [errorBlock, setErrorBlock] = useState(generateErrorBlock(errorState));
+  // const errorBlock = generateErrorBlock(errorState);
 
   const generateCodeBlock = (schema) => {
     let code = {};
@@ -494,8 +520,9 @@ const Form = (schema) => {
       <br />
       <hr />
       <br />
-      {errorState.length > 0 && errorBlock}
+      {/* <ErrorList errorState={errorState} /> */}
       <br />
+      <ReactMarkdown>## Action object</ReactMarkdown>
       {codeBlock}
     </form>
   );
