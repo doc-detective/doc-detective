@@ -8,6 +8,7 @@ on:
 
 jobs:
   publish:
+    name: Build and Publish Electron bundle
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
