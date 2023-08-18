@@ -8,7 +8,12 @@ on:
 
 jobs:
   publish:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: 
+          - windows-latest
+          - macos-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
