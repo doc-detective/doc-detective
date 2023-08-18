@@ -17,4 +17,4 @@ jobs:
       - name: Install Electron dependencies
         run: cd electron && npm i
       - name: Build and publish Electron bundles
-        run: cd election && npm run publish
+        run: cd electron && npm run publish
