@@ -7,22 +7,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  prereqs:
-    name: Set up prerequisites
+  publish:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-  install:
-    name: Node installations
-    needs: prereqs
-    runs-on: macos-latest
-    steps:
-      - run: cd frontend && npm i
-      - run: cd electron && npm i
-  publish:
-    name: Build and publish
-    needs: install
-    runs-on: macos-latest
-    steps:
-      - run: cd election && npm run publish
+      - name: Install frontend dependencies
+        run: cd frontend && npm i
+      - name: Install Electron dependencies
+        run: cd electron && npm i
+      - name: Build and publish Electron bundles
+        run: cd election && npm run publish
