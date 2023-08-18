@@ -7,10 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "cd ../frontend && npm i",
     "dev": "electron .",
-    "start": "npm run build:frontend && electron .",
-    "build:frontend": "node scripts/buildFrontend.js",
-    "build": "npm run build:frontend && electron-builder",
-    "publish": "npm run build:frontend && electron-builder --x64 --arm64 --publish always"
+    "start": "npm run prebuild && electron .",
+    "prebuild": "node scripts/prebuild.js",
+    "build": "electron-builder"
   },
   "author": "Manny Silva",
   "license": "MIT",
