@@ -5,10 +5,11 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron .",
-    "prebuild": "node scripts/prebuild.js",
-    "build": "electron-builder -mw --x64 --arm64",
-    "publish": "electron-builder -mw --x64 --arm64 --publish always"
+    "dev": "electron .",
+    "start": "npm run build:frontend && electron .",
+    "build:frontend": "node scripts/buildFrontend.js",
+    "build": "npm run build:frontend && electron-builder",
+    "publish": "npm run build:frontend && electron-builder -mw --x64 --arm64 --publish always"
   },
   "author": "Manny Silva",
   "license": "MIT",
