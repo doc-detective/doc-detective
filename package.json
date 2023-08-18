@@ -1,10 +1,9 @@
 {
   "name": "doc-detective",
-  "version": "2.1.0",
+  "version": "2.1.0-alpha.0",
   "description": "Unit test documentation (and record videos of those tests).",
-  "scripts": {
+    "scripts": {
     "mocha": "mocha",
-    "test": "mocha test/*.test.js",
     "postinstall": "cd frontend && npm i",
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
@@ -13,7 +12,7 @@
     "build:react": "cd frontend && npm run build",
     "build:server": "npm run build:react && npm run start:server",
     "build:electron": "npm run build:react && npm run start:electron",
-    "start": "npm run build:react && npm run start:server",
+"start": "npm run build:react && npm run start:server",
     "start:server": "node backend/server.js",
     "start:electron": "electron backend/electron.js",
     "watch:server": "nodemon --watch ./ --ignore build/* --ext js,mjs,cjs,json,css,html --exec \"npm run build:server\"",
@@ -40,17 +39,16 @@
     "@json-editor/json-editor": "^2.10.1",
     "@koa/router": "^12.0.0",
     "doc-detective-common": "^1.2.11",
-    "doc-detective-core": "^2.0.1",
-    "electron": "^25.2.0",
+    "doc-detective-core": "^2.0.2",
     "koa": "^2.14.2",
     "koa-send": "^5.0.1",
     "koa-static": "^5.0.0",
     "prompt-sync": "^4.2.0",
-    "yargs": "^17.4.1"
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "chai": "^4.3.7",
-    "mocha": "^10.2.0",
+        "mocha": "^10.2.0",
     "nodemon": "^3.0.1"
   }
 }
