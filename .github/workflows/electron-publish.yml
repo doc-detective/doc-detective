@@ -6,6 +6,9 @@ on:
 #      - main
   workflow_dispatch:
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   publish:
     name: Build and Publish Electron bundle
