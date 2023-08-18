@@ -1,13 +1,8 @@
 name: Publish Electron bundles
 
 on:
-#  push:
-#    branches:
-#      - main
-  workflow_dispatch:
-
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release:
+    types: [created,edited,prereleased,published]
 
 jobs:
   publish:
@@ -25,5 +20,15 @@ jobs:
         run: cd frontend && npm i
       - name: Install Electron dependencies
         run: cd electron && npm i
-      - name: Build and publish Electron bundles
-        run: cd electron && npm run publish
+      - name: Build Electron bundles
+        run: cd electron && npm run build
+      - name: get-npm-version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+      - name: Upload artifact
+        uses: actions/upload-release-asset@v1
+        with:
+          name: Election bundles
+          path: ./electron/dist/Doc Detective.*(\.exe|\.zip|\.dmg)$
+          url: ${{ github.event.release.upload_url }}
+          token: ${{ secrets.GITHUB_TOKEN }}
