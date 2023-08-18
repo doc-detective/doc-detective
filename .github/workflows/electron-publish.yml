@@ -16,9 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-      - name: Install frontend dependencies
-        run: cd frontend && npm i
-      - name: Install Electron dependencies
+      - name: Install dependencies
         run: cd electron && npm i
       - name: Build Electron bundles
         run: cd electron && npm run build
