@@ -1,6 +1,7 @@
 const { exec } = require("child_process");
 const fs = require("fs");
 
+console.log("Building frontend")
 const frontendBuild = exec("npm run build", { cwd: "../frontend" });
 
 frontendBuild.on("exit", (code) => {
