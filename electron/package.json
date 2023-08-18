@@ -9,7 +9,7 @@
     "start": "npm run build:frontend && electron .",
     "build:frontend": "node scripts/buildFrontend.js",
     "build": "npm run build:frontend && electron-builder",
-    "publish": "npm run build:frontend && electron-builder -mw --x64 --arm64 --publish always"
+    "publish": "npm run build:frontend && electron-builder --x64 --arm64 --publish always"
   },
   "author": "Manny Silva",
   "license": "MIT",
