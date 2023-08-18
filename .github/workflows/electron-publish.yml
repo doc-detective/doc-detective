@@ -19,10 +19,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - run: cd frontend && npm i
-      - run: cd ../electron && npm i
+      - run: cd electron && npm i
   publish:
     name: Build and publish
     needs: install
     runs-on: macos-latest
     steps:
-      - run: npm run publish
+      - run: cd election && npm run publish
