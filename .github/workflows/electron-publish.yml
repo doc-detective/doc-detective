@@ -1,0 +1,20 @@
+name: Publish Electron bundles
+
+on:
+#  push:
+#    branches:
+#      - main
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install frontend dependencies
+        run: cd frontend && npm i
+      - name: Install Electron dependencies
+        run: cd electron && npm i
+      - name: Build and publish Electron bundles
+        run: cd electron && npm run publish
