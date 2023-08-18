@@ -11,11 +11,14 @@
     "dev": "node ./dev",
     "build:react": "cd frontend && npm run build",
     "build:server": "npm run build:react && npm run start:server",
-    "build:electron": "npm run build:react && npm run start:electron",
-"start": "npm run build:react && npm run start:server",
+    "start": "npm run build:react && npm run start:server",
     "start:server": "node backend/server.js",
-    "start:electron": "electron backend/electron.js",
     "watch:server": "nodemon --watch ./ --ignore build/* --ext js,mjs,cjs,json,css,html --exec \"npm run build:server\"",
+
+    "install:electron": "cd electron && npm i",
+    "start:electron": "cd electron && npm run start",
+    "build:electron": "cd electron && npm run build",
+
     "reset": "node ./scripts/reset.js && npm i"
   },
   "repository": {
