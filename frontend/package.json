@@ -1,6 +1,6 @@
 {
   "name": "client",
-  "version": "1.0.0",
+  "version": "2.1.0-alpha.1",
   "scripts": {
     "build": "react-scripts build && npm run post",
     "build:server": "cd .. && npm run build:server",

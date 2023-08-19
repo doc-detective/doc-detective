@@ -1,11 +1,12 @@
 {
   "name": "doc-detective-electron",
-  "version": "2.1.0-alpha.0",
+  "version": "2.1.0-alpha.1",
   "description": "Native application frontend for Doc Detective",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "cd ../frontend && npm i",
+    "preinstall": "cd .. && node scripts/syncVersion.js",
+    "postinstall": "cd ../frontend && npm ci",
     "dev": "electron .",
     "start": "npm run prebuild && electron .",
     "prebuild": "node scripts/prebuild.js",

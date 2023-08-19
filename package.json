@@ -1,10 +1,11 @@
 {
   "name": "doc-detective",
-  "version": "2.1.0-alpha.0",
+  "version": "2.1.0-alpha.1",
   "description": "Unit test documentation (and record videos of those tests).",
     "scripts": {
     "mocha": "mocha",
-    "postinstall": "cd frontend && npm i",
+    "preinstall": "node scripts/syncVersion.js",
+    "postinstall": "cd frontend && npm i && cd ../electron && npm i && cd ../server && npm i",
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
     "suggestTests": "node ./src/suggestTests.js",
