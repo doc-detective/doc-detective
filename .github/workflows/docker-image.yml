@@ -25,4 +25,4 @@ jobs:
     #   run: npm run docker:build:multiarch
 
     - name: Build the Docker image
-      run: docker buildx build --platform linux/amd64 --tag hawkeyexl/verbagpt:latest .
+      run: docker buildx build --platform linux/amd64,limux/arm64 --tag hawkeyexl/verbagpt:latest .
