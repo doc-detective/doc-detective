@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "preinstall": "cd .. && node scripts/syncVersion.js",
     "postinstall": "cd ../frontend && npm ci",
-    "dev": "electron .",
-    "start": "npm run prebuild && electron .",
+    "start": "electron .",
+    "dev": "npm run prebuild && electron .",
     "prebuild": "node scripts/prebuild.js",
     "build": "electron-builder"
   },

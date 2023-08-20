@@ -8,7 +8,7 @@ const Router = require('@koa/router');
 const app = new Koa();
 const router = new Router();
 
-app.use(serve(path.join(__dirname, '../frontend/build')));
+app.use(serve(path.join(__dirname, 'frontend')));
 
 router.get('/read-file', async (ctx) => {
   try {

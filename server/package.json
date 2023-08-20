@@ -7,13 +7,14 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "preinstall": "cd .. && node scripts/syncVersion.js",
     "postinstall": "cd ../frontend && npm ci",
-    "dev": "node server.js",
-    "start": "npm run prebuild && node server.js",
+    "build": "npm run start",
+    "start": "node server.js",
     "prebuild": "node scripts/prebuild.js"
   },
   "author": "Manny Silva",
   "license": "MIT",
   "dependencies": {
+    "@koa/router": "^12.0.0",
     "koa": "^2.14.2",
     "koa-send": "^5.0.1",
     "koa-static": "^5.0.0"
