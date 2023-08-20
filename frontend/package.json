@@ -1,25 +1,23 @@
 {
-  "name": "client",
+  "name": "doc-detective-gui",
   "version": "2.1.0-alpha.1",
+  "description": "Frontend for Doc Detective.",
   "scripts": {
-    "build": "react-scripts build && npm run post",
-    "build:server": "cd .. && npm run build:server",
-    "start": "react-scripts start",
-    "post": "node scripts/postProcessing.js"
+    "build": "react-scripts build",
+    "watch": "nodemon --watch ./ --ignore build/* --ext js,mjs,cjs,json,css,html --exec \"npm run start\"",
+    "start": "cd ../server && npm run start",
+    "postbuild": "node scripts/postProcessing.js"
   },
   "dependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@json-editor/json-editor": "^2.10.1",
-    "@mui/material": "^5.14.4",
-    "@rjsf/core": "^5.11.2",
-    "@rjsf/mui": "^5.11.2",
-    "@rjsf/utils": "^5.11.2",
-    "@rjsf/validator-ajv8": "^5.11.2",
-    "autoprefixer": "^10.4.14",
+    "@koa/router": "^12.0.0",
+    "@mui/material": "^5.14.5",
+    "autoprefixer": "^10.4.15",
     "doc-detective-common": "^1.2.11",
-    "postcss": "^8.4.27",
+    "postcss": "^8.4.28",
     "react": "^18.2.0",
     "react-code-blocks": "^0.1.3",
     "react-dom": "^18.2.0",
@@ -38,5 +36,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "doc-detective-server",
   "version": "2.1.0-alpha.1",
-  "description": "Hosted solution for Doc Detective",
+  "description": "Hosted solution for Doc Detective.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

@@ -2,24 +2,22 @@
   "name": "doc-detective",
   "version": "2.1.0-alpha.1",
   "description": "Unit test documentation (and record videos of those tests).",
-    "scripts": {
+  "scripts": {
     "mocha": "mocha",
     "preinstall": "node scripts/syncVersion.js",
     "postinstall": "cd frontend && npm i && cd ../electron && npm i && cd ../server && npm i",
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
     "suggestTests": "node ./src/suggestTests.js",
-    "dev": "node ./dev",
-    "build:react": "cd frontend && npm run build",
-    "build:server": "npm run build:react && npm run start:server",
-    "start": "npm run build:react && npm run start:server",
-    "start:server": "node backend/server.js",
-    "watch:server": "nodemon --watch ./ --ignore build/* --ext js,mjs,cjs,json,css,html --exec \"npm run build:server\"",
-
-    "install:electron": "cd electron && npm i",
-    "start:electron": "cd electron && npm run start",
-    "build:electron": "cd electron && npm run build",
-
+    "start": "npm run frontend:start",
+    "frontend:install": "cd frontend && npm i",
+    "frontend:start": "cd frontend && npm run start",
+    "frontend:watch": "cd frontend && npm run watch",
+    "server:install": "cd server && npm i",
+    "server:start": "cd server && npm run start",
+    "electron:install": "cd electron && npm i",
+    "electron:start": "cd electron && npm run start",
+    "electron:build": "cd electron && npm run build",
     "reset": "node ./scripts/reset.js && npm i"
   },
   "repository": {
@@ -40,19 +38,13 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "@json-editor/json-editor": "^2.10.1",
-    "@koa/router": "^12.0.0",
     "doc-detective-common": "^1.2.11",
     "doc-detective-core": "^2.0.2",
-    "koa": "^2.14.2",
-    "koa-send": "^5.0.1",
-    "koa-static": "^5.0.0",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
     "chai": "^4.3.7",
-        "mocha": "^10.2.0",
-    "nodemon": "^3.0.1"
+    "mocha": "^10.2.0"
   }
 }
