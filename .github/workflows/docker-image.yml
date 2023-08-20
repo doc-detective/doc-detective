@@ -15,5 +15,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Docker Setup Buildx
+      # You may pin to the exact commit or the version.
+      # uses: docker/setup-buildx-action@4c0219f9ac95b02789c1075625400b2acbff50b1
+      uses: docker/setup-buildx-action@v2.9.1
     - name: Build the Docker image
       run: npm run docker:build:multiarch
