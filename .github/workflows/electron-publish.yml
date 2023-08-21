@@ -9,6 +9,7 @@ on:
 jobs:
   publish:
     name: Build and Publish Electron bundle (macOS)
+    permissions: write-all
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
