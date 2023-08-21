@@ -26,7 +26,7 @@
       "output": "dist"
     },
     "mac": {
-      "identify": null,
+      "identity": null,
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg",
@@ -45,7 +45,6 @@
       "target": [
         "AppImage",
         "deb",
-        "rpm",
         "tar.gz"
       ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
