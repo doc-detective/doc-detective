@@ -29,9 +29,9 @@ jobs:
       - name: Build Electron bundles
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
-            cd electron && npm run build -- --x64 --arm64 -p always
+            cd electron && npm run build -- --x64 --arm64
           elif [ "$RUNNER_OS" == "Windows" ]; then
-            cd electron && npm run build -- -p always
+            cd electron && npm run build -- --x64
           else
             echo "$RUNNER_OS not supported"
             exit 1
