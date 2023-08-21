@@ -15,27 +15,25 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Setup Node.js environment
-    #   uses: actions/setup-node@v3.8.1
     
-    # - name: Docker login
-      run: docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
+    - name: Setup Node.js environment
     
     - name: Docker setup `buildx`
-      # You may pin to the exact commit or the version.
-      # uses: docker/setup-buildx-action@4c0219f9ac95b02789c1075625400b2acbff50b1
       uses: docker/setup-buildx-action@v2.9.1
 
     - name: Get Package Version
-      run: VERSION=$(jq -r '.version' package.json) && echo "Package version is $VERSION"
+      run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
     
     - name: Set DEV tag
       if: github.event_name != "push"
-      run: TAG=dev && echo "Tag is $TAG"
+      run: echo "TAG=dev" >> $GITHUB_ENV
 
     - name: Set LATEST tag
       if: github.event_name == "push"
-      run: TAG=latest && echo "Tag is $TAG"
+      run: echo "TAG=latest" >> $GITHUB_ENV
+
+    - name: Docker login
+      run: docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
 
     - name: Build and publish Docker image
       if: github.event_name == "push"
