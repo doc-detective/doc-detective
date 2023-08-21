@@ -40,7 +40,7 @@ jobs:
         run: cd electron && npm i
       
       - name: Build Electron bundles (macOS)
-        if: $RUNNER_OS == 'macOS'
+        if: runner.os == 'macOS'
         run: cd electron && npm run build -- --x64 --arm64
 
       - name: Upload Multiple Release Assets
