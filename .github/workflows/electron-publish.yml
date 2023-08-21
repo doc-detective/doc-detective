@@ -24,7 +24,7 @@ jobs:
         run: cd electron && npm i
       
       - name: Build Electron bundles
-        run: cd electron && npm run build -- -mw --x64 --arm64 --publish always
+        run: cd electron && npm run build -- -mwl --x64 --arm64 --publish always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
