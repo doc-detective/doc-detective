@@ -26,6 +26,7 @@
       "output": "dist"
     },
     "mac": {
+      "identify": null,
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg",
