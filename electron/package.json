@@ -33,7 +33,7 @@
         "nsis",
         "zip"
       ],
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -42,7 +42,7 @@
         "rpm",
         "tar.gz"
       ],
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "publish": [
       {
