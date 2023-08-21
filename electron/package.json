@@ -26,13 +26,15 @@
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "win": {
       "target": [
         "nsis",
         "zip"
       ],
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
       "icon": "icon.png"
     },
     "linux": {
@@ -42,6 +44,7 @@
         "rpm",
         "tar.gz"
       ],
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
       "icon": "icon.png"
     },
     "publish": [
