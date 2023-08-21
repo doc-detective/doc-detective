@@ -1,4 +1,4 @@
-name: Build Docker image
+name: Build and publish Docker image
 
 on:
   push:
@@ -19,22 +19,22 @@ jobs:
     - name: Docker setup `buildx`
       uses: docker/setup-buildx-action@v2.9.1
 
-    - name: Get Package Version
+    - name: Get package version
       run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
     
     - name: Set DEV tag
-      if: github.event_name != "push"
+      if: github.event_name != 'push'
       run: echo "TAG=dev" >> $GITHUB_ENV
 
     - name: Set LATEST tag
-      if: github.event_name == "push"
+      if: github.event_name == 'push'
       run: echo "TAG=latest" >> $GITHUB_ENV
 
     - name: Docker login
       run: docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
 
     - name: Build and publish Docker image
-      if: github.event_name == "push"
+      if: github.event_name == 'push'
       run: docker buildx build --push --platform linux/amd64 --tag hawkeyexl/verbagpt:${{ env.VERSION }} --tag hawkeyexl/verbagpt:${{ env.TAG }} .
       # TODO: Update to include linux/arm64 platform when browser downloading supports it
       # run: docker buildx build --push --platform linux/amd64,linux/arm64 --tag hawkeyexl/verbagpt:latest .
