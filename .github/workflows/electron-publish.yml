@@ -29,9 +29,9 @@ jobs:
       - name: Build Electron bundles
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
-            cd electron && npm run build -- --x64 --arm64 -p always
+            cd electron && npm run build -- --x64 --arm64 -p never
           elif [ "$RUNNER_OS" == "Windows" ]; then
-            cd electron && npm run build -- --x64
+            cd electron && npm run build -- --x64 -p never
           else
             echo "$RUNNER_OS not supported"
             exit 1
@@ -39,3 +39,22 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest draft release upload URL
+        if: github.event_name == 'workflow_dispatch'
+        id: get-upload-url
+        run: |
+          UPLOAD_URL=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" | \
+            jq '.[] | select(.draft == true) | .upload_url' | head -1 | tr -d '"' | sed 's/{?name,label}//')
+          echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
+
+      - name: Upload Multiple Release Assets
+        uses: NBTX/upload-release-assets@v1
+        with:
+          # The URL for uploading assets to the release
+          upload_url: ${{ env.UPLOAD_URL }} || ${{ github.event.release.upload_url }}
+          # A glob of assets to upload
+          targets: ./electron/dist/*.{exe,dmg,zip}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
