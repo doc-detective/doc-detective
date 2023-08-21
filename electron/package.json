@@ -32,14 +32,14 @@
         "dmg",
         "zip"
       ],
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${os}-${arch}.${ext}"
     },
     "win": {
       "target": [
         "nsis",
         "zip"
       ],
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${os}-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -47,7 +47,7 @@
         "deb",
         "tar.gz"
       ],
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+      "artifactName": "${productName}-${os}-${arch}.${ext}"
     },
     "publish": [
       {
