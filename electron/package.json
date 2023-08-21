@@ -22,7 +22,6 @@
     },
     "mac": {
       "category": "public.app-category.developer-tools",
-      "icon": "icon.png",
       "target": [
         "dmg",
         "zip"
@@ -35,7 +34,6 @@
         "zip"
       ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-      "icon": "icon.png"
     },
     "linux": {
       "target": [
@@ -45,7 +43,6 @@
         "tar.gz"
       ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-      "icon": "icon.png"
     },
     "publish": [
       {
@@ -56,7 +53,6 @@
       }
     ]
   },
-  "icon": "icon.png",
   "devDependencies": {
     "electron": "^26.0.0",
     "electron-builder": "^24.6.3"
