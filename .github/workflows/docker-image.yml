@@ -30,11 +30,11 @@ jobs:
       run: VERSION=$(jq -r '.version' package.json) && echo "Package version is $VERSION"
     
     - name: Set DEV tag
-      if: github.event_name != "push"
+      if: github.event_name !== "push"
       run: TAG=dev && echo "Tag is $TAG"
 
     - name: Set LATEST tag
-      if: github.event_name == "push"
+      if: github.event_name === "push"
       run: TAG=latest && echo "Tag is $TAG"
 
     - name: Build and publish Docker image
