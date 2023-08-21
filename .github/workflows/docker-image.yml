@@ -31,10 +31,9 @@ jobs:
       run: echo "TAG=latest" >> $GITHUB_ENV
 
     - name: Docker login
-      run: docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
+      run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
 
     - name: Build and publish Docker image
-      if: github.event_name == 'push'
       run: docker buildx build --push --platform linux/amd64 --tag hawkeyexl/verbagpt:${{ env.VERSION }} --tag hawkeyexl/verbagpt:${{ env.TAG }} .
       # TODO: Update to include linux/arm64 platform when browser downloading supports it
       # run: docker buildx build --push --platform linux/amd64,linux/arm64 --tag hawkeyexl/verbagpt:latest .
