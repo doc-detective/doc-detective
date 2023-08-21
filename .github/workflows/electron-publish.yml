@@ -5,6 +5,7 @@ on:
     types: [created,edited,prereleased,published]
   workflow_dispatch:
 
+
 jobs:
   publish:
     name: Build and Publish Electron bundle (macOS)
@@ -50,6 +51,9 @@ jobs:
           upload_url: ${{ env.UPLOAD_URL }} || ${{ github.event.release.upload_url }}
           # A glob of assets to upload
           targets: ./electron/dist/*.{exe,dmg,zip}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     
       # - name: Upload to Release Action (2/3)
       #   uses: Shopify/upload-to-release@v1.0.1
