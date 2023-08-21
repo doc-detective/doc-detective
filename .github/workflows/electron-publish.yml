@@ -8,7 +8,7 @@ on:
 
 jobs:
   publish:
-    name: Build and Publish Electron bundle (macOS)
+    name: Build and Publish Electron bundle
     permissions: write-all
     runs-on: ${{ matrix.os }}
     strategy:
@@ -28,16 +28,7 @@ jobs:
         run: cd electron && npm i
       
       - name: Build Electron bundles
-        run: |
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            cd electron && npm run build -- --x64 --arm64 --publish always
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-            cd electron && npm run build -- --x64 --publish always
-          else
-            echo "$RUNNER_OS not supported"
-            exit 1
-          fi
-        shell: bash
+        run: cd electron && npm run build -- -mwl --x64 --arm64 --publish always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
