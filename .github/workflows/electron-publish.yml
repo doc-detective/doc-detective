@@ -20,35 +20,25 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v3
       
-      # - name: Set up Node
-      #   uses: actions/setup-node@v3
+      - name: Set up Node
+        uses: actions/setup-node@v3
 
-      # - name: Install dependencies
-      #   run: cd electron && npm i
+      - name: Install dependencies
+        run: cd electron && npm i
       
-      # - name: Build Electron bundles
-      #   run: |
-      #     if [ "$RUNNER_OS" == "macOS" ]; then
-      #       cd electron && npm run build -- --x64 --arm64 -p never
-      #     elif [ "$RUNNER_OS" == "Windows" ]; then
-      #       cd electron && npm run build -- --x64 -p never
-      #     else
-      #       echo "$RUNNER_OS not supported"
-      #       exit 1
-      #     fi
-      #   shell: bash
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get latest draft release upload URL
-        if: github.event_name == 'workflow_dispatch'
-        id: get-upload-url
+      - name: Build Electron bundles
         run: |
-          UPLOAD_URL=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases" | \
-            jq '.[] | select(.draft == true) | .upload_url' | head -1 | tr -d '"' | sed 's/{?name,label}//')
-          echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
-      - run: echo ${{ env.UPLOAD_URL }}
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            cd electron && npm run build -- --x64 --arm64 -p onTagOrDraft
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            cd electron && npm run build -- --x64 -p onTagOrDraft
+          else
+            echo "$RUNNER_OS not supported"
+            exit 1
+          fi
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # - name: Upload Multiple Release Assets
       #   uses: NBTX/upload-release-assets@v1
