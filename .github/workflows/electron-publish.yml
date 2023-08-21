@@ -1,32 +1,76 @@
-name: Publish Electron bundles
+name: Build and publish Electron bundles
 
 on:
   release:
     types: [created,edited,prereleased,published]
+  workflow_dispatch:
 
 jobs:
   publish:
-    name: Build and Publish Electron bundle
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: 
-          - windows-latest
-          - macos-latest
+    name: Build and Publish Electron bundle (macOS)
+    runs-on: macos-latest
+          
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Check out repo
+        uses: actions/checkout@v3
+      
+      - name: Set up Node
+        uses: actions/setup-node@v3
+
+      - name: Get Package Version
+        id: get_version
+        run: echo "::set-output name=version::$(jq -r '.version' package.json)"
+        # Use in subsequent steps as ${{ steps.get_version.outputs.version }}
+
+      - name: Get latest draft release upload URL
+        if: github.event_name == 'workflow_dispatch'
+        id: get-upload-url
+        run: |
+          UPLOAD_URL=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" | \
+            jq '.[] | select(.draft == true) | .upload_url' | head -1 | tr -d '"' | sed 's/{?name,label}//')
+          echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
+          
       - name: Install dependencies
         run: cd electron && npm i
+      
       - name: Build Electron bundles
-        run: cd electron && npm run build
-      - name: get-npm-version
-        id: package-version
-        uses: martinbeentjes/npm-get-version-action@v1.3.1
-      - name: Upload artifact
-        uses: actions/upload-release-asset@v1
+        run: cd electron && npm run build -- --x64 --arm64
+
+      - name: Upload Multiple Release Assets
+        uses: NBTX/upload-release-assets@v1
         with:
-          name: Election bundles
-          path: ./electron/dist/Doc Detective.*(\.exe|\.zip|\.dmg)$
-          url: ${{ github.event.release.upload_url }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # The URL for uploading assets to the release
+          upload_url: ${{ env.UPLOAD_URL }} || ${{ github.event.release.upload_url }}
+          # A glob of assets to upload
+          targets: ./electron/dist/*.{exe,dmg,zip}
+    
+      # - name: Upload to Release Action (2/3)
+      #   uses: Shopify/upload-to-release@v1.0.1
+      #   with:
+      #     # Artifact name
+      #     name: Doc Detective-${{ steps.get_version.outputs.version }}-mac-arm64.zip
+      #     # Path to the file to upload
+      #     path: ./electron/dist/Doc Detective-${{ steps.get_version.outputs.version }}-mac-arm64.zip
+      #     repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Upload to Release Action (2/3)
+      #   uses: Shopify/upload-to-release@v1.0.1
+      #   with:
+      #     # Artifact name
+      #     name: Doc Detective-${{ steps.get_version.outputs.version }}-mac-x64.zip
+      #     # Path to the file to upload
+      #     path: ./electron/dist/Doc Detective-${{ steps.get_version.outputs.version }}-mac-x64.zip
+      #     repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # TODO: Upload to a predetermined release
+      # - name: Upload artifact to triggering release
+      #   if: github.event_name == 'release'
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     name: Election bundles
+      #     asset_path: ./electron/dist/Doc Detective.*(\.exe|\.zip|\.dmg)$
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_content_type: application/octet-stream
