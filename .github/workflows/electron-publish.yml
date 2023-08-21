@@ -43,6 +43,8 @@ jobs:
       - name: Build Electron bundles (macOS)
         if: runner.os == 'macOS'
         run: cd electron && npm run build -- --x64 --arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # - name: Upload Multiple Release Assets
       #   uses: NBTX/upload-release-assets@v1
