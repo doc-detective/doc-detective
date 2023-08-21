@@ -10,13 +10,7 @@ jobs:
   publish:
     name: Build and Publish Electron bundle
     permissions: write-all
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: 
-          # - ubuntu-latest
-          - macos-latest
-          # - windows-latest
+    runs-on: macos-latest
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
@@ -28,7 +22,7 @@ jobs:
         run: cd electron && npm i
       
       - name: Build Electron bundles
-        run: cd electron && npm run build -- -mwl --x64 --arm64 --publish always
+        run: cd electron && npm run build -- -mw --x64 --arm64 --publish always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
