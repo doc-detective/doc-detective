@@ -13,8 +13,11 @@
     "prebuild": "node scripts/prebuild.js",
     "build": "electron-builder"
   },
-  "author": "Manny Silva",
-  "email": "hawkeyexl@gmail.com",
+  "author": {
+    "name": "Manny Silva",
+    "email": "hawkeyexl@gmail.com",
+    "url": "https://doc-detective.com"
+  },
   "license": "MIT",
   "build": {
     "appId": "com.doc-detective.app",
