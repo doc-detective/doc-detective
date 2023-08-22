@@ -27,13 +27,3 @@ jobs:
         run: cd electron && npm run build -- -mwl --x64 --arm64 --publish always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Upload Multiple Release Assets
-      #   uses: NBTX/upload-release-assets@v1
-      #   with:
-      #     # The URL for uploading assets to the release
-      #     upload_url: ${{ env.UPLOAD_URL }} || ${{ github.event.release.upload_url }}
-      #     # A glob of assets to upload
-      #     targets: ./electron/dist/*.{exe,dmg,zip}
-      #   env:
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

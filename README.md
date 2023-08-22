@@ -1,7 +1,9 @@
 # <img src="https://github.com/doc-detective/doc-detective/blob/main/icon.png" width=50 style="vertical-align:middle;margin-bottom:7px"/> Doc Detective: The Documentation Testing Framework
 
+![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective?color=orange)
 [![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/2M7wXEThfF)
 [![Docs Shield](https://img.shields.io/badge/docs-doc--detective.com-blue)](https://doc-detective.com)
+
 
 Doc Detective is an open-source documentation testing framework that makes it easy to keep your docs accurate and up-to-date. You write low-code (soon no-code) tests, and Doc Detective runs them directly against your product to make sure your docs match your user experience. Whether it’s a UI-based process or a series of API calls, Doc Detective can help you find doc bugs before your users do.
 
@@ -14,12 +16,12 @@ This project handles test parsing and web-based UI testing--it doesn't support r
 Doc Detective has multiple components that integrate with your workflows as you need them to:
 
 - Doc Detective (this repo): A standalone tool that enables testing without a separate Node project.
-- [Doc Detective Core](https://github.com/doc-detective/doc-detective-core/tree/2.0.0): An NPM package that provides the testing functionality.
+- [Doc Detective Core](https://github.com/doc-detective/doc-detective-core): An NPM package that provides the testing functionality.
 - [Doc Detective Docs](https://github.com/doc-detective/doc-detective.github.io): Source files for [doc-detective.com](https://doc-detective.com).
 
-## Get started
+## Install
 
-> This section covers running Doc Detective as a CLI tool. To use Doc Detective via another interface (like as an NPM package), [see the docs](https://doc-detective.com).
+> The following sections cover running Doc Detective as a CLI tool. To use Doc Detective via another interface (like as an NPM package), [see the docs](https://doc-detective.com).
 
 You can run Doc Detective as a CLI tool with Node:
 
@@ -35,29 +37,50 @@ You can run Doc Detective as a CLI tool with Node:
     npm install
     ```
 
-1.  Run your tests, specifying your test file with the `--input` argument. For example, to run tests in a file named `doc-content.md` in the `samples` directory, run the following command:
+## Run tests
 
-    ```bash
-    npm run runTests -- --input ./samples/doc-content.md
-    ```
+To run your tests, use the `runTests` command and specify your test file with the `--input` argument. For example, to run tests in a file named `doc-content.md` in the `samples` directory (like in this repo!), run the following command:
 
-    To customize your test, file type, and directory options, create a [`config.json`](https://doc-detective.com/reference/schemas/config.html) file and reference it with the `--config` argument.
+```bash
+npm run runTests -- --input ./samples/doc-content.md
+```
 
-    ```bash
-    npm run runTests -- --config ./samples/config.json
-    ```
+To customize your test, file type, and directory options, create a [`config.json`](https://doc-detective.com/reference/schemas/config.html) file and reference it with the `--config` argument.
 
-    You can override `config.json` options with command-line arguments. For example, to run tests in a file named `tests.spec.json` in the `samples` directory, run the following command:
+```bash
+npm run runTests -- --config ./samples/config.json
+```
 
-    ```bash
-    npm run runTests -- --config ./samples/config.json --input ./samples/tests.spec.json
-    ```
+You can override `config.json` options with command-line arguments. For example, to run tests in a file named `tests.spec.json` in the `samples` directory, run the following command:
 
-    To see all available options, use the `--help` argument:
+```bash
+npm run runTests -- --config ./samples/config.json --input ./samples/tests.spec.json
+```
 
-    ```bash
-    npm run runTests -- --help
-    ```
+To see all available options, use the `--help` argument:
+
+```bash
+npm run runTests -- --help
+```
+
+## Check your test coverage
+
+You can check the test coverage of your documentation source files with the `runCoverage` command, specifying the source file or directory of source files with the `--input` argument. Doc Detective identifies potential areas of test coverage with file-format-specific regex, and supports CommonMark syntax natively. If you want to test coverage of a file with different syntax, update your the `fileTypes` object of your [`config.json`](https://doc-detective.com/reference/schemas/config.html) file accordingly.
+
+
+```bash
+npm run runCoverage -- --config ./samples/config.json --input ./samples/doc-content.md
+```
+
+To see all available options, use the `--help` argument:
+
+```bash
+npm run runCoverage -- --help
+```
+
+## Suggest tests for coverage gaps (Experimental)
+
+The `suggestTests` command provides experimental support for suggesting tests for coverage gaps identifying during test coverage analysis. However, the `suggestTests` command is highly experimental, so usage of the command is left as an exercise for the user.
 
 ## Concepts
 
@@ -75,6 +98,15 @@ You can run Doc Detective as a CLI tool with Node:
     -   [**typeKeys**](https://doc-detective.com/reference/schemas/typeKeys.html): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
     -   [**wait**](https://doc-detective.com/reference/schemas/wait.html): Pause before performing the next action.
 -   [**Context**](https://doc-detective.com/reference/schemas/context.html): An application and platforms that support the tests.
+
+## Roadmap
+
+Future updates may include support for the following items:
+
+- Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
+- Platforms: iOS, Android
+- Commands: `suggestTests` stable release
+- Actions: `startRecording`, `stopRecording`
 
 ## License
 
