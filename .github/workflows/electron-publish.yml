@@ -25,7 +25,17 @@ jobs:
       - name: Install dependencies
         run: cd electron && npm i
       
-      - name: Build Electron bundles
-        run: cd electron && npm run build -- -mwl --x64 --arm64
+      - name: Build Electron bundles (macOS)
+        run: cd electron && npm run build -- -m --x64 --arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Electron bundles (Windows)
+        run: cd electron && npm run build -- -w -x64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Electron bundles (Linux)
+        run: cd electron && npm run build -- -l --x64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}          
