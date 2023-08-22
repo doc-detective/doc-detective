@@ -26,7 +26,7 @@
       "output": "dist"
     },
     "artifactName": "${productName}-${os}-${arch}.${ext}",
-    "generateBlockmap": false,
+    "icon": "icon.png",
     "mac": {
       "identity": null,
       "category": "public.app-category.developer-tools",
@@ -53,7 +53,8 @@
         "provider": "github",
         "owner": "doc-detective",
         "repo": "doc-detective",
-        "releaseType": "draft"
+        "releaseType": "draft",
+        "publishAutoUpdate": false
       }
     ]
   },
