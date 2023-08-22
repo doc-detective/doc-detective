@@ -7,6 +7,8 @@ on:
       types: [opened, reopened, synchronize, review_requested]
   workflow_dispatch:
 
+env:
+  PUBLISH_FOR_PULL_REQUEST: true
 
 jobs:
   publish:
@@ -24,6 +26,6 @@ jobs:
         run: cd electron && npm i
       
       - name: Build Electron bundles
-        run: cd electron && npm run build -- -mwl --x64 --arm64 --publish always
+        run: cd electron && npm run build -- -mwl --x64 --arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
