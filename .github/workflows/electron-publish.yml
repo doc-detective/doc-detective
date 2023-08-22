@@ -28,17 +28,19 @@ jobs:
       - name: Get package version
         run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
         
-      - name: Remove all assets from the release with tag v${{ env.VERSION }}
+      - name: Remove all assets from the release with name containing v${{ env.VERSION }}
         run: |
-          # Fetch the release ID from the tag
-          RELEASE_ID=$(curl --silent --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          # Fetch all releases
+          RELEASES=$(curl --silent --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                    --header "Accept: application/vnd.github.v3+json" \
-                   https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/v${{ env.VERSION }} | \
-                   jq '.id')
+                   https://api.github.com/repos/$GITHUB_REPOSITORY/releases)
+  
+          # Filter release by name and get its ID
+          RELEASE_ID=$(echo "$RELEASES" | jq '.[] | select(.name | contains("v${{ env.VERSION }}")) | .id')
   
           # Exit if the release is not found
           if [ -z "$RELEASE_ID" ]; then
-            echo "Release with tag v${{ env.VERSION }} not found."
+            echo "Release with name containing v${{ env.VERSION }} not found."
             exit 0
           fi
   
