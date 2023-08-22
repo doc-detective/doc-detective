@@ -24,7 +24,40 @@ jobs:
 
       - name: Install dependencies
         run: cd electron && npm i
-      
+
+      - name: Get package version
+        run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+        
+      - name: Remove all assets from the release with tag v${{ env.VERSION }}
+        run: |
+          # Fetch the release ID from the tag
+          RELEASE_ID=$(curl --silent --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                   --header "Accept: application/vnd.github.v3+json" \
+                   https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/v${{ env.VERSION }} | \
+                   jq '.id')
+  
+          # Exit if the release is not found
+          if [ -z "$RELEASE_ID" ]; then
+            echo "Release with tag v${{ env.VERSION }} not found."
+            exit 0
+          fi
+  
+          # Fetch assets for the release
+          ASSETS=$(curl --silent --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  --header "Accept: application/vnd.github.v3+json" \
+                  https://api.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets | \
+                  jq '.[] | .id')
+  
+          # Loop through each asset and delete it
+          for ASSET_ID in $ASSETS; do
+            curl -X DELETE \
+            --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            --header "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
       - name: Build Electron bundles (macOS)
         run: cd electron && npm run build -- -m --x64 --arm64
         env:
