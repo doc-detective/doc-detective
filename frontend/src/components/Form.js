@@ -105,16 +105,16 @@ const Form = (schema) => {
 
   const generateFormFields = (schema) => {
     // Error reporting
-    const preValidate = (event, fieldId, validationRules) => {
+    const preValidate = (event, fieldLabel, validationRules) => {
       const errors = [];
       console.log("preValidate");
-      console.log({ value: event.target.value, fieldId, validationRules });
+      console.log({ value: event.target.value, fieldLabel, validationRules });
       validationRules.forEach((rule) => {
         switch (rule.type) {
           case "minLength":
             if (event.target.value.length < rule.value) {
               errors.push({
-                field: fieldId,
+                field: fieldLabel,
                 value: `Minimum length is ${rule.value}.`,
               });
             }
@@ -122,7 +122,7 @@ const Form = (schema) => {
           case "maxLength":
             if (event.target.value.length > rule.value) {
               errors.push({
-                field: fieldId,
+                field: fieldLabel,
                 value: `Max length is ${rule.value}.`,
               });
             }
@@ -130,7 +130,7 @@ const Form = (schema) => {
           case "min":
             if (event.target.value < rule.value) {
               errors.push({
-                field: fieldId,
+                field: fieldLabel,
                 value: `Minimum value is ${rule.value}.`,
               });
             }
@@ -138,7 +138,7 @@ const Form = (schema) => {
           case "max":
             if (event.target.value > rule.value) {
               errors.push({
-                field: fieldId,
+                field: fieldLabel,
                 value: `Max value is ${rule.value}.`,
               });
             }
@@ -146,7 +146,7 @@ const Form = (schema) => {
           case "pattern":
             if (!event.target.value.match(rule.value)) {
               errors.push({
-                field: fieldId,
+                field: fieldLabel,
                 value: `Must match the following regex pattern: ${rule.value}`,
               });
             }
@@ -165,12 +165,12 @@ const Form = (schema) => {
           // Set errorState to new errors
           console.log(errors)
           const errorValues = errors.map((error) => error.value).join(" ");
-          setErrorState({ ...errorState, [fieldId]: errorValues });
-        } else if (errors.length == 0 && errorState[fieldId]) {
+          setErrorState({ ...errorState, [fieldLabel]: errorValues });
+        } else if (errors.length == 0 && errorState[fieldLabel]) {
           console.log("Removed old errors")
           // Clear errorState of old errors
           const cleanErrorState = { ...errorState };
-          delete cleanErrorState[fieldId];
+          delete cleanErrorState[fieldLabel];
           setErrorState(cleanErrorState);
         } else {
           console.log("No errors")
@@ -192,7 +192,7 @@ const Form = (schema) => {
       value = valueState[fieldId],
       onChange = (event) =>
         setValueState({ ...valueState, [fieldId]: event.target.value }),
-      onBlur = (event) => preValidate(event, fieldId, validationRules)
+      onBlur = (event) => preValidate(event, label, validationRules)
     ) => {
       return (
         <div class="field">
@@ -446,26 +446,6 @@ const Form = (schema) => {
 
   const formFields = generateFormFields(schema);
 
-  // useEffect(() => {
-  //   console.log(errorState);
-  //   const errorBlock = generateErrorBlock(errorState);
-  //   setErrorBlock(errorBlock);
-  // }, [errorState]);
-
-  // const generateErrorBlock = () => {
-  //   const errorBlock = (
-  //     <div>
-  //       <ReactMarkdown>## Errors</ReactMarkdown>
-  //       {Object.entries(errorState).map(([key, value]) => (
-  //         <ReactMarkdown>{`- ${key}: ${value}`}</ReactMarkdown>
-  //       ))}
-  //     </div>
-  //   );
-  //   return errorBlock;
-  // };
-  // // const [errorBlock, setErrorBlock] = useState(generateErrorBlock(errorState));
-  // const errorBlock = generateErrorBlock(errorState);
-
   const generateCodeBlock = (schema) => {
     let code = {};
     for (const [key, value] of Object.entries(schema.properties)) {
@@ -520,7 +500,7 @@ const Form = (schema) => {
       <br />
       <hr />
       <br />
-      {/* <ErrorList errorState={errorState} /> */}
+      <ErrorList errorState={errorState} />
       <br />
       <ReactMarkdown>## Action object</ReactMarkdown>
       {codeBlock}

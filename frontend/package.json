@@ -5,7 +5,7 @@
   "scripts": {
     "build": "react-scripts build",
     "watch": "nodemon --watch ./ --ignore build/* --ext js,mjs,cjs,json,css,html --exec \"npm run start\"",
-    "start": "cd ../server && npm run start",
+    "start": "cd ../server && npm run build",
     "postbuild": "node scripts/postProcessing.js"
   },
   "dependencies": {
