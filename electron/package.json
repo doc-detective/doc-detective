@@ -25,29 +25,28 @@
     "directories": {
       "output": "dist"
     },
+    "artifactName": "${productName}-${os}-${arch}.${ext}",
+    "generateBlockmap": false,
     "mac": {
       "identity": null,
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg",
         "zip"
-      ],
-      "artifactName": "${productName}-${os}-${arch}.${ext}"
+      ]
     },
     "win": {
       "target": [
         "nsis",
         "zip"
-      ],
-      "artifactName": "${productName}-${os}-${arch}.${ext}"
+      ]
     },
     "linux": {
       "target": [
         "AppImage",
         "deb",
         "tar.gz"
-      ],
-      "artifactName": "${productName}-${os}-${arch}.${ext}"
+      ]
     },
     "publish": [
       {
