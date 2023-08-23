@@ -25,7 +25,7 @@
     "directories": {
       "output": "dist"
     },
-    "artifactName": "${productName}-${os}-${arch}.${ext}",
+    "artifactName": "${productName}-${os}.${ext}",
     "icon": "icon.png",
     "mac": {
       "identity": null,

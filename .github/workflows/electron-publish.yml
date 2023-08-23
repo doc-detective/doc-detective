@@ -78,13 +78,6 @@ jobs:
         run: cd electron && npm i
         
       - name: Build Electron bundles
-        if: runner.os == 'macOS'
-        run: cd electron && npm run build -- --x64 --arm64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Electron bundles
-        if: runner.os != 'macOS'
         run: cd electron && npm run build -- --x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
