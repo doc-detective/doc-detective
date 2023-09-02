@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-electron",
-  "version": "2.1.0-alpha.1",
+  "version": "2.1.0-alpha.2",
   "description": "Native application frontend for Doc Detective",
   "homepage": "https://doc-detective.com",
   "main": "main.js",

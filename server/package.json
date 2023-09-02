@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-server",
-  "version": "2.1.0-alpha.1",
+  "version": "2.1.0-alpha.2",
   "description": "Hosted solution for Doc Detective.",
   "main": "server.js",
   "scripts": {
