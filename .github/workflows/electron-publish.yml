@@ -2,13 +2,8 @@ name: Build and publish Electron bundles
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-      types: [opened, reopened, synchronize, review_requested]
+    branches: [ "main", "next" ]
   workflow_dispatch:
-
-env:
-  PUBLISH_FOR_PULL_REQUEST: true
 
 jobs:
   remove-assets:
@@ -74,6 +69,16 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
 
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          # Cache key uses the contents of `package-lock.json` to identify unique cache
+          key: ${{ runner.os }}-node-electron-${{ hashFiles('**/electron/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-electron-
+          path: |
+            node_modules
+  
       - name: Install dependencies
         run: cd electron && npm i
         
