@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  padding: 0 10% 0 10%;
+}
+
+h1,
+h2 {
+  padding-top: 8px;
+  font-weight: bold;
+}
+
+h1 {
+  font-size: 24px;
+}
+
+h2 {
+  font-size: 18px;
+}
+
+li {
+  font-size: 14px;
+  margin-left: 10px;
+  list-style-type: circle;
+  display: list-item;
+}

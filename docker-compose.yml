@@ -1,0 +1,6 @@
+version: '3'
+services:
+  doc-detective:
+    image: hawkeyexl/doc-detective:dev
+    ports:
+      - "3001:3001"

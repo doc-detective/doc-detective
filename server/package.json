@@ -1,0 +1,22 @@
+{
+  "name": "doc-detective-server",
+  "version": "2.1.0-alpha.2",
+  "description": "Hosted solution for Doc Detective.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "cd .. && node scripts/syncVersion.js",
+    "postinstall": "cd ../frontend && npm ci",
+    "build": "npm run start",
+    "start": "node server.js",
+    "prebuild": "node scripts/prebuild.js"
+  },
+  "author": "Manny Silva",
+  "license": "MIT",
+  "dependencies": {
+    "@koa/router": "^12.0.0",
+    "koa": "^2.14.2",
+    "koa-send": "^5.0.1",
+    "koa-static": "^5.0.0"
+  }
+}

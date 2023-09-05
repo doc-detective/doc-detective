@@ -1,0 +1,65 @@
+{
+  "name": "doc-detective-electron",
+  "version": "2.1.0-alpha.2",
+  "description": "Native application frontend for Doc Detective",
+  "homepage": "https://doc-detective.com",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "cd .. && node scripts/syncVersion.js",
+    "postinstall": "cd ../frontend && npm ci",
+    "start": "electron .",
+    "dev": "npm run prebuild && electron .",
+    "prebuild": "node scripts/prebuild.js",
+    "build": "electron-builder"
+  },
+  "author": {
+    "name": "Manny Silva",
+    "email": "hawkeyexl@gmail.com",
+    "url": "https://doc-detective.com"
+  },
+  "license": "MIT",
+  "build": {
+    "appId": "com.doc-detective.app",
+    "productName": "Doc Detective",
+    "directories": {
+      "output": "dist"
+    },
+    "artifactName": "${productName}-${os}.${ext}",
+    "icon": "icon.png",
+    "mac": {
+      "identity": null,
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "tar.gz"
+      ]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "doc-detective",
+        "repo": "doc-detective",
+        "releaseType": "draft",
+        "publishAutoUpdate": false
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^26.0.0",
+    "electron-builder": "^24.6.3"
+  }
+}

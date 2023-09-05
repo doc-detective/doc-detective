@@ -1,17 +1,88 @@
 name: Build and publish Electron bundles
 
 on:
-#  push:
-#    branches:
-#      - main
+  push:
+    branches: [ "main", "next" ]
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: macos-latest
+  remove-assets:
+    name: Remove assets from release
+    runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: cd frontend && npm i
-      - run: cd ../electron && npm i
-      - run: npm run publish
+      - name: Check out repo
+        uses: actions/checkout@v3
+        
+      - name: Get package version
+        run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+        
+      - name: Remove all assets from the release with name containing v${{ env.VERSION }}
+        run: |
+          # Fetch all releases
+          RELEASES=$(curl --silent --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                   --header "Accept: application/vnd.github.v3+json" \
+                   https://api.github.com/repos/$GITHUB_REPOSITORY/releases)
+  
+          # Filter release by name and get its ID
+          RELEASE_ID=$(echo "$RELEASES" | jq '.[] | select(.name | contains("v${{ env.VERSION }}")) | .id')
+  
+          # Exit if the release is not found
+          if [ -z "$RELEASE_ID" ]; then
+            echo "Release with name containing v${{ env.VERSION }} not found."
+            exit 0
+          fi
+  
+          # Fetch assets for the release
+          ASSETS=$(curl --silent --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  --header "Accept: application/vnd.github.v3+json" \
+                  https://api.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets | \
+                  jq '.[] | .id')
+  
+          # Loop through each asset and delete it
+          for ASSET_ID in $ASSETS; do
+            curl -X DELETE \
+            --header "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            --header "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Build and publish Electron bundle
+    needs: remove-assets
+    permissions: write-all
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: 
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+          
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      
+      - name: Set up Node
+        uses: actions/setup-node@v3
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          # Cache key uses the contents of `package-lock.json` to identify unique cache
+          key: ${{ runner.os }}-node-electron-${{ hashFiles('**/electron/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-electron-
+          path: |
+            node_modules
+  
+      - name: Install dependencies
+        run: cd electron && npm i
+        
+      - name: Build Electron bundles
+        run: cd electron && npm run build -- --x64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

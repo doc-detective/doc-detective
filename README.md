@@ -13,7 +13,7 @@ This project handles test parsing and web-based UI testing--it doesn't support r
 
 ## Components
 
-Doc Detective has multiple components to integrate with your workflows as you need it to:
+Doc Detective has multiple components that integrate with your workflows as you need them to:
 
 - Doc Detective (this repo): A standalone tool that enables testing without a separate Node project.
 - [Doc Detective Core](https://github.com/doc-detective/doc-detective-core): An NPM package that provides the testing functionality.
