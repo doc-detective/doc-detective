@@ -2,7 +2,9 @@ name: Build and publish Electron bundles
 
 on:
   push:
-    branches: [ "main", "next" ]
+    branches: 
+      - main
+      - rc
   workflow_dispatch:
 
 jobs:

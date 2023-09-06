@@ -1,0 +1,40 @@
+name: Build and publish Electron bundles
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, review_requested]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Build Electron bundle
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: 
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+          
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      
+      - name: Set up Node
+        uses: actions/setup-node@v3
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          # Cache key uses the contents of `package-lock.json` to identify unique cache
+          key: ${{ runner.os }}-node-electron-${{ hashFiles('**/electron/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-electron-
+          path: |
+            node_modules
+  
+      - name: Install dependencies
+        run: cd electron && npm i
+        
+      - name: Build Electron bundles
+        run: cd electron && npm run build -- --x64 --publish never

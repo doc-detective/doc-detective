@@ -2,10 +2,9 @@ name: Build and publish Docker image
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-      types: [opened, reopened, synchronize, review_requested]
-
+    branches: 
+      - main
+      - rc
   workflow_dispatch:
 
 jobs:
