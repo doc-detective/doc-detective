@@ -9,6 +9,10 @@
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
     "suggestTests": "node ./src/suggestTests.js",
+    "docker:build":"docker build -t hawkeyexl/doc-detective:dev . ",
+    "docker:build:multiarch": "docker buildx install && docker buildx create --use && docker buildx build --platform linux/amd64,linux/arm64 -t hawkeyexl/doc-detective:dev .",
+    "docker:push": "docker push hawkeyexl/doc-detective:dev",
+    "docker:run": "docker run -it -p 3001:3001 hawkeyexl/doc-detective:dev",
     "dev": "node ./dev"
   },
   "repository": {
