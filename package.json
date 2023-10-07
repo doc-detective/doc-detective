@@ -4,12 +4,11 @@
   "description": "Unit test documentation (and record videos of those tests).",
   "scripts": {
     "mocha": "mocha",
-    "postinstall": "node ./node_modules/doc-detective-core/scripts/postinstall.js",
     "test": "mocha test/*.test.js",
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
     "suggestTests": "node ./src/suggestTests.js",
-    "docker:build":"docker build -t hawkeyexl/doc-detective:dev . ",
+    "docker:build": "docker build -t hawkeyexl/doc-detective:dev . ",
     "docker:build:multiarch": "docker buildx install && docker buildx create --use && docker buildx build --platform linux/amd64,linux/arm64 -t hawkeyexl/doc-detective:dev .",
     "docker:push": "docker push hawkeyexl/doc-detective:dev",
     "docker:run": "docker run -it -p 3001:3001 hawkeyexl/doc-detective:dev",
@@ -34,12 +33,12 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "doc-detective-common": "^1.4.0",
-    "doc-detective-core": "^2.1.0",
+    "doc-detective-core": "^2.1.1-beta.2",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "chai": "^4.3.8",
+    "chai": "^4.3.10",
     "mocha": "^10.2.0"
   }
 }

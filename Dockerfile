@@ -3,15 +3,19 @@ FROM node:20-slim
 # Set environment container to trigger container-based behaviors
 # TODO: Update scripts to override certain config options to static container values (for example, -i and -o should always map to the same directories).
 ENV CONTAINER=1
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Bundle app source
+COPY package.json .
 COPY package-lock.json .
 
 # Install app dependencies
 RUN npm ci
+RUN npx playwright install --with-deps firefox chromium
+RUN npm cache clean --force
 
 # Copy source code
 COPY . .
