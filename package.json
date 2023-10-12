@@ -9,8 +9,9 @@
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
     "suggestTests": "node ./src/suggestTests.js",
-    "docker:build":"docker build -t hawkeyexl/doc-detective:dev . ",
-    "docker:build:multiarch": "docker buildx install && docker buildx create --use && docker buildx build --platform linux/amd64,linux/arm64 -t hawkeyexl/doc-detective:dev .",
+    "docker:setup": "docker buildx install && docker buildx create --use",
+    "docker:build": "docker buildx build --load -t hawkeyexl/doc-detective:dev . ",
+    "docker:build:multiarch": "docker buildx build --platform linux/amd64,linux/arm64 -t hawkeyexl/doc-detective:dev .",
     "docker:push": "docker push hawkeyexl/doc-detective:dev",
     "docker:run": "docker run -it -p 3001:3001 hawkeyexl/doc-detective:dev",
     "dev": "node ./dev"
@@ -34,7 +35,7 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "doc-detective-common": "^1.4.0",
-    "doc-detective-core": "^2.1.0",
+    "doc-detective-core": "^2.1.1-beta.1",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
