@@ -4,3 +4,6 @@ services:
     image: hawkeyexl/doc-detective:dev
     ports:
       - "3001:3001"
+    volumes:
+      - ./:/app/
+    command: runTests -- -i samples/doc-content.md -l debug

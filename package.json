@@ -4,7 +4,6 @@
   "description": "Unit test documentation (and record videos of those tests).",
   "scripts": {
     "mocha": "mocha",
-    "postinstall": "node ./node_modules/doc-detective-core/scripts/postinstall.js",
     "test": "mocha test/*.test.js",
     "runTests": "node ./src/runTests.js",
     "runCoverage": "node ./src/runCoverage.js",
@@ -34,13 +33,13 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "doc-detective-common": "^1.4.0",
-    "doc-detective-core": "^2.1.1-beta.1",
+    "doc-detective-common": "^1.5.0",
+    "doc-detective-core": "^2.2.0",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "chai": "^4.3.8",
+    "chai": "^4.3.10",
     "mocha": "^10.2.0"
   }
 }
