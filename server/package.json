@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-server",
-  "version": "2.1.0-alpha.2",
+  "version": "2.2.0-gui.0",
   "description": "Hosted solution for Doc Detective.",
   "main": "server.js",
   "scripts": {
@@ -14,7 +14,7 @@
   "author": "Manny Silva",
   "license": "MIT",
   "dependencies": {
-    "@koa/router": "^12.0.0",
+    "@koa/router": "^12.0.1",
     "koa": "^2.14.2",
     "koa-send": "^5.0.1",
     "koa-static": "^5.0.0"
