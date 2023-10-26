@@ -63,6 +63,18 @@
           "name": "Onscreen text",
           "regex": ["(?<=\\*\\*)[\\w|\\s]+?(?=\\*\\*)"],
           "actions": ["find"]
+        },
+        {
+          "name": "Image",
+          "regex": ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
+          "actions": [
+            {
+              "name": "saveScreenshot",
+              "params": {
+                "directory": "samples"
+              }
+            }
+          ]
         }
       ]
     }
