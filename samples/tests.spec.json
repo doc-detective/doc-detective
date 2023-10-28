@@ -53,6 +53,16 @@
           "typeKeys": {
             "keys": ["shorthair cat", "$ENTER$"]
           }
+        },
+        {
+          "action": "wait"
+        },
+        {
+          "action": "saveScreenshot",
+          "path": "screenshot.png",
+          "directory": "samples",
+          "maxVariation": 5,
+          "overwrite": "byVariation"
         }
       ]
     }
