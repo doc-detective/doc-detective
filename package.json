@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "Unit test documentation (and record videos of those tests).",
   "scripts": {
     "mocha": "mocha",
@@ -30,7 +30,7 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "doc-detective-common": "^1.9.0",
-    "doc-detective-core": "^2.6.0",
+    "doc-detective-core": "^2.6.1",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
