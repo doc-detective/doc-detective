@@ -51,17 +51,17 @@
       "markup": [
         {
           "name": "Hyperlink",
-          "regex": ["(?<=(?<!!)\\[.*?\\]\\().*?(?=\\))"],
+          "regex": ["(?<=(?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
           "actions": ["checkLink"]
         },
         {
           "name": "Navigation link",
-          "regex": ["(?<=([O|o]pen|[C|c]lick) (?<!!)\\[.*?\\]\\().*?(?=\\))"],
+          "regex": ["(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
           "actions": ["goTo"]
         },
         {
           "name": "Onscreen text",
-          "regex": ["(?<=\\*\\*)[\\w|\\s]+?(?=\\*\\*)"],
+          "regex": ["(?<=\\*\\*)[\\w\\s]+?(?=\\*\\*)"],
           "actions": ["find"]
         },
         {
