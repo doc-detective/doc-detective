@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-server",
-  "version": "2.2.0-gui.0",
+  "version": "2.5.1",
   "description": "Hosted solution for Doc Detective.",
   "main": "server.js",
   "scripts": {

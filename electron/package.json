@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-electron",
-  "version": "2.2.0-gui.0",
+  "version": "2.5.1",
   "description": "Native application frontend for Doc Detective",
   "homepage": "https://doc-detective.com",
   "main": "main.js",
@@ -59,7 +59,7 @@
     ]
   },
   "devDependencies": {
-    "electron": "^27.0.1",
+    "electron": "^27.0.3",
     "electron-builder": "^24.6.4"
   }
 }

@@ -22,11 +22,7 @@
             "headless": false
           }
         },
-        "platforms": [
-          "linux",
-          "mac",
-          "windows"
-        ]
+        "platforms": ["linux", "mac", "windows"]
       }
     ]
   },
@@ -42,6 +38,49 @@
     "output": ".",
     "markup": []
   },
+  "fileTypes": [
+    {
+      "name": "Markdown",
+      "extensions": [".md"],
+      "testStartStatementOpen": "[comment]: # (test start",
+      "testStartStatementClose": ")",
+      "testIgnoreStatement": "[comment]: # (test ignore)",
+      "testEndStatement": "[comment]: # (test end)",
+      "stepStatementOpen": "[comment]: # (step",
+      "stepStatementClose": ")",
+      "markup": [
+        {
+          "name": "Hyperlink",
+          "regex": ["(?<=(?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "actions": ["checkLink"]
+        },
+        {
+          "name": "Navigation link",
+          "regex": ["(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "actions": ["goTo"]
+        },
+        {
+          "name": "Onscreen text",
+          "regex": ["(?<=\\*\\*)[\\w\\s]+?(?=\\*\\*)"],
+          "actions": ["find"]
+        },
+        {
+          "name": "Image",
+          "regex": ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
+          "actions": [
+            {
+              "name": "saveScreenshot",
+              "params": {
+                "directory": "samples",
+                "maxVariation": 5,
+                "overwrite": "byVariation"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "integrations": {},
   "telemetry": {
     "send": false,
