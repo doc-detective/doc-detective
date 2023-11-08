@@ -9,11 +9,7 @@ const JSONBlock = ({object, multiline}) => {
     const [isMultiline, setMultiline] = useState(multiline);
 
     // Run custom logic.
-    let text = "";
-    // If multiline is true, return the object as a JSON string with 2 space indentation
-    if (isMultiline) text = JSON.stringify(object, null, 2);
-    // Else, return the object as a single-line JSON string
-    else text = JSON.stringify(object);
+    const text = isMultiline ? JSON.stringify(object, null, 2) : JSON.stringify(object);
 
     // Return the component.
     return (
