@@ -3,6 +3,7 @@ import { CopyBlock, nord } from "react-code-blocks";
 import { Switch, FormControlLabel } from "@mui/material";
 
 const JSONBlock = ({object, multiline}) => {
+    // Prop definitions.
     // object: The object to display.
     // multiline: Whether to display the object as a single line or multiline.
 
