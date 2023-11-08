@@ -6,12 +6,17 @@ export default {
   component: JSONBlock,
   // args at the component level for all stories.
   args: {
-    object: {},
+    object: {
+      foo: "bar",
+    },
     multiline: true,
   }
 };
 
-export const Default = {
+export const MultiLine = {}
+export const SingleLine = {
   // args at the story level override default args for the component.
-  args: {}
+  args: {
+    multiline: false,
+  }
 }
