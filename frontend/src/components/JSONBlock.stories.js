@@ -7,7 +7,7 @@ export default {
   // args at the component level for all stories.
   args: {
     object: {},
-    pretty: true,
+    multiline: true,
   }
 };
 
