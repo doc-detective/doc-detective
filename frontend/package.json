@@ -6,14 +6,16 @@
     "build": "react-scripts build",
     "watch": "nodemon --watch ./ --ignore build/* --ext js,mjs,cjs,json,css,html --exec \"npm run start\"",
     "start": "cd ../server && npm run build",
-    "postbuild": "node scripts/postProcessing.js"
+    "postbuild": "node scripts/postProcessing.js",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.16",
-    "@mui/material": "^5.14.16",
+    "@mui/material": "^5.14.17",
     "autoprefixer": "^10.4.16",
     "doc-detective-common": "^1.9.0",
     "postcss": "^8.4.31",
@@ -37,6 +39,18 @@
     ]
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "@storybook/addon-essentials": "^7.5.3",
+    "@storybook/addon-interactions": "^7.5.3",
+    "@storybook/addon-links": "^7.5.3",
+    "@storybook/blocks": "^7.5.3",
+    "@storybook/preset-create-react-app": "^7.0.24",
+    "@storybook/react": "^7.5.3",
+    "@storybook/react-webpack5": "^7.5.3",
+    "@storybook/testing-library": "^0.0.14-next.2",
+    "babel-plugin-named-exports-order": "^0.0.2",
+    "nodemon": "^3.0.1",
+    "prop-types": "^15.8.1",
+    "storybook": "^7.5.3",
+    "webpack": "^5.89.0"
   }
 }
