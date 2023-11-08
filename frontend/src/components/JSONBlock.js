@@ -1,32 +1,28 @@
 import React, { useState } from 'react';
 import { CopyBlock, nord } from "react-code-blocks";
+import { Switch } from "@mui/material";
 
 const JSONBlock = ({object, multiline}) => {
     // object: The object to display.
-    // multiline: Whether to display the object as a single-line or multi-line JSON string.
 
-    // State management.
-    const [multilineValue, setMultiline] = useState(multiline);
+    // Set up state for multiline toggle.
+    const [isMultiline, setMultiline] = useState(multiline);
 
     // Run custom logic.
     let text = "";
-    // If args.pretty is true, return the object as a JSON string with 2 space indentation
-    if (multiline) text = JSON.stringify(object, null, 2);
+    // If multiline is true, return the object as a JSON string with 2 space indentation
+    if (isMultiline) text = JSON.stringify(object, null, 2);
     // Else, return the object as a single-line JSON string
     else text = JSON.stringify(object);
 
     // Return the component.
     return (
         <div className="json-preview">
-            <div className="toggle">
-                <label htmlFor="multiline-toggle">Multiline:</label>
-                <input
-                    type="checkbox"
-                    id="multiline-toggle"
-                    checked={multiline}
-                    onChange={() => setMultiline(!multilineValue)}
-                />
-            </div>
+            <Switch
+                checked={isMultiline}
+                onChange={() => setMultiline(!isMultiline)}
+                inputProps={{ 'aria-label': 'toggle multiline' }}
+            />
             <CopyBlock
                 text={text}
                 language="json"
