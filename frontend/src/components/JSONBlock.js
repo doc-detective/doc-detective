@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CopyBlock, nord } from "react-code-blocks";
-import { Switch } from "@mui/material";
+import { Switch, FormControlLabel } from "@mui/material";
 
 const JSONBlock = ({object, multiline}) => {
     // object: The object to display.
@@ -14,10 +14,16 @@ const JSONBlock = ({object, multiline}) => {
     // Return the component.
     return (
         <div className="json-preview">
-            <Switch
-                checked={isMultiline}
-                onChange={() => setMultiline(!isMultiline)}
-                inputProps={{ 'aria-label': 'toggle multiline' }}
+            <FormControlLabel
+                labelPlacement="start"
+                label="Multiline"
+                control={
+                    <Switch
+                        checked={isMultiline}
+                        onChange={() => setMultiline(!isMultiline)}
+                        inputProps={{ 'aria-label': 'toggle multiline' }}
+                    />
+                }
             />
             <CopyBlock
                 text={text}
