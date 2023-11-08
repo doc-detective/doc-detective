@@ -4,8 +4,9 @@ import { Switch, FormControlLabel } from "@mui/material";
 
 const JSONBlock = ({object, multiline}) => {
     // object: The object to display.
+    // multiline: Whether to display the object as a single line or multiline.
 
-    // Set up state for multiline toggle.
+    // Set up state.
     const [isMultiline, setMultiline] = useState(multiline);
 
     // Run custom logic.
@@ -21,7 +22,7 @@ const JSONBlock = ({object, multiline}) => {
                     <Switch
                         checked={isMultiline}
                         onChange={() => setMultiline(!isMultiline)}
-                        inputProps={{ 'aria-label': 'toggle multiline' }}
+                        inputProps={{ 'aria-label': 'Toggle multiline state.' }}
                     />
                 }
             />
