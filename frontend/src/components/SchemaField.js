@@ -68,6 +68,18 @@ const SchemaField = ({
 
   // Set up state.
   const [fieldValue, setFieldValue] = useState(defaultValue);
+  const [errorState, setErrorState] = useState(false);
+
+  const handleChange = (event) => {
+    const inputValue = event.target.value;
+    // You can add your validation logic here
+    // if (inputValue.length < 3) {
+    //   setError(true);
+    // } else {
+    //   setError(false);
+    // }
+    setFieldValue(inputValue);
+  };
 
   // Handle strings and numbers
   if (type === "string" || type === "number" || type === "integer") {
@@ -87,7 +99,7 @@ const SchemaField = ({
           {...(propertyValue.enum?.length > 0 && {
             InputLabelProps: { shrink: true },
           })}
-          onChange={(e) => setFieldValue(e.target.value)}
+          onChange={handleChange}
           margin="normal"
           fullWidth
         >
@@ -116,7 +128,7 @@ const SchemaField = ({
           control={
             <Switch
               checked={fieldValue}
-              onChange={(e) => setFieldValue(!fieldValue)}
+              onChange={() => handleChange({ target: { value: !fieldValue } })}
             />
           }
         />
