@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { TextField } from "@mui/material";
-
-import { Switch, FormControlLabel } from "@mui/material";
+import { v4 as uuidv4 } from "uuid";
 
 const SchemaField = ({
   schema,
@@ -27,12 +26,16 @@ const SchemaField = ({
   const fieldPath = pathToKey ? `${pathToKey}.${propertyKey}` : propertyKey;
   const label = propertyValue.title || propertyValue.name || propertyKey;
   const helperText = propertyValue.description || "";
-  const defaultValue = propertyValue.default || "";
   const required = schema.required && schema.required.includes(propertyKey);
   const placeholder =
     propertyValue.examples && propertyValue.examples.length > 0
       ? propertyValue.examples[0]
       : null;
+  const defaultValue = propertyValue.default
+    ? propertyValue.default
+    : schema.dynamicDefaults?.[propertyKey] === "uuid"
+    ? uuidv4()
+    : "";
   // TODO: Add validation rules
   // TODO: Evaluate type
 
@@ -49,9 +52,7 @@ const SchemaField = ({
           key={fieldPath}
           required={required}
           value={fieldValue}
-          onChange={(e) =>
-            setFieldValue(e.target.value)
-          }
+          onChange={(e) => setFieldValue(e.target.value)}
           margin="normal"
           fullWidth
         />

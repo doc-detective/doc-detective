@@ -24,43 +24,6 @@ export default {
     propertyKey: "id",
     propertyValue: checkLink_v2.properties["id"],
   },
-  argTypes: {
-    schema: {
-      options: [
-        "checkLink",
-        "goTo",
-        "find",
-        "typeKeys",
-        "runShell",
-        "saveScreenshot",
-        "setVariables",
-        "httpRequest",
-        "wait",
-        "context",
-        "test",
-        "spec",
-        "config",
-      ],
-      mapping: {
-        checkLink: checkLink_v2,
-        goTo: goTo_v2,
-        find: find_v2,
-        typeKeys: typeKeys_v2,
-        runShell: runShell_v2,
-        saveScreenshot: saveScreenshot_v2,
-        setVariables: setVariables_v2,
-        httpRequest: httpRequest_v2,
-        wait: wait_v2,
-        context: context_v2,
-        test: test_v2,
-        spec: spec_v2,
-        config: config_v2,
-      },
-    },
-    propertyKey: {
-        options: Object.keys(checkLink_v2.properties),
-    }
-  },
 };
 
 export const string = {
@@ -70,38 +33,12 @@ export const string = {
     propertyKey: "description",
     propertyValue: checkLink_v2.properties["description"],
   },
-  argTypes: {
-    schema: {
-      options: [
-        "checkLink",
-        "goTo",
-        "find",
-        "typeKeys",
-        "runShell",
-        "saveScreenshot",
-        "setVariables",
-        "httpRequest",
-        "wait",
-        "context",
-        "test",
-        "spec",
-        "config",
-      ],
-      mapping: {
-        checkLink: checkLink_v2,
-        goTo: goTo_v2,
-        find: find_v2,
-        typeKeys: typeKeys_v2,
-        runShell: runShell_v2,
-        saveScreenshot: saveScreenshot_v2,
-        setVariables: setVariables_v2,
-        httpRequest: httpRequest_v2,
-        wait: wait_v2,
-        context: context_v2,
-        test: test_v2,
-        spec: spec_v2,
-        config: config_v2,
-      },
-    },
-  }
+};
+export const stringWithDynamicDefault = {
+  args: {
+    schema: checkLink_v2,
+    pathToKey: "",
+    propertyKey: "id",
+    propertyValue: checkLink_v2.properties["id"],
+  },
 };
