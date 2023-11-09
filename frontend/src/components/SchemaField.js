@@ -6,8 +6,27 @@ import {
   FormControlLabel,
   FormHelperText,
   Switch,
+  Button,
+  IconButton,
 } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { v4 as uuidv4 } from "uuid";
+
+const getType = (value) => {
+  if (value.type) {
+    return value.type;
+  } else if (value.anyOf || value.oneOf) {
+    let xOfArray = value.anyOf || value.oneOf;
+    let typeOptions = xOfArray.filter((item) => item.type);
+    if (typeOptions.includes((item) => item.type === "string")) {
+      // Find if any types are "string"
+      return "string";
+    } else if (typeOptions.length > 0) {
+      // Set to first type
+      return typeOptions[0].type;
+    }
+  }
+};
 
 const SchemaField = ({
   schema,
@@ -42,22 +61,7 @@ const SchemaField = ({
   // If type is not defined, check if anyOf or oneOf is defined
   // Prefer string types. If no string types, use first type.
   // TODO: Add support for multiple types per field
-  let type = "";
-  if (propertyValue.type) {
-    type = propertyValue.type;
-  } else {
-    if (propertyValue.anyOf || propertyValue.oneOf) {
-      let xOfArray = propertyValue.anyOf || propertyValue.oneOf;
-      let typeOptions = xOfArray.filter((item) => item.type);
-      if (typeOptions.includes((item) => item.type === "string")) {
-        // Find if any types are "string"
-        type = "string";
-      } else if (typeOptions.length > 0) {
-        // Set to first type
-        type = typeOptions[0].type;
-      }
-    }
-  }
+  let type = getType(propertyValue);
 
   // Get default value
   const defaultValue =
@@ -150,7 +154,7 @@ const SchemaField = ({
         error = true;
         setErrorMessage(`Must have a value.`);
       }
-
+  
       if (error) {
         setErrorState(true);
       } else {
@@ -160,7 +164,7 @@ const SchemaField = ({
     });
     setFieldValue(inputValue);
   };
-
+  
   // Handle strings and numbers
   if (type === "string" || type === "number" || type === "integer") {
     return (
@@ -235,7 +239,55 @@ const SchemaField = ({
   //     );
   //   }
 
-  // TODO: Handle arrays
+  // Handle arrays
+  if (type === "array") {
+    const handleArrayDelete = (index) => {
+      const newArray = [...fieldValue];
+      newArray.splice(index, 1);
+      setFieldValue(newArray);
+    };
+    // Flatten items.oneOf/anyOf arrays
+
+    // Get type of array items
+
+
+    return (
+      <div class="field" key={fieldPath}>
+        <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+        <ReactMarkdown>{helperText}</ReactMarkdown>
+        {fieldValue &&
+          fieldValue.map((item, index) => (
+            <div key={`${fieldPath}[${index}]`} style={{ display: "flex" }}>
+              <TextField
+                label={`${label} ${index + 1}`}
+                value={item}
+                onChange={(e) => {
+                  const newArray = [...fieldValue];
+                  newArray[index] = e.target.value;
+                  setFieldValue(newArray);
+                }}
+                margin="normal"
+                fullWidth
+              />
+              <IconButton
+                aria-label="delete"
+                onClick={() => handleArrayDelete(index)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </div>
+          ))}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setFieldValue([...fieldValue, ""])}
+        >
+          Add {label}
+        </Button>
+      </div>
+    );
+  }
+
   // TODO: Handle different field types within arrays
   // if (value.type === "array") {
   //     // This is a simplified version for arrays of strings or numbers.
