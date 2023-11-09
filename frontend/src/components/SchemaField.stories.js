@@ -42,6 +42,14 @@ export const stringWithDynamicDefault = {
     propertyValue: find_v2.properties["id"],
   },
 };
+export const stringWithRequired = {
+  args: {
+    schema: find_v2,
+    pathToKey: "",
+    propertyKey: "selector",
+    propertyValue: find_v2.properties["selector"],
+  },
+};
 export const integerWithDefault = {
   args: {
     schema: find_v2,
