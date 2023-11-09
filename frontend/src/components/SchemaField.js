@@ -34,6 +34,8 @@ const SchemaField = ({
   // TODO: Add validation rules
 
   // Get type
+  // If type is not defined, check if anyOf or oneOf is defined
+  // Prefer string types. If no string types, use first type.
   // TODO: Add support for multiple types per field
   let type = "";
   if (propertyValue.type) {
@@ -52,6 +54,7 @@ const SchemaField = ({
     }
   }
 
+  // Get default value
   const defaultValue = propertyValue.default
   ? propertyValue.default
   : schema.dynamicDefaults?.[propertyKey] === "uuid"
