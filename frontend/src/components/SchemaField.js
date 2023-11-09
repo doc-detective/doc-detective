@@ -55,7 +55,7 @@ const SchemaField = ({
   }
 
   // Get default value
-  const defaultValue = propertyValue.default
+  const defaultValue = propertyValue.default !== undefined
     ? propertyValue.default
     : schema.dynamicDefaults?.[propertyKey] === "uuid"
     ? uuidv4()
@@ -90,12 +90,16 @@ const SchemaField = ({
           margin="normal"
           fullWidth
         >
-          {propertyValue.enum?.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </TextField>
+            {propertyValue.enum?.map((option) => (
+              <option
+                key={option}
+                value={option}
+                {...(option === defaultValue && { selected: true })}
+              >
+                {option}
+              </option>
+            ))}
+          </TextField>
       </div>
     );
   }
