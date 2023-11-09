@@ -36,6 +36,25 @@ const SchemaField = ({
     : schema.dynamicDefaults?.[propertyKey] === "uuid"
     ? uuidv4()
     : "";
+
+  // Get type
+  // TODO: Add support for multiple types per field
+  if (propertyValue.type) {
+    let type = propertyValue.type;
+  } else {
+    if (propertyValue.anyOf || propertyValue.oneOf) {
+      let xOfArray = propertyValue.anyOf || propertyValue.oneOf;
+      let typeOptions = xOfArray.filter((item) => item.type);
+      if (typeOptions.includes((item) => item.type === "string")) {
+        // Find if any types are "string"
+        type = "string";
+      } else if (typeOptions.length > 0) {
+        // Set to first type
+        type = typeOptions[0].type;
+      }
+    }
+  }
+
   // TODO: Add validation rules
   // TODO: Evaluate type
 
@@ -43,7 +62,11 @@ const SchemaField = ({
   const [fieldValue, setFieldValue] = useState(defaultValue);
 
   // Handle strings
-  if (propertyValue.type === "string" && !propertyValue.enum) {
+  if (
+    (type === "string" && !propertyValue.enum) ||
+    type === "number" ||
+    type === "integer"
+  ) {
     return (
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
