@@ -37,7 +37,6 @@ const SchemaField = ({
     propertyValue.examples && propertyValue.examples.length > 0
       ? propertyValue.examples[0]
       : null;
-  // TODO: Add validation rules
 
   // Get type
   // If type is not defined, check if anyOf or oneOf is defined
@@ -72,6 +71,30 @@ const SchemaField = ({
       ? {}
       : "";
 
+  // Add validation rules
+  let validationRules = {};
+  if (propertyValue.minLength !== undefined) {
+    validationRules.minLength = propertyValue.minLength;
+  }
+  if (propertyValue.maxLength !== undefined) {
+    validationRules.maxLength = propertyValue.maxLength;
+  }
+  if (propertyValue.minimum !== undefined) {
+    validationRules.minimum = propertyValue.minimum;
+  }
+  if (propertyValue.maximum !== undefined) {
+    validationRules.maximum = propertyValue.maximum;
+  }
+  if (propertyValue.pattern !== undefined) {
+    validationRules.pattern = propertyValue.pattern;
+  }
+  if (type === "number" || type === "integer") {
+    validationRules.numeric = "^[0-9]*$";
+  }
+  if (required) {
+    validationRules.required = true;
+  }
+
   // Set up state.
   const [fieldValue, setFieldValue] = useState(defaultValue);
   const [errorState, setErrorState] = useState(false);
@@ -79,12 +102,62 @@ const SchemaField = ({
 
   const handleChange = (event) => {
     const inputValue = event.target.value;
+    let error = false;
     // You can add your validation logic here
-    // if (inputValue.length < 3) {
-    //   setError(true);
-    // } else {
-    //   setError(false);
-    // }
+    Object.keys(validationRules).forEach((rule) => {
+      if (error) return;
+      if (rule === "minimum" && inputValue < validationRules[rule]) {
+        error = true;
+        setErrorMessage(
+          `Must be greater than or equal to ${validationRules[rule]}.`
+        );
+      } else if (rule === "maximum" && inputValue > validationRules[rule]) {
+        error = true;
+        setErrorMessage(
+          `Must be less than or equal to ${validationRules[rule]}.`
+        );
+      } else if (
+        rule === "minLength" &&
+        inputValue.length < validationRules[rule]
+      ) {
+        error = true;
+        setErrorMessage(
+          `Must be at least ${validationRules[rule]} characters.`
+        );
+      } else if (
+        rule === "maxLength" &&
+        inputValue.length > validationRules[rule]
+      ) {
+        error = true;
+        setErrorMessage(
+          `Must be less than or equal to ${validationRules[rule]} characters.`
+        );
+      } else if (
+        rule === "numeric" &&
+        !new RegExp(validationRules[rule]).test(inputValue)
+      ) {
+        error = true;
+        setErrorMessage(`Must be a number.`);
+      } else if (
+        rule === "pattern" &&
+        !new RegExp(validationRules[rule]).test(inputValue)
+      ) {
+        error = true;
+        setErrorMessage(
+          `Must match the following pattern: ${validationRules[rule]}`
+        );
+      } else if (rule === "required" && !inputValue) {
+        error = true;
+        setErrorMessage(`Must have a value.`);
+      }
+
+      if (error) {
+        setErrorState(true);
+      } else {
+        setErrorState(false);
+        setErrorMessage("");
+      }
+    });
     setFieldValue(inputValue);
   };
 
