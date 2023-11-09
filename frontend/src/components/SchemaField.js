@@ -31,11 +31,7 @@ const SchemaField = ({
     propertyValue.examples && propertyValue.examples.length > 0
       ? propertyValue.examples[0]
       : null;
-  const defaultValue = propertyValue.default
-    ? propertyValue.default
-    : schema.dynamicDefaults?.[propertyKey] === "uuid"
-    ? uuidv4()
-    : "";
+  // TODO: Add validation rules
 
   // Get type
   // TODO: Add support for multiple types per field
@@ -55,8 +51,15 @@ const SchemaField = ({
     }
   }
 
-  // TODO: Add validation rules
-  // TODO: Evaluate type
+  const defaultValue = propertyValue.default
+  ? propertyValue.default
+  : schema.dynamicDefaults?.[propertyKey] === "uuid"
+  ? uuidv4()
+  : type === "array"
+  ? []
+  : type === "object"
+  ? {}
+  : "";
 
   // Set up state.
   const [fieldValue, setFieldValue] = useState(defaultValue);
