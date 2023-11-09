@@ -98,3 +98,11 @@ export const boolean = {
     propertyValue: find_v2.properties["click"],
   },
 };
+export const arrayOfIntegers = {
+  args: {
+    schema: checkLink_v2,
+    pathToKey: "",
+    propertyKey: "statusCodes",
+    propertyValue: checkLink_v2.properties["statusCodes"],
+  },
+};
