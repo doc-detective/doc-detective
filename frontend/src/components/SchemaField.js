@@ -79,18 +79,18 @@ const SchemaField = ({
           required={required}
           value={fieldValue}
           placeholder={placeholder}
-          {...(propertyValue.enum.length > 0 && { select: true })}
-          {...(propertyValue.enum.length > 0 && {
+          {...(propertyValue.enum?.length > 0 && { select: true })}
+          {...(propertyValue.enum?.length > 0 && {
             SelectProps: { native: true },
           })}
-          {...(propertyValue.enum.length > 0 && {
+          {...(propertyValue.enum?.length > 0 && {
             InputLabelProps: { shrink: true },
           })}
           onChange={(e) => setFieldValue(e.target.value)}
           margin="normal"
           fullWidth
         >
-          {propertyValue.enum.map((option) => (
+          {propertyValue.enum?.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
