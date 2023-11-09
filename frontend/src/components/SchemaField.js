@@ -56,24 +56,20 @@ const SchemaField = ({
 
   // Get default value
   const defaultValue = propertyValue.default
-  ? propertyValue.default
-  : schema.dynamicDefaults?.[propertyKey] === "uuid"
-  ? uuidv4()
-  : type === "array"
-  ? []
-  : type === "object"
-  ? {}
-  : "";
+    ? propertyValue.default
+    : schema.dynamicDefaults?.[propertyKey] === "uuid"
+    ? uuidv4()
+    : type === "array"
+    ? []
+    : type === "object"
+    ? {}
+    : "";
 
   // Set up state.
   const [fieldValue, setFieldValue] = useState(defaultValue);
 
   // Handle strings
-  if (
-    (type === "string" && !propertyValue.enum) ||
-    type === "number" ||
-    type === "integer"
-  ) {
+  if (type === "string" || type === "number" || type === "integer") {
     return (
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
@@ -82,35 +78,27 @@ const SchemaField = ({
           key={fieldPath}
           required={required}
           value={fieldValue}
+          placeholder={placeholder}
+          {...(propertyValue.enum.length > 0 && { select: true })}
+          {...(propertyValue.enum.length > 0 && {
+            SelectProps: { native: true },
+          })}
+          {...(propertyValue.enum.length > 0 && {
+            InputLabelProps: { shrink: true },
+          })}
           onChange={(e) => setFieldValue(e.target.value)}
           margin="normal"
           fullWidth
-        />
+        >
+          {propertyValue.enum.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </TextField>
       </div>
     );
   }
-
-  // TODO: Handle enums (dropdowns)
-  // if (propertyValue.enum) {
-  //   return (
-  //     <FormControl key={fieldPath} fullWidth margin="normal">
-  //       <InputLabel>{propertyValue.title || key}</InputLabel>
-  //       <Select
-  //         value={fieldValue}
-  //         onChange={(e) =>
-  //           setFormData({ ...formData, [fieldPath]: e.target.value })
-  //         }
-  //         label={propertyValue.title || key}
-  //       >
-  //         {value.enum.map((option) => (
-  //           <MenuItem key={option} value={option}>
-  //             {option}
-  //           </MenuItem>
-  //         ))}
-  //       </Select>
-  //     </FormControl>
-  //   );
-  // }
 
   // TODO: Handle numbers
 

@@ -58,3 +58,11 @@ export const numberWithDefault = {
     propertyValue: wait_v2.properties["duration"],
   },
 };
+export const enums = {
+  args: {
+    schema: saveScreenshot_v2,
+    pathToKey: "",
+    propertyKey: "overwrite",
+    propertyValue: saveScreenshot_v2.properties["overwrite"],
+  },
+}
