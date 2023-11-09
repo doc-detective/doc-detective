@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { TextField } from "@mui/material";
+import { TextField, FormControlLabel, Switch } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 
 const SchemaField = ({
@@ -55,20 +55,21 @@ const SchemaField = ({
   }
 
   // Get default value
-  const defaultValue = propertyValue.default !== undefined
-    ? propertyValue.default
-    : schema.dynamicDefaults?.[propertyKey] === "uuid"
-    ? uuidv4()
-    : type === "array"
-    ? []
-    : type === "object"
-    ? {}
-    : "";
+  const defaultValue =
+    propertyValue.default !== undefined
+      ? propertyValue.default
+      : schema.dynamicDefaults?.[propertyKey] === "uuid"
+      ? uuidv4()
+      : type === "array"
+      ? []
+      : type === "object"
+      ? {}
+      : "";
 
   // Set up state.
   const [fieldValue, setFieldValue] = useState(defaultValue);
 
-  // Handle strings
+  // Handle strings and numbers
   if (type === "string" || type === "number" || type === "integer") {
     return (
       <div class="field" key={fieldPath}>
@@ -90,23 +91,38 @@ const SchemaField = ({
           margin="normal"
           fullWidth
         >
-            {propertyValue.enum?.map((option) => (
-              <option
-                key={option}
-                value={option}
-                {...(option === defaultValue && { selected: true })}
-              >
-                {option}
-              </option>
-            ))}
-          </TextField>
+          {propertyValue.enum?.map((option) => (
+            <option
+              key={option}
+              value={option}
+              {...(option === defaultValue && { selected: true })}
+            >
+              {option}
+            </option>
+          ))}
+        </TextField>
       </div>
     );
   }
 
-  // TODO: Handle numbers
-
-  // TODO: Handle booleans
+  // Handle booleans
+  if (type === "boolean") {
+    return (
+      <div class="field" key={fieldPath}>
+        <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+        <ReactMarkdown>{helperText}</ReactMarkdown>
+        <FormControlLabel
+          required={required}
+          control={
+            <Switch
+              checked={fieldValue}
+              onChange={(e) => setFieldValue(!fieldValue)}
+            />
+          }
+        />
+      </div>
+    );
+  }
 
   // TODO: Handle objects
   // TODO: Handle objects with additionalProperties

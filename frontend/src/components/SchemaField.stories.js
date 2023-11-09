@@ -66,3 +66,11 @@ export const enums = {
     propertyValue: saveScreenshot_v2.properties["overwrite"],
   },
 }
+export const boolean = {
+  args: {
+    schema: find_v2,
+    pathToKey: "",
+    propertyKey: "click",
+    propertyValue: find_v2.properties["click"],
+  },
+};
