@@ -35,8 +35,9 @@ const SchemaField = ({
 
   // Get type
   // TODO: Add support for multiple types per field
+  let type = "";
   if (propertyValue.type) {
-    let type = propertyValue.type;
+    type = propertyValue.type;
   } else {
     if (propertyValue.anyOf || propertyValue.oneOf) {
       let xOfArray = propertyValue.anyOf || propertyValue.oneOf;
