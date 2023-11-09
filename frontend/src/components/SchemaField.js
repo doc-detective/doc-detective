@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { TextField, FormControlLabel, Switch } from "@mui/material";
+import {
+  TextField,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
+  Switch,
+} from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 
 const SchemaField = ({
@@ -69,6 +75,7 @@ const SchemaField = ({
   // Set up state.
   const [fieldValue, setFieldValue] = useState(defaultValue);
   const [errorState, setErrorState] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (event) => {
     const inputValue = event.target.value;
@@ -92,6 +99,8 @@ const SchemaField = ({
           required={required}
           value={fieldValue}
           placeholder={placeholder}
+          error={errorState}
+          helperText={errorState ? errorMessage : ""}
           {...(propertyValue.enum?.length > 0 && { select: true })}
           {...(propertyValue.enum?.length > 0 && {
             SelectProps: { native: true },
@@ -123,15 +132,20 @@ const SchemaField = ({
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         <ReactMarkdown>{helperText}</ReactMarkdown>
-        <FormControlLabel
-          required={required}
-          control={
-            <Switch
-              checked={fieldValue}
-              onChange={() => handleChange({ target: { value: !fieldValue } })}
-            />
-          }
-        />
+        <FormControl component="fieldset" error={errorState}>
+          <FormControlLabel
+            required={required}
+            control={
+              <Switch
+                checked={fieldValue}
+                onChange={() =>
+                  handleChange({ target: { value: !fieldValue } })
+                }
+              />
+            }
+          />
+          {errorState && <FormHelperText>{errorMessage}</FormHelperText>}
+        </FormControl>
       </div>
     );
   }
