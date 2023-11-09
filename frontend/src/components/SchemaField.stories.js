@@ -19,26 +19,42 @@ export default {
   component: SchemaField,
   // args at the component level for all stories.
   args: {
-    schema: checkLink_v2,
+    schema: find_v2,
     pathToKey: "",
     propertyKey: "id",
-    propertyValue: checkLink_v2.properties["id"],
+    propertyValue: find_v2.properties["id"],
   },
 };
 
 export const string = {
   args: {
-    schema: checkLink_v2,
+    schema: find_v2,
     pathToKey: "",
     propertyKey: "description",
-    propertyValue: checkLink_v2.properties["description"],
+    propertyValue: find_v2.properties["description"],
   },
 };
 export const stringWithDynamicDefault = {
   args: {
-    schema: checkLink_v2,
+    schema: find_v2,
     pathToKey: "",
     propertyKey: "id",
-    propertyValue: checkLink_v2.properties["id"],
+    propertyValue: find_v2.properties["id"],
+  },
+};
+export const integerWithDefault = {
+  args: {
+    schema: find_v2,
+    pathToKey: "",
+    propertyKey: "timeout",
+    propertyValue: find_v2.properties["timeout"],
+  },
+};
+export const numberWithDefault = {
+  args: {
+    schema: wait_v2,
+    pathToKey: "",
+    propertyKey: "duration",
+    propertyValue: wait_v2.properties["duration"],
   },
 };
