@@ -50,6 +50,14 @@ export const stringWithRequired = {
     propertyValue: find_v2.properties["selector"],
   },
 };
+export const stringWithPattern = {
+  args: {
+    schema: checkLink_v2,
+    pathToKey: "",
+    propertyKey: "url",
+    propertyValue: checkLink_v2.properties["url"],
+  },
+};
 export const integerWithDefault = {
   args: {
     schema: find_v2,
@@ -64,6 +72,14 @@ export const numberWithDefault = {
     pathToKey: "",
     propertyKey: "duration",
     propertyValue: wait_v2.properties["duration"],
+  },
+};
+export const numberWithMinAndMax = {
+  args: {
+    schema: saveScreenshot_v2,
+    pathToKey: "",
+    propertyKey: "maxVariation",
+    propertyValue: saveScreenshot_v2.properties["maxVariation"],
   },
 };
 export const enums = {
