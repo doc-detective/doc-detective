@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   TextField,
@@ -110,8 +110,8 @@ const SchemaField = ({
   const [errorState, setErrorState] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleChange = (event) => {
-    const inputValue = event.target.value;
+  const validateValue = (value) => {
+    const inputValue = value;
     let error = false;
     // You can add your validation logic here
     Object.keys(validationRules).forEach((rule) => {
@@ -168,7 +168,15 @@ const SchemaField = ({
         setErrorMessage("");
       }
     });
-    setFieldValue(inputValue);
+  };
+
+  useEffect(() => {
+    validateValue(fieldValue);
+  }, [fieldValue]);
+
+  const handleChange = (value) => {
+    validateValue(value);
+    setFieldValue(value);
   };
 
   // Handle strings and numbers
@@ -194,7 +202,7 @@ const SchemaField = ({
           {...(propertyValue.enum?.length > 0 && {
             InputLabelProps: { shrink: true },
           })}
-          onChange={handleChange}
+          onChange={(e) => handleChange(e.target.value)}
           onBlur={(e) => passValueToParent(e.target.value)}
           margin="normal"
           fullWidth
@@ -226,7 +234,7 @@ const SchemaField = ({
               <Switch
                 checked={fieldValue}
                 onChange={() => {
-                  handleChange({ target: { value: !fieldValue } })
+                  handleChange(!fieldValue)
                   passValueToParent(!fieldValue)}
                 }
               />
