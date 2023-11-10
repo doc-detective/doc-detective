@@ -106,6 +106,14 @@ export const object = {
     propertyValue: context_v2.properties["app"],
   },
 };
+export const objectWithAdditionalProperties = {
+  args: {
+    schema: httpRequest_v2,
+    pathToKey: "",
+    propertyKey: "requestHeaders",
+    propertyValue: httpRequest_v2.properties["requestHeaders"],
+  },
+};
 export const arrayOfStrings = {
   args: {
     schema: runShell_v2,
