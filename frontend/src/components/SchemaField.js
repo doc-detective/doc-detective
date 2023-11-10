@@ -344,17 +344,6 @@ const SchemaField = ({
     );
   }
 
-  // TODO: Handle objects with additionalProperties
-  // TODO: Handle nested objects
-  // if (value.type === "object") {
-  //     return (
-  //       <div key={fieldPath} style={{ marginLeft: 20 }}>
-  //         <Typography variant="h6">{value.title || key}</Typography>
-  //         {generateFields(value, formData[key] || {}, setFormData, fieldPath)}
-  //       </div>
-  //     );
-  //   }
-
   // Handle arrays
   if (type === "array") {
     const handleArrayDelete = (index) => {
