@@ -72,13 +72,12 @@ const SchemaField = ({
       : type === "array"
       ? []
       : type === "object"
-      // Crawl object properties to get default values
-      // TODO: Add support for nested objects
-      ? Object.keys(propertyValue.properties).reduce((acc, key) => {
+      ? // Crawl object properties to get default values
+        // TODO: Add support for nested objects
+        Object.keys(propertyValue.properties).reduce((acc, key) => {
           acc[key] = propertyValue.properties[key].default;
           return acc;
-        }
-        , {})
+        }, {})
       : "";
 
   // Add validation rules
@@ -234,9 +233,9 @@ const SchemaField = ({
               <Switch
                 checked={fieldValue}
                 onChange={() => {
-                  handleChange(!fieldValue)
-                  passValueToParent(!fieldValue)}
-                }
+                  handleChange(!fieldValue);
+                  passValueToParent(!fieldValue);
+                }}
               />
             }
           />
@@ -248,6 +247,43 @@ const SchemaField = ({
 
   // Handle objects
   if (type === "object") {
+    const [pairs, setPairs] = useState([]);
+    const [combinedObject, setCombinedObject] = useState({});
+
+    const handleAddPair = () => {
+      setPairs([...pairs, { key: "", value: "" }]);
+    };
+
+    const handleDeletePair = (index) => {
+      const newPairs = [...pairs];
+      newPairs.splice(index, 1);
+      setPairs(newPairs);
+      // Update the parent component's state
+      const pairsObject = newPairs.reduce((obj, pair) => {
+        if (pair.key) obj[pair.key] = pair.value;
+        return obj;
+      }, {});
+      setCombinedObject({ ...pairsObject, ...fieldValue });
+      passValueToParent(combinedObject);
+    };
+
+    const handlePairChange = (index, key, value) => {
+      const newPairs = pairs.map((pair, idx) => {
+        if (idx === index) {
+          return { key, value };
+        }
+        return pair;
+      });
+      setPairs(newPairs);
+      // Update the parent component's state
+      const pairsObject = newPairs.reduce((obj, pair) => {
+        if (pair.key) obj[pair.key] = pair.value;
+        return obj;
+      }, {});
+      setCombinedObject({...pairsObject, ...fieldValue});
+      passValueToParent(combinedObject);
+    };
+  
     const handleObjectChange = (key, value) => {
       const newFieldValue = { ...fieldValue };
       if (value === "") {
@@ -256,11 +292,16 @@ const SchemaField = ({
         newFieldValue[key] = value;
       }
       setFieldValue(newFieldValue);
-      passValueToParent(newFieldValue);
+      const pairsObject = newPairs.reduce((obj, pair) => {
+        if (pair.key) obj[pair.key] = pair.value;
+        return obj;
+      }, {});
+      setCombinedObject({...pairsObject, ...newFieldValue});
+      passValueToParent(combinedObject);
     };
+
     return (
       <div key={fieldPath} style={{ marginLeft: 20 }}>
-        <ReactMarkdown>{JSON.stringify(fieldValue,null,2)}</ReactMarkdown>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         {Object.keys(propertyValue.properties).map((key) => (
@@ -274,6 +315,31 @@ const SchemaField = ({
             }}
           />
         ))}
+        {propertyValue.additionalProperties && (
+          <div>
+            {pairs.map((pair, index) => (
+              <div key={index} style={{ display: "flex", marginBottom: "10px" }}>
+                <TextField
+                  label="Key"
+                  value={pair.key}
+                  onChange={(e) => handlePairChange(index, e.target.value, pair.value)}
+                  style={{ marginRight: "10px" }}
+                />
+                <TextField
+                  label="Value"
+                  value={pair.value}
+                  onChange={(e) => handlePairChange(index, pair.key, e.target.value)}
+                />
+                <IconButton aria-label="delete" onClick={() => handleDeletePair(index)}>
+                  <DeleteIcon />
+                </IconButton>
+              </div>
+            ))}
+            <Button variant="contained" color="primary" onClick={handleAddPair}>
+              Add
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
