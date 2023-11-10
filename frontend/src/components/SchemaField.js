@@ -320,7 +320,7 @@ const SchemaField = ({
             >
               <SchemaField
                 {...{
-                  schema: schema,
+                  schema: propertyValue,
                   propertyValue: {
                     ...itemValue,
                     default: item,
