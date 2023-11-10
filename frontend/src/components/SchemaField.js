@@ -218,10 +218,10 @@ const SchemaField = ({
             control={
               <Switch
                 checked={fieldValue}
-                onChange={() =>
+                onChange={() => {
                   handleChange({ target: { value: !fieldValue } })
+                  passValueToParent(!fieldValue)}
                 }
-                onBlur={() => passValueToParent(!fieldValue)}
               />
             }
           />
@@ -313,7 +313,7 @@ const SchemaField = ({
 // Default props.
 SchemaField.defaultProps = {
   passValueToParent: () => {},
-}
+};
 
 // Export the component.
 export default SchemaField;
