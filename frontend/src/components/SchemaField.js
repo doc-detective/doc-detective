@@ -33,14 +33,14 @@ const SchemaField = ({
   pathToKey,
   propertyKey,
   propertyValue,
-  setFieldData,
+  passValueToParent,
 }) => {
   // Prop definitions.
   // schema: The schema that the field belongs to.
   // pathToKey: The path to the field in the schema.
   // propertyKey: The key of the field.
   // propertyValue: The property object that defines the field.
-  // setFieldData: The function that updates the field data.
+  // passValueToParent: A function that passes the value of the field to the parent component.
 
   // If the field is marked as const, it should not be editable.
   if (propertyValue.const) {
@@ -169,7 +169,9 @@ const SchemaField = ({
   if (type === "string" || type === "number" || type === "integer") {
     return (
       <div class="field" key={fieldPath}>
-        {label && <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>}
+        {label && (
+          <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+        )}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <TextField
           key={fieldPath}
@@ -186,6 +188,7 @@ const SchemaField = ({
             InputLabelProps: { shrink: true },
           })}
           onChange={handleChange}
+          onBlur={(e) => passValueToParent(e.target.value)}
           margin="normal"
           fullWidth
         >
@@ -218,6 +221,7 @@ const SchemaField = ({
                 onChange={() =>
                   handleChange({ target: { value: !fieldValue } })
                 }
+                onBlur={() => passValueToParent(!fieldValue)}
               />
             }
           />
@@ -246,6 +250,13 @@ const SchemaField = ({
       newArray.splice(index, 1);
       setFieldValue(newArray);
     };
+
+    const handleArrayChange = (index, value) => {
+      const newArray = [...fieldValue];
+      newArray[index] = value;
+      setFieldValue(newArray);
+    };
+
     // Flatten items.oneOf/anyOf arrays
     const getItems = (value) => {
       const items = [];
@@ -265,8 +276,20 @@ const SchemaField = ({
         <ReactMarkdown>{helperText}</ReactMarkdown>
         {fieldValue &&
           fieldValue.map((item, index) => (
-            <div key={`${fieldPath}[${item}]`} style={{ display: "flex" }}>
-              <SchemaField { ...{schema: schema, propertyValue: {...itemValue, default: item} } } />
+            <div
+              key={`${fieldPath}[${index}]_${item}`}
+              style={{ display: "flex" }}
+            >
+              <SchemaField
+                {...{
+                  schema: schema,
+                  propertyValue: {
+                    ...itemValue,
+                    default: item,
+                  },
+                  passValueToParent: (value) => handleArrayChange(index, value),
+                }}
+              />
               <IconButton
                 aria-label="delete"
                 onClick={() => handleArrayDelete(index)}
