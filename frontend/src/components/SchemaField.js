@@ -72,7 +72,13 @@ const SchemaField = ({
       : type === "array"
       ? []
       : type === "object"
-      ? {}
+      // Crawl object properties to get default values
+      // TODO: Add support for nested objects
+      ? Object.keys(propertyValue.properties).reduce((acc, key) => {
+          acc[key] = propertyValue.properties[key].default;
+          return acc;
+        }
+        , {})
       : "";
 
   // Add validation rules
