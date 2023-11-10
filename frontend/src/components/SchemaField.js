@@ -154,7 +154,7 @@ const SchemaField = ({
         error = true;
         setErrorMessage(`Must have a value.`);
       }
-  
+
       if (error) {
         setErrorState(true);
       } else {
@@ -164,13 +164,13 @@ const SchemaField = ({
     });
     setFieldValue(inputValue);
   };
-  
+
   // Handle strings and numbers
   if (type === "string" || type === "number" || type === "integer") {
     return (
       <div class="field" key={fieldPath}>
-        <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
-        <ReactMarkdown>{helperText}</ReactMarkdown>
+        {label && <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>}
+        {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <TextField
           key={fieldPath}
           required={required}
@@ -247,9 +247,17 @@ const SchemaField = ({
       setFieldValue(newArray);
     };
     // Flatten items.oneOf/anyOf arrays
-
-    // Get type of array items
-
+    const getItems = (value) => {
+      const items = [];
+      if (value.items.anyOf)
+        value.items.anyOf.forEach((item) => items.push(item));
+      if (value.items.oneOf)
+        value.items.oneOf.forEach((item) => items.push(item));
+      return items;
+    };
+    const items = getItems(propertyValue);
+    // TODO: Handle support for multiple types per field
+    const itemValue = items[0];
 
     return (
       <div class="field" key={fieldPath}>
@@ -257,18 +265,8 @@ const SchemaField = ({
         <ReactMarkdown>{helperText}</ReactMarkdown>
         {fieldValue &&
           fieldValue.map((item, index) => (
-            <div key={`${fieldPath}[${index}]`} style={{ display: "flex" }}>
-              <TextField
-                label={`${label} ${index + 1}`}
-                value={item}
-                onChange={(e) => {
-                  const newArray = [...fieldValue];
-                  newArray[index] = e.target.value;
-                  setFieldValue(newArray);
-                }}
-                margin="normal"
-                fullWidth
-              />
+            <div key={`${fieldPath}[${item}]`} style={{ display: "flex" }}>
+              <SchemaField { ...{schema: schema, propertyValue: {...itemValue, default: item} } } />
               <IconButton
                 aria-label="delete"
                 onClick={() => handleArrayDelete(index)}
@@ -282,47 +280,11 @@ const SchemaField = ({
           color="primary"
           onClick={() => setFieldValue([...fieldValue, ""])}
         >
-          Add {label}
+          Add
         </Button>
       </div>
     );
   }
-
-  // TODO: Handle different field types within arrays
-  // if (value.type === "array") {
-  //     // This is a simplified version for arrays of strings or numbers.
-  //     // Complex array items would need more sophisticated handling.
-  //     return (
-  //       <div key={fieldPath}>
-  //         <InputLabel>{value.title || key}</InputLabel>
-  //         {formData[key] &&
-  //           formData[key].map((item, index) => (
-  //             <TextField
-  //               key={`${fieldPath}[${index}]`}
-  //               label={`${value.items.title || key} ${index + 1}`}
-  //               value={item}
-  //               onChange={(e) => {
-  //                 const newArray = [...formData[key]];
-  //                 newArray[index] = e.target.value;
-  //                 setFormData({ ...formData, [fieldPath]: newArray });
-  //               }}
-  //               margin="normal"
-  //               fullWidth
-  //             />
-  //           ))}
-  //         <Button
-  //           onClick={() =>
-  //             setFormData({
-  //               ...formData,
-  //               [fieldPath]: [...(formData[key] || []), ""],
-  //             })
-  //           }
-  //         >
-  //           Add {value.items.title || key}
-  //         </Button>
-  //       </div>
-  //     );
-  //   }
 };
 
 // Export the component.
