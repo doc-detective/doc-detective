@@ -114,3 +114,11 @@ export const arrayOfIntegers = {
     propertyValue: checkLink_v2.properties["statusCodes"],
   },
 };
+export const object = {
+  args: {
+    schema: context_v2,
+    pathToKey: "",
+    propertyKey: "app",
+    propertyValue: context_v2.properties["app"],
+  },
+};
