@@ -292,7 +292,7 @@ const SchemaField = ({
         newFieldValue[key] = value;
       }
       setFieldValue(newFieldValue);
-      const pairsObject = newPairs.reduce((obj, pair) => {
+      const pairsObject = pairs.reduce((obj, pair) => {
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
