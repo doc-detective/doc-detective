@@ -310,5 +310,10 @@ const SchemaField = ({
   }
 };
 
+// Default props.
+SchemaField.defaultProps = {
+  passValueToParent: () => {},
+}
+
 // Export the component.
 export default SchemaField;
