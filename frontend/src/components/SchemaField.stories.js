@@ -98,6 +98,14 @@ export const boolean = {
     propertyValue: find_v2.properties["click"],
   },
 };
+export const object = {
+  args: {
+    schema: context_v2,
+    pathToKey: "",
+    propertyKey: "app",
+    propertyValue: context_v2.properties["app"],
+  },
+};
 export const arrayOfStrings = {
   args: {
     schema: runShell_v2,
@@ -114,11 +122,11 @@ export const arrayOfIntegers = {
     propertyValue: checkLink_v2.properties["statusCodes"],
   },
 };
-export const object = {
+export const arrayOfObjects = {
   args: {
-    schema: context_v2,
+    schema: httpRequest_v2,
     pathToKey: "",
-    propertyKey: "app",
-    propertyValue: context_v2.properties["app"],
+    propertyKey: "envsFromResponseData",
+    propertyValue: httpRequest_v2.properties["envsFromResponseData"],
   },
 };
