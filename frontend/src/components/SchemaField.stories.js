@@ -98,6 +98,14 @@ export const boolean = {
     propertyValue: find_v2.properties["click"],
   },
 };
+export const arrayOfStrings = {
+  args: {
+    schema: runShell_v2,
+    pathToKey: "",
+    propertyKey: "args",
+    propertyValue: runShell_v2.properties["args"],
+  },
+};
 export const arrayOfIntegers = {
   args: {
     schema: checkLink_v2,
