@@ -173,6 +173,7 @@ const SchemaField = ({
 
   // Handle strings and numbers
   if (type === "string" || type === "number" || type === "integer") {
+    if (propertyValue.enum?.[0] !== "") propertyValue.enum?.unshift("");
     return (
       <div class="field" key={fieldPath}>
         {label && (
