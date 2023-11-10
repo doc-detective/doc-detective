@@ -238,7 +238,38 @@ const SchemaField = ({
     );
   }
 
-  // TODO: Handle objects
+  // Handle objects
+  if (type === "object") {
+    const handleObjectChange = (key, value) => {
+      const newFieldValue = { ...fieldValue };
+      if (value === "") {
+        delete newFieldValue[key];
+      } else {
+        newFieldValue[key] = value;
+      }
+      setFieldValue(newFieldValue);
+      passValueToParent(newFieldValue);
+    };
+    return (
+      <div key={fieldPath} style={{ marginLeft: 20 }}>
+        <ReactMarkdown>{JSON.stringify(fieldValue,null,2)}</ReactMarkdown>
+        <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+        {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
+        {Object.keys(propertyValue.properties).map((key) => (
+          <SchemaField
+            {...{
+              schema: propertyValue,
+              pathToKey: fieldPath,
+              propertyKey: key,
+              propertyValue: propertyValue.properties[key],
+              passValueToParent: (value) => handleObjectChange(key, value),
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
   // TODO: Handle objects with additionalProperties
   // TODO: Handle nested objects
   // if (value.type === "object") {
