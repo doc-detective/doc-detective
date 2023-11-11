@@ -302,7 +302,7 @@ const SchemaField = ({
 
     return (
       <div key={fieldPath} style={{ marginLeft: 20 }}>
-        <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+        {label && <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         {Object.keys(propertyValue.properties).map((key) => (
           <SchemaField
