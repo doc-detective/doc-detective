@@ -248,13 +248,14 @@ const SchemaField = ({
   // Handle objects
   if (type === "object") {
     const [pairs, setPairs] = useState([]);
-    const [combinedObject, setCombinedObject] = useState({});
 
     const handleAddPair = () => {
+      console.log("handleAddPair");
       setPairs([...pairs, { key: "", value: "" }]);
     };
 
     const handleDeletePair = (index) => {
+      console.log(`handleDeletePair: ${index}`);
       const newPairs = [...pairs];
       newPairs.splice(index, 1);
       setPairs(newPairs);
@@ -263,11 +264,12 @@ const SchemaField = ({
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
-      setCombinedObject({ ...pairsObject, ...fieldValue });
+      const combinedObject ={ ...pairsObject, ...fieldValue };
       passValueToParent(combinedObject);
     };
 
     const handlePairChange = (index, key, value) => {
+      console.log(`handlePairChange: ${index}, ${key}, ${value}`);
       const newPairs = pairs.map((pair, idx) => {
         if (idx === index) {
           return { key, value };
@@ -280,11 +282,12 @@ const SchemaField = ({
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
-      setCombinedObject({...pairsObject, ...fieldValue});
+      const combinedObject = {...pairsObject, ...newFieldValue};
       passValueToParent(combinedObject);
     };
   
     const handleObjectChange = (key, value) => {
+      console.log(`handleObjectChange: ${key}, ${JSON.stringify(value)}`);
       const newFieldValue = { ...fieldValue };
       if (value === "") {
         delete newFieldValue[key];
@@ -296,13 +299,13 @@ const SchemaField = ({
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
-      setCombinedObject({...pairsObject, ...newFieldValue});
+      const combinedObject = {...pairsObject, ...newFieldValue};
       passValueToParent(combinedObject);
     };
 
     return (
       <div key={fieldPath} style={{ marginLeft: 20 }}>
-        {/* {JSON.stringify(fieldValue)} */}
+        {JSON.stringify(fieldValue)}
         {label && <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         {Object.keys(propertyValue.properties).map((key) => (
@@ -348,15 +351,19 @@ const SchemaField = ({
   // Handle arrays
   if (type === "array") {
     const handleArrayDelete = (index) => {
+      console.log(`handleArrayDelete: ${index}`);
       const newArray = [...fieldValue];
       newArray.splice(index, 1);
       setFieldValue(newArray);
+      passValueToParent(newArray);
     };
 
     const handleArrayChange = (index, value) => {
+      console.log(`handleArrayChange: ${index}, ${JSON.stringify(value)}}`);
       const newArray = [...fieldValue];
       newArray[index] = value;
       setFieldValue(newArray);
+      passValueToParent(newArray);
     };
 
     // Flatten items.oneOf/anyOf arrays
@@ -374,7 +381,7 @@ const SchemaField = ({
 
     return (
       <div class="field" key={fieldPath}>
-        {/* {JSON.stringify(fieldValue)} */}
+        {JSON.stringify(fieldValue)}
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         <ReactMarkdown>{helperText}</ReactMarkdown>
         {fieldValue &&
