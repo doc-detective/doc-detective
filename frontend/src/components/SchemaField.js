@@ -302,6 +302,7 @@ const SchemaField = ({
 
     return (
       <div key={fieldPath} style={{ marginLeft: 20 }}>
+        {/* {JSON.stringify(fieldValue)} */}
         {label && <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         {Object.keys(propertyValue.properties).map((key) => (
@@ -373,6 +374,7 @@ const SchemaField = ({
 
     return (
       <div class="field" key={fieldPath}>
+        {/* {JSON.stringify(fieldValue)} */}
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         <ReactMarkdown>{helperText}</ReactMarkdown>
         {fieldValue &&
@@ -402,7 +404,7 @@ const SchemaField = ({
         <Button
           variant="contained"
           color="primary"
-          onClick={() => setFieldValue([...fieldValue, ""])}
+          onClick={() => setFieldValue([...fieldValue, itemValue.type === "array" ? [] : itemValue.type === "object" ? {} : ""])}
         >
           Add
         </Button>
