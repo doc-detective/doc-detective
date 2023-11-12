@@ -264,7 +264,7 @@ const SchemaField = ({
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
-      const combinedObject ={ ...pairsObject, ...fieldValue };
+      const combinedObject = { ...pairsObject, ...fieldValue };
       passValueToParent(combinedObject);
     };
 
@@ -282,10 +282,10 @@ const SchemaField = ({
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
-      const combinedObject = {...pairsObject, ...fieldValue};
+      const combinedObject = { ...pairsObject, ...fieldValue };
       passValueToParent(combinedObject);
     };
-  
+
     const handleObjectChange = (key, value) => {
       // console.log(`handleObjectChange: ${key}, ${JSON.stringify(value)}`);
       const newFieldValue = { ...fieldValue };
@@ -299,50 +299,68 @@ const SchemaField = ({
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
-      const combinedObject = {...pairsObject, ...newFieldValue};
+      const combinedObject = { ...pairsObject, ...newFieldValue };
       passValueToParent(combinedObject);
     };
 
     return (
-      <div key={fieldPath} style={{ marginLeft: 20 }}>
-        {label && <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>}
-        {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
-        {Object.keys(propertyValue.properties).map((key) => (
-          <SchemaField
-            {...{
-              schema: propertyValue,
-              pathToKey: fieldPath,
-              propertyKey: key,
-              propertyValue: propertyValue.properties[key],
-              passValueToParent: (value) => handleObjectChange(key, value),
-            }}
-          />
-        ))}
-        {propertyValue.additionalProperties && (
-          <div>
-            {pairs.map((pair, index) => (
-              <div key={index} style={{ display: "flex", marginBottom: "10px" }}>
-                <TextField
-                  label="Key"
-                  value={pair.key}
-                  onChange={(e) => handlePairChange(index, e.target.value, pair.value)}
-                  style={{ marginRight: "10px" }}
-                />
-                <TextField
-                  label="Value"
-                  value={pair.value}
-                  onChange={(e) => handlePairChange(index, pair.key, e.target.value)}
-                />
-                <IconButton aria-label="delete" onClick={() => handleDeletePair(index)}>
-                  <DeleteIcon />
-                </IconButton>
-              </div>
-            ))}
-            <Button variant="contained" color="primary" onClick={handleAddPair}>
-              Add
-            </Button>
-          </div>
+      <div key={fieldPath}>
+        {label && (
+          <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         )}
+        {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
+        <div class="objectChildren">
+          {Object.keys(propertyValue.properties).map((key) => (
+            <SchemaField
+              {...{
+                schema: propertyValue,
+                pathToKey: fieldPath,
+                propertyKey: key,
+                propertyValue: propertyValue.properties[key],
+                passValueToParent: (value) => handleObjectChange(key, value),
+              }}
+            />
+          ))}
+          {propertyValue.additionalProperties && (
+            <div>
+              {pairs.map((pair, index) => (
+                <div
+                  key={index}
+                  style={{ display: "flex", marginBottom: "10px" }}
+                >
+                  <TextField
+                    label="Key"
+                    value={pair.key}
+                    onChange={(e) =>
+                      handlePairChange(index, e.target.value, pair.value)
+                    }
+                    style={{ marginRight: "10px" }}
+                  />
+                  <TextField
+                    label="Value"
+                    value={pair.value}
+                    onChange={(e) =>
+                      handlePairChange(index, pair.key, e.target.value)
+                    }
+                  />
+                  <IconButton
+                    aria-label="delete"
+                    onClick={() => handleDeletePair(index)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </div>
+              ))}
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleAddPair}
+              >
+                Add
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -393,45 +411,48 @@ const SchemaField = ({
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         <ReactMarkdown>{helperText}</ReactMarkdown>
-        {fieldValue &&
-          fieldValue.map((item, index) => (
-            <div
-              key={
-                itemValue.type === "object"
-                  ? item._key
-                  : `${fieldPath}[${index}]_${item}`
-              }
-              style={{ display: "flex" }}
-            >
-              <SchemaField
-                {...{
-                  schema: propertyValue,
-                  propertyValue: {
-                    ...itemValue,
-                    default: item,
-                  },
-                  passValueToParent: (value) => handleArrayChange(index, value),
-                }}
-              />
-              <IconButton
-                aria-label="delete"
-                onClick={() =>
-                  handleArrayDelete(
-                    itemValue.type === "object" ? item._key : index
-                  )
+        <div class="arrayChildren">
+          {fieldValue &&
+            fieldValue.map((item, index) => (
+              <div
+                key={
+                  itemValue.type === "object"
+                    ? item._key
+                    : `${fieldPath}[${index}]_${item}`
                 }
+                style={{ display: "flex" }}
               >
-                <DeleteIcon />
-              </IconButton>
-            </div>
-          ))}
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => handleArrayAdd(itemValue.type)}
-        >
-          Add
-        </Button>
+                <SchemaField
+                  {...{
+                    schema: propertyValue,
+                    propertyValue: {
+                      ...itemValue,
+                      default: item,
+                    },
+                    passValueToParent: (value) =>
+                      handleArrayChange(index, value),
+                  }}
+                />
+                <IconButton
+                  aria-label="delete"
+                  onClick={() =>
+                    handleArrayDelete(
+                      itemValue.type === "object" ? item._key : index
+                    )
+                  }
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </div>
+            ))}
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => handleArrayAdd(itemValue.type)}
+          >
+            Add
+          </Button>
+        </div>
       </div>
     );
   }
