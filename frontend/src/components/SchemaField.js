@@ -250,12 +250,12 @@ const SchemaField = ({
     const [pairs, setPairs] = useState([]);
 
     const handleAddPair = () => {
-      console.log("handleAddPair");
+      // console.log("handleAddPair");
       setPairs([...pairs, { key: "", value: "" }]);
     };
 
     const handleDeletePair = (index) => {
-      console.log(`handleDeletePair: ${index}`);
+      // console.log(`handleDeletePair: ${index}`);
       const newPairs = [...pairs];
       newPairs.splice(index, 1);
       setPairs(newPairs);
@@ -269,7 +269,7 @@ const SchemaField = ({
     };
 
     const handlePairChange = (index, key, value) => {
-      console.log(`handlePairChange: ${index}, ${key}, ${value}`);
+      // console.log(`handlePairChange: ${index}, ${key}, ${value}`);
       const newPairs = pairs.map((pair, idx) => {
         if (idx === index) {
           return { key, value };
@@ -282,12 +282,12 @@ const SchemaField = ({
         if (pair.key) obj[pair.key] = pair.value;
         return obj;
       }, {});
-      const combinedObject = {...pairsObject, ...newFieldValue};
+      const combinedObject = {...pairsObject, ...fieldValue};
       passValueToParent(combinedObject);
     };
   
     const handleObjectChange = (key, value) => {
-      console.log(`handleObjectChange: ${key}, ${JSON.stringify(value)}`);
+      // console.log(`handleObjectChange: ${key}, ${JSON.stringify(value)}`);
       const newFieldValue = { ...fieldValue };
       if (value === "") {
         delete newFieldValue[key];
@@ -305,7 +305,6 @@ const SchemaField = ({
 
     return (
       <div key={fieldPath} style={{ marginLeft: 20 }}>
-        {JSON.stringify(fieldValue)}
         {label && <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         {Object.keys(propertyValue.properties).map((key) => (
@@ -351,14 +350,14 @@ const SchemaField = ({
   // Handle arrays
   if (type === "array") {
     const handleArrayAdd = (type) => {
-      console.log("handleArrayAdd");
+      // console.log("handleArrayAdd");
       const newItem =
         type === "array" ? [] : type === "object" ? { _key: uuidv4() } : "";
       setFieldValue([...fieldValue, newItem]);
     };
 
     const handleArrayDelete = (indexOr_key) => {
-      console.log(`handleArrayDelete: ${indexOr_key}`);
+      // console.log(`handleArrayDelete: ${indexOr_key}`);
       const index =
         typeof indexOr_key === "number"
           ? indexOr_key
@@ -370,7 +369,7 @@ const SchemaField = ({
     };
 
     const handleArrayChange = (index, value) => {
-      console.log(`handleArrayChange: ${index}, ${JSON.stringify(value)}}`);
+      // console.log(`handleArrayChange: ${index}, ${JSON.stringify(value)}}`);
       const newArray = [...fieldValue];
       newArray[index] = value;
       setFieldValue(newArray);
@@ -392,7 +391,6 @@ const SchemaField = ({
 
     return (
       <div class="field" key={fieldPath}>
-        {JSON.stringify(fieldValue)}
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         <ReactMarkdown>{helperText}</ReactMarkdown>
         {fieldValue &&
