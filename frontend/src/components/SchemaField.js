@@ -350,8 +350,19 @@ const SchemaField = ({
 
   // Handle arrays
   if (type === "array") {
-    const handleArrayDelete = (index) => {
-      console.log(`handleArrayDelete: ${index}`);
+    const handleArrayAdd = (type) => {
+      console.log("handleArrayAdd");
+      const newItem =
+        type === "array" ? [] : type === "object" ? { _key: uuidv4() } : "";
+      setFieldValue([...fieldValue, newItem]);
+    };
+
+    const handleArrayDelete = (indexOr_key) => {
+      console.log(`handleArrayDelete: ${indexOr_key}`);
+      const index =
+        typeof indexOr_key === "number"
+          ? indexOr_key
+          : fieldValue.findIndex((item) => item._key === indexOr_key);
       const newArray = [...fieldValue];
       newArray.splice(index, 1);
       setFieldValue(newArray);
@@ -387,7 +398,11 @@ const SchemaField = ({
         {fieldValue &&
           fieldValue.map((item, index) => (
             <div
-              key={`${fieldPath}[${index}]_${item}`}
+              key={
+                itemValue.type === "object"
+                  ? item._key
+                  : `${fieldPath}[${index}]_${item}`
+              }
               style={{ display: "flex" }}
             >
               <SchemaField
@@ -402,7 +417,11 @@ const SchemaField = ({
               />
               <IconButton
                 aria-label="delete"
-                onClick={() => handleArrayDelete(index)}
+                onClick={() =>
+                  handleArrayDelete(
+                    itemValue.type === "object" ? item._key : index
+                  )
+                }
               >
                 <DeleteIcon />
               </IconButton>
@@ -411,7 +430,7 @@ const SchemaField = ({
         <Button
           variant="contained"
           color="primary"
-          onClick={() => setFieldValue([...fieldValue, itemValue.type === "array" ? [] : itemValue.type === "object" ? {} : ""])}
+          onClick={() => handleArrayAdd(itemValue.type)}
         >
           Add
         </Button>
