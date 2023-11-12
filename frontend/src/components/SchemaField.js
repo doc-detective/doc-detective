@@ -30,7 +30,6 @@ const getType = (value) => {
 
 const SchemaField = ({
   schema,
-  pathToKey,
   propertyKey,
   propertyValue,
   passValueToParent,
@@ -48,7 +47,7 @@ const SchemaField = ({
   }
 
   // Run custom logic.
-  const fieldPath = pathToKey ? `${pathToKey}.${propertyKey}` : propertyKey;
+  const fieldPath = propertyKey;
   const label = propertyValue.title || propertyValue.name || propertyKey;
   const helperText = propertyValue.description || "";
   const required = schema.required && schema.required.includes(propertyKey);
