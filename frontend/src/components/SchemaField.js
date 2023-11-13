@@ -8,6 +8,7 @@ import {
   Switch,
   Button,
   IconButton,
+  Paper,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { v4 as uuidv4 } from "uuid";
@@ -413,7 +414,7 @@ const SchemaField = ({
         <div class="arrayChildren">
           {fieldValue &&
             fieldValue.map((item, index) => (
-              <div
+              <Paper elevation={1} variant="outlined"
                 key={
                   itemValue.type === "object"
                     ? item._key
@@ -442,7 +443,7 @@ const SchemaField = ({
                 >
                   <DeleteIcon />
                 </IconButton>
-              </div>
+              </Paper>
             ))}
           <div class="arrayAdd">
             {
@@ -454,7 +455,7 @@ const SchemaField = ({
                 color="primary"
                 onClick={() => handleArrayAdd(itemValue.type)}
               >
-                Add {itemValue.title || label.replace(/s$/, "")}
+                Add {label.replace(/s$/, "")}
               </Button>
               // ))
             }
