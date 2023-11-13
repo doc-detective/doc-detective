@@ -444,13 +444,21 @@ const SchemaField = ({
                 </IconButton>
               </div>
             ))}
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleArrayAdd(itemValue.type)}
-          >
-            Add
-          </Button>
+          <div class="arrayAdd">
+            {
+              // TODO: Handle support for multiple types per field
+              // items &&
+              //   items.map((item) => (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleArrayAdd(itemValue.type)}
+              >
+                Add {itemValue.title || label.replace(/s$/, "")}
+              </Button>
+              // ))
+            }
+          </div>
         </div>
       </div>
     );
