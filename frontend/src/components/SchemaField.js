@@ -51,7 +51,7 @@ const SchemaField = ({
   const fieldPath = propertyKey;
   const label = propertyValue.title || propertyValue.name || propertyKey;
   const helperText = propertyValue.description || "";
-  const required = schema.required && schema.required.includes(propertyKey);
+  const required = schema.required?.includes(propertyKey);
   const placeholder =
     propertyValue.examples && propertyValue.examples.length > 0
       ? propertyValue.examples[0]
