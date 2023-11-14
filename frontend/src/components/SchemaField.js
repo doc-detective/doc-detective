@@ -367,29 +367,31 @@ const SchemaField = ({
 
   // Handle arrays
   if (type === "array") {
-    const handleArrayAdd = (type) => {
-      // console.log("handleArrayAdd");
-      const newItem =
-        type === "array" ? [] : type === "object" ? { _key: uuidv4() } : "";
+    const handleArrayAdd = (schema) => {
+      // console.log("handleArrayAdd");/
+      const newItem = {
+        _key: uuidv4(),
+        value:
+          schema.type === "object" ? {} : schema.type === "array" ? [] : "",
+        schema,
+      };
       setFieldValue([...fieldValue, newItem]);
     };
 
-    const handleArrayDelete = (indexOr_key) => {
+    const handleArrayDelete = (_key) => {
       // console.log(`handleArrayDelete: ${indexOr_key}`);
-      const index =
-        typeof indexOr_key === "number"
-          ? indexOr_key
-          : fieldValue.findIndex((item) => item._key === indexOr_key);
+      const index = fieldValue.findIndex((item) => item._key === _key);
       const newArray = [...fieldValue];
       newArray.splice(index, 1);
       setFieldValue(newArray);
       passValueToParent(newArray);
     };
 
-    const handleArrayChange = (index, value) => {
-      // console.log(`handleArrayChange: ${index}, ${JSON.stringify(value)}}`);
+    const handleArrayChange = (_key, value) => {
+      // console.log(`handleArrayChange: ${_key}, ${JSON.stringify(value)}}`);
       const newArray = [...fieldValue];
-      newArray[index] = value;
+      const index = fieldValue.findIndex((item) => item._key === _key);
+      newArray[index] = { ...newArray[index], value };
       setFieldValue(newArray);
       passValueToParent(newArray);
     };
@@ -404,6 +406,55 @@ const SchemaField = ({
       return items;
     };
     const items = getItems(propertyValue);
+
+    // Iterate through fieldValue and assign schemas to each unassigned item based on its type
+    const assignSchemas = (fieldValue, items) => {
+      // console.log(`assignSchemas: ${JSON.stringify(fieldValue)}, ${JSON.stringify(items)}`);
+      return fieldValue.map((value) => {
+        // console.log(value)
+        // If value has schema, it has already been assigned a schema
+        if (value?.schema) return value;
+
+        // Find schema with matching data type
+        if (Array.isArray(value)) {
+          // Find schema with type array
+          const arraySchema = items.find((item) => item.type === "array");
+          if (arraySchema)
+            return { _key: uuidv4(), value: value, schema: arraySchema };
+        } else if (typeof value === "object") {
+          // Find schema with type object
+          // TODO: Enhance to identify the specific schema of the object.
+          const objectSchema = items.find((item) => item.type === "object");
+          if (objectSchema)
+            return { _key: uuidv4(), value: value, schema: objectSchema };
+        } else if (typeof value === "number") {
+          // Find schema with type number or integer
+          const numberSchema = items.find(
+            (item) => item.type === "number" || item.type === "integer"
+          );
+          if (numberSchema)
+            return { _key: uuidv4(), value: value, schema: numberSchema };
+        } else if (typeof value === "string") {
+          // Find schema with type string
+          const stringSchema = items.find((item) => item.type === "string");
+          if (stringSchema)
+            return { _key: uuidv4(), value: value, schema: stringSchema };
+        } else if (typeof value === "boolean") {
+          // Find schema with type boolean
+          const booleanSchema = items.find((item) => item.type === "boolean");
+          if (booleanSchema)
+            return { _key: uuidv4(), value: value, schema: booleanSchema };
+        } else {
+          // If no schema found, return value
+          return { _key: uuidv4(), value: value, schema: {} };
+        }
+      });
+    };
+    useEffect(() => {
+      const assignedFieldValue = assignSchemas(fieldValue, items);
+      setFieldValue(assignedFieldValue);
+    }, []);
+
     // TODO: Handle support for multiple types per field
     const itemValue = items[0];
 
@@ -413,33 +464,28 @@ const SchemaField = ({
         <ReactMarkdown>{helperText}</ReactMarkdown>
         <div class="arrayChildren">
           {fieldValue &&
-            fieldValue.map((item, index) => (
-              <Paper elevation={1} variant="outlined"
-                key={
-                  itemValue.type === "object"
-                    ? item._key
-                    : `${fieldPath}[${index}]_${item}`
-                }
+            fieldValue.map((item) => (
+              <Paper
+                elevation={1}
+                variant="outlined"
+                key={item._key}
                 style={{ display: "flex" }}
               >
+                {/* {console.log(item)} */}
                 <SchemaField
                   {...{
                     schema: propertyValue,
                     propertyValue: {
-                      ...itemValue,
-                      default: item,
+                      ...item.schema,
+                      default: item.value,
                     },
                     passValueToParent: (value) =>
-                      handleArrayChange(index, value),
+                      handleArrayChange(item._key, value),
                   }}
                 />
                 <IconButton
                   aria-label="delete"
-                  onClick={() =>
-                    handleArrayDelete(
-                      itemValue.type === "object" ? item._key : index
-                    )
-                  }
+                  onClick={() => handleArrayDelete(item._key)}
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -448,16 +494,19 @@ const SchemaField = ({
           <div class="arrayAdd">
             {
               // TODO: Handle support for multiple types per field
-              // items &&
-              //   items.map((item) => (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => handleArrayAdd(itemValue.type)}
-              >
-                Add {label.replace(/s$/, "")}
-              </Button>
-              // ))
+              items &&
+                items.map((schema) => (
+                  <div>
+                    {JSON.stringify(schema)}
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => handleArrayAdd(schema)}
+                    >
+                      Add {schema.title || label.replace(/s$/, "")}
+                    </Button>
+                  </div>
+                ))
             }
           </div>
         </div>
