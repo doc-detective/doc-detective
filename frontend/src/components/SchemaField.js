@@ -380,7 +380,7 @@ const SchemaField = ({
   // Handle arrays
   if (type === "array") {
     const handleArrayAdd = (schema) => {
-      console.log(`handleArrayAdd: ${schema}`);
+      // console.log(`handleArrayAdd: ${JSON.stringify(schema)}`);
       const newItem = {
         _key: uuidv4(),
         value:
