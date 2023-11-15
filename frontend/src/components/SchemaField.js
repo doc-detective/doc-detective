@@ -14,6 +14,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { v4 as uuidv4 } from "uuid";
 
 const getType = (value) => {
@@ -539,7 +540,7 @@ const SchemaField = ({
                 color="primary"
                 onClick={() => handleArrayAdd(items[0])}
               >
-                Add {label.replace(/s$/, "") || items[0].type || "Item"}
+                Add {items[0].title || label.replace(/s$/, "") || items[0].type || "Item"}
               </Button>
             )}
             {items.length > 1 && (
@@ -550,10 +551,9 @@ const SchemaField = ({
                   aria-haspopup="true"
                   color="primary"
                   onClick={handleMenuClick}
-                  // onClick={() => handleArrayAdd(schema)}
+                  endIcon={<ArrowDropDownIcon />}
                 >
                   Add
-                  {/* Add {schema.title || label.replace(/s$/, "")} */}
                 </Button>
                 <Menu
                   id="simple-menu"
