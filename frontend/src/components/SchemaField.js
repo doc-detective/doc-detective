@@ -9,6 +9,8 @@ import {
   Button,
   IconButton,
   Paper,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { v4 as uuidv4 } from "uuid";
@@ -396,6 +398,17 @@ const SchemaField = ({
       passValueToParent(newArray);
     };
 
+    // Menu
+    const [anchorEl, setAnchorEl] = useState(null);
+    const open = Boolean(anchorEl);
+    const handleMenuClick = (event) => {
+      setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+      setAnchorEl(null);
+    };
+
     // Flatten items.oneOf/anyOf arrays
     const getItems = (value) => {
       const items = [];
@@ -492,21 +505,56 @@ const SchemaField = ({
               </Paper>
             ))}
           <div class="arrayAdd">
-            {
-              // TODO: Handle support for multiple types per field
-              items &&
-                items.map((schema) => (
-                  <div>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => handleArrayAdd(schema)}
-                    >
-                      Add {schema.title || label.replace(/s$/, "")}
-                    </Button>
-                  </div>
-                ))
-            }
+            {items.length === 1 && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleArrayAdd(items[0])}
+              >
+                Add{" "}
+                {items[0].title ||
+                  label.replace(/s$/, "") ||
+                  items[0].type ||
+                  "Item"}
+              </Button>
+            )}
+            {items.length > 1 && (
+              <div>
+                <Button
+                  variant="contained"
+                  aria-controls="simple-menu"
+                  aria-haspopup="true"
+                  color="primary"
+                  onClick={handleMenuClick}
+                  // onClick={() => handleArrayAdd(schema)}
+                >
+                  Add
+                  {/* Add {schema.title || label.replace(/s$/, "")} */}
+                </Button>
+                <Menu
+                  id="simple-menu"
+                  anchorEl={anchorEl}
+                  keepMounted
+                  open={open}
+                  onClose={handleMenuClose}
+                >
+                  {items &&
+                    items.map((schema) => (
+                      <MenuItem
+                        onClick={() => {
+                          handleArrayAdd(schema);
+                          handleMenuClose();
+                        }}
+                      >
+                        {schema.title ||
+                          label.replace(/s$/, "") ||
+                          schema.type ||
+                          "Item"}
+                      </MenuItem>
+                    ))}
+                </Menu>
+              </div>
+            )}
           </div>
         </div>
       </div>
