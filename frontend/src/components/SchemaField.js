@@ -380,7 +380,7 @@ const SchemaField = ({
   // Handle arrays
   if (type === "array") {
     const handleArrayAdd = (schema) => {
-      // console.log("handleArrayAdd");/
+      console.log(`handleArrayAdd: ${schema}`);
       const newItem = {
         _key: uuidv4(),
         value:
@@ -427,6 +427,7 @@ const SchemaField = ({
     // Flatten items.oneOf/anyOf arrays
     const getItems = (value) => {
       const items = [];
+      if (value.items && !value.items.anyOf && !value.items.oneOf) items.push(value.items);
       if (value.items.anyOf)
         value.items.anyOf.forEach((item) => items.push(item));
       if (value.items.oneOf)
@@ -532,7 +533,7 @@ const SchemaField = ({
               </Paper>
             ))}
           <div class="arrayAdd">
-            {items.length <= 1 && (
+            {items.length === 1 && (
               <Button
                 variant="contained"
                 color="primary"
