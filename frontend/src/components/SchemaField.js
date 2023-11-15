@@ -497,7 +497,6 @@ const SchemaField = ({
               items &&
                 items.map((schema) => (
                   <div>
-                    {JSON.stringify(schema)}
                     <Button
                       variant="contained"
                       color="primary"
