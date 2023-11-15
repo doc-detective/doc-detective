@@ -377,7 +377,10 @@ const SchemaField = ({
           schema.type === "object" ? {} : schema.type === "array" ? [] : "",
         schema,
       };
-      setFieldValue([...fieldValue, newItem]);
+      const newArray = [...fieldValue, newItem];
+      setFieldValue(newArray);
+      const valueArray = newArray.map((item) => item.value);
+      passValueToParent(valueArray);
     };
 
     const handleArrayDelete = (_key) => {
@@ -386,7 +389,8 @@ const SchemaField = ({
       const newArray = [...fieldValue];
       newArray.splice(index, 1);
       setFieldValue(newArray);
-      passValueToParent(newArray);
+      const valueArray = newArray.map((item) => item.value);
+      passValueToParent(valueArray);
     };
 
     const handleArrayChange = (_key, value) => {
@@ -395,7 +399,8 @@ const SchemaField = ({
       const index = fieldValue.findIndex((item) => item._key === _key);
       newArray[index] = { ...newArray[index], value };
       setFieldValue(newArray);
-      passValueToParent(newArray);
+      const valueArray = newArray.map((item) => item.value);
+      passValueToParent(valueArray);
     };
 
     // Menu
@@ -475,6 +480,7 @@ const SchemaField = ({
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         <ReactMarkdown>{helperText}</ReactMarkdown>
+        <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>
         <div class="arrayChildren">
           {fieldValue &&
             fieldValue.map((item) => (
