@@ -183,6 +183,9 @@ const SchemaField = ({
 
   // Handle strings and numbers
   if (type === "string" || type === "number" || type === "integer") {
+    useEffect(() => {
+      passValueToParent(fieldValue);
+    }, []);
     if (propertyValue.enum?.[0] !== "") propertyValue.enum?.unshift("");
     return (
       <div class="field" key={fieldPath}>
@@ -225,6 +228,9 @@ const SchemaField = ({
 
   // Handle booleans
   if (type === "boolean") {
+    useEffect(() => {
+      passValueToParent(fieldValue);
+    }, []);
     return (
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
@@ -250,8 +256,11 @@ const SchemaField = ({
 
   // Handle objects
   if (type === "object") {
-    const [pairs, setPairs] = useState([]);
+    useEffect(() => {
+      passValueToParent(fieldValue);
+    }, []);
 
+    const [pairs, setPairs] = useState([]);
     const handleAddPair = () => {
       // console.log("handleAddPair");
       setPairs([...pairs, { key: "", value: "" }]);
@@ -443,7 +452,12 @@ const SchemaField = ({
         } else if (typeof value === "object") {
           // Find all schemas with type object
           const objectSchemas = items.filter((item) => item.type === "object");
-          const ajv = new Ajv({ strictSchema: false, useDefaults: true, allErrors: true, coerceTypes: true });
+          const ajv = new Ajv({
+            strictSchema: false,
+            useDefaults: true,
+            allErrors: true,
+            coerceTypes: true,
+          });
           // Find schema that matches object
           let objectSchema = {};
           for (const [key, value] of Object.entries(objectSchemas)) {
@@ -484,9 +498,6 @@ const SchemaField = ({
       setFieldValue(assignedFieldValue);
     }, []);
 
-    // TODO: Handle support for multiple types per field
-    const itemValue = items[0];
-
     return (
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
@@ -521,17 +532,13 @@ const SchemaField = ({
               </Paper>
             ))}
           <div class="arrayAdd">
-            {items.length === 1 && (
+            {items.length <= 1 && (
               <Button
                 variant="contained"
                 color="primary"
                 onClick={() => handleArrayAdd(items[0])}
               >
-                Add{" "}
-                {items[0].title ||
-                  label.replace(/s$/, "") ||
-                  items[0].type ||
-                  "Item"}
+                Add {label.replace(/s$/, "") || items[0].type || "Item"}
               </Button>
             )}
             {items.length > 1 && (
