@@ -1,3 +1,4 @@
+import Ajv from "ajv";
 import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -440,9 +441,19 @@ const SchemaField = ({
           if (arraySchema)
             return { _key: uuidv4(), value: value, schema: arraySchema };
         } else if (typeof value === "object") {
-          // Find schema with type object
-          // TODO: Enhance to identify the specific schema of the object.
-          const objectSchema = items.find((item) => item.type === "object");
+          // Find all schemas with type object
+          const objectSchemas = items.filter((item) => item.type === "object");
+          const ajv = new Ajv({ strictSchema: false, useDefaults: true, allErrors: true, coerceTypes: true });
+          // Find schema that matches object
+          let objectSchema = {};
+          for (const [key, value] of Object.entries(objectSchemas)) {
+            ajv.addSchema(value, key);
+            check = ajv.getSchema(key);
+            if (check(value)) {
+              objectSchema = value;
+              break;
+            }
+          }
           if (objectSchema)
             return { _key: uuidv4(), value: value, schema: objectSchema };
         } else if (typeof value === "number") {
@@ -480,7 +491,6 @@ const SchemaField = ({
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         <ReactMarkdown>{helperText}</ReactMarkdown>
-        <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>
         <div class="arrayChildren">
           {fieldValue &&
             fieldValue.map((item) => (
