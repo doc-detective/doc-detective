@@ -263,10 +263,6 @@ const SchemaField = ({
 
   // Handle objects
   if (type === "object") {
-    useEffect(() => {
-      passValueToParent(fieldValue);
-    }, []);
-
     const [pairs, setPairs] = useState([]);
     const handleAddPair = () => {
       // console.log("handleAddPair");
@@ -511,6 +507,7 @@ const SchemaField = ({
     return (
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
         <ReactMarkdown>{helperText}</ReactMarkdown>
         <div class="arrayChildren">
           {fieldValue &&
