@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./index.css";
 import SchemaForm from "./components/SchemaForm";
 import { schemas } from "doc-detective-common/src/schemas";
@@ -9,13 +9,27 @@ import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 function App() {
   const [selectedSchema, setSelectedSchema] = useState("");
   const [formValue, setFormValue] = useState({});
+  const [jsonValue, setJsonValue] = useState({});
 
   const handleSchemaChange = (event) => {
     setSelectedSchema(event.target.value);
   };
 
   const handleFormChange = (value) => {
-    setFormValue(value);
+    setFormValue((oldFormValue) => {
+      const newValue = removeEmptyValues(value);
+      return value;
+    });
+  };
+
+  const removeEmptyValues = (obj) => {
+    console.log(`Removing empty values from ${JSON.stringify(obj)}`);
+    Object.keys(obj).forEach((key) => {
+      if (obj[key] && typeof obj[key] === "object" && !Array.isArray(obj) )
+        removeEmptyValues(obj[key]);
+      else if (obj[key] === "") delete obj[key];
+    });
+    return obj;
   };
 
   return (
