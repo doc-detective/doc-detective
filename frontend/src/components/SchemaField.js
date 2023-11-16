@@ -14,6 +14,8 @@ import {
   MenuItem,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ArrowUpward from "@mui/icons-material/ArrowUpward";
+import ArrowDownward from "@mui/icons-material/ArrowDownward";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { v4 as uuidv4 } from "uuid";
 
@@ -440,6 +442,22 @@ const SchemaField = ({
       });
     };
 
+    // Index manipulation
+    const handleArrayMove = (index, direction) => {
+      // console.log(`handleArrayMove: ${index}, ${direction}`);
+      const newArray = [...fieldValue];
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= newArray.length) {
+        return;
+      }
+      const temp = newArray[index];
+      newArray[index] = newArray[newIndex];
+      newArray[newIndex] = temp;
+      setFieldValue(newArray);
+      const valueArray = newArray.map((item) => item.value);
+      passValueToParent(valueArray);
+    }
+
     // Menu
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
@@ -534,7 +552,7 @@ const SchemaField = ({
         <ReactMarkdown>{helperText}</ReactMarkdown>
         <div class="arrayChildren">
           {fieldValue &&
-            fieldValue.map((item) => (
+            fieldValue.map((item, index) => (
               <Paper
                 elevation={1}
                 variant="outlined"
@@ -553,6 +571,18 @@ const SchemaField = ({
                       handleArrayChange(item._key, value),
                   }}
                 />
+                <IconButton
+                  aria-label="up"
+                  onClick={() => handleArrayMove(index, "up")}
+                >
+                  <ArrowUpward />
+                </IconButton>
+                <IconButton
+                  aria-label="down"
+                  onClick={() => handleArrayMove(index, "down")}
+                >
+                  <ArrowDownward />
+                </IconButton>
                 <IconButton
                   aria-label="delete"
                   onClick={() => handleArrayDelete(item._key)}
