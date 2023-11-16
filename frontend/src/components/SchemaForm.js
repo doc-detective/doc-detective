@@ -15,8 +15,13 @@ const SchemaForm = ({ schema, passValueToParent }) => {
     setFormValue(oldFormValue => {
       const newValue = { ...oldFormValue, [key]: value };
       // Pass the value to the parent component.
-      passValueToParent(newValue);
-      return newValue;
+      // Sort newValue based on schema order.
+      const sortedObject = {};
+      Object.keys(schema.properties).forEach((key) => {
+        if (newValue[key]) sortedObject[key] = newValue[key];
+      });
+      passValueToParent(sortedObject);
+      return sortedObject;
     });
   };
   // Run custom logic.

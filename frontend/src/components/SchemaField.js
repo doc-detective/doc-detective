@@ -240,9 +240,7 @@ const SchemaField = ({
     }, []);
     return (
       <div class="field" key={fieldPath}>
-        {label && (
-          <ReactMarkdown>{`## ${label}`}</ReactMarkdown>
-        )}
+        {label && <ReactMarkdown>{`## ${label}`}</ReactMarkdown>}
         {/* {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>} */}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <FormControl component="fieldset" error={errorState}>
@@ -282,7 +280,12 @@ const SchemaField = ({
         return obj;
       }, {});
       const combinedObject = { ...pairsObject, ...fieldValue };
-      passValueToParent(combinedObject);
+      // Sort object keys based on schema
+      const sortedObject = {};
+      Object.keys(propertyValue.properties).forEach((key) => {
+        if (combinedObject[key]) sortedObject[key] = combinedObject[key];
+      });
+      passValueToParent(sortedObject);
     };
 
     const handlePairChange = (index, key, value) => {
@@ -300,7 +303,12 @@ const SchemaField = ({
         return obj;
       }, {});
       const combinedObject = { ...pairsObject, ...fieldValue };
-      passValueToParent(combinedObject);
+      // Sort object keys based on schema
+      const sortedObject = {};
+      Object.keys(propertyValue.properties).forEach((key) => {
+        if (combinedObject[key]) sortedObject[key] = combinedObject[key];
+      });
+      passValueToParent(sortedObject);
     };
 
     const handleObjectChange = (key, value) => {
@@ -317,7 +325,12 @@ const SchemaField = ({
           return obj;
         }, {});
         const combinedObject = { ...pairsObject, ...newFieldValue };
-        passValueToParent(combinedObject);
+        // Sort object keys based on schema
+        const sortedObject = {};
+        Object.keys(propertyValue.properties).forEach((key) => {
+          if (combinedObject[key]) sortedObject[key] = combinedObject[key];
+        });
+        passValueToParent(sortedObject);
         return newFieldValue;
       });
     };
