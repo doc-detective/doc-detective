@@ -474,7 +474,7 @@ const SchemaField = ({
           let objectSchema = {};
           for (const [key, value] of Object.entries(objectSchemas)) {
             ajv.addSchema(value, key);
-            check = ajv.getSchema(key);
+            const check = ajv.getSchema(key);
             if (check(value)) {
               objectSchema = value;
               break;
