@@ -22,7 +22,7 @@ function App() {
   };
 
   const removeEmptyValues = (obj) => {
-    console.log(`Removing empty values from ${JSON.stringify(obj)}`);
+    // console.log(`Removing empty values from ${JSON.stringify(obj)}`);
     Object.keys(obj).forEach((key) => {
       if (obj[key] && typeof obj[key] === "object" && !Array.isArray(obj) )
         removeEmptyValues(obj[key]);
@@ -48,7 +48,7 @@ function App() {
             })}
           </Select>
         </FormControl>
-        {JSON.stringify(formValue)}
+        {/* {JSON.stringify(formValue)} */}
         {selectedSchema && (
           <SchemaForm
             key={"form"}
@@ -58,7 +58,7 @@ function App() {
         )}
       </div>
       <div class="preview">
-        <JSONBlock key={"preview"} object={formValue} />
+        <JSONBlock key={"preview"} object={formValue} multiline={false} />
       </div>
     </div>
   );
