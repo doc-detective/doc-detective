@@ -109,7 +109,7 @@ const SchemaField = ({
   if (type === "number" || type === "integer") {
     validationRules.numeric = "^[0-9]*$";
   }
-  if (required) {
+  if (required && type !== "boolean") {
     validationRules.required = true;
   }
 
@@ -241,13 +241,12 @@ const SchemaField = ({
     return (
       <div class="field" key={fieldPath}>
         {label && (
-          <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+          <ReactMarkdown>{`## ${label}`}</ReactMarkdown>
         )}
         {/* {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>} */}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <FormControl component="fieldset" error={errorState}>
           <FormControlLabel
-            required={required}
             control={
               <Switch
                 checked={fieldValue}
