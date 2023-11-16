@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactMarkdown from "react-markdown";
 import { CopyBlock, nord } from "react-code-blocks";
 import { Switch, FormControlLabel } from "@mui/material";
 
@@ -16,6 +17,15 @@ const JSONBlock = ({object, multiline}) => {
     // Return the component.
     return (
         <div className="json-preview">
+            <ReactMarkdown>{`## JSON`}</ReactMarkdown>
+            <CopyBlock
+                text={text}
+                language="json"
+                showLineNumbers={true}
+                theme={nord}
+                wrapLines={true}
+                codeBlock
+            />
             <FormControlLabel
                 labelPlacement="start"
                 label="Multiline"
@@ -26,14 +36,6 @@ const JSONBlock = ({object, multiline}) => {
                         inputProps={{ 'aria-label': 'Toggle multiline state.' }}
                     />
                 }
-            />
-            <CopyBlock
-                text={text}
-                language="json"
-                showLineNumbers={true}
-                theme={nord}
-                wrapLines={true}
-                codeBlock
             />
         </div>
     );
