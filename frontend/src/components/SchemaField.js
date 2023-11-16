@@ -46,8 +46,11 @@ const SchemaField = ({
   // propertyValue: The property object that defines the field.
   // passValueToParent: A function that passes the value of the field to the parent component.
 
-  // If the field is marked as const, it should not be editable.
+  // If the field is marked as const, pass the value to the parent component and return null.
   if (propertyValue.const) {
+    useEffect(() => {
+      passValueToParent(propertyValue.const);
+    }, []);
     return null;
   }
 
