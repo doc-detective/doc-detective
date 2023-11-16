@@ -198,7 +198,7 @@ const SchemaField = ({
         {label && (
           <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         )}
-        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
+        {/* {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>} */}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <TextField
           key={fieldPath}
@@ -243,7 +243,7 @@ const SchemaField = ({
         {label && (
           <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         )}
-        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
+        {/* {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>} */}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <FormControl component="fieldset" error={errorState}>
           <FormControlLabel
@@ -328,7 +328,7 @@ const SchemaField = ({
         {label && (
           <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         )}
-        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
+        {/* {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>} */}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <div class="objectChildren">
           {Object.keys(propertyValue.properties).map((key) => (
@@ -514,7 +514,7 @@ const SchemaField = ({
     return (
       <div class="field" key={fieldPath}>
         <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
-        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
+        {/* {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>} */}
         <ReactMarkdown>{helperText}</ReactMarkdown>
         <div class="arrayChildren">
           {fieldValue &&

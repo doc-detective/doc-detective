@@ -10,7 +10,7 @@ const SchemaForm = ({ schema, passValueToParent }) => {
   // Set up state and handling.
   const [formValue, setFormValue] = useState({});
   const handleFormUpdate = (key, value) => {
-    console.log(`Updating form value for ${key} to ${value}`)
+    // console.log(`Updating form value for ${key} to ${value}`)
     // Update the form value.
     setFormValue(oldFormValue => {
       const newValue = { ...oldFormValue, [key]: value };
@@ -26,7 +26,7 @@ const SchemaForm = ({ schema, passValueToParent }) => {
   return (
     <div className="schema-form">
       {schema.title && <ReactMarkdown>{`## ${schema.title}`}</ReactMarkdown>}
-      <ReactMarkdown>{JSON.stringify(formValue)}</ReactMarkdown>
+      {/* <ReactMarkdown>{JSON.stringify(formValue)}</ReactMarkdown> */}
       {schema.description && <ReactMarkdown>{schema.description}</ReactMarkdown>}
 
       {Object.entries(schema.properties).map(([key, value]) => {
