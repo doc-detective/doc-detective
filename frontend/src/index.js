@@ -11,6 +11,7 @@ function App() {
   const [formValue, setFormValue] = useState({});
 
   const handleSchemaChange = (event) => {
+    setFormValue({});
     setSelectedSchema(event.target.value);
   };
 
@@ -51,7 +52,7 @@ function App() {
         {/* {JSON.stringify(formValue)} */}
         {selectedSchema && (
           <SchemaForm
-            key={"form"}
+            key={selectedSchema}
             schema={schemas[selectedSchema]}
             passValueToParent={handleFormChange}
           />
