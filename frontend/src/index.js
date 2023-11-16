@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import "./index.css";
 import SchemaForm from "./components/SchemaForm";
 import { schemas } from "doc-detective-common/src/schemas";
@@ -9,15 +9,14 @@ import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 function App() {
   const [selectedSchema, setSelectedSchema] = useState("");
   const [formValue, setFormValue] = useState({});
-  const [jsonValue, setJsonValue] = useState({});
 
   const handleSchemaChange = (event) => {
     setSelectedSchema(event.target.value);
   };
 
   const handleFormChange = (value) => {
-    setFormValue((oldFormValue) => {
-      const newValue = removeEmptyValues(value);
+    setFormValue(() => {
+      removeEmptyValues(value);
       return value;
     });
   };
