@@ -303,19 +303,21 @@ const SchemaField = ({
 
     const handleObjectChange = (key, value) => {
       // console.log(`handleObjectChange: ${key}, ${JSON.stringify(value)}`);
-      const newFieldValue = { ...fieldValue };
-      if (value === "") {
-        delete newFieldValue[key];
-      } else {
-        newFieldValue[key] = value;
-      }
-      setFieldValue(newFieldValue);
-      const pairsObject = pairs.reduce((obj, pair) => {
-        if (pair.key) obj[pair.key] = pair.value;
-        return obj;
-      }, {});
-      const combinedObject = { ...pairsObject, ...newFieldValue };
-      passValueToParent(combinedObject);
+      setFieldValue((oldFieldValue) => {
+        const newFieldValue = { ...oldFieldValue };
+        if (value === "") {
+          delete newFieldValue[key];
+        } else {
+          newFieldValue[key] = value;
+        }
+        const pairsObject = pairs.reduce((obj, pair) => {
+          if (pair.key) obj[pair.key] = pair.value;
+          return obj;
+        }, {});
+        const combinedObject = { ...pairsObject, ...newFieldValue };
+        passValueToParent(combinedObject);
+        return newFieldValue;
+      });
     };
 
     return (
@@ -409,12 +411,14 @@ const SchemaField = ({
 
     const handleArrayChange = (_key, value) => {
       // console.log(`handleArrayChange: ${_key}, ${JSON.stringify(value)}}`);
-      const newArray = [...fieldValue];
-      const index = fieldValue.findIndex((item) => item._key === _key);
-      newArray[index] = { ...newArray[index], value };
-      setFieldValue(newArray);
-      const valueArray = newArray.map((item) => item.value);
-      passValueToParent(valueArray);
+      setFieldValue((oldFieldValue) => {
+        const newArray = [...oldFieldValue];
+        const index = fieldValue.findIndex((item) => item._key === _key);
+        newArray[index] = { ...newArray[index], value };
+        const valueArray = newArray.map((item) => item.value);
+        passValueToParent(valueArray);
+        return newArray;
+      });
     };
 
     // Menu
