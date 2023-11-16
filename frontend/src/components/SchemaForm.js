@@ -11,9 +11,10 @@ const SchemaForm = ({ schema, passValueToParent }) => {
   const [formValue, setFormValue] = useState({});
   const handleFormUpdate = (key, value) => {
     // Update the form value.
-    setFormValue((prevState) => {
-      return { ...prevState, [key]: value };
-    });
+    const newValue = { ...formValue, [key]: value };
+    setFormValue(newValue);
+    // Pass the value to the parent component.
+    passValueToParent(newValue);
   };
   // Run custom logic.
   // const text = isMultiline ? JSON.stringify(object, null, 2) : JSON.stringify(object);
@@ -21,8 +22,10 @@ const SchemaForm = ({ schema, passValueToParent }) => {
   // Return the component.
   return (
     <div className="schema-form">
+      {/* <ReactMarkdown>{JSON.stringify(formValue)}</ReactMarkdown> */}
       {schema.title && <ReactMarkdown>{`## ${schema.title}`}</ReactMarkdown>}
       {schema.description && <ReactMarkdown>{schema.description}</ReactMarkdown>}
+
       {Object.entries(schema.properties).map(([key, value]) => {
         return (
           <SchemaField
