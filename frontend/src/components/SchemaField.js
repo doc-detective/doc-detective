@@ -35,6 +35,27 @@ const getType = (value) => {
   }
 };
 
+const getSchemaOptions = (schema) => {
+  // console.log(schema);
+  if (schema.anyOf || schema.oneOf) {
+    const schemas = [];
+    schema.anyOf?.forEach((item) => {
+      const newSchema = { ...schema, ...item };
+      delete newSchema.anyOf;
+      schemas.push(newSchema);
+    });
+    schema.oneOf?.forEach((item) => {
+      const newSchema = { ...schema, ...item };
+      delete newSchema.oneOf;
+      schemas.push(newSchema);
+    });
+    // console.log(schemas);
+    return schemas;
+  } else {
+    return [schema];
+  }
+};
+
 const SchemaField = ({
   schema,
   propertyKey,
@@ -48,34 +69,44 @@ const SchemaField = ({
   // propertyValue: The property object that defines the field.
   // passValueToParent: A function that passes the value of the field to the parent component.
 
+  console.log({ schema, propertyKey, propertyValue})
+
+  const schemaOptions = getSchemaOptions(propertyValue);
+  const [selectedSchema, setSelectedSchema] = useState(schemaOptions[0]);
+  console.log(selectedSchema)
+  console.log(selectedSchema)
+  const handleSchemaChange = (event) => {
+    setSelectedSchema(event.target.value);
+  };
+  
   // If the field is marked as const, pass the value to the parent component and return null.
-  if (propertyValue.const) {
+  if (selectedSchema.const) {
     useEffect(() => {
-      passValueToParent(propertyValue.const);
+      passValueToParent(selectedSchema.const);
     }, []);
     return null;
   }
 
   // Run custom logic.
   const fieldPath = propertyKey;
-  const label = propertyValue.title || propertyValue.name || propertyKey;
-  const helperText = propertyValue.description || "";
+  const label = selectedSchema.title || selectedSchema.name || propertyKey;
+  const helperText = selectedSchema.description || "";
   const required = schema.required?.includes(propertyKey);
   const placeholder =
-    propertyValue.examples && propertyValue.examples.length > 0
-      ? propertyValue.examples[0]
+    selectedSchema.examples && selectedSchema.examples.length > 0
+      ? selectedSchema.examples[0]
       : null;
 
   // Get type
   // If type is not defined, check if anyOf or oneOf is defined
   // Prefer string types. If no string types, use first type.
   // TODO: Add support for multiple types per field
-  let type = getType(propertyValue);
+  let type = getType(selectedSchema);
 
   // Get default value
   const defaultValue =
-    propertyValue.default !== undefined
-      ? propertyValue.default
+    selectedSchema.default !== undefined
+      ? selectedSchema.default
       : schema.dynamicDefaults?.[propertyKey] === "uuid"
       ? uuidv4()
       : type === "array"
@@ -83,8 +114,8 @@ const SchemaField = ({
       : type === "object"
       ? // Crawl object properties to get default values
         // TODO: Add support for nested objects
-        Object.keys(propertyValue.properties).reduce((acc, key) => {
-          acc[key] = propertyValue.properties[key].default;
+        Object.keys(selectedSchema.properties).reduce((acc, key) => {
+          acc[key] = selectedSchema.properties[key].default;
           return acc;
         }, {})
       : type === "boolean"
@@ -93,20 +124,20 @@ const SchemaField = ({
 
   // Add validation rules
   let validationRules = {};
-  if (propertyValue.minLength !== undefined) {
-    validationRules.minLength = propertyValue.minLength;
+  if (selectedSchema.minLength !== undefined) {
+    validationRules.minLength = selectedSchema.minLength;
   }
-  if (propertyValue.maxLength !== undefined) {
-    validationRules.maxLength = propertyValue.maxLength;
+  if (selectedSchema.maxLength !== undefined) {
+    validationRules.maxLength = selectedSchema.maxLength;
   }
-  if (propertyValue.minimum !== undefined) {
-    validationRules.minimum = propertyValue.minimum;
+  if (selectedSchema.minimum !== undefined) {
+    validationRules.minimum = selectedSchema.minimum;
   }
-  if (propertyValue.maximum !== undefined) {
-    validationRules.maximum = propertyValue.maximum;
+  if (selectedSchema.maximum !== undefined) {
+    validationRules.maximum = selectedSchema.maximum;
   }
-  if (propertyValue.pattern !== undefined) {
-    validationRules.pattern = propertyValue.pattern;
+  if (selectedSchema.pattern !== undefined) {
+    validationRules.pattern = selectedSchema.pattern;
   }
   if (type === "number" || type === "integer") {
     validationRules.numeric = "^[0-9]*$";
@@ -119,6 +150,7 @@ const SchemaField = ({
   const [fieldValue, setFieldValue] = useState(defaultValue);
   const [errorState, setErrorState] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [pairs, setPairs] = useState([]);
 
   const validateValue = (value) => {
     const inputValue = value;
@@ -194,7 +226,7 @@ const SchemaField = ({
     useEffect(() => {
       passValueToParent(fieldValue);
     }, []);
-    if (propertyValue.enum?.[0] !== "") propertyValue.enum?.unshift("");
+    if (selectedSchema.enum?.[0] !== "") selectedSchema.enum?.unshift("");
     return (
       <div class="field" key={fieldPath}>
         {label && (
@@ -209,11 +241,11 @@ const SchemaField = ({
           placeholder={placeholder}
           error={errorState}
           helperText={errorState ? errorMessage : ""}
-          {...(propertyValue.enum?.length > 0 && { select: true })}
-          {...(propertyValue.enum?.length > 0 && {
+          {...(selectedSchema.enum?.length > 0 && { select: true })}
+          {...(selectedSchema.enum?.length > 0 && {
             SelectProps: { native: true },
           })}
-          {...(propertyValue.enum?.length > 0 && {
+          {...(selectedSchema.enum?.length > 0 && {
             InputLabelProps: { shrink: true },
           })}
           onChange={(e) => handleChange(e.target.value)}
@@ -221,7 +253,7 @@ const SchemaField = ({
           margin="normal"
           fullWidth
         >
-          {propertyValue.enum?.map((option) => (
+          {selectedSchema.enum?.map((option) => (
             <option
               key={option}
               value={option}
@@ -265,7 +297,6 @@ const SchemaField = ({
 
   // Handle objects
   if (type === "object") {
-    const [pairs, setPairs] = useState([]);
     const handleAddPair = () => {
       // console.log("handleAddPair");
       setPairs([...pairs, { key: "", value: "" }]);
@@ -284,7 +315,7 @@ const SchemaField = ({
       const combinedObject = { ...pairsObject, ...fieldValue };
       // Sort object keys based on schema
       const sortedObject = {};
-      Object.keys(propertyValue.properties).forEach((key) => {
+      Object.keys(selectedSchema.properties).forEach((key) => {
         if (combinedObject[key]) sortedObject[key] = combinedObject[key];
       });
       passValueToParent(sortedObject);
@@ -307,7 +338,7 @@ const SchemaField = ({
       const combinedObject = { ...pairsObject, ...fieldValue };
       // Sort object keys based on schema
       const sortedObject = {};
-      Object.keys(propertyValue.properties).forEach((key) => {
+      Object.keys(selectedSchema.properties).forEach((key) => {
         if (combinedObject[key]) sortedObject[key] = combinedObject[key];
       });
       // Add missing keys
@@ -333,7 +364,7 @@ const SchemaField = ({
         const combinedObject = { ...pairsObject, ...newFieldValue };
         // Sort object keys based on schema
         const sortedObject = {};
-        Object.keys(propertyValue.properties).forEach((key) => {
+        Object.keys(selectedSchema.properties).forEach((key) => {
           if (combinedObject[key]) sortedObject[key] = combinedObject[key];
         });
         passValueToParent(sortedObject);
@@ -349,18 +380,18 @@ const SchemaField = ({
         {/* {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>} */}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <div class="objectChildren">
-          {Object.keys(propertyValue.properties).map((key) => (
+          {Object.keys(selectedSchema.properties).map((key) => (
             <SchemaField
               {...{
-                schema: propertyValue,
+                schema: selectedSchema,
                 pathToKey: fieldPath,
                 propertyKey: key,
-                propertyValue: propertyValue.properties[key],
+                propertyValue: selectedSchema.properties[key],
                 passValueToParent: (value) => handleObjectChange(key, value),
               }}
             />
           ))}
-          {propertyValue.additionalProperties && (
+          {selectedSchema.additionalProperties && (
             <div>
               {pairs.map((pair, index) => (
                 <div
@@ -480,7 +511,7 @@ const SchemaField = ({
         value.items.oneOf.forEach((item) => items.push(item));
       return items;
     };
-    const items = getItems(propertyValue);
+    const items = getItems(selectedSchema);
 
     // Iterate through fieldValue and assign schemas to each unassigned item based on its type
     const assignSchemas = (fieldValue, items) => {
@@ -562,7 +593,7 @@ const SchemaField = ({
                 {/* {console.log(item)} */}
                 <SchemaField
                   {...{
-                    schema: propertyValue,
+                    schema: selectedSchema,
                     propertyValue: {
                       ...item.schema,
                       default: item.value,
