@@ -138,3 +138,11 @@ export const arrayOfObjects = {
     propertyValue: httpRequest_v2.properties["envsFromResponseData"],
   },
 };
+export const fieldWithMultipleSchemas = {
+  args: {
+    schema: find_v2,
+    pathToKey: "",
+    propertyKey: "typeKeys",
+    propertyValue: find_v2.properties["typeKeys"],
+  },
+};
