@@ -1,202 +1,56 @@
 import React, { useRef, useState } from "react";
-import ReactDOM from "react-dom";
 import "./index.css";
-import config_v2 from "doc-detective-common/src/schemas/output_schemas/config_v2.schema.json";
-import spec_v2 from "doc-detective-common/src/schemas/output_schemas/spec_v2.schema.json";
-import Form from "./components/Form";
-import FileUploader from "./FileUploader";
-import TestButton from "./Button";
+import SchemaForm from "./components/SchemaForm";
+import { schemas } from "doc-detective-common/src/schemas";
 import AppBar from "./components/AppBar";
-import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { CopyBlock, nord } from "react-code-blocks";
-
-const uiSchema = {};
-
-const log = (type) => console.log.bind(console, type);
+import JSONBlock from "./components/JSONBlock";
+import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 
 function App() {
   const [selectedSchema, setSelectedSchema] = useState("");
-  const formRef = useRef(null);
+  const [formValue, setFormValue] = useState({});
 
   const handleSchemaChange = (event) => {
     setSelectedSchema(event.target.value);
   };
 
-  // React.useEffect(() => {
-  //   formRef.current.forceUpdate();
-  // }, [selectedSchema]);
+  const handleFormChange = (value) => {
+    setFormValue(value);
+  };
 
   return (
     <div>
       <AppBar />
       <div class="body">
-        {/* <TestButton /> */}
-        {/* <FileUploader /> */}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Start here: Test specification skeleton
-          </AccordionSummary>
-          <AccordionDetails>
-            <Typography>Copy this test specification skeleton into an editor. Put your action objects in the <code>steps</code> array.</Typography>
-            <br />
-            <CopyBlock
-              text={`{
-  "tests": [
-    {
-      "steps": [
-      ]
-    }
-  ]
-}`}
-              language={"javascript"}
-              showLineNumbers={true}
-              theme={nord}
-              codeBlock
-            />
-            <br />
-            <Typography>Example:</Typography>
-            <br />
-            <CopyBlock
-
-              text={`{
-  "tests": [
-    {
-      "steps": [
-        {
-          "action": "goTo",
-          "url": "https://www.google.com"
-        },
-        {
-          "action": "find",
-          "selector": "input[name='q']"
-        },
-        {
-          "action": "typeKeys",
-          "keys": "Hello, world!"
-        },
-        {
-          "action": "saveScreenshot",
-          "path": "screenshot.png"
-        }
-      ]
-    }
-  ]
-}`}
-              language={"javascript"}
-              showLineNumbers={true}
-              theme={nord}
-              codeBlock
-            />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Go to a URL
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="goTo_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Find (and interact with) an element (Functional. Needs object field support, oneOf support for typing special keys.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="find_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Type keys (Functional. Needs oneOf support for special keys.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="typeKeys_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Check a link (Functional. Needs type-aware array values.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="checkLink_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Wait
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="wait_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Save a screenshot
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="saveScreenshot_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Run a shell script
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="runShell_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Set environment variables
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="setVariables_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Make an HTTP request (Not ready. Needs object field support, configurable object key/value pair support.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="httpRequest_v2" />
-          </AccordionDetails>
-        </Accordion>
-        {/* <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Specify contexts to perform tests in. (Nowhere near ready. Don't even ask.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="context_v2" />
-          </AccordionDetails>
-        </Accordion> *}
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Define a test. (Nowhere near ready. Don't even ask.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="test_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Customize a test specification. (Nowhere near ready. Don't even ask.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="spec_v2" />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            Define a configuration. (Nowhere near ready. Don't even ask.)
-          </AccordionSummary>
-          <AccordionDetails>
-            <Form schema="config_v2" />
-          </AccordionDetails>
-        </Accordion> */}
+        <FormControl className="schemaSelector" style={{ minWidth: 300 }}>
+          <InputLabel>Select a schema</InputLabel>
+          <Select value={selectedSchema} onChange={handleSchemaChange}>
+            <MenuItem value="">Select a schema</MenuItem>
+            {Object.keys(schemas).map((key) => {
+              return (
+                <MenuItem key={key} value={key}>
+                  {schemas[key].title}
+                </MenuItem>
+              );
+            })}
+          </Select>
+        </FormControl>
+        {JSON.stringify(formValue)}
+        {selectedSchema && (
+          <SchemaForm
+            key={"form"}
+            schema={schemas[selectedSchema]}
+            passValueToParent={handleFormChange}
+          />
+        )}
+      </div>
+      <div class="preview">
+        <JSONBlock key={"preview"} object={formValue} />
       </div>
     </div>
   );
 }
 
-ReactDOM.render(<App />, document.getElementById("root"));
+export default App;
+
+// ReactDOM.render(<App />, document.getElementById("root"));
