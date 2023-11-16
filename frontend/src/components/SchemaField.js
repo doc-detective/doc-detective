@@ -312,7 +312,6 @@ const SchemaField = ({
       Object.keys(combinedObject).forEach((key) => {
         if (!sortedObject[key]) sortedObject[key] = combinedObject[key];
       });
-      console.log(sortedObject)
       passValueToParent(sortedObject);
     };
 
