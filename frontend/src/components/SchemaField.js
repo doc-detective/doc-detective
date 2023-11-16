@@ -82,6 +82,8 @@ const SchemaField = ({
           acc[key] = propertyValue.properties[key].default;
           return acc;
         }, {})
+      : type === "boolean"
+      ? false
       : "";
 
   // Add validation rules
@@ -193,6 +195,7 @@ const SchemaField = ({
         {label && (
           <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         )}
+        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <TextField
           key={fieldPath}
@@ -234,8 +237,11 @@ const SchemaField = ({
     }, []);
     return (
       <div class="field" key={fieldPath}>
-        <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
-        <ReactMarkdown>{helperText}</ReactMarkdown>
+        {label && (
+          <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
+        )}
+        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
+        {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <FormControl component="fieldset" error={errorState}>
           <FormControlLabel
             required={required}
@@ -321,6 +327,7 @@ const SchemaField = ({
         {label && (
           <ReactMarkdown>{`## ${label}${required ? "*" : ""}`}</ReactMarkdown>
         )}
+        {label && <ReactMarkdown>{JSON.stringify(fieldValue)}</ReactMarkdown>}
         {helperText && <ReactMarkdown>{helperText}</ReactMarkdown>}
         <div class="objectChildren">
           {Object.keys(propertyValue.properties).map((key) => (
@@ -428,7 +435,8 @@ const SchemaField = ({
     // Flatten items.oneOf/anyOf arrays
     const getItems = (value) => {
       const items = [];
-      if (value.items && !value.items.anyOf && !value.items.oneOf) items.push(value.items);
+      if (value.items && !value.items.anyOf && !value.items.oneOf)
+        items.push(value.items);
       if (value.items.anyOf)
         value.items.anyOf.forEach((item) => items.push(item));
       if (value.items.oneOf)
@@ -540,7 +548,11 @@ const SchemaField = ({
                 color="primary"
                 onClick={() => handleArrayAdd(items[0])}
               >
-                Add {items[0].title || label.replace(/s$/, "") || items[0].type || "Item"}
+                Add{" "}
+                {items[0].title ||
+                  label.replace(/s$/, "") ||
+                  items[0].type ||
+                  "Item"}
               </Button>
             )}
             {items.length > 1 && (
