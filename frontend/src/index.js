@@ -23,12 +23,19 @@ function App() {
   };
 
   const removeEmptyValues = (obj) => {
-    // console.log(`Removing empty values from ${JSON.stringify(obj)}`);
+    console.log(`Removing empty values from ${JSON.stringify(obj)}`);
     Object.keys(obj).forEach((key) => {
-      if (obj[key] && typeof obj[key] === "object" && !Array.isArray(obj) )
+      if (obj[key] && !Array.isArray(obj) && typeof obj[key] === "object" && Object.keys(obj[key]).length > 0)
         removeEmptyValues(obj[key]);
-      else if (obj[key] === "") delete obj[key];
+      if (
+        // Empty string, empty array, or empty object.
+        obj[key] === "" ||
+        (Array.isArray(obj[key]) && obj[key].length === 0) ||
+        (typeof obj[key] === "object" && Object.keys(obj[key]).length === 0)
+      )
+        delete obj[key];
     });
+    console.log(`Removed empty values from ${JSON.stringify(obj)}`);
     return obj;
   };
 
