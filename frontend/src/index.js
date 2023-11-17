@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import ReactDOM from "react-dom";
 import "./index.css";
 import SchemaForm from "./components/SchemaForm";
 import { schemas } from "doc-detective-common/src/schemas";
@@ -25,7 +26,12 @@ function App() {
   const removeEmptyValues = (obj) => {
     // console.log(`Removing empty values from ${JSON.stringify(obj)}`);
     Object.keys(obj).forEach((key) => {
-      if (obj[key] && !Array.isArray(obj) && typeof obj[key] === "object" && Object.keys(obj[key]).length > 0)
+      if (
+        obj[key] &&
+        !Array.isArray(obj) &&
+        typeof obj[key] === "object" &&
+        Object.keys(obj[key]).length > 0
+      )
         removeEmptyValues(obj[key]);
       if (
         // Empty string, empty array, or empty object.
@@ -65,13 +71,15 @@ function App() {
           />
         )}
       </div>
-      <div class="preview">
-        <JSONBlock key={"preview"} object={formValue} multiline={false} />
-      </div>
+      {selectedSchema && (
+        <div class="preview">
+          <JSONBlock key={"preview"} object={formValue} multiline={false} />
+        </div>
+      )}
     </div>
   );
 }
 
 export default App;
 
-// ReactDOM.render(<App />, document.getElementById("root"));
+ReactDOM.render(<App />, document.getElementById("root"));
