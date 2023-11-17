@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-gui",
-  "version": "2.5.1",
+  "version": "2.5.1-dev.0",
   "description": "Frontend for Doc Detective.",
   "scripts": {
     "build": "react-scripts build",
