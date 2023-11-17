@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  padding: 0 20 0 20;
+.body {
+  padding: 16px 16px;
 }
 
 h1,
