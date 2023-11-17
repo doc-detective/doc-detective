@@ -140,9 +140,9 @@ export const arrayOfObjects = {
 };
 export const fieldWithMultipleSchemas = {
   args: {
-    schema: find_v2,
+    schema: typeKeys_v2,
     pathToKey: "",
-    propertyKey: "typeKeys",
-    propertyValue: find_v2.properties["typeKeys"],
+    propertyKey: "keys",
+    propertyValue: typeKeys_v2.properties["keys"],
   },
 };
