@@ -87,8 +87,9 @@ function setConfig(config, args) {
   if (args.output) config.output = args.output;
   if (args.recursive) config.recursive = args.recursive;
   if (args.logLevel) config.logLevel = args.logLevel;
-  if ((args.setup || args.cleanup  || args.input ) && !config.runTests) config.runTests = {};
+  if ((args.setup || args.cleanup  || args.input || args.output ) && !config.runTests) config.runTests = {};
   if (args.input) config.runTests.input = args.input;
+  if (args.output) config.runTests.output = args.output;
   if (args.setup) config.runTests.setup = args.setup;
   if (args.cleanup) config.runTests.cleanup = args.cleanup;
 
