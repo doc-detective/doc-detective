@@ -1,13 +1,5 @@
 {
   "id": "Do all the things! - Spec",
-  "contexts": [
-    {
-      "app": {
-        "name": "firefox"
-      },
-      "platforms": ["windows", "mac", "linux"]
-    }
-  ],
   "tests": [
     {
       "id": "Do all the things! - Test",
@@ -45,6 +37,10 @@
           "url": "https://www.google.com"
         },
         {
+          "action": "startRecording",
+          "path": "test.mp4"
+        },
+        {
           "action": "find",
           "selector": "[title=Search]",
           "timeout": 10000,
@@ -53,6 +49,12 @@
           "typeKeys": {
             "keys": ["shorthair cat", "$ENTER$"]
           }
+        },
+        {
+          "action": "wait"
+        },
+        {
+          "action": "stopRecording"
         }
       ]
     }
