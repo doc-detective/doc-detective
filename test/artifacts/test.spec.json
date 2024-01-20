@@ -3,7 +3,10 @@
   "contexts": [
     {
       "app": {
-        "name": "firefox"
+        "name": "chrome",
+        "options": {
+          "headless": false
+        }
       },
       "platforms": ["windows", "mac", "linux"]
     }
@@ -45,6 +48,11 @@
           "url": "https://www.google.com"
         },
         {
+          "action": "startRecording",
+          "path": "test.mp4",
+          "overwrite": true
+        },
+        {
           "action": "find",
           "selector": "[title=Search]",
           "timeout": 10000,
@@ -53,6 +61,9 @@
           "typeKeys": {
             "keys": ["shorthair cat", "$ENTER$"]
           }
+        },
+        {
+          "action": "stopRecording"
         }
       ]
     }
