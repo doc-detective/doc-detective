@@ -95,6 +95,7 @@ The `suggestTests` command provides experimental support for suggesting tests fo
     -   [**runShell**](https://doc-detective.com/reference/schemas/runShell.html): Perform a native shell command.
     -   [**saveScreenshot**](https://doc-detective.com/reference/schemas/saveScreenshot.html): Take a screenshot in PNG format.
     -   [**setVariables**](https://doc-detective.com/reference/schemas/setVariables.html): Load environment variables from a `.env` file.
+    -   [**startRecording**](https://doc-detective.com/reference/schemas/startRecording.html) and [**stopRecording**](https://doc-detective.com/reference/schemas/stopRecording.html): Capture a video of test execution.
     -   [**typeKeys**](https://doc-detective.com/reference/schemas/typeKeys.html): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
     -   [**wait**](https://doc-detective.com/reference/schemas/wait.html): Pause before performing the next action.
 -   [**Context**](https://doc-detective.com/reference/schemas/context.html): An application and platforms that support the tests.
