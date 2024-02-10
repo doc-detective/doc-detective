@@ -109,3 +109,4 @@ browser-snapshots/
 testResults*
 coverageResults*
 testSuggestions*
+*.mp4
