@@ -29,11 +29,11 @@ jobs:
       matrix:
 
         os: 
-          # - ubuntu-latest
+          - ubuntu-latest
           - windows-latest
           - macos-latest
 
-        node: [16, 18, 20]
+        node: [18, 20]
 
     steps:
 
