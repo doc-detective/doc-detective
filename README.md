@@ -104,11 +104,9 @@ The `suggestTests` command provides experimental support for suggesting tests fo
 
 Future updates may include support for the following items:
 
-- Apps: Safari, iOS Safari, Edge, Android Chrome, native Windows, native macOS, native Linux
+- Apps: iOS Safari, Android Chrome, native Windows, native macOS, native Linux
 - Platforms: iOS, Android
 - Commands: `suggestTests` stable release
-- Actions: `startRecording`, `stopRecording`
-
 ## License
 
 This project uses the [MIT license](https://github.com/doc-detective/doc-detective/blob/master/LICENSE).
