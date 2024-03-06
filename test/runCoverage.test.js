@@ -7,7 +7,7 @@ describe("Perform coverage analysis successfully", function () {
   // Set indefinite timeout
   this.timeout(0);
   it("Should have 6 covered and 0 uncovered", async () => {
-    const coverateResults = await spawnCommand(`node ./src/runCoverage.js -c ${artifactPath}/config.json -i ${artifactPath}/doc-content.md -o ${artifactPath}`);
+    const coverateResults = await spawnCommand(`npm run runCoverage -- -c ${artifactPath}/config.json -i ${artifactPath}/doc-content.md -o ${artifactPath}`);
     // Find output file
     const outputFiles = coverateResults.stdout.split("See results at ");
     const outputFile = outputFiles[outputFiles.length - 1].trim();

@@ -1,20 +1,11 @@
 {
   "id": "Do all the things! - Spec",
-  "contexts": [
-    {
-      "app": {
-        "name": "chrome",
-        "options": {
-          "headless": false
-        }
-      },
-      "platforms": ["windows", "mac", "linux"]
-    }
-  ],
   "tests": [
     {
       "id": "Do all the things! - Test",
       "description": "This test includes nearly every property across all actions.",
+      "setup": "dev/setup.spec.json",
+      "cleanup": "dev/cleanup.spec.json",
       "steps": [
         {
           "action": "setVariables",
@@ -47,10 +38,8 @@
           "action": "goTo",
           "url": "https://www.google.com"
         },
-        {
-          "action": "startRecording",
-          "path": "test.mp4",
-          "overwrite": true
+        { 
+          "action": "startRecording"
         },
         {
           "action": "find",

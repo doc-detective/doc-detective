@@ -5,46 +5,25 @@
 name: Run tests
 
 on:
-
   push:
-
     branches:
-
       - main
-
   pull_request:
-
     types: [opened, reopened, synchronize]
-
   workflow_dispatch:
 
 jobs:
-
   build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [18, 20]
 
     runs-on: ${{ matrix.os }}
-
-    strategy:
-
-      matrix:
-
-        os: 
-          # - ubuntu-latest
-          - windows-latest
-          - macos-latest
-
-        node: [16, 18, 20]
-
     steps:
-
       - uses: actions/checkout@v3
-
-      - uses: actions/setup-node@v3
-
+      - uses: actions/setup-node@v4
         with:
-
           node-version: ${{ matrix.node }}
-
-      - run: npm i
-
+      - run: npm ci
       - run: npm test
