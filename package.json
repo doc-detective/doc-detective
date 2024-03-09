@@ -32,7 +32,7 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "doc-detective-common": "^1.13.0",
-    "doc-detective-core": "^2.9.2",
+    "doc-detective-core": "^2.9.3",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
