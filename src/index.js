@@ -9,7 +9,13 @@ main(argv);
 
 // Run tests
 async function main(argv) {
-  const command = argv[2];
+  // Find index of `doc-detective` or `src/index.js` in argv
+  let index = argv.indexOf("doc-detective");
+  if (index === -1) {
+    index = argv.indexOf("src/index.js");
+  }
+  // `command` is the next argument after `doc-detective` or `src/index.js`
+  const command = argv[index + 1];
   // Set args and config
   argv = setArgs(argv);
   const config = setConfig({}, argv);
