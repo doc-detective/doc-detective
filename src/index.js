@@ -9,10 +9,11 @@ main(argv);
 
 // Run tests
 async function main(argv) {
-  // Find index of `doc-detective` or `src/index.js` in argv
+  // Find index of `doc-detective` or `run` in argv
+  console.log(argv);
   let index = argv.indexOf("doc-detective");
   if (index === -1) {
-    index = argv.indexOf("src/index.js");
+    index = argv.findIndex((arg) => arg.endsWith("index.js"));
   }
   // `command` is the next argument after `doc-detective` or `src/index.js`
   const command = argv[index + 1];
