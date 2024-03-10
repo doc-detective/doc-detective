@@ -10,7 +10,6 @@ main(argv);
 // Run tests
 async function main(argv) {
   // Find index of `doc-detective` or `run` in argv
-  console.log(argv);
   let index = argv.indexOf("doc-detective");
   if (index === -1) {
     index = argv.findIndex((arg) => arg.endsWith("index.js"));

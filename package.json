@@ -1,10 +1,11 @@
 {
   "name": "doc-detective",
-  "version": "2.9.0",
+  "version": "2.9.0-dev.2",
   "description": "Unit test documentation (and record videos of those tests).",
   "bin": {
     "doc-detective": "node ./src/index.js"
   },
+  "main": "src/index.js",
   "scripts": {
     "mocha": "mocha",
     "postinstall": "node ./node_modules/doc-detective-core/scripts/postinstall.js",
