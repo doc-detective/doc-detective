@@ -1,16 +1,5 @@
 {
   "id": "Do all the things! - Spec",
-  "contexts": [
-    {
-      "app": {
-        "name": "chrome",
-        "options": {
-          "headless": false
-        }
-      },
-      "platforms": ["windows", "mac", "linux"]
-    }
-  ],
   "tests": [
     {
       "id": "Do all the things! - Test",
@@ -47,10 +36,8 @@
           "action": "goTo",
           "url": "https://www.google.com"
         },
-        {
-          "action": "startRecording",
-          "path": "test.mp4",
-          "overwrite": true
+        { 
+          "action": "startRecording"
         },
         {
           "action": "find",

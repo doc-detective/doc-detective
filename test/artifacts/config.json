@@ -1,34 +1,36 @@
 {
-  "envVariables": "./samples/variables.env",
+  "envVariables": "",
   "input": ".",
   "output": ".",
   "recursive": true,
-  "logLevel": "info",
+  "logLevel": "debug",
   "runTests": {
-    "input": "./samples/doc-content.md",
+    "input": "./test/artifacts/test.spec.json",
     "output": ".",
     "setup": "",
     "cleanup": "",
     "recursive": true,
+    "detectSteps": false,
     "mediaDirectory": ".",
     "downloadDirectory": ".",
     "contexts": [
       {
-        "app": {
-          "name": "firefox",
-          "path": ""
-        },
-        "platforms": [
-          "linux",
-          "mac",
-          "windows"
-        ]
+        "app": { "name": "firefox" },
+        "platforms": ["windows", "mac", "linux"]
+      },
+      {
+        "app": { "name": "chrome", "options": { "headless": true } },
+        "platforms": ["windows", "mac", "linux"]
+      },
+      {
+        "app": { "name": "edge" },
+        "platforms": ["windows", "mac", "linux"]
       }
     ]
   },
   "runCoverage": {
     "recursive": true,
-    "input": ".",
+    "input": ".dev/",
     "output": ".",
     "markup": []
   },
@@ -37,10 +39,5 @@
     "input": ".",
     "output": ".",
     "markup": []
-  },
-  "integrations": {},
-  "telemetry": {
-    "send": false,
-    "userId": "Doc Detective"
   }
 }
