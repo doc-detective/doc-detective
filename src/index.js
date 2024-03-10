@@ -24,11 +24,11 @@ async function main(argv) {
   let outputDir;
   let outputReportType;
   if (command === "runCoverage") {
-    outputDir = config.runCoverage.output || config.output;
+    outputDir = config?.runCoverage?.output || config.output;
     outputReportType = "coverageResults";
     results = await runCoverage(config);
   } else if (command === "runTests") {
-    outputDir = config.runTests.output || config.output;
+    outputDir = config?.runTests?.output || config.output;
     outputReportType = "testResults";
     results = await runTests(config);
   } else {
