@@ -1,14 +1,17 @@
 {
   "name": "doc-detective",
-  "version": "2.8.2",
-  "description": "Unit test documentation (and record videos of those tests).",
+  "version": "2.9.0",
+  "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
+  "bin": {
+    "doc-detective": "node ./src/index.js"
+  },
+  "main": "./src/index.js",
   "scripts": {
     "mocha": "mocha",
     "postinstall": "node ./node_modules/doc-detective-core/scripts/postinstall.js",
     "test": "mocha test/*.test.js",
-    "runTests": "node ./src/runTests.js",
-    "runCoverage": "node ./src/runCoverage.js",
-    "suggestTests": "node ./src/suggestTests.js",
+    "runTests": "node ./src/index.js runTests",
+    "runCoverage": "node ./src/index.js runCoverage",
     "dev": "node ./dev"
   },
   "repository": {
@@ -29,8 +32,8 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "doc-detective-common": "^1.13.0",
-    "doc-detective-core": "^2.9.2",
+    "doc-detective-common": "^1.13.1",
+    "doc-detective-core": "^2.9.4",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
