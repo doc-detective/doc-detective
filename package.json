@@ -1,7 +1,7 @@
 {
   "name": "doc-detective",
-  "version": "2.9.0-dev.2",
-  "description": "Unit test documentation (and record videos of those tests).",
+  "version": "2.9.0",
+  "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "node ./src/index.js"
   },
@@ -32,8 +32,8 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "doc-detective-common": "^1.13.0",
-    "doc-detective-core": "^2.9.3",
+    "doc-detective-common": "^1.13.1",
+    "doc-detective-core": "^2.9.4",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
