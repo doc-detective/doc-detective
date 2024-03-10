@@ -56,8 +56,6 @@ To see all available options, use the `--help` argument:
 npx doc-detective runTests --help
 ```
 
-**Note**: If you clone this repo and run the `runTests` command, use `npm run runTests --` instead of `npx doc-detective runTests`.
-
 ## Check your test coverage
 
 You can check the test coverage of your documentation source files with the `runCoverage` command, specifying the source file or directory of source files with the `--input` argument. Doc Detective identifies potential areas of test coverage with file-format-specific regex, and supports CommonMark syntax natively. If you want to test coverage of a file with different syntax, update your the `fileTypes` object of your [`config.json`](https://doc-detective.com/reference/schemas/config.html) file accordingly.
