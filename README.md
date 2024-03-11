@@ -107,6 +107,11 @@ Future updates may include support for the following items:
 - Apps: iOS Safari, Android Chrome, native Windows, native macOS, native Linux
 - Platforms: iOS, Android
 - Commands: `suggestTests` stable release
+
+## Contributions
+
+Looking to help out? See our [contributions guide](https://github.com/doc-detective/doc-detective/blob/main/CONTRIBUTIONS.md) for more info. If you can't contribute code, you can still help by reporting issues, suggesting new features, improving the documentation, or sponsoring the project.
+
 ## License
 
 This project uses the [MIT license](https://github.com/doc-detective/doc-detective/blob/master/LICENSE).
