@@ -15,7 +15,7 @@ export default function DenseAppBar() {
             <MenuIcon />
           </IconButton> */}
           <Typography variant="h6" color="inherit" component="div">
-            Doc Detective
+            Doc Detective Action Builder (v0.0.1)
           </Typography>
         </Toolbar>
       </AppBar>
