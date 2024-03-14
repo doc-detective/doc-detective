@@ -49,11 +49,19 @@ function App() {
     <div>
       <AppBar />
       <div class="body">
-        <FormControl className="schemaSelector" style={{ minWidth: 300 }}>
-          <InputLabel>Select a schema</InputLabel>
+        <FormControl className="schemaSeledoc-detective/frontend/build/static doc-detective/frontend/build/static/css doc-detective/frontend/build/static/js doc-detective/frontend/build/asset-manifest.json doc-detective/frontend/build/index.htmlctor" style={{ minWidth: 300 }}>
+          <InputLabel>Select an action</InputLabel>
           <Select value={selectedSchema} onChange={handleSchemaChange}>
-            <MenuItem value="">Select a schema</MenuItem>
+            <MenuItem value="">Select an action</MenuItem>
             {Object.keys(schemas).map((key) => {
+              if (
+                schemas[key].title === "config" ||
+                schemas[key].title === "context" ||
+                schemas[key].title === "specification" ||
+                schemas[key].title === "test" ||
+                schemas[key].title === "moveTo"
+              )
+                return;
               return (
                 <MenuItem key={key} value={key}>
                   {schemas[key].title}
@@ -73,7 +81,7 @@ function App() {
       </div>
       {selectedSchema && (
         <div class="preview">
-          <JSONBlock key={"preview"} object={formValue} multiline={false} />
+          <JSONBlock key={"preview"} object={formValue} />
         </div>
       )}
     </div>
