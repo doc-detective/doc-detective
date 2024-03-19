@@ -1,0 +1,29 @@
+{
+  "id": "setup",
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "runShell",
+          "command": "echo",
+          "args": ["setup"],
+          "exitCodes": [0],
+          "output": "/.*?/",
+          "setVariables": [
+            {
+              "name": "TEST",
+              "regex": ".*"
+            }
+          ]
+        },
+        {
+          "action": "runShell",
+          "command": "echo",
+          "args": ["$TEST"],
+          "exitCodes": [0],
+          "output": "setup"
+        }
+      ]
+    }
+  ]
+}

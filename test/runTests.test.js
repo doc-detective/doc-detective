@@ -9,7 +9,7 @@ describe("Run tests sucessfully", function () {
   this.timeout(0);
   it("All specs pass", async () => {
     const runTests = await spawnCommand(
-      `node ./src/index.js runTests -c ${artifactPath}/config.json -i ${artifactPath}/test.spec.json -o ${artifactPath}`
+      `node ./src/index.js runTests -c ${artifactPath}/config.json -i ${artifactPath} -o ${artifactPath}`
     );
     // Find output file
     const outputFiles = runTests.stdout.split("See results at ");
@@ -17,6 +17,6 @@ describe("Run tests sucessfully", function () {
     const result = JSON.parse(
       fs.readFileSync(outputFile, { encoding: "utf8" })
     );
-    assert.equal(result.summary.specs.pass, 1);
+    assert.equal(result.summary.specs.pass, 5);
   });
 });

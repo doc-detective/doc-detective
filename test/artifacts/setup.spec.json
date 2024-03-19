@@ -1,0 +1,18 @@
+{
+  "id": "setup",
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "setVariables",
+          "path": ".env"
+        },
+        {
+          "action": "runShell",
+          "command": "echo",
+          "args": ["setup"]
+        }
+      ]
+    }
+  ]
+}
