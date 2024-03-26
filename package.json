@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "2.10.0",
+  "version": "2.10.1",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "node ./src/index.js"
@@ -33,7 +33,7 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "doc-detective-common": "^1.14.0",
-    "doc-detective-core": "^2.10.0",
+    "doc-detective-core": "^2.10.1",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
