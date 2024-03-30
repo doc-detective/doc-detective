@@ -1,0 +1,90 @@
+{
+  "envVariables": "./variables.env",
+  "input": ".",
+  "output": ".",
+  "recursive": true,
+  "logLevel": "debug",
+  "runTests": {
+    "detectSteps": true,
+    "input": "./doc-content.md",
+    "output": ".",
+    "setup": "",
+    "cleanup": "",
+    "recursive": true,
+    "mediaDirectory": ".",
+    "downloadDirectory": ".",
+    "contexts": [
+      {
+        "app": {
+          "name": "chrome",
+          "options": {
+            "width": 1200,
+            "height": 800,
+            "headless": false
+          }
+        },
+        "platforms": ["linux", "mac", "windows"]
+      }
+    ]
+  },
+  "runCoverage": {
+    "recursive": true,
+    "input": ".",
+    "output": ".",
+    "markup": []
+  },
+  "suggestTests": {
+    "recursive": true,
+    "input": ".",
+    "output": ".",
+    "markup": []
+  },
+  "fileTypes": [
+    {
+      "name": "Markdown",
+      "extensions": [".md"],
+      "testStartStatementOpen": "[comment]: # (test start",
+      "testStartStatementClose": ")",
+      "testIgnoreStatement": "[comment]: # (test ignore)",
+      "testEndStatement": "[comment]: # (test end)",
+      "stepStatementOpen": "[comment]: # (step",
+      "stepStatementClose": ")",
+      "markup": [
+        {
+          "name": "Hyperlink",
+          "regex": ["(?<=(?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "actions": ["checkLink"]
+        },
+        {
+          "name": "Navigation link",
+          "regex": ["(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "actions": ["goTo"]
+        },
+        {
+          "name": "Onscreen text",
+          "regex": ["(?<=\\*\\*)[\\w\\s]+?(?=\\*\\*)"],
+          "actions": ["find"]
+        },
+        {
+          "name": "Image",
+          "regex": ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
+          "actions": [
+            {
+              "name": "saveScreenshot",
+              "params": {
+                "directory": ".",
+                "maxVariation": 5,
+                "overwrite": "byVariation"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "integrations": {},
+  "telemetry": {
+    "send": false,
+    "userId": "Doc Detective"
+  }
+}

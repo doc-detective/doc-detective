@@ -5,13 +5,14 @@
   "recursive": true,
   "logLevel": "debug",
   "runTests": {
+    "detectSteps": true,
     "input": "./samples/doc-content.md",
-    "output": ".",
+    "output": "./samples",
     "setup": "",
     "cleanup": "",
     "recursive": true,
-    "mediaDirectory": ".",
-    "downloadDirectory": ".",
+    "mediaDirectory": "./samples",
+    "downloadDirectory": "./samples",
     "contexts": [
       {
         "app": {
