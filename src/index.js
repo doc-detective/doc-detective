@@ -4,6 +4,7 @@ const { runTests, runCoverage } = require("doc-detective-core");
 const { setArgs, setConfig, outputResults, setMeta } = require("./utils");
 const { argv } = require("node:process");
 const path = require("path");
+const fs = require("fs");
 
 // Run
 setMeta();
@@ -17,9 +18,16 @@ async function main(argv) {
   );
   // `command` is the next argument after `doc-detective` or `src/index.js`
   const command = argv[index + 1];
-  // Set args and config
+  // Set args
   argv = setArgs(argv);
-  const config = setConfig({}, argv);
+  // Get .doc-detective.json config, if it exists
+  const configPath = path.resolve(process.cwd(), ".doc-detective.json");
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    config = require(configPath);
+  }
+  // Set config
+  config = setConfig(config, argv);
   // Run command
   let results = {};
   let outputDir;
