@@ -1,12 +1,12 @@
 {
-  "envVariables": "./samples/variables.env",
+  "envVariables": "./variables.env",
   "input": ".",
   "output": ".",
   "recursive": true,
   "logLevel": "debug",
   "runTests": {
     "detectSteps": true,
-    "input": "./samples/doc-content.md",
+    "input": "./doc-content.md",
     "output": ".",
     "setup": "",
     "cleanup": "",
@@ -16,7 +16,7 @@
     "contexts": [
       {
         "app": {
-          "name": "firefox",
+          "name": "chrome",
           "options": {
             "width": 1200,
             "height": 800,
@@ -72,7 +72,7 @@
             {
               "name": "saveScreenshot",
               "params": {
-                "directory": "samples",
+                "directory": ".",
                 "maxVariation": 5,
                 "overwrite": "byVariation"
               }
