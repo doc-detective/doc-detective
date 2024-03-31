@@ -58,5 +58,6 @@
   "telemetry": {
     "send": true,
     "userId": "Doc Detective Repo"
-  }
+  },
+  "defaultCommand": "runTests"
 }

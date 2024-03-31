@@ -11,13 +11,12 @@ function complete(commands) {
   return function (str) {
     var i;
     var ret = [];
-    for (i=0; i< commands.length; i++) {
-      if (commands[i].indexOf(str) == 0)
-        ret.push(commands[i]);
+    for (i = 0; i < commands.length; i++) {
+      if (commands[i].indexOf(str) == 0) ret.push(commands[i]);
     }
     return ret;
   };
-};
+}
 
 // Run
 setMeta();
@@ -31,20 +30,6 @@ async function main(argv) {
   );
   // `command` is the next argument after `doc-detective` or `src/index.js`
   let command = argv[index + 1];
-  // If no command, prompt user to select a command
-  if (command !== "runTests" && command !== "runCoverage") {
-    const ask = `
-Welcome to Doc Detective. Choose a command:
-- 'runTests' - Run tests defined in specifications and documentation source files.
-- 'runCoverage' - Calculate test coverage of doc content.
-
-You can skip this next time by running 'npx doc-detective <command>'.
-
-For more info, visit https://doc-detective.com.
-
-Command: `;
-    command = prompt({ask, value: "runTests", autocomplete: complete(["runTests", "runCoverage"])});
-  }
   // Set args
   argv = setArgs(argv);
   // Get .doc-detective.json config, if it exists
@@ -55,6 +40,26 @@ Command: `;
   }
   // Set config
   config = setConfig(config, argv);
+  command = command || config.defaultCommand;
+  // If no command, prompt user to select a command
+  if (command !== "runTests" && command !== "runCoverage") {
+    const ask = `
+  Welcome to Doc Detective. Choose a command:
+  - 'runTests' - Run tests defined in specifications and documentation source files.
+  - 'runCoverage' - Calculate test coverage of doc content.
+  
+  You can skip this next time by running 'npx doc-detective <command>'. You can also set 'defaultCommand' in your .doc-detective.json config file.
+  
+  For more info, visit https://doc-detective.com.
+  
+  Command: `;
+    command = prompt({
+      ask,
+      value: "runTests",
+      autocomplete: complete(["runTests", "runCoverage"]),
+    });
+  }
+
   // Run command
   let results = {};
   let outputDir;
