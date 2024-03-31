@@ -5,6 +5,19 @@ const { setArgs, setConfig, outputResults, setMeta } = require("./utils");
 const { argv } = require("node:process");
 const path = require("path");
 const fs = require("fs");
+const prompt = require("prompt-sync")();
+
+function complete(commands) {
+  return function (str) {
+    var i;
+    var ret = [];
+    for (i=0; i< commands.length; i++) {
+      if (commands[i].indexOf(str) == 0)
+        ret.push(commands[i]);
+    }
+    return ret;
+  };
+};
 
 // Run
 setMeta();
@@ -17,7 +30,21 @@ async function main(argv) {
     (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")
   );
   // `command` is the next argument after `doc-detective` or `src/index.js`
-  const command = argv[index + 1];
+  let command = argv[index + 1];
+  // If no command, prompt user to select a command
+  if (command !== "runTests" && command !== "runCoverage") {
+    const ask = `
+Welcome to Doc Detective. Choose a command:
+- 'runTests' - Run tests defined in specifications and documentation source files.
+- 'runCoverage' - Calculate test coverage of doc content.
+
+You can skip this next time by running 'npx doc-detective <command>'.
+
+For more info, visit https://doc-detective.com.
+
+Command: `;
+    command = prompt({ask, value: "runTests", autocomplete: complete(["runTests", "runCoverage"])});
+  }
   // Set args
   argv = setArgs(argv);
   // Get .doc-detective.json config, if it exists
@@ -41,7 +68,8 @@ async function main(argv) {
     outputReportType = "testResults";
     results = await runTests(config);
   } else {
-    throw new Error(`Command ${command} not found`);
+    console.error(`Sorry, that's not a recognized command. Please try again.`);
+    process.exit(1);
   }
   // Output results
   const outputPath = path.resolve(
