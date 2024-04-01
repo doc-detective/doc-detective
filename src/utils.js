@@ -177,7 +177,7 @@ function setMeta() {
   const package = require("../package.json");
   meta.distribution = "doc-detective";
   meta.dist_version = package.version;
-  meta.dist_platform = platformMap[os.platform()];
+  meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
   meta.dist_deployment = meta.dist_deployment || "node";
