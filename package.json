@@ -1,14 +1,13 @@
 {
   "name": "doc-detective",
-  "version": "2.10.1",
+  "version": "2.11.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
-    "doc-detective": "node ./src/index.js"
+    "doc-detective": "src/index.js"
   },
   "main": "./src/index.js",
   "scripts": {
     "mocha": "mocha",
-    "postinstall": "node ./node_modules/doc-detective-core/scripts/postinstall.js",
     "test": "mocha test/*.test.js",
     "runTests": "node ./src/index.js runTests",
     "runCoverage": "node ./src/index.js runCoverage",
@@ -32,8 +31,8 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "doc-detective-common": "^1.14.0",
-    "doc-detective-core": "^2.10.1",
+    "doc-detective-common": "^1.15.0",
+    "doc-detective-core": "^2.11.0",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },

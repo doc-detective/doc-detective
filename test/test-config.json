@@ -6,5 +6,8 @@
   "runTests": {
     "setup": ".",
     "cleanup": "."
+  },
+  "telemetry": {
+    "send": false
   }
 }

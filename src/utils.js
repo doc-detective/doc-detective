@@ -4,11 +4,13 @@ const { validate } = require("doc-detective-common");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
+const os = require("os");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
 exports.outputResults = outputResults;
 exports.spawnCommand = spawnCommand;
+exports.setMeta = setMeta;
 
 // Define args
 function setArgs(args) {
@@ -87,7 +89,11 @@ function setConfig(config, args) {
   if (args.output) config.output = args.output;
   if (args.recursive) config.recursive = args.recursive;
   if (args.logLevel) config.logLevel = args.logLevel;
-  if ((args.setup || args.cleanup  || args.input || args.output ) && !config.runTests) config.runTests = {};
+  if (
+    (args.setup || args.cleanup || args.input || args.output) &&
+    !config.runTests
+  )
+    config.runTests = {};
   if (args.input) config.runTests.input = args.input;
   if (args.output) config.runTests.output = args.output;
   if (args.setup) config.runTests.setup = args.setup;
@@ -154,4 +160,29 @@ async function spawnCommand(cmd, args) {
   });
 
   return { stdout, stderr, exitCode };
+}
+
+function setMeta() {
+  const platformMap = {
+    win32: "windows",
+    darwin: "mac",
+    linux: "linux",
+  };
+
+  // Set meta
+  const meta =
+    process.env["DOC_DETECTIVE_META"] !== undefined
+      ? JSON.parse(process.env["DOC_DETECTIVE_META"])
+      : {};
+  const package = require("../package.json");
+  meta.distribution = "doc-detective";
+  meta.dist_version = package.version;
+  meta.dist_platform = platformMap[os.platform()] || os.platform();
+  meta.dist_platform_version = os.release();
+  meta.dist_platform_arch = os.arch();
+  meta.dist_deployment = meta.dist_deployment || "node";
+  meta.dist_deployment_version =
+    meta.dist_deployment_version || process.version;
+  meta.dist_interface = meta.dist_interface || "cli";
+  process.env["DOC_DETECTIVE_META"] = JSON.stringify(meta);
 }

@@ -1,24 +1,65 @@
 #!/usr/bin/env node
 
 const { runTests, runCoverage } = require("doc-detective-core");
-const { setArgs, setConfig, outputResults } = require("./utils");
+const { setArgs, setConfig, outputResults, setMeta } = require("./utils");
 const { argv } = require("node:process");
 const path = require("path");
+const fs = require("fs");
+const prompt = require("prompt-sync")();
 
+function complete(commands) {
+  return function (str) {
+    var i;
+    var ret = [];
+    for (i = 0; i < commands.length; i++) {
+      if (commands[i].indexOf(str) == 0) ret.push(commands[i]);
+    }
+    return ret;
+  };
+}
+
+// Run
+setMeta();
 main(argv);
 
-// Run tests
+// Run
 async function main(argv) {
   // Find index of `doc-detective` or `run` in argv
-  let index = argv.indexOf("doc-detective");
-  if (index === -1) {
-    index = argv.findIndex((arg) => arg.endsWith("index.js"));
-  }
+  const index = argv.findIndex(
+    (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")
+  );
   // `command` is the next argument after `doc-detective` or `src/index.js`
-  const command = argv[index + 1];
-  // Set args and config
+  let command = argv[index + 1];
+  // Set args
   argv = setArgs(argv);
-  const config = setConfig({}, argv);
+  // Get .doc-detective.json config, if it exists
+  const configPath = path.resolve(process.cwd(), ".doc-detective.json");
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    config = require(configPath);
+  }
+  // Set config
+  config = setConfig(config, argv);
+  command = command || config.defaultCommand;
+  // If no command, prompt user to select a command
+  if (command !== "runTests" && command !== "runCoverage") {
+    const ask = `
+  Welcome to Doc Detective. Choose a command:
+  - 'runTests' - Run tests defined in specifications and documentation source files.
+  - 'runCoverage' - Calculate test coverage of doc content.
+  
+  You can skip this next time by running 'npx doc-detective <command>'. You can also set 'defaultCommand' in your .doc-detective.json config file.
+  
+  For more info, visit https://doc-detective.com.
+  
+  Command: `;
+    command = prompt({
+      ask,
+      value: "runTests",
+      autocomplete: complete(["runTests", "runCoverage"]),
+    });
+  }
+
   // Run command
   let results = {};
   let outputDir;
@@ -32,7 +73,8 @@ async function main(argv) {
     outputReportType = "testResults";
     results = await runTests(config);
   } else {
-    throw new Error(`Command ${command} not found`);
+    console.error(`Sorry, that's not a recognized command. Please try again.`);
+    process.exit(1);
   }
   // Output results
   const outputPath = path.resolve(
