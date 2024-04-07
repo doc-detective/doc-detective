@@ -1,0 +1,55 @@
+{
+  "id": "http tests",
+  "description": "This is a test collection",
+  "tests": [
+    {
+      "id": "env variables test",
+      "description": "These tests will show off how using env files to set variables works in Doc Detective.",
+      "steps": [
+        {
+          "action": "setVariables",
+          "path": "test/artifacts/env"
+        },
+        {
+          "action": "httpRequest",
+          "url": "https://reqres.in/api/users",
+          "method": "post",
+          "requestData": {
+            "auth": "$SECRET",
+            "name": "$USER",
+            "job": "$JOB"
+          },
+          "responseData": {
+            "name": "John Doe",
+            "job": "Software Engineer"
+          },
+          "statusCodes": [200, 201]
+        },
+        {
+          "action": "httpRequest",
+          "url": "https://reqres.in/api/users",
+          "method": "get",
+          "envsFromResponseData": [
+            {
+              "name": "ID",
+              "jqFilter": ".data[0].id"
+            }
+          ],
+          "statusCodes": [200, 201]
+        },
+        {
+          "action": "httpRequest",
+          "url": "https://reqres.in/api/users/$ID",
+          "method": "get",
+          "responseData": {
+            "data": {
+              "first_name": "George",
+              "last_name": "Bluth"
+            }
+          },
+          "statusCodes": [200, 201]
+        }
+      ]
+    }
+  ]
+}
