@@ -11,6 +11,8 @@
     "test": "mocha test/*.test.js",
     "runTests": "node ./src/index.js runTests",
     "runCoverage": "node ./src/index.js runCoverage",
+    "docker:build":"docker build -t hawkeyexl/doc-detective:dev .",
+    "docker:push": "docker push hawkeyexl/doc-detective:dev",
     "dev": "node ./dev"
   },
   "repository": {

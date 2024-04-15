@@ -1,0 +1,7 @@
+node_modules/
+browser_snapshots/
+.github/
+dev/
+test/
+samples/
+.doc-detective.json
