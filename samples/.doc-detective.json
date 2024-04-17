@@ -16,7 +16,7 @@
     "contexts": [
       {
         "app": {
-          "name": "chrome",
+          "name": "firefox",
           "options": {
             "width": 1200,
             "height": 800,
