@@ -7,20 +7,20 @@ ENV CONTAINER=1
 # Create app directory
 WORKDIR /app
 
+# Install necessary packages for XFCE, VNC, Firefox, and Google Chrome
+RUN apt-get update && apt-get install -y xfce4 xfce4-goodies x11vnc xvfb chromium wget gnupg \
+    && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && dpkg -i google-chrome-stable_current_amd64.deb; apt-get -fy install \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* ./google-chrome-stable_current_amd64.deb \
+    && adduser --disabled-password --gecos "" user
+
 # Install from NPM
-RUN npm install -g doc-detective
-
-# TODO: Run all builds so nothing needs to be compiled
-# Run all builds/prebuilds
-# RUN cd electron && npm run prebuild
-# RUN cd server && npm run prebuild
-
-# Clea up files/dirs not needed for production
-# RUN rm -rf frontend dev
+RUN npm install -g doc-detective@dev
 
 # Add entrypoint command base
-ENTRYPOINT [ "npx", "doc-detective" ]
+# ENTRYPOINT [ "npx", "doc-detective" ]
 
 # Set default command
-# CMD [ "/bin/bash" ]
-CMD [ "" ]
+CMD [ "/bin/bash" ]
+# CMD [ "" ]
