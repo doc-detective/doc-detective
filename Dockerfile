@@ -11,8 +11,6 @@ ARG TZ="UTC"
 ARG TARGETARCH=amd64
 ARG TARGETVARIANT
 
-USER root
-
 ENV DEBIAN_FRONTEND=noninteractive \
     # No interactive frontend during docker build
     DEBCONF_NONINTERACTIVE_SEEN=true \
@@ -43,6 +41,7 @@ RUN  echo "deb http://archive.ubuntu.com/ubuntu jammy main universe\n" > /etc/ap
     libnss3-tools \
     libavcodec-extra \
     libgtk-3-dev libdbus-glib-1-dev \
+    nano \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
 #========================================
 # Add normal user and group without password sudo
@@ -188,13 +187,11 @@ RUN apt-get update && apt-get install -y curl \
 #   && ln -fs /opt/selenium/msedgedriver-$EDGE_DRIVER_VERSION /usr/bin/msedgedriver
 
 
-# Install Doc Detective from NPM
-RUN npm install -g doc-detective@dev
-
 #===================================================
 # Run the following commands as non-privileged user
 #===================================================
-USER ${UID}:${GID}
+# Install Doc Detective from NPM
+RUN npm install -g doc-detective@dev
 
 
 # FROM node:bookworm
@@ -204,7 +201,7 @@ USER ${UID}:${GID}
 # ENV CONTAINER=1
 
 # # Create app directory
-# WORKDIR /app
+WORKDIR /app
 
 # # Install necessary packages for XFCE, VNC, Firefox, and Google Chrome
 # RUN apt-get update && apt-get install -y xfce4 xfce4-goodies x11vnc xvfb chromium wget gnupg \
