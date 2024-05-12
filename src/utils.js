@@ -115,10 +115,12 @@ function setConfig(config, args) {
 
 async function outputResults(config, path, results) {
   let data = JSON.stringify(results, null, 2);
-  fs.writeFile(path, data, (err) => {
-    if (err) throw err;
-  });
-  console.log(`See results at ${path}`);
+  try {
+    fs.writeFileSync(path, data);
+    console.log(`See results at ${path}`);
+  } catch (err) {
+    console.error(`Error writing results to ${path}: ${err}`);
+  }
 }
 
 // Perform a native command in the current working directory.
