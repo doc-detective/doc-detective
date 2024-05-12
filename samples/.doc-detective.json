@@ -12,20 +12,7 @@
     "cleanup": "",
     "recursive": true,
     "mediaDirectory": ".",
-    "downloadDirectory": ".",
-    "contexts": [
-      {
-        "app": {
-          "name": "firefox",
-          "options": {
-            "width": 1200,
-            "height": 800,
-            "headless": false
-          }
-        },
-        "platforms": ["linux", "mac", "windows"]
-      }
-    ]
+    "downloadDirectory": "."
   },
   "runCoverage": {
     "recursive": true,
@@ -52,22 +39,24 @@
       "markup": [
         {
           "name": "Hyperlink",
-          "regex": ["(?<=(?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "regex": ["(?<!!)\\[.+?\\]\\(.+?\\)"],
           "actions": ["checkLink"]
         },
         {
           "name": "Navigation link",
-          "regex": ["(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "regex": [
+            "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
+          ],
           "actions": ["goTo"]
         },
         {
           "name": "Onscreen text",
-          "regex": ["(?<=\\*\\*)[\\w\\s]+?(?=\\*\\*)"],
+          "regex": ["\\*\\*.+?\\*\\*"],
           "actions": ["find"]
         },
         {
           "name": "Image",
-          "regex": ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
+          "regex": ["!\\[.+?\\]\\(.+?\\)"],
           "actions": [
             {
               "name": "saveScreenshot",
