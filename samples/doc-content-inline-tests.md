@@ -1,12 +1,12 @@
 # Doc Detective documentation overview
 
-[comment]: # (test start {"id":"search-kittens", "detectSteps":false})
+[comment]: # (test start {"id":"doc-detective-docs", "detectSteps": false})
 
 [Doc Detective documentation](http://doc-detective.com) is split into a few key sections:
 
 [comment]: # (step {"action":"checkLink", "url":"https://doc-detective.com"})
 
-The landing page discusses what Doc Detective is, what it does, and who might find it useful.
+- The landing page discusses what Doc Detective is, what it does, and who might find it useful.
 
 - [Get started](https://doc-detective.com/get-started.html) covers how to quickly get up and running with Doc Detective.
 
@@ -25,5 +25,5 @@ The landing page discusses what Doc Detective is, what it does, and who might fi
 
 ![Search results.](reference.png)
 
-[comment]: # (step {"action":"saveScreenshot", "path":"reference.png", "directory":"samples", "maxVariation":5, "overwrite":"byVariation"})
+[comment]: # (step {"action":"saveScreenshot", "path":"reference.png", "maxVariation":5, "overwrite":"byVariation"})
 [comment]: # (test end)
