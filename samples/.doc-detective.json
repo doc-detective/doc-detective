@@ -1,12 +1,13 @@
 {
   "envVariables": "./variables.env",
+  "defaultCommand": "runTests",
   "input": ".",
   "output": ".",
   "recursive": true,
   "logLevel": "info",
   "runTests": {
     "detectSteps": true,
-    "input": "./doc-content.md",
+    "input": "./doc-content-inline-tests.md",
     "output": ".",
     "setup": "",
     "cleanup": "",
@@ -18,22 +19,14 @@
         "app": {
           "name": "firefox",
           "options": {
-            "width": 1200,
-            "height": 800,
             "headless": false
           }
         },
-        "platforms": ["linux", "mac", "windows"]
+        "platforms": ["windows", "mac", "linux"]
       }
     ]
   },
   "runCoverage": {
-    "recursive": true,
-    "input": ".",
-    "output": ".",
-    "markup": []
-  },
-  "suggestTests": {
     "recursive": true,
     "input": ".",
     "output": ".",
@@ -52,30 +45,29 @@
       "markup": [
         {
           "name": "Hyperlink",
-          "regex": ["(?<=(?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "regex": ["(?<!!)\\[.+?\\]\\((.+?)\\)"],
           "actions": ["checkLink"]
         },
         {
           "name": "Navigation link",
-          "regex": ["(?<=([Oo]pen|[Cc]lick) (?<!!)\\[[\\w\\s]+\\]\\().*?(?=\\))"],
+          "regex": [
+            "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)\\s+(?<!!)\\[.+?\\]\\((.+?)\\)"
+          ],
           "actions": ["goTo"]
         },
         {
           "name": "Onscreen text",
-          "regex": ["(?<=\\*\\*)[\\w\\s]+?(?=\\*\\*)"],
+          "regex": ["\\*\\*(.+?)\\*\\*"],
           "actions": ["find"]
         },
         {
           "name": "Image",
-          "regex": ["(?<=\\!\\[.*?\\]\\().*?(?=\\))"],
+          "regex": ["!\\[.+?\\]\\((.+?)\\)"],
           "actions": [
             {
-              "name": "saveScreenshot",
-              "params": {
-                "directory": ".",
-                "maxVariation": 5,
-                "overwrite": "byVariation"
-              }
+              "action": "saveScreenshot",
+              "maxVariation": 5,
+              "overwrite": "byVariation"
             }
           ]
         }
