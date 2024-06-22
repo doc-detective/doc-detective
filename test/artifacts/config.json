@@ -21,10 +21,6 @@
       {
         "app": { "name": "chrome", "options": { "headless": true } },
         "platforms": ["windows", "mac", "linux"]
-      },
-      {
-        "app": { "name": "edge" },
-        "platforms": ["windows", "mac", "linux"]
       }
     ]
   },
