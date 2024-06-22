@@ -178,6 +178,8 @@ describe("Util tests", function () {
     const inputResultsPath = path.resolve("./test/test-results.json");
     const inputResultsJSON = require(inputResultsPath);
     const outputResultsPath = path.resolve("./test/output-test-results.json");
+    // Check that input file exists
+    expect(fs.existsSync(inputResultsPath)).to.equal(true);
     // Output results
     await outputResults(null, outputResultsPath, inputResultsJSON);
     // Check that output file exists
