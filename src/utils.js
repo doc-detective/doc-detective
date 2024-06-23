@@ -176,9 +176,9 @@ function setMeta() {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const package = require("../package.json");
+  const packageJson = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = package.version;
+  meta.dist_version = packageJson.version;
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();

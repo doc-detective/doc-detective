@@ -1,6 +1,5 @@
 const { setArgs, setConfig, outputResults } = require("../src/utils");
 const path = require("path");
-const { expect, should, assert } = require("chai");
 const fs = require("fs");
 
 describe("Util tests", function () {
@@ -87,7 +86,7 @@ describe("Util tests", function () {
       },
     ];
     argSets.forEach((argSet) => {
-      expect(setArgs(argSet.args)).to.deep.include(argSet.expected);
+      expect(setArgs(argSet.args)).toMatchObject(argSet.expected);
     });
   });
 
@@ -179,11 +178,11 @@ describe("Util tests", function () {
     const inputResultsJSON = require(inputResultsPath);
     const outputResultsPath = path.resolve("./test/output-test-results.json");
     // Check that input file exists
-    expect(fs.existsSync(inputResultsPath)).to.equal(true);
+    expect(fs.existsSync(inputResultsPath)).toEqual(true);
     // Output results
     await outputResults(null, outputResultsPath, inputResultsJSON);
     // Check that output file exists
-    expect(fs.existsSync(outputResultsPath)).to.equal(true);
+    expect(fs.existsSync(outputResultsPath)).toEqual(true);
     // Clean up
     fs.unlinkSync(outputResultsPath);
   });
@@ -200,7 +199,7 @@ function deepObjectExpect(actual, expected) {
       // Otherwise, check that the value is correct
       const expectedObject = {};
       expectedObject[key] = value;
-      expect(actual).to.deep.include(expectedObject);
+      expect(actual).toMatchObject(expectedObject);
     }
   });
 }
