@@ -11,6 +11,8 @@ describe("Perform coverage analysis successfully", function () {
     // Find output file
     const outputFiles = coverateResults.stdout.split("See results at ");
     const outputFile = outputFiles[outputFiles.length - 1].trim();
+    console.log(outputFile);
+    console.log(fs.existsSync(outputFile));
     // If output file is not found, throw an error
     if (!outputFile) {
       throw new Error(`Output file not found.\nOutput file: ${outputFile}\nCWD: ${process.cwd()}`);
