@@ -12,6 +12,7 @@ describe("Run tests sucessfully", function () {
       `npx doc-detective runTests -c ${artifactPath}/config.json -i ${artifactPath} -o ${artifactPath}`
     );
     // Find output file
+    console.log(runTests.stdout)
     const outputFiles = runTests.stdout.split("See results at ");
     const outputFile = outputFiles[outputFiles.length - 1].trim();
     console.log(outputFile);
