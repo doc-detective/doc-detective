@@ -1,7 +1,11 @@
 const { setArgs, setConfig, outputResults } = require("../src/utils");
 const path = require("path");
-const { expect, should, assert } = require("chai");
 const fs = require("fs");
+
+before(async function () {
+  const { expect } = await import("chai");
+  global.expect = expect;
+});
 
 describe("Util tests", function () {
   // Test that arguments are parsed correctly
