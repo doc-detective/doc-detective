@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - run: CWD - echo $PWD
+      - run: echo $PWD
 
       - name: Cache node_modules
         uses: actions/cache@v3
