@@ -5,7 +5,6 @@ const fs = require("fs");
 const artifactPath = path.resolve(__dirname,"./artifacts");
 
 describe("Run tests sucessfully", function () {
-  console.log({cwd: process.cwd()})
   // Set indefinite timeout
   this.timeout(0);
   it("All specs pass", async () => {
@@ -20,7 +19,7 @@ describe("Run tests sucessfully", function () {
     console.log(fs.existsSync(outputFile));
     // If output file is not found, throw an error
     if (!outputFile) {
-      throw new Error(`Output file not found.\nOutput file: ${outputFile}\nCWD: ${process.cwd()}`);
+      throw new Error(`Output file not found.\nOutput file: ${outputFile}\nCWD: ${process.cwd()}\nstdout: ${runTests.stdout}`);
     }
     const result = JSON.parse(
       fs.readFileSync(outputFile, { encoding: "utf8" })

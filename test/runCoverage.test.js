@@ -5,9 +5,6 @@ const fs = require("fs");
 const artifactPath = path.resolve(__dirname,"./artifacts");
 
 describe("Perform coverage analysis successfully", function () {
-  console.log({cwd: process.cwd()})
-  // Move to the artifacts directory
-  // process.chdir(artifactPath);
   // Set indefinite timeout
   this.timeout(0);
   it("Should have 6 covered and 0 uncovered", async () => {
@@ -20,7 +17,7 @@ describe("Perform coverage analysis successfully", function () {
     console.log(fs.existsSync(outputFile));
     // If output file is not found, throw an error
     if (!outputFile) {
-      throw new Error(`Output file not found.\nOutput file: ${outputFile}\nCWD: ${process.cwd()}`);
+      throw new Error(`Output file not found.\nOutput file: ${outputFile}\nCWD: ${process.cwd()}\nstdout: ${coverateResults.stdout}`);
     }
     const result = require(outputFile);
     assert.equal(result.summary.covered, 6);
