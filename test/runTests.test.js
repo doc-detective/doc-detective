@@ -9,7 +9,7 @@ describe("Run tests sucessfully", function () {
   this.timeout(0);
   it("All specs pass", async () => {
     const runTests = await spawnCommand(
-      `npx doc-detective runTests -c ${artifactPath}/config.json -i ${artifactPath} -o ${artifactPath}`
+      `node ./src/index.js runTests -c ${artifactPath}/config.json -i ${artifactPath} -o ${artifactPath}`
     );
     // Find output file
     console.log(runTests.stdout)
