@@ -5,6 +5,7 @@ const fs = require("fs");
 const artifactPath = path.resolve(__dirname,"./artifacts");
 
 describe("Run tests sucessfully", function () {
+  console.log({cwd: process.cwd()})
   // Set indefinite timeout
   this.timeout(0);
   it("All specs pass", async () => {
