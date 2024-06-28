@@ -57,7 +57,7 @@ jobs:
           npm -g i doc-detective@rc
           npm unpublish doc-detective@rc-${{ matrix.node }}-${{ matrix.os }}
         env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
       - name: Run npx commands
         if: github.event.pull_request.base.ref == 'rc'
