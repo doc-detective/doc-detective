@@ -28,6 +28,7 @@ jobs:
           - 18
           - 20
     steps:
+      - run: echo ${{ github.}}
       - uses: actions/checkout@v3
 
       - uses: actions/setup-node@v3
@@ -50,7 +51,7 @@ jobs:
 
       # If branch is `rc`, update version to append `rc` and a UUID, then publish to npm, run npx commands, then unpublish npm package
       - name: Publish, install, and unpublish package
-        if: github.ref == 'refs/heads/rc'
+        if: github.event.pull_request.base.ref == 'rc'
         run: |
           npm version --no-git-tag-version prerelease --preid=rc-$(uuidgen) --force
           npm publish --tag rc-${{ matrix.node }}-${{ matrix.os }}
@@ -58,7 +59,7 @@ jobs:
           npm unpublish doc-detective@rc-${{ matrix.node }}-${{ matrix.os }}
 
       - name: Run npx commands
-        if: github.ref == 'refs/heads/rc'
+        if: github.event.pull_request.base.ref == 'rc'
         run: |
           cd ..
           npx doc-detective runCoverage -c doc-detective/test/artifacts/config.json -i doc-detective/test/artifacts/doc-content.md -o .
