@@ -28,7 +28,6 @@ jobs:
           - 18
           - 20
     steps:
-      - run: echo ${{ github.}}
       - uses: actions/checkout@v3
 
       - uses: actions/setup-node@v3
