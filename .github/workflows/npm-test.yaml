@@ -52,7 +52,7 @@ jobs:
       - name: Set .npmrc
         run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n" > .npmrc
 
-      - run: ls -al
+      - run: npm whoami
 
       # Set env variable of version
       - name: Set version (Linux and MacOS)
