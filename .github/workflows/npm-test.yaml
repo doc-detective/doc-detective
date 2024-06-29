@@ -48,26 +48,31 @@ jobs:
 
       - run: npm test
 
-      # If branch is `rc`, update version to append `rc` and a UUID, then publish to npm, run npx commands, then unpublish npm package
-      - name: Publish, install, and unpublish package (Linux and macOS)
-        if: github.event.pull_request.base.ref == 'rc' && matrix.os != 'windows-latest'
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-        run: |
-          npm version --no-git-tag-version prerelease --preid=rc-$(uuidgen) --force
-          npm publish --tag rc-${{ matrix.node }}-${{ matrix.os }}
-          npm -g i doc-detective@rc
-          npm unpublish doc-detective@rc-${{ matrix.node }}-${{ matrix.os }}
+      # Set .npmrc
+      - name: Set .npmrc
+        run: echo "//npm.pkg.github.com/:_authToken=${{secrets.GITHUB_TOKEN}}" > .npmrc
 
-      - name: Publish, install, and unpublish package (Windows)
+      # Set env variable of version
+      - name: Set version (Linux and MacOS)
+        if: github.event.pull_request.base.ref == 'rc' && matrix.os != 'windows-latest'
+        run: |
+          echo "VERSION=rc-${{ matrix.node }}-${{ matrix.os }}-$(uuidgen)" >> $GITHUB_ENV
+
+      - name: Set version (Windows)
         if: github.event.pull_request.base.ref == 'rc' && matrix.os == 'windows-latest'
+        run: |
+          echo "VERSION=rc-${{ matrix.node }}-${{ matrix.os }}-$(New-Guid)" >> $GITHUB_ENV
+
+      # If branch is `rc`, update version to append `rc` and a UUID, then publish to npm, run npx commands, then unpublish npm package
+      - name: Publish, install, and unpublish package
+        if: github.event.pull_request.base.ref == 'rc'
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
         run: |
-          npm version --no-git-tag-version prerelease --preid=rc-$(New-Guid) --force
-          npm publish --tag rc-${{ matrix.node }}-${{ matrix.os }}
+          npm version --no-git-tag-version prerelease --preid=${{ env.VERSION }} --force
+          npm publish --tag rc
           npm -g i doc-detective@rc
-          npm unpublish doc-detective@rc-${{ matrix.node }}-${{ matrix.os }}
+          npm unpublish doc-detective@${{ env.VERSION }}
 
       - name: Run npx commands
         if: github.event.pull_request.base.ref == 'rc'
