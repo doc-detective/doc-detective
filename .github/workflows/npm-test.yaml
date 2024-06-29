@@ -52,6 +52,8 @@ jobs:
       - name: Set .npmrc
         run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
 
+      - run: ls -al
+
       # Set env variable of version
       - name: Set version (Linux and MacOS)
         if: github.event.pull_request.base.ref == 'rc' && matrix.os != 'windows-latest'
