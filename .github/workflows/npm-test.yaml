@@ -51,13 +51,13 @@ jobs:
       # If branch is `rc`, update version to append `rc` and a UUID, then publish to npm, run npx commands, then unpublish npm package
       - name: Publish, install, and unpublish package
         if: github.event.pull_request.base.ref == 'rc'
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
         run: |
           npm version --no-git-tag-version prerelease --preid=rc-$(uuidgen) --force
           npm publish --tag rc-${{ matrix.node }}-${{ matrix.os }}
           npm -g i doc-detective@rc
           npm unpublish doc-detective@rc-${{ matrix.node }}-${{ matrix.os }}
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
       - name: Run npx commands
         if: github.event.pull_request.base.ref == 'rc'
