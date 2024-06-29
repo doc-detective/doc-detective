@@ -50,7 +50,7 @@ jobs:
 
       # Set .npmrc
       - name: Set .npmrc
-        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n" > .npmrc
 
       - run: ls -al
 
