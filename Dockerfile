@@ -191,7 +191,7 @@ RUN apt-get update && apt-get install -y curl \
 # Run the following commands as non-privileged user
 #===================================================
 # Install Doc Detective from NPM
-RUN npm install -g doc-detective@dev
+RUN npm install -g doc-detective
 
 
 # FROM node:bookworm
@@ -214,7 +214,7 @@ WORKDIR /app
 # # Install from NPM
 
 # # Add entrypoint command base
-# # ENTRYPOINT [ "npx", "doc-detective" ]
+# ENTRYPOINT [ "npx", "doc-detective" ]
 
 # # Set default command
 CMD [ "/bin/bash" ]
