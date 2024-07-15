@@ -1,8 +1,8 @@
-FROM ubuntu:20.04 as system
+FROM ubuntu:20.04 AS system
 LABEL authors="Doc Detective"
 
 # built-in packages
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update \
     && apt install -y --no-install-recommends software-properties-common curl apache2-utils \
     && apt update \
@@ -51,7 +51,7 @@ RUN npm install -g doc-detective
 
 # # Set environment container to trigger container-based behaviors
 # # TODO: Update scripts to override certain config options to static container values (for example, -i and -o should always map to the same directories).
-ENV CONTAINER=1
+ENV CONTAINER=true
 
 # # Create app directory
 WORKDIR /app
@@ -61,4 +61,4 @@ WORKDIR /app
 
 # # Set default command
 CMD [ "/bin/bash" ]
-# # CMD [ "" ]
+# CMD [ "" ]
