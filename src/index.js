@@ -62,24 +62,18 @@ async function main(argv) {
 
   // Run command
   let results = {};
-  let outputDir;
-  let outputReportType;
+  let output;
   if (command === "runCoverage") {
-    outputDir = config?.runCoverage?.output || config.output;
-    outputReportType = "coverageResults";
+    output = config?.runCoverage?.output || config.output;
     results = await runCoverage(config);
   } else if (command === "runTests") {
-    outputDir = config?.runTests?.output || config.output;
-    outputReportType = "testResults";
+    output = config?.runTests?.output || config.output;
     results = await runTests(config);
   } else {
     console.error(`Sorry, that's not a recognized command. Please try again.`);
     process.exit(1);
   }
+
   // Output results
-  const outputPath = path.resolve(
-    outputDir,
-    `${outputReportType}-${Date.now()}.json`
-  );
-  await outputResults(config, outputPath, results);
+  await outputResults(config, output, results, { command });
 }
