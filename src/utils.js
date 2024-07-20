@@ -113,13 +113,58 @@ function setConfig(config, args) {
   return config;
 }
 
-async function outputResults(config, path, results) {
+async function outputResults(config = {}, outputPath, results, options = {}) {
+  // DEBUG
+  // outputPath = "./foobar/results.json";
+  // END DEBUG
+  
+  // Define supported output extensions
+  const outputExtensions = [".json"];
+
+  // Normalize output path
+  outputPath = path.resolve(outputPath);
+
   let data = JSON.stringify(results, null, 2);
+  let outputFile = "";
+  let outputDir = "";
+  let reportType = "doc-detective-results";
+  if (options.command) {
+    if (options.command === "runCoverage") {
+      reportType = "coverageResults";
+    } else if (options.command === "runTests") {
+      reportType = "testResults";
+    }
+  }
+  // outputPath = path.resolve(outputPath, `${reportType}.json`);
+
+  // Detect if output ends with a supported extension
+  if (outputExtensions.some((ext) => outputPath.endsWith(ext))) {
+    outputDir = path.dirname(outputPath);
+    outputFile = outputPath;
+    // If outputFile already exists, add a counter to the filename
+    if (fs.existsSync(outputFile)) {
+      let counter = 0;
+      while (fs.existsSync(outputFile.replace(".json", `-${counter}.json`))) {
+        counter++;
+      }
+      outputFile = outputFile.replace(".json", `-${counter}.json`);
+    }
+  } else {
+    outputDir = outputPath;
+    outputFile = path.resolve(outputDir, `${reportType}-${Date.now()}.json`);
+  }
+
   try {
-    fs.writeFileSync(path, data);
-    console.log(`See results at ${path}`);
+    // Create output directory if it doesn't exist
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // Write results to output file
+    fs.writeFileSync(outputFile, data);
+    console.log(`See results at ${outputFile}`);
   } catch (err) {
-    console.error(`Error writing results to ${path}: ${err}`);
+    console.error(`Error writing results to ${outputFile}. ${err}`);
   }
 }
 
