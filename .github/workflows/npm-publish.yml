@@ -20,48 +20,38 @@ jobs:
         node: 
           - 18
           - 20
+          - 22
     steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          # Cache key uses the contents of `package-lock.json` to identify unique cache
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-          path: |
-            node_modules
-          
       - run: npm ci
-
       - run: npm test
 
   publish-npm:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           registry-url: https://registry.npmjs.org/
-
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          # Cache key uses the contents of `package-lock.json` to identify unique cache
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-          path: |
-            node_modules
-            
       - run: npm ci
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+  # Test downstream consumers of the package
+  test-github-action:
+    name: Test GitHub Action
+    needs: publish-npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@latest
+        id: dd
+        with:
+          config: ./test/artifacts/config.json
+          input: ./test/artifacts/doc-content.md
+          exit_on_fail: "true"
