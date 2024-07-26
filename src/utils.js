@@ -70,6 +70,19 @@ function setConfig(config, args) {
   if (args.config) {
     const configPath = path.resolve(args.config);
     configContent = require(configPath);
+    const extension = path.extname(configPath).toLowerCase();
+
+    try {
+      const fileContent = fs.readFileSync(configPath, "utf8");
+
+      if (extension === ".yml" || extension === ".yaml") {
+        configContent = YAML.parse(fileContent);
+      }
+    } catch (error) {
+      console.error(`Error parsing config file: ${error.message}`);
+      process.exit(1);
+    }
+
     // Validate config
     const validation = validate("config_v2", configContent);
     if (validation.valid) {
