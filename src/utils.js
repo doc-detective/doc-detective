@@ -18,7 +18,7 @@ function setArgs(args) {
   let argv = yargs(hideBin(args))
     .option("config", {
       alias: "c",
-      description: "Path to a `config.json` file.",
+      description: "Path to a `config.json or config.yaml` file.",
       type: "string",
     })
     .option("input", {
