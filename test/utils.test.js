@@ -170,8 +170,8 @@ describe("Util tests", function () {
       },
     ];
 
-    configSets.forEach((configSet) => {
-      const configResult = setConfig({}, setArgs(configSet.args));
+    configSets.forEach(async (configSet) => {
+      const configResult = await setConfig({}, setArgs(configSet.args));
       deepObjectExpect(configResult, configSet.expected);
     });
   });
