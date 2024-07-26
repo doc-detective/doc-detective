@@ -86,17 +86,32 @@ async function setConfig(config, args) {
   }
 
   // Override config values
-  if (args.input) config.input = args.input;
-  if (args.output) config.output = args.output;
-  if (args.recursive) config.recursive = args.recursive;
-  if (args.logLevel) config.logLevel = args.logLevel;
   if (
     (args.setup || args.cleanup || args.input || args.output) &&
     !config.runTests
   )
     config.runTests = {};
-  if (args.input) config.runTests.input = args.input;
-  if (args.output) config.runTests.output = args.output;
+  if (
+    (args.setup || args.cleanup || args.input || args.output) &&
+    !config.runCoverage
+  )
+    config.runCoverage = {};
+  if (args.input) {
+    config.input = args.input;
+    config.runCoverage.input = args.input;
+    config.runTests.input = args.input;
+  }
+  if (args.output) {
+    config.output = args.output;
+    config.runCoverage.output = args.output;
+    config.runTests.output = args.output;
+  }
+  if (args.recursive) {
+    config.recursive = args.recursive;
+    config.runCoverage.recursive = args.recursive;
+    config.runTests.recursive = args.recursive;
+  }
+  if (args.logLevel) config.logLevel = args.logLevel;
   if (args.setup) config.runTests.setup = args.setup;
   if (args.cleanup) config.runTests.cleanup = args.cleanup;
 
@@ -118,7 +133,7 @@ async function outputResults(config = {}, outputPath, results, options = {}) {
   // DEBUG
   // outputPath = "./foobar/results.json";
   // END DEBUG
-  
+
   // Define supported output extensions
   const outputExtensions = [".json"];
 
