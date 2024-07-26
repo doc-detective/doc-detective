@@ -1,6 +1,6 @@
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
-const { validate } = require("doc-detective-common");
+const { validate, resolvePaths } = require("doc-detective-common");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
@@ -62,7 +62,7 @@ function setArgs(args) {
 }
 
 // Override config values based on args
-function setConfig(config, args) {
+async function setConfig(config, args) {
   // If no args, return config
   if (!args) return config;
 
@@ -74,6 +74,7 @@ function setConfig(config, args) {
     const validation = validate("config_v2", configContent);
     if (validation.valid) {
       config = configContent;
+      config = await resolvePaths(config, config, configPath);
     } else {
       // Output validation errors
       console.error("Invalid config file:");
