@@ -4,8 +4,8 @@
     {
       "id": "Do all the things! - Test",
       "description": "This test includes nearly every property across all actions.",
-      "setup": "test/artifacts/setup.spec.json",
-      "cleanup": "test/artifacts/cleanup.spec.json",
+      "setup": "setup.spec.json",
+      "cleanup": "cleanup.spec.json",
       "steps": [
         {
           "action": "setVariables",

@@ -3,9 +3,10 @@
   "input": ".",
   "output": ".",
   "recursive": true,
+  "relativePathBase": "file",
   "logLevel": "debug",
   "runTests": {
-    "input": "./test/artifacts/test.spec.json",
+    "input": "test.spec.json",
     "output": ".",
     "setup": "",
     "cleanup": "",

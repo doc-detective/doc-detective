@@ -39,7 +39,7 @@ async function main(argv) {
     config = require(configPath);
   }
   // Set config
-  config = setConfig(config, argv);
+  config = await setConfig(config, argv);
   command = command || config.defaultCommand;
   // If no command, prompt user to select a command
   if (command !== "runTests" && command !== "runCoverage") {
