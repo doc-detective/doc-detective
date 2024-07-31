@@ -48,7 +48,7 @@ async function main(argv) {
   - 'runTests' - Run tests defined in specifications and documentation source files.
   - 'runCoverage' - Calculate test coverage of doc content.
   
-  You can skip this next time by running 'npx doc-detective <command>'. You can also set 'defaultCommand' in your .doc-detective.json config file.
+  You can skip this next time by running 'npx doc-detective <command>'. You can also set 'defaultCommand' in your .doc-detective.json or .doc-detective.yaml config file.
   
   For more info, visit https://doc-detective.com.
   

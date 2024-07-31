@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const os = require("os");
+const YAML = require("yaml");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
@@ -18,7 +19,7 @@ function setArgs(args) {
   let argv = yargs(hideBin(args))
     .option("config", {
       alias: "c",
-      description: "Path to a `config.json` file.",
+      description: "Path to a `config.json or config.yaml` file.",
       type: "string",
     })
     .option("input", {
@@ -69,7 +70,20 @@ async function setConfig(config, args) {
   // Load config from file
   if (args.config) {
     const configPath = path.resolve(args.config);
-    configContent = require(configPath);
+    const extension = path.extname(configPath).toLowerCase();
+
+    // Parse supported config file formats
+    try {
+      const fileContent = fs.readFileSync(configPath, "utf8");
+
+      if (extension === ".yml" || extension === ".yaml") {
+        configContent = YAML.parse(fileContent);
+      } else if (extension === ".json") {
+        configContent = JSON.parse(fileContent);
+      } else {
+        throw new Error("Unsupported config file format. Config file must be .json, .yml, or .yaml.");
+      }
+
     // Validate config
     const validation = validate("config_v2", configContent);
     if (validation.valid) {
@@ -81,6 +95,10 @@ async function setConfig(config, args) {
       validation.errors.forEach((error) => {
         console.error(error);
       });
+      process.exit(1);
+      }
+    } catch (error) {
+      console.error(`Error parsing config file: ${error.message}`);
       process.exit(1);
     }
   }

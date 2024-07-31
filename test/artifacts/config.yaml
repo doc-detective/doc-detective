@@ -1,0 +1,41 @@
+envVariables: ""
+input: "."
+output: "."
+recursive: true
+logLevel: debug
+runTests:
+  input: "./test/artifacts/test.spec.json"
+  output: "."
+  setup: ""
+  cleanup: ""
+  recursive: true
+  detectSteps: false
+  mediaDirectory: "."
+  downloadDirectory: "."
+  contexts:
+    - app:
+        name: firefox
+      platforms:
+        - windows
+        - mac
+        - linux
+    - app:
+        name: chrome
+        options:
+          headless: true
+      platforms:
+        - windows
+        - mac
+        - linux
+runCoverage:
+  recursive: true
+  input: ".dev/"
+  output: "."
+  markup: []
+suggestTests:
+  recursive: true
+  input: "."
+  output: "."
+  markup: []
+telemetry:
+  send: false
