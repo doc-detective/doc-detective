@@ -14,7 +14,7 @@ describe("Perform coverage analysis successfully", function () {
     );
     const result = require(outputFile);
     fs.unlinkSync(outputFile);
-    assert.equal(result.summary.covered, 6);
+    assert.equal(result.summary.covered, 7);
     assert.equal(result.summary.uncovered, 0);
   });
 });
