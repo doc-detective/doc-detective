@@ -17,8 +17,13 @@
     "contexts": [
       {
         "app": { "name": "chrome", "options": { "headless": false } },
-        "platforms": ["windows", "mac", "linux"]
+        "platforms": ["mac", "linux"]
+      },
+      {
+        "app": { "name": "chrome", "options": { "headless": true } },
+        "platforms": ["windows"]
       }
+
     ]
   },
   "runCoverage": {
