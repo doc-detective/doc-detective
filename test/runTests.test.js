@@ -12,7 +12,10 @@ describe("Run tests sucessfully", function () {
     await spawnCommand(
       `node ./src/index.js runTests -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
     );
+    // Wait until the file is written
+    while (!fs.existsSync(outputFile)) {}
     const result = require(outputFile);
+    console.log(JSON.stringify(result, null, 2));
     fs.unlinkSync(outputFile);
     assert.equal(result.summary.specs.fail, 0);
   });
