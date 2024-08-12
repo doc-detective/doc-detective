@@ -23,6 +23,7 @@
         "app": { "name": "chrome", "options": { "headless": true } },
         "platforms": ["windows"]
       }
+
     ]
   },
   "runCoverage": {
