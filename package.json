@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "2.16.6",
+  "version": "2.16.7",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "src/index.js"
@@ -33,7 +33,7 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "doc-detective-common": "^1.19.3",
-    "doc-detective-core": "^2.16.6",
+    "doc-detective-core": "^2.16.7",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
