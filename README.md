@@ -56,7 +56,7 @@ By default, Doc Detective scans the current directory for valid tests, but you c
 npx doc-detective runTests --input doc-content-inline-tests.md
 ```
 
-To customize your test, file type, and directory options, create a `.doc-detective.json` [config](https://doc-detective.com/reference/schemas/config.html) file. If a `.doc-detective.json` file exists in the directory when you run the comment, Doc Detective loads the config. Otherwise, you can specify a config path with the `--config` argument.
+To customize your test, file type, and directory options, create a `.doc-detective.json` [config](https://doc-detective.com/docs/references/schemas/config.html) file. If a `.doc-detective.json` file exists in the directory when you run the comment, Doc Detective loads the config. Otherwise, you can specify a config path with the `--config` argument.
 
 ```bash
 npx doc-detective runTests --config .doc-detective.json
@@ -72,7 +72,7 @@ npx doc-detective runTests --config .doc-detective.json --input tests.spec.json
 
 ## Check your test coverage
 
-You can check the test coverage of your documentation source files with the `runCoverage` command, specifying the source file or directory of source files with the `--input` argument. Doc Detective identifies potential areas of test coverage with file-format-specific regex, and supports CommonMark syntax natively. If you want to test coverage of a file with different syntax, update your the `fileTypes` object of your [config](https://doc-detective.com/reference/schemas/config.html) file accordingly.
+You can check the test coverage of your documentation source files with the `runCoverage` command, specifying the source file or directory of source files with the `--input` argument. Doc Detective identifies potential areas of test coverage with file-format-specific regex, and supports CommonMark syntax natively. If you want to test coverage of a file with different syntax, update the `fileTypes` object of your [config](https://doc-detective.com/docs/references/schemas/config.html) file accordingly.
 
 ```bash
 npx doc-detective runCoverage --config .doc-detective.json --input doc-content.md
@@ -80,21 +80,21 @@ npx doc-detective runCoverage --config .doc-detective.json --input doc-content.m
 
 ## Concepts
 
-- [**Test specification**](https://doc-detective.com/reference/schemas/specification.html): A group of tests to run in one or more contexts. Conceptually parallel to a document.
-- [**Test**](https://doc-detective.com/reference/schemas/test.html): A sequence of steps to perform. Conceptually parallel to a procedure.
+- [**Test specification**](https://doc-detective.com/docs/references/schemas/specification.html): A group of tests to run in one or more contexts. Conceptually parallel to a document.
+- [**Test**](https://doc-detective.com/docs/references/schemas/test.html): A sequence of steps to perform. Conceptually parallel to a procedure.
 - **Step**: A portion of a test that includes a single action. Conceptually parallel to a step in a procedure.
 - **Action**: The task a performed in a step. Doc Detective supports a variety of actions:
-  - [**checkLink**](https://doc-detective.com/reference/schemas/checkLink.html): Check if a URL returns an acceptable status code from a GET request.
-  - [**find**](https://doc-detective.com/reference/schemas/find.html): Check if an element exists with the specified selector.
-  - [**goTo**](https://doc-detective.com/reference/schemas/goTo.html): Navigate to a specified URL.
-  - [**httpRequest**](https://doc-detective.com/reference/schemas/httpRequest.html): Perform a generic HTTP request, for example to an API.
-  - [**runShell**](https://doc-detective.com/reference/schemas/runShell.html): Perform a native shell command.
-  - [**saveScreenshot**](https://doc-detective.com/reference/schemas/saveScreenshot.html): Take a screenshot in PNG format.
-  - [**setVariables**](https://doc-detective.com/reference/schemas/setVariables.html): Load environment variables from a `.env` file.
-  - [**startRecording**](https://doc-detective.com/reference/schemas/startRecording.html) and [**stopRecording**](https://doc-detective.com/reference/schemas/stopRecording.html): Capture a video of test execution.
-  - [**typeKeys**](https://doc-detective.com/reference/schemas/typeKeys.html): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
-  - [**wait**](https://doc-detective.com/reference/schemas/wait.html): Pause before performing the next action.
-- [**Context**](https://doc-detective.com/reference/schemas/context.html): An application and platforms that support the tests.
+  - [**checkLink**](https://doc-detective.com/docs/references/schemas/checkLink.html): Check if a URL returns an acceptable status code from a GET request.
+  - [**find**](https://doc-detective.com/docs/references/schemas/find.html): Check if an element exists with the specified selector.
+  - [**goTo**](https://doc-detective.com/docs/references/schemas/goTo.html): Navigate to a specified URL.
+  - [**httpRequest**](https://doc-detective.com/docs/references/schemas/httpRequest.html): Perform a generic HTTP request, for example to an API.
+  - [**runShell**](https://doc-detective.com/docs/references/schemas/runShell.html): Perform a native shell command.
+  - [**saveScreenshot**](https://doc-detective.com/docs/references/schemas/saveScreenshot.html): Take a screenshot in PNG format.
+  - [**setVariables**](https://doc-detective.com/docs/references/schemas/setVariables.html): Load environment variables from a `.env` file.
+  - [**startRecording**](https://doc-detective.com/docs/references/schemas/startRecording.html) and [**stopRecording**](https://doc-detective.com/docs/references/schemas/stopRecording.html): Capture a video of test execution.
+  - [**typeKeys**](https://doc-detective.com/docs/references/schemas/typeKeys.html): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
+  - [**wait**](https://doc-detective.com/docs/references/schemas/wait.html): Pause before performing the next action.
+- [**Context**](https://doc-detective.com/docs/references/schemas/context.html): An application and platforms that support the tests.
 
 ## Roadmap
 
