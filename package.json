@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "2.18.0-openapi.2",
+  "version": "2.18.0-openapi.3",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "src/index.js"
@@ -32,8 +32,8 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "doc-detective-common": "^1.21.0-openapi.6",
-    "doc-detective-core": "^2.18.0-openapi.4",
+    "doc-detective-common": "^1.21.0-openapi.7",
+    "doc-detective-core": "^2.18.0-openapi.5",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
