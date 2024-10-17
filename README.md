@@ -33,14 +33,7 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
     If you don't install Doc Detective globally, you'll be prompted to install the first time you run an `npx` command.
 
-## (Optional) Get sample files
-
-To test a few samples, clone the repo and navigate to the `samples` directory:
-
-```bash
-git clone https://github.com/doc-detective/doc-detective.git
-cd doc-detective/samples
-```
+    **Note:** If you're working in a cloned `doc-detective` repository, run `npm i` to install local dependencies or the `npx` command in the next step will fail.
 
 ## Run tests
 
@@ -69,6 +62,10 @@ You can override config options with command-line arguments. For example, to run
 ```bash
 npx doc-detective runTests --config .doc-detective.json --input tests.spec.json
 ```
+
+### Check out some samples
+
+You can find test and config samples in the [samples](https://github.com/doc-detective/doc-detective/tree/main/samples) directory.
 
 ## Check your test coverage
 
