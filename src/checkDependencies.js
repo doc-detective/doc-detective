@@ -6,12 +6,16 @@ const readline = require("readline");
 
 // Check if package.json exists, and if it's for doc-detective
 if (fs.existsSync(path.resolve(process.cwd(), "package.json"))) {
-  const json = JSON.parse(
-    fs.readFileSync(path.resolve(process.cwd(), "package.json"))
-  );
-  if (json.name === "doc-detective") {
-    // Check if dependencies are installed
-    checkDependencies();
+  try {
+    const json = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "package.json"))
+    );
+    if (json.name === "doc-detective") {
+      // Check if dependencies are installed
+      checkDependencies();
+    }
+  } catch (error) {
+    console.error(`Failed to parse package.json: ${error.message}`);
   }
 }
 
