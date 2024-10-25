@@ -87,21 +87,31 @@ async function checkDependencies() {
   It looks like you haven't installed the local dependencies yet. Would you like to install them now? (yes/no): `;
     const answer = prompt(ask);
     if (answer.toLowerCase() === "yes") {
-      console.log("Installing dependencies...");
+      console.log("Installing dependencies. This may take a few minutes.");
       const { spawn } = require("child_process");
       const install = spawn("npm", ["install"], { stdio: "inherit" });
       await new Promise((resolve, reject) => {
         install.on("close", (code) => {
           if (code !== 0) {
-            reject(new Error(`npm install process exited with code ${code}`));
+            reject(
+              new Error(
+                `Failed to install dependencies (exit code${code}).` +
+                  `Try running 'npm install' manually and check for errors.`
+              )
+            );
           } else {
             resolve();
           }
         });
+        install.on("error", (error) => {
+          reject(new Error(`Failed to start 'npm install': ${error.message}`));
+        });
       });
       console.log("Dependencies installed successfully.");
     } else {
-      console.log("Please install the dependencies manually using 'npm install'.");
+      console.log(
+        "Please install the dependencies manually using 'npm install'."
+      );
       process.exit(1);
     }
   }
