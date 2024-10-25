@@ -24,6 +24,9 @@ main(argv);
 
 // Run
 async function main(argv) {
+  // Check if dependencies are installed
+  await checkDependencies();
+
   // Find index of `doc-detective` or `run` in argv
   const index = argv.findIndex(
     (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")
@@ -76,4 +79,30 @@ async function main(argv) {
 
   // Output results
   await outputResults(config, output, results, { command });
+}
+
+async function checkDependencies() {
+  if (!fs.existsSync(path.resolve(process.cwd(), "node_modules"))) {
+    const ask = `
+  It looks like you haven't installed the local dependencies yet. Would you like to install them now? (yes/no): `;
+    const answer = prompt(ask);
+    if (answer.toLowerCase() === "yes") {
+      console.log("Installing dependencies...");
+      const { spawn } = require("child_process");
+      const install = spawn("npm", ["install"], { stdio: "inherit" });
+      await new Promise((resolve, reject) => {
+        install.on("close", (code) => {
+          if (code !== 0) {
+            reject(new Error(`npm install process exited with code ${code}`));
+          } else {
+            resolve();
+          }
+        });
+      });
+      console.log("Dependencies installed successfully.");
+    } else {
+      console.log("Please install the dependencies manually using 'npm install'.");
+      process.exit(1);
+    }
+  }
 }
