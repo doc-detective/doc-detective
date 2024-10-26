@@ -4,10 +4,17 @@ const readline = require("readline");
 const path = require("path");
 const packageJson = require(path.join(__dirname, "../package.json"));
 
-async function checkForUpdates(options = { autoInstall: false }) {
+async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) {
   try {
-    // Get the latest version from npm registry
-    const latestVersion = execSync(`npm show doc-detective version`, {
+    // Check if running from the global npm install path
+    const npmGlobalPath = execSync("npm root -g", { encoding: "utf8" }).trim();
+    if (!__dirname.startsWith(npmGlobalPath)) {
+      return false;
+    }
+    console.log("Checking for updates.");
+
+    // Get the latest version from npm registry based on the tag
+    const latestVersion = execSync(`npm show doc-detective@${options.tag} version`, {
       encoding: "utf8",
     }).trim();
     const currentVersion = packageJson.version;
@@ -32,7 +39,7 @@ async function checkForUpdates(options = { autoInstall: false }) {
     }
     return false;
   } catch (error) {
-    console.warn("Unable to check for updates:", error.message);
+    console.error("Error checking for updates:", error);
     return false;
   }
 }
@@ -51,10 +58,10 @@ function promptForUpdate() {
   });
 }
 
-async function performUpdate() {
-  console.log("Installing update...");
-  execSync("npm install -g doc-detective@latest", { stdio: "inherit" });
-  console.log("Update complete! Restarting with new version...\n");
+async function performUpdate(options = { tag: "latest" }) {
+  console.log("Installing update. This may take a few minutes.");
+  execSync(`npm install -g doc-detective@${tag}`, { stdio: "inherit" });
+  console.log("Update complete! Restarting with new version.\n");
 
   // Get the original command line arguments
   const args = process.argv.slice(2);
