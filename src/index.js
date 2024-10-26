@@ -25,8 +25,12 @@ main(argv);
 
 // Run
 async function main(argv) {
+  // Get doc-detective tag from command, if any
+  // For example, from `npx doc-detective@next runTests`, get `next`
+  const tag = argv[1]?.split("@")[1] || "latest";
+
   // Check for updates before running the main program
-  const updated = await checkForUpdates({ autoInstall: false });
+  const updated = await checkForUpdates({ autoInstall: false, tag });
   if (updated) {
     // If updated is true, the new version is already running in a new process
     return;
