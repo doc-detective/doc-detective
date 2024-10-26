@@ -9,7 +9,9 @@
   "scripts": {
     "mocha": "mocha",
     "test": "mocha test/*.test.js",
+    "prerunTests": "node ./src/checkDependencies.js",
     "runTests": "node ./src/index.js runTests",
+    "prerunCoverage": "node ./src/checkDependencies.js",
     "runCoverage": "node ./src/index.js runCoverage",
     "dev": "node ./dev"
   },
