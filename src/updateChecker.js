@@ -46,19 +46,17 @@ async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) 
   }
 }
 
-function promptForUpdate() {
-  return inquirer.prompt([
+async function promptForUpdate() {
+  const answers = await inquirer.prompt([
     {
       type: 'confirm',
       name: 'update',
       message: 'Would you like to update now?',
       default: false,
     },
-  ]).then((answers) => {
-    return answers.update ? 'yes' : 'no';
-  });
+  ]);
+  return answers.update ? 'yes' : 'no';
 }
-
 async function performUpdate(options = { tag: "latest" }) {
   console.log("Installing update. This may take a few minutes.");
   execSync(`npm install -g doc-detective@${tag}`, { stdio: "inherit" });
