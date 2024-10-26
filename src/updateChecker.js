@@ -25,7 +25,9 @@ async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) 
       console.log(`Current version: ${currentVersion}`);
       console.log(`Latest version: ${latestVersion}\n`);
 
-      if (options.autoInstall) {
+      const currentMajor = semver.major(currentVersion);
+      const latestMajor = semver.major(latestVersion);
+      if (options.autoInstall && currentMajor === latestMajor) {
         await performUpdate();
         return true;
       }
