@@ -1,7 +1,7 @@
 const { execSync, spawn } = require("child_process");
 const semver = require("semver");
-const readline = require("readline");
 const path = require("path");
+const inquirer = require('inquirer');
 const packageJson = require(path.join(__dirname, "../package.json"));
 
 async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) {
@@ -34,7 +34,7 @@ async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) 
 
       // If not auto-installing, prompt the user
       const answer = await promptForUpdate();
-      if (answer.toLowerCase() === "y") {
+      if (answer.toLowerCase() === "yes") {
         await performUpdate();
         return true;
       }
@@ -47,16 +47,15 @@ async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) 
 }
 
 function promptForUpdate() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question("Would you like to update now? (y/N) ", (answer) => {
-      rl.close();
-      resolve(answer);
-    });
+  return inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'update',
+      message: 'Would you like to update now?',
+      default: false,
+    },
+  ]).then((answers) => {
+    return answers.update ? 'yes' : 'no';
   });
 }
 
