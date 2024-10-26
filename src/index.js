@@ -6,6 +6,7 @@ const { argv } = require("node:process");
 const path = require("path");
 const fs = require("fs");
 const prompt = require("prompt-sync")();
+const { checkForUpdates } = require('./updateChecker');
 
 function complete(commands) {
   return function (str) {
@@ -24,6 +25,13 @@ main(argv);
 
 // Run
 async function main(argv) {
+  // Check for updates before running the main program
+  const updated = await checkForUpdates({ autoInstall: false });
+  if (updated) {
+    // If updated is true, the new version is already running in a new process
+    return;
+  }
+
   // Find index of `doc-detective` or `run` in argv
   const index = argv.findIndex(
     (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")

@@ -37,6 +37,7 @@
     "doc-detective-common": "^1.21.0",
     "doc-detective-core": "^2.18.0",
     "prompt-sync": "^4.2.0",
+    "semver": "^7.6.3",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
