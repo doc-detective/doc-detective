@@ -4,6 +4,14 @@ const path = require("path");
 const inquirer = require('inquirer');
 const packageJson = require(path.join(__dirname, "../package.json"));
 
+/**
+ * Checks for updates to the "doc-detective" package and optionally installs them.
+ *
+ * @param {Object} [options] - Options for the update check.
+ * @param {boolean} [options.autoInstall=false] - Whether to automatically install the update if available.
+ * @param {string} [options.tag="latest"] - The npm tag to check for the latest version.
+ * @returns {Promise<boolean>} - Returns a promise that resolves to true if an update was installed, otherwise false.
+ */
 async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) {
   try {
     // Check if running from the global npm install path
