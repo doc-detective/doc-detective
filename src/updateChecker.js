@@ -1,8 +1,10 @@
 const { execSync, spawn } = require("child_process");
 const semver = require("semver");
 const path = require("path");
-const inquirer = require('inquirer');
 const packageJson = require(path.join(__dirname, "../package.json"));
+const { confirm } = require('@inquirer/prompts');
+
+checkForUpdates({ autoInstall: false, tag: "latest" });
 
 /**
  * Checks for updates to the "doc-detective" package and optionally installs them.
@@ -12,19 +14,22 @@ const packageJson = require(path.join(__dirname, "../package.json"));
  * @param {string} [options.tag="latest"] - The npm tag to check for the latest version.
  * @returns {Promise<boolean>} - Returns a promise that resolves to true if an update was installed, otherwise false.
  */
-async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) {
+async function checkForUpdates(
+  options = { autoInstall: false, tag: "latest" }
+) {
   try {
     // Check if running from the global npm install path
     const npmGlobalPath = execSync("npm root -g", { encoding: "utf8" }).trim();
     if (!__dirname.startsWith(npmGlobalPath)) {
-      return false;
+      //   return false;
     }
     console.log("Checking for updates.");
 
     // Get the latest version from npm registry based on the tag
-    const latestVersion = execSync(`npm show doc-detective@${options.tag} version`, {
-      encoding: "utf8",
-    }).trim();
+    // const latestVersion = execSync(`npm show doc-detective@${options.tag} version`, {
+    //   encoding: "utf8",
+    // }).trim();
+    const latestVersion = "2.100.0";
     const currentVersion = packageJson.version;
 
     // Compare versions
@@ -42,11 +47,14 @@ async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) 
 
       // If not auto-installing, prompt the user
       const answer = await promptForUpdate();
-      if (answer.toLowerCase() === "yes") {
+      if (answer) {
         await performUpdate();
         return true;
       }
+    } else {
+      console.log("Up to date.");
     }
+    process.exit();
     return false;
   } catch (error) {
     console.error("Error checking for updates:", error);
@@ -55,15 +63,14 @@ async function checkForUpdates(options = { autoInstall: false, tag: "latest" }) 
 }
 
 async function promptForUpdate() {
-  const answers = await inquirer.prompt([
+      const answer = await confirm(
     {
-      type: 'confirm',
-      name: 'update',
-      message: 'Would you like to update now?',
+      name: "update",
+      message: "Would you like to update now?",
       default: false,
-    },
-  ]);
-  return answers.update ? 'yes' : 'no';
+    }
+  );
+  return answer;
 }
 async function performUpdate(options = { tag: "latest" }) {
   console.log("Installing update. This may take a few minutes.");
