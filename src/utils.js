@@ -78,9 +78,7 @@ async function setConfig(config, args) {
     } else {
       // Output validation errors
       console.error("Invalid config file:");
-      validation.errors.forEach((error) => {
-        console.error(error);
-      });
+      console.error(validation.errors);
       process.exit(1);
     }
   }
