@@ -6,6 +6,7 @@ const { argv } = require("node:process");
 const path = require("path");
 const fs = require("fs");
 const prompt = require("prompt-sync")();
+const { checkForUpdates } = require('./updateChecker');
 
 function complete(commands) {
   return function (str) {
@@ -76,4 +77,10 @@ async function main(argv) {
 
   // Output results
   await outputResults(config, output, results, { command });
+
+  // Check for updates
+  // Get doc-detective tag from command, if any
+  // For example, from `npx doc-detective@next runTests`, get `next`
+  const tag = argv[1]?.split("@")[1] || "latest";
+  await checkForUpdates({ autoInstall: false, tag });
 }
