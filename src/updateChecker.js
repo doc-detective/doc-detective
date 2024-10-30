@@ -2,9 +2,7 @@ const { execSync, spawn } = require("child_process");
 const semver = require("semver");
 const path = require("path");
 const packageJson = require(path.join(__dirname, "../package.json"));
-const { confirm } = require('@inquirer/prompts');
-
-checkForUpdates({ autoInstall: false, tag: "latest" });
+const { confirm } = require("@inquirer/prompts");
 
 /**
  * Checks for updates to the "doc-detective" package and optionally installs them.
@@ -19,42 +17,58 @@ async function checkForUpdates(
 ) {
   try {
     // Check if running from the global npm install path
-    const npmGlobalPath = execSync("npm root -g", { encoding: "utf8" }).trim();
-    if (!__dirname.startsWith(npmGlobalPath)) {
-      //   return false;
+    let updateMessage;
+    if (
+      __dirname.includes("node_modules/doc-detective/") ||
+      __dirname.includes("node_modules\\doc-detective\\")
+    ) {
+      updateMessage =
+        `# Run 'npm i -g doc-detective@${options.tag}' to update your install.            #`;
+    } else if (__dirname.includes("_npx")) {
+      updateMessage =
+        `# Run 'npx doc-detective@${options.tag} <command>' to always stay up-to-date.    #`;
+    } else {
+      return false;
     }
-    console.log("Checking for updates.");
 
     // Get the latest version from npm registry based on the tag
-    // const latestVersion = execSync(`npm show doc-detective@${options.tag} version`, {
-    //   encoding: "utf8",
-    // }).trim();
-    const latestVersion = "2.100.0";
+    const latestVersion = execSync(
+      `npm show doc-detective@${options.tag} version`,
+      {
+        encoding: "utf8",
+      }
+    ).trim();
     const currentVersion = packageJson.version;
 
     // Compare versions
     if (semver.gt(latestVersion, currentVersion)) {
-      console.log(`\nA new version of doc-detective is available!`);
-      console.log(`Current version: ${currentVersion}`);
-      console.log(`Latest version: ${latestVersion}\n`);
+      console.log(`
+##########################################################################
+# A new version of doc-detective is available!                           #
+# - Installed version: ${currentVersion}                                            #
+# - Latest version: ${latestVersion}                                               #
+#                                                                        #
+${updateMessage}
+##########################################################################`);
+      return true;
 
+      // TODO: Implement auto-install
       const currentMajor = semver.major(currentVersion);
       const latestMajor = semver.major(latestVersion);
       if (options.autoInstall && currentMajor === latestMajor) {
-        await performUpdate();
+        await performUpdate({ tag: options.tag });
         return true;
       }
 
       // If not auto-installing, prompt the user
       const answer = await promptForUpdate();
       if (answer) {
-        await performUpdate();
+        await performUpdate({ tag: options.tag });
         return true;
       }
     } else {
       console.log("Up to date.");
     }
-    process.exit();
     return false;
   } catch (error) {
     console.error("Error checking for updates:", error);
@@ -63,33 +77,36 @@ async function checkForUpdates(
 }
 
 async function promptForUpdate() {
-      const answer = await confirm(
-    {
-      name: "update",
-      message: "Would you like to update now?",
-      default: false,
-    }
-  );
+  const answer = await confirm({
+    name: "update",
+    message: "Would you like to update now?",
+    default: false,
+  });
   return answer;
 }
 async function performUpdate(options = { tag: "latest" }) {
   console.log("Installing update. This may take a few minutes.");
-  execSync(`npm install -g doc-detective@${tag}`, { stdio: "inherit" });
-  console.log("Update complete! Restarting with new version.\n");
+  const updateScript = `
+      setTimeout(() => {
+        const { spawn } = require('child_process');
+        spawn('npm', ['install', '-g', 'doc-detective@${
+          options.tag || "latest"
+        }'], {
+          stdio: 'inherit',
+          shell: true,
+        });
+      }, 1000);
+    `;
 
-  // Get the original command line arguments
-  const args = process.argv.slice(2);
-
-  // Spawn a new process with the updated version
-  const child = spawn("npx", ["doc-detective", ...args], {
-    stdio: "inherit",
+  // Spawn a detached Node.js process to run the update script
+  const updater = spawn(process.argv[0], ["-e", updateScript], {
     detached: true,
+    stdio: "inherit",
   });
+  updater.unref();
 
-  // Exit the current process once the new one is spawned
-  child.on("spawn", () => {
-    process.exit(0);
-  });
+  // Exit the main process
+  process.exit(0);
 }
 
 module.exports = { checkForUpdates };
