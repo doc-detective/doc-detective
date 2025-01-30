@@ -65,6 +65,7 @@
           "regex": ["!\\[.+?\\]\\((.+?)\\)"],
           "actions": [
             {
+              "id": "reference",
               "action": "saveScreenshot",
               "maxVariation": 5,
               "overwrite": "byVariation"
