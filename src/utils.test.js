@@ -1,4 +1,4 @@
-const { setArgs, setConfig, outputResults } = require("../src/utils");
+const { setArgs, setConfig, outputResults } = require("./utils");
 const path = require("path");
 const fs = require("fs");
 
@@ -179,9 +179,9 @@ describe("Util tests", function () {
   // Test that results output correctly.
   it("Results output correctly", async () => {
     // Output test-results.json, make sure it exists, and clean it up.
-    const inputResultsPath = path.resolve("./test/test-results.json");
+    const inputResultsPath = path.resolve(__dirname, "../test/test-results.json");
     const inputResultsJSON = require(inputResultsPath);
-    const outputResultsPath = path.resolve("./test/output-test-results.json");
+    const outputResultsPath = path.resolve(__dirname, "../test/output-test-results.json");
     // Check that input file exists
     expect(fs.existsSync(inputResultsPath)).to.equal(true);
     // Output results

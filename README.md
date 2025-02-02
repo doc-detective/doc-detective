@@ -75,6 +75,20 @@ You can check the test coverage of your documentation source files with the `run
 npx doc-detective runCoverage --config .doc-detective.json --input doc-content.md
 ```
 
+## Version Checking and Updating
+
+Doc Detective can now automatically check for updates and re-execute the command after updating without requiring the user to run it again. This feature ensures that you are always using the latest version of Doc Detective.
+
+To use this feature, simply run your Doc Detective commands as usual. If a new version is available, you will be prompted to update. If you choose to update, the new version will be installed and the command will automatically re-run with the new version, preserving all original command line arguments and maintaining the stdio streams.
+
+For example, to run your tests and check for updates, use the following command:
+
+```bash
+npx doc-detective runTests
+```
+
+If an update is available, you will be prompted to update. After confirming, the update will be installed and the command will automatically re-run with the new version.
+
 ## Concepts
 
 - [**Test specification**](https://doc-detective.com/docs/references/schemas/specification.html): A group of tests to run in one or more contexts. Conceptually parallel to a document.
