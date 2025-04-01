@@ -1,6 +1,6 @@
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
-const { validate, resolvePaths } = require("doc-detective-common");
+const { validate, resolvePaths, readFile } = require("doc-detective-common");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
@@ -18,7 +18,7 @@ function setArgs(args) {
   let argv = yargs(hideBin(args))
     .option("config", {
       alias: "c",
-      description: "Path to a `config.json` file.",
+      description: "Path to a `config.json` or `config.yaml` file.",
       type: "string",
     })
     .option("input", {
@@ -69,9 +69,16 @@ async function setConfig(config, args) {
   // Load config from file
   if (args.config) {
     const configPath = path.resolve(args.config);
-    configContent = require(configPath);
+    configContent = await readFile({ fileURLOrPath: configPath });
+    if (!configContent || typeof configContent !== "object") {
+      console.error(`Error reading config file: ${configPath}`);
+      process.exit(1);
+    }
     // Validate config
-    const validation = validate("config_v2", configContent);
+    const validation = validate({
+      schemaKey: "config_v3",
+      object: configContent,
+    });
     if (validation.valid) {
       config = configContent;
       config = await resolvePaths(config, config, configPath);
@@ -116,7 +123,10 @@ async function setConfig(config, args) {
   if (args.cleanup) config.runTests.cleanup = args.cleanup;
 
   // Validate config
-  const validation = validate("config_v2", config);
+  const validation = validate({
+    schemaKey: "config_v3",
+    object: config,
+  });
   if (!validation.valid) {
     // Output validation errors
     console.error("Invalid config.");
