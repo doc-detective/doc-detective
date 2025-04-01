@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { runTests, runCoverage } = require("doc-detective-core");
+const { readFile } = require("doc-detective-common");
 const { setArgs, setConfig, outputResults, setMeta } = require("./utils");
 const { argv } = require("node:process");
 const path = require("path");
@@ -32,11 +33,21 @@ async function main(argv) {
   let command = argv[index + 1];
   // Set args
   argv = setArgs(argv);
-  // Get .doc-detective.json config, if it exists
-  const configPath = path.resolve(process.cwd(), ".doc-detective.json");
+  // Get .doc-detective JSON or YAML config, if it exists
+  const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
+  const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
+  const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
+  const configPath = fs.existsSync(configPathJSON)
+    ? configPathJSON
+    : fs.existsSync(configPathYAML)
+    ? configPathYAML
+    : fs.existsSync(configPathYML)
+    ? configPathYML
+    : null;
+  // If config file exists, read it
   let config = {};
-  if (fs.existsSync(configPath)) {
-    config = require(configPath);
+  if (configPath) {
+    config = await readFile({ fileURLOrPath: configPath });
   }
   // Set config
   config = await setConfig(config, argv);
