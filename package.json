@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "2.19.0",
+  "version": "3.0.0-dev.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "src/index.js"
@@ -27,20 +27,20 @@
     "docs"
   ],
   "author": "Manny Silva",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "bugs": {
     "url": "https://github.com/doc-detective/doc-detective/issues"
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "doc-detective-common": "^1.22.0",
-    "doc-detective-core": "^2.19.0",
+    "doc-detective-common": "^3.0.0-dev.1",
+    "doc-detective-core": "^3.0.0-dev.1",
     "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "chai": "^5.1.2",
+    "chai": "^5.2.0",
     "mocha": "^11.1.0"
   }
 }
