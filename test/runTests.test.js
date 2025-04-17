@@ -10,7 +10,7 @@ describe("Run tests sucessfully", function () {
   this.timeout(0);
   it("All specs pass", async () => {
     await spawnCommand(
-      `node ./src/index.js runTests -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
+      `node ./src/index.js -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
     );
     // Wait until the file is written
     while (!fs.existsSync(outputFile)) {}

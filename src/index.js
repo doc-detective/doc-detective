@@ -6,18 +6,6 @@ const { setArgs, setConfig, outputResults, setMeta } = require("./utils");
 const { argv } = require("node:process");
 const path = require("path");
 const fs = require("fs");
-const prompt = require("prompt-sync")();
-
-function complete(commands) {
-  return function (str) {
-    var i;
-    var ret = [];
-    for (i = 0; i < commands.length; i++) {
-      if (commands[i].indexOf(str) == 0) ret.push(commands[i]);
-    }
-    return ret;
-  };
-}
 
 // Run
 setMeta();
@@ -29,15 +17,15 @@ async function main(argv) {
   const index = argv.findIndex(
     (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")
   );
-  // `command` is the next argument after `doc-detective` or `src/index.js`
-  let command = argv[index + 1];
   // Set args
   argv = setArgs(argv);
   // Get .doc-detective JSON or YAML config, if it exists
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
   const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-  const configPath = fs.existsSync(configPathJSON)
+  const configPath = fs.existsSync(argv.config)
+    ? argv.config
+    : fs.existsSync(configPathJSON)
     ? configPathJSON
     : fs.existsSync(configPathYAML)
     ? configPathYAML
@@ -50,41 +38,12 @@ async function main(argv) {
     config = await readFile({ fileURLOrPath: configPath });
   }
   // Set config
-  config = await setConfig(config, argv);
-  command = command || config.defaultCommand;
-  // If no command, prompt user to select a command
-  if (command !== "runTests" && command !== "runCoverage") {
-    const ask = `
-  Welcome to Doc Detective. Choose a command:
-  - 'runTests' - Run tests defined in specifications and documentation source files.
-  - 'runCoverage' - Calculate test coverage of doc content.
-  
-  You can skip this next time by running 'npx doc-detective <command>'. You can also set 'defaultCommand' in your .doc-detective.json config file.
-  
-  For more info, visit https://doc-detective.com.
-  
-  Command: `;
-    command = prompt({
-      ask,
-      value: "runTests",
-      autocomplete: complete(["runTests", "runCoverage"]),
-    });
-  }
+  config = await setConfig(config, argv, configPath || ".");
 
-  // Run command
-  let results = {};
-  let output;
-  if (command === "runCoverage") {
-    output = config?.runCoverage?.output || config.output;
-    results = await runCoverage(config);
-  } else if (command === "runTests") {
-    output = config?.runTests?.output || config.output;
-    results = await runTests(config);
-  } else {
-    console.error(`Sorry, that's not a recognized command. Please try again.`);
-    process.exit(1);
-  }
+  // Run tests
+  const output = config.outputDirectory;
+  const results = await runTests(config);
 
   // Output results
-  await outputResults(config, output, results, { command });
+  await outputResults(config, output, results, { command: "runTests" });
 }
