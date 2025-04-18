@@ -5,7 +5,7 @@
       "steps": [
         {
           "action": "setVariables",
-          "path": ".env"
+          "path": "env"
         },
         {
           "action": "runShell",

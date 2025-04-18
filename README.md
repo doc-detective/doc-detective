@@ -23,36 +23,36 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 1. Install prerequisites:
 
-   - [Node.js](https://nodejs.org/) (tested on v18 and v20)
+   - [Node.js](https://nodejs.org/) (tested on v20 and v22)
 
 1. In a terminal, install Doc Detective globally:
 
-    ```bash
-    npm i -g doc-detective
-    ```
+   ```bash
+   npm i -g doc-detective
+   ```
 
-    If you don't install Doc Detective globally, you'll be prompted to install the first time you run an `npx` command.
+   If you don't install Doc Detective globally, you'll be prompted to install the first time you run an `npx` command.
 
-    **Note:** If you're working in a cloned `doc-detective` repository, run `npm i` to install local dependencies or the `npx` command in the next step will fail.
+   **Note:** If you're working in a cloned `doc-detective` repository, run `npm i` to install local dependencies or the `npx` command in the next step will fail.
 
 ## Run tests
 
-To run your tests, use the `runTests` command:
+To run your tests, use the following command:
 
 ```bash
-npx doc-detective runTests
+npx doc-detective
 ```
 
 By default, Doc Detective scans the current directory for valid tests, but you can specify your test file with the `--input` argument. For example, to run tests in a file named `doc-content-inline-tests.md`, run the following command:
 
 ```bash
-npx doc-detective runTests --input doc-content-inline-tests.md
+npx doc-detective --input doc-content-inline-tests.md
 ```
 
 To customize your test, file type, and directory options, create a `.doc-detective.json` [config](https://doc-detective.com/docs/references/schemas/config.html) file. If a `.doc-detective.json` file exists in the directory when you run the comment, Doc Detective loads the config. Otherwise, you can specify a config path with the `--config` argument.
 
 ```bash
-npx doc-detective runTests --config .doc-detective.json
+npx doc-detective --config .doc-detective.json
 ```
 
 **Note**: All paths are relative to the current working directory, regardless where the config file is located.
@@ -60,20 +60,12 @@ npx doc-detective runTests --config .doc-detective.json
 You can override config options with command-line arguments. For example, to run tests in a file named `tests.spec.json`, even if that isn't included in your config, run the following command:
 
 ```bash
-npx doc-detective runTests --config .doc-detective.json --input tests.spec.json
+npx doc-detective --config .doc-detective.json --input tests.spec.json
 ```
 
 ### Check out some samples
 
 You can find test and config samples in the [samples](https://github.com/doc-detective/doc-detective/tree/main/samples) directory.
-
-## Check your test coverage
-
-You can check the test coverage of your documentation source files with the `runCoverage` command, specifying the source file or directory of source files with the `--input` argument. Doc Detective identifies potential areas of test coverage with file-format-specific regex, and supports CommonMark syntax natively. If you want to test coverage of a file with different syntax, update the `fileTypes` object of your [config](https://doc-detective.com/docs/references/schemas/config.html) file accordingly.
-
-```bash
-npx doc-detective runCoverage --config .doc-detective.json --input doc-content.md
-```
 
 ## Concepts
 
@@ -92,14 +84,6 @@ npx doc-detective runCoverage --config .doc-detective.json --input doc-content.m
   - [**typeKeys**](https://doc-detective.com/docs/references/schemas/typeKeys.html): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
   - [**wait**](https://doc-detective.com/docs/references/schemas/wait.html): Pause before performing the next action.
 - [**Context**](https://doc-detective.com/docs/references/schemas/context.html): An application and platforms that support the tests.
-
-## Roadmap
-
-Future updates may include support for the following items:
-
-- Apps: iOS Safari, Android Chrome, native Windows, native macOS, native Linux
-- Platforms: iOS, Android
-- Commands: `suggestTests` stable release
 
 ## Develop
 

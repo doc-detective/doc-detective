@@ -60,35 +60,6 @@ describe("Util tests", function () {
           c: "config.json",
         },
       },
-      {
-        args: [
-          "node",
-          "runTests.js",
-          "--input",
-          "input.spec.json",
-          "--output",
-          ".",
-          "--logLevel",
-          "debug",
-          "--config",
-          "config.json",
-          "--recursive",
-          "false",
-          "--setup",
-          "setup.spec.json",
-          "--cleanup",
-          "cleanup.spec.json",
-        ],
-        expected: {
-          i: "input.spec.json",
-          o: ".",
-          l: "debug",
-          c: "config.json",
-          r: "false",
-          setup: "setup.spec.json",
-          cleanup: "cleanup.spec.json",
-        },
-      },
     ];
     argSets.forEach((argSet) => {
       expect(setArgs(argSet.args)).to.deep.include(argSet.expected);
@@ -124,13 +95,10 @@ describe("Util tests", function () {
           "input.spec.json",
           "--logLevel",
           "debug",
-          "--setup",
-          "setup.spec.json",
         ],
         expected: {
           input: "input.spec.json",
           logLevel: "debug",
-          runTests: { setup: "setup.spec.json" },
         },
       },
       {
@@ -141,10 +109,6 @@ describe("Util tests", function () {
           output: ".",
           logLevel: "silent",
           recursive: true,
-          runTests: {
-            setup: ".",
-            cleanup: ".",
-          },
         },
       },
       {
@@ -162,10 +126,6 @@ describe("Util tests", function () {
           output: ".",
           logLevel: "silent",
           recursive: true,
-          runTests: {
-            setup: ".",
-            cleanup: ".",
-          },
         },
       },
     ];
