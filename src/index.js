@@ -41,7 +41,7 @@ async function main(argv) {
   config = await setConfig(config, argv, configPath || ".");
 
   // Run tests
-  const output = config.outputDirectory;
+  const output = config.output;
   const results = await runTests(config);
 
   // Output results
