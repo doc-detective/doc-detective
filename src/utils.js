@@ -33,22 +33,6 @@ function setArgs(args) {
         "Path of the directory in which to store the output of Doc Detective commands.",
       type: "string",
     })
-    .option("setup", {
-      description:
-        "Path to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
-      type: "string",
-    })
-    .option("cleanup", {
-      description:
-        "Path to test specifications to perform after those specified by input. Useful for cleaning up testing environments.",
-      type: "string",
-    })
-    .option("recursive", {
-      alias: "r",
-      description:
-        "Boolean.  If true searches input, setup, and cleanup paths recursively for test specificaions and source files. Defaults to `true`.",
-      type: "string",
-    })
     .option("logLevel", {
       alias: "l",
       description:
@@ -61,67 +45,8 @@ function setArgs(args) {
   return argv;
 }
 
-// Override config values based on args
-async function setConfig(config, args) {
-  // If no args, return config
-  if (!args) return config;
-
-  // Load config from file
-  if (args.config) {
-    const configPath = path.resolve(args.config);
-    configContent = await readFile({ fileURLOrPath: configPath });
-    if (!configContent || typeof configContent !== "object") {
-      console.error(`Error reading config file: ${configPath}`);
-      process.exit(1);
-    }
-    // Validate config
-    const validation = validate({
-      schemaKey: "config_v3",
-      object: configContent,
-    });
-    if (validation.valid) {
-      config = configContent;
-      config = await resolvePaths(config, config, configPath);
-    } else {
-      // Output validation errors
-      console.error("Invalid config file:");
-      validation.errors.forEach((error) => {
-        console.error(error);
-      });
-      process.exit(1);
-    }
-  }
-
-  // Override config values
-  if (
-    (args.setup || args.cleanup || args.input || args.output) &&
-    !config.runTests
-  )
-    config.runTests = {};
-  if (
-    (args.setup || args.cleanup || args.input || args.output) &&
-    !config.runCoverage
-  )
-    config.runCoverage = {};
-  if (args.input) {
-    config.input = args.input;
-    config.runCoverage.input = args.input;
-    config.runTests.input = args.input;
-  }
-  if (args.output) {
-    config.output = args.output;
-    config.runCoverage.output = args.output;
-    config.runTests.output = args.output;
-  }
-  if (args.recursive) {
-    config.recursive = args.recursive;
-    config.runCoverage.recursive = args.recursive;
-    config.runTests.recursive = args.recursive;
-  }
-  if (args.logLevel) config.logLevel = args.logLevel;
-  if (args.setup) config.runTests.setup = args.setup;
-  if (args.cleanup) config.runTests.cleanup = args.cleanup;
-
+// Override config values based on args and validate the config
+async function setConfig(config, args, configPath) {
   // Validate config
   const validation = validate({
     schemaKey: "config_v3",
@@ -135,6 +60,37 @@ async function setConfig(config, args) {
     });
     process.exit(1);
   }
+  // Accept coerced and defaulted values
+  config = validation.object;
+  // Set default values
+  config = {
+    ...config,
+    input: config.input || ".",
+    output: config.output || ".",
+    recursive: config.recursive || true,
+    relativePathBase: config.relativePathBase || "file",
+    loadVariables: config.loadVariables || ".env",
+    detectSteps: config.detectSteps || true,
+    logLevel: config.logLevel || "info",
+    fileTypes: config.fileTypes || ["markdown","asciidoc", "html"],
+    telemetry: config.telemetry || { send: true },
+  }
+  // Override config values
+  if (args.input) {
+    config.input = args.input;
+  }
+  if (args.output) {
+    config.output = args.output;
+  }
+  if (args.logLevel) config.logLevel = args.logLevel;
+  // Resolve paths
+  config = await resolvePaths({
+    config: config,
+    object: config,
+    filePath: configPath,
+    nested: false,
+    objectType: "config",
+  });
 
   return config;
 }
