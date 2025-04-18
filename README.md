@@ -27,13 +27,13 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 1. In a terminal, install Doc Detective globally:
 
-    ```bash
-    npm i -g doc-detective
-    ```
+   ```bash
+   npm i -g doc-detective
+   ```
 
-    If you don't install Doc Detective globally, you'll be prompted to install the first time you run an `npx` command.
+   If you don't install Doc Detective globally, you'll be prompted to install the first time you run an `npx` command.
 
-    **Note:** If you're working in a cloned `doc-detective` repository, run `npm i` to install local dependencies or the `npx` command in the next step will fail.
+   **Note:** If you're working in a cloned `doc-detective` repository, run `npm i` to install local dependencies or the `npx` command in the next step will fail.
 
 ## Run tests
 
