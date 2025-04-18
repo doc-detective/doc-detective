@@ -47,15 +47,6 @@ function setArgs(args) {
 
 // Override config values based on args and validate the config
 async function setConfig(config, args, configPath) {
-  // Override config values
-  if (args.input) {
-    config.input = args.input;
-  }
-  if (args.output) {
-    config.output = args.output;
-  }
-  if (args.logLevel) config.logLevel = args.logLevel;
-
   // Validate config
   const validation = validate({
     schemaKey: "config_v3",
@@ -75,15 +66,23 @@ async function setConfig(config, args, configPath) {
   config = {
     ...config,
     input: config.input || ".",
-    outputDirectory: config.outputDirectory || ".",
+    output: config.output || ".",
     recursive: config.recursive || true,
     relativePathBase: config.relativePathBase || "file",
     loadVariables: config.loadVariables || ".env",
     detectSteps: config.detectSteps || true,
     logLevel: config.logLevel || "info",
-    fileTypes: config.fileTypes || ["markdown", "asciidoc", "html", "xml"],
+    fileTypes: config.fileTypes || ["markdown","asciidoc", "html"],
     telemetry: config.telemetry || { send: true },
   }
+  // Override config values
+  if (args.input) {
+    config.input = args.input;
+  }
+  if (args.output) {
+    config.output = args.output;
+  }
+  if (args.logLevel) config.logLevel = args.logLevel;
   // Resolve paths
   config = await resolvePaths({
     config: config,
