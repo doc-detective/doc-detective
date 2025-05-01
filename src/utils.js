@@ -77,12 +77,14 @@ async function setConfig(config, args, configPath) {
   }
   // Override config values
   if (args.input) {
-    config.input = args.input;
+    config.input = path.resolve(args.input);
   }
   if (args.output) {
-    config.output = args.output;
+    config.output = path.resolve(args.output);
   }
-  if (args.logLevel) config.logLevel = args.logLevel;
+  if (args.logLevel) {
+    config.logLevel = args.logLevel;
+  }
   // Resolve paths
   config = await resolvePaths({
     config: config,
