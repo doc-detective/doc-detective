@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic HTML Elements Demo</title>
+</head>
+<body>
+    <header>
+        <h1>Common HTML Elements</h1>
+        <p>This page demonstrates common HTML elements a user might interact with.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#text-inputs">Text Inputs</a></li>
+            <li><a href="#selection-elements">Selection Elements</a></li>
+            <li><a href="#buttons">Buttons</a></li>
+            <li><a href="#text-elements">Text Elements</a></li>
+            <li><a href="#lists">Lists</a></li>
+            <li><a href="#tables">Tables</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="text-inputs">
+            <h2>Text Inputs</h2>
+            <form>
+                <div>
+                    <label for="text-input">Text Input:</label>
+                    <input type="text" id="text-input" name="text-input" placeholder="Enter some text">
+                </div>
+                
+                <div>
+                    <label for="password-input">Password Input:</label>
+                    <input type="password" id="password-input" name="password-input" placeholder="Enter password">
+                </div>
+                
+                <div>
+                    <label for="email-input">Email Input:</label>
+                    <input type="email" id="email-input" name="email-input" placeholder="Enter your email">
+                </div>
+                
+                <div>
+                    <label for="textarea">Textarea:</label>
+                    <textarea id="textarea" name="textarea" rows="4" cols="50" placeholder="Enter longer text here..."></textarea>
+                </div>
+            </form>
+        </section>
+
+        <section id="selection-elements">
+            <h2>Selection Elements</h2>
+            <form>
+                <div>
+                    <p>Checkboxes:</p>
+                    <input type="checkbox" id="checkbox1" name="checkbox1" value="option1">
+                    <label for="checkbox1">Option 1</label><br>
+                    <input type="checkbox" id="checkbox2" name="checkbox2" value="option2">
+                    <label for="checkbox2">Option 2</label><br>
+                    <input type="checkbox" id="checkbox3" name="checkbox3" value="option3">
+                    <label for="checkbox3">Option 3</label>
+                </div>
+                
+                <div>
+                    <p>Radio Buttons:</p>
+                    <input type="radio" id="radio1" name="radio-group" value="option1">
+                    <label for="radio1">Option 1</label><br>
+                    <input type="radio" id="radio2" name="radio-group" value="option2">
+                    <label for="radio2">Option 2</label><br>
+                    <input type="radio" id="radio3" name="radio-group" value="option3">
+                    <label for="radio3">Option 3</label>
+                </div>
+                
+                <div>
+                    <label for="select">Dropdown Select:</label>
+                    <select id="select" name="select">
+                        <option value="">-- Please choose an option --</option>
+                        <option value="option1">Option 1</option>
+                        <option value="option2">Option 2</option>
+                        <option value="option3">Option 3</option>
+                    </select>
+                </div>
+            </form>
+        </section>
+
+        <section id="buttons">
+            <h2>Buttons</h2>
+            <button type="button">Standard Button</button>
+            <input type="button" value="Input Button">
+            <input type="submit" value="Submit Button">
+            <input type="reset" value="Reset Button">
+        </section>
+
+        <section id="text-elements">
+            <h2>Text Elements</h2>
+            <h3>This is a heading 3</h3>
+            <h4>This is a heading 4</h4>
+            <p>This is a paragraph of text. It demonstrates the paragraph element in HTML.</p>
+            <p><strong>Bold text</strong> and <em>italic text</em> are created using the strong and em elements.</p>
+            <p>This is a <a href="https://example.com">hyperlink</a> to example.com.</p>
+            <blockquote>
+                This is a blockquote. It's typically used for quoting content from another source.
+            </blockquote>
+            <pre>This is preformatted text.
+It preserves both      spaces
+and line breaks.</pre>
+            <code>This is inline code.</code>
+        </section>
+
+        <section id="lists">
+            <h2>Lists</h2>
+            <h3>Unordered List</h3>
+            <ul>
+                <li>Item 1</li>
+                <li>Item 2</li>
+                <li>Item 3</li>
+            </ul>
+            
+            <h3>Ordered List</h3>
+            <ol>
+                <li>First item</li>
+                <li>Second item</li>
+                <li>Third item</li>
+            </ol>
+            
+            <h3>Definition List</h3>
+            <dl>
+                <dt>Term 1</dt>
+                <dd>Definition for Term 1</dd>
+                <dt>Term 2</dt>
+                <dd>Definition for Term 2</dd>
+            </dl>
+        </section>
+
+        <section id="tables">
+            <h2>Tables</h2>
+            <table border="1">
+                <caption>Simple Data Table</caption>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Country</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>John Doe</td>
+                        <td>25</td>
+                        <td>USA</td>
+                    </tr>
+                    <tr>
+                        <td>Jane Smith</td>
+                        <td>30</td>
+                        <td>Canada</td>
+                    </tr>
+                    <tr>
+                        <td>Bob Johnson</td>
+                        <td>45</td>
+                        <td>UK</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Basic HTML Elements Demo</p>
+        <address>
+            Contact: <a href="mailto:example@example.com">example@example.com</a>
+        </address>
+    </footer>
+</body>
+</html>
