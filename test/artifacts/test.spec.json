@@ -21,20 +21,6 @@
           "url": "https://www.duckduckgo.com"
         },
         {
-          "action": "httpRequest",
-          "url": "https://reqres.in/api/users",
-          "method": "post",
-          "requestData": {
-            "name": "morpheus",
-            "job": "leader"
-          },
-          "responseData": {
-            "name": "morpheus",
-            "job": "leader"
-          },
-          "statusCodes": [200, 201]
-        },
-        {
           "action": "goTo",
           "url": "https://www.google.com"
         },
