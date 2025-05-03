@@ -69,21 +69,23 @@ You can find test and config samples in the [samples](https://github.com/doc-det
 
 ## Concepts
 
-- [**Test specification**](https://doc-detective.com/docs/references/schemas/specification.html): A group of tests to run in one or more contexts. Conceptually parallel to a document.
-- [**Test**](https://doc-detective.com/docs/references/schemas/test.html): A sequence of steps to perform. Conceptually parallel to a procedure.
+- **Test specification**: A group of tests to run in one or more contexts. Conceptually parallel to a document.
+- [**Test**](https://doc-detective.com/docs/get-started/tests): A sequence of steps to perform. Conceptually parallel to a procedure.
 - **Step**: A portion of a test that includes a single action. Conceptually parallel to a step in a procedure.
 - **Action**: The task a performed in a step. Doc Detective supports a variety of actions:
-  - [**checkLink**](https://doc-detective.com/docs/references/schemas/checkLink.html): Check if a URL returns an acceptable status code from a GET request.
-  - [**find**](https://doc-detective.com/docs/references/schemas/find.html): Check if an element exists with the specified selector.
-  - [**goTo**](https://doc-detective.com/docs/references/schemas/goTo.html): Navigate to a specified URL.
-  - [**httpRequest**](https://doc-detective.com/docs/references/schemas/httpRequest.html): Perform a generic HTTP request, for example to an API.
-  - [**runShell**](https://doc-detective.com/docs/references/schemas/runShell.html): Perform a native shell command.
-  - [**saveScreenshot**](https://doc-detective.com/docs/references/schemas/saveScreenshot.html): Take a screenshot in PNG format.
-  - [**setVariables**](https://doc-detective.com/docs/references/schemas/setVariables.html): Load environment variables from a `.env` file.
-  - [**startRecording**](https://doc-detective.com/docs/references/schemas/startRecording.html) and [**stopRecording**](https://doc-detective.com/docs/references/schemas/stopRecording.html): Capture a video of test execution.
-  - [**typeKeys**](https://doc-detective.com/docs/references/schemas/typeKeys.html): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
-  - [**wait**](https://doc-detective.com/docs/references/schemas/wait.html): Pause before performing the next action.
-- [**Context**](https://doc-detective.com/docs/references/schemas/context.html): An application and platforms that support the tests.
+  - [**checkLink**](https://doc-detective.com/docs/get-started/actions/checkLink): Check if a URL returns an acceptable status code from a GET request.
+  - [**click**](https://doc-detective.com/docs/get-started/actions/click): Click an element with the specified text or selector.
+  - [**find**](https://doc-detective.com/docs/get-started/actions/find): Check if an element exists with the specified text or selector and optionally interact with it.
+  - [**goTo**](https://doc-detective.com/docs/get-started/actions/goTo): Navigate to a specified URL.
+  - [**httpRequest**](https://doc-detective.com/docs/get-started/actions/httpRequest): Perform a generic HTTP request, for example to an API.
+  - [**runCode**](https://doc-detective.com/docs/get-started/actions/runCode): Execute code, such as how it appears in a code block.
+  - [**runShell**](https://doc-detective.com/docs/get-started/actions/runShell): Perform a native shell command.
+  - [**screenshot**](https://doc-detective.com/docs/get-started/actions/screenshot): Take a screenshot in PNG format.
+  - [**loadVariables**](https://doc-detective.com/docs/get-started/actions/loadVariables): Load environment variables from a `.env` file.
+  - [**record**](https://doc-detective.com/docs/get-started/actions/record) and [**stopRecord**](https://doc-detective.com/docs/get-started/actions/stopRecord): Capture a video of test execution.
+  - [**type**](https://doc-detective.com/docs/get-started/actions/type): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
+  - [**wait**](https://doc-detective.com/docs/get-started/actions/wait): Pause before performing the next action.
+- [**Context**](https://doc-detective.com/docs/get-started/config/contexts): A combination of platform and application to run tests on.
 
 ## Develop
 
@@ -105,4 +107,4 @@ Looking to help out? See our [contributions guide](CONTRIBUTIONS.md) for more in
 
 ## License
 
-This project uses the [MIT license](https://github.com/doc-detective/doc-detective/blob/master/LICENSE).
+This project uses the [AGPL-3.0 license](https://github.com/doc-detective/doc-detective/blob/master/LICENSE).
