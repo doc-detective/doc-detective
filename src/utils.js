@@ -77,7 +77,20 @@ async function setConfig(config, args, configPath) {
   }
   // Override config values
   if (args.input) {
-    config.input = path.resolve(args.input);
+    // If input includes commas, split it into an array
+    args.input = args.input.split(",").map((item) => item.trim());
+    // Resolve paths
+    args.input = args.input.map((item) => {
+      if (
+        item.startsWith("https://") ||
+        item.startsWith("http://")
+      ) {
+        return item; // Don't resolve URLs
+      }
+      return path.resolve(item);
+    });
+    // Add to config
+    config.input = args.input;
   }
   if (args.output) {
     config.output = path.resolve(args.output);
