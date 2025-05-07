@@ -153,6 +153,7 @@ describe("Util tests", function () {
     // Use Promise.all with map instead of forEach to properly handle async operations
     await Promise.all(configSets.map(async (configSet, index) => {
       // Set config with the args
+      console.log(`Config test ${index}: ${JSON.stringify(configSet, null, 2)}`);
       const configResult = await setConfig({ args: setArgs(configSet.args) });
       console.log(`Config result ${index}: ${JSON.stringify(configResult, null, 2)}\n`);
       // Deeply compare the config result with the expected result
