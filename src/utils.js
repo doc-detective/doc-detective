@@ -46,7 +46,18 @@ function setArgs(args) {
 }
 
 // Override config values based on args and validate the config
-async function setConfig(config, args, configPath) {
+async function setConfig({ configPath, args }) {
+  // If config file exists, read it
+  let config = {};
+  if (configPath) {
+    try {
+      config = await readFile({ fileURLOrPath: configPath });
+    } catch (error) {
+      console.error(`Error reading config file at ${configPath}: ${error}`);
+      return null;
+    }
+  }
+
   // Validate config
   const validation = validate({
     schemaKey: "config_v3",
@@ -81,10 +92,7 @@ async function setConfig(config, args, configPath) {
     args.input = args.input.split(",").map((item) => item.trim());
     // Resolve paths
     args.input = args.input.map((item) => {
-      if (
-        item.startsWith("https://") ||
-        item.startsWith("http://")
-      ) {
+      if (item.startsWith("https://") || item.startsWith("http://")) {
         return item; // Don't resolve URLs
       }
       return path.resolve(item);
@@ -102,7 +110,7 @@ async function setConfig(config, args, configPath) {
   config = await resolvePaths({
     config: config,
     object: config,
-    filePath: configPath,
+    filePath: configPath || ".",
     nested: false,
     objectType: "config",
   });

@@ -19,7 +19,8 @@ async function main(argv) {
   );
   // Set args
   argv = setArgs(argv);
-  // Get .doc-detective JSON or YAML config, if it exists
+
+  // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
   const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
@@ -32,13 +33,9 @@ async function main(argv) {
     : fs.existsSync(configPathYML)
     ? configPathYML
     : null;
-  // If config file exists, read it
-  let config = {};
-  if (configPath) {
-    config = await readFile({ fileURLOrPath: configPath });
-  }
+
   // Set config
-  config = await setConfig(config, argv, configPath || ".");
+  config = await setConfig({ configPath: configPath, args: argv });
 
   // Run tests
   const output = config.output;

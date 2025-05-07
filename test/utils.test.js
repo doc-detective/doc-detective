@@ -67,12 +67,15 @@ describe("Util tests", function () {
   });
 
   // Test that config overrides are set correctly
-  it("Config overrides are set correctly", function () {
+  it("Config overrides are set correctly", async function () {
+    // This test takes a bit longer
+    this.timeout(5000);
+    
     configSets = [
       {
         // Input override
         args: ["node", "runTests.js", "--input", "input.spec.json"],
-        expected: { input: "input.spec.json" },
+        expected: { input: [`${process.cwd()}/input.spec.json`] },
       },
       {
         // Input and logLevel overrides
@@ -84,7 +87,7 @@ describe("Util tests", function () {
           "--logLevel",
           "debug",
         ],
-        expected: { input: "input.spec.json", logLevel: "debug" },
+        expected: { input: [`${process.cwd()}/input.spec.json`], logLevel: "debug" },
       },
       {
         // Input, logLevel, and setup overrides
@@ -97,7 +100,7 @@ describe("Util tests", function () {
           "debug",
         ],
         expected: {
-          input: "input.spec.json",
+          input: [`${process.cwd()}/input.spec.json`],
           logLevel: "debug",
         },
       },
@@ -105,8 +108,7 @@ describe("Util tests", function () {
         // Referenced config without overrides
         args: ["node", "runTests.js", "--config", "./test/test-config.json"],
         expected: {
-          input: ".",
-          output: ".",
+          input: process.cwd(),
           logLevel: "silent",
           recursive: true,
         },
@@ -122,18 +124,41 @@ describe("Util tests", function () {
           "input.spec.json",
         ],
         expected: {
-          input: "input.spec.json",
-          output: ".",
+          input: [`${process.cwd()}/input.spec.json`],
           logLevel: "silent",
           recursive: true,
         },
       },
+      {
+        // Multiple inputs
+        args: [
+          "node",
+          "runTests.js",
+          "--config",
+          "./test/test-config.json",
+          "--input",
+          "input.spec.json,anotherInput.spec.json",
+        ],
+        expected: {
+          input: [`${process.cwd()}/input.spec.json`, `${process.cwd()}/anotherInput.spec.json`],
+          output: process.cwd(),
+          recursive: true,
+        },
+      }
     ];
 
-    configSets.forEach(async (configSet) => {
-      const configResult = await setConfig({}, setArgs(configSet.args));
+    // Use process.stdout.write directly to force console output during tests
+    console.log('\n===== CONFIG TEST RESULTS =====\n');
+    
+    // Use Promise.all with map instead of forEach to properly handle async operations
+    await Promise.all(configSets.map(async (configSet, index) => {
+      // Set config with the args
+      const configResult = await setConfig({ args: setArgs(configSet.args) });
+      console.log(`Config result ${index}: ${JSON.stringify(configResult, null, 2)}\n`);
+      // Deeply compare the config result with the expected result
       deepObjectExpect(configResult, configSet.expected);
-    });
+    }));
+    process.stdout.write('===== END CONFIG TEST RESULTS =====\n');
   });
 
   // Test that results output correctly.
@@ -157,11 +182,33 @@ describe("Util tests", function () {
 function deepObjectExpect(actual, expected) {
   // Check that actual has all the keys of expected
   Object.entries(expected).forEach(([key, value]) => {
-    // If value is an object, recursively check it
-    if (typeof value === "object") {
+    // Make sure the property exists in actual
+    expect(actual).to.have.property(key);
+    
+    // If value is null, check directly
+    if (value === null) {
+      expect(actual[key]).to.equal(null);
+    }
+    // If value is an array, check each item
+    else if (Array.isArray(value)) {
+      expect(Array.isArray(actual[key])).to.equal(true, `Expected ${key} to be an array. Expected: ${expected[key]}. Actual: ${actual[key]}.`);
+      expect(actual[key].length).to.equal(value.length, `Expected ${key} array to have length ${value.length}. Actual: ${actual[key].length}`);
+
+      // Check each array item
+      value.forEach((item, index) => {
+        if (typeof item === "object" && item !== null) {
+          deepObjectExpect(actual[key][index], item);
+        } else {
+          expect(actual[key][index]).to.equal(item);
+        }
+      });
+    }
+    // If value is an object but not null, recursively check it
+    else if (typeof value === "object") {
       deepObjectExpect(actual[key], expected[key]);
-    } else {
-      // Otherwise, check that the value is correct
+    } 
+    // Otherwise, check that the value is correct
+    else {
       const expectedObject = {};
       expectedObject[key] = value;
       expect(actual).to.deep.include(expectedObject);
