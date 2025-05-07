@@ -47,6 +47,10 @@ function setArgs(args) {
 
 // Override config values based on args and validate the config
 async function setConfig({ configPath, args }) {
+  if (args.config && !configPath) {
+    configPath = args.config;
+  }
+
   // If config file exists, read it
   let config = {};
   if (configPath) {
