@@ -3,10 +3,11 @@
     {
       "steps": [
         {
-          "action": "runShell",
           "description": "Run a Docker container and check the output.",
-          "command": "docker run hello-world",
-          "output": "Hello from Docker!"
+          "runShell": {
+            "command": "docker run hello-world",
+            "stdio": "Hello from Docker!"
+          }
         }
       ]
     }
