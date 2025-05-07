@@ -75,7 +75,7 @@ describe("Util tests", function () {
       {
         // Input override
         args: ["node", "runTests.js", "--input", "input.spec.json"],
-        expected: { input: [`${process.cwd()}/input.spec.json`] },
+        expected: { input: [path.resolve(process.cwd(), "input.spec.json")] },
       },
       {
         // Input and logLevel overrides
@@ -87,7 +87,7 @@ describe("Util tests", function () {
           "--logLevel",
           "debug",
         ],
-        expected: { input: [`${process.cwd()}/input.spec.json`], logLevel: "debug" },
+        expected: { input: [path.resolve(process.cwd(), "input.spec.json")], logLevel: "debug" },
       },
       {
         // Input, logLevel, and setup overrides
@@ -100,7 +100,7 @@ describe("Util tests", function () {
           "debug",
         ],
         expected: {
-          input: [`${process.cwd()}/input.spec.json`],
+          input: [path.resolve(process.cwd(), "input.spec.json")],
           logLevel: "debug",
         },
       },
@@ -124,7 +124,7 @@ describe("Util tests", function () {
           "input.spec.json",
         ],
         expected: {
-          input: [`${process.cwd()}/input.spec.json`],
+          input: [path.resolve(process.cwd(), "input.spec.json")],
           logLevel: "silent",
           recursive: true,
         },
@@ -140,7 +140,7 @@ describe("Util tests", function () {
           "input.spec.json,anotherInput.spec.json",
         ],
         expected: {
-          input: [`${process.cwd()}/input.spec.json`, `${process.cwd()}/anotherInput.spec.json`],
+          input: [path.resolve(process.cwd(), "input.spec.json"), path.resolve(process.cwd(), "anotherInput.spec.json")],
           output: process.cwd(),
           recursive: true,
         },
