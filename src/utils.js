@@ -46,7 +46,22 @@ function setArgs(args) {
 }
 
 // Override config values based on args and validate the config
-async function setConfig(config, args, configPath) {
+async function setConfig({ configPath, args }) {
+  if (args.config && !configPath) {
+    configPath = args.config;
+  }
+
+  // If config file exists, read it
+  let config = {};
+  if (configPath) {
+    try {
+      config = await readFile({ fileURLOrPath: configPath });
+    } catch (error) {
+      console.error(`Error reading config file at ${configPath}: ${error}`);
+      return null;
+    }
+  }
+
   // Validate config
   const validation = validate({
     schemaKey: "config_v3",
@@ -72,12 +87,22 @@ async function setConfig(config, args, configPath) {
     loadVariables: config.loadVariables || ".env",
     detectSteps: config.detectSteps || true,
     logLevel: config.logLevel || "info",
-    fileTypes: config.fileTypes || ["markdown","asciidoc", "html"],
+    fileTypes: config.fileTypes || ["markdown", "asciidoc", "html"],
     telemetry: config.telemetry || { send: true },
-  }
+  };
   // Override config values
   if (args.input) {
-    config.input = path.resolve(args.input);
+    // If input includes commas, split it into an array
+    args.input = args.input.split(",").map((item) => item.trim());
+    // Resolve paths
+    args.input = args.input.map((item) => {
+      if (item.startsWith("https://") || item.startsWith("http://")) {
+        return item; // Don't resolve URLs
+      }
+      return path.resolve(item);
+    });
+    // Add to config
+    config.input = args.input;
   }
   if (args.output) {
     config.output = path.resolve(args.output);
@@ -89,7 +114,7 @@ async function setConfig(config, args, configPath) {
   config = await resolvePaths({
     config: config,
     object: config,
-    filePath: configPath,
+    filePath: configPath || ".",
     nested: false,
     objectType: "config",
   });
@@ -161,7 +186,7 @@ const reporters = {
       yellow: "\x1b[33m",
       cyan: "\x1b[36m",
       reset: "\x1b[0m",
-      bold: "\x1b[1m"
+      bold: "\x1b[1m",
     };
 
     // Check if we have the new results format with summary
@@ -174,71 +199,112 @@ const reporters = {
     if (results.summary) {
       // Extract summary data
       const { specs, tests, contexts, steps } = results.summary;
-      
-      // Calculate totals
-      const totalSpecs = specs ? specs.pass + specs.fail + specs.warning + specs.skipped : 0;
-      const totalTests = tests ? tests.pass + tests.fail + tests.warning + tests.skipped : 0;
-      const totalContexts = contexts ? contexts.pass + contexts.fail + contexts.warning + contexts.skipped : 0;
-      const totalSteps = steps ? steps.pass + steps.fail + steps.warning + steps.skipped : 0;
-      
-      // Any failures overall?
-      const hasFailures = (specs && specs.fail > 0) || 
-                          (tests && tests.fail > 0) || 
-                          (contexts && contexts.fail > 0) || 
-                          (steps && steps.fail > 0);
 
-      console.log(`\n${colors.bold}===== Doc Detective Results Summary =====${colors.reset}`);
-      
+      // Calculate totals
+      const totalSpecs = specs
+        ? specs.pass + specs.fail + specs.warning + specs.skipped
+        : 0;
+      const totalTests = tests
+        ? tests.pass + tests.fail + tests.warning + tests.skipped
+        : 0;
+      const totalContexts = contexts
+        ? contexts.pass + contexts.fail + contexts.warning + contexts.skipped
+        : 0;
+      const totalSteps = steps
+        ? steps.pass + steps.fail + steps.warning + steps.skipped
+        : 0;
+
+      // Any failures overall?
+      const hasFailures =
+        (specs && specs.fail > 0) ||
+        (tests && tests.fail > 0) ||
+        (contexts && contexts.fail > 0) ||
+        (steps && steps.fail > 0);
+
+      console.log(
+        `\n${colors.bold}===== Doc Detective Results Summary =====${colors.reset}`
+      );
+
       // Print specs summary if available
       if (specs) {
         console.log(`\n${colors.bold}Specs:${colors.reset}`);
         console.log(`Total: ${totalSpecs}`);
         console.log(`${colors.green}Passed: ${specs.pass}${colors.reset}`);
-        console.log(`${specs.fail > 0 ? colors.red : colors.green}Failed: ${specs.fail}${colors.reset}`);
-        if (specs.warning > 0) console.log(`${colors.yellow}Warnings: ${specs.warning}${colors.reset}`);
+        console.log(
+          `${specs.fail > 0 ? colors.red : colors.green}Failed: ${specs.fail}${
+            colors.reset
+          }`
+        );
+        if (specs.warning > 0)
+          console.log(
+            `${colors.yellow}Warnings: ${specs.warning}${colors.reset}`
+          );
         if (specs.skipped > 0) console.log(`Skipped: ${specs.skipped}`);
       }
-      
+
       // Print tests summary if available
       if (tests) {
         console.log(`\n${colors.bold}Tests:${colors.reset}`);
         console.log(`Total: ${totalTests}`);
         console.log(`${colors.green}Passed: ${tests.pass}${colors.reset}`);
-        console.log(`${tests.fail > 0 ? colors.red : colors.green}Failed: ${tests.fail}${colors.reset}`);
-        if (tests.warning > 0) console.log(`${colors.yellow}Warnings: ${tests.warning}${colors.reset}`);
+        console.log(
+          `${tests.fail > 0 ? colors.red : colors.green}Failed: ${tests.fail}${
+            colors.reset
+          }`
+        );
+        if (tests.warning > 0)
+          console.log(
+            `${colors.yellow}Warnings: ${tests.warning}${colors.reset}`
+          );
         if (tests.skipped > 0) console.log(`Skipped: ${tests.skipped}`);
       }
-      
+
       // Print contexts summary if available
       if (contexts) {
         console.log(`\n${colors.bold}Contexts:${colors.reset}`);
         console.log(`Total: ${totalContexts}`);
         console.log(`${colors.green}Passed: ${contexts.pass}${colors.reset}`);
-        console.log(`${contexts.fail > 0 ? colors.red : colors.green}Failed: ${contexts.fail}${colors.reset}`);
-        if (contexts.warning > 0) console.log(`${colors.yellow}Warnings: ${contexts.warning}${colors.reset}`);
+        console.log(
+          `${contexts.fail > 0 ? colors.red : colors.green}Failed: ${
+            contexts.fail
+          }${colors.reset}`
+        );
+        if (contexts.warning > 0)
+          console.log(
+            `${colors.yellow}Warnings: ${contexts.warning}${colors.reset}`
+          );
         if (contexts.skipped > 0) console.log(`Skipped: ${contexts.skipped}`);
       }
-      
+
       // Print steps summary if available
       if (steps) {
         console.log(`\n${colors.bold}Steps:${colors.reset}`);
         console.log(`Total: ${totalSteps}`);
         console.log(`${colors.green}Passed: ${steps.pass}${colors.reset}`);
-        console.log(`${steps.fail > 0 ? colors.red : colors.green}Failed: ${steps.fail}${colors.reset}`);
-        if (steps.warning > 0) console.log(`${colors.yellow}Warnings: ${steps.warning}${colors.reset}`);
+        console.log(
+          `${steps.fail > 0 ? colors.red : colors.green}Failed: ${steps.fail}${
+            colors.reset
+          }`
+        );
+        if (steps.warning > 0)
+          console.log(
+            `${colors.yellow}Warnings: ${steps.warning}${colors.reset}`
+          );
         if (steps.skipped > 0) console.log(`Skipped: ${steps.skipped}`);
       }
 
       // If we have specs with failures, display them
       if (results.specs && hasFailures) {
-        console.log(`\n${colors.bold}${colors.red}Failed Items:${colors.reset}`);
-        
+        console.log(
+          `\n${colors.bold}${colors.red}Failed Items:${colors.reset}`
+        );
+
         // Collect failures
         const failedSpecs = [];
         const failedTests = [];
         const failedContexts = [];
         const failedSteps = [];
-        
+
         // Process specs array to collect failures
         results.specs.forEach((spec, specIndex) => {
           // Check if spec has failed
@@ -248,7 +314,7 @@ const reporters = {
               id: spec.specId || `Spec ${specIndex + 1}`,
             });
           }
-          
+
           // Process tests in this spec
           if (spec.tests && spec.tests.length > 0) {
             spec.tests.forEach((test, testIndex) => {
@@ -261,12 +327,15 @@ const reporters = {
                   id: test.testId || `Test ${testIndex + 1}`,
                 });
               }
-              
+
               // Process contexts in this test
               if (test.contexts && test.contexts.length > 0) {
                 test.contexts.forEach((context, contextIndex) => {
                   // Check if context has failed
-                  if (context.result === "FAIL" || (context.result && context.result.status === "FAIL")) {
+                  if (
+                    context.result === "FAIL" ||
+                    (context.result && context.result.status === "FAIL")
+                  ) {
                     failedContexts.push({
                       specIndex,
                       testIndex,
@@ -274,10 +343,12 @@ const reporters = {
                       specId: spec.specId || `Spec ${specIndex + 1}`,
                       testId: test.testId || `Test ${testIndex + 1}`,
                       platform: context.platform || "unknown",
-                      browser: context.browser ? context.browser.name : "unknown",
+                      browser: context.browser
+                        ? context.browser.name
+                        : "unknown",
                     });
                   }
-                  
+
                   // Process steps in this context
                   if (context.steps && context.steps.length > 0) {
                     context.steps.forEach((step, stepIndex) => {
@@ -291,7 +362,9 @@ const reporters = {
                           specId: spec.specId || `Spec ${specIndex + 1}`,
                           testId: test.testId || `Test ${testIndex + 1}`,
                           platform: context.platform || "unknown",
-                          browser: context.browser ? context.browser.name : "unknown",
+                          browser: context.browser
+                            ? context.browser.name
+                            : "unknown",
                           stepId: step.stepId || `Step ${stepIndex + 1}`,
                           error: step.resultDescription || "Unknown error",
                         });
@@ -303,7 +376,7 @@ const reporters = {
             });
           }
         });
-        
+
         // Display failures
         if (failedSpecs.length > 0) {
           console.log(`\n${colors.red}Failed Specs:${colors.reset}`);
@@ -311,25 +384,37 @@ const reporters = {
             console.log(`${colors.red}${i + 1}. ${item.id}${colors.reset}`);
           });
         }
-        
+
         if (failedTests.length > 0) {
           console.log(`\n${colors.red}Failed Tests:${colors.reset}`);
           failedTests.forEach((item, i) => {
-            console.log(`${colors.red}${i + 1}. ${item.id} (from ${item.specId})${colors.reset}`);
+            console.log(
+              `${colors.red}${i + 1}. ${item.id} (from ${item.specId})${
+                colors.reset
+              }`
+            );
           });
         }
-        
+
         if (failedContexts.length > 0) {
           console.log(`\n${colors.red}Failed Contexts:${colors.reset}`);
           failedContexts.forEach((item, i) => {
-            console.log(`${colors.red}${i + 1}. ${item.platform}/${item.browser} (from ${item.testId})${colors.reset}`);
+            console.log(
+              `${colors.red}${i + 1}. ${item.platform}/${item.browser} (from ${
+                item.testId
+              })${colors.reset}`
+            );
           });
         }
-        
+
         if (failedSteps.length > 0) {
           console.log(`\n${colors.red}Failed Steps:${colors.reset}`);
           failedSteps.forEach((item, i) => {
-            console.log(`${colors.red}${i + 1}. ${item.platform}/${item.browser} - ${item.stepId}${colors.reset}`);
+            console.log(
+              `${colors.red}${i + 1}. ${item.platform}/${item.browser} - ${
+                item.stepId
+              }${colors.reset}`
+            );
             console.log(`   Error: ${item.error}`);
           });
         }
@@ -337,12 +422,14 @@ const reporters = {
         // Celebration when all tests pass
         console.log(`\n${colors.green}🎉 All items passed! 🎉${colors.reset}`);
       }
-    }  else {
-      console.log("No tests were executed or results are in an unknown format.");
+    } else {
+      console.log(
+        "No tests were executed or results are in an unknown format."
+      );
     }
-    
+
     console.log("\n===============================\n");
-  }
+  },
 };
 
 // Export reporters for external use
@@ -350,8 +437,8 @@ exports.reporters = reporters;
 
 // Helper function to register custom reporters
 function registerReporter(name, reporterFunction) {
-  if (typeof reporterFunction !== 'function') {
-    throw new Error('Reporter must be a function');
+  if (typeof reporterFunction !== "function") {
+    throw new Error("Reporter must be a function");
   }
   reporters[name] = reporterFunction;
   return true;
@@ -362,21 +449,21 @@ exports.registerReporter = registerReporter;
 
 async function outputResults(config = {}, outputPath, results, options = {}) {
   // Default to using both built-in reporters if none specified
-  const defaultReporters = ['terminal','json'];
-  
+  const defaultReporters = ["terminal", "json"];
+
   let activeReporters = options.reporters || defaultReporters;
-  
+
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {
     // Convert any shorthand names to full reporter names
-    activeReporters = activeReporters.map(reporter => {
-      if (typeof reporter === 'string') {
+    activeReporters = activeReporters.map((reporter) => {
+      if (typeof reporter === "string") {
         // Convert shorthand names to actual reporter keys
         switch (reporter.toLowerCase()) {
-          case 'json':
-            return 'jsonReporter';
-          case 'terminal':
-            return 'terminalReporter';
+          case "json":
+            return "jsonReporter";
+          case "terminal":
+            return "terminalReporter";
           default:
             return reporter;
         }
@@ -386,15 +473,19 @@ async function outputResults(config = {}, outputPath, results, options = {}) {
   }
 
   // Execute each reporter
-  const reporterPromises = activeReporters.map(reporter => {
-    if (typeof reporter === 'function') {
+  const reporterPromises = activeReporters.map((reporter) => {
+    if (typeof reporter === "function") {
       // Direct function reference
       return reporter(config, outputPath, results, options);
-    } else if (typeof reporter === 'string' && reporters[reporter]) {
+    } else if (typeof reporter === "string" && reporters[reporter]) {
       // String reference to built-in or registered reporter
       return reporters[reporter](config, outputPath, results, options);
-    } else if (typeof reporter === 'string' && !reporters[reporter]) {
-      console.error(`Reporter "${reporter}" not found. Available reporters: ${Object.keys(reporters).join(', ')}`);
+    } else if (typeof reporter === "string" && !reporters[reporter]) {
+      console.error(
+        `Reporter "${reporter}" not found. Available reporters: ${Object.keys(
+          reporters
+        ).join(", ")}`
+      );
       return Promise.resolve();
     } else {
       console.error(`Invalid reporter: ${reporter}`);
