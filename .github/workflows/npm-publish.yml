@@ -17,7 +17,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
-        node: 
+        node:
           - 18
           - 20
           - 22
@@ -55,3 +55,20 @@ jobs:
           config: ./test/artifacts/config.json
           input: ./test/artifacts/doc-content.md
           exit_on_fail: "true"
+
+  build-docker-image:
+    name: Build Docker Image
+    needs: publish-npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get package version
+        run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+
+      - name: Trigger GitHub Action in docker-image repo
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.DOCKER_IMAGE_REPO_PAT }}" \
+               -H "Accept: application/vnd.github.everest-preview+json" \
+               "https://api.github.com/repos/doc-detective/docker-image/dispatches" \
+               -d '{ "event_type": "build-push", "client_payload": { "version": "${{ env.VERSION }}", "additional_info": "triggered from npm-publish workflow" } }'
