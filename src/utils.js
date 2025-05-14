@@ -60,6 +60,7 @@ async function setConfig({ configPath, args }) {
       console.error(`Error reading config file at ${configPath}: ${error}`);
       return null;
     }
+    config.configPath = configPath;
   }
 
   // Validate config
