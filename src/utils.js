@@ -69,12 +69,10 @@ async function setConfig({ configPath, args }) {
   });
   if (!validation.valid) {
     // Output validation errors
-    console.error("Invalid config.");
-    validation.errors.forEach((error) => {
-      console.error(error);
-    });
+    console.error("Invalid config.", validation.errors);
     process.exit(1);
   }
+
   // Accept coerced and defaulted values
   config = validation.object;
   // Set default values
@@ -91,6 +89,9 @@ async function setConfig({ configPath, args }) {
     telemetry: config.telemetry || { send: true },
   };
   // Override config values
+  if (configPath) {
+    config.configPath = configPath;
+  }
   if (args.input) {
     // If input includes commas, split it into an array
     args.input = args.input.split(",").map((item) => item.trim());
