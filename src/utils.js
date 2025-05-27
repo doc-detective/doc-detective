@@ -60,7 +60,6 @@ async function setConfig({ configPath, args }) {
       console.error(`Error reading config file at ${configPath}: ${error}`);
       return null;
     }
-    config.configPath = configPath;
   }
 
   // Validate config
@@ -70,12 +69,15 @@ async function setConfig({ configPath, args }) {
   });
   if (!validation.valid) {
     // Output validation errors
-    console.error("Invalid config.");
-    validation.errors.forEach((error) => {
-      console.error(error);
-    });
+    console.error("Invalid config.", validation.errors);
     process.exit(1);
   }
+
+  // Seed configPath after conversion to current config version
+  if (configPath) {
+    config.configPath = configPath;
+  }
+
   // Accept coerced and defaulted values
   config = validation.object;
   // Set default values
