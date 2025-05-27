@@ -1,43 +1,5 @@
 {
-  "envVariables": "",
-  "input": ".",
-  "output": ".",
-  "recursive": true,
-  "relativePathBase": "file",
   "logLevel": "debug",
-  "runTests": {
-    "input": "test.spec.json",
-    "output": ".",
-    "setup": "",
-    "cleanup": "",
-    "recursive": true,
-    "detectSteps": false,
-    "mediaDirectory": ".",
-    "downloadDirectory": ".",
-    "contexts": [
-      {
-        "app": { "name": "chrome", "options": { "headless": false } },
-        "platforms": ["mac", "linux"]
-      },
-      {
-        "app": { "name": "chrome", "options": { "headless": true } },
-        "platforms": ["windows"]
-      }
-
-    ]
-  },
-  "runCoverage": {
-    "recursive": true,
-    "input": ".dev/",
-    "output": ".",
-    "markup": []
-  },
-  "suggestTests": {
-    "recursive": true,
-    "input": ".",
-    "output": ".",
-    "markup": []
-  },
   "telemetry": {
     "send": false
   }
