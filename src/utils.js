@@ -73,16 +73,12 @@ async function setConfig({ configPath, args }) {
     process.exit(1);
   }
 
-  // Seed configPath after conversion to current config version
-  if (configPath) {
-    config.configPath = configPath;
-  }
-
   // Accept coerced and defaulted values
   config = validation.object;
   // Set default values
   config = {
     ...config,
+    configPath: configPath || null,
     input: config.input || ".",
     output: config.output || ".",
     recursive: config.recursive || true,
