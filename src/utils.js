@@ -78,7 +78,6 @@ async function setConfig({ configPath, args }) {
   // Set default values
   config = {
     ...config,
-    configPath: configPath || null,
     input: config.input || ".",
     output: config.output || ".",
     recursive: config.recursive || true,
@@ -90,6 +89,9 @@ async function setConfig({ configPath, args }) {
     telemetry: config.telemetry || { send: true },
   };
   // Override config values
+  if (configPath) {
+    config.configPath = configPath;
+  }
   if (args.input) {
     // If input includes commas, split it into an array
     args.input = args.input.split(",").map((item) => item.trim());
