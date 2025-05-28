@@ -70,6 +70,8 @@ jobs:
         git push
         git push --tags
         echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      env:
+        GITHUB_TOKEN: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
 
     - name: Create release
       if: steps.commit.outputs.has_changes == 'true'
