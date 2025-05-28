@@ -61,6 +61,8 @@ jobs:
           git push
           echo "has_changes=true" >> $GITHUB_OUTPUT
         fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
 
     - name: Bump patch version
       id: patch
