@@ -68,6 +68,8 @@ jobs:
       id: patch
       if: steps.commit.outputs.has_changes == 'true'
       run: |
+        git checkout -- .
+        git clean -fd
         npm version patch
         git push
         git push --tags
