@@ -81,4 +81,5 @@ jobs:
         tag_name: "v${{ steps.patch.outputs.version }}"
         name: "v${{ steps.patch.outputs.version }}"
         generate_release_notes: true
+        token: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
 
