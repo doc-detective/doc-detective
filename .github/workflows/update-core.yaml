@@ -1,0 +1,81 @@
+name: Update doc-detective-core version
+
+on:
+  repository_dispatch:
+    types:
+      - update-core-package-event
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The doc-detective-core version.'
+        required: false
+        default: 'latest'
+
+jobs:
+  update:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set version variable
+      id: version
+      run: |
+        VERSION="${{ github.event.client_payload.version || github.event.inputs.version || 'latest' }}"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Using version: $VERSION"
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Get version of doc-detective-common from core
+      id: common_version
+      run: |
+        COMMON_VERSION=$(npm view doc-detective-core@${{ steps.version.outputs.version }} dependencies --json | jq -r '.["doc-detective-common"]')
+        echo "common_version=$COMMON_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Install specific versions of doc-detective-core and doc-detective-common
+      run: |
+        npm install doc-detective-core@${{ steps.version.outputs.version }} doc-detective-common@${{ steps.common_version.outputs.common_version }} || {
+          echo "Failed to install doc-detective-core@${{ steps.version.outputs.version }} or doc-detective-common@${{ steps.common_version.outputs.common_version }}"
+          exit 1
+        }
+    
+    - name: Test the installation
+      run: |
+        npm test
+    
+    - name: Commit changes
+      id: commit
+      run: |
+        git add package.json package-lock.json
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        else
+          git commit -m "chore: bump doc-detective-core version to ${{ steps.version.outputs.version }}"
+          git push
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Bump patch version
+      id: patch
+      if: steps.commit.outputs.has_changes == 'true'
+      run: |
+        npm version patch
+        git push
+        git push --tags
+        echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+    - name: Create release
+      if: steps.commit.outputs.has_changes == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: "v${{ steps.patch.outputs.version }}"
+        name: "v${{ steps.patch.outputs.version }}"
+        generate_release_notes: true
+
