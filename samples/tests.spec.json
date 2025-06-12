@@ -1,16 +1,8 @@
 {
-  "id": "Do all the things! - Spec",
-  "runOn": [
-    {
-      "browsers": {
-        "name": "firefox"
-      },
-      "platforms": ["windows", "mac", "linux"]
-    }
-  ],
+  "specId": "Do all the things! - Spec",
   "tests": [
     {
-      "id": "Do all the things! - Test",
+      "testId": "Do all the things! - Test",
       "description": "This test includes nearly every property across all actions.",
       "steps": [
         {
@@ -63,15 +55,10 @@
           }
         },
         {
-          "wait": {}
+          "wait": 5000
         },
         {
-          "screenshot": {
-            "path": "screenshot.png",
-            "directory": "samples",
-            "maxVariation": 5,
-            "overwrite": "byVariation"
-          }
+          "screenshot": "screenshot.png"
         }
       ]
     }
