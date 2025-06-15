@@ -39,6 +39,11 @@ function setArgs(args) {
         "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
       type: "string",
     })
+    .option("allow-unsafe", {
+      description:
+        "Allow execution of potentially unsafe tests",
+      type: "boolean",
+    })
     .help()
     .alias("help", "h").argv;
 
@@ -110,6 +115,9 @@ async function setConfig({ configPath, args }) {
   }
   if (args.logLevel) {
     config.logLevel = args.logLevel;
+  }
+  if (args.allowUnsafe) {
+    config.allowUnsafeTests = true;
   }
   // Resolve paths
   config = await resolvePaths({

@@ -60,6 +60,19 @@ describe("Util tests", function () {
           c: "config.json",
         },
       },
+      {
+        args: [
+          "node",
+          "runTests.js",
+          "--input",
+          "input.spec.json",
+          "--allow-unsafe",
+        ],
+        expected: {
+          i: "input.spec.json",
+          allowUnsafe: true,
+        },
+      },
     ];
     argSets.forEach((argSet) => {
       expect(setArgs(argSet.args)).to.deep.include(argSet.expected);
@@ -143,6 +156,20 @@ describe("Util tests", function () {
           input: [path.resolve(process.cwd(), "input.spec.json"), path.resolve(process.cwd(), "anotherInput.spec.json")],
           output: process.cwd(),
           recursive: true,
+        },
+      },
+      {
+        // allow-unsafe override
+        args: [
+          "node",
+          "runTests.js",
+          "--input",
+          "input.spec.json",
+          "--allow-unsafe",
+        ],
+        expected: {
+          input: [path.resolve(process.cwd(), "input.spec.json")],
+          allowUnsafeTests: true,
         },
       }
     ];
