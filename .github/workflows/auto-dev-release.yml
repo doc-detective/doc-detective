@@ -25,7 +25,7 @@ jobs:
           # Need full history for proper version bumping
           fetch-depth: 0
           # Use a token that can push back to the repo
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -135,17 +135,6 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Publish to npm
-        if: steps.check_changes.outputs.skip_release == 'false'
-        run: |
-          # Add error handling for npm publish
-          set -e
-          echo "📦 Publishing to npm with 'dev' tag..."
-          npm publish --tag dev
-          echo "✅ Successfully published to npm"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Commit version change
         if: steps.check_changes.outputs.skip_release == 'false'
         run: |
@@ -158,6 +147,17 @@ jobs:
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "v${{ steps.version.outputs.version }}"
           git push origin main
+
+      - name: Publish to npm
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          # Add error handling for npm publish
+          set -e
+          echo "📦 Publishing to npm with 'dev' tag..."
+          npm publish --tag dev
+          echo "✅ Successfully published to npm"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         if: steps.check_changes.outputs.skip_release == 'false'
