@@ -93,10 +93,6 @@ jobs:
         if: steps.check_changes.outputs.skip_release == 'false'
         run: npm test
 
-      - name: Run build
-        if: steps.check_changes.outputs.skip_release == 'false'
-        run: npm run build
-
       - name: Configure Git
         run: |
           git config --global user.name 'github-actions[bot]'
