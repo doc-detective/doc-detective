@@ -38,12 +38,15 @@ jobs:
       - name: Check for documentation-only changes
         id: check_changes
         run: |
-          # Get list of changed files
-          if [ "${{ github.event_name }}" = "push" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
-          else
-            CHANGED_FILES=$(git diff --name-only HEAD~1)
+          # Always release on workflow_dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "skip_release=false" >> $GITHUB_OUTPUT
+            echo "Manual trigger: proceeding with release"
+            exit 0
           fi
+
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
           
           echo "Changed files:"
           echo "$CHANGED_FILES"
