@@ -74,12 +74,12 @@ jobs:
         # Get current project version
         PROJ_VERSION=$(node -p "require('./package.json').version")
         # Get doc-detective-core version (strip ^ or ~)
-        core_VERSION=$(node -p "(require('./package.json').dependencies['doc-detective-core'] || require('./package.json').devDependencies['doc-detective-core'] || '').replace(/^[^\\d]*/, '')")
+        CORE_VERSION=$(node -p "(require('./package.json').dependencies['doc-detective-core'] || require('./package.json').devDependencies['doc-detective-core'] || '').replace(/^[^\\d]*/, '')")
         # Parse versions
         PROJ_MAJOR=$(echo $PROJ_VERSION | cut -d. -f1)
         PROJ_MINOR=$(echo $PROJ_VERSION | cut -d. -f2)
-        core_MAJOR=$(echo $core_VERSION | cut -d. -f1)
-        core_MINOR=$(echo $core_VERSION | cut -d. -f2)
+        core_MAJOR=$(echo $CORE_VERSION | cut -d. -f1)
+        core_MINOR=$(echo $CORE_VERSION | cut -d. -f2)
         if [ "$PROJ_MAJOR" != "$core_MAJOR" ] || [ "$PROJ_MINOR" != "$core_MINOR" ]; then
           # Major or minor mismatch: set version to match doc-detective-core major.minor.0
           NEW_VERSION="$core_MAJOR.$core_MINOR.0"
