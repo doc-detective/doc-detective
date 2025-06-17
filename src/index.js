@@ -35,7 +35,7 @@ async function main(argv) {
     : null;
 
   // Set config
-  config = await setConfig({ configPath: configPath, args: argv });
+  const config = await setConfig({ configPath: configPath, args: argv });
 
   // Run tests
   const output = config.output;
