@@ -116,8 +116,8 @@ async function setConfig({ configPath, args }) {
   if (args.logLevel) {
     config.logLevel = args.logLevel;
   }
-  if (args.allowUnsafe) {
-    config.allowUnsafeTests = true;
+  if (typeof args.allowUnsafe === "boolean") {
+    config.allowUnsafeTests = args.allowUnsafe;
   }
   // Resolve paths
   config = await resolvePaths({
@@ -230,6 +230,10 @@ const reporters = {
         (contexts && contexts.fail > 0) ||
         (steps && steps.fail > 0);
 
+      // Any skipped overall?
+      const allSpecsSkipped =
+        specs && specs.pass === 0 && specs.fail === 0 && specs.skipped > 0;
+
       console.log(
         `\n${colors.bold}===== Doc Detective Results Summary =====${colors.reset}`
       );
@@ -238,7 +242,11 @@ const reporters = {
       if (specs) {
         console.log(`\n${colors.bold}Specs:${colors.reset}`);
         console.log(`Total: ${totalSpecs}`);
-        console.log(`${colors.green}Passed: ${specs.pass}${colors.reset}`);
+        if (specs.pass > 0) {
+          console.log(`${colors.green}Passed: ${specs.pass}${colors.reset}`);
+        } else {
+          console.log(`Passed: ${specs.pass}`);
+        }
         console.log(
           `${specs.fail > 0 ? colors.red : colors.green}Failed: ${specs.fail}${
             colors.reset
@@ -248,14 +256,19 @@ const reporters = {
           console.log(
             `${colors.yellow}Warnings: ${specs.warning}${colors.reset}`
           );
-        if (specs.skipped > 0) console.log(`Skipped: ${specs.skipped}`);
+        if (specs.skipped > 0)
+          console.log(`${colors.yellow}Skipped: ${specs.skipped}${colors.reset}`);
       }
 
       // Print tests summary if available
       if (tests) {
         console.log(`\n${colors.bold}Tests:${colors.reset}`);
         console.log(`Total: ${totalTests}`);
-        console.log(`${colors.green}Passed: ${tests.pass}${colors.reset}`);
+        if (tests.pass > 0) {
+          console.log(`${colors.green}Passed: ${tests.pass}${colors.reset}`);
+        } else {
+          console.log(`Passed: ${tests.pass}`);
+        }
         console.log(
           `${tests.fail > 0 ? colors.red : colors.green}Failed: ${tests.fail}${
             colors.reset
@@ -265,14 +278,19 @@ const reporters = {
           console.log(
             `${colors.yellow}Warnings: ${tests.warning}${colors.reset}`
           );
-        if (tests.skipped > 0) console.log(`Skipped: ${tests.skipped}`);
+        if (tests.skipped > 0)
+          console.log(`${colors.yellow}Skipped: ${tests.skipped}${colors.reset}`);
       }
 
       // Print contexts summary if available
       if (contexts) {
         console.log(`\n${colors.bold}Contexts:${colors.reset}`);
         console.log(`Total: ${totalContexts}`);
-        console.log(`${colors.green}Passed: ${contexts.pass}${colors.reset}`);
+        if (contexts.pass > 0) {
+          console.log(`${colors.green}Passed: ${contexts.pass}${colors.reset}`);
+        } else {
+          console.log(`Passed: ${contexts.pass}`);
+        }
         console.log(
           `${contexts.fail > 0 ? colors.red : colors.green}Failed: ${
             contexts.fail
@@ -282,14 +300,19 @@ const reporters = {
           console.log(
             `${colors.yellow}Warnings: ${contexts.warning}${colors.reset}`
           );
-        if (contexts.skipped > 0) console.log(`Skipped: ${contexts.skipped}`);
+        if (contexts.skipped > 0)
+          console.log(`${colors.yellow}Skipped: ${contexts.skipped}${colors.reset}`);
       }
 
       // Print steps summary if available
       if (steps) {
         console.log(`\n${colors.bold}Steps:${colors.reset}`);
         console.log(`Total: ${totalSteps}`);
-        console.log(`${colors.green}Passed: ${steps.pass}${colors.reset}`);
+        if (steps.pass > 0) {
+          console.log(`${colors.green}Passed: ${steps.pass}${colors.reset}`);
+        } else {
+          console.log(`Passed: ${steps.pass}`);
+        }
         console.log(
           `${steps.fail > 0 ? colors.red : colors.green}Failed: ${steps.fail}${
             colors.reset
@@ -299,7 +322,13 @@ const reporters = {
           console.log(
             `${colors.yellow}Warnings: ${steps.warning}${colors.reset}`
           );
-        if (steps.skipped > 0) console.log(`Skipped: ${steps.skipped}`);
+        if (steps.skipped > 0)
+          console.log(`${colors.yellow}Skipped: ${steps.skipped}${colors.reset}`);
+      }
+
+      // If all specs were skipped, call it out
+      if (allSpecsSkipped) {
+        console.log(`\n${colors.yellow}⚠️  All items were skipped. No specs passed or failed. ⚠️${colors.reset}`);
       }
 
       // If we have specs with failures, display them
@@ -314,11 +343,24 @@ const reporters = {
         const failedContexts = [];
         const failedSteps = [];
 
-        // Process specs array to collect failures
+        // Collect skipped
+        const skippedSpecs = [];
+        const skippedTests = [];
+        const skippedContexts = [];
+        const skippedSteps = [];
+
+        // Process specs array to collect failures and skipped
         results.specs.forEach((spec, specIndex) => {
           // Check if spec has failed
           if (spec.result === "FAIL") {
             failedSpecs.push({
+              index: specIndex,
+              id: spec.specId || `Spec ${specIndex + 1}`,
+            });
+          }
+          // Check if spec was skipped
+          if (spec.result === "SKIPPED") {
+            skippedSpecs.push({
               index: specIndex,
               id: spec.specId || `Spec ${specIndex + 1}`,
             });
@@ -336,6 +378,15 @@ const reporters = {
                   id: test.testId || `Test ${testIndex + 1}`,
                 });
               }
+              // Check if test was skipped
+              if (test.result === "SKIPPED") {
+                skippedTests.push({
+                  specIndex,
+                  testIndex,
+                  specId: spec.specId || `Spec ${specIndex + 1}`,
+                  id: test.testId || `Test ${testIndex + 1}`,
+                });
+              }
 
               // Process contexts in this test
               if (test.contexts && test.contexts.length > 0) {
@@ -346,6 +397,23 @@ const reporters = {
                     (context.result && context.result.status === "FAIL")
                   ) {
                     failedContexts.push({
+                      specIndex,
+                      testIndex,
+                      contextIndex,
+                      specId: spec.specId || `Spec ${specIndex + 1}`,
+                      testId: test.testId || `Test ${testIndex + 1}`,
+                      platform: context.platform || "unknown",
+                      browser: context.browser
+                        ? context.browser.name
+                        : "unknown",
+                    });
+                  }
+                  // Check if context was skipped
+                  if (
+                    context.result === "SKIPPED" ||
+                    (context.result && context.result.status === "SKIPPED")
+                  ) {
+                    skippedContexts.push({
                       specIndex,
                       testIndex,
                       contextIndex,
@@ -376,6 +444,22 @@ const reporters = {
                             : "unknown",
                           stepId: step.stepId || `Step ${stepIndex + 1}`,
                           error: step.resultDescription || "Unknown error",
+                        });
+                      }
+                      // Check if step was skipped
+                      if (step.result === "SKIPPED") {
+                        skippedSteps.push({
+                          specIndex,
+                          testIndex,
+                          contextIndex,
+                          stepIndex,
+                          specId: spec.specId || `Spec ${specIndex + 1}`,
+                          testId: test.testId || `Test ${testIndex + 1}`,
+                          platform: context.platform || "unknown",
+                          browser: context.browser
+                            ? context.browser.name
+                            : "unknown",
+                          stepId: step.stepId || `Step ${stepIndex + 1}`,
                         });
                       }
                     });
@@ -427,7 +511,33 @@ const reporters = {
             console.log(`   Error: ${item.error}`);
           });
         }
-      } else if (!hasFailures) {
+
+        // Display skipped items in yellow
+        if (skippedSpecs.length > 0) {
+          console.log(`\n${colors.yellow}Skipped Specs:${colors.reset}`);
+          skippedSpecs.forEach((item, i) => {
+            console.log(`${colors.yellow}${i + 1}. ${item.id}${colors.reset}`);
+          });
+        }
+        if (skippedTests.length > 0) {
+          console.log(`\n${colors.yellow}Skipped Tests:${colors.reset}`);
+          skippedTests.forEach((item, i) => {
+            console.log(`${colors.yellow}${i + 1}. ${item.id} (from ${item.specId})${colors.reset}`);
+          });
+        }
+        if (skippedContexts.length > 0) {
+          console.log(`\n${colors.yellow}Skipped Contexts:${colors.reset}`);
+          skippedContexts.forEach((item, i) => {
+            console.log(`${colors.yellow}${i + 1}. ${item.platform}/${item.browser} (from ${item.testId})${colors.reset}`);
+          });
+        }
+        if (skippedSteps.length > 0) {
+          console.log(`\n${colors.yellow}Skipped Steps:${colors.reset}`);
+          skippedSteps.forEach((item, i) => {
+            console.log(`${colors.yellow}${i + 1}. ${item.platform}/${item.browser} - ${item.stepId}${colors.reset}`);
+          });
+        }
+      } else if (!hasFailures && !allSpecsSkipped) {
         // Celebration when all tests pass
         console.log(`\n${colors.green}🎉 All items passed! 🎉${colors.reset}`);
       }
