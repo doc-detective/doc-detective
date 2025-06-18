@@ -68,7 +68,7 @@ jobs:
       if: steps.stage.outputs.has_changes == 'true'
       run: |
         node scripts/bump-sync-version-core.js
-        echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        version=$(node -p 'require("./package.json").version') && echo "version=$version" >> $GITHUB_OUTPUT
 
     - name: Install GitHub CLI
       if: steps.stage.outputs.has_changes == 'true'
