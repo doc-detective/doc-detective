@@ -46,7 +46,6 @@ jobs:
           echo "Failed to install doc-detective-core@${{ steps.version.outputs.version }} or doc-detective-common@${{ steps.common_version.outputs.common_version }}"
           exit 1
         }
-          npm audit fix
     
     - name: Test the installation
       run: |
