@@ -69,31 +69,7 @@ jobs:
       id: patch
       if: steps.commit.outputs.has_changes == 'true'
       run: |
-        git checkout -- .
-        git clean -fd
-        # Get current project version
-        PROJ_VERSION=$(node -p "require('./package.json').version")
-        # Get doc-detective-core version (strip ^ or ~)
-        CORE_VERSION=$(node -p 'require("./package.json").dependencies?.["doc-detective-core"] || require("./package.json").devDependencies?.["doc-detective-core"] || ""')
-        CORE_VERSION=$(echo "$CORE_VERSION" | sed 's/^[^0-9]*//')
-        # Parse versions
-        PROJ_MAJOR=$(echo $PROJ_VERSION | cut -d. -f1)
-        PROJ_MINOR=$(echo $PROJ_VERSION | cut -d. -f2)
-        CORE_MAJOR=$(echo $CORE_VERSION | cut -d. -f1)
-        CORE_MINOR=$(echo $CORE_VERSION | cut -d. -f2)
-        if [ "$PROJ_MAJOR" != "$CORE_MAJOR" ] || [ "$PROJ_MINOR" != "$CORE_MINOR" ]; then
-          # Major or minor mismatch: set version to match doc-detective-core major.minor.0
-          NEW_VERSION="$CORE_MAJOR.$CORE_MINOR.0"
-          npm version --no-git-tag-version "$NEW_VERSION"
-        else
-          # Only patch changed: bump patch
-          npm version patch --no-git-tag-version
-        fi
-        git add package.json package-lock.json
-        git commit -m "bump version to match doc-detective-core [skip ci]"
-        git push
-        git tag "v$(node -p \"require('./package.json').version\")"
-        git push --tags
+        node scripts/bump-sync-version-core.js
         echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
 
     - name: Create release
