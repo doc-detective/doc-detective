@@ -74,15 +74,16 @@ jobs:
         # Get current project version
         PROJ_VERSION=$(node -p "require('./package.json').version")
         # Get doc-detective-core version (strip ^ or ~)
-        CORE_VERSION=$(node -p "(require('./package.json').dependencies['doc-detective-core'] || require('./package.json').devDependencies['doc-detective-core'] || '').replace(/^[^\\d]*/, '')")
+        CORE_VERSION=$(node -p 'require("./package.json").dependencies?.["doc-detective-core"] || require("./package.json").devDependencies?.["doc-detective-core"] || ""')
+        CORE_VERSION=$(echo "$CORE_VERSION" | sed 's/^[^0-9]*//')
         # Parse versions
         PROJ_MAJOR=$(echo $PROJ_VERSION | cut -d. -f1)
         PROJ_MINOR=$(echo $PROJ_VERSION | cut -d. -f2)
-        core_MAJOR=$(echo $CORE_VERSION | cut -d. -f1)
-        core_MINOR=$(echo $CORE_VERSION | cut -d. -f2)
-        if [ "$PROJ_MAJOR" != "$core_MAJOR" ] || [ "$PROJ_MINOR" != "$core_MINOR" ]; then
+        CORE_MAJOR=$(echo $CORE_VERSION | cut -d. -f1)
+        CORE_MINOR=$(echo $CORE_VERSION | cut -d. -f2)
+        if [ "$PROJ_MAJOR" != "$CORE_MAJOR" ] || [ "$PROJ_MINOR" != "$CORE_MINOR" ]; then
           # Major or minor mismatch: set version to match doc-detective-core major.minor.0
-          NEW_VERSION="$core_MAJOR.$core_MINOR.0"
+          NEW_VERSION="$CORE_MAJOR.$CORE_MINOR.0"
           npm version --no-git-tag-version "$NEW_VERSION"
         else
           # Only patch changed: bump patch
@@ -122,7 +123,7 @@ jobs:
         fi
 
     - name: Fetch doc-detective-core release notes
-      id: core_release
+      id: CORE_release
       run: |
         CORE_VERSION=${{ steps.version.outputs.version }}
         # Remove ^ or ~ if present
@@ -142,7 +143,7 @@ jobs:
 
           - Updated doc-detective-core to v${{ steps.patch.outputs.version }}:
 
-            ${{ steps.core_release.outputs.release_notes }}
+            ${{ steps.CORE_release.outputs.release_notes }}
 
           ${{ steps.merged_prs.outputs.prs }}
         tag_name: "v${{ steps.patch.outputs.version }}"
