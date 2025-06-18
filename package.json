@@ -34,11 +34,11 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "doc-detective-common": "^3.1.0-dev.1",
-    "doc-detective-core": "^3.0.0-dev.4",
+    "doc-detective-core": "^3.1.0-dev.2",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
     "chai": "^5.2.0",
-    "mocha": "^11.6.0"
+    "mocha": "^11.7.0"
   }
 }
