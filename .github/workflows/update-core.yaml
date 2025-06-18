@@ -60,7 +60,7 @@ jobs:
           echo "No changes to commit"
           echo "has_changes=false" >> $GITHUB_OUTPUT
         else
-          git commit -m "chore: bump doc-detective-core version to ${{ steps.version.outputs.version }}"
+          git commit -m "bump doc-detective-core version to ${{ steps.version.outputs.version }} [skip ci]"
           git push
           echo "has_changes=true" >> $GITHUB_OUTPUT
         fi
@@ -89,7 +89,7 @@ jobs:
           npm version patch --no-git-tag-version
         fi
         git add package.json package-lock.json
-        git commit -m "bump version to match doc-detective-core"
+        git commit -m "bump version to match doc-detective-core [skip ci]"
         git push
         git tag "v$(node -p \"require('./package.json').version\")"
         git push --tags
