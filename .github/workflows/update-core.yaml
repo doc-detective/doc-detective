@@ -52,28 +52,26 @@ jobs:
       run: |
         npm test
     
-    - name: Commit changes
-      id: commit
+    - name: Stage changes
+      id: stage
       run: |
         git add package.json package-lock.json
         if git diff --staged --quiet; then
           echo "No changes to commit"
           echo "has_changes=false" >> $GITHUB_OUTPUT
         else
-          git commit -m "bump doc-detective-core version to ${{ steps.version.outputs.version }} [skip ci]"
-          git push
           echo "has_changes=true" >> $GITHUB_OUTPUT
         fi
 
     - name: Bump or sync version
       id: patch
-      if: steps.commit.outputs.has_changes == 'true'
+      if: steps.stage.outputs.has_changes == 'true'
       run: |
         node scripts/bump-sync-version-core.js
         echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
 
-    - name: Create release
-      if: steps.commit.outputs.has_changes == 'true'
+    - name: Install GitHub CLI
+      if: steps.stage.outputs.has_changes == 'true'
       # Install GitHub CLI for fetching PRs and release notes
       run: |
         sudo apt-get update && sudo apt-get install -y gh jq
@@ -115,7 +113,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
 
     - name: Create release with detailed notes
-      if: steps.commit.outputs.has_changes == 'true'
+      if: steps.stage.outputs.has_changes == 'true'
       uses: softprops/action-gh-release@v2
       with:
         body: |
