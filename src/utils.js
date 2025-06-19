@@ -117,7 +117,7 @@ async function setConfig({ configPath, args }) {
     config.logLevel = args.logLevel;
   }
   if (typeof args.allowUnsafe === "boolean") {
-    config.allowUnsafeTests = args.allowUnsafe;
+    config.allowUnsafeSteps = args.allowUnsafe;
   }
   // Resolve paths
   config = await resolvePaths({

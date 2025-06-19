@@ -169,7 +169,7 @@ describe("Util tests", function () {
         ],
         expected: {
           input: [path.resolve(process.cwd(), "input.spec.json")],
-          allowUnsafeTests: true,
+          allowUnsafeSteps: true,
         },
       }
     ];
