@@ -8,7 +8,7 @@ const outputFile = path.resolve(`${artifactPath}/testResults.json`);
 
 // Create a server with custom options
 const server = createServer({
-  port: 8080,
+  port: 8092,
   staticDir: './test/server/public',
   modifyResponse: (req, body) => {
     // Optional modification of responses

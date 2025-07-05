@@ -2,7 +2,7 @@ tests:
 - steps:
   - loadVariables: env
   - httpRequest:
-      url: http://localhost:8080/api/users
+      url: http://localhost:8092/api/users
       method: post
       request:
         body:
@@ -13,7 +13,7 @@ tests:
           name: John Doe
           job: Software Engineer
   - httpRequest:
-      url: http://localhost:8080/api/users
+      url: http://localhost:8092/api/users
       method: post
       request:
         body:
@@ -29,7 +29,7 @@ tests:
     variables:
       ID: $$response.body.data[0].id
   - httpRequest:
-      url: http://localhost:8080/api/$ID
+      url: http://localhost:8092/api/$ID
       method: get
       timeout: 1000
     savePath: response.json

@@ -6,14 +6,14 @@ const fs = require("fs");
 /**
  * Creates an echo server that can serve static content and echo back API requests
  * @param {Object} options - Configuration options
- * @param {number} [options.port=8080] - Port to run the server on
+ * @param {number} [options.port=8092] - Port to run the server on
  * @param {string} [options.staticDir="public"] - Directory to serve static files from
  * @param {Function} [options.modifyResponse] - Function to modify responses before sending
  * @returns {Object} Server object with start and stop methods
  */
 function createServer(options = {}) {
   const {
-    port = 8080,
+    port = 8092,
     staticDir = "public",
     modifyResponse = (req, body) => body,
   } = options;
@@ -117,7 +117,7 @@ module.exports = { createServer };
 // If this file is run directly, start a server
 if (require.main === module) {
   const server = createServer({
-    port: process.env.PORT || 8080,
+    port: process.env.PORT || 8092,
     staticDir:
       process.env.STATIC_DIR ||
       path.join(process.cwd(), "./test/server/public"),
