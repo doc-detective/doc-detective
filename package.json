@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "3.1.3-dev.0",
+  "version": "3.1.3-dev.1",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "src/index.js"
