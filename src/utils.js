@@ -11,6 +11,7 @@ exports.setConfig = setConfig;
 exports.outputResults = outputResults;
 exports.spawnCommand = spawnCommand;
 exports.setMeta = setMeta;
+exports.getVersionData = getVersionData;
 
 // Define args
 function setArgs(args) {
@@ -40,8 +41,7 @@ function setArgs(args) {
       type: "string",
     })
     .option("allow-unsafe", {
-      description:
-        "Allow execution of potentially unsafe tests",
+      description: "Allow execution of potentially unsafe tests",
       type: "boolean",
     })
     .help()
@@ -257,7 +257,9 @@ const reporters = {
             `${colors.yellow}Warnings: ${specs.warning}${colors.reset}`
           );
         if (specs.skipped > 0)
-          console.log(`${colors.yellow}Skipped: ${specs.skipped}${colors.reset}`);
+          console.log(
+            `${colors.yellow}Skipped: ${specs.skipped}${colors.reset}`
+          );
       }
 
       // Print tests summary if available
@@ -279,7 +281,9 @@ const reporters = {
             `${colors.yellow}Warnings: ${tests.warning}${colors.reset}`
           );
         if (tests.skipped > 0)
-          console.log(`${colors.yellow}Skipped: ${tests.skipped}${colors.reset}`);
+          console.log(
+            `${colors.yellow}Skipped: ${tests.skipped}${colors.reset}`
+          );
       }
 
       // Print contexts summary if available
@@ -301,7 +305,9 @@ const reporters = {
             `${colors.yellow}Warnings: ${contexts.warning}${colors.reset}`
           );
         if (contexts.skipped > 0)
-          console.log(`${colors.yellow}Skipped: ${contexts.skipped}${colors.reset}`);
+          console.log(
+            `${colors.yellow}Skipped: ${contexts.skipped}${colors.reset}`
+          );
       }
 
       // Print steps summary if available
@@ -323,12 +329,16 @@ const reporters = {
             `${colors.yellow}Warnings: ${steps.warning}${colors.reset}`
           );
         if (steps.skipped > 0)
-          console.log(`${colors.yellow}Skipped: ${steps.skipped}${colors.reset}`);
+          console.log(
+            `${colors.yellow}Skipped: ${steps.skipped}${colors.reset}`
+          );
       }
 
       // If all specs were skipped, call it out
       if (allSpecsSkipped) {
-        console.log(`\n${colors.yellow}⚠️  All items were skipped. No specs passed or failed. ⚠️${colors.reset}`);
+        console.log(
+          `\n${colors.yellow}⚠️  All items were skipped. No specs passed or failed. ⚠️${colors.reset}`
+        );
       }
 
       // If we have specs with failures, display them
@@ -522,19 +532,31 @@ const reporters = {
         if (skippedTests.length > 0) {
           console.log(`\n${colors.yellow}Skipped Tests:${colors.reset}`);
           skippedTests.forEach((item, i) => {
-            console.log(`${colors.yellow}${i + 1}. ${item.id} (from ${item.specId})${colors.reset}`);
+            console.log(
+              `${colors.yellow}${i + 1}. ${item.id} (from ${item.specId})${
+                colors.reset
+              }`
+            );
           });
         }
         if (skippedContexts.length > 0) {
           console.log(`\n${colors.yellow}Skipped Contexts:${colors.reset}`);
           skippedContexts.forEach((item, i) => {
-            console.log(`${colors.yellow}${i + 1}. ${item.platform}/${item.browser} (from ${item.testId})${colors.reset}`);
+            console.log(
+              `${colors.yellow}${i + 1}. ${item.platform}/${
+                item.browser
+              } (from ${item.testId})${colors.reset}`
+            );
           });
         }
         if (skippedSteps.length > 0) {
           console.log(`\n${colors.yellow}Skipped Steps:${colors.reset}`);
           skippedSteps.forEach((item, i) => {
-            console.log(`${colors.yellow}${i + 1}. ${item.platform}/${item.browser} - ${item.stepId}${colors.reset}`);
+            console.log(
+              `${colors.yellow}${i + 1}. ${item.platform}/${item.browser} - ${
+                item.stepId
+              }${colors.reset}`
+            );
           });
         }
       } else if (!hasFailures && !allSpecsSkipped) {
@@ -680,4 +702,118 @@ function setMeta() {
     meta.dist_deployment_version || process.version;
   meta.dist_interface = meta.dist_interface || "cli";
   process.env["DOC_DETECTIVE_META"] = JSON.stringify(meta);
+}
+
+// Get version data programmatically (no console output)
+function getVersionData() {
+  try {
+    // Get main package version
+    const mainPackage = require("../package.json");
+    const versionData = {
+      main: {
+        "doc-detective": {
+          version: mainPackage.version,
+          expected: "main package",
+        },
+      },
+      dependencies: {},
+      context: {
+        executionMethod: "direct node execution",
+        nodeVersion: process.version,
+        platform: `${os.platform()} ${os.arch()}`,
+        timestamp: new Date().toISOString(),
+      },
+      locations: {},
+    };
+
+    // Auto-discover all doc-detective-* packages in node_modules
+    const nodeModulesPath = path.resolve(process.cwd(), "node_modules");
+    const dependenciesToCheck = [];
+
+    if (fs.existsSync(nodeModulesPath)) {
+      const nodeModulesContents = fs.readdirSync(nodeModulesPath);
+      nodeModulesContents.forEach((dir) => {
+        if (dir.startsWith("doc-detective-") && dir !== "doc-detective") {
+          dependenciesToCheck.push(dir);
+        }
+      });
+    }
+
+    // Detect execution method
+    const isNpx =
+      process.env.npm_execpath && process.env.npm_execpath.includes("npx");
+    const isNpm = process.env.npm_execpath && !isNpx;
+
+    if (isNpx) {
+      versionData.context.executionMethod = "npx";
+    } else if (isNpm) {
+      versionData.context.executionMethod = "npm";
+    }
+
+    // Check installed versions of dependencies
+    dependenciesToCheck.sort().forEach((dep) => {
+      try {
+        // Try to read the dependency's package.json
+        const depPackagePath = path.resolve(
+          process.cwd(),
+          "node_modules",
+          dep,
+          "package.json"
+        );
+        if (fs.existsSync(depPackagePath)) {
+          const depPackage = JSON.parse(
+            fs.readFileSync(depPackagePath, "utf8")
+          );
+          const installedVersion = depPackage.version;
+
+          // Look for expected version in main package dependencies or devDependencies
+          const expectedVersion =
+            mainPackage.dependencies[dep] ||
+            mainPackage.devDependencies[dep] ||
+            "not specified in main package";
+
+          versionData.dependencies[dep] = {
+            installed: installedVersion,
+            expected: expectedVersion,
+            status:
+              expectedVersion !== "not specified in main package" &&
+              !expectedVersion.includes(installedVersion) &&
+              !installedVersion.includes(expectedVersion.replace(/[\^~]/, ""))
+                ? "mismatch"
+                : "ok",
+          };
+
+          versionData.locations[dep] = path.resolve(
+            process.cwd(),
+            "node_modules",
+            dep
+          );
+        } else {
+          versionData.dependencies[dep] = {
+            installed: null,
+            expected:
+              mainPackage.dependencies[dep] ||
+              mainPackage.devDependencies[dep] ||
+              "not specified",
+            status: "not found",
+            error: "package.json not found",
+          };
+        }
+      } catch (error) {
+        versionData.dependencies[dep] = {
+          installed: null,
+          expected:
+            mainPackage.dependencies[dep] ||
+            mainPackage.devDependencies[dep] ||
+            "not specified",
+          status: "error",
+          error: error.message,
+        };
+      }
+    });
+
+    return versionData;
+  } catch (error) {
+    return { error: error.message };
+  }
 }
