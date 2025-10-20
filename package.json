@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "3.3.0",
+  "version": "3.4.0-dev.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "src/index.js"
@@ -33,14 +33,14 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "doc-detective-common": "^3.3.0",
-    "doc-detective-core": "^3.3.0",
+    "doc-detective-common": "^3.4.0-dita.0-dev.1",
+    "doc-detective-core": "^3.4.0-dita.0-dev.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
     "body-parser": "^2.2.0",
-    "chai": "^5.2.1",
+    "chai": "^6.2.0",
     "express": "^5.1.0",
-    "mocha": "^11.7.1"
+    "mocha": "^11.7.4"
   }
 }
