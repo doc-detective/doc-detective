@@ -12,6 +12,24 @@ exports.outputResults = outputResults;
 exports.spawnCommand = spawnCommand;
 exports.setMeta = setMeta;
 exports.getVersionData = getVersionData;
+exports.log = log;
+
+// Log function that respects logLevel
+function log(message, level = "info", config = {}) {
+  const logLevels = ["silent", "error", "warning", "info", "debug"];
+  const currentLevel = config.logLevel || "info";
+  const currentLevelIndex = logLevels.indexOf(currentLevel);
+  const messageLevelIndex = logLevels.indexOf(level);
+
+  // Only log if the message level is at or above the current log level
+  if (currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0) {
+    if (level === "error") {
+      console.error(message);
+    } else {
+      console.log(message);
+    }
+  }
+}
 
 // Define args
 function setArgs(args) {
