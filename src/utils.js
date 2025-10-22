@@ -67,6 +67,31 @@ async function setConfig({ configPath, args }) {
     }
   }
 
+  // Check for DOC_DETECTIVE_CONFIG environment variable
+  if (process.env.DOC_DETECTIVE_CONFIG) {
+    try {
+      // Parse the environment variable as JSON
+      const envConfig = JSON.parse(process.env.DOC_DETECTIVE_CONFIG);
+      
+      // Validate the environment variable config
+      const envValidation = validate({
+        schemaKey: "config_v3",
+        object: envConfig,
+      });
+      
+      if (!envValidation.valid) {
+        console.error("Invalid config from DOC_DETECTIVE_CONFIG environment variable.", envValidation.errors);
+        process.exit(1);
+      }
+      
+      // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
+      config = { ...config, ...envConfig };
+    } catch (error) {
+      console.error(`Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
   // Validate config
   const validation = validate({
     schemaKey: "config_v3",

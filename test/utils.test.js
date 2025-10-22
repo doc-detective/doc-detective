@@ -204,6 +204,59 @@ describe("Util tests", function () {
     // Clean up
     fs.unlinkSync(outputResultsPath);
   });
+
+  // Test environment variable config detection
+  it("Config from DOC_DETECTIVE_CONFIG environment variable is loaded and merged", async function () {
+    this.timeout(5000);
+    
+    // Save the original environment variable value
+    const originalEnvConfig = process.env.DOC_DETECTIVE_CONFIG;
+    
+    try {
+      // Test 1: Valid environment variable config without file config
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        logLevel: "debug"
+      });
+      
+      const config1 = await setConfig({ args: setArgs(["node", "runTests.js"]) });
+      expect(config1.logLevel).to.equal("debug");
+      
+      // Test 2: Environment variable config merged with file config (env var takes precedence)
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        logLevel: "error"
+      });
+      
+      const config2 = await setConfig({ 
+        configPath: "./test/test-config.json",
+        args: setArgs(["node", "runTests.js", "--config", "./test/test-config.json"]) 
+      });
+      // Environment variable should override file config
+      expect(config2.logLevel).to.equal("error");
+      // Check that other values from file config are preserved
+      expect(config2.telemetry.send).to.equal(false);
+      
+      // Test 3: Environment variable config with command line args (args take precedence)
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        logLevel: "warning",
+        input: "env-input.json"
+      });
+      
+      const config3 = await setConfig({ 
+        args: setArgs(["node", "runTests.js", "--input", "cli-input.json", "--logLevel", "debug"]) 
+      });
+      // Command line args should override environment variable
+      expect(config3.logLevel).to.equal("debug");
+      expect(config3.input).to.deep.equal([path.resolve(process.cwd(), "cli-input.json")]);
+      
+    } finally {
+      // Restore the original environment variable value
+      if (originalEnvConfig !== undefined) {
+        process.env.DOC_DETECTIVE_CONFIG = originalEnvConfig;
+      } else {
+        delete process.env.DOC_DETECTIVE_CONFIG;
+      }
+    }
+  });
 });
 
 // Deeply compares two objects
