@@ -1,7 +1,16 @@
 #!/usr/bin/env node
 
-const { runTests, runCoverage } = require("doc-detective-core");
-const { setArgs, setConfig, outputResults, setMeta, getVersionData, log, getResolvedTestsFromEnv } = require("./utils");
+const { runTests } = require("doc-detective-core");
+const {
+  setArgs,
+  setConfig,
+  outputResults,
+  setMeta,
+  getVersionData,
+  log,
+  getResolvedTestsFromEnv,
+  reportResults,
+} = require("./utils");
 const { argv } = require("node:process");
 const path = require("path");
 const fs = require("fs");
@@ -36,30 +45,28 @@ async function main(argv) {
   // Set config
   const config = await setConfig({ configPath: configPath, args: argv });
 
-  log(`CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`, "debug", config);
+  log(
+    `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
+    "debug",
+    config
+  );
   log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
 
   // Check for DOC_DETECTIVE_API environment variable
-  let resolvedTests = await getResolvedTestsFromEnv(config);
-  
-  // If we got resolved tests from API, apply config overrides
-  if (resolvedTests) {
-    // Apply config overrides from DOC_DETECTIVE_CONFIG to resolvedTests.config
-    if (resolvedTests.config) {
-      // Merge the current config into resolvedTests.config
-      resolvedTests.config = { ...resolvedTests.config, ...config };
-    } else {
-      resolvedTests.config = config;
-    }
-  }
+  let api = await getResolvedTestsFromEnv(config);
+  let resolvedTests = api.resolvedTests;
+  let apiConfig = api.apiConfig;
 
   // Run tests
   const output = config.output;
-  const results = resolvedTests 
-    ? await runTests(config, { resolvedTests: resolvedTests })
+  const results = resolvedTests
+    ? await runTests(config, { resolvedTests })
     : await runTests(config);
 
-  // Output results
-  await outputResults(config, output, results, { command: "runTests" });
-
+  if (apiConfig) {
+    await reportResults({ apiConfig, results });
+  } else {
+    // Output results
+    await outputResults(config, output, results, { command: "runTests" });
+  }
 }

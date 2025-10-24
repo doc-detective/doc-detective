@@ -15,6 +15,7 @@ exports.setMeta = setMeta;
 exports.getVersionData = getVersionData;
 exports.log = log;
 exports.getResolvedTestsFromEnv = getResolvedTestsFromEnv;
+exports.reportResults = reportResults;
 
 // Log function that respects logLevel
 function log(message, level = "info", config = {}) {
@@ -77,9 +78,10 @@ async function getResolvedTestsFromEnv(config = {}) {
   }
 
   let resolvedTests = null;
+  let apiConfig = null;
   try {
     // Parse the environment variable as JSON
-    const apiConfig = JSON.parse(process.env.DOC_DETECTIVE_API);
+    apiConfig = JSON.parse(process.env.DOC_DETECTIVE_API);
 
     // Validate the structure: { accountId, url, token, contextIds }
     if (!apiConfig.url || !apiConfig.token) {
@@ -142,7 +144,7 @@ async function getResolvedTestsFromEnv(config = {}) {
     );
     process.exit(1);
   }
-  return resolvedTests;
+  return { apiConfig, resolvedTests };
 }
 
 async function getConfigFromEnv() {
@@ -723,6 +725,70 @@ function registerReporter(name, reporterFunction) {
 
 // Export the registerReporter function
 exports.registerReporter = registerReporter;
+
+async function reportResults({ apiConfig, results }) {
+  // Transform results into the required format for the API
+  // Extract contexts from the nested structure and format them
+  const contexts = [];
+
+  if (results.specs) {
+    results.specs.forEach((spec) => {
+      if (spec.tests) {
+        spec.tests.forEach((test) => {
+          if (test.contexts) {
+            test.contexts.forEach((context) => {
+              // Extract or generate contextId
+              const contextId =
+                context.contextId ||
+                context.id ||
+                `${spec.specId}-${test.testId}-${
+                  context.platform || "unknown"
+                }`;
+
+              // Convert result status to lowercase (PASS -> passed, FAIL -> failed, etc.)
+              let status;
+              if (context.result === "PASS") {
+                status = "passed";
+              } else if (context.result === "FAIL") {
+                status = "failed";
+              } else if (context.result === "WARNING") {
+                status = "warning";
+              } else if (context.result === "SKIPPED") {
+                status = "skipped";
+              } else {
+                status = "unknown";
+              }
+
+              // Build the context payload with the entire context object embedded
+              contexts.push({
+                contextId: contextId,
+                status: status,
+                result: context,
+              });
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // POST to the /contexts endpoint
+  try {
+    const url = `${apiConfig.url}/contexts`;
+    const payload = { contexts };
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        "x-runner-token": apiConfig.token,
+      },
+    });
+    console.log("Results reported successfully:", response.data);
+  } catch (error) {
+    console.error(
+      `Error reporting results to ${apiConfig.url}/contexts: ${error.message}`
+    );
+  }
+}
 
 async function outputResults(config = {}, outputPath, results, options = {}) {
   // Default to using both built-in reporters if none specified
