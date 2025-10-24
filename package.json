@@ -33,6 +33,7 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "axios": "^1.12.2",
     "doc-detective-common": "^3.4.0",
     "doc-detective-core": "^3.4.0",
     "yargs": "^17.7.2"

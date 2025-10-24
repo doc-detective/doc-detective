@@ -54,6 +54,52 @@ function createServer(options = {}) {
     }
   });
 
+  // Endpoint for testing DOC_DETECTIVE_API - returns resolved tests
+  app.get("/api/resolved-tests", (req, res) => {
+    try {
+      // Check for x-runner-token header
+      const token = req.headers['x-runner-token'];
+      
+      if (!token || token !== 'test-token-123') {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return a valid resolvedTests object
+      const resolvedTests = {
+        "resolvedTestsId": "api-resolved-tests-id",
+        "config": {
+          "logLevel": "info"
+        },
+        "specs": [
+          {
+            "specId": "api-spec",
+            "tests": [
+              {
+                "testId": "api-test",
+                "contexts": [
+                  {
+                    "contextId": "api-context",
+                    "steps": [
+                      {
+                        "stepId": "step-1",
+                        "checkLink": `http://localhost:${port}`
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      };
+
+      res.json(resolvedTests);
+    } catch (error) {
+      console.error("Error processing resolved tests request:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return {
     /**
      * Start the server

@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const os = require("os");
+const axios = require("axios");
 
 exports.setArgs = setArgs;
 exports.setConfig = setConfig;
@@ -12,6 +13,26 @@ exports.outputResults = outputResults;
 exports.spawnCommand = spawnCommand;
 exports.setMeta = setMeta;
 exports.getVersionData = getVersionData;
+exports.log = log;
+exports.getResolvedTestsFromEnv = getResolvedTestsFromEnv;
+exports.reportResults = reportResults;
+
+// Log function that respects logLevel
+function log(message, level = "info", config = {}) {
+  const logLevels = ["silent", "error", "warning", "info", "debug"];
+  const currentLevel = config.logLevel || "info";
+  const currentLevelIndex = logLevels.indexOf(currentLevel);
+  const messageLevelIndex = logLevels.indexOf(level);
+
+  // Only log if the message level is at or above the current log level
+  if (currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0) {
+    if (level === "error") {
+      console.error(message);
+    } else {
+      console.log(message);
+    }
+  }
+}
 
 // Define args
 function setArgs(args) {
@@ -50,6 +71,116 @@ function setArgs(args) {
   return argv;
 }
 
+// Get resolved tests from environment variable, if set
+async function getResolvedTestsFromEnv(config = {}) {
+  if (!process.env.DOC_DETECTIVE_API) {
+    return null;
+  }
+
+  let resolvedTests = null;
+  let apiConfig = null;
+  try {
+    // Parse the environment variable as JSON
+    apiConfig = JSON.parse(process.env.DOC_DETECTIVE_API);
+
+    // Validate the structure: { accountId, url, token, contextIds }
+    if (!apiConfig.accountId || !apiConfig.url || !apiConfig.token || !apiConfig.contextIds) {
+      log(
+        "Invalid DOC_DETECTIVE_API: must contain 'accountId', 'url', 'token', and 'contextIds' properties",
+        "error",
+        config
+      );
+      process.exit(1);
+    }
+
+    log(`CLI:Fetching resolved tests from ${apiConfig.url}`, "debug", config);
+
+    // Make GET request to the specified URL with token in header
+    const response = await axios.get(apiConfig.url, {
+      headers: {
+        "x-runner-token": apiConfig.token,
+      },
+    });
+
+    // The response is the resolvedTests
+    resolvedTests = response.data;
+
+    // Validate against resolvedTests_v3 schema
+    const validation = validate({
+      schemaKey: "resolvedTests_v3",
+      object: resolvedTests,
+    });
+
+    if (!validation.valid) {
+      log(
+        "Invalid resolvedTests from API response. " + validation.errors,
+        "error",
+        config
+      );
+      process.exit(1);
+    }
+
+    // Get config from environment variable for merging
+    const envConfig = await getConfigFromEnv();
+    if (envConfig) {
+      // Apply config overrides to resolvedTests.config
+      if (resolvedTests.config) {
+        resolvedTests.config = { ...resolvedTests.config, ...envConfig };
+      } else {
+        resolvedTests.config = envConfig;
+      }
+    }
+
+    log(
+      `CLI:RESOLVED_TESTS:\n${JSON.stringify(resolvedTests, null, 2)}`,
+      "debug",
+      config
+    );
+  } catch (error) {
+    log(
+      `Error fetching resolved tests from DOC_DETECTIVE_API: ${error.message}`,
+      "error",
+      config
+    );
+    process.exit(1);
+  }
+  return { apiConfig, resolvedTests };
+}
+
+async function getConfigFromEnv() {
+  if (!process.env.DOC_DETECTIVE_CONFIG) {
+    return null;
+  }
+
+  let envConfig = null;
+  try {
+    // Parse the environment variable as JSON
+    envConfig = JSON.parse(process.env.DOC_DETECTIVE_CONFIG);
+
+    // Validate the environment variable config
+    const envValidation = validate({
+      schemaKey: "config_v3",
+      object: envConfig,
+    });
+
+    if (!envValidation.valid) {
+      console.error(
+        "Invalid config from DOC_DETECTIVE_CONFIG environment variable.",
+        envValidation.errors
+      );
+      process.exit(1);
+    }
+
+    log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
+  } catch (error) {
+    console.error(
+      `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
+    );
+    process.exit(1);
+  }
+  return envConfig;
+}
+
 // Override config values based on args and validate the config
 async function setConfig({ configPath, args }) {
   if (args.config && !configPath) {
@@ -68,28 +199,10 @@ async function setConfig({ configPath, args }) {
   }
 
   // Check for DOC_DETECTIVE_CONFIG environment variable
-  if (process.env.DOC_DETECTIVE_CONFIG) {
-    try {
-      // Parse the environment variable as JSON
-      const envConfig = JSON.parse(process.env.DOC_DETECTIVE_CONFIG);
-      
-      // Validate the environment variable config
-      const envValidation = validate({
-        schemaKey: "config_v3",
-        object: envConfig,
-      });
-      
-      if (!envValidation.valid) {
-        console.error("Invalid config from DOC_DETECTIVE_CONFIG environment variable.", envValidation.errors);
-        process.exit(1);
-      }
-      
-      // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
-      config = { ...config, ...envConfig };
-    } catch (error) {
-      console.error(`Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`);
-      process.exit(1);
-    }
+  const envConfig = await getConfigFromEnv();
+  if (envConfig) {
+    // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
+    config = { ...config, ...envConfig };
   }
 
   // Validate config
@@ -613,6 +726,70 @@ function registerReporter(name, reporterFunction) {
 // Export the registerReporter function
 exports.registerReporter = registerReporter;
 
+async function reportResults({ apiConfig, results }) {
+  // Transform results into the required format for the API
+  // Extract contexts from the nested structure and format them
+  const contexts = [];
+
+  if (results.specs) {
+    results.specs.forEach((spec) => {
+      if (spec.tests) {
+        spec.tests.forEach((test) => {
+          if (test.contexts) {
+            test.contexts.forEach((context) => {
+              // Extract or generate contextId
+              const contextId =
+                context.contextId ||
+                context.id ||
+                `${spec.specId}-${test.testId}-${
+                  context.platform || "unknown"
+                }`;
+
+              // Convert result status to lowercase (PASS -> passed, FAIL -> failed, etc.)
+              let status;
+              if (context.result === "PASS") {
+                status = "passed";
+              } else if (context.result === "FAIL") {
+                status = "failed";
+              } else if (context.result === "WARNING") {
+                status = "warning";
+              } else if (context.result === "SKIPPED") {
+                status = "skipped";
+              } else {
+                status = "unknown";
+              }
+
+              // Build the context payload with the entire context object embedded
+              contexts.push({
+                contextId: contextId,
+                status: status,
+                result: context,
+              });
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // POST to the /contexts endpoint
+  try {
+    const url = `${apiConfig.url}/contexts`;
+    const payload = { contexts };
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        "x-runner-token": apiConfig.token,
+      },
+    });
+    console.log("Results reported successfully:", response.data);
+  } catch (error) {
+    console.error(
+      `Error reporting results to ${apiConfig.url}/contexts: ${error.message}`
+    );
+  }
+}
+
 async function outputResults(config = {}, outputPath, results, options = {}) {
   // Default to using both built-in reporters if none specified
   const defaultReporters = ["terminal", "json"];
@@ -678,7 +855,9 @@ async function spawnCommand(cmd, args) {
     }
   }
 
-  const runCommand = spawn(cmd, args);
+  const runCommand = spawn(cmd, args, {
+    env: process.env, // Explicitly pass environment variables
+  });
 
   // Capture stdout
   let stdout = "";

@@ -1,7 +1,16 @@
 #!/usr/bin/env node
 
-const { runTests, runCoverage } = require("doc-detective-core");
-const { setArgs, setConfig, outputResults, setMeta, getVersionData, log } = require("./utils");
+const { runTests } = require("doc-detective-core");
+const {
+  setArgs,
+  setConfig,
+  outputResults,
+  setMeta,
+  getVersionData,
+  log,
+  getResolvedTestsFromEnv,
+  reportResults,
+} = require("./utils");
 const { argv } = require("node:process");
 const path = require("path");
 const fs = require("fs");
@@ -36,16 +45,28 @@ async function main(argv) {
   // Set config
   const config = await setConfig({ configPath: configPath, args: argv });
 
-  if (config.logLevel === "debug") {
-    console.log(`CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`);
-    console.log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`);
-  }
+  log(
+    `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
+    "debug",
+    config
+  );
+  log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
+
+  // Check for DOC_DETECTIVE_API environment variable
+  let api = await getResolvedTestsFromEnv(config);
+  let resolvedTests = api?.resolvedTests || null;
+  let apiConfig = api?.apiConfig || null;
 
   // Run tests
   const output = config.output;
-  const results = await runTests(config);
+  const results = resolvedTests
+    ? await runTests(config, { resolvedTests })
+    : await runTests(config);
 
-  // Output results
-  await outputResults(config, output, results, { command: "runTests" });
-
+  if (apiConfig) {
+    await reportResults({ apiConfig, results });
+  } else {
+    // Output results
+    await outputResults(config, output, results, { command: "runTests" });
+  }
 }
