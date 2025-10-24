@@ -43,13 +43,13 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       contextIds: "test-context",
     };
 
+    // Set environment variable
+    const originalEnv = process.env.DOC_DETECTIVE_API;
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfig);
 
     try {
-      await spawnCommand(
-        `DOC_DETECTIVE_API='${JSON.stringify(
-          apiConfig
-        )}' node ./src/index.js -o ${outputFile}`
+      const result = await spawnCommand(
+        `node ./src/index.js -o ${outputFile}`
       );
 
       // Wait until the file is written
@@ -60,19 +60,26 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       }
 
       if (fs.existsSync(outputFile)) {
-        const result = require(outputFile);
+        const testResult = require(outputFile);
         console.log(
           "API Result summary:",
-          JSON.stringify(result.summary, null, 2)
+          JSON.stringify(testResult.summary, null, 2)
         );
+        // Clean up the require cache
+        delete require.cache[require.resolve(outputFile)];
         fs.unlinkSync(outputFile);
 
         // Check that tests were run
-        assert.ok(result.summary);
-        assert.ok(result.specs);
+        assert.ok(testResult.summary);
+        assert.ok(testResult.specs);
       }
     } finally {
-      delete process.env.DOC_DETECTIVE_API;
+      // Restore original env
+      if (originalEnv !== undefined) {
+        process.env.DOC_DETECTIVE_API = originalEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_API;
+      }
     }
   });
 
@@ -82,19 +89,23 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       // Missing url and token
     };
 
+    const originalEnv = process.env.DOC_DETECTIVE_API;
     process.env.DOC_DETECTIVE_API = JSON.stringify(invalidApiConfig);
 
     try {
       const result = await spawnCommand(
-        `DOC_DETECTIVE_API='${JSON.stringify(
-          invalidApiConfig
-        )}' node ./src/index.js -o ${outputFile}`
+        `node ./src/index.js -o ${outputFile}`
       );
 
       // Should exit with non-zero code
       assert.notEqual(result.exitCode, 0);
     } finally {
-      delete process.env.DOC_DETECTIVE_API;
+      // Restore original env
+      if (originalEnv !== undefined) {
+        process.env.DOC_DETECTIVE_API = originalEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_API;
+      }
     }
   });
 
@@ -106,19 +117,23 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       contextIds: "test-context",
     };
 
+    const originalEnv = process.env.DOC_DETECTIVE_API;
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfigBadToken);
 
     try {
       const result = await spawnCommand(
-        `DOC_DETECTIVE_API='${JSON.stringify(
-          apiConfigBadToken
-        )}' node ./src/index.js -o ${outputFile}`
+        `node ./src/index.js -o ${outputFile}`
       );
 
       // Should exit with non-zero code due to 401 response
       assert.notEqual(result.exitCode, 0);
     } finally {
-      delete process.env.DOC_DETECTIVE_API;
+      // Restore original env
+      if (originalEnv !== undefined) {
+        process.env.DOC_DETECTIVE_API = originalEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_API;
+      }
     }
   });
 
@@ -134,16 +149,14 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       logLevel: "debug",
     };
 
+    const originalApiEnv = process.env.DOC_DETECTIVE_API;
+    const originalConfigEnv = process.env.DOC_DETECTIVE_CONFIG;
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfig);
     process.env.DOC_DETECTIVE_CONFIG = JSON.stringify(configOverride);
 
     try {
       await spawnCommand(
-        `DOC_DETECTIVE_API='${JSON.stringify(
-          apiConfig
-        )}' DOC_DETECTIVE_CONFIG='${JSON.stringify(
-          configOverride
-        )}' node ./src/index.js -o ${outputFile}`
+        `node ./src/index.js -o ${outputFile}`
       );
 
       // Wait until the file is written
@@ -154,16 +167,27 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       }
 
       if (fs.existsSync(outputFile)) {
-        const result = require(outputFile);
+        const testResult = require(outputFile);
+        // Clean up the require cache
+        delete require.cache[require.resolve(outputFile)];
         fs.unlinkSync(outputFile);
 
         // Check that tests were run
-        assert.ok(result.summary);
-        assert.ok(result.specs);
+        assert.ok(testResult.summary);
+        assert.ok(testResult.specs);
       }
     } finally {
-      delete process.env.DOC_DETECTIVE_API;
-      delete process.env.DOC_DETECTIVE_CONFIG;
+      // Restore original env
+      if (originalApiEnv !== undefined) {
+        process.env.DOC_DETECTIVE_API = originalApiEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_API;
+      }
+      if (originalConfigEnv !== undefined) {
+        process.env.DOC_DETECTIVE_CONFIG = originalConfigEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_CONFIG;
+      }
     }
   });
 });

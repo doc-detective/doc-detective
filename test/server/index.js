@@ -76,9 +76,15 @@ function createServer(options = {}) {
             "tests": [
               {
                 "testId": "api-test",
-                "steps": [
+                "contexts": [
                   {
-                    "checkLink": `http://localhost:${port}`
+                    "contextId": "api-context",
+                    "steps": [
+                      {
+                        "stepId": "step-1",
+                        "checkLink": `http://localhost:${port}`
+                      }
+                    ]
                   }
                 ]
               }

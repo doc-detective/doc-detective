@@ -789,7 +789,9 @@ async function spawnCommand(cmd, args) {
     }
   }
 
-  const runCommand = spawn(cmd, args);
+  const runCommand = spawn(cmd, args, {
+    env: process.env, // Explicitly pass environment variables
+  });
 
   // Capture stdout
   let stdout = "";
