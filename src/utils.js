@@ -84,9 +84,9 @@ async function getResolvedTestsFromEnv(config = {}) {
     apiConfig = JSON.parse(process.env.DOC_DETECTIVE_API);
 
     // Validate the structure: { accountId, url, token, contextIds }
-    if (!apiConfig.url || !apiConfig.token) {
+    if (!apiConfig.accountId || !apiConfig.url || !apiConfig.token || !apiConfig.contextIds) {
       log(
-        "Invalid DOC_DETECTIVE_API: must contain 'url' and 'token' properties",
+        "Invalid DOC_DETECTIVE_API: must contain 'accountId', 'url', 'token', and 'contextIds' properties",
         "error",
         config
       );
