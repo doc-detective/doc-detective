@@ -171,7 +171,7 @@ async function getConfigFromEnv() {
       process.exit(1);
     }
 
-    log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug");
+    log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
   } catch (error) {
     console.error(
       `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
