@@ -54,8 +54,8 @@ async function main(argv) {
 
   // Check for DOC_DETECTIVE_API environment variable
   let api = await getResolvedTestsFromEnv(config);
-  let resolvedTests = api.resolvedTests;
-  let apiConfig = api.apiConfig;
+  let resolvedTests = api?.resolvedTests || null;
+  let apiConfig = api?.apiConfig || null;
 
   // Run tests
   const output = config.output;
