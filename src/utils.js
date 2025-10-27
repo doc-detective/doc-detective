@@ -93,10 +93,10 @@ async function getResolvedTestsFromEnv(config = {}) {
       process.exit(1);
     }
 
-    log(`CLI:Fetching resolved tests from ${apiConfig.url}`, "debug", config);
+    log(`CLI:Fetching resolved tests from ${apiConfig.url}/resolved-tests`, "debug", config);
 
     // Make GET request to the specified URL with token in header
-    const response = await axios.get(apiConfig.url, {
+    const response = await axios.get(`${apiConfig.url}/resolved-tests`, {
       headers: {
         "x-runner-token": apiConfig.token,
       },

@@ -1,44 +1,18 @@
 {
-  "id": "Do all the things! - Spec",
   "tests": [
     {
-      "id": "Do all the things! - Test",
-      "description": "This test includes nearly every property across all actions.",
       "steps": [
         {
-          "action": "setVariables",
-          "path": ".env"
-        },
-        {
           "action": "runShell",
-          "command": "echo",
-          "args": ["$USER"]
+          "command": "echo Hello, World!"
         },
         {
           "action": "checkLink",
           "url": "https://www.duckduckgo.com"
         },
         {
-          "action": "httpRequest",
-          "url": "https://reqres.in/api/users",
-          "method": "post",
-          "requestData": {
-            "name": "morpheus",
-            "job": "leader"
-          },
-          "responseData": {
-            "name": "morpheus",
-            "job": "leader"
-          },
-          "statusCodes": [200, 201]
-        },
-        {
           "action": "goTo",
           "url": "https://www.google.com"
-        },
-        {
-          "action": "startRecording",
-          "path": "test.mp4"
         },
         {
           "action": "find",
@@ -49,12 +23,6 @@
           "typeKeys": {
             "keys": ["shorthair cat", "$ENTER$"]
           }
-        },
-        {
-          "action": "wait"
-        },
-        {
-          "action": "stopRecording"
         }
       ]
     }

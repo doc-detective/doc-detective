@@ -1,0 +1,9 @@
+{
+  "input": "dev.spec.json",
+  "logLevel": "debug",
+  "integrations": {
+    "docDetectiveApi": {
+      "apiKey": "cd6f10bf0a47db1436cb3294b54e4f3e1599ca64be0313039fb0fc474ec8d116"
+    }
+  }
+}
