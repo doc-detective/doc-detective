@@ -747,13 +747,13 @@ async function reportResults({ apiConfig, results }) {
 
               // Convert result status to lowercase (PASS -> passed, FAIL -> failed, etc.)
               let status;
-              if (context.result === "PASS") {
+              if (context.result.status === "PASS") {
                 status = "passed";
-              } else if (context.result === "FAIL") {
+              } else if (context.result.status === "FAIL") {
                 status = "failed";
-              } else if (context.result === "WARNING") {
+              } else if (context.result.status === "WARNING") {
                 status = "warning";
-              } else if (context.result === "SKIPPED") {
+              } else if (context.result.status === "SKIPPED") {
                 status = "skipped";
               } else {
                 status = "unknown";
@@ -776,6 +776,8 @@ async function reportResults({ apiConfig, results }) {
   try {
     const url = `${apiConfig.url}/contexts`;
     const payload = { contexts };
+
+    console.log(payload);
 
     const response = await axios.post(url, payload, {
       headers: {
