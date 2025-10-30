@@ -739,24 +739,22 @@ async function reportResults({ apiConfig, results }) {
             test.contexts.forEach((context) => {
               // Extract or generate contextId
               const contextId =
-                context.contextId ||
-                context.id ||
-                `${spec.specId}-${test.testId}-${
-                  context.platform || "unknown"
-                }`;
+                context.contextId;
 
               // Convert result status to lowercase (PASS -> passed, FAIL -> failed, etc.)
               let status;
-              if (context.result.status === "PASS") {
+              if (context.result === "PASS") {
                 status = "passed";
-              } else if (context.result.status === "FAIL") {
+              } else if (context.result === "FAIL") {
                 status = "failed";
-              } else if (context.result.status === "WARNING") {
+              } else if (context.result === "WARNING") {
                 status = "warning";
-              } else if (context.result.status === "SKIPPED") {
+              } else if (context.result === "SKIPPED") {
                 status = "skipped";
-              } else {
-                status = "unknown";
+              }
+              if (!status) {
+                log(config, "error", `Unknown context result status for context ID ${contextId}`);
+                return; 
               }
 
               // Build the context payload with the entire context object embedded
