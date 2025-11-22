@@ -90,7 +90,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.check_changes.outputs.skip_release == 'false'
-        run: npm ci
+        run: npm install
 
       - name: Run tests
         if: steps.check_changes.outputs.skip_release == 'false'

@@ -41,7 +41,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       
-      - run: npm ci      
+      - run: npm install      
       - run: npm test
 
   publish-npm:
@@ -58,7 +58,7 @@ jobs:
           cache-dependency-path: package-lock.json
           registry-url: https://registry.npmjs.org/
 
-      - run: npm ci
+      - run: npm install
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
