@@ -33,15 +33,15 @@
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "axios": "^1.12.2",
+    "axios": "^1.13.2",
     "doc-detective-common": "^3.5.0",
     "doc-detective-core": "^3.5.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "body-parser": "^2.2.0",
-    "chai": "^6.2.0",
+    "body-parser": "^2.2.1",
+    "chai": "^6.2.1",
     "express": "^5.1.0",
-    "mocha": "^11.7.4"
+    "mocha": "^11.7.5"
   }
 }

@@ -131,7 +131,7 @@ function createServer(options = {}) {
      * @returns {Promise} Promise that resolves when server is stopped
      */
     stop: () => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (server) {
           server.close((error) => {
             if (error) {
