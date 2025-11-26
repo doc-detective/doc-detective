@@ -2,6 +2,9 @@
   "name": "doc-detective",
   "version": "3.5.1",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=23"
+  },
   "bin": {
     "doc-detective": "src/index.js"
   },
@@ -36,7 +39,7 @@
     "axios": "^1.13.2",
     "doc-detective-common": "^3.5.1",
     "doc-detective-core": "^3.5.1",
-    "yargs": "^17.7.2"
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
     "body-parser": "^2.2.1",
