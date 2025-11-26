@@ -257,6 +257,187 @@ describe("Util tests", function () {
       }
     }
   });
+
+  // Test that false values for recursive and detectSteps are preserved
+  it("Preserves false values for recursive and detectSteps config properties", async function () {
+    this.timeout(5000);
+
+    // Save original environment variable
+    const originalEnvConfig = process.env.DOC_DETECTIVE_CONFIG;
+
+    try {
+      // Test 1: Default values when not specified (should be true)
+      const config1 = await setConfig({ args: setArgs(["node", "runTests.js"]) });
+      expect(config1.recursive).to.equal(true, "recursive should default to true");
+      expect(config1.detectSteps).to.equal(true, "detectSteps should default to true");
+
+      // Test 2: Explicitly set to false in environment variable
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        recursive: false,
+        detectSteps: false
+      });
+
+      const config2 = await setConfig({ args: setArgs(["node", "runTests.js"]) });
+      expect(config2.recursive).to.equal(false, "recursive should be false from env var");
+      expect(config2.detectSteps).to.equal(false, "detectSteps should be false from env var");
+
+      // Test 3: Explicitly set to true in environment variable
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        recursive: true,
+        detectSteps: true
+      });
+
+      const config3 = await setConfig({ args: setArgs(["node", "runTests.js"]) });
+      expect(config3.recursive).to.equal(true, "recursive should be true from env var");
+      expect(config3.detectSteps).to.equal(true, "detectSteps should be true from env var");
+
+      // Test 4: Only one set to false
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        recursive: false
+      });
+
+      const config4 = await setConfig({ args: setArgs(["node", "runTests.js"]) });
+      expect(config4.recursive).to.equal(false, "recursive should be false from env var");
+      expect(config4.detectSteps).to.equal(true, "detectSteps should default to true");
+
+      // Test 5: Only detectSteps set to false
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        detectSteps: false
+      });
+
+      const config5 = await setConfig({ args: setArgs(["node", "runTests.js"]) });
+      expect(config5.recursive).to.equal(true, "recursive should default to true");
+      expect(config5.detectSteps).to.equal(false, "detectSteps should be false from env var");
+
+    } finally {
+      // Restore the original environment variable value
+      if (originalEnvConfig !== undefined) {
+        process.env.DOC_DETECTIVE_CONFIG = originalEnvConfig;
+      } else {
+        delete process.env.DOC_DETECTIVE_CONFIG;
+      }
+    }
+  });
+
+  // Test that false values from config file are preserved
+  it("Preserves false values for recursive and detectSteps from config file", async function () {
+    this.timeout(5000);
+
+    const testConfigDir = path.resolve("./test");
+    
+    // Create temporary config files for testing
+    const configWithFalseValues = path.join(testConfigDir, "test-config-false-values.json");
+    const configWithTrueValues = path.join(testConfigDir, "test-config-true-values.json");
+    const configWithMixedValues = path.join(testConfigDir, "test-config-mixed-values.json");
+
+    try {
+      // Create config file with both set to false
+      fs.writeFileSync(configWithFalseValues, JSON.stringify({
+        recursive: false,
+        detectSteps: false,
+        logLevel: "silent"
+      }, null, 2));
+
+      // Create config file with both set to true
+      fs.writeFileSync(configWithTrueValues, JSON.stringify({
+        recursive: true,
+        detectSteps: true,
+        logLevel: "silent"
+      }, null, 2));
+
+      // Create config file with mixed values
+      fs.writeFileSync(configWithMixedValues, JSON.stringify({
+        recursive: false,
+        detectSteps: true,
+        logLevel: "silent"
+      }, null, 2));
+
+      // Test 1: Config file with false values
+      const config1 = await setConfig({
+        configPath: configWithFalseValues,
+        args: setArgs(["node", "runTests.js", "--config", configWithFalseValues])
+      });
+      expect(config1.recursive).to.equal(false, "recursive should be false from config file");
+      expect(config1.detectSteps).to.equal(false, "detectSteps should be false from config file");
+
+      // Test 2: Config file with true values
+      const config2 = await setConfig({
+        configPath: configWithTrueValues,
+        args: setArgs(["node", "runTests.js", "--config", configWithTrueValues])
+      });
+      expect(config2.recursive).to.equal(true, "recursive should be true from config file");
+      expect(config2.detectSteps).to.equal(true, "detectSteps should be true from config file");
+
+      // Test 3: Config file with mixed values
+      const config3 = await setConfig({
+        configPath: configWithMixedValues,
+        args: setArgs(["node", "runTests.js", "--config", configWithMixedValues])
+      });
+      expect(config3.recursive).to.equal(false, "recursive should be false from config file");
+      expect(config3.detectSteps).to.equal(true, "detectSteps should be true from config file");
+
+    } finally {
+      // Clean up temporary config files
+      if (fs.existsSync(configWithFalseValues)) {
+        fs.unlinkSync(configWithFalseValues);
+      }
+      if (fs.existsSync(configWithTrueValues)) {
+        fs.unlinkSync(configWithTrueValues);
+      }
+      if (fs.existsSync(configWithMixedValues)) {
+        fs.unlinkSync(configWithMixedValues);
+      }
+    }
+  });
+
+  // Test that environment variable overrides config file for recursive and detectSteps
+  it("Environment variable overrides config file for recursive and detectSteps", async function () {
+    this.timeout(5000);
+
+    const testConfigDir = path.resolve("./test");
+    const testConfigPath = path.join(testConfigDir, "test-config-override.json");
+    
+    // Save original environment variable
+    const originalEnvConfig = process.env.DOC_DETECTIVE_CONFIG;
+
+    try {
+      // Create config file with true values
+      fs.writeFileSync(testConfigPath, JSON.stringify({
+        recursive: true,
+        detectSteps: true,
+        logLevel: "silent"
+      }, null, 2));
+
+      // Set environment variable with false values
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
+        recursive: false,
+        detectSteps: false
+      });
+
+      // Environment variable should override file config
+      const config = await setConfig({
+        configPath: testConfigPath,
+        args: setArgs(["node", "runTests.js", "--config", testConfigPath])
+      });
+      
+      expect(config.recursive).to.equal(false, "recursive should be false from env var (overriding config file)");
+      expect(config.detectSteps).to.equal(false, "detectSteps should be false from env var (overriding config file)");
+      expect(config.logLevel).to.equal("silent", "logLevel should be preserved from config file");
+
+    } finally {
+      // Clean up
+      if (fs.existsSync(testConfigPath)) {
+        fs.unlinkSync(testConfigPath);
+      }
+      
+      // Restore the original environment variable value
+      if (originalEnvConfig !== undefined) {
+        process.env.DOC_DETECTIVE_CONFIG = originalEnvConfig;
+      } else {
+        delete process.env.DOC_DETECTIVE_CONFIG;
+      }
+    }
+  });
 });
 
 // Deeply compares two objects
