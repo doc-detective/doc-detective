@@ -3,15 +3,29 @@
   "version": "3.5.1",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
-    "doc-detective": "src/index.js"
+    "doc-detective": "src/index.js",
+    "doc-detective-ink": "src/ink/cli.mjs"
   },
   "main": "./src/index.js",
+  "exports": {
+    ".": {
+      "require": "./src/index.js",
+      "import": "./src/index.js"
+    },
+    "./ink": {
+      "import": "./src/ink/index.mjs"
+    },
+    "./ink/*": {
+      "import": "./src/ink/*"
+    }
+  },
   "scripts": {
     "mocha": "mocha",
     "test": "mocha test/*.test.js",
     "prerunTests": "node ./src/checkDependencies.js",
     "runTests": "node ./src/index.js runTests",
     "start": "node ./src/index.js",
+    "start:ink": "node ./src/ink/cli.mjs",
     "dev": "node ./dev"
   },
   "repository": {
@@ -36,6 +50,9 @@
     "axios": "^1.13.2",
     "doc-detective-common": "^3.5.1",
     "doc-detective-core": "^3.5.1",
+    "ink": "^6.5.1",
+    "ink-spinner": "^5.0.0",
+    "react": "^19.2.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
