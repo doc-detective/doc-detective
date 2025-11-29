@@ -18,8 +18,9 @@
 import { render } from 'ink';
 import React, { createElement } from 'react';
 import { parseArgs } from 'node:util';
-import { resolve } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import App from './App.mjs';
 
@@ -89,7 +90,9 @@ For more information, visit: https://doc-detective.com
  */
 function showVersion() {
   try {
-    const packagePath = new URL('../../package.json', import.meta.url);
+    // Use fileURLToPath and dirname for robust path resolution in ESM
+    const currentDir = dirname(fileURLToPath(import.meta.url));
+    const packagePath = resolve(currentDir, '../../package.json');
     const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
     console.log(`Doc Detective v${packageJson.version}`);
   } catch {
@@ -227,9 +230,6 @@ async function handleComplete(results, error, config) {
     const outputFile = resolve(outputPath, `testResults-${Date.now()}.json`);
     
     try {
-      const { writeFileSync, mkdirSync } = await import('node:fs');
-      const { dirname } = await import('node:path');
-      
       // Ensure output directory exists
       const dir = dirname(outputFile);
       if (!existsSync(dir)) {
