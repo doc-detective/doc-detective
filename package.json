@@ -41,7 +41,7 @@
   "devDependencies": {
     "body-parser": "^2.2.1",
     "chai": "^6.2.1",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "mocha": "^11.7.5"
   }
 }
