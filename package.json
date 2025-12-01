@@ -36,6 +36,10 @@
     "axios": "^1.13.2",
     "doc-detective-common": "^3.5.1",
     "doc-detective-core": "^3.5.1",
+    "ink": "^6.5.1",
+    "ink-select-input": "^6.2.0",
+    "ink-spinner": "^5.0.0",
+    "react": "^19.2.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {

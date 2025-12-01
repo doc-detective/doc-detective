@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { runTests } = require("doc-detective-core");
+const { runWithUI } = require("./cli/runner");
 const {
   setArgs,
   setConfig,
@@ -57,16 +57,17 @@ async function main(argv) {
   let resolvedTests = api?.resolvedTests || null;
   let apiConfig = api?.apiConfig || null;
 
-  // Run tests
+  // Run tests with the new Ink-based UI
   const output = config.output;
-  const results = resolvedTests
-    ? await runTests(config, { resolvedTests })
-    : await runTests(config);
+  const results = await runWithUI(config, { resolvedTests });
 
   if (apiConfig) {
     await reportResults({ apiConfig, results });
   } else {
-    // Output results
-    await outputResults(config, output, results, { command: "runTests" });
+    // Output results to JSON file only (terminal output is handled by Ink UI)
+    await outputResults(config, output, results, { 
+      command: "runTests",
+      reporters: ["json"] // Only use JSON reporter, not terminal reporter
+    });
   }
 }
