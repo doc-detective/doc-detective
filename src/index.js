@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-const { runWithUI } = require("./cli/runner");
 const {
   setArgs,
   setConfig,
@@ -21,6 +20,20 @@ main(argv);
 
 // Run
 async function main(argv) {
+  // Check for buildTest command first (before processing other args)
+  const rawArgs = argv.slice(2); // Remove 'node' and script path
+  if (rawArgs[0] === 'buildTest' || rawArgs[0] === 'build') {
+    // Parse build-specific options
+    const outputDir = process.cwd();
+    
+    // Dynamically import the builder to avoid ESM issues at startup
+    const { runBuilder } = require("./cli/builder");
+    
+    // Run the interactive builder
+    await runBuilder({ outputDir });
+    return;
+  }
+
   // Find index of `doc-detective` or `run` in argv
   const index = argv.findIndex(
     (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")
@@ -58,6 +71,8 @@ async function main(argv) {
   let apiConfig = api?.apiConfig || null;
 
   // Run tests with the new Ink-based UI
+  // Dynamically import to avoid ESM issues at startup
+  const { runWithUI } = require("./cli/runner");
   const output = config.output;
   const results = await runWithUI(config, { resolvedTests });
 
