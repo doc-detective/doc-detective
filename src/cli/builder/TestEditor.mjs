@@ -37,10 +37,16 @@ const TestEditor = ({
   // Validation
   const validation = useMemo(() => validateTest(localTest), [localTest]);
 
-  // Handle escape
+  // Handle escape - go back from any sub-view, or cancel from main menu
   useInput((input, key) => {
-    if (key.escape && view === 'menu') {
-      onCancel();
+    if (key.escape) {
+      if (view === 'menu') {
+        onCancel();
+      } else {
+        setView('menu');
+        setEditingField(null);
+        setEditingStepIndex(null);
+      }
     }
   });
 
@@ -135,8 +141,6 @@ const TestEditor = ({
       value: f.name,
     }));
 
-    items.push({ label: '← Back', description: '', value: '_back' });
-
     return React.createElement(
       Box,
       { flexDirection: 'column' },
@@ -148,17 +152,18 @@ const TestEditor = ({
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'cyan' }, 'Select property to add:')
       ),
+      React.createElement(
+        Text,
+        { color: 'gray', dimColor: true, marginBottom: 1 },
+        '(Esc to go back)'
+      ),
       React.createElement(ScrollableSelect, {
         items,
         itemComponent: DescriptiveItem,
         indicatorComponent: NoIndicator,
         onSelect: (item) => {
-          if (item.value === '_back') {
-            setView('menu');
-          } else {
-            setEditingField(item.value);
-            setView('editMeta');
-          }
+          setEditingField(item.value);
+          setView('editMeta');
         },
       })
     );
@@ -178,8 +183,6 @@ const TestEditor = ({
       value: f.name,
     }));
 
-    items.push({ label: '← Back', value: '_back' });
-
     return React.createElement(
       Box,
       { flexDirection: 'column' },
@@ -191,17 +194,18 @@ const TestEditor = ({
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'red' }, 'Select property to delete:')
       ),
+      React.createElement(
+        Text,
+        { color: 'gray', dimColor: true, marginBottom: 1 },
+        '(Esc to go back)'
+      ),
       React.createElement(SelectInput, {
         items,
         onSelect: (item) => {
-          if (item.value === '_back') {
-            setView('menu');
-          } else {
-            const newTest = { ...localTest };
-            delete newTest[item.value];
-            setLocalTest(newTest);
-            setView('menu');
-          }
+          const newTest = { ...localTest };
+          delete newTest[item.value];
+          setLocalTest(newTest);
+          setView('menu');
         },
       })
     );

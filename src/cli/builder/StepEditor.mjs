@@ -224,10 +224,17 @@ const StepEditor = ({
     return validateStep(localStep);
   }, [localStep, stepType]);
 
-  // Handle escape to go back
+  // Handle escape - go back from any sub-view, or cancel from main menu
   useInput((input, key) => {
-    if (key.escape && view === 'menu') {
-      onCancel();
+    if (key.escape) {
+      if (view === 'menu') {
+        onCancel();
+      } else if (view === 'selectType' || view === 'selectVariant') {
+        onCancel();
+      } else {
+        setView('menu');
+        setEditingField(null);
+      }
     }
   });
 
@@ -449,15 +456,6 @@ const StepEditor = ({
       }
     });
 
-    // Show option to switch format if variants exist
-    if (variants.length > 1) {
-      availableFields.unshift({
-        label: `↔ Switch format (currently: ${currentVariant?.title || valueType})`,
-        description: '',
-        value: '_switchVariant',
-      });
-    }
-
     return React.createElement(
       Box,
       { flexDirection: 'column' },
@@ -469,23 +467,18 @@ const StepEditor = ({
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'cyan' }, 'Select field to add:')
       ),
+      React.createElement(
+        Text,
+        { color: 'gray', dimColor: true, marginBottom: 1 },
+        '(Esc to go back)'
+      ),
       React.createElement(ScrollableSelect, {
-        items: [
-          ...availableFields,
-          { label: '← Back', description: '', value: '_back' },
-        ],
+        items: availableFields,
         itemComponent: DescriptiveItem,
         indicatorComponent: NoIndicator,
         onSelect: (item) => {
-          if (item.value === '_back') {
-            setView('menu');
-          } else if (item.value === '_switchVariant') {
-            // Show variant selector to switch format
-            setView('selectVariant');
-          } else {
-            setEditingField(item.value);
-            setView('editField');
-          }
+          setEditingField(item.value);
+          setView('editField');
         },
       })
     );
@@ -553,12 +546,6 @@ const StepEditor = ({
   // Actions
   menuItems.push({ label: '➕ Add field', value: 'add' });
   menuItems.push({ label: '🔍 Preview JSON', value: 'preview' });
-  
-  // Show switch format option if variants exist
-  if (variants.length > 1) {
-    menuItems.push({ label: '↔️  Switch format', value: 'switchVariant' });
-  }
-  
   menuItems.push({ label: '🔄 Change step type', value: 'changeType' });
 
   if (currentFields.length > 0) {

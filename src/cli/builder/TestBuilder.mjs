@@ -44,10 +44,18 @@ const TestBuilder = () => {
     return path.join(saveDir, `${safeName}.spec.json`);
   }, [specName, saveDir]);
 
-  // Handle escape for exit in name phase
+  // Handle escape - exit from name phase, go back from sub-views
   useInput((input, key) => {
-    if (key.escape && phase === 'name') {
-      exit();
+    if (key.escape) {
+      if (phase === 'name') {
+        exit();
+      } else if (phase === 'menu') {
+        // Do nothing on menu, use Exit option
+      } else {
+        setPhase('menu');
+        setEditingTestIndex(null);
+        setEditingField(null);
+      }
     }
   });
 
@@ -192,8 +200,6 @@ const TestBuilder = () => {
       value: f.name,
     }));
 
-    items.push({ label: '← Back', description: '', value: '_back' });
-
     return React.createElement(
       Box,
       { flexDirection: 'column' },
@@ -205,17 +211,18 @@ const TestBuilder = () => {
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'cyan' }, 'Select property to add:')
       ),
+      React.createElement(
+        Text,
+        { color: 'gray', dimColor: true, marginBottom: 1 },
+        '(Esc to go back)'
+      ),
       React.createElement(ScrollableSelect, {
         items,
         itemComponent: DescriptiveItem,
         indicatorComponent: NoIndicator,
         onSelect: (item) => {
-          if (item.value === '_back') {
-            setPhase('menu');
-          } else {
-            setEditingField(item.value);
-            setPhase('editMeta');
-          }
+          setEditingField(item.value);
+          setPhase('editMeta');
         },
       })
     );
@@ -235,8 +242,6 @@ const TestBuilder = () => {
       value: f.name,
     }));
 
-    items.push({ label: '← Back', value: '_back' });
-
     return React.createElement(
       Box,
       { flexDirection: 'column' },
@@ -248,17 +253,18 @@ const TestBuilder = () => {
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'red' }, 'Select property to delete:')
       ),
+      React.createElement(
+        Text,
+        { color: 'gray', dimColor: true, marginBottom: 1 },
+        '(Esc to go back)'
+      ),
       React.createElement(SelectInput, {
         items,
         onSelect: (item) => {
-          if (item.value === '_back') {
-            setPhase('menu');
-          } else {
-            const newSpec = { ...spec };
-            delete newSpec[item.value];
-            setSpec(newSpec);
-            setPhase('menu');
-          }
+          const newSpec = { ...spec };
+          delete newSpec[item.value];
+          setSpec(newSpec);
+          setPhase('menu');
         },
       })
     );
