@@ -9,7 +9,7 @@ before(async function () {
 
 describe("Util tests", function () {
   // Test that arguments are parsed correctly
-  it("Yargs parses arguments correctly", function () {
+  it("Commander parses arguments correctly", function () {
     const argSets = [
       {
         args: ["node", "runTests.js", "--input", "input.spec.json"],

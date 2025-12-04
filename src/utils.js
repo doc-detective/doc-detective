@@ -1,5 +1,4 @@
-const yargs = require("yargs/yargs");
-const { hideBin } = require("yargs/helpers");
+const { Command } = require("commander");
 const { validate, resolvePaths, readFile } = require("doc-detective-common");
 const path = require("path");
 const fs = require("fs");
@@ -37,36 +36,51 @@ function log(message, level = "info", config = {}) {
 // Define args
 function setArgs(args) {
   if (!args) return {};
-  let argv = yargs(hideBin(args))
-    .option("config", {
-      alias: "c",
-      description: "Path to a `config.json` or `config.yaml` file.",
-      type: "string",
-    })
-    .option("input", {
-      alias: "i",
-      description:
-        "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
-      type: "string",
-    })
-    .option("output", {
-      alias: "o",
-      description:
-        "Path of the directory in which to store the output of Doc Detective commands.",
-      type: "string",
-    })
-    .option("logLevel", {
-      alias: "l",
-      description:
-        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
-      type: "string",
-    })
-    .option("allow-unsafe", {
-      description: "Allow execution of potentially unsafe tests",
-      type: "boolean",
-    })
-    .help()
-    .alias("help", "h").argv;
+  
+  const program = new Command();
+  program
+    .option("-c, --config <path>", "Path to a `config.json` or `config.yaml` file.")
+    .option(
+      "-i, --input <path>",
+      "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files."
+    )
+    .option(
+      "-o, --output <path>",
+      "Path of the directory in which to store the output of Doc Detective commands."
+    )
+    .option(
+      "-l, --logLevel <level>",
+      "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug"
+    )
+    .option("--allow-unsafe", "Allow execution of potentially unsafe tests")
+    .helpOption("-h, --help", "Display help for command")
+    .allowUnknownOption()
+    .exitOverride() // Prevent commander from exiting the process
+    .configureOutput({
+      writeOut: () => {}, // Suppress output
+      writeErr: () => {},
+    });
+
+  try {
+    program.parse(args);
+  } catch (err) {
+    // Ignore parsing errors
+  }
+
+  const options = program.opts();
+  
+  // Map commander options to the expected format (with aliases)
+  const argv = {
+    config: options.config,
+    c: options.config,
+    input: options.input,
+    i: options.input,
+    output: options.output,
+    o: options.output,
+    logLevel: options.logLevel,
+    l: options.logLevel,
+    allowUnsafe: options.allowUnsafe,
+  };
 
   return argv;
 }
