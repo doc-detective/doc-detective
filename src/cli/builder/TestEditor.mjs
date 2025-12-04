@@ -13,7 +13,7 @@ import {
 } from './schemaUtils.mjs';
 import FieldEditor from './FieldEditor.mjs';
 import StepEditor from './StepEditor.mjs';
-import { StatusBar, JsonPreview } from './components.mjs';
+import { StatusBar, JsonPreview, DescriptiveItem, NoIndicator, ScrollableSelect } from './components.mjs';
 
 /**
  * Test editor - edit test properties and manage steps
@@ -130,11 +130,12 @@ const TestEditor = ({
     });
 
     const items = availableFields.map((f) => ({
-      label: `${f.name}${f.required ? ' (required)' : ''} - ${f.description?.substring(0, 40) || ''}`,
+      label: `${f.name}${f.required ? ' (required)' : ''}`,
+      description: f.description || '',
       value: f.name,
     }));
 
-    items.push({ label: '← Back', value: '_back' });
+    items.push({ label: '← Back', description: '', value: '_back' });
 
     return React.createElement(
       Box,
@@ -147,8 +148,10 @@ const TestEditor = ({
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'cyan' }, 'Select property to add:')
       ),
-      React.createElement(SelectInput, {
+      React.createElement(ScrollableSelect, {
         items,
+        itemComponent: DescriptiveItem,
+        indicatorComponent: NoIndicator,
         onSelect: (item) => {
           if (item.value === '_back') {
             setView('menu');

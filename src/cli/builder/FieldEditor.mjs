@@ -6,7 +6,7 @@ import React from 'react';
 const { useState, useEffect } = React;
 import { Box, Text, useInput } from 'ink';
 import SelectInput from 'ink-select-input';
-import { SimpleTextInput } from './components.mjs';
+import { SimpleTextInput, DescriptiveItem, NoIndicator, ScrollableSelect } from './components.mjs';
 import { validatePattern, describePattern, getFieldVariants, detectVariantIndex } from './schemaUtils.mjs';
 
 /**
@@ -23,7 +23,8 @@ const FieldVariantSelector = ({ field, currentValue, onSelect, onCancel }) => {
   });
 
   const items = variants.map((variant, index) => ({
-    label: `${variant.title}${variant.description ? ' - ' + variant.description.substring(0, 40) : ''}`,
+    label: variant.title,
+    description: variant.description || '',
     value: `variant_${index}`,
     key: `variant_${index}`,
   }));
@@ -36,9 +37,11 @@ const FieldVariantSelector = ({ field, currentValue, onSelect, onCancel }) => {
       { marginBottom: 1 },
       React.createElement(Text, { bold: true, color: 'cyan' }, field.name + ' - Select type:')
     ),
-    React.createElement(SelectInput, {
+    React.createElement(ScrollableSelect, {
       items,
       initialIndex: currentIndex,
+      itemComponent: DescriptiveItem,
+      indicatorComponent: NoIndicator,
       onSelect: (item) => {
         const index = parseInt(item.value.replace('variant_', ''), 10);
         onSelect(index, variants[index]);

@@ -16,7 +16,7 @@ import {
   validateStep,
 } from './schemaUtils.mjs';
 import FieldEditor from './FieldEditor.mjs';
-import { StatusBar, JsonPreview } from './components.mjs';
+import { StatusBar, JsonPreview, DescriptiveItem, NoIndicator, ScrollableSelect } from './components.mjs';
 
 /**
  * Step type selector
@@ -27,7 +27,8 @@ const StepTypeSelector = ({ onSelect, onCancel }) => {
   const items = stepTypes.map((type) => {
     const info = getStepTypeInfo(type);
     return {
-      label: `${type} - ${info.description.substring(0, 50)}${info.description.length > 50 ? '...' : ''}`,
+      label: type,
+      description: info.description,
       value: type,
     };
   });
@@ -46,8 +47,10 @@ const StepTypeSelector = ({ onSelect, onCancel }) => {
       { marginBottom: 1 },
       React.createElement(Text, { bold: true, color: 'cyan' }, 'Select Step Type:')
     ),
-    React.createElement(SelectInput, {
+    React.createElement(ScrollableSelect, {
       items,
+      itemComponent: DescriptiveItem,
+      indicatorComponent: NoIndicator,
       onSelect: (item) => onSelect(item.value),
     }),
     React.createElement(
@@ -427,7 +430,8 @@ const StepEditor = ({
           const fullName = `${stepType}.${f.name}`;
           if (!currentFields.find((cf) => cf.name === fullName)) {
             availableFields.push({
-              label: `${f.name}${f.required ? ' (required)' : ''} - ${f.description?.substring(0, 40) || ''}`,
+              label: `${f.name}${f.required ? ' (required)' : ''}`,
+              description: f.description || '',
               value: fullName,
             });
           }
@@ -438,7 +442,8 @@ const StepEditor = ({
     Object.entries(commonProps).forEach(([key, prop]) => {
       if (key !== '$schema' && !currentFields.find((cf) => cf.name === key)) {
         availableFields.push({
-          label: `${key} - ${prop.description?.substring(0, 40) || ''}`,
+          label: key,
+          description: prop.description || '',
           value: key,
         });
       }
@@ -448,6 +453,7 @@ const StepEditor = ({
     if (variants.length > 1) {
       availableFields.unshift({
         label: `↔ Switch format (currently: ${currentVariant?.title || valueType})`,
+        description: '',
         value: '_switchVariant',
       });
     }
@@ -463,11 +469,13 @@ const StepEditor = ({
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'cyan' }, 'Select field to add:')
       ),
-      React.createElement(SelectInput, {
+      React.createElement(ScrollableSelect, {
         items: [
           ...availableFields,
-          { label: '← Back', value: '_back' },
+          { label: '← Back', description: '', value: '_back' },
         ],
+        itemComponent: DescriptiveItem,
+        indicatorComponent: NoIndicator,
         onSelect: (item) => {
           if (item.value === '_back') {
             setView('menu');

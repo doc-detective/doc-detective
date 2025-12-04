@@ -16,7 +16,7 @@ import {
 } from './schemaUtils.mjs';
 import TestEditor from './TestEditor.mjs';
 import FieldEditor from './FieldEditor.mjs';
-import { StatusBar, JsonPreview, SimpleTextInput, LabeledTextInput, ConfirmPrompt } from './components.mjs';
+import { StatusBar, JsonPreview, SimpleTextInput, LabeledTextInput, ConfirmPrompt, DescriptiveItem, NoIndicator, ScrollableSelect } from './components.mjs';
 
 /**
  * Main TestBuilder component
@@ -187,11 +187,12 @@ const TestBuilder = () => {
     });
 
     const items = availableFields.map((f) => ({
-      label: `${f.name}${f.required ? ' (required)' : ''} - ${f.description?.substring(0, 40) || ''}`,
+      label: `${f.name}${f.required ? ' (required)' : ''}`,
+      description: f.description || '',
       value: f.name,
     }));
 
-    items.push({ label: '← Back', value: '_back' });
+    items.push({ label: '← Back', description: '', value: '_back' });
 
     return React.createElement(
       Box,
@@ -204,8 +205,10 @@ const TestBuilder = () => {
         { marginBottom: 1 },
         React.createElement(Text, { bold: true, color: 'cyan' }, 'Select property to add:')
       ),
-      React.createElement(SelectInput, {
+      React.createElement(ScrollableSelect, {
         items,
+        itemComponent: DescriptiveItem,
+        indicatorComponent: NoIndicator,
         onSelect: (item) => {
           if (item.value === '_back') {
             setPhase('menu');

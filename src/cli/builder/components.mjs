@@ -3,9 +3,123 @@
  */
 
 import React from 'react';
-const { useState, useEffect } = React;
-import { Box, Text, useInput } from 'ink';
+const { useState, useEffect, useMemo } = React;
+import { Box, Text, useInput, useStdout } from 'ink';
 import SelectInput from 'ink-select-input';
+
+/**
+ * Custom item component for SelectInput that wraps text properly
+ */
+export const DescriptiveItem = ({ isSelected, label, description }) => {
+  return React.createElement(
+    Box,
+    { flexDirection: 'column', marginBottom: description ? 1 : 0 },
+    React.createElement(
+      Text,
+      { 
+        color: isSelected ? 'cyan' : 'white',
+        bold: isSelected,
+      },
+      (isSelected ? '❯ ' : '  ') + label
+    ),
+    description && React.createElement(
+      Box,
+      { marginLeft: 4 },
+      React.createElement(
+        Text,
+        { color: 'gray', dimColor: true, wrap: 'wrap' },
+        description
+      )
+    )
+  );
+};
+
+/**
+ * Custom indicator that works with DescriptiveItem (returns null since indicator is in item)
+ */
+export const NoIndicator = () => null;
+
+/**
+ * Scrollable SelectInput with viewport indicators
+ * Shows ▲ when there are items above the viewport
+ * Shows ▼ when there are items below the viewport
+ */
+export const ScrollableSelect = ({ 
+  items, 
+  onSelect, 
+  itemComponent = DescriptiveItem,
+  indicatorComponent = NoIndicator,
+  limit: customLimit,
+  initialIndex = 0,
+}) => {
+  const { stdout } = useStdout();
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex);
+  
+  // Calculate visible items based on terminal height
+  // Reserve lines for: header, scroll indicators, footer hints
+  const terminalHeight = stdout?.rows || 24;
+  const reservedLines = 8; // Header, title, hints, margins
+  const defaultLimit = Math.max(5, Math.floor((terminalHeight - reservedLines) / 3)); // ~3 lines per item with description
+  const limit = customLimit || defaultLimit;
+
+  // Track scroll position
+  const scrollOffset = useMemo(() => {
+    if (selectedIndex < limit) {
+      return 0;
+    }
+    return Math.min(selectedIndex - limit + 1, items.length - limit);
+  }, [selectedIndex, limit, items.length]);
+
+  const hasItemsAbove = scrollOffset > 0;
+  const hasItemsBelow = scrollOffset + limit < items.length;
+
+  // Handle keyboard navigation to track selected index
+  useInput((input, key) => {
+    if (key.upArrow) {
+      setSelectedIndex(prev => Math.max(0, prev - 1));
+    } else if (key.downArrow) {
+      setSelectedIndex(prev => Math.min(items.length - 1, prev + 1));
+    }
+  });
+
+  return React.createElement(
+    Box,
+    { flexDirection: 'column' },
+    // Scroll up indicator
+    hasItemsAbove && React.createElement(
+      Box,
+      { marginLeft: 2 },
+      React.createElement(
+        Text,
+        { color: 'yellow' },
+        `▲ ${scrollOffset} more above`
+      )
+    ),
+    // The actual select input
+    React.createElement(SelectInput, {
+      items,
+      limit,
+      initialIndex,
+      itemComponent,
+      indicatorComponent,
+      onSelect,
+      onHighlight: (item) => {
+        const idx = items.findIndex(i => i.value === item.value);
+        if (idx !== -1) setSelectedIndex(idx);
+      },
+    }),
+    // Scroll down indicator
+    hasItemsBelow && React.createElement(
+      Box,
+      { marginLeft: 2 },
+      React.createElement(
+        Text,
+        { color: 'yellow' },
+        `▼ ${items.length - scrollOffset - limit} more below`
+      )
+    )
+  );
+};
 
 /**
  * Simple text input using ink's useInput hook
@@ -288,4 +402,7 @@ export default {
   JsonPreview,
   StatusBar,
   ConfirmPrompt,
+  DescriptiveItem,
+  NoIndicator,
+  ScrollableSelect,
 };
