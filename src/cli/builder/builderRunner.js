@@ -13,6 +13,9 @@
 async function runBuilder(options = {}) {
   const { outputDir = process.cwd(), initialSpec = null } = options;
 
+  // Clear terminal and move cursor to top-left
+  process.stdout.write('\x1b[2J\x1b[H');
+
   // Dynamic import of ESM modules
   const [{ render }, React, TestBuilderModule] = await Promise.all([
     import('ink'),
@@ -28,11 +31,17 @@ async function runBuilder(options = {}) {
         React.createElement(TestBuilder, {
           initialSpec,
           outputDir,
-        })
+        }),
+        {
+          // Use fullscreen mode to fill the terminal
+          exitOnCtrlC: true,
+        }
       );
 
       // Wait for the app to exit
       app.waitUntilExit().then(() => {
+        // Clear screen on exit for clean terminal
+        process.stdout.write('\x1b[2J\x1b[H');
         resolve();
       });
     } catch (error) {
