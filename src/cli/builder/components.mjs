@@ -43,6 +43,15 @@ export const NoIndicator = () => null;
  * Scrollable SelectInput with viewport indicators
  * Shows ▲ when there are items above the viewport
  * Shows ▼ when there are items below the viewport
+ * @param {Object} props
+ * @param {Array} props.items - Menu items
+ * @param {Function} props.onSelect - Selection handler
+ * @param {Component} props.itemComponent - Custom item renderer
+ * @param {Component} props.indicatorComponent - Custom indicator
+ * @param {number} props.limit - Fixed limit (overrides dynamic calculation)
+ * @param {number} props.linesPerItem - Lines each item takes (for dynamic limit calculation)
+ * @param {number} props.reservedLines - Lines reserved for header/footer (default: 8)
+ * @param {number} props.initialIndex - Initial selected index
  */
 export const ScrollableSelect = ({ 
   items, 
@@ -50,16 +59,17 @@ export const ScrollableSelect = ({
   itemComponent = DescriptiveItem,
   indicatorComponent = NoIndicator,
   limit: customLimit,
+  linesPerItem = 3,
+  reservedLines = 8,
   initialIndex = 0,
 }) => {
   const { stdout } = useStdout();
   const [selectedIndex, setSelectedIndex] = useState(initialIndex);
   
   // Calculate visible items based on terminal height
-  // Reserve lines for: header, scroll indicators, footer hints
   const terminalHeight = stdout?.rows || 24;
-  const reservedLines = 8; // Header, title, hints, margins
-  const defaultLimit = Math.max(5, Math.floor((terminalHeight - reservedLines) / 3)); // ~3 lines per item with description
+  const availableLines = Math.max(terminalHeight - reservedLines, linesPerItem);
+  const defaultLimit = Math.max(1, Math.floor(availableLines / linesPerItem));
   const limit = customLimit || defaultLimit;
 
   // Track scroll position

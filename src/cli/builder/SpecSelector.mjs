@@ -190,7 +190,8 @@ const SpecSelector = ({ specs, outputDir }) => {
       itemComponent: SpecItem,
       indicatorComponent: NoIndicator,
       onSelect: handleSelect,
-      limit: 5, // Show 5 specs at a time, each takes ~4 lines
+      linesPerItem: 5, // Each spec item takes ~5 lines (title + 3 details + margin)
+      reservedLines: 10, // Header, subtitle, count, footer hint, padding
     }),
     React.createElement(
       Box,
