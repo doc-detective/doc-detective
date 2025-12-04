@@ -20,10 +20,10 @@ main(argv);
 
 // Run
 async function main(argv) {
-  // Check for buildTest command first (before processing other args)
+  // Check for --editor flag first (before processing other args)
   const rawArgs = argv.slice(2); // Remove 'node' and script path
-  if (rawArgs[0] === 'buildTest' || rawArgs[0] === 'build') {
-    // Parse build-specific options
+  if (rawArgs.includes('--editor') || rawArgs.includes('-e')) {
+    // Parse editor-specific options
     const outputDir = process.cwd();
     
     // Dynamically import the builder to avoid ESM issues at startup
