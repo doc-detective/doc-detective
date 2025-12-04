@@ -3,26 +3,39 @@
     {
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://www.duckduckgo.com"
-        },
-        {
-          "action": "find",
-          "selector": "#searchbox_input",
-          "click": true,
-          "typeKeys": {
-            "keys": ["American Shorthair kittens", "$ENTER$"]
+          "goTo": {
+            "url": "https://www.duckduckgo.com"
           }
         },
         {
-          "action": "find",
-          "selector": "[data-testid='web-vertical']"
+          "find": {
+            "selector": "#searchbox_input",
+            "click": "true",
+            "type": {
+              "keys": [
+                "American Shorthair kittens",
+                "$ENTER$"
+              ]
+            }
+          },
+          "variables": {}
         },
         {
-          "action": "saveScreenshot",
-          "path": "search-results.png"
+          "find": {
+            "selector": "[data-testid='web-vertical']"
+          },
+          "variables": {}
+        },
+        {
+          "screenshot": {
+            "path": "search-results.png",
+            "maxVariation": 0
+          }
         }
-      ]
+      ],
+      "detectSteps": true,
+      "testId": "efd34931-ba4f-47be-85bb-d8cb61123b8d"
     }
-  ]
+  ],
+  "specId": "02db96fc-7912-4eb6-ad79-9c96c2f1f8db"
 }

@@ -3,11 +3,14 @@
  */
 
 import React from 'react';
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect } = React;
 import { Box, Text, useInput, useApp } from 'ink';
 import SelectInput from 'ink-select-input';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const yaml = require('js-yaml');
 import {
   createDefaultSpec,
   createDefaultTest,
@@ -19,30 +22,129 @@ import FieldEditor from './FieldEditor.mjs';
 import { StatusBar, JsonPreview, SimpleTextInput, LabeledTextInput, ConfirmPrompt, DescriptiveItem, NoIndicator, ScrollableSelect } from './components.mjs';
 
 /**
- * Main TestBuilder component
+ * Determine the output file path based on input file and extension
+ * @param {string|null} inputFilePath - Original input file path
+ * @param {string|null} inputFileExtension - Original file extension
+ * @param {string} specName - Spec name for new files
+ * @param {string} outputDir - Default output directory
+ * @returns {string} The computed output file path
  */
-const TestBuilder = () => {
+function computeOutputPath(inputFilePath, inputFileExtension, specName, outputDir) {
+  if (inputFilePath) {
+    const ext = inputFileExtension?.toLowerCase() || path.extname(inputFilePath).toLowerCase();
+    
+    // For JSON or YAML files, overwrite the original
+    if (ext === '.json' || ext === '.yaml' || ext === '.yml') {
+      return inputFilePath;
+    }
+    
+    // For other formats (e.g., .md), save as .spec.json in the same directory
+    const dir = path.dirname(inputFilePath);
+    const baseName = path.basename(inputFilePath, ext);
+    return path.join(dir, `${baseName}.spec.json`);
+  }
+  
+  // New file - use specName in outputDir
+  const safeName = specName.replace(/[^a-zA-Z0-9-_]/g, '-') || 'untitled';
+  return path.join(outputDir, `${safeName}.spec.json`);
+}
+
+/**
+ * Determine the output format based on file extension
+ * @param {string} filePath - The output file path
+ * @returns {'json'|'yaml'} The format to use
+ */
+function getOutputFormat(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.yaml' || ext === '.yml') {
+    return 'yaml';
+  }
+  return 'json';
+}
+
+/**
+ * Serialize spec to the appropriate format
+ * @param {Object} spec - The spec object
+ * @param {'json'|'yaml'} format - The output format
+ * @returns {string} Serialized content
+ */
+function serializeSpec(spec, format) {
+  if (format === 'yaml') {
+    return yaml.dump(spec, { 
+      indent: 2, 
+      lineWidth: -1, 
+      noRefs: true,
+      quotingType: '"',
+    });
+  }
+  return JSON.stringify(spec, null, 2);
+}
+
+/**
+ * Main TestBuilder component
+ * @param {Object} props
+ * @param {Object|null} props.initialSpec - Initial spec to edit (optional)
+ * @param {string|null} props.inputFilePath - Path to the input file (for saving)
+ * @param {string|null} props.inputFileExtension - Original file extension
+ * @param {boolean} props.isValid - Whether the initial spec passed validation
+ * @param {string|null} props.validationErrors - Validation error message if invalid
+ * @param {string} props.outputDir - Output directory for new specs
+ * @param {Function|null} props.onBack - Callback to navigate back to spec selector (optional)
+ */
+const TestBuilder = ({ 
+  initialSpec = null, 
+  inputFilePath = null, 
+  inputFileExtension = null,
+  isValid = true,
+  validationErrors = null,
+  outputDir = process.cwd(),
+  onBack = null,
+}) => {
   const { exit } = useApp();
 
+  // Determine if we're editing an existing file
+  const isEditing = initialSpec !== null && inputFilePath !== null;
+
+  // Derive initial spec name from initialSpec.specId or filename
+  const deriveSpecName = () => {
+    if (initialSpec?.specId) {
+      return initialSpec.specId;
+    }
+    if (inputFilePath) {
+      const ext = path.extname(inputFilePath);
+      return path.basename(inputFilePath, ext);
+    }
+    return '';
+  };
+
   // State
-  const [phase, setPhase] = useState('name'); // 'name', 'menu', 'editTest', 'addTest', 'editMeta', 'addMeta', 'deleteMeta', 'preview', 'save', 'saved'
-  const [specName, setSpecName] = useState('');
-  const [spec, setSpec] = useState(createDefaultSpec());
+  const [phase, setPhase] = useState(isEditing ? 'menu' : 'name'); // Skip 'name' phase when editing
+  const [specName, setSpecName] = useState(deriveSpecName());
+  const [spec, setSpec] = useState(initialSpec || createDefaultSpec());
   const [editingTestIndex, setEditingTestIndex] = useState(null);
   const [editingField, setEditingField] = useState(null);
-  const [saveDir, setSaveDir] = useState(process.cwd());
+  const [saveDir, setSaveDir] = useState(outputDir);
+  const [showValidationWarning, setShowValidationWarning] = useState(!isValid && isEditing);
 
   // Get spec fields
   const { fields: specFields } = useMemo(() => getSpecFields(), []);
 
-  // Validation
-  const validation = useMemo(() => validateSpec(spec), [spec]);
+  // Validation - wrap in try-catch since validateSpec can throw for invalid specs
+  const validation = useMemo(() => {
+    try {
+      return validateSpec(spec);
+    } catch (err) {
+      return { valid: false, errors: err.message, object: spec };
+    }
+  }, [spec]);
 
-  // Get file path
+  // Get file path - use computed path for existing files, or generate new path
   const filePath = useMemo(() => {
-    const safeName = specName.replace(/[^a-zA-Z0-9-_]/g, '-') || 'untitled';
-    return path.join(saveDir, `${safeName}.spec.json`);
-  }, [specName, saveDir]);
+    return computeOutputPath(inputFilePath, inputFileExtension, specName, saveDir);
+  }, [inputFilePath, inputFileExtension, specName, saveDir]);
+
+  // Get output format
+  const outputFormat = useMemo(() => getOutputFormat(filePath), [filePath]);
 
   // Handle escape - exit from name phase, go back from sub-views
   useInput((input, key) => {
@@ -58,6 +160,47 @@ const TestBuilder = () => {
       }
     }
   });
+
+  // Show validation warning for invalid loaded specs
+  if (showValidationWarning) {
+    return React.createElement(
+      Box,
+      { flexDirection: 'column', padding: 1 },
+      React.createElement(
+        Box,
+        { marginBottom: 1 },
+        React.createElement(Text, { bold: true, color: 'yellow' }, '⚠️  Validation Warning')
+      ),
+      React.createElement(
+        Box,
+        { marginBottom: 1 },
+        React.createElement(Text, null, 'The loaded specification has validation issues:')
+      ),
+      React.createElement(
+        Box,
+        { marginBottom: 1, marginLeft: 2 },
+        React.createElement(Text, { color: 'yellow' }, validationErrors || 'Unknown validation errors')
+      ),
+      React.createElement(
+        Box,
+        { marginBottom: 1 },
+        React.createElement(Text, { color: 'gray' }, 'You can still edit the specification, but you may need to fix these issues before saving.')
+      ),
+      React.createElement(SelectInput, {
+        items: [
+          { label: 'Continue editing', value: 'continue' },
+          { label: 'Exit', value: 'exit' },
+        ],
+        onSelect: (item) => {
+          if (item.value === 'exit') {
+            exit();
+          } else {
+            setShowValidationWarning(false);
+          }
+        },
+      })
+    );
+  }
 
   // Name input phase
   if (phase === 'name') {
@@ -281,7 +424,7 @@ const TestBuilder = () => {
       }),
       React.createElement(JsonPreview, {
         data: spec,
-        title: 'Specification Preview',
+        title: `Specification Preview (${outputFormat.toUpperCase()})`,
       }),
       !validation.valid &&
         React.createElement(
@@ -302,20 +445,47 @@ const TestBuilder = () => {
 
   // Save confirmation
   if (phase === 'save') {
-    return React.createElement(ConfirmPrompt, {
-      message: 'Save spec to ' + filePath + '?',
-      onConfirm: () => {
-        try {
-          fs.writeFileSync(filePath, JSON.stringify(spec, null, 2));
-          setPhase('saved');
-        } catch (err) {
-          // TODO: Handle error
-          console.error('Failed to save:', err);
-          setPhase('menu');
-        }
-      },
-      onCancel: () => setPhase('menu'),
-    });
+    const isOverwrite = inputFilePath && (inputFileExtension === '.json' || inputFileExtension === '.yaml' || inputFileExtension === '.yml');
+    const saveMessage = isOverwrite 
+      ? `Overwrite ${filePath}?` 
+      : `Save spec to ${filePath}?`;
+
+    return React.createElement(
+      Box,
+      { flexDirection: 'column', padding: 1 },
+      React.createElement(
+        Box,
+        { marginBottom: 1 },
+        React.createElement(Text, { color: 'cyan' }, saveMessage)
+      ),
+      outputFormat === 'yaml' && React.createElement(
+        Box,
+        { marginBottom: 1 },
+        React.createElement(Text, { color: 'gray', dimColor: true }, 'Format: YAML')
+      ),
+      React.createElement(ConfirmPrompt, {
+        message: '',
+        onConfirm: () => {
+          try {
+            // Ensure directory exists
+            const dir = path.dirname(filePath);
+            if (!fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true });
+            }
+            
+            // Serialize and write
+            const content = serializeSpec(spec, outputFormat);
+            fs.writeFileSync(filePath, content);
+            setPhase('saved');
+          } catch (err) {
+            // TODO: Handle error better
+            console.error('Failed to save:', err);
+            setPhase('menu');
+          }
+        },
+        onCancel: () => setPhase('menu'),
+      })
+    );
   }
 
   // Saved confirmation
@@ -332,6 +502,11 @@ const TestBuilder = () => {
         Box,
         { marginBottom: 1 },
         React.createElement(Text, null, 'File: ' + filePath)
+      ),
+      React.createElement(
+        Box,
+        { marginBottom: 1 },
+        React.createElement(Text, { color: 'gray', dimColor: true }, 'Format: ' + outputFormat.toUpperCase())
       ),
       React.createElement(SelectInput, {
         items: [
@@ -405,10 +580,11 @@ const TestBuilder = () => {
   menuItems.push({ label: '─────── Save/Exit ──────', value: `none_${menuIndex++}` });
 
   // Actions
-  menuItems.push({ label: '🔍 Preview JSON', value: 'preview' });
+  menuItems.push({ label: '🔍 Preview', value: 'preview' });
 
   if (validation.valid && tests.length > 0) {
-    menuItems.push({ label: '💾 Save specification', value: 'save' });
+    const saveLabel = isEditing ? '💾 Save (overwrite)' : '💾 Save specification';
+    menuItems.push({ label: saveLabel, value: 'save' });
   } else if (tests.length === 0) {
     menuItems.push({
       label: '⚠️  Add at least one test to save',
@@ -421,13 +597,23 @@ const TestBuilder = () => {
     });
   }
 
+  // Add back option if we came from spec selector
+  if (onBack) {
+    menuItems.push({ label: '◀️  Back to spec list', value: 'back' });
+  }
+
   menuItems.push({ label: '🚪 Exit (discard changes)', value: 'exit' });
+
+  // Build header info
+  const headerInfo = isEditing 
+    ? `Editing: ${path.basename(inputFilePath)}` 
+    : (specName || 'Untitled');
 
   return React.createElement(
     Box,
     { flexDirection: 'column', padding: 1 },
     React.createElement(StatusBar, {
-      location: [specName],
+      location: [specName || path.basename(inputFilePath || 'New Spec')],
       validationStatus: validation.valid,
       hint: 'Use ↑↓ to navigate, Enter to select',
     }),
@@ -435,7 +621,7 @@ const TestBuilder = () => {
       Box,
       { marginBottom: 1 },
       React.createElement(Text, { bold: true, color: 'cyan' }, '🔧 Test Builder: '),
-      React.createElement(Text, { color: 'white' }, specName || 'Untitled')
+      React.createElement(Text, { color: 'white' }, headerInfo)
     ),
     React.createElement(
       Box,
@@ -443,7 +629,7 @@ const TestBuilder = () => {
       React.createElement(
         Text,
         { color: 'gray', dimColor: true },
-        'Output: ' + filePath
+        `Output: ${filePath} (${outputFormat.toUpperCase()})`
       )
     ),
     React.createElement(SelectInput, {
@@ -482,6 +668,9 @@ const TestBuilder = () => {
             break;
           case 'save':
             setPhase('save');
+            break;
+          case 'back':
+            if (onBack) onBack();
             break;
           case 'exit':
             exit();
