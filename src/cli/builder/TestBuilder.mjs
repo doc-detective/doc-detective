@@ -73,10 +73,10 @@ const TestBuilder = () => {
         onChange: setSpecName,
         onSubmit: () => {
           if (specName.trim()) {
-            // Initialize spec with description
+            // Initialize spec with specId
             setSpec({
               ...spec,
-              description: specName,
+              specId: specName,
             });
             setPhase('menu');
           }
