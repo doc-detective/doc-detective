@@ -1024,45 +1024,24 @@ function generateHtmlReport(results, options) {
     specsHtml = '<p class="no-results">No test specifications found.</p>';
   }
 
-  // Generate overall status text and header colors
-  var overallStatusClass, overallStatusText, headerBgStart, headerBgEnd;
+  // Generate overall status text - header is always black/gray
+  var overallStatusClass, overallStatusText;
+  var headerBgStart = '#2d2d2d';
+  var headerBgEnd = '#424242';
+  
   if (hasFailures) {
     overallStatusClass = 'fail';
     overallStatusText = '❌ Some Tests Failed';
-    headerBgStart = colors.fail;
-    headerBgEnd = '#e53935';
   } else if (hasWarnings) {
     overallStatusClass = 'warning';
     overallStatusText = '⚠️ Tests Passed with Warnings';
-    headerBgStart = colors.warning;
-    headerBgEnd = '#fbc02d';
   } else if (allSkipped) {
     overallStatusClass = 'skipped';
     overallStatusText = '⏭️ All Tests Skipped';
-    headerBgStart = '#424242';
-    headerBgEnd = '#616161';
   } else {
     overallStatusClass = 'pass';
     overallStatusText = '✅ All Tests Passed';
-    headerBgStart = colors.pass;
-    headerBgEnd = colors.primaryLight;
   }
-
-  // Helper function to determine status class for a summary category
-  function getSummaryStatusClass(stat) {
-    if (!stat) return 'skipped';
-    if (stat.fail > 0) return 'fail';
-    if (stat.warning > 0) return 'warning';
-    if (stat.pass > 0) return 'pass';
-    if (stat.skipped > 0) return 'skipped';
-    return 'skipped';
-  }
-
-  // Calculate status class for each summary card
-  var specsStatusClass = getSummaryStatusClass(summary.specs);
-  var testsStatusClass = getSummaryStatusClass(summary.tests);
-  var contextsStatusClass = getSummaryStatusClass(summary.contexts);
-  var stepsStatusClass = getSummaryStatusClass(summary.steps);
 
   // Generate summary stats HTML - always show all stats (pass, fail, warning, skipped)
   var specsWarningHtml = '<span class="stat warning">⚠ ' + (summary.specs ? summary.specs.warning || 0 : 0) + '</span>';
@@ -1097,17 +1076,9 @@ function generateHtmlReport(results, options) {
   html += '    .overall-status.warning { color: ' + colors.warning + '; }\n';
   html += '    .overall-status.skipped { color: ' + colors.skipped + '; }\n';
   html += '    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }\n';
-  html += '    .summary-card { background: ' + colors.card + '; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 4px solid ' + colors.skipped + '; }\n';
-  html += '    .summary-card.pass { border-left-color: ' + colors.pass + '; }\n';
-  html += '    .summary-card.fail { border-left-color: ' + colors.fail + '; }\n';
-  html += '    .summary-card.warning { border-left-color: ' + colors.warning + '; }\n';
-  html += '    .summary-card.skipped { border-left-color: ' + colors.skipped + '; }\n';
+  html += '    .summary-card { background: ' + colors.card + '; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 4px solid #424242; }\n';
   html += '    .summary-card h3 { color: ' + colors.textSecondary + '; font-size: 14px; text-transform: uppercase; margin-bottom: 12px; }\n';
-  html += '    .summary-card .total { font-size: 32px; font-weight: bold; margin-bottom: 8px; }\n';
-  html += '    .summary-card.pass .total { color: ' + colors.pass + '; }\n';
-  html += '    .summary-card.fail .total { color: ' + colors.fail + '; }\n';
-  html += '    .summary-card.warning .total { color: ' + colors.warning + '; }\n';
-  html += '    .summary-card.skipped .total { color: ' + colors.skipped + '; }\n';
+  html += '    .summary-card .total { font-size: 32px; font-weight: bold; margin-bottom: 8px; color: #2d2d2d; }\n';
   html += '    .summary-card .stats { display: flex; gap: 12px; font-size: 13px; }\n';
   html += '    .summary-card .stat { display: flex; align-items: center; gap: 4px; }\n';
   html += '    .stat.pass { color: ' + colors.pass + '; }\n';
@@ -1115,7 +1086,11 @@ function generateHtmlReport(results, options) {
   html += '    .stat.warning { color: ' + colors.warning + '; }\n';
   html += '    .stat.skipped { color: ' + colors.skipped + '; }\n';
   html += '    .results-section h2 { color: ' + colors.primaryDark + '; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid ' + colors.primaryLight + '; }\n';
-  html += '    .spec { background: ' + colors.card + '; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); overflow: hidden; }\n';
+  html += '    .spec { background: ' + colors.card + '; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); overflow: hidden; border-left: 4px solid #424242; }\n';
+  html += '    .spec.pass { border-left-color: ' + colors.pass + '; }\n';
+  html += '    .spec.fail { border-left-color: ' + colors.fail + '; }\n';
+  html += '    .spec.warning { border-left-color: ' + colors.warning + '; }\n';
+  html += '    .spec.skipped { border-left-color: ' + colors.skipped + '; }\n';
   html += '    .spec-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: ' + colors.primaryBg + '; border-bottom: 1px solid ' + colors.border + '; }\n';
   html += '    .spec-header h3 { font-size: 18px; color: ' + colors.primaryDark + '; }\n';
   html += '    .test { border-bottom: 1px solid ' + colors.border + '; padding: 16px 20px; }\n';
@@ -1178,7 +1153,7 @@ function generateHtmlReport(results, options) {
   html += '      <div class="overall-status ' + overallStatusClass + '">' + overallStatusText + '</div>\n';
   html += '    </header>\n';
   html += '    <section class="summary">\n';
-  html += '      <div class="summary-card ' + specsStatusClass + '">\n';
+  html += '      <div class="summary-card">\n';
   html += '        <h3>Specs</h3>\n';
   html += '        <div class="total">' + totalSpecs + '</div>\n';
   html += '        <div class="stats">\n';
@@ -1188,7 +1163,7 @@ function generateHtmlReport(results, options) {
   html += '          ' + specsSkippedHtml + '\n';
   html += '        </div>\n';
   html += '      </div>\n';
-  html += '      <div class="summary-card ' + testsStatusClass + '">\n';
+  html += '      <div class="summary-card">\n';
   html += '        <h3>Tests</h3>\n';
   html += '        <div class="total">' + totalTests + '</div>\n';
   html += '        <div class="stats">\n';
@@ -1198,7 +1173,7 @@ function generateHtmlReport(results, options) {
   html += '          ' + testsSkippedHtml + '\n';
   html += '        </div>\n';
   html += '      </div>\n';
-  html += '      <div class="summary-card ' + contextsStatusClass + '">\n';
+  html += '      <div class="summary-card">\n';
   html += '        <h3>Contexts</h3>\n';
   html += '        <div class="total">' + totalContexts + '</div>\n';
   html += '        <div class="stats">\n';
@@ -1208,7 +1183,7 @@ function generateHtmlReport(results, options) {
   html += '          ' + contextsSkippedHtml + '\n';
   html += '        </div>\n';
   html += '      </div>\n';
-  html += '      <div class="summary-card ' + stepsStatusClass + '">\n';
+  html += '      <div class="summary-card">\n';
   html += '        <h3>Steps</h3>\n';
   html += '        <div class="total">' + totalSteps + '</div>\n';
   html += '        <div class="stats">\n';
