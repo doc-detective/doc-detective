@@ -1001,10 +1001,17 @@ function generateHtmlReport(results, options) {
     (summary.contexts && summary.contexts.fail > 0) ||
     (summary.steps && summary.steps.fail > 0);
 
+  const hasWarnings = 
+    (summary.specs && summary.specs.warning > 0) ||
+    (summary.tests && summary.tests.warning > 0) ||
+    (summary.contexts && summary.contexts.warning > 0) ||
+    (summary.steps && summary.steps.warning > 0);
+
   const allSkipped = 
     summary.specs && 
     summary.specs.pass === 0 && 
     summary.specs.fail === 0 && 
+    summary.specs.warning === 0 &&
     summary.specs.skipped > 0;
 
   // Generate specs HTML
@@ -1017,9 +1024,29 @@ function generateHtmlReport(results, options) {
     specsHtml = '<p class="no-results">No test specifications found.</p>';
   }
 
-  // Generate overall status text
-  var overallStatusClass = hasFailures ? 'fail' : (allSkipped ? 'skipped' : 'pass');
-  var overallStatusText = hasFailures ? '❌ Some Tests Failed' : (allSkipped ? '⏭️ All Tests Skipped' : '✅ All Tests Passed');
+  // Generate overall status text and header colors
+  var overallStatusClass, overallStatusText, headerBgStart, headerBgEnd;
+  if (hasFailures) {
+    overallStatusClass = 'fail';
+    overallStatusText = '❌ Some Tests Failed';
+    headerBgStart = colors.fail;
+    headerBgEnd = '#e53935';
+  } else if (hasWarnings) {
+    overallStatusClass = 'warning';
+    overallStatusText = '⚠️ Tests Passed with Warnings';
+    headerBgStart = colors.warning;
+    headerBgEnd = '#fbc02d';
+  } else if (allSkipped) {
+    overallStatusClass = 'skipped';
+    overallStatusText = '⏭️ All Tests Skipped';
+    headerBgStart = '#424242';
+    headerBgEnd = '#616161';
+  } else {
+    overallStatusClass = 'pass';
+    overallStatusText = '✅ All Tests Passed';
+    headerBgStart = colors.pass;
+    headerBgEnd = colors.primaryLight;
+  }
 
   // Generate summary stats HTML - always show all stats (pass, fail, warning, skipped)
   var specsWarningHtml = '<span class="stat warning">⚠ ' + (summary.specs ? summary.specs.warning || 0 : 0) + '</span>';
@@ -1042,16 +1069,17 @@ function generateHtmlReport(results, options) {
   html += '    * { box-sizing: border-box; margin: 0; padding: 0; }\n';
   html += '    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif; background-color: ' + colors.background + '; color: ' + colors.text + '; line-height: 1.6; padding: 20px; }\n';
   html += '    .container { max-width: 1200px; margin: 0 auto; }\n';
-  html += '    header { background: linear-gradient(135deg, ' + colors.primaryDark + ' 0%, ' + colors.primary + ' 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }\n';
+  html += '    header { background: linear-gradient(135deg, ' + headerBgStart + ' 0%, ' + headerBgEnd + ' 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }\n';
   html += '    header h1 { font-size: 28px; margin-bottom: 8px; }\n';
   html += '    header .timestamp { opacity: 0.9; font-size: 14px; }\n';
   html += '    header .header-details { margin-top: 12px; font-size: 13px; opacity: 0.9; }\n';
   html += '    header .header-details div { margin-bottom: 4px; }\n';
   html += '    header .header-details .label { opacity: 0.8; margin-right: 6px; }\n';
-  html += '    .overall-status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; margin-top: 12px; }\n';
-  html += '    .overall-status.pass { background-color: ' + colors.passLight + '; color: ' + colors.pass + '; }\n';
-  html += '    .overall-status.fail { background-color: ' + colors.failLight + '; color: ' + colors.fail + '; }\n';
-  html += '    .overall-status.skipped { background-color: ' + colors.skippedLight + '; color: ' + colors.skipped + '; }\n';
+  html += '    .overall-status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; margin-top: 12px; background-color: rgba(255,255,255,0.9); }\n';
+  html += '    .overall-status.pass { color: ' + colors.pass + '; }\n';
+  html += '    .overall-status.fail { color: ' + colors.fail + '; }\n';
+  html += '    .overall-status.warning { color: ' + colors.warning + '; }\n';
+  html += '    .overall-status.skipped { color: ' + colors.skipped + '; }\n';
   html += '    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }\n';
   html += '    .summary-card { background: ' + colors.card + '; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 4px solid ' + colors.primary + '; }\n';
   html += '    .summary-card h3 { color: ' + colors.textSecondary + '; font-size: 14px; text-transform: uppercase; margin-bottom: 12px; }\n';
