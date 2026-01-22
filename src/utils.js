@@ -737,8 +737,13 @@ const reporters = {
       const ext = outputPath.endsWith(".htm") ? ".htm" : ".html";
       if (fs.existsSync(outputFile)) {
         let counter = 0;
-        while (fs.existsSync(outputFile.replace(ext, `-${counter}${ext}`))) {
+        const maxCounter = 1000; // Prevent infinite loop
+        while (fs.existsSync(outputFile.replace(ext, `-${counter}${ext}`)) && counter < maxCounter) {
           counter++;
+        }
+        if (counter >= maxCounter) {
+          console.error(`Error: Too many existing HTML report files with the same name.`);
+          return null;
         }
         outputFile = outputFile.replace(ext, `-${counter}${ext}`);
       }
@@ -779,6 +784,14 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
+// Helper function to sanitize a value for use in CSS class names
+// Only allows known valid result values to prevent CSS injection
+function sanitizeResultClass(result) {
+  const validResults = ['pass', 'fail', 'warning', 'skipped', 'unknown'];
+  const normalizedResult = String(result || 'unknown').toLowerCase();
+  return validResults.includes(normalizedResult) ? normalizedResult : 'unknown';
+}
+
 // Helper function to format step details
 function formatStepDetails(step) {
   const details = [];
@@ -789,7 +802,7 @@ function formatStepDetails(step) {
   if (step.method) details.push('Method: ' + escapeHtml(step.method));
   if (step.path) details.push('Path: ' + escapeHtml(step.path));
   if (step.args && step.args.length > 0) details.push('Args: ' + escapeHtml(JSON.stringify(step.args)));
-  if (step.statusCodes && step.statusCodes.length > 0) details.push('Status Codes: ' + step.statusCodes.join(', '));
+  if (step.statusCodes && step.statusCodes.length > 0) details.push('Status Codes: ' + escapeHtml(step.statusCodes.join(', ')));
   
   return details.length > 0 ? details.join(' | ') : '';
 }
@@ -797,15 +810,16 @@ function formatStepDetails(step) {
 // Helper function to generate step HTML
 function generateStepHtml(step, stepIndex) {
   const stepResult = step.result || 'UNKNOWN';
+  const stepResultClass = sanitizeResultClass(stepResult);
   const stepAction = step.action || 'unknown';
   const stepDescription = step.resultDescription || '';
   const stepDetails = formatStepDetails(step);
   
-  var html = '<div class="step ' + stepResult.toLowerCase() + '">';
+  var html = '<div class="step ' + stepResultClass + '">';
   html += '<div class="step-header">';
   html += '<span class="step-number">' + (stepIndex + 1) + '</span>';
   html += '<span class="step-action">' + escapeHtml(stepAction) + '</span>';
-  html += '<span class="result-badge ' + stepResult.toLowerCase() + '">' + stepResult + '</span>';
+  html += '<span class="result-badge ' + stepResultClass + '">' + escapeHtml(stepResult) + '</span>';
   html += '</div>';
   if (stepDescription) {
     html += '<p class="step-description">' + escapeHtml(stepDescription) + '</p>';
@@ -820,6 +834,7 @@ function generateStepHtml(step, stepIndex) {
 // Helper function to generate context HTML
 function generateContextHtml(context) {
   const ctxResult = context.result || 'UNKNOWN';
+  const ctxResultClass = sanitizeResultClass(ctxResult);
   const ctxApp = context.app || 'unknown';
   const ctxPlatform = context.platform || 'unknown';
   
@@ -832,13 +847,13 @@ function generateContextHtml(context) {
     stepsHtml = '<p class="no-steps">No steps found.</p>';
   }
   
-  var html = '<div class="context ' + ctxResult.toLowerCase() + '">';
+  var html = '<div class="context ' + ctxResultClass + '">';
   html += '<div class="context-header">';
   html += '<span class="context-info">';
   html += '<span class="platform">' + escapeHtml(ctxPlatform) + '</span>';
   html += '<span class="app">' + escapeHtml(ctxApp) + '</span>';
   html += '</span>';
-  html += '<span class="result-badge ' + ctxResult.toLowerCase() + '">' + ctxResult + '</span>';
+  html += '<span class="result-badge ' + ctxResultClass + '">' + escapeHtml(ctxResult) + '</span>';
   html += '</div>';
   html += '<div class="steps">' + stepsHtml + '</div>';
   html += '</div>';
@@ -848,6 +863,7 @@ function generateContextHtml(context) {
 // Helper function to generate test HTML
 function generateTestHtml(test, testIndex) {
   const testResult = test.result || 'UNKNOWN';
+  const testResultClass = sanitizeResultClass(testResult);
   const testId = escapeHtml(test.id || 'Test ' + (testIndex + 1));
   
   var contextsHtml = '';
@@ -859,10 +875,10 @@ function generateTestHtml(test, testIndex) {
     contextsHtml = '<p class="no-contexts">No contexts found.</p>';
   }
   
-  var html = '<div class="test ' + testResult.toLowerCase() + '">';
+  var html = '<div class="test ' + testResultClass + '">';
   html += '<div class="test-header">';
   html += '<h4>' + testId + '</h4>';
-  html += '<span class="result-badge ' + testResult.toLowerCase() + '">' + testResult + '</span>';
+  html += '<span class="result-badge ' + testResultClass + '">' + escapeHtml(testResult) + '</span>';
   html += '</div>';
   if (test.description) {
     html += '<p class="description">' + escapeHtml(test.description) + '</p>';
@@ -875,6 +891,7 @@ function generateTestHtml(test, testIndex) {
 // Helper function to generate spec HTML
 function generateSpecHtml(spec, specIndex) {
   const specResult = spec.result || 'UNKNOWN';
+  const specResultClass = sanitizeResultClass(specResult);
   const specId = escapeHtml(spec.id || 'Spec ' + (specIndex + 1));
   
   var testsHtml = '';
@@ -886,10 +903,10 @@ function generateSpecHtml(spec, specIndex) {
     testsHtml = '<p class="no-tests">No tests found.</p>';
   }
   
-  var html = '<div class="spec ' + specResult.toLowerCase() + '">';
+  var html = '<div class="spec ' + specResultClass + '">';
   html += '<div class="spec-header">';
   html += '<h3>' + specId + '</h3>';
-  html += '<span class="result-badge ' + specResult.toLowerCase() + '">' + specResult + '</span>';
+  html += '<span class="result-badge ' + specResultClass + '">' + escapeHtml(specResult) + '</span>';
   html += '</div>';
   html += '<div class="tests">' + testsHtml + '</div>';
   html += '</div>';
