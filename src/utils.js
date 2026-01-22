@@ -952,6 +952,39 @@ function generateHtmlReport(results, options) {
     specs = results.specs || [];
   }
 
+  // Extract metadata from results and options
+  var inputFiles = [];
+  var duration = null;
+  
+  // Get input files from options/config if available
+  if (options && options.config && options.config.input) {
+    var input = options.config.input;
+    if (Array.isArray(input)) {
+      inputFiles = input;
+    } else if (typeof input === 'string') {
+      inputFiles = [input];
+    }
+  }
+  
+  // Get duration from results if available
+  if (results && results.duration) {
+    duration = results.duration;
+  } else if (results && results.startTime && results.endTime) {
+    duration = results.endTime - results.startTime;
+  }
+  
+  // Collect unique file sources from specs
+  if (specs && specs.length > 0) {
+    specs.forEach(function(spec) {
+      if (spec.file && inputFiles.indexOf(spec.file) === -1) {
+        inputFiles.push(spec.file);
+      }
+      if (spec.source && inputFiles.indexOf(spec.source) === -1) {
+        inputFiles.push(spec.source);
+      }
+    });
+  }
+
   // Calculate totals
   function calcTotal(stat) {
     return stat ? (stat.pass || 0) + (stat.fail || 0) + (stat.warning || 0) + (stat.skipped || 0) : 0;
@@ -1012,6 +1045,9 @@ function generateHtmlReport(results, options) {
   html += '    header { background: linear-gradient(135deg, ' + colors.primaryDark + ' 0%, ' + colors.primary + ' 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }\n';
   html += '    header h1 { font-size: 28px; margin-bottom: 8px; }\n';
   html += '    header .timestamp { opacity: 0.9; font-size: 14px; }\n';
+  html += '    header .header-details { margin-top: 12px; font-size: 13px; opacity: 0.9; }\n';
+  html += '    header .header-details div { margin-bottom: 4px; }\n';
+  html += '    header .header-details .label { opacity: 0.8; margin-right: 6px; }\n';
   html += '    .overall-status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; margin-top: 12px; }\n';
   html += '    .overall-status.pass { background-color: ' + colors.passLight + '; color: ' + colors.pass + '; }\n';
   html += '    .overall-status.fail { background-color: ' + colors.failLight + '; color: ' + colors.fail + '; }\n';
@@ -1067,6 +1103,26 @@ function generateHtmlReport(results, options) {
   html += '    <header>\n';
   html += '      <h1>🔍 Doc Detective Test Results</h1>\n';
   html += '      <div class="timestamp">Generated: ' + timestamp + '</div>\n';
+  
+  // Add header details section
+  html += '      <div class="header-details">\n';
+  if (inputFiles.length > 0) {
+    html += '        <div><span class="label">📁 Input:</span>' + escapeHtml(inputFiles.join(', ')) + '</div>\n';
+  }
+  if (duration !== null) {
+    var durationStr = '';
+    if (duration >= 60000) {
+      durationStr = Math.floor(duration / 60000) + 'm ' + Math.floor((duration % 60000) / 1000) + 's';
+    } else if (duration >= 1000) {
+      durationStr = (duration / 1000).toFixed(2) + 's';
+    } else {
+      durationStr = duration + 'ms';
+    }
+    html += '        <div><span class="label">⏱️ Duration:</span>' + durationStr + '</div>\n';
+  }
+  html += '        <div><span class="label">📊 Spec Files:</span>' + totalSpecs + '</div>\n';
+  html += '      </div>\n';
+  
   html += '      <div class="overall-status ' + overallStatusClass + '">' + overallStatusText + '</div>\n';
   html += '    </header>\n';
   html += '    <section class="summary">\n';
