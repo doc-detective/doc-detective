@@ -1048,6 +1048,22 @@ function generateHtmlReport(results, options) {
     headerBgEnd = colors.primaryLight;
   }
 
+  // Helper function to determine status class for a summary category
+  function getSummaryStatusClass(stat) {
+    if (!stat) return 'skipped';
+    if (stat.fail > 0) return 'fail';
+    if (stat.warning > 0) return 'warning';
+    if (stat.pass > 0) return 'pass';
+    if (stat.skipped > 0) return 'skipped';
+    return 'skipped';
+  }
+
+  // Calculate status class for each summary card
+  var specsStatusClass = getSummaryStatusClass(summary.specs);
+  var testsStatusClass = getSummaryStatusClass(summary.tests);
+  var contextsStatusClass = getSummaryStatusClass(summary.contexts);
+  var stepsStatusClass = getSummaryStatusClass(summary.steps);
+
   // Generate summary stats HTML - always show all stats (pass, fail, warning, skipped)
   var specsWarningHtml = '<span class="stat warning">⚠ ' + (summary.specs ? summary.specs.warning || 0 : 0) + '</span>';
   var specsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.specs ? summary.specs.skipped || 0 : 0) + '</span>';
@@ -1081,9 +1097,17 @@ function generateHtmlReport(results, options) {
   html += '    .overall-status.warning { color: ' + colors.warning + '; }\n';
   html += '    .overall-status.skipped { color: ' + colors.skipped + '; }\n';
   html += '    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }\n';
-  html += '    .summary-card { background: ' + colors.card + '; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 4px solid ' + colors.primary + '; }\n';
+  html += '    .summary-card { background: ' + colors.card + '; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 4px solid ' + colors.skipped + '; }\n';
+  html += '    .summary-card.pass { border-left-color: ' + colors.pass + '; }\n';
+  html += '    .summary-card.fail { border-left-color: ' + colors.fail + '; }\n';
+  html += '    .summary-card.warning { border-left-color: ' + colors.warning + '; }\n';
+  html += '    .summary-card.skipped { border-left-color: ' + colors.skipped + '; }\n';
   html += '    .summary-card h3 { color: ' + colors.textSecondary + '; font-size: 14px; text-transform: uppercase; margin-bottom: 12px; }\n';
-  html += '    .summary-card .total { font-size: 32px; font-weight: bold; color: ' + colors.primary + '; margin-bottom: 8px; }\n';
+  html += '    .summary-card .total { font-size: 32px; font-weight: bold; margin-bottom: 8px; }\n';
+  html += '    .summary-card.pass .total { color: ' + colors.pass + '; }\n';
+  html += '    .summary-card.fail .total { color: ' + colors.fail + '; }\n';
+  html += '    .summary-card.warning .total { color: ' + colors.warning + '; }\n';
+  html += '    .summary-card.skipped .total { color: ' + colors.skipped + '; }\n';
   html += '    .summary-card .stats { display: flex; gap: 12px; font-size: 13px; }\n';
   html += '    .summary-card .stat { display: flex; align-items: center; gap: 4px; }\n';
   html += '    .stat.pass { color: ' + colors.pass + '; }\n';
@@ -1154,7 +1178,7 @@ function generateHtmlReport(results, options) {
   html += '      <div class="overall-status ' + overallStatusClass + '">' + overallStatusText + '</div>\n';
   html += '    </header>\n';
   html += '    <section class="summary">\n';
-  html += '      <div class="summary-card">\n';
+  html += '      <div class="summary-card ' + specsStatusClass + '">\n';
   html += '        <h3>Specs</h3>\n';
   html += '        <div class="total">' + totalSpecs + '</div>\n';
   html += '        <div class="stats">\n';
@@ -1164,7 +1188,7 @@ function generateHtmlReport(results, options) {
   html += '          ' + specsSkippedHtml + '\n';
   html += '        </div>\n';
   html += '      </div>\n';
-  html += '      <div class="summary-card">\n';
+  html += '      <div class="summary-card ' + testsStatusClass + '">\n';
   html += '        <h3>Tests</h3>\n';
   html += '        <div class="total">' + totalTests + '</div>\n';
   html += '        <div class="stats">\n';
@@ -1174,7 +1198,7 @@ function generateHtmlReport(results, options) {
   html += '          ' + testsSkippedHtml + '\n';
   html += '        </div>\n';
   html += '      </div>\n';
-  html += '      <div class="summary-card">\n';
+  html += '      <div class="summary-card ' + contextsStatusClass + '">\n';
   html += '        <h3>Contexts</h3>\n';
   html += '        <div class="total">' + totalContexts + '</div>\n';
   html += '        <div class="stats">\n';
@@ -1184,7 +1208,7 @@ function generateHtmlReport(results, options) {
   html += '          ' + contextsSkippedHtml + '\n';
   html += '        </div>\n';
   html += '      </div>\n';
-  html += '      <div class="summary-card">\n';
+  html += '      <div class="summary-card ' + stepsStatusClass + '">\n';
   html += '        <h3>Steps</h3>\n';
   html += '        <div class="total">' + totalSteps + '</div>\n';
   html += '        <div class="stats">\n';
