@@ -709,7 +709,504 @@ const reporters = {
 
     console.log("\n===============================\n");
   },
+
+  // HTML reporter: outputs results to a self-contained HTML file
+  htmlReporter: async (config = {}, outputPath, results, options = {}) => {
+    // Define supported output extensions
+    const outputExtensions = [".html", ".htm"];
+
+    // Normalize output path
+    outputPath = path.resolve(outputPath);
+
+    let outputFile = "";
+    let outputDir = "";
+    let reportType = "doc-detective-results";
+    if (options.command) {
+      if (options.command === "runCoverage") {
+        reportType = "coverageResults";
+      } else if (options.command === "runTests") {
+        reportType = "testResults";
+      }
+    }
+
+    // Detect if output ends with a supported extension
+    if (outputExtensions.some((ext) => outputPath.endsWith(ext))) {
+      outputDir = path.dirname(outputPath);
+      outputFile = outputPath;
+      // If outputFile already exists, add a counter to the filename
+      const ext = outputPath.endsWith(".htm") ? ".htm" : ".html";
+      if (fs.existsSync(outputFile)) {
+        let counter = 0;
+        const maxCounter = 1000; // Prevent infinite loop
+        while (fs.existsSync(outputFile.replace(ext, `-${counter}${ext}`)) && counter < maxCounter) {
+          counter++;
+        }
+        if (counter >= maxCounter) {
+          console.error(`Error: Too many existing HTML report files with the same name.`);
+          return null;
+        }
+        outputFile = outputFile.replace(ext, `-${counter}${ext}`);
+      }
+    } else {
+      outputDir = outputPath;
+      outputFile = path.resolve(outputDir, `${reportType}-${Date.now()}.html`);
+    }
+
+    // Generate HTML content
+    const htmlContent = generateHtmlReport(results, options);
+
+    try {
+      // Create output directory if it doesn't exist
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      // Write results to output file
+      fs.writeFileSync(outputFile, htmlContent);
+      console.log(`See HTML report at ${outputFile}\n`);
+      return outputFile;
+    } catch (err) {
+      console.error(`Error writing HTML report to ${outputFile}. ${err}`);
+      return null;
+    }
+  },
 };
+
+// Helper function to escape HTML characters
+function escapeHtml(text) {
+  if (!text) return '';
+  const str = String(text);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Helper function to sanitize a value for use in CSS class names
+// Only allows known valid result values to prevent CSS injection
+function sanitizeResultClass(result) {
+  const validResults = ['pass', 'fail', 'warning', 'skipped', 'unknown'];
+  const normalizedResult = String(result || 'unknown').toLowerCase();
+  return validResults.includes(normalizedResult) ? normalizedResult : 'unknown';
+}
+
+// Helper function to format step details
+function formatStepDetails(step) {
+  const details = [];
+  
+  if (step.url) details.push('URL: ' + escapeHtml(step.url));
+  if (step.selector) details.push('Selector: ' + escapeHtml(step.selector));
+  if (step.command) details.push('Command: ' + escapeHtml(step.command));
+  if (step.method) details.push('Method: ' + escapeHtml(step.method));
+  if (step.path) details.push('Path: ' + escapeHtml(step.path));
+  if (step.args && step.args.length > 0) details.push('Args: ' + escapeHtml(JSON.stringify(step.args)));
+  if (step.statusCodes && step.statusCodes.length > 0) details.push('Status Codes: ' + escapeHtml(step.statusCodes.join(', ')));
+  
+  return details.length > 0 ? details.join(' | ') : '';
+}
+
+// Helper function to generate step HTML
+function generateStepHtml(step, stepIndex) {
+  const stepResult = step.result || 'UNKNOWN';
+  const stepResultClass = sanitizeResultClass(stepResult);
+  const stepAction = step.action || 'unknown';
+  const stepDescription = step.resultDescription || '';
+  const stepDetails = formatStepDetails(step);
+  
+  var html = '<div class="step ' + stepResultClass + '">';
+  html += '<div class="step-header">';
+  html += '<span class="step-number">' + (stepIndex + 1) + '</span>';
+  html += '<span class="step-action">' + escapeHtml(stepAction) + '</span>';
+  html += '<span class="result-badge ' + stepResultClass + '">' + escapeHtml(stepResult) + '</span>';
+  html += '</div>';
+  if (stepDescription) {
+    html += '<p class="step-description">' + escapeHtml(stepDescription) + '</p>';
+  }
+  if (stepDetails) {
+    html += '<div class="step-details">' + stepDetails + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// Helper function to generate context HTML
+function generateContextHtml(context) {
+  const ctxResult = context.result || 'UNKNOWN';
+  const ctxResultClass = sanitizeResultClass(ctxResult);
+  const ctxApp = context.app || 'unknown';
+  const ctxPlatform = context.platform || 'unknown';
+  
+  var stepsHtml = '';
+  if (context.steps && context.steps.length > 0) {
+    context.steps.forEach(function(step, stepIndex) {
+      stepsHtml += generateStepHtml(step, stepIndex);
+    });
+  } else {
+    stepsHtml = '<p class="no-steps">No steps found.</p>';
+  }
+  
+  var html = '<div class="context ' + ctxResultClass + '">';
+  html += '<div class="context-header">';
+  html += '<span class="context-info">';
+  html += '<span class="platform">' + escapeHtml(ctxPlatform) + '</span>';
+  html += '<span class="app">' + escapeHtml(ctxApp) + '</span>';
+  html += '</span>';
+  html += '<span class="result-badge ' + ctxResultClass + '">' + escapeHtml(ctxResult) + '</span>';
+  html += '</div>';
+  html += '<div class="steps">' + stepsHtml + '</div>';
+  html += '</div>';
+  return html;
+}
+
+// Helper function to generate test HTML
+function generateTestHtml(test, testIndex) {
+  const testResult = test.result || 'UNKNOWN';
+  const testResultClass = sanitizeResultClass(testResult);
+  const testId = escapeHtml(test.id || 'Test ' + (testIndex + 1));
+  
+  var contextsHtml = '';
+  if (test.contexts && test.contexts.length > 0) {
+    test.contexts.forEach(function(context) {
+      contextsHtml += generateContextHtml(context);
+    });
+  } else {
+    contextsHtml = '<p class="no-contexts">No contexts found.</p>';
+  }
+  
+  var html = '<div class="test ' + testResultClass + '">';
+  html += '<div class="test-header">';
+  html += '<h4>' + testId + '</h4>';
+  html += '<span class="result-badge ' + testResultClass + '">' + escapeHtml(testResult) + '</span>';
+  html += '</div>';
+  if (test.description) {
+    html += '<p class="description">' + escapeHtml(test.description) + '</p>';
+  }
+  html += '<div class="contexts">' + contextsHtml + '</div>';
+  html += '</div>';
+  return html;
+}
+
+// Helper function to generate spec HTML
+function generateSpecHtml(spec, specIndex) {
+  const specResult = spec.result || 'UNKNOWN';
+  const specResultClass = sanitizeResultClass(specResult);
+  const specId = escapeHtml(spec.id || 'Spec ' + (specIndex + 1));
+  
+  var testsHtml = '';
+  if (spec.tests && spec.tests.length > 0) {
+    spec.tests.forEach(function(test, testIndex) {
+      testsHtml += generateTestHtml(test, testIndex);
+    });
+  } else {
+    testsHtml = '<p class="no-tests">No tests found.</p>';
+  }
+  
+  var html = '<div class="spec ' + specResultClass + '">';
+  html += '<div class="spec-header">';
+  html += '<h3>' + specId + '</h3>';
+  html += '<span class="result-badge ' + specResultClass + '">' + escapeHtml(specResult) + '</span>';
+  html += '</div>';
+  html += '<div class="tests">' + testsHtml + '</div>';
+  html += '</div>';
+  return html;
+}
+
+// Helper function to generate the HTML report content
+function generateHtmlReport(results, options) {
+  // Green-based color scheme
+  const colors = {
+    primaryDark: "#1b5e20",
+    primary: "#2e7d32",
+    primaryLight: "#4caf50",
+    primaryBg: "#e8f5e9",
+    pass: "#2e7d32",
+    passLight: "#c8e6c9",
+    fail: "#c62828",
+    failLight: "#ffcdd2",
+    warning: "#f57f17",
+    warningLight: "#fff9c4",
+    skipped: "#757575",
+    skippedLight: "#f5f5f5",
+    text: "#212121",
+    textSecondary: "#616161",
+    background: "#fafafa",
+    card: "#ffffff",
+    border: "#e0e0e0"
+  };
+
+  const timestamp = new Date().toLocaleString();
+
+  // Handle empty/null results
+  var summary = { specs: {}, tests: {}, contexts: {}, steps: {} };
+  var specs = [];
+  
+  if (results) {
+    summary = results.summary || {
+      specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+      tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+      contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+      steps: { pass: 0, fail: 0, warning: 0, skipped: 0 }
+    };
+    specs = results.specs || [];
+  }
+
+  // Extract metadata from results and options
+  var inputFiles = [];
+  var duration = null;
+  
+  // Get input files from options/config if available
+  if (options && options.config && options.config.input) {
+    var input = options.config.input;
+    if (Array.isArray(input)) {
+      inputFiles = input;
+    } else if (typeof input === 'string') {
+      inputFiles = [input];
+    }
+  }
+  
+  // Get duration from results if available
+  if (results && results.duration) {
+    duration = results.duration;
+  } else if (results && results.startTime && results.endTime) {
+    duration = results.endTime - results.startTime;
+  }
+  
+  // Collect unique file sources from specs
+  if (specs && specs.length > 0) {
+    specs.forEach(function(spec) {
+      if (spec.file && inputFiles.indexOf(spec.file) === -1) {
+        inputFiles.push(spec.file);
+      }
+      if (spec.source && inputFiles.indexOf(spec.source) === -1) {
+        inputFiles.push(spec.source);
+      }
+    });
+  }
+
+  // Calculate totals
+  function calcTotal(stat) {
+    return stat ? (stat.pass || 0) + (stat.fail || 0) + (stat.warning || 0) + (stat.skipped || 0) : 0;
+  }
+  const totalSpecs = calcTotal(summary.specs);
+  const totalTests = calcTotal(summary.tests);
+  const totalContexts = calcTotal(summary.contexts);
+  const totalSteps = calcTotal(summary.steps);
+
+  // Determine overall status
+  const hasFailures = 
+    (summary.specs && summary.specs.fail > 0) ||
+    (summary.tests && summary.tests.fail > 0) ||
+    (summary.contexts && summary.contexts.fail > 0) ||
+    (summary.steps && summary.steps.fail > 0);
+
+  const hasWarnings = 
+    (summary.specs && summary.specs.warning > 0) ||
+    (summary.tests && summary.tests.warning > 0) ||
+    (summary.contexts && summary.contexts.warning > 0) ||
+    (summary.steps && summary.steps.warning > 0);
+
+  const allSkipped = 
+    summary.specs && 
+    summary.specs.pass === 0 && 
+    summary.specs.fail === 0 && 
+    summary.specs.warning === 0 &&
+    summary.specs.skipped > 0;
+
+  // Generate specs HTML
+  var specsHtml = '';
+  if (specs && specs.length > 0) {
+    specs.forEach(function(spec, specIndex) {
+      specsHtml += generateSpecHtml(spec, specIndex);
+    });
+  } else {
+    specsHtml = '<p class="no-results">No test specifications found.</p>';
+  }
+
+  // Generate overall status text - header is always black/gray
+  var overallStatusClass, overallStatusText;
+  var headerBgStart = '#2d2d2d';
+  var headerBgEnd = '#424242';
+  
+  if (hasFailures) {
+    overallStatusClass = 'fail';
+    overallStatusText = '❌ Some Tests Failed';
+  } else if (hasWarnings) {
+    overallStatusClass = 'warning';
+    overallStatusText = '⚠️ Tests Passed with Warnings';
+  } else if (allSkipped) {
+    overallStatusClass = 'skipped';
+    overallStatusText = '⏭️ All Tests Skipped';
+  } else {
+    overallStatusClass = 'pass';
+    overallStatusText = '✅ All Tests Passed';
+  }
+
+  // Generate summary stats HTML - always show all stats (pass, fail, warning, skipped)
+  var specsWarningHtml = '<span class="stat warning">⚠ ' + (summary.specs ? summary.specs.warning || 0 : 0) + '</span>';
+  var specsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.specs ? summary.specs.skipped || 0 : 0) + '</span>';
+  var testsWarningHtml = '<span class="stat warning">⚠ ' + (summary.tests ? summary.tests.warning || 0 : 0) + '</span>';
+  var testsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.tests ? summary.tests.skipped || 0 : 0) + '</span>';
+  var contextsWarningHtml = '<span class="stat warning">⚠ ' + (summary.contexts ? summary.contexts.warning || 0 : 0) + '</span>';
+  var contextsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.contexts ? summary.contexts.skipped || 0 : 0) + '</span>';
+  var stepsWarningHtml = '<span class="stat warning">⚠ ' + (summary.steps ? summary.steps.warning || 0 : 0) + '</span>';
+  var stepsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.steps ? summary.steps.skipped || 0 : 0) + '</span>';
+
+  // Build the complete HTML document using string concatenation
+  var html = '<!DOCTYPE html>\n';
+  html += '<html lang="en">\n';
+  html += '<head>\n';
+  html += '  <meta charset="UTF-8">\n';
+  html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+  html += '  <title>Doc Detective Test Results</title>\n';
+  html += '  <style>\n';
+  html += '    * { box-sizing: border-box; margin: 0; padding: 0; }\n';
+  html += '    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif; background-color: ' + colors.background + '; color: ' + colors.text + '; line-height: 1.6; padding: 20px; }\n';
+  html += '    .container { max-width: 1200px; margin: 0 auto; }\n';
+  html += '    header { background: linear-gradient(135deg, ' + headerBgStart + ' 0%, ' + headerBgEnd + ' 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }\n';
+  html += '    header h1 { font-size: 28px; margin-bottom: 8px; }\n';
+  html += '    header .timestamp { opacity: 0.9; font-size: 14px; }\n';
+  html += '    header .header-details { margin-top: 12px; font-size: 13px; opacity: 0.9; }\n';
+  html += '    header .header-details div { margin-bottom: 4px; }\n';
+  html += '    header .header-details .label { opacity: 0.8; margin-right: 6px; }\n';
+  html += '    .overall-status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; margin-top: 12px; background-color: rgba(255,255,255,0.9); }\n';
+  html += '    .overall-status.pass { color: ' + colors.pass + '; }\n';
+  html += '    .overall-status.fail { color: ' + colors.fail + '; }\n';
+  html += '    .overall-status.warning { color: ' + colors.warning + '; }\n';
+  html += '    .overall-status.skipped { color: ' + colors.skipped + '; }\n';
+  html += '    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }\n';
+  html += '    .summary-card { background: ' + colors.card + '; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 4px solid #424242; }\n';
+  html += '    .summary-card h3 { color: ' + colors.textSecondary + '; font-size: 14px; text-transform: uppercase; margin-bottom: 12px; }\n';
+  html += '    .summary-card .total { font-size: 32px; font-weight: bold; margin-bottom: 8px; color: #2d2d2d; }\n';
+  html += '    .summary-card .stats { display: flex; gap: 12px; font-size: 13px; }\n';
+  html += '    .summary-card .stat { display: flex; align-items: center; gap: 4px; }\n';
+  html += '    .stat.pass { color: ' + colors.pass + '; }\n';
+  html += '    .stat.fail { color: ' + colors.fail + '; }\n';
+  html += '    .stat.warning { color: ' + colors.warning + '; }\n';
+  html += '    .stat.skipped { color: ' + colors.skipped + '; }\n';
+  html += '    .results-section h2 { color: ' + colors.primaryDark + '; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid ' + colors.primaryLight + '; }\n';
+  html += '    .spec { background: ' + colors.card + '; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); overflow: hidden; border-left: 4px solid #424242; }\n';
+  html += '    .spec.pass { border-left-color: ' + colors.pass + '; }\n';
+  html += '    .spec.fail { border-left-color: ' + colors.fail + '; }\n';
+  html += '    .spec.warning { border-left-color: ' + colors.warning + '; }\n';
+  html += '    .spec.skipped { border-left-color: ' + colors.skipped + '; }\n';
+  html += '    .spec-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: ' + colors.primaryBg + '; border-bottom: 1px solid ' + colors.border + '; }\n';
+  html += '    .spec-header h3 { font-size: 18px; color: ' + colors.primaryDark + '; }\n';
+  html += '    .test { border-bottom: 1px solid ' + colors.border + '; padding: 16px 20px; }\n';
+  html += '    .test:last-child { border-bottom: none; }\n';
+  html += '    .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }\n';
+  html += '    .test-header h4 { font-size: 16px; color: ' + colors.text + '; }\n';
+  html += '    .description { color: ' + colors.textSecondary + '; font-size: 14px; margin-bottom: 12px; }\n';
+  html += '    .context { background: ' + colors.background + '; border-radius: 6px; margin-top: 12px; overflow: hidden; }\n';
+  html += '    .context-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: ' + colors.primaryBg + '; font-size: 14px; }\n';
+  html += '    .context-info { display: flex; gap: 8px; }\n';
+  html += '    .context-info span { background: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; color: ' + colors.primaryDark + '; }\n';
+  html += '    .steps { padding: 12px 16px; }\n';
+  html += '    .step { padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ' + colors.border + '; }\n';
+  html += '    .step:last-child { margin-bottom: 0; }\n';
+  html += '    .step.pass { background: ' + colors.passLight + '; border-left-color: ' + colors.pass + '; }\n';
+  html += '    .step.fail { background: ' + colors.failLight + '; border-left-color: ' + colors.fail + '; }\n';
+  html += '    .step.warning { background: ' + colors.warningLight + '; border-left-color: ' + colors.warning + '; }\n';
+  html += '    .step.skipped { background: ' + colors.skippedLight + '; border-left-color: ' + colors.skipped + '; }\n';
+  html += '    .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }\n';
+  html += '    .step-number { background: ' + colors.primary + '; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }\n';
+  html += '    .step-action { font-weight: 600; color: ' + colors.text + '; }\n';
+  html += '    .step-description { color: ' + colors.textSecondary + '; font-size: 13px; margin-left: 34px; }\n';
+  html += '    .step-details { margin-top: 8px; margin-left: 34px; font-size: 12px; font-family: Monaco, Consolas, monospace; background: rgba(0,0,0,0.03); padding: 8px 12px; border-radius: 4px; overflow-x: auto; color: ' + colors.textSecondary + '; }\n';
+  html += '    .result-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: uppercase; }\n';
+  html += '    .result-badge.pass { background: ' + colors.passLight + '; color: ' + colors.pass + '; }\n';
+  html += '    .result-badge.fail { background: ' + colors.failLight + '; color: ' + colors.fail + '; }\n';
+  html += '    .result-badge.warning { background: ' + colors.warningLight + '; color: ' + colors.warning + '; }\n';
+  html += '    .result-badge.skipped { background: ' + colors.skippedLight + '; color: ' + colors.skipped + '; }\n';
+  html += '    .no-results, .no-tests, .no-contexts, .no-steps { color: ' + colors.textSecondary + '; font-style: italic; padding: 20px; text-align: center; }\n';
+  html += '    footer { text-align: center; padding: 20px; color: ' + colors.textSecondary + '; font-size: 13px; margin-top: 20px; }\n';
+  html += '    footer a { color: ' + colors.primary + '; text-decoration: none; }\n';
+  html += '    footer a:hover { text-decoration: underline; }\n';
+  html += '  </style>\n';
+  html += '</head>\n';
+  html += '<body>\n';
+  html += '  <div class="container">\n';
+  html += '    <header>\n';
+  html += '      <h1>🔍 Doc Detective Test Results</h1>\n';
+  html += '      <div class="timestamp">Generated: ' + timestamp + '</div>\n';
+  
+  // Add header details section
+  html += '      <div class="header-details">\n';
+  if (inputFiles.length > 0) {
+    html += '        <div><span class="label">📁 Input:</span>' + escapeHtml(inputFiles.join(', ')) + '</div>\n';
+  }
+  if (duration !== null) {
+    var durationStr = '';
+    if (duration >= 60000) {
+      durationStr = Math.floor(duration / 60000) + 'm ' + Math.floor((duration % 60000) / 1000) + 's';
+    } else if (duration >= 1000) {
+      durationStr = (duration / 1000).toFixed(2) + 's';
+    } else {
+      durationStr = duration + 'ms';
+    }
+    html += '        <div><span class="label">⏱️ Duration:</span>' + durationStr + '</div>\n';
+  }
+  html += '        <div><span class="label">📊 Spec Files:</span>' + totalSpecs + '</div>\n';
+  html += '      </div>\n';
+  
+  html += '      <div class="overall-status ' + overallStatusClass + '">' + overallStatusText + '</div>\n';
+  html += '    </header>\n';
+  html += '    <section class="summary">\n';
+  html += '      <div class="summary-card">\n';
+  html += '        <h3>Specs</h3>\n';
+  html += '        <div class="total">' + totalSpecs + '</div>\n';
+  html += '        <div class="stats">\n';
+  html += '          <span class="stat pass">✓ ' + (summary.specs ? summary.specs.pass || 0 : 0) + '</span>\n';
+  html += '          <span class="stat fail">✗ ' + (summary.specs ? summary.specs.fail || 0 : 0) + '</span>\n';
+  html += '          ' + specsWarningHtml + '\n';
+  html += '          ' + specsSkippedHtml + '\n';
+  html += '        </div>\n';
+  html += '      </div>\n';
+  html += '      <div class="summary-card">\n';
+  html += '        <h3>Tests</h3>\n';
+  html += '        <div class="total">' + totalTests + '</div>\n';
+  html += '        <div class="stats">\n';
+  html += '          <span class="stat pass">✓ ' + (summary.tests ? summary.tests.pass || 0 : 0) + '</span>\n';
+  html += '          <span class="stat fail">✗ ' + (summary.tests ? summary.tests.fail || 0 : 0) + '</span>\n';
+  html += '          ' + testsWarningHtml + '\n';
+  html += '          ' + testsSkippedHtml + '\n';
+  html += '        </div>\n';
+  html += '      </div>\n';
+  html += '      <div class="summary-card">\n';
+  html += '        <h3>Contexts</h3>\n';
+  html += '        <div class="total">' + totalContexts + '</div>\n';
+  html += '        <div class="stats">\n';
+  html += '          <span class="stat pass">✓ ' + (summary.contexts ? summary.contexts.pass || 0 : 0) + '</span>\n';
+  html += '          <span class="stat fail">✗ ' + (summary.contexts ? summary.contexts.fail || 0 : 0) + '</span>\n';
+  html += '          ' + contextsWarningHtml + '\n';
+  html += '          ' + contextsSkippedHtml + '\n';
+  html += '        </div>\n';
+  html += '      </div>\n';
+  html += '      <div class="summary-card">\n';
+  html += '        <h3>Steps</h3>\n';
+  html += '        <div class="total">' + totalSteps + '</div>\n';
+  html += '        <div class="stats">\n';
+  html += '          <span class="stat pass">✓ ' + (summary.steps ? summary.steps.pass || 0 : 0) + '</span>\n';
+  html += '          <span class="stat fail">✗ ' + (summary.steps ? summary.steps.fail || 0 : 0) + '</span>\n';
+  html += '          ' + stepsWarningHtml + '\n';
+  html += '          ' + stepsSkippedHtml + '\n';
+  html += '        </div>\n';
+  html += '      </div>\n';
+  html += '    </section>\n';
+  html += '    <section class="results-section">\n';
+  html += '      <h2>Detailed Results</h2>\n';
+  html += '      ' + specsHtml + '\n';
+  html += '    </section>\n';
+  html += '    <footer>\n';
+  html += '      <p>Generated by <a href="https://github.com/doc-detective/doc-detective" target="_blank">Doc Detective</a></p>\n';
+  html += '    </footer>\n';
+  html += '  </div>\n';
+  html += '</body>\n';
+  html += '</html>';
+
+  return html;
+}
 
 // Export reporters for external use
 exports.reporters = reporters;
@@ -807,6 +1304,8 @@ async function outputResults(config = {}, outputPath, results, options = {}) {
             return "jsonReporter";
           case "terminal":
             return "terminalReporter";
+          case "html":
+            return "htmlReporter";
           default:
             return reporter;
         }
