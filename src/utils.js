@@ -988,15 +988,15 @@ function generateHtmlReport(results, options) {
   var overallStatusClass = hasFailures ? 'fail' : (allSkipped ? 'skipped' : 'pass');
   var overallStatusText = hasFailures ? '❌ Some Tests Failed' : (allSkipped ? '⏭️ All Tests Skipped' : '✅ All Tests Passed');
 
-  // Generate summary stats HTML
-  var specsWarningHtml = (summary.specs && summary.specs.warning > 0) ? '<span class="stat warning">⚠ ' + summary.specs.warning + '</span>' : '';
-  var specsSkippedHtml = (summary.specs && summary.specs.skipped > 0) ? '<span class="stat skipped">⏭ ' + summary.specs.skipped + '</span>' : '';
-  var testsWarningHtml = (summary.tests && summary.tests.warning > 0) ? '<span class="stat warning">⚠ ' + summary.tests.warning + '</span>' : '';
-  var testsSkippedHtml = (summary.tests && summary.tests.skipped > 0) ? '<span class="stat skipped">⏭ ' + summary.tests.skipped + '</span>' : '';
-  var contextsWarningHtml = (summary.contexts && summary.contexts.warning > 0) ? '<span class="stat warning">⚠ ' + summary.contexts.warning + '</span>' : '';
-  var contextsSkippedHtml = (summary.contexts && summary.contexts.skipped > 0) ? '<span class="stat skipped">⏭ ' + summary.contexts.skipped + '</span>' : '';
-  var stepsWarningHtml = (summary.steps && summary.steps.warning > 0) ? '<span class="stat warning">⚠ ' + summary.steps.warning + '</span>' : '';
-  var stepsSkippedHtml = (summary.steps && summary.steps.skipped > 0) ? '<span class="stat skipped">⏭ ' + summary.steps.skipped + '</span>' : '';
+  // Generate summary stats HTML - always show all stats (pass, fail, warning, skipped)
+  var specsWarningHtml = '<span class="stat warning">⚠ ' + (summary.specs ? summary.specs.warning || 0 : 0) + '</span>';
+  var specsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.specs ? summary.specs.skipped || 0 : 0) + '</span>';
+  var testsWarningHtml = '<span class="stat warning">⚠ ' + (summary.tests ? summary.tests.warning || 0 : 0) + '</span>';
+  var testsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.tests ? summary.tests.skipped || 0 : 0) + '</span>';
+  var contextsWarningHtml = '<span class="stat warning">⚠ ' + (summary.contexts ? summary.contexts.warning || 0 : 0) + '</span>';
+  var contextsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.contexts ? summary.contexts.skipped || 0 : 0) + '</span>';
+  var stepsWarningHtml = '<span class="stat warning">⚠ ' + (summary.steps ? summary.steps.warning || 0 : 0) + '</span>';
+  var stepsSkippedHtml = '<span class="stat skipped">⏭ ' + (summary.steps ? summary.steps.skipped || 0 : 0) + '</span>';
 
   // Build the complete HTML document using string concatenation
   var html = '<!DOCTYPE html>\n';
