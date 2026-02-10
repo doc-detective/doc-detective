@@ -1,6 +1,7 @@
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
-const { validate, resolvePaths, readFile } = require("doc-detective-common");
+const { validate } = require("doc-detective-common");
+const { resolvePaths, readFile } = require("doc-detective-core");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
