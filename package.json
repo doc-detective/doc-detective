@@ -34,9 +34,8 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "axios": "^1.13.2",
-    "doc-detective-common": "^3.6.1",
-    "doc-detective-core": "^3.6.3",
-    "doc-detective-resolver": "3.6.1-dev.1",
+    "doc-detective-common": "file:../common",
+    "doc-detective-core": "file:../core",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
