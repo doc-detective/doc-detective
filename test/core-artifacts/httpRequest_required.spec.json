@@ -1,0 +1,170 @@
+{
+  "tests": [
+    {
+      "testId": "httpRequest_required_basic_fields",
+      "description": "Test basic field existence validation",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "name": "John Doe",
+                "email": "john@example.com",
+                "age": 30
+              }
+            },
+            "response": {
+              "required": ["name", "email", "age"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_nested_fields",
+      "description": "Test nested field existence validation",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "user": {
+                  "profile": {
+                    "name": "Jane Doe",
+                    "email": "jane@example.com"
+                  },
+                  "settings": {
+                    "notifications": true
+                  }
+                }
+              }
+            },
+            "response": {
+              "required": [
+                "user.profile.name",
+                "user.profile.email",
+                "user.settings.notifications"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_array_fields",
+      "description": "Test array element field existence validation",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/orders",
+            "method": "post",
+            "request": {
+              "body": {
+                "orders": [
+                  {
+                    "id": "order-1",
+                    "total": 100,
+                    "items": [
+                      {
+                        "productId": "prod-1",
+                        "quantity": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "response": {
+              "required": [
+                "orders[0].id",
+                "orders[0].total",
+                "orders[0].items[0].productId"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_null_values",
+      "description": "Test that null and undefined values pass validation",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/data",
+            "method": "post",
+            "request": {
+              "body": {
+                "field1": null,
+                "field2": "",
+                "field3": 0,
+                "field4": false
+              }
+            },
+            "response": {
+              "required": ["field1", "field2", "field3", "field4"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_combined_validation",
+      "description": "Test required fields combined with body validation",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "sessionToken": "abc123",
+                "expiresAt": "2025-12-31T23:59:59Z",
+                "user": {
+                  "id": "user-123",
+                  "role": "admin"
+                }
+              }
+            },
+            "response": {
+              "required": [
+                "sessionToken",
+                "expiresAt",
+                "user.id"
+              ],
+              "body": {
+                "user": {
+                  "role": "admin"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_empty_array",
+      "description": "Test that empty required array performs no validation",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "name": "Test User"
+              }
+            },
+            "response": {
+              "required": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

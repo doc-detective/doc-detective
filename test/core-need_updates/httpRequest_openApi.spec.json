@@ -1,0 +1,58 @@
+{
+  "specId": "httpRequest_OpenAPI support",
+  "openApi": [
+    {
+      "descriptionPath": "reqres.openapi.yaml",
+      "server": "https://reqres.in/api",
+      "useExample": "request",
+      "mockResponse": true,
+      "validateAgainstSchema": "both",
+      "exampleKey": "",
+      "name": "reqres"
+    }
+  ],
+  "tests": [
+    {
+      "description": "Test-level OpenAPI config",
+      "openApi": [
+        {
+          "descriptionPath": "reqres.openapi.json",
+          "server": "https://reqres.in/api",
+          "useExample": "request",
+          "mockResponse": true,
+          "name": "reqres",
+          "validateAgainstSchema": "both",
+          "exampleKey": ""
+        }
+      ],
+      "steps": [
+        {
+          "description": "Mock response",
+          "httpRequest": {
+            "openApi": {
+              "operationId": "addUser",
+              "statusCode": 400
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "Step-level OpenAPI config",
+      "steps": [
+        {
+          "httpRequest": {
+            "openApi": {
+              "descriptionPath": "reqres.openapi.json",
+              "server": "https://reqres.in/api",
+              "useExample": "request",
+              "mockResponse": true,
+              "operationId": "addUser",
+              "statusCode": 400
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

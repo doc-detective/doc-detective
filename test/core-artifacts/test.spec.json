@@ -1,0 +1,51 @@
+{
+  "id": "Do all the things! - Spec",
+  "tests": [
+    {
+      "id": "Do all the things! - Test",
+      "description": "This test includes nearly every property across all actions.",
+      "setup": "test/artifacts/setup.spec.json",
+      "cleanup": "test/artifacts/cleanup.spec.json",
+      "steps": [
+        {
+          "action": "checkLink",
+          "url": "https://www.duckduckgo.com"
+        },
+        {
+          "action": "httpRequest",
+          "url": "http://localhost:8092/api/users",
+          "method": "post",
+          "requestData": {
+            "name": "morpheus",
+            "job": "leader"
+          },
+          "responseData": {
+            "name": "morpheus",
+            "job": "leader"
+          },
+          "statusCodes": [200, 201]
+        },
+        {
+          "action": "goTo",
+          "url": "https://www.google.com"
+        },
+        { 
+          "action": "startRecording"
+        },
+        {
+          "action": "find",
+          "selector": "[title=Search]",
+          "timeout": 10000,
+          "moveTo": true,
+          "click": true,
+          "typeKeys": {
+            "keys": ["shorthair cat", "$ENTER$"]
+          }
+        },
+        {
+          "action": "stopRecording"
+        }
+      ]
+    }
+  ]
+}

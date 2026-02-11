@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Activity - Wait Test</title>
+</head>
+<body>
+    <h1>Network Activity Test</h1>
+    <p>This page makes delayed network requests.</p>
+    <div id="content">Loading...</div>
+    
+    <script>
+        let requestCount = 0;
+        
+        // Function to make continuous network requests
+        function makeRequest() {
+            requestCount++;
+            fetch('/api/test')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('content').textContent = `Request #${requestCount} completed`;
+                })
+                .catch(error => {
+                    document.getElementById('content').textContent = `Request #${requestCount} completed (error)`;
+                })
+                .finally(() => {
+                    // Make another request after a 200ms delay
+                    setTimeout(() => {
+                        makeRequest();
+                    }, 200);
+                });
+        }
+        
+        // Start the continuous request loop
+        makeRequest();
+    </script>
+</body>
+</html>

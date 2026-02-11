@@ -1,0 +1,30 @@
+{
+  "specId": "enhancedElementFinding",
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "screenshot-with-crop-elementTestId",
+          "screenshot": {
+            "path": "enhanced-modal.png",
+            "crop": {
+              "elementTestId": "modal-close"
+            }
+          }
+        },
+        {
+          "stepId": "screenshot-with-crop-elementClass",
+          "screenshot": {
+            "path": "enhanced-modal-large.png",
+            "crop": {
+              "elementClass": ["modal", "modal-visible"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

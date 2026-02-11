@@ -1,0 +1,59 @@
+{
+  "id": "Test wait action with browser driver",
+  "contexts": [
+    {
+      "app": { "name": "firefox", "options": { "headless": true } },
+      "platforms": ["windows", "mac", "linux"]
+    }
+  ],
+  "tests": [
+    {
+      "testId": "wait-with-driver-milliseconds",
+      "description": "Test wait action with driver using milliseconds",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/waitUntil-test-static.html"
+        },
+        {
+          "wait": 100
+        }
+      ]
+    },
+    {
+      "testId": "wait-with-driver-boolean-true",
+      "description": "Test wait action with driver using boolean true (defaults to 5000ms)",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/waitUntil-test-static.html"
+        },
+        {
+          "wait": true
+        }
+      ]
+    },
+    {
+      "testId": "wait-with-driver-string-number",
+      "description": "Test wait action with driver using string number",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/waitUntil-test-static.html"
+        },
+        {
+          "wait": "100"
+        }
+      ]
+    },
+    {
+      "testId": "wait-with-driver-skip-false",
+      "description": "Test wait action with driver using false (should skip)",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/waitUntil-test-static.html"
+        },
+        {
+          "wait": false
+        }
+      ]
+    }
+  ]
+}

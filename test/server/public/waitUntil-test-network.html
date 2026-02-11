@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Activity - Wait Test</title>
+</head>
+<body>
+    <h1>Network Activity Test</h1>
+    <p>This page makes delayed network requests.</p>
+    <div id="content">Loading...</div>
+    
+    <script>
+        // Simulate delayed network request
+        setTimeout(() => {
+            fetch('/api/test')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('content').textContent = 'Content loaded from API';
+                })
+                .catch(error => {
+                    document.getElementById('content').textContent = 'API request completed';
+                });
+        }, 300);
+    </script>
+</body>
+</html>

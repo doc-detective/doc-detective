@@ -1,0 +1,29 @@
+{
+  "specId": "type_enhancedFinding",
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "type-with-elementTestId",
+          "type": {
+            "elementTestId": "username-field",
+            "keys": "testuser"
+          }
+        },
+        {
+          "stepId": "type-with-elementAttribute",
+          "type": {
+            "elementAttribute": {
+              "type": "email",
+              "required": true
+            },
+            "keys": "test@example.com"
+          }
+        }
+      ]
+    }
+  ]
+}

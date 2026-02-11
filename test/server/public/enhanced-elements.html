@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Element Finding Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .btn { padding: 10px 20px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; border: none; }
+        .btn-secondary { background-color: #6c757d; color: white; border: none; }
+        .btn-large { font-size: 18px; }
+        .enabled { opacity: 1; }
+        .disabled { opacity: 0.5; }
+        .form-control { width: 100%; padding: 8px; margin: 5px 0; }
+        .modal { border: 1px solid #ccc; padding: 20px; margin: 10px 0; }
+        .modal-visible { display: block; }
+        .header-image { max-width: 100px; margin: 10px; }
+        section { margin: 30px 0; border: 1px solid #eee; padding: 20px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Enhanced Element Finding Test Page</h1>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect fill='%23ddd' width='100' height='50'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ELogo%3C/text%3E%3C/svg%3E" 
+             alt="Company logo" 
+             aria-label="Company logo image"
+             class="header-image">
+    </header>
+
+    <section id="buttons-section">
+        <h2>Buttons with Various Criteria</h2>
+        
+        <!-- Test elementId -->
+        <button id="submit-button" class="btn btn-primary" aria-label="Submit form button">Submit by ID</button>
+        
+        <!-- Test elementTestId -->
+        <button data-testid="login-form-submit" class="btn btn-primary btn-large">Login Submit</button>
+        
+        <!-- Test elementClass (single) -->
+        <button class="btn btn-primary enabled">Enabled Primary</button>
+        
+        <!-- Test elementClass (multiple) -->
+        <button class="btn btn-secondary btn-large">Large Secondary</button>
+        
+        <!-- Test elementAttribute (string) -->
+        <button aria-label="Close dialog" class="btn">Close</button>
+        
+        <!-- Test elementAttribute (number) -->
+        <button data-count="5" class="btn">Count: 5</button>
+        
+        <!-- Test elementAttribute (boolean true) -->
+        <button disabled class="btn disabled">Disabled Button</button>
+        
+        <!-- Test elementAttribute (boolean false) - not disabled -->
+        <button class="btn enabled">Not Disabled</button>
+        
+        <!-- Test regex patterns -->
+        <button id="submit-primary-action" class="btn btn-primary">Submit Primary</button>
+        <button id="submit-secondary-action" class="btn btn-secondary">Submit Secondary</button>
+    </section>
+
+    <section id="inputs-section">
+        <h2>Input Fields with Criteria</h2>
+        
+        <!-- Test multiple attributes -->
+        <input type="email" 
+               required 
+               data-validation="email-validator" 
+               class="form-control" 
+               placeholder="Email address">
+        
+        <input type="text" 
+               id="username-input" 
+               data-testid="username-field" 
+               class="form-control" 
+               placeholder="Username">
+        
+        <input type="password" 
+               data-testid="password-field" 
+               class="form-control" 
+               placeholder="Password">
+    </section>
+
+    <section id="aria-section">
+        <h2>Elements with Accessible Names (ARIA)</h2>
+        
+        <!-- Test elementAria with aria-label -->
+        <button aria-label="Close dialog" class="btn">×</button>
+        
+        <!-- Test elementAria with aria-label pattern -->
+        <button aria-label="Save document button" class="btn btn-primary">Save</button>
+        
+        <!-- Test elementAria with text content as accessible name -->
+        <button class="btn btn-secondary">Cancel Operation</button>
+        
+        <!-- Test elementAria with title attribute (fallback accessible name) -->
+        <input type="text" title="Search input field" class="form-control" />
+        
+        <!-- Test multiple aria attributes -->
+        <div role="button" aria-label="Expandable menu" tabindex="0" class="menu-trigger">Menu</div>
+    </section>
+
+    <section id="images-section">
+        <h2>Images with Alt Text and Aria Labels</h2>
+        
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect fill='%23007bff' width='100' height='50'/%3E%3C/svg%3E" 
+             alt="Product thumbnail" 
+             aria-label="Product thumbnail image"
+             class="product-image">
+        
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='50'%3E%3Crect fill='%23dc3545' width='100' height='50'/%3E%3C/svg%3E" 
+             alt="User profile logo" 
+             aria-label="User profile logo"
+             class="header-image">
+    </section>
+
+    <section id="modal-section">
+        <h2>Modal Dialog</h2>
+        
+        <div class="modal modal-visible" aria-hidden="false">
+            <h3>Modal Title</h3>
+            <p>Modal content goes here</p>
+            <button data-testid="modal-close" 
+                    class="btn btn-primary" 
+                    aria-label="Close modal">Close Modal</button>
+        </div>
+    </section>
+
+    <section id="complex-section">
+        <h2>Complex Combined Criteria</h2>
+        
+        <!-- Test selector + elementText + elementId + elementAttribute -->
+        <button id="primary-action" 
+                class="btn btn-primary" 
+                data-enabled="true" 
+                data-testid="checkout-button">Submit Order</button>
+        
+        <!-- Test multiple classes with regex -->
+        <div class="modal modal-large modal-visible" aria-hidden="false">
+            <span>Large visible modal</span>
+        </div>
+        
+        <!-- Test combined attributes -->
+        <input type="email" 
+               required 
+               data-validation="email-regex-validator" 
+               id="contact-email" 
+               class="form-control">
+    </section>
+
+    <section id="text-elements">
+        <h2>Text Elements for Finding</h2>
+        
+        <button class="btn btn-primary">Submit Form</button>
+        <button class="btn btn-primary">Submit Now</button>
+        <button class="btn btn-secondary">Cancel</button>
+        
+        <p id="result-message" data-testid="result-display">Operation successful</p>
+    </section>
+</body>
+</html>

@@ -1,0 +1,174 @@
+{
+  "specId": "enhancedElementFinding",
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "elementId-exact-match",
+          "find": {
+            "elementId": "submit-button"
+          }
+        },
+        {
+          "stepId": "elementId-regex-pattern",
+          "find": {
+            "elementId": "/submit-.+/"
+          }
+        },
+        {
+          "stepId": "elementTestId-exact-match",
+          "find": {
+            "elementTestId": "login-form-submit"
+          }
+        },
+        {
+          "stepId": "elementTestId-regex-pattern",
+          "find": {
+            "elementTestId": "/.*-submit/"
+          }
+        },
+        {
+          "stepId": "elementClass-single",
+          "find": {
+            "elementClass": "enabled"
+          }
+        },
+        {
+          "stepId": "elementClass-multiple",
+          "find": {
+            "elementClass": ["btn", "btn-large"]
+          }
+        },
+        {
+          "stepId": "elementClass-regex",
+          "find": {
+            "elementClass": ["/btn-.+/", "enabled"]
+          }
+        },
+        {
+          "stepId": "elementAttribute-string",
+          "find": {
+            "elementAttribute": {
+              "aria-label": "Close dialog"
+            }
+          }
+        },
+        {
+          "stepId": "elementAttribute-number",
+          "find": {
+            "elementAttribute": {
+              "data-count": 5
+            }
+          }
+        },
+        {
+          "stepId": "elementAttribute-boolean-true",
+          "find": {
+            "selector": "button",
+            "elementAttribute": {
+              "disabled": true
+            }
+          }
+        },
+        {
+          "stepId": "elementAttribute-regex",
+          "find": {
+            "elementAttribute": {
+              "data-validation": "/^email-.+/"
+            }
+          }
+        },
+        {
+          "stepId": "elementAria-exact",
+          "find": {
+            "selector": "button",
+            "elementAria": "Close dialog"
+          }
+        },
+        {
+          "stepId": "elementAria-regex",
+          "find": {
+            "elementAria": "/Save.*button/"
+          }
+        },
+        {
+          "stepId": "elementAria-text-content",
+          "find": {
+            "elementAria": "Cancel Operation"
+          }
+        },
+        {
+          "stepId": "string-shorthand-precedence-selector",
+          "find": "#submit-button"
+        },
+        {
+          "stepId": "string-shorthand-precedence-text",
+          "find": "Submit by ID"
+        },
+        {
+          "stepId": "string-shorthand-precedence-aria",
+          "find": "Close dialog"
+        },
+        {
+          "stepId": "string-shorthand-precedence-id",
+          "find": "submit-button"
+        },
+        {
+          "stepId": "string-shorthand-precedence-testid",
+          "find": "login-form-submit"
+        },
+        {
+          "stepId": "string-shorthand-regex",
+          "find": "/submit-.+/"
+        },
+        {
+          "stepId": "combined-criteria-and-logic",
+          "find": {
+            "selector": "button",
+            "elementId": "submit-button",
+            "elementClass": ["btn", "btn-primary"]
+          }
+        },
+        {
+          "stepId": "combined-selector-text-id",
+          "find": {
+            "selector": "button",
+            "elementText": "Submit Order",
+            "elementId": "primary-action"
+          }
+        },
+        {
+          "stepId": "combined-selector-text-attribute-disabled",
+          "find": {
+            "selector": "button",
+            "elementText": "Disabled Button",
+            "elementClass": ["btn", "disabled"],
+            "elementAttribute": {
+              "disabled": true
+            }
+          }
+        },
+        {
+          "stepId": "multiple-attributes-combined",
+          "find": {
+            "selector": "input",
+            "elementAttribute": {
+              "type": "email",
+              "required": true,
+              "data-validation": "/^email-.+/"
+            }
+          }
+        },
+        {
+          "stepId": "elementClass-multiple-match",
+          "find": {
+            "elementClass": "btn-primary"
+          }
+        }
+      ]
+    }
+  ]
+}

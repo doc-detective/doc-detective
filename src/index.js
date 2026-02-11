@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { runTests } = require("doc-detective-core");
+const { runTests } = require("./core");
 const {
   setArgs,
   setConfig,
