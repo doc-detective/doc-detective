@@ -5,9 +5,9 @@
   "bin": {
     "doc-detective": "src/index.js"
   },
-  "main": "./src/core/index.js",
+  "main": "./index.js",
   "exports": {
-    ".": "./src/core/index.js",
+    ".": "./index.js",
     "./cli": "./src/index.js"
   },
   "scripts": {
