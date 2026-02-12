@@ -393,7 +393,7 @@ describe("getRunner() function", function () {
   let getRunner;
 
   before(async function () {
-    const testsModule = await import("../src/core/tests.js");
+    const testsModule = await import("../dist/core/tests.js");
     getRunner = testsModule.getRunner;
   });
 
