@@ -40,7 +40,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       
-      - run: npm install      
+      - run: npm install
+      - run: npm run build
       - run: npm test
 
   publish-npm:

@@ -1,6 +1,6 @@
 import { validate } from "doc-detective-common";
 import { log } from "../utils.js";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
 import ffmpeg from "@ffmpeg-installer/ffmpeg";
@@ -52,13 +52,12 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       const targetPath = `${config.recording.targetPath}`;
       const downloadPath = `${config.recording.downloadPath}`;
       const endMessage = `Finished processing file: ${config.recording.targetPath}`;
-      exec(
-        `${ffmpegPath} -y -i ${downloadPath} -pix_fmt yuv420p ${
-          path.extname(targetPath) === ".gif"
-            ? `-vf scale=iw:-1:flags=lanczos`
-            : ""
-        } ${targetPath}`
-      ).on("close", () => {
+      const ffmpegArgs = ["-y", "-i", downloadPath, "-pix_fmt", "yuv420p"];
+      if (path.extname(targetPath) === ".gif") {
+        ffmpegArgs.push("-vf", "scale=iw:-1:flags=lanczos");
+      }
+      ffmpegArgs.push(targetPath);
+      execFile(ffmpegPath, ffmpegArgs).on("close", () => {
         if (targetPath !== downloadPath) {
           // Delete the downloaded file
           fs.unlinkSync(downloadPath);

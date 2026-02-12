@@ -84,7 +84,7 @@ function replaceMetaValues(expression: string, context: any): any {
         // If the meta value is a string and we're in an expression with operators,
         // only quote it if it contains spaces or special characters
         if (/[\s\(\)\[\]\{\}\,\;\:\.\+\-\*\/\|\&\!\?\<\>\=]/.test(metaValue)) {
-          replaceValue = `"${metaValue.replace(/"/g, '\\"')}"`;
+          replaceValue = `"${metaValue.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
         } else {
           replaceValue = metaValue;
         }

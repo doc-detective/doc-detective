@@ -150,6 +150,7 @@ function replaceEnvs(stringOrObject: any): any {
   if (typeof stringOrObject === "object") {
     // Iterate through object and recursively resolve variables
     Object.keys(stringOrObject).forEach((key) => {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") return;
       // Resolve all variables in key value
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
@@ -211,30 +212,18 @@ function timestamp() {
  * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
  */
 async function spawnCommand(cmd: string, args: string[] = [], options: any = {}) {
-  // Set shell (bash/cmd) based on OS
-  let shell = "bash";
-  let command: string[] = ["-c"];
-  if (process.platform === "win32") {
-    shell = "cmd";
-    command = ["/c"];
-  }
-
-  // Combine command and arguments
-  let fullCommand = [cmd, ...args].join(" ");
-  command.push(fullCommand);
-
   // Set spawnOptions based on OS
-  let spawnOptions: any = {};
-  let cleanupNodeModules = false;
+  const spawnOptions: any = {
+    shell: true,
+  };
   if (process.platform === "win32") {
-    spawnOptions.shell = true;
     spawnOptions.windowsHide = true;
   }
   if (options.cwd) {
     spawnOptions.cwd = options.cwd;
   }
 
-  const runCommand = spawn(shell, command, spawnOptions);
+  const runCommand = spawn(cmd, args, spawnOptions);
   runCommand.on("error", (error) => {});
 
   // Capture stdout
