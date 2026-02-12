@@ -2,41 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
-import { createServer } from "./server/index.js";
-
-// Create a server for screenshot tests
-const server = createServer({
-  port: 8092,
-  staticDir: "./test/server/public",
-});
-
-let serverStarted = false;
-
-// Start the server before tests
-before(async () => {
-  try {
-    await server.start();
-    serverStarted = true;
-  } catch (error) {
-    if (error.code === "EADDRINUSE") {
-      // Server already running from another test file
-      console.log("Test server already running on port 8092");
-    } else {
-      console.error(`Failed to start test server: ${error.message}`);
-      throw error;
-    }
-  }
-});
-
-// Stop the server after tests
-after(async () => {
-  if (!serverStarted) return;
-  try {
-    await server.stop();
-  } catch (error) {
-    console.error(`Failed to stop test server: ${error.message}`);
-  }
-});
 
 describe("Screenshot sourceIntegration preservation", function () {
   this.timeout(60000); // 60 seconds

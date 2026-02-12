@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import { runTests } from "../dist/core/index.js";
-import { createServer } from "./server/index.js";
 import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
@@ -8,40 +7,6 @@ import os from "node:os";
 const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 const inputPath = artifactPath;
-
-// Create a server with custom options
-const server = createServer({
-  port: 8092,
-  staticDir: "./test/server/public",
-  modifyResponse: (req, body) => {
-    // Optional modification of responses
-    return { ...body, extraField: "added by server" };
-  },
-});
-
-// Start the server before tests
-before(async () => {
-  try {
-    await server.start();
-  } catch (error) {
-    if (error.code === "EADDRINUSE") {
-      console.log("Test server already running on port 8092");
-    } else {
-      console.error(`Failed to start test server: ${error.message}`);
-      throw error;
-    }
-  }
-});
-
-// Stop the server after tests
-after(async () => {
-  try {
-    await server.stop();
-  } catch (error) {
-    console.error(`Failed to stop test server: ${error.message}`);
-    // Don't rethrow here to avoid masking test failures
-  }
-});
 
 describe("Run tests successfully", function () {
   // Set indefinite timeout

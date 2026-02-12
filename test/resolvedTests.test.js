@@ -1,4 +1,3 @@
-import { createServer } from "./server/index.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnCommand } from "../dist/utils.js";
@@ -8,31 +7,6 @@ import fs from "node:fs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(`${artifactPath}/resolvedTestsResults.json`);
-
-// Create a server with custom options
-const server = createServer({
-  port: 8093,
-  staticDir: "./test/server/public",
-});
-
-// Start the server before tests
-before(async () => {
-  try {
-    await server.start();
-  } catch (error) {
-    console.error(`Failed to start test server: ${error.message}`);
-    throw error;
-  }
-});
-
-// Stop the server after tests
-after(async () => {
-  try {
-    await server.stop();
-  } catch (error) {
-    console.error(`Failed to stop test server: ${error.message}`);
-  }
-});
 
 describe("DOC_DETECTIVE_API environment variable", function () {
   // Set indefinite timeout
