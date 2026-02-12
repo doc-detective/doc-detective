@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import os from "node:os";
+import path from "node:path";
 import crypto from "node:crypto";
 import axios from "axios";
 import { spawn } from "node:child_process";
@@ -31,7 +32,7 @@ function isRelativeUrl(url: string) {
 
 // Delete all contents of doc-detective temp directory
 function cleanTemp() {
-  const tempDir = `${os.tmpdir}/doc-detective`;
+  const tempDir = path.join(os.tmpdir(), "doc-detective");
   if (fs.existsSync(tempDir)) {
     fs.readdirSync(tempDir).forEach((file) => {
       const curPath = `${tempDir}/${file}`;
@@ -58,10 +59,11 @@ async function fetchFile(fileURL: string) {
     }
     const fileName = fileURL.split("/").pop();
     const hash = crypto.createHash("md5").update(response.data).digest("hex");
-    const filePath = `${os.tmpdir}/doc-detective/${hash}_${fileName}`;
+    const ddTempDir = path.join(os.tmpdir(), "doc-detective");
+    const filePath = path.join(ddTempDir, `${hash}_${fileName}`);
     // If doc-detective temp directory doesn't exist, create it
-    if (!fs.existsSync(`${os.tmpdir}/doc-detective`)) {
-      fs.mkdirSync(`${os.tmpdir}/doc-detective`);
+    if (!fs.existsSync(ddTempDir)) {
+      fs.mkdirSync(ddTempDir, { recursive: true });
     }
     // If file doesn't exist, write it
     if (!fs.existsSync(filePath)) {

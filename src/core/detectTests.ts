@@ -163,10 +163,11 @@ async function isValidSourceFile({ config, files, source }: { config: any; files
  */
 async function processDitaMap({ config, source }: { config: any; source: string }) {
   const hash = crypto.createHash("md5").update(source).digest("hex");
-  const outputDir = `${os.tmpdir}/doc-detective/ditamap_${hash}`;
-  if (!fs.existsSync(`${os.tmpdir}/doc-detective`)) {
-    log(config, "debug", `Creating temp directory: ${os.tmpdir}/doc-detective`);
-    fs.mkdirSync(`${os.tmpdir}/doc-detective`);
+  const tmpBase = path.join(os.tmpdir(), "doc-detective");
+  const outputDir = path.join(tmpBase, `ditamap_${hash}`);
+  if (!fs.existsSync(tmpBase)) {
+    log(config, "debug", `Creating temp directory: ${tmpBase}`);
+    fs.mkdirSync(tmpBase, { recursive: true });
   }
   const ditaVersion = await spawnCommand("dita", ["--version"]);
   if (ditaVersion.exitCode !== 0) {
@@ -362,7 +363,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           "warning",
           `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
         );
-        return false;
+        continue;
       }
       content = validation.object;
       content = await resolvePaths({
