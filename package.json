@@ -107,15 +107,15 @@
     "@img/sharp-win32-x64": "^0.34.5"
   },
   "devDependencies": {
-    "@types/node": "^22.15.0",
-    "@types/yargs": "^17.0.33",
+    "@types/node": "^25.2.3",
+    "@types/yargs": "^17.0.35",
     "body-parser": "^2.2.2",
     "chai": "^6.2.2",
     "depcheck": "^1.4.7",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.27.3",
     "express": "^5.2.1",
     "mocha": "^11.7.5",
     "semver": "^7.7.4",
-    "typescript": "^5.8.0"
+    "typescript": "^5.9.3"
   }
 }
