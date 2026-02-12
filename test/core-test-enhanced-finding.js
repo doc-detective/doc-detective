@@ -1,4 +1,4 @@
-import { runTests } from "../src/core/index.js";
+import { runTests } from "../dist/core/index.js";
 
 async function testEnhancedElementFinding() {
   console.log("Testing enhanced element finding...\n");

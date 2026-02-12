@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { runTests } from "../src/core/index.js";
+import { runTests } from "../dist/core/index.js";
 import { createServer } from "./server/index.js";
 import assert from "node:assert/strict";
 import path from "node:path";

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { HerettoUploader } from "../src/core/integrations/heretto.js";
+import { HerettoUploader } from "../dist/core/integrations/heretto.js";
 
 /**
  * Integration tests for Heretto upload functionality.

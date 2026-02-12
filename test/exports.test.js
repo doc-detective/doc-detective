@@ -4,7 +4,7 @@ describe("cli/index.js exports", function () {
   let cliExports;
 
   before(async function () {
-    cliExports = await import("../index.js");
+    cliExports = await import("../dist/index.js");
   });
 
   it("should export runTests as a function", function () {

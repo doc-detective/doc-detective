@@ -3,21 +3,33 @@
   "version": "3.6.3",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
-    "doc-detective": "src/index.js"
+    "doc-detective": "bin/doc-detective.js"
   },
   "type": "module",
-  "main": "./index.js",
+  "main": "dist/index.cjs",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./index.js",
-    "./cli": "./src/index.js"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./cli": "./bin/doc-detective.js"
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
+    "compile": "tsc && node scripts/createCjsWrapper.js",
+    "build": "npm run compile",
     "mocha": "mocha",
     "test": "mocha test/*.test.js",
-    "prerunTests": "node ./src/checkDependencies.js",
-    "runTests": "node ./src/index.js runTests",
-    "start": "node ./src/index.js",
+    "prerunTests": "node ./dist/checkDependencies.js",
+    "runTests": "node ./bin/doc-detective.js runTests",
+    "start": "node ./bin/doc-detective.js",
     "dev": "node ./dev"
   },
   "repository": {
@@ -95,11 +107,15 @@
     "@img/sharp-win32-x64": "^0.34.5"
   },
   "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/yargs": "^17.0.33",
     "body-parser": "^2.2.2",
     "chai": "^6.2.2",
     "depcheck": "^1.4.7",
+    "esbuild": "^0.25.0",
     "express": "^5.2.1",
     "mocha": "^11.7.5",
-    "semver": "^7.7.4"
+    "semver": "^7.7.4",
+    "typescript": "^5.8.0"
   }
 }

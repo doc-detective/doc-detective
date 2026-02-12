@@ -1,4 +1,4 @@
-import { setArgs, setConfig } from "../src/utils.js";
+import { setArgs, setConfig } from "../dist/utils.js";
 
 // Test that arguments are parsed correctly
 const json = {

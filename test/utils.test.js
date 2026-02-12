@@ -1,4 +1,4 @@
-import { setArgs, setConfig, outputResults } from "../src/utils.js";
+import { setArgs, setConfig, outputResults } from "../dist/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { createRequire } from "node:module";

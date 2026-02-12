@@ -1,7 +1,7 @@
 import { createServer } from "./server/index.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnCommand } from "../src/utils.js";
+import { spawnCommand } from "../dist/utils.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
@@ -44,7 +44,7 @@ describe("Run tests successfully", function () {
   this.timeout(0);
   it("All specs pass", async () => {
     await spawnCommand(
-      `node ./src/index.js -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
+      `node ./bin/doc-detective.js -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
     );
     // Wait until the file is written
     while (!fs.existsSync(outputFile)) {}

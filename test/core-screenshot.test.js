@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { runTests } from "../src/core/index.js";
+import { runTests } from "../dist/core/index.js";
 import { createServer } from "./server/index.js";
 
 // Create a server for screenshot tests

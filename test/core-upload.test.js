@@ -3,7 +3,7 @@ import {
   collectChangedFiles,
   getIntegrationConfig,
   getUploader,
-} from "../src/core/integrations/index.js";
+} from "../dist/core/integrations/index.js";
 
 describe("Upload module", function () {
   describe("collectChangedFiles", function () {

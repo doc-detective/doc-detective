@@ -1,7 +1,7 @@
 import { createServer } from "./server/index.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnCommand } from "../src/utils.js";
+import { spawnCommand } from "../dist/utils.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
