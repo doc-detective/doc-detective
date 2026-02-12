@@ -26,7 +26,7 @@
     "compile": "tsc && node scripts/createCjsWrapper.js",
     "build": "npm run compile",
     "mocha": "mocha",
-    "test": "mocha test/*.test.js",
+    "test": "mocha --exit test/*.test.js",
     "prerunTests": "node ./dist/checkDependencies.js",
     "runTests": "node ./bin/doc-detective.js runTests",
     "start": "node ./bin/doc-detective.js",
