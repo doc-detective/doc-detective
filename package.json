@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "3.6.3",
+  "version": "4.0.0-beta.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "bin": {
     "doc-detective": "bin/doc-detective.js"
@@ -22,7 +22,7 @@
     "./cli": "./bin/doc-detective.js"
   },
   "scripts": {
-    "postinstall": "node scripts/postinstall.js",
+    "postinstall": "node --disable-warning=DEP0190 scripts/postinstall.js",
     "compile": "tsc && node scripts/createCjsWrapper.js",
     "build": "npm run compile",
     "mocha": "mocha",

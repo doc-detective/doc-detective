@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import browsers from "@puppeteer/browsers";
-import geckodriver from "geckodriver";
+import * as browsers from "@puppeteer/browsers";
+import * as geckodriver from "geckodriver";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
