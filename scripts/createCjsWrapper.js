@@ -14,6 +14,12 @@ await build({
   format: "cjs",
   platform: "node",
   packages: "external",
+  define: {
+    "import.meta.url": "importMetaUrl",
+  },
+  banner: {
+    js: "const importMetaUrl = require('url').pathToFileURL(__filename).href;",
+  },
 });
 
 await copyFile(
