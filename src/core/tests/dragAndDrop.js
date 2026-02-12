@@ -1,8 +1,8 @@
-const { validate } = require("doc-detective-common");
-const { findElement } = require("./findElement");
-const { log } = require("../utils");
+import { validate } from "doc-detective-common";
+import { findElement } from "./findElement.js";
+import { log } from "../utils.js";
 
-exports.dragAndDropElement = dragAndDropElement;
+export { dragAndDropElement };
 
 // Drag and drop an element from source to target.
 async function dragAndDropElement({ config, step, driver, element }) {

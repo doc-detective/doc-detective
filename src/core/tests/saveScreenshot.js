@@ -1,10 +1,10 @@
-const { validate } = require("doc-detective-common");
-const { findElement } = require("./findElement");
-const { log } = require("../utils");
-const path = require("path");
-const fs = require("fs");
-const PNG = require("pngjs").PNG;
-const sharp = require("sharp");
+import { validate } from "doc-detective-common";
+import { findElement } from "./findElement.js";
+import { log } from "../utils.js";
+import path from "node:path";
+import fs from "node:fs";
+import { PNG } from "pngjs";
+import sharp from "sharp";
 
 // pixelmatch v7+ is ESM-only, so we need dynamic import
 let pixelmatch;
@@ -15,7 +15,7 @@ async function getPixelmatch() {
   return pixelmatch;
 }
 
-exports.saveScreenshot = saveScreenshot;
+export { saveScreenshot };
 
 async function saveScreenshot({ config, step, driver }) {
   let result = {

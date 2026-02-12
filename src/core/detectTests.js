@@ -4,15 +4,15 @@
  * Uses detectTests from common for browser-compatible content parsing.
  */
 
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const crypto = require("crypto");
-const { validate, detectTests: parseContent } = require("doc-detective-common");
-const { readFile, resolvePaths } = require("./files");
-const { log, fetchFile, spawnCommand } = require("./utils");
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import crypto from "node:crypto";
+import { validate, detectTests as parseContent } from "doc-detective-common";
+import { readFile, resolvePaths } from "./files.js";
+import { log, fetchFile, spawnCommand } from "./utils.js";
 
-exports.detectTests = detectTests;
+export { detectTests };
 
 /**
  * Detects tests from files based on config.

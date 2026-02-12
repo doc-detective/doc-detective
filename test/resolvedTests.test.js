@@ -1,8 +1,11 @@
-const { createServer } = require("./server");
-const path = require("path");
-const { spawnCommand } = require("../src/utils");
-const assert = require("assert").strict;
-const fs = require("fs");
+import { createServer } from "./server/index.js";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnCommand } from "../src/utils.js";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(`${artifactPath}/resolvedTestsResults.json`);
 
@@ -60,13 +63,11 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       }
 
       if (fs.existsSync(outputFile)) {
-        const testResult = require(outputFile);
+        const testResult = JSON.parse(fs.readFileSync(outputFile, "utf8"));
         console.log(
           "API Result summary:",
           JSON.stringify(testResult.summary, null, 2)
         );
-        // Clean up the require cache
-        delete require.cache[require.resolve(outputFile)];
         fs.unlinkSync(outputFile);
 
         // Check that tests were run
@@ -167,9 +168,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       }
 
       if (fs.existsSync(outputFile)) {
-        const testResult = require(outputFile);
-        // Clean up the require cache
-        delete require.cache[require.resolve(outputFile)];
+        const testResult = JSON.parse(fs.readFileSync(outputFile, "utf8"));
         fs.unlinkSync(outputFile);
 
         // Check that tests were run

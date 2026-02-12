@@ -1,4 +1,4 @@
-const { runTests } = require("../src/core");
+import { runTests } from "../src/core/index.js";
 
 async function testEnhancedElementFinding() {
   console.log("Testing enhanced element finding...\n");

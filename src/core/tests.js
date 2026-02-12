@@ -1,36 +1,39 @@
-const kill = require("tree-kill");
-const wdio = require("webdriverio");
-const os = require("os");
-const { log, replaceEnvs } = require("./utils");
-const axios = require("axios");
-const { instantiateCursor } = require("./tests/moveTo");
-const { goTo } = require("./tests/goTo");
-const { findElement } = require("./tests/findElement");
-const { runShell } = require("./tests/runShell");
-const { checkLink } = require("./tests/checkLink");
-const { typeKeys } = require("./tests/typeKeys");
-const { wait } = require("./tests/wait");
-const { saveScreenshot } = require("./tests/saveScreenshot");
-const { startRecording } = require("./tests/startRecording");
-const { stopRecording } = require("./tests/stopRecording");
-const { loadVariables } = require("./tests/loadVariables");
-const { saveCookie } = require("./tests/saveCookie");
-const { loadCookie } = require("./tests/loadCookie");
-const { httpRequest } = require("./tests/httpRequest");
-const { clickElement } = require("./tests/click");
-const { runCode } = require("./tests/runCode");
-const { dragAndDropElement } = require("./tests/dragAndDrop");
-const path = require("path");
-const { spawn } = require("child_process");
-const { randomUUID } = require("crypto");
-const { setAppiumHome } = require("./appium");
-const { resolveExpression } = require("./expressions");
-const { getEnvironment, getAvailableApps } = require("./config");
-const { uploadChangedFiles } = require("./integrations");
+import kill from "tree-kill";
+import * as wdio from "webdriverio";
+import os from "node:os";
+import { log, replaceEnvs } from "./utils.js";
+import axios from "axios";
+import { instantiateCursor } from "./tests/moveTo.js";
+import { goTo } from "./tests/goTo.js";
+import { findElement } from "./tests/findElement.js";
+import { runShell } from "./tests/runShell.js";
+import { checkLink } from "./tests/checkLink.js";
+import { typeKeys } from "./tests/typeKeys.js";
+import { wait } from "./tests/wait.js";
+import { saveScreenshot } from "./tests/saveScreenshot.js";
+import { startRecording } from "./tests/startRecording.js";
+import { stopRecording } from "./tests/stopRecording.js";
+import { loadVariables } from "./tests/loadVariables.js";
+import { saveCookie } from "./tests/saveCookie.js";
+import { loadCookie } from "./tests/loadCookie.js";
+import { httpRequest } from "./tests/httpRequest.js";
+import { clickElement } from "./tests/click.js";
+import { runCode } from "./tests/runCode.js";
+import { dragAndDropElement } from "./tests/dragAndDrop.js";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { setAppiumHome } from "./appium.js";
+import { resolveExpression } from "./expressions.js";
+import { getEnvironment, getAvailableApps } from "./config.js";
+import { uploadChangedFiles } from "./integrations/index.js";
+import http from "node:http";
+import https from "node:https";
+import { fileURLToPath } from "node:url";
 
-exports.runSpecs = runSpecs;
-exports.runViaApi = runViaApi;
-exports.getRunner = getRunner;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export { runSpecs, runViaApi, getRunner };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
@@ -251,8 +254,8 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }) {
       "Content-Type": "application/json",
     },
     // Prevent connection reuse issues with keep-alive
-    httpAgent: new (require("http").Agent)({ keepAlive: false }),
-    httpsAgent: new (require("https").Agent)({ keepAlive: false }),
+    httpAgent: new http.Agent({ keepAlive: false }),
+    httpsAgent: new https.Agent({ keepAlive: false }),
   };
 
   // Create run

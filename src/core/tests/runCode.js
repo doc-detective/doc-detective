@@ -1,11 +1,11 @@
-const { validate } = require("doc-detective-common");
-const { spawnCommand, log } = require("../utils");
-const { runShell } = require("./runShell");
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
+import { validate } from "doc-detective-common";
+import { spawnCommand, log } from "../utils.js";
+import { runShell } from "./runShell.js";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
 
-exports.runCode = runCode;
+export { runCode };
 
 // Create a temporary script file
 function createTempScript(code, language) {
@@ -136,24 +136,4 @@ async function runCode({ config, step }) {
   }
 
   return result;
-}
-
-// If run directly, perform runCode
-if (require.main === module) {
-  const config = {
-    logLevel: "debug",
-  };
-  const step = {
-    runCode: {
-      code: `print("Hello, world!")`,
-      language: "python",
-    },
-  };
-  runCode(config, step)
-    .then((result) => {
-      console.log(result);
-    })
-    .catch((error) => {
-      console.error(error);
-    });
 }

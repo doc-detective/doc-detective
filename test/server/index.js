@@ -1,7 +1,7 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const path = require("path");
-const fs = require("fs");
+import express from "express";
+import bodyParser from "body-parser";
+import path from "node:path";
+import fs from "node:fs";
 
 /**
  * Creates an echo server that can serve static content and echo back API requests
@@ -59,7 +59,7 @@ function createServer(options = {}) {
     try {
       // Check for x-runner-token header
       const token = req.headers['x-runner-token'];
-      
+
       if (!token || token !== 'test-token-123') {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -158,28 +158,4 @@ function createServer(options = {}) {
 }
 
 // Export the function
-module.exports = { createServer };
-
-// If this file is run directly, start a server
-if (require.main === module) {
-  const server = createServer({
-    port: process.env.PORT || 8092,
-    staticDir:
-      process.env.STATIC_DIR ||
-      path.join(process.cwd(), "./test/server/public"),
-  });
-
-  server.start();
-
-  // Handle graceful shutdown
-  const shutdown = () => {
-    console.log("Shutting down server...");
-    server
-      .stop()
-      .then(() => process.exit(0))
-      .catch(() => process.exit(1));
-  };
-
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
-}
+export { createServer };

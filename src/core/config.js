@@ -1,17 +1,17 @@
-const os = require("os");
-const { validate } = require("doc-detective-common");
-const { log, spawnCommand, loadEnvs, replaceEnvs } = require("./utils");
-const { exec } = require("child_process");
-const path = require("path");
-const fs = require("fs");
-const browsers = require("@puppeteer/browsers");
-const { setAppiumHome } = require("./appium");
-const { loadDescription } = require("./openapi");
+import os from "node:os";
+import { validate } from "doc-detective-common";
+import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
+import { exec } from "node:child_process";
+import path from "node:path";
+import fs from "node:fs";
+import * as browsers from "@puppeteer/browsers";
+import { setAppiumHome } from "./appium.js";
+import { loadDescription } from "./openapi.js";
+import { fileURLToPath } from "node:url";
 
-exports.setConfig = setConfig;
-exports.getAvailableApps = getAvailableApps;
-exports.getEnvironment = getEnvironment;
-exports.resolveConcurrentRunners = resolveConcurrentRunners;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export { setConfig, getAvailableApps, getEnvironment, resolveConcurrentRunners };
 
 /**
  * Deep merge two objects, with override properties taking precedence

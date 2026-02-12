@@ -1,18 +1,12 @@
-const { setConfig } = require("./config");
-const { detectTests } = require("./detectTests");
-const { resolveTests } = require("./resolveTests");
-const { log, cleanTemp } = require("./utils");
-const { runSpecs, runViaApi, getRunner } = require("./tests");
-const { telemetryNotice, sendTelemetry } = require("./telem");
-const { readFile, resolvePaths } = require("./files");
+import { setConfig } from "./config.js";
+import { detectTests } from "./detectTests.js";
+import { resolveTests } from "./resolveTests.js";
+import { log, cleanTemp } from "./utils.js";
+import { runSpecs, runViaApi, getRunner } from "./tests.js";
+import { telemetryNotice, sendTelemetry } from "./telem.js";
+import { readFile, resolvePaths } from "./files.js";
 
-exports.runTests = runTests;
-exports.getRunner = getRunner;
-exports.detectTests = detectTests;
-exports.detectAndResolveTests = detectAndResolveTests;
-exports.resolveTests = resolveTests;
-exports.readFile = readFile;
-exports.resolvePaths = resolvePaths;
+export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths };
 
 const supportMessage = `
 ##########################################################################

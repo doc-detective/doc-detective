@@ -1,20 +1,22 @@
-const fs = require("fs");
-const os = require("os");
-const crypto = require("crypto");
-const axios = require("axios");
-const { spawn } = require("child_process");
+import fs from "node:fs";
+import os from "node:os";
+import crypto from "node:crypto";
+import axios from "axios";
+import { spawn } from "node:child_process";
 
-exports.outputResults = outputResults;
-exports.loadEnvs = loadEnvs;
-exports.log = log;
-exports.timestamp = timestamp;
-exports.replaceEnvs = replaceEnvs;
-exports.spawnCommand = spawnCommand;
-exports.inContainer = inContainer;
-exports.cleanTemp = cleanTemp;
-exports.calculateFractionalDifference = calculateFractionalDifference;
-exports.fetchFile = fetchFile;
-exports.isRelativeUrl = isRelativeUrl;
+export {
+  outputResults,
+  loadEnvs,
+  log,
+  timestamp,
+  replaceEnvs,
+  spawnCommand,
+  inContainer,
+  cleanTemp,
+  calculateFractionalDifference,
+  fetchFile,
+  isRelativeUrl,
+};
 
 function isRelativeUrl(url) {
   try {
@@ -94,7 +96,8 @@ async function outputResults(path, results, config) {
 async function loadEnvs(envsFile) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
-    require("dotenv").config({ path: envsFile, override: true });
+    const { default: dotenv } = await import("dotenv");
+    dotenv.config({ path: envsFile, override: true });
     return { status: "PASS", description: "Envs set." };
   } else {
     return { status: "FAIL", description: "Invalid file." };

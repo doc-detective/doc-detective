@@ -4,9 +4,9 @@
  * with contexts, platforms, and browsers resolved.
  */
 
-const crypto = require("crypto");
-const { log } = require("./utils");
-const { loadDescription } = require("./openapi");
+import crypto from "node:crypto";
+import { log } from "./utils.js";
+import { loadDescription } from "./openapi.js";
 
 // Doc Detective actions that require a driver.
 const driverActions = [
@@ -217,7 +217,7 @@ async function resolveSpec({ config, spec }) {
 
 /**
  * Resolves detected tests into fully-resolved test specifications.
- * 
+ *
  * @param {Object} options - Resolution options
  * @param {Object} options.config - Configuration object
  * @param {Array} options.detectedTests - Array of detected test specifications
@@ -225,7 +225,7 @@ async function resolveSpec({ config, spec }) {
  */
 async function resolveTests({ config, detectedTests }) {
   log(config, "debug", `RESOLVING DETECTED TEST SPECS:\n${JSON.stringify(detectedTests, null, 2)}`);
-  
+
   const resolvedTests = {
     resolvedTestsId: crypto.randomUUID(),
     config: config,
@@ -242,7 +242,7 @@ async function resolveTests({ config, detectedTests }) {
   return resolvedTests;
 }
 
-module.exports = {
+export {
   resolveTests,
   resolveContexts,
   isDriverRequired,

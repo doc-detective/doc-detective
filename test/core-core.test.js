@@ -1,10 +1,12 @@
-const fs = require("fs");
-const { runTests } = require("../src/core");
-const { createServer } = require("./server");
-const assert = require("assert").strict;
-const path = require("path");
+import fs from "node:fs";
+import { runTests } from "../src/core/index.js";
+import { createServer } from "./server/index.js";
+import assert from "node:assert/strict";
+import path from "node:path";
+import os from "node:os";
+
 const artifactPath = path.resolve("./test/core-artifacts");
-const config_base = require(`${artifactPath}/config.json`);
+const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 const inputPath = artifactPath;
 
 // Create a server with custom options
@@ -128,7 +130,7 @@ describe("Run tests successfully", function () {
     // Create a spec with a context for a different platform than the current one.
     // The resolver will generate a context that doesn't match the current platform,
     // which will cause it to be skipped.
-    const currentPlatform = require("os").platform();
+    const currentPlatform = os.platform();
     const targetPlatform = currentPlatform === "win32" ? "linux" : "windows";
 
     const allContextsSkippedTest = {
@@ -423,7 +425,12 @@ describe("Intelligent goTo behavior", function () {
 describe("getRunner() function", function () {
   this.timeout(0); // Indefinite timeout for browser initialization
 
-  const { getRunner } = require("../src/core/tests");
+  let getRunner;
+
+  before(async function () {
+    const testsModule = await import("../src/core/tests.js");
+    getRunner = testsModule.getRunner;
+  });
 
   it("should create a runner with default options", async function () {
     let cleanup;

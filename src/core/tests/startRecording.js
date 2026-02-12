@@ -1,12 +1,13 @@
-const { validate } = require("doc-detective-common");
-const { instantiateCursor } = require("./moveTo");
-const path = require("path");
-const fs = require("fs");
-const os = require("os");
-const { spawn } = require("child_process");
-const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+import { validate } from "doc-detective-common";
+import { instantiateCursor } from "./moveTo.js";
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import { spawn } from "node:child_process";
+import ffmpeg from "@ffmpeg-installer/ffmpeg";
+const ffmpegPath = ffmpeg.path;
 
-exports.startRecording = startRecording;
+export { startRecording };
 
 async function startRecording({ config, context, step, driver }) {
   let result = {

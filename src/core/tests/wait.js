@@ -1,6 +1,6 @@
-const { validate } = require("doc-detective-common");
+import { validate } from "doc-detective-common";
 
-exports.wait = wait;
+export { wait };
 
 // Wait for a specified duration
 // Uses driver.pause() when a driver is available for proper browser synchronization

@@ -1,8 +1,8 @@
-const { validate } = require("doc-detective-common");
-const { isRelativeUrl } = require("../utils");
-const axios = require("axios");
+import { validate } from "doc-detective-common";
+import { isRelativeUrl } from "../utils.js";
+import axios from "axios";
 
-exports.checkLink = checkLink;
+export { checkLink };
 
 async function checkLink({ config, step }) {
   let result = { status: "PASS", description: "Checked link." };

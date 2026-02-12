@@ -1,13 +1,13 @@
-const { validate } = require("doc-detective-common");
-const {
+import { validate } from "doc-detective-common";
+import {
   spawnCommand,
   log,
   calculateFractionalDifference,
-} = require("../utils");
-const fs = require("fs");
-const path = require("path");
+} from "../utils.js";
+import fs from "node:fs";
+import path from "node:path";
 
-exports.runShell = runShell;
+export { runShell };
 
 // Run a shell command.
 async function runShell({ config, step }) {

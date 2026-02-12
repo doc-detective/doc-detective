@@ -2,11 +2,10 @@
  * Heretto CMS uploader - handles uploading files back to Heretto CMS.
  */
 
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
-const http = require("http");
-const { URL } = require("url");
+import fs from "node:fs";
+import path from "node:path";
+import https from "node:https";
+import http from "node:http";
 
 /**
  * Heretto uploader class implementing the uploader interface.
@@ -65,7 +64,7 @@ class HerettoUploader {
         filename,
         log: (level, msg) => log(config, level, msg),
       });
-      
+
       if (resolvedFile) {
         fileId = resolvedFile.uuid;
         if (!parentFolderId && resolvedFile.parentFolderId) {
@@ -77,7 +76,7 @@ class HerettoUploader {
 
     if (!fileId) {
       log(config, "debug", `No fileId found, resolving correct folder for: ${sourceIntegration.filePath}`);
-      
+
       try {
         // STEP 1: Resolve the correct target folder first
         // This ensures we upload to the right location, not just any file with the same name
@@ -87,10 +86,10 @@ class HerettoUploader {
             filePath: relativeFilePath,
             log: (level, msg) => log(config, level, msg),
           });
-          
+
           parentFolderId = folderResolution.folderId;
-          
-          // If not found in dependencies, try to find the target folder as a child 
+
+          // If not found in dependencies, try to find the target folder as a child
           // of the ditamap's parent folder via API
           if (!parentFolderId && folderResolution.ditamapParentFolderId && folderResolution.targetFolderName) {
             log(config, "debug", `Searching for folder '${folderResolution.targetFolderName}' in ditamap's parent folder`);
@@ -104,14 +103,14 @@ class HerettoUploader {
             });
           }
         }
-        
+
         // Fall back to folder search if not found in dependencies
         if (!parentFolderId && relativeFilePath) {
           const parentDirPath = path.dirname(relativeFilePath);
           if (parentDirPath && parentDirPath !== ".") {
             const folderName = path.basename(parentDirPath);
             log(config, "debug", `Searching for parent folder by name: ${folderName}`);
-            
+
             parentFolderId = await this.searchFolderByName({
               apiBaseUrl,
               apiToken: integrationConfig.apiToken,
@@ -133,13 +132,13 @@ class HerettoUploader {
             filename,
             log: (level, msg) => log(config, level, msg),
           });
-          
+
           if (fileId) {
             log(config, "debug", `Found existing file in target folder with ID: ${fileId}`);
           } else {
             // STEP 3: File doesn't exist in target folder - create it
             log(config, "debug", `File not in target folder, creating new document`);
-            
+
             const mimeType = this.getContentType(localFilePath);
             const createResult = await this.createDocument({
               apiBaseUrl,
@@ -165,7 +164,7 @@ class HerettoUploader {
                 filename,
                 log: (level, msg) => log(config, level, msg),
               });
-              
+
               if (!fileId) {
                 result.description = `File exists in folder but could not get its ID: ${filename}`;
                 return result;
@@ -185,7 +184,7 @@ class HerettoUploader {
             filename,
             log: (level, msg) => log(config, level, msg),
           });
-          
+
           if (!fileId) {
             result.description = `Could not find file or parent folder in Heretto: ${sourceIntegration.filePath}`;
             return result;
@@ -238,20 +237,20 @@ class HerettoUploader {
    */
   resolveFromDependencies({ resourceDependencies, filePath, filename, log }) {
     if (!resourceDependencies) return null;
-    
+
     // Normalize the file path for comparison using posix normalize for cross-platform support
     // Use normalize to handle multiple levels of relative references like ../../folder/file.png
     const normalizedPath = path.posix
       .normalize(filePath.replace(/\\/g, "/"))
       .replace(/^\.\.\/+/g, "") // Remove leading ../
       .replace(/^\.\//, ""); // Remove leading ./
-    
+
     // Try exact path match first
     for (const [depPath, info] of Object.entries(resourceDependencies)) {
       if (depPath.startsWith("_")) continue; // Skip internal keys
-      
+
       const normalizedDepPath = depPath.replace(/\\/g, "/");
-      
+
       // Check if paths match (accounting for relative path variations)
       if (normalizedDepPath === normalizedPath ||
           normalizedDepPath.endsWith("/" + normalizedPath) ||
@@ -260,36 +259,36 @@ class HerettoUploader {
         return info;
       }
     }
-    
+
     // Try filename match with parent folder context
     const parentDir = path.dirname(normalizedPath);
     const parentFolderName = path.basename(parentDir);
-    
+
     for (const [depPath, info] of Object.entries(resourceDependencies)) {
       if (depPath.startsWith("_")) continue;
-      
+
       const depFilename = path.basename(depPath);
       const depParentDir = path.dirname(depPath);
       const depParentFolderName = path.basename(depParentDir);
-      
+
       // Match by filename and parent folder name
       if (depFilename === filename && depParentFolderName === parentFolderName) {
         log("debug", `Found filename+folder match in dependencies: ${depPath}`);
         return info;
       }
     }
-    
+
     // Try filename-only match as last resort
     for (const [depPath, info] of Object.entries(resourceDependencies)) {
       if (depPath.startsWith("_")) continue;
-      
+
       const depFilename = path.basename(depPath);
       if (depFilename === filename) {
         log("debug", `Found filename match in dependencies: ${depPath}`);
         return info;
       }
     }
-    
+
     log("debug", `No match found in dependencies for: ${filePath}`);
     return null;
   }
@@ -314,9 +313,9 @@ class HerettoUploader {
       targetFolderName: null,
       ditamapParentFolderId: null,
     };
-    
+
     if (!resourceDependencies) return result;
-    
+
     // Normalize path and get parent directory using posix normalize for cross-platform support
     // Use a loop/regex pattern to handle multiple levels of relative references like ../../folder/file.png
     const normalizedPath = path.posix
@@ -325,19 +324,19 @@ class HerettoUploader {
       .replace(/^\.\//, ""); // Remove leading ./
     const parentDir = path.dirname(normalizedPath);
     const targetFolderName = path.basename(parentDir);
-    
+
     result.targetFolderName = targetFolderName;
     result.ditamapParentFolderId = resourceDependencies._ditamapParentFolderId || null;
-    
+
     log("debug", `Looking for parent folder '${targetFolderName}' in dependencies`);
-    
+
     // Find a sibling file in the same folder to get the parent folder ID
     for (const [depPath, info] of Object.entries(resourceDependencies)) {
       if (depPath.startsWith("_")) continue;
-      
+
       const depParentDir = path.dirname(depPath);
       const depFolderName = path.basename(depParentDir);
-      
+
       // If we find a file in the same folder, use its parent folder ID
       if (depFolderName === targetFolderName && info.parentFolderId) {
         log("debug", `Found sibling file ${depPath} with parent folder ID: ${info.parentFolderId}`);
@@ -345,11 +344,11 @@ class HerettoUploader {
         return result;
       }
     }
-    
+
     // Alternative: look for folder paths in the dependencies
     for (const [depPath, info] of Object.entries(resourceDependencies)) {
       if (depPath.startsWith("_")) continue;
-      
+
       // Check if this is the folder itself (ends with folder name)
       if (depPath.endsWith("/" + targetFolderName) || depPath === targetFolderName) {
         log("debug", `Found folder ${depPath} with ID: ${info.uuid}`);
@@ -357,11 +356,11 @@ class HerettoUploader {
         return result;
       }
     }
-    
+
     log("debug", `Could not find parent folder '${targetFolderName}' in dependencies, will search via API`);
     return result;
   }
-  
+
   /**
    * Gets a child folder within a parent folder by name.
    * @param {Object} options - Search options
@@ -402,7 +401,7 @@ class HerettoUploader {
               // Double-escape backslashes for proper regex character class matching
               const escapedFolderName = folderName.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
               const folderMatch = data.match(new RegExp(`<folder\\s+name="${escapedFolderName}"\\s+id="([^"]+)"`, 'i'));
-              
+
               if (folderMatch && folderMatch[1]) {
                 log("debug", `Found child folder '${folderName}' with ID: ${folderMatch[1]}`);
                 resolve(folderMatch[1]);
@@ -442,7 +441,7 @@ class HerettoUploader {
    */
   async createDocument({ apiBaseUrl, apiToken, username, parentFolderId, filename, mimeType, log }) {
     const createUrl = new URL(`/rest/all-files/${parentFolderId}`, apiBaseUrl);
-    
+
     const createBody = `<resource><name>${this.escapeXml(filename)}</name><mime-type>${mimeType}</mime-type></resource>`;
 
     return new Promise((resolve, reject) => {
@@ -552,7 +551,7 @@ class HerettoUploader {
               const escapedFilename = filename.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
               const nameIdMatch = data.match(new RegExp(`id="([^"]+)"[^>]*name="${escapedFilename}"`, 'i'));
               const idNameMatch = data.match(new RegExp(`name="${escapedFilename}"[^>]*id="([^"]+)"`, 'i'));
-              
+
               const match = nameIdMatch || idNameMatch;
               if (match && match[1]) {
                 log("debug", `Found file ${filename} with ID: ${match[1]}`);
@@ -607,7 +606,7 @@ class HerettoUploader {
    */
   async searchFolderByName({ apiBaseUrl, apiToken, username, folderName, log }) {
     const searchUrl = new URL("/ezdnxtgen/api/search", apiBaseUrl);
-    
+
     const searchBody = JSON.stringify({
       queryString: folderName,
       searchResultType: "FOLDERS_ONLY",
@@ -647,7 +646,7 @@ class HerettoUploader {
                 resolve(null);
                 return;
               }
-              
+
               const result = JSON.parse(data);
               // Find the matching folder in results
               if (result.searchResults && result.searchResults.length > 0) {
@@ -697,7 +696,7 @@ class HerettoUploader {
    */
   async searchFileByName({ apiBaseUrl, apiToken, username, filename, log }) {
     const searchUrl = new URL("/ezdnxtgen/api/search", apiBaseUrl);
-    
+
     const searchBody = JSON.stringify({
       queryString: filename,
       searchResultType: "FILES_ONLY",
@@ -735,7 +734,7 @@ class HerettoUploader {
                 resolve(null);
                 return;
               }
-              
+
               const result = JSON.parse(data);
               // Find the matching file in results
               if (result.searchResults && result.searchResults.length > 0) {
@@ -870,12 +869,12 @@ class HerettoUploader {
               // Parse XML response to extract document info
               // The <resource> tag has id and folder-uuid as ATTRIBUTES
               // But <name>, <mime-type>, <xmldb-uri> are CHILD ELEMENTS
-              
+
               // Extract attributes from the opening <resource> tag
               const resourceMatch = data.match(/<resource\s+([^>]+)>/);
               let id = null;
               let folderUuid = null;
-              
+
               if (resourceMatch) {
                 const attrs = resourceMatch[1];
                 const idMatch = attrs.match(/\bid="([^"]+)"/);
@@ -883,7 +882,7 @@ class HerettoUploader {
                 id = idMatch ? idMatch[1] : null;
                 folderUuid = folderMatch ? folderMatch[1] : null;
               }
-              
+
               // Extract child elements
               const nameMatch = data.match(/<name>([^<]+)<\/name>/);
               const mimeMatch = data.match(/<mime-type>([^<]+)<\/mime-type>/);
@@ -979,7 +978,7 @@ class HerettoUploader {
    */
   getContentType(filePath) {
     const ext = path.extname(filePath).toLowerCase();
-    
+
     const contentTypes = {
       ".png": "image/png",
       ".jpg": "image/jpeg",
@@ -999,6 +998,4 @@ class HerettoUploader {
   }
 }
 
-module.exports = {
-  HerettoUploader,
-};
+export { HerettoUploader };

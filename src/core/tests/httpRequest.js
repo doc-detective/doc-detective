@@ -1,12 +1,12 @@
-const { validate } = require("doc-detective-common");
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-const Ajv = require("ajv");
-const { getOperation, loadDescription } = require("../openapi");
-const { log, calculateFractionalDifference, replaceEnvs } = require("../utils");
+import { validate } from "doc-detective-common";
+import axios from "axios";
+import fs from "node:fs";
+import path from "node:path";
+import Ajv from "ajv";
+import { getOperation, loadDescription } from "../openapi.js";
+import { log, calculateFractionalDifference, replaceEnvs } from "../utils.js";
 
-exports.httpRequest = httpRequest;
+export { httpRequest };
 
 async function httpRequest({ config, step, openApiDefinitions = [] }) {
   let result = { status: "", description: "", outputs: {} };
@@ -236,14 +236,14 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       allowUnionTypes: true,
       coerceTypes: false,
     });
-    const validate = ajv.compile(operation.schemas.request);
-    const valid = validate(step.httpRequest.request.body);
+    const validateFn = ajv.compile(operation.schemas.request);
+    const valid = validateFn(step.httpRequest.request.body);
     if (valid) {
       result.description = ` Request body matched the OpenAPI schema.`;
     } else {
       result.status = "FAIL";
       result.description = ` Request body didn't match the OpenAPI schema. ${JSON.stringify(
-        validate.errors,
+        validateFn.errors,
         null,
         2
       )}`;
@@ -332,14 +332,14 @@ async function httpRequest({ config, step, openApiDefinitions = [] }) {
       allowUnionTypes: true,
       coerceTypes: false,
     });
-    const validate = ajv.compile(operation.schemas.response);
-    const valid = validate(response.data);
+    const validateFn = ajv.compile(operation.schemas.response);
+    const valid = validateFn(response.data);
     if (valid) {
       result.description += ` Response data matched the OpenAPI schema.`;
     } else {
       result.status = "FAIL";
       result.description += ` Response data didn't match the OpenAPI schema. ${JSON.stringify(
-        validate.errors,
+        validateFn.errors,
         null,
         2
       )}`;
@@ -670,47 +670,4 @@ function objectExistsInObject(expected, actual) {
   });
   result = { status, description };
   return { result };
-}
-
-// If run directly, perform httpRequest
-if (require.main === module) {
-  const config = {
-    logLevel: "debug",
-  };
-  const step = {
-    httpRequest: {
-      url: `https://reqres.in/api/users`,
-      method: "post",
-      statusCodes: [200, 201],
-      request: {
-        body: {
-          name: "John Doe",
-          job: "Software Engineer",
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
-        parameters: {},
-      },
-      response: {
-        body: {},
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          server: "cloudflare",
-        },
-      },
-      allowAdditionalFields: false,
-      path: "response.json",
-      directory: "media",
-      maxVariation: 0.1,
-      overwrite: "aboveVariation",
-    },
-  };
-  httpRequest({ config, step })
-    .then((result) => {
-      console.log(result);
-    })
-    .catch((error) => {
-      console.error(error);
-    });
 }

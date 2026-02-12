@@ -1,9 +1,6 @@
-exports.findElementBySelectorAndText = findElementBySelectorAndText;
-exports.findElementByShorthand = findElementByShorthand;
-exports.findElementByCriteria = findElementByCriteria;
+export { findElementBySelectorAndText, findElementByShorthand, findElementByCriteria, setElementOutputs };
 
 // Set element outputs
-exports.setElementOutputs = setElementOutputs;
 
 async function setElementOutputs({ element }) {
   // Set element in outputs

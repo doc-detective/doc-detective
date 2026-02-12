@@ -1,7 +1,7 @@
-const { validate } = require("doc-detective-common");
-const { findElement } = require("./findElement");
+import { validate } from "doc-detective-common";
+import { findElement } from "./findElement.js";
 
-exports.clickElement = clickElement;
+export { clickElement };
 
 // Click an element.
 async function clickElement({ config, step, driver }) {

@@ -1,9 +1,9 @@
-const assert = require("assert").strict;
-const {
+import assert from "node:assert/strict";
+import {
   collectChangedFiles,
   getIntegrationConfig,
   getUploader,
-} = require("../src/core/integrations");
+} from "../src/core/integrations/index.js";
 
 describe("Upload module", function () {
   describe("collectChangedFiles", function () {

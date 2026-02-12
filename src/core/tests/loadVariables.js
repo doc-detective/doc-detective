@@ -1,7 +1,7 @@
-const { validate } = require("doc-detective-common");
-const { loadEnvs } = require("../utils");
+import { validate } from "doc-detective-common";
+import { loadEnvs } from "../utils.js";
 
-exports.loadVariables = loadVariables;
+export { loadVariables };
 
 /**
  * Loads variables defined in a step object into the environment.

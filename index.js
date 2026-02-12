@@ -1,4 +1,4 @@
-const {
+import {
   runTests,
   getRunner,
   detectTests,
@@ -6,9 +6,9 @@ const {
   resolveTests,
   readFile,
   resolvePaths,
-} = require("./src/core");
+} from "./src/core/index.js";
 
-module.exports = {
+export {
   runTests,
   getRunner,
   detectTests,

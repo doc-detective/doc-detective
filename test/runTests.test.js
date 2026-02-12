@@ -1,8 +1,11 @@
-const { createServer } = require("./server");
-const path = require("path");
-const { spawnCommand } = require("../src/utils");
-const assert = require("assert").strict;
-const fs = require("fs");
+import { createServer } from "./server/index.js";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnCommand } from "../src/utils.js";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(`${artifactPath}/testResults.json`);
 
@@ -45,7 +48,7 @@ describe("Run tests successfully", function () {
     );
     // Wait until the file is written
     while (!fs.existsSync(outputFile)) {}
-    const result = require(outputFile);
+    const result = JSON.parse(fs.readFileSync(outputFile, "utf8"));
     console.log(JSON.stringify(result, null, 2));
     fs.unlinkSync(outputFile);
     assert.equal(result.summary.specs.fail, 0);

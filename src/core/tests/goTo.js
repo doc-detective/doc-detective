@@ -1,8 +1,8 @@
-const { validate } = require("doc-detective-common");
-const { isRelativeUrl } = require("../utils");
-const { findElement } = require("./findElement");
+import { validate } from "doc-detective-common";
+import { isRelativeUrl } from "../utils.js";
+import { findElement } from "./findElement.js";
 
-exports.goTo = goTo;
+export { goTo };
 
 // Open a URI in the browser
 async function goTo({ config, step, driver }) {
@@ -292,7 +292,7 @@ async function waitForNetworkIdle(driver, idleTime, timeout) {
     if (!window.__docDetectiveNetworkMonitor) {
       const originalFetch = window.fetch;
       const originalXHROpen = XMLHttpRequest.prototype.open;
-      
+
       window.__docDetectiveNetworkMonitor = {
         lastRequestTime: Date.now(), // Use browser time
         requestCount: 0,

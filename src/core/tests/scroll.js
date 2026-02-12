@@ -1,4 +1,4 @@
-exports.scroll = scroll;
+export { scroll };
 
 async function scroll(action, page, config) {
   let status;

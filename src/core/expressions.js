@@ -1,8 +1,8 @@
-const { log } = require("./utils");
+import { log } from "./utils.js";
 // const { JSONPath } = require("jsonpath-plus");
 // const xpath = require("xpath");
 // const { DOMParser } = require("xmldom");
-const jq = require("jq-web");
+import jq from "jq-web";
 
 /**
  * Resolves runtime expressions that may contain meta values and operators.
@@ -216,17 +216,17 @@ function getNestedProperty(obj, path) {
 
   for (const part of parts) {
     if (current === null || current === undefined) return undefined;
-    
+
     // Check if this part uses array notation like "data[0]"
     const arrayMatch = part.match(/^([\w$]+)(?:\[(\d+)\])$/);
     if (arrayMatch) {
       const [, propName, indexStr] = arrayMatch;
       const index = parseInt(indexStr, 10);
-      
+
       // First access the array property
       current = current[propName];
       if (current === null || current === undefined) return undefined;
-      
+
       // Then access the array index
       current = current[index];
     } else {
@@ -470,71 +470,4 @@ async function evaluateAssertion(assertion, context) {
   }
 }
 
-module.exports = {
-  resolveExpression,
-  evaluateAssertion,
-  getMetaValue,
-  replaceMetaValues,
-};
-
-// Run the main function to test the code
-if (require.main === module) {
-  (async () => {
-    try {
-      const context = {
-        steps: {
-          extractUserData: {
-            outputs: {
-              userName: "John", // Changed from "John Doe" to "John" to match the test
-              email: "john.doe@example.com",
-            },
-          },
-        },
-        statusCode: 200,
-        response: {
-          body: {
-            users: [
-              {
-                id: 1,
-                name: "John",
-              },
-              {
-                id: 2,
-                name: "Doe",
-              },
-            ],
-            message: "Success with ID: 12345",
-            success: false,
-          },
-        },
-        foobar: 100,
-      };
-
-      // Test basic matching
-      //   let expression = "$$steps.extractUserData.outputs.userName matches John";
-      //   console.log(`Original expression: ${expression}`);
-      //   let resolvedValue = await resolveExpression(expression, context);
-      //   console.log(`Resolved value: ${resolvedValue}`);
-
-      // Test extraction with no capture groups (returns array of full matches)
-      //   expression = "extract($$response.body.message, 'Success')";
-      //   console.log(`\nExtraction with no capture groups: ${expression}`);
-      //   resolvedValue = await resolveExpression(expression, context);
-      //   console.log(`Resolved value:`, resolvedValue);
-
-      // Test extraction with capture groups
-      //   expression = "extract($$response.body.message, 'ID: (\\d+)')";
-      //   console.log(`\nExtraction with capture groups: ${expression}`);
-      //   resolvedValue = await resolveExpression(expression, context);
-      //   console.log(`Resolved value:`, resolvedValue);
-
-      //   // Test extraction with multiple matches
-      expression = "extract($$response.body.users[0].name, '(\\w+)')";
-      console.log(`\nExtraction with multiple matches: ${expression}`);
-      resolvedValue = await resolveExpression({expression: expression, context: context});
-      console.log(`Resolved value:`, resolvedValue);
-    } catch (error) {
-      console.error(`Error running test: ${error.message}`);
-    }
-  })();
-}
+export { resolveExpression, evaluateAssertion, getMetaValue, replaceMetaValues };

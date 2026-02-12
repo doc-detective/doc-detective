@@ -1,13 +1,13 @@
 /**
  * Integration uploader module - provides extensible file upload capability
  * for different CMS integrations.
- * 
+ *
  * Each integration uploader implements a common interface:
  * - canHandle(sourceIntegration) - returns true if this uploader handles the integration type
  * - upload({ config, localFilePath, sourceIntegration, log }) - uploads the file
  */
 
-const { HerettoUploader } = require("./heretto");
+import { HerettoUploader } from "./heretto.js";
 
 // Registry of available uploaders
 const uploaders = [
@@ -21,13 +21,13 @@ const uploaders = [
  */
 function getUploader(sourceIntegration) {
   if (!sourceIntegration?.type) return null;
-  
+
   for (const uploader of uploaders) {
     if (uploader.canHandle(sourceIntegration)) {
       return uploader;
     }
   }
-  
+
   return null;
 }
 
@@ -43,9 +43,9 @@ function getUploader(sourceIntegration) {
  */
 function collectChangedFiles(report) {
   const changedFiles = [];
-  
+
   if (!report?.specs) return changedFiles;
-  
+
   for (const spec of report.specs) {
     for (const test of spec.tests || []) {
       for (const context of test.contexts || []) {
@@ -68,7 +68,7 @@ function collectChangedFiles(report) {
       }
     }
   }
-  
+
   return changedFiles;
 }
 
@@ -95,23 +95,23 @@ async function uploadChangedFiles({ config, report, log }) {
     skipped: 0,
     details: [],
   };
-  
+
   const changedFiles = collectChangedFiles(report);
   results.total = changedFiles.length;
-  
+
   if (changedFiles.length === 0) {
     log(config, "debug", "No changed files to upload.");
     return results;
   }
-  
+
   log(config, "info", `Found ${changedFiles.length} changed file(s) to upload.`);
-  
+
   // Prepare upload tasks, filtering out files without valid uploaders or configs
   const uploadTasks = [];
-  
+
   for (const file of changedFiles) {
     const uploader = getUploader(file.sourceIntegration);
-    
+
     if (!uploader) {
       log(
         config,
@@ -126,13 +126,13 @@ async function uploadChangedFiles({ config, report, log }) {
       });
       continue;
     }
-    
+
     // Get the integration config for API credentials
     const integrationConfig = getIntegrationConfig(
       config,
       file.sourceIntegration
     );
-    
+
     if (!integrationConfig) {
       log(
         config,
@@ -147,7 +147,7 @@ async function uploadChangedFiles({ config, report, log }) {
       });
       continue;
     }
-    
+
     // Queue this file for parallel upload
     uploadTasks.push({
       file,
@@ -155,18 +155,18 @@ async function uploadChangedFiles({ config, report, log }) {
       integrationConfig,
     });
   }
-  
+
   // Execute all uploads in parallel using Promise.allSettled
   if (uploadTasks.length > 0) {
     log(config, "debug", `Executing ${uploadTasks.length} upload(s) in parallel...`);
-    
+
     const uploadPromises = uploadTasks.map(async ({ file, uploader, integrationConfig }) => {
       log(
         config,
         "info",
         `Uploading ${file.localPath} to ${file.sourceIntegration.type}...`
       );
-      
+
       try {
         const uploadResult = await uploader.upload({
           config,
@@ -175,20 +175,20 @@ async function uploadChangedFiles({ config, report, log }) {
           sourceIntegration: file.sourceIntegration,
           log,
         });
-        
+
         return { file, uploadResult, error: null };
       } catch (error) {
         // Catch errors within the promise to preserve file reference
         return { file, uploadResult: null, error };
       }
     });
-    
+
     const settledResults = await Promise.allSettled(uploadPromises);
-    
+
     for (const settled of settledResults) {
       // All promises should be fulfilled since we catch errors internally
       const { file, uploadResult, error } = settled.value;
-      
+
       if (error) {
         results.failed++;
         log(
@@ -224,13 +224,13 @@ async function uploadChangedFiles({ config, report, log }) {
       }
     }
   }
-  
+
   log(
     config,
     "info",
     `Upload complete: ${results.successful} successful, ${results.failed} failed, ${results.skipped} skipped`
   );
-  
+
   return results;
 }
 
@@ -244,7 +244,7 @@ function getIntegrationConfig(config, sourceIntegration) {
   if (!sourceIntegration?.type || !sourceIntegration?.integrationName) {
     return null;
   }
-  
+
   switch (sourceIntegration.type) {
     case "heretto":
       return config?.integrations?.heretto?.find(
@@ -266,7 +266,7 @@ function registerUploader(uploader) {
   uploaders.push(uploader);
 }
 
-module.exports = {
+export {
   getUploader,
   collectChangedFiles,
   uploadChangedFiles,

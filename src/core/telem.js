@@ -1,6 +1,9 @@
-const os = require("os");
-const { log } = require("./utils");
-const { PostHog } = require("posthog-node");
+import os from "node:os";
+import { log } from "./utils.js";
+import { PostHog } from "posthog-node";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 const platformMap = {
   win32: "windows",
@@ -50,10 +53,10 @@ function sendTelemetry(config, command, results) {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const package = require("../../package.json");
+  const pkg = require("../../package.json");
   telemetryData.distribution = telemetryData.distribution || "doc-detective";
   telemetryData.dist_interface = telemetryData.dist_interface || "package";
-  telemetryData.core_version = package.version;
+  telemetryData.core_version = pkg.version;
   telemetryData.dist_version = telemetryData.dist_version || telemetryData.core_version;
   telemetryData.core_platform = platformMap[os.platform()] || os.platform();
   telemetryData.dist_platform = telemetryData.dist_platform || telemetryData.core_platform;
@@ -99,5 +102,4 @@ function sendTelemetry(config, command, results) {
   client.shutdown();
 }
 
-exports.telemetryNotice = telemetryNotice;
-exports.sendTelemetry = sendTelemetry;
+export { telemetryNotice, sendTelemetry };

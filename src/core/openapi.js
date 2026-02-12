@@ -1,7 +1,7 @@
-const { replaceEnvs } = require("./utils");
-const { JSONSchemaFaker } = require("json-schema-faker");
-const { readFile } = require("./files");
-const parser = require("@apidevtools/json-schema-ref-parser");
+import { replaceEnvs } from "./utils.js";
+import { JSONSchemaFaker } from "json-schema-faker";
+import { readFile } from "./files.js";
+import parser from "@apidevtools/json-schema-ref-parser";
 
 JSONSchemaFaker.option({ requiredOnly: true });
 
@@ -405,4 +405,4 @@ function checkForExamples(definition = {}, exampleKey = "") {
   return false;
 }
 
-module.exports = { getOperation, loadDescription };
+export { getOperation, loadDescription };

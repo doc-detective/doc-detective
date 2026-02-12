@@ -1,14 +1,14 @@
-const { validate } = require("doc-detective-common");
-const {
+import { validate } from "doc-detective-common";
+import {
   findElementByShorthand,
   findElementByCriteria,
   setElementOutputs,
-} = require("./findStrategies");
-const { typeKeys } = require("./typeKeys");
-const { moveTo } = require("./moveTo");
-const { wait } = require("./wait");
+} from "./findStrategies.js";
+import { typeKeys } from "./typeKeys.js";
+import { moveTo } from "./moveTo.js";
+import { wait } from "./wait.js";
 
-exports.findElement = findElement;
+export { findElement };
 
 // Find a single element
 async function findElement({ config, step, driver, click }) {

@@ -1,6 +1,9 @@
-const path = require("path");
-const browsers = require("@puppeteer/browsers");
-const geckodriver = require("geckodriver");
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import browsers from "@puppeteer/browsers";
+import geckodriver from "geckodriver";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
   await installBrowsers();
@@ -11,7 +14,7 @@ main();
 
 async function installBrowsers() {
   // Move to package root directory to correctly set browser snapshot directory
-  cwd = process.cwd();
+  let cwd = process.cwd();
   process.chdir(path.join(__dirname, ".."));
 
   // Meta
@@ -22,7 +25,7 @@ async function installBrowsers() {
   try {
     console.log("Installing Chrome browser");
     let browser = "chrome";
-    buildId = await browsers.resolveBuildId(
+    let buildId = await browsers.resolveBuildId(
       browser,
       browser_platform,
       "stable"
@@ -39,8 +42,8 @@ async function installBrowsers() {
   // Install Firefox
   try {
     console.log("Installing Firefox browser");
-    browser = "firefox";
-    buildId = await browsers.resolveBuildId(
+    let browser = "firefox";
+    let buildId = await browsers.resolveBuildId(
       browser,
       browser_platform,
       "latest"
@@ -57,8 +60,8 @@ async function installBrowsers() {
   // Install ChromeDriver
   try {
     console.log("Installing ChromeDriver binary");
-    browser = "chromedriver";
-    buildId = await browsers.resolveBuildId(
+    let browser = "chromedriver";
+    let buildId = await browsers.resolveBuildId(
       browser,
       browser_platform,
       "stable"
@@ -75,6 +78,7 @@ async function installBrowsers() {
   // Install Geckodriver
   try {
     console.log("Installing Geckodriver binary");
+    let binPath;
     if (__dirname.includes("AppData\\Roaming\\")) {
       // Running from global install on Windows
       binPath = path.join(__dirname.split("node_modules")[0]);

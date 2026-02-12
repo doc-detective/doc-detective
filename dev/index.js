@@ -1,6 +1,6 @@
-const { setArgs, setConfig } = require("../src/utils");
+import { setArgs, setConfig } from "../src/utils.js";
 
 // Test that arguments are parsed correctly
-json = {
+const json = {
 }
 console.log(setConfig(json,setArgs(process.argv)))

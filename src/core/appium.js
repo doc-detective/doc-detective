@@ -1,7 +1,10 @@
-const path = require("path");
-const { existsSync } = require("fs");
+import path from "node:path";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-exports.setAppiumHome = setAppiumHome;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export { setAppiumHome };
 
 function setAppiumHome() {
   const corePath = path.join(__dirname, "../../node_modules");

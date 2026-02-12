@@ -1,22 +1,29 @@
-const yargs = require("yargs/yargs");
-const { hideBin } = require("yargs/helpers");
-const { validate } = require("doc-detective-common");
-const { resolvePaths, readFile } = require("./core");
-const path = require("path");
-const fs = require("fs");
-const { spawn } = require("child_process");
-const os = require("os");
-const axios = require("axios");
+import yargs from "yargs/yargs";
+import { hideBin } from "yargs/helpers";
+import { validate } from "doc-detective-common";
+import { resolvePaths, readFile } from "./core/index.js";
+import path from "node:path";
+import fs from "node:fs";
+import { spawn } from "node:child_process";
+import os from "node:os";
+import axios from "axios";
+import { createRequire } from "node:module";
 
-exports.setArgs = setArgs;
-exports.setConfig = setConfig;
-exports.outputResults = outputResults;
-exports.spawnCommand = spawnCommand;
-exports.setMeta = setMeta;
-exports.getVersionData = getVersionData;
-exports.log = log;
-exports.getResolvedTestsFromEnv = getResolvedTestsFromEnv;
-exports.reportResults = reportResults;
+const require = createRequire(import.meta.url);
+
+export {
+  setArgs,
+  setConfig,
+  outputResults,
+  spawnCommand,
+  setMeta,
+  getVersionData,
+  log,
+  getResolvedTestsFromEnv,
+  reportResults,
+  reporters,
+  registerReporter,
+};
 
 // Log function that respects logLevel
 function log(message, level = "info", config = {}) {
@@ -712,9 +719,6 @@ const reporters = {
   },
 };
 
-// Export reporters for external use
-exports.reporters = reporters;
-
 // Helper function to register custom reporters
 function registerReporter(name, reporterFunction) {
   if (typeof reporterFunction !== "function") {
@@ -723,9 +727,6 @@ function registerReporter(name, reporterFunction) {
   reporters[name] = reporterFunction;
   return true;
 }
-
-// Export the registerReporter function
-exports.registerReporter = registerReporter;
 
 async function reportResults({ apiConfig, results }) {
   // Transform results into the required format for the API
@@ -755,7 +756,7 @@ async function reportResults({ apiConfig, results }) {
               }
               if (!status) {
                 log(config, "error", `Unknown context result status for context ID ${contextId}`);
-                return; 
+                return;
               }
 
               // Build the context payload with the entire context object embedded
@@ -847,7 +848,7 @@ async function spawnCommand(cmd, args) {
   if (cmd.includes(" ")) {
     const cmdArray = cmd.split(" ");
     cmd = cmdArray[0];
-    cmdArgs = cmdArray.slice(1);
+    let cmdArgs = cmdArray.slice(1);
     // Add arguments to args array
     if (args) {
       args = cmdArgs.concat(args);
@@ -896,9 +897,9 @@ function setMeta() {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const package = require("../package.json");
+  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = package.version;
+  meta.dist_version = pkg.version;
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();

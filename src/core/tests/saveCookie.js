@@ -1,9 +1,9 @@
-const { validate } = require("doc-detective-common");
-const { log } = require("../utils");
-const path = require("path");
-const fs = require("fs");
+import { validate } from "doc-detective-common";
+import { log } from "../utils.js";
+import path from "node:path";
+import fs from "node:fs";
 
-exports.saveCookie = saveCookie;
+export { saveCookie };
 
 /**
  * Save a specific browser cookie to a file or environment variable for later reuse.
@@ -75,7 +75,7 @@ async function saveCookie({ config, step, driver }) {
       targetCookie = allCookies.find(cookie => {
         const nameMatches = cookie.name === cookieName;
         const domainMatches = !domain || (cookie.domain && (
-          cookie.domain === domain || 
+          cookie.domain === domain ||
           cookie.domain === '.' + domain ||
           cookie.domain.endsWith('.' + domain)
         ));
@@ -105,7 +105,7 @@ async function saveCookie({ config, step, driver }) {
       const fullPath = path.resolve(outputDirectory, filePath);
 
       // Check if file exists and handle overwrite
-      if (fs.existsSync(fullPath) && !(overwrite === true || overwrite === "true")) {  
+      if (fs.existsSync(fullPath) && !(overwrite === true || overwrite === "true")) {
         result.status = "FAIL";
         result.description = `File '${fullPath}' already exists and overwrite is not enabled.`;
         return result;
@@ -120,13 +120,13 @@ async function saveCookie({ config, step, driver }) {
       if (targetCookie) {
         // Convert single cookie to Netscape format
         const netscapeCookie = formatCookieForNetscape(targetCookie);
-        
+
         // Write Netscape format header and cookie
         const content = `# Netscape HTTP Cookie File
 # This is a cookie file saved by Doc Detective
 ${netscapeCookie}
 `;
-        
+
         fs.writeFileSync(fullPath, content, 'utf8');
         result.description = `Saved cookie '${cookieName}' to '${fullPath}'.`;
         log(config, "debug", `Saved cookie '${cookieName}' to file: ${fullPath}`);

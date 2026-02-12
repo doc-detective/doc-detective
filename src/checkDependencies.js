@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-const path = require("path");
-const fs = require("fs");
-const readline = require("readline");
+import path from "node:path";
+import fs from "node:fs";
+import readline from "node:readline";
+import { spawn } from "node:child_process";
 
 // Check if package.json exists, and if it's for doc-detective
 if (fs.existsSync(path.resolve(process.cwd(), "package.json"))) {
@@ -40,11 +41,10 @@ function checkDependencies() {
         const normalizedAnswer = answer.toLowerCase().trim();
         if (normalizedAnswer === "yes" || normalizedAnswer === "y") {
           console.log("Installing dependencies. This may take a few minutes.");
-          const { spawn } = require("child_process");
           const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-          const install = spawn(npmCmd, ["install"], { 
+          const install = spawn(npmCmd, ["install"], {
             stdio: "inherit",
-            shell: true 
+            shell: true
           });
 
           // Set timeout

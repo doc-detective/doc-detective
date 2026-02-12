@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const { runTests } = require("./core");
-const {
+import { runTests } from "./core/index.js";
+import {
   setArgs,
   setConfig,
   outputResults,
@@ -10,10 +10,10 @@ const {
   log,
   getResolvedTestsFromEnv,
   reportResults,
-} = require("./utils");
-const { argv } = require("node:process");
-const path = require("path");
-const fs = require("fs");
+} from "./utils.js";
+import { argv } from "node:process";
+import path from "node:path";
+import fs from "node:fs";
 
 // Run
 setMeta();

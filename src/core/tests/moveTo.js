@@ -1,7 +1,6 @@
-const { validate } = require("doc-detective-common");
+import { validate } from "doc-detective-common";
 
-exports.moveTo = moveTo;
-exports.instantiateCursor = instantiateCursor;
+export { moveTo, instantiateCursor };
 
 async function instantiateCursor(driver, options = { position: "current" }) {
 
@@ -131,7 +130,7 @@ async function moveTo({config, step, driver, element}) {
     result.description = `Couldn't find element.`;
     return result;
   }
-  
+
   // Calculate target coordinates based on selector, alignments, and offsets
   const size = await element.getSize();
   const location = await element.getLocation();

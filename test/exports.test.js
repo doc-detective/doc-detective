@@ -1,10 +1,10 @@
-const assert = require("assert").strict;
+import assert from "node:assert/strict";
 
 describe("cli/index.js exports", function () {
   let cliExports;
 
-  before(function () {
-    cliExports = require("../index");
+  before(async function () {
+    cliExports = await import("../index.js");
   });
 
   it("should export runTests as a function", function () {
@@ -36,7 +36,7 @@ describe("cli/index.js exports", function () {
   });
 
   it("should export exactly 7 functions", function () {
-    const exportKeys = Object.keys(cliExports);
+    const exportKeys = Object.keys(cliExports).filter(k => k !== 'default');
     assert.equal(exportKeys.length, 7);
   });
 });

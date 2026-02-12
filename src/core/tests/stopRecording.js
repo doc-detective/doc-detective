@@ -1,11 +1,12 @@
-const { validate } = require("doc-detective-common");
-const { log } = require("../utils");
-const { exec } = require("child_process");
-const path = require("path");
-const fs = require("fs");
-const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+import { validate } from "doc-detective-common";
+import { log } from "../utils.js";
+import { exec } from "node:child_process";
+import path from "node:path";
+import fs from "node:fs";
+import ffmpeg from "@ffmpeg-installer/ffmpeg";
+const ffmpegPath = ffmpeg.path;
 
-exports.stopRecording = stopRecording;
+export { stopRecording };
 
 async function stopRecording({ config, step, driver }) {
   let result = {
@@ -51,7 +52,7 @@ async function stopRecording({ config, step, driver }) {
       const targetPath = `${config.recording.targetPath}`;
       const downloadPath = `${config.recording.downloadPath}`;
       const endMessage = `Finished processing file: ${config.recording.targetPath}`;
-      const ffmpeg = exec(
+      const ffmpegExec = exec(
         `${ffmpegPath} -y -i ${downloadPath} -pix_fmt yuv420p ${
           path.extname(targetPath) === ".gif"
             ? `-vf scale=iw:-1:flags=lanczos`

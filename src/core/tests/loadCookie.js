@@ -1,9 +1,9 @@
-const { validate } = require("doc-detective-common");
-const { log } = require("../utils");
-const path = require("path");
-const fs = require("fs");
+import { validate } from "doc-detective-common";
+import { log } from "../utils.js";
+import path from "node:path";
+import fs from "node:fs";
 
-exports.loadCookie = loadCookie;
+export { loadCookie };
 
 /**
  * Load a specific cookie from a file or environment variable into the browser.

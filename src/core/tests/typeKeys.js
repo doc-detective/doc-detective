@@ -1,10 +1,10 @@
-const { validate } = require("doc-detective-common");
-const { Key } = require("webdriverio");
-const {
+import { validate } from "doc-detective-common";
+import { Key } from "webdriverio";
+import {
   findElementByCriteria,
-} = require("./findStrategies");
+} from "./findStrategies.js";
 
-exports.typeKeys = typeKeys;
+export { typeKeys };
 
 const specialKeyMap = {
   $CTRL$: Key.Ctrl,
@@ -108,11 +108,11 @@ async function typeKeys({ config, step, driver }) {
 
   // Find element to type into if any criteria are specified
   let element = null;
-  const hasElementCriteria = step.type.selector || step.type.elementText || 
-                             step.type.elementId || step.type.elementTestId || 
-                             step.type.elementClass || step.type.elementAttribute || 
+  const hasElementCriteria = step.type.selector || step.type.elementText ||
+                             step.type.elementId || step.type.elementTestId ||
+                             step.type.elementClass || step.type.elementAttribute ||
                              step.type.elementAria;
-  
+
   if (hasElementCriteria) {
     const { element: foundElement, error } = await findElementByCriteria({
       selector: step.type.selector,
@@ -125,14 +125,14 @@ async function typeKeys({ config, step, driver }) {
       timeout: 5000,
       driver,
     });
-    
+
     if (!foundElement) {
       result.status = "FAIL";
       result.description = error || `Couldn't find element to type into.`;
       return result;
     }
     element = foundElement;
-    
+
     // Focus on the element before typing
     try {
       await element.click();

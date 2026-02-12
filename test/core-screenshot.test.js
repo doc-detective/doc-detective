@@ -1,8 +1,8 @@
-const fs = require("fs");
-const path = require("path");
-const assert = require("assert").strict;
-const { runTests } = require("../src/core");
-const { createServer } = require("./server");
+import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert/strict";
+import { runTests } from "../src/core/index.js";
+import { createServer } from "./server/index.js";
 
 // Create a server for screenshot tests
 const server = createServer({
