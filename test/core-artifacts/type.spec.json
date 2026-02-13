@@ -3,7 +3,10 @@
     {
       "steps": [
         {
-          "goTo": "https://duckduckgo.com"
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "#text-input"
         },
         {
           "type": ["kittens", "$ENTER$"]
@@ -13,7 +16,10 @@
     {
       "steps": [
         {
-          "goTo": "https://duckduckgo.com"
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "#text-input"
         },
         {
           "type": "kittens"
@@ -23,7 +29,10 @@
     {
       "steps": [
         {
-          "goTo": "https://duckduckgo.com"
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "#text-input"
         },
         {
           "type": {

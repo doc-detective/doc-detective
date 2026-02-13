@@ -5,11 +5,11 @@
         "steps": [
           {
             "action": "goTo",
-            "url": "https://www.duckduckgo.com"
+            "url": "http://localhost:8092"
           },
           {
             "action": "find",
-            "selector": "#searchbox_input",
+            "selector": "#text-input",
             "click": {
               "button": "right"
             }

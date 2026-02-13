@@ -9,7 +9,7 @@
       "steps": [
         {
           "action": "checkLink",
-          "url": "https://www.duckduckgo.com"
+          "url": "http://localhost:8092"
         },
         {
           "action": "httpRequest",
@@ -27,14 +27,14 @@
         },
         {
           "action": "goTo",
-          "url": "https://www.google.com"
+          "url": "http://localhost:8092"
         },
-        { 
+        {
           "action": "startRecording"
         },
         {
           "action": "find",
-          "selector": "[title=Search]",
+          "selector": "#text-input",
           "timeout": 10000,
           "moveTo": true,
           "click": true,
