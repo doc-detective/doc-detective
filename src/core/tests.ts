@@ -953,12 +953,13 @@ async function runStep({
 }
 
 // Delay execution until Appium server is available.
-async function appiumIsReady() {
+async function appiumIsReady(timeoutMs: number = 120000) {
   let isReady = false;
+  const start = Date.now();
   while (!isReady) {
-    // Retry delay
-    // TODO: Add configurable retry delay
-    // TODO: Add configurable timeout duration
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`Appium server failed to start within ${timeoutMs / 1000} seconds`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     try {
       let resp = await axios.get("http://0.0.0.0:4723/status");
@@ -977,8 +978,8 @@ async function driverStart(capabilities: any) {
     path: "/",
     logLevel: "error",
     capabilities,
-    connectionRetryTimeout: 600000, // 10 minutes
-    waitforTimeout: 600000, // 10 minutes
+    connectionRetryTimeout: 120000, // 2 minutes
+    waitforTimeout: 120000, // 2 minutes
   });
   driver.state = { url: "", x: null, y: null };
   return driver;
