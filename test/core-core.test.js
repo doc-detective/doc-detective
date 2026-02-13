@@ -6,7 +6,6 @@ import os from "node:os";
 
 const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
-const inputPath = artifactPath;
 
 describe("Run tests successfully", function () {
   // 30 minutes for the combined core test suite (runs all specs in one Appium session)

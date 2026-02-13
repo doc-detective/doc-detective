@@ -101,16 +101,10 @@ async function runCode({ config, step }: { config: any; step: any }) {
       return result;
     }
 
-    // Prepare shell command based on language
-    const lang = step.runCode.language.toLowerCase();
+    // Prepare shell command using the resolved command
     const shellStep: any = {
       runShell: {
-        command:
-          lang === "python"
-            ? "python"
-            : lang === "javascript"
-            ? "node"
-            : "bash",
+        command,
         args: [scriptPath, ...step.runCode.args],
       },
     };

@@ -97,17 +97,17 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     ) {
       if (typeof step.httpRequest.request === "undefined")
         step.httpRequest.request = {};
-      if (Object.keys(operation.example.request?.parameters).length > 0)
+      if (Object.keys(operation.example.request?.parameters ?? {}).length > 0)
         step.httpRequest.request.parameters = {
           ...operation.example.request.parameters,
           ...(step.httpRequest.request.parameters || {}),
         };
-      if (Object.keys(operation.example.request?.headers).length > 0)
+      if (Object.keys(operation.example.request?.headers ?? {}).length > 0)
         step.httpRequest.request.headers = {
           ...operation.example.request.headers,
           ...(step.httpRequest.request.headers || {}),
         };
-      if (Object.keys(operation.example.request?.body).length > 0)
+      if (Object.keys(operation.example.request?.body ?? {}).length > 0)
         step.httpRequest.request.body = {
           ...operation.example.request.body,
           ...(step.httpRequest?.request?.body || {}),
@@ -120,12 +120,12 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     ) {
       if (typeof step.httpRequest.response === "undefined")
         step.httpRequest.response = {};
-      if (Object.keys(operation.example.response?.headers).length > 0)
+      if (Object.keys(operation.example.response?.headers ?? {}).length > 0)
         step.httpRequest.response.headers = {
           ...operation.example.response.headers,
           ...(step.httpRequest.response.headers || {}),
         };
-      if (Object.keys(operation.example.response?.body).length > 0)
+      if (Object.keys(operation.example.response?.body ?? {}).length > 0)
         step.httpRequest.response.body = {
           ...operation.example.response.body,
           ...(step.httpRequest.response.body || {}),
@@ -140,7 +140,8 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     } else if (!step.httpRequest.statusCodes) {
       step.httpRequest.statusCodes = Object.keys(
         operation.definition.responses
-      ).filter((code: any) => code.startsWith("2"));
+      ).filter((code: any) => code.startsWith("2"))
+       .map((code: string) => Number(code));
     }
   }
 

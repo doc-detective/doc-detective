@@ -115,6 +115,8 @@ async function instantiateCursor(driver: any, options: any = { position: "curren
       (document.querySelector("dd-mouse-pointer") as any).style.display = "block";
     });
   }
+
+  return result;
 }
 
 // Move mouse.
@@ -163,6 +165,9 @@ async function moveTo({config, step, driver, element}: {config: any; step: any; 
       coordinates.y = dimensions.y + dimensions.height / 2;
       break;
     default:
+      // Default to center alignment
+      coordinates.x = dimensions.x + dimensions.width / 2;
+      coordinates.y = dimensions.y + dimensions.height / 2;
       break;
   }
 
@@ -177,7 +182,7 @@ async function moveTo({config, step, driver, element}: {config: any; step: any; 
       .move({
         x: driver.state.x,
         y: driver.state.y,
-        origin: "pointer",
+        origin: "viewport",
         duration: step.duration,
       })
       .perform();

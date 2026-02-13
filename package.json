@@ -67,6 +67,7 @@
     "pixelmatch": "^7.1.0",
     "pngjs": "^7.0.0",
     "posthog-node": "^5.24.15",
+    "sharp": "^0.34.5",
     "tree-kill": "^1.2.2",
     "webdriverio": "^9.24.0",
     "yaml": "^2.8.2",

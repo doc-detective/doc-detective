@@ -57,7 +57,7 @@ async function fetchFile(fileURL: string) {
     } else {
       response.data = response.data.toString();
     }
-    const fileName = fileURL.split("/").pop();
+    const fileName = fileURL.split("/").pop() || "fetched_file";
     const hash = crypto.createHash("md5").update(response.data).digest("hex");
     const ddTempDir = path.join(os.tmpdir(), "doc-detective");
     const filePath = path.join(ddTempDir, `${hash}_${fileName}`);
@@ -226,22 +226,24 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   const runCommand = spawn(cmd, args, spawnOptions);
   runCommand.on("error", (error) => {});
 
-  // Capture stdout
+  // Capture stdout and stderr concurrently to avoid deadlock
   let stdout = "";
-  for await (const chunk of runCommand.stdout) {
-    stdout += chunk;
-    if (options.debug) console.log(chunk.toString());
-  }
-  // Remove trailing newline
-  stdout = stdout.replace(/\n$/, "");
-
-  // Capture stderr
   let stderr = "";
-  for await (const chunk of runCommand.stderr) {
-    stderr += chunk;
-    if (options.debug) console.log(chunk.toString());
-  }
-  // Remove trailing newline
+  const stdoutPromise = (async () => {
+    for await (const chunk of runCommand.stdout) {
+      stdout += chunk;
+      if (options.debug) console.log(chunk.toString());
+    }
+  })();
+  const stderrPromise = (async () => {
+    for await (const chunk of runCommand.stderr) {
+      stderr += chunk;
+      if (options.debug) console.log(chunk.toString());
+    }
+  })();
+  await Promise.all([stdoutPromise, stderrPromise]);
+  // Remove trailing newlines
+  stdout = stdout.replace(/\n$/, "");
   stderr = stderr.replace(/\n$/, "");
 
   // Capture exit code

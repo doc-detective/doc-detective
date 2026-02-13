@@ -230,17 +230,17 @@ async function allowUnsafeSteps({ config }: { config: any }) {
   // If allowUnsafeSteps is set to true, return true
   if (config.allowUnsafeSteps === true) return true;
   // If allowUnsafeSteps is set to false, return false
-  else if (config.allowUnsafeSteps === false) return false;
+  if (config.allowUnsafeSteps === false) return false;
   // if DOC_DETECTIVE.container is set to true, return true
-  else if (process.env.DOC_DETECTIVE) {
+  if (process.env.DOC_DETECTIVE) {
     try {
       if (JSON.parse(process.env.DOC_DETECTIVE).container) return true;
     } catch {
       // Invalid JSON in DOC_DETECTIVE env var; treat as unset
     }
   }
-  // If allowUnsafeSteps is not set, return false by default
-  else return false;
+  // Default: return false
+  return false;
 }
 
 // Run specifications via API.
@@ -467,7 +467,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: [],
       };
       // Set meta values
-      metaValues.specs[spec.specId].tests[test.testId] = { contexts: [] };
+      metaValues.specs[spec.specId].tests[test.testId] = { contexts: {} };
 
       // Iterate contexts
       // TODO: Support both serial and parallel execution
@@ -709,8 +709,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
           // Add step result to report
           const stepReport = {
-            ...stepResult,
             ...stopRecordStep,
+            ...stepResult,
           };
           contextReport.steps.push(stepReport);
           report.summary.steps[stepReport.result.toLowerCase()]++;
@@ -804,7 +804,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Close appium server
   if (appium) {
     log(config, "debug", "Closing Appium server");
-    kill(appium.pid);
+    try {
+      kill(appium.pid);
+    } catch {
+      // Process may already be terminated
+    }
   }
 
   // Upload changed files back to source integrations (best-effort)

@@ -201,6 +201,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     // Couldn't save screenshot
     result.status = "FAIL";
     result.description = `Couldn't save screenshot. ${error}`;
+    // Clean up temp file if it exists
+    if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
     return result;
   }
 

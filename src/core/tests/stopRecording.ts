@@ -52,8 +52,15 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         result.description = "Recording download timed out.";
         return result;
       }
-      // Close recording tab
+      // Close recording tab and switch back to the original content tab
+      const allHandles = await driver.getWindowHandles();
       await driver.closeWindow();
+      const remainingHandles = allHandles.filter(
+        (h: string) => h !== config.recording.tab
+      );
+      if (remainingHandles.length > 0) {
+        await driver.switchToWindow(remainingHandles[0]);
+      }
 
       // Convert the file into the target format/location
       const targetPath = `${config.recording.targetPath}`;
@@ -64,12 +71,22 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         ffmpegArgs.push("-vf", "scale=iw:-1:flags=lanczos");
       }
       ffmpegArgs.push(targetPath);
-      execFile(ffmpegPath, ffmpegArgs).on("close", () => {
-        if (targetPath !== downloadPath) {
-          // Delete the downloaded file
-          fs.unlinkSync(downloadPath);
-          log(config, "debug", endMessage);
-        }
+      // Await transcoding to complete before returning
+      await new Promise<void>((resolve, reject) => {
+        execFile(ffmpegPath, ffmpegArgs)
+          .on("close", (code) => {
+            if (targetPath !== downloadPath) {
+              // Delete the downloaded file
+              try { fs.unlinkSync(downloadPath); } catch { /* ignore */ }
+              log(config, "debug", endMessage);
+            }
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error(`ffmpeg exited with code ${code}`));
+            }
+          })
+          .on("error", reject);
       });
       config.recording = null;
     } else {

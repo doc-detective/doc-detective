@@ -1,6 +1,5 @@
 import express from "express";
 import bodyParser from "body-parser";
-import path from "node:path";
 import fs from "node:fs";
 
 /**

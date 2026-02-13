@@ -644,7 +644,7 @@ async function getAvailableApps({ config }: any) {
       );
 
       if (safariVersion.exitCode === 0 && appiumSafari) {
-        apps.push({ name: "safari", version: safariVersion, path: "" });
+        apps.push({ name: "safari", version: safariVersion.stdout.trim(), path: "" });
       }
     }
   } finally {
