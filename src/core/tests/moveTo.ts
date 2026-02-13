@@ -26,7 +26,7 @@ async function instantiateCursor(driver: any, options: any = { position: "curren
 
   // Instantiate cursor if not already instantiated
   if (!cursor.elementId) {
-    if (options.position === "center" || driver.state.x === null) {
+    if (options.position === "center" || driver.state.x == null) {
       // Get viewport size
       const viewport = await driver.execute(() => {
         return {
