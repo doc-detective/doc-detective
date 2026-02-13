@@ -345,6 +345,8 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         const resizedImg2 = PNG.sync.read(img2ResizedBuffer);
         img1.data = resizedImg1.data;
         img2.data = resizedImg2.data;
+        img1.width = width;
+        img1.height = height;
       }
 
       const { width, height } = img1;
