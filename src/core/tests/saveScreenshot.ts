@@ -308,7 +308,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     let fractionalDiff;
 
     // Perform numerical pixel diff with pixelmatch
-    if (step.screenshot.maxVariation) {
+    if (step.screenshot.maxVariation != null) {
       const img1 = PNG.sync.read(fs.readFileSync(existFilePath));
       const img2 = PNG.sync.read(fs.readFileSync(filePath));
 
