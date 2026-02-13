@@ -9,22 +9,22 @@ const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "u
 const inputPath = artifactPath;
 
 describe("Run tests successfully", function () {
-  // 5 minutes per test (prevents indefinite hangs on CI)
-  this.timeout(300000);
+  // 30 minutes for the combined core test suite (runs all specs in one Appium session)
+  this.timeout(1800000);
   describe("Core test suite", function () {
-    // For each file (not directory) in artifactPath, create an individual test
-    const files = fs.readdirSync(artifactPath);
-    files.forEach((file) => {
-      const filePath = path.join(artifactPath, file);
-      if (fs.lstatSync(filePath).isFile() && file.endsWith(".json") && file !== "config.json") {
-        it(`Test file: ${file}`, async () => {
-          const config_tests = JSON.parse(JSON.stringify(config_base));
-          config_tests.runTests.input = filePath;
-          const result = await runTests(config_tests);
-          if (result === null) assert.fail("Expected result to be non-null");
-          assert.equal(result.summary.specs.fail, 0);
-        });
-      }
+    // Run all spec files in a single runTests() call to avoid repeated Appium restarts.
+    // This starts Appium once and runs all specs within that session.
+    it("All core spec files pass", async () => {
+      const config_tests = JSON.parse(JSON.stringify(config_base));
+      config_tests.runTests.input = artifactPath;
+      const result = await runTests(config_tests);
+      if (result === null) assert.fail("Expected result to be non-null");
+      const failedSpecs = result.specs.filter((s) => s.result === "FAIL");
+      assert.equal(
+        result.summary.specs.fail,
+        0,
+        `${failedSpecs.length} spec(s) failed: ${failedSpecs.map((s) => s.specId).join(", ")}`
+      );
     });
   });
 
@@ -289,10 +289,10 @@ describe("Run tests successfully", function () {
 });
 
 describe("Intelligent goTo behavior", function () {
-  // 5 minutes per test
-  this.timeout(300000);
-  it("goTo fails with timeout on network idle check", async () => {
-    const networkTimeoutTest = {
+  // 10 minutes for all goTo timeout tests combined
+  this.timeout(600000);
+  it("goTo fails with timeout on network idle, DOM idle, and element finding checks", async () => {
+    const goToTimeoutSpec = {
       tests: [
         {
           steps: [
@@ -300,62 +300,22 @@ describe("Intelligent goTo behavior", function () {
               goTo: {
                 url: "http://localhost:8092/waitUntil-test-network-forever.html",
                 timeout: 5000,
-                waitUntil: {
-                  networkIdleTime: 500,
-                },
+                waitUntil: { networkIdleTime: 500 },
               },
             },
           ],
         },
-      ],
-    };
-    const tempFilePath = path.resolve("./test/temp-network-timeout-test.json");
-    fs.writeFileSync(tempFilePath, JSON.stringify(networkTimeoutTest, null, 2));
-    const config = { input: tempFilePath, logLevel: "silent" };
-    let result;
-    try {
-      result = await runTests(config);
-      assert.equal(result.summary.steps.fail, 1);
-      assert.equal(result.summary.tests.fail, 1);
-    } finally {
-      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-    }
-  });
-
-  it("goTo fails with timeout on DOM idle check", async () => {
-    const domTimeoutTest = {
-      tests: [
         {
           steps: [
             {
               goTo: {
                 url: "http://localhost:8092/waitUntil-test-dom-mutations-forever.html",
                 timeout: 5000,
-                waitUntil: {
-                  domIdleTime: 500,
-                },
+                waitUntil: { domIdleTime: 500 },
               },
             },
           ],
         },
-      ],
-    };
-    const tempFilePath = path.resolve("./test/temp-dom-timeout-test.json");
-    fs.writeFileSync(tempFilePath, JSON.stringify(domTimeoutTest, null, 2));
-    const config = { input: tempFilePath, logLevel: "silent" };
-    let result;
-    try {
-      result = await runTests(config);
-      assert.equal(result.summary.steps.fail, 1);
-      assert.equal(result.summary.tests.fail, 1);
-    } finally {
-      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-    }
-  });
-
-  it("goTo fails with timeout on element finding check", async () => {
-    const elementTimeoutTest = {
-      tests: [
         {
           steps: [
             {
@@ -363,9 +323,7 @@ describe("Intelligent goTo behavior", function () {
                 url: "http://localhost:8092/index.html",
                 timeout: 5000,
                 waitUntil: {
-                  find: {
-                    selector: ".nonexistent-element-that-will-never-appear",
-                  },
+                  find: { selector: ".nonexistent-element-that-will-never-appear" },
                 },
               },
             },
@@ -373,14 +331,14 @@ describe("Intelligent goTo behavior", function () {
         },
       ],
     };
-    const tempFilePath = path.resolve("./test/temp-element-timeout-test.json");
-    fs.writeFileSync(tempFilePath, JSON.stringify(elementTimeoutTest, null, 2));
+    const tempFilePath = path.resolve("./test/temp-goto-timeout-tests.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(goToTimeoutSpec, null, 2));
     const config = { input: tempFilePath, logLevel: "silent" };
     let result;
     try {
       result = await runTests(config);
-      assert.equal(result.summary.steps.fail, 1);
-      assert.equal(result.summary.tests.fail, 1);
+      assert.equal(result.summary.steps.fail, 3, "All 3 goTo timeout steps should fail");
+      assert.equal(result.summary.tests.fail, 3, "All 3 goTo timeout tests should fail");
     } finally {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     }
