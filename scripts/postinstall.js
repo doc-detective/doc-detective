@@ -30,7 +30,7 @@ async function installBrowsers() {
       browser_platform,
       "stable"
     );
-    const chromeInstall = await browsers.install({
+    await browsers.install({
       browser,
       buildId,
       cacheDir,
@@ -48,7 +48,7 @@ async function installBrowsers() {
       browser_platform,
       "latest"
     );
-    const firefoxInstall = await browsers.install({
+    await browsers.install({
       browser,
       buildId,
       cacheDir,
@@ -66,7 +66,7 @@ async function installBrowsers() {
       browser_platform,
       "stable"
     );
-    const chromeDriverInstall = await browsers.install({
+    await browsers.install({
       browser,
       buildId,
       cacheDir,
@@ -89,7 +89,7 @@ async function installBrowsers() {
       binPath = path.join(__dirname, "../node_modules/.bin");
     }
     process.env.GECKODRIVER_CACHE_DIR = binPath;
-    const geckoInstall = await geckodriver.download();
+    await geckodriver.download();
   } catch (error) {
     console.log("Geckodriver download not available.", error);
   }

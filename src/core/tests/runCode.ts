@@ -79,9 +79,9 @@ async function runCode({ config, step }: { config: any; step: any }) {
     if (!step.runCode.command) {
       const lang = step.runCode.language.toLowerCase();
       step.runCode.command =
-        step.runCode.language === "python"
+        lang === "python"
           ? "python"
-          : step.runCode.language === "javascript"
+          : lang === "javascript"
           ? "node"
           : "bash";
     }
@@ -102,12 +102,13 @@ async function runCode({ config, step }: { config: any; step: any }) {
     }
 
     // Prepare shell command based on language
+    const lang = step.runCode.language.toLowerCase();
     const shellStep: any = {
       runShell: {
         command:
-          step.runCode.language.toLowerCase() === "python"
+          lang === "python"
             ? "python"
-            : step.runCode.language.toLowerCase() === "javascript"
+            : lang === "javascript"
             ? "node"
             : "bash",
         args: [scriptPath, ...step.runCode.args],

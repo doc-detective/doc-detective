@@ -77,9 +77,7 @@ async function fetchFile(fileURL: string) {
 
 async function outputResults(path: string, results: any, config: any) {
   let data = JSON.stringify(results, null, 2);
-  fs.writeFile(path, data, (err) => {
-    if (err) throw err;
-  });
+  fs.writeFileSync(path, data);
   log(config, "info", "RESULTS:");
   log(config, "info", results);
   log(config, "info", `See results at ${path}`);
@@ -171,7 +169,7 @@ function replaceEnvs(stringOrObject: any): any {
         try {
           if (
             match.length === stringOrObject.length &&
-            typeof JSON.parse(stringOrObject) === "object"
+            typeof JSON.parse(value) === "object"
           ) {
             value = JSON.parse(value);
           }

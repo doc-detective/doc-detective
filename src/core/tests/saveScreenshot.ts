@@ -285,6 +285,9 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     } catch (error) {
       result.status = "FAIL";
       result.description = `Couldn't crop image. ${error}`;
+      if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
       return result;
     }
   }
@@ -319,6 +322,9 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       ) {
         result.status = "FAIL";
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
+        if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
         return result;
       }
 

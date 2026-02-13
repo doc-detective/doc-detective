@@ -249,8 +249,15 @@ async function qualifyFiles({ config }: { config: any }) {
       source = fetch.path;
     }
     // Check if source is a file or directory
-    let isFile = fs.statSync(source).isFile();
-    let isDir = fs.statSync(source).isDirectory();
+    let isFile = false;
+    let isDir = false;
+    try {
+      isFile = fs.statSync(source).isFile();
+      isDir = fs.statSync(source).isDirectory();
+    } catch {
+      log(config, "warning", `Cannot access path: ${source}. Skipping.`);
+      continue;
+    }
 
     // If ditamap, process with `dita` to build files
     if (
@@ -325,16 +332,20 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       for (const test of content.tests) {
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
-          test.steps = setup.tests[0].steps.concat(test.steps);
+          if (setup?.tests?.[0]?.steps) {
+            test.steps = setup.tests[0].steps.concat(test.steps);
+          }
         }
         if (test.after) {
           const cleanup: any = await readFile({ fileURLOrPath: test.after });
-          test.steps = test.steps.concat(cleanup.tests[0].steps);
+          if (cleanup?.tests?.[0]?.steps) {
+            test.steps = test.steps.concat(cleanup.tests[0].steps);
+          }
         }
       }
       // Validate each step
       for (const test of content.tests) {
-        test.steps.forEach((step: any) => {
+        test.steps = test.steps.filter((step: any) => {
           const validation = validate({
             schemaKey: `step_v3`,
             object: { ...step },
@@ -381,7 +392,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       );
 
       // Process executables
-      if (fileType.runShell) {
+      if (fileType?.runShell) {
         let runShell: any = JSON.stringify(fileType.runShell);
         runShell = runShell.replace(/\$1/g, file);
         runShell = JSON.parse(runShell);

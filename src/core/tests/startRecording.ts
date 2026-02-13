@@ -103,7 +103,6 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     // Start recording
     await driver.execute((baseName: any) => {
       let stream;
-      let recorder;
       const displayMediaOptions = {
         video: {
           displaySurface: "browser",

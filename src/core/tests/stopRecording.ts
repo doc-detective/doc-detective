@@ -42,8 +42,15 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         (window as any).recorder.stop();
       });
       // Wait for file to be in download path
-      while (!fs.existsSync(config.recording.downloadPath)) {
+      let waitCount = 0;
+      while (!fs.existsSync(config.recording.downloadPath) && waitCount < 60) {
         await new Promise((r) => setTimeout(r, 1000));
+        waitCount++;
+      }
+      if (!fs.existsSync(config.recording.downloadPath)) {
+        result.status = "FAIL";
+        result.description = "Recording download timed out.";
+        return result;
       }
       // Close recording tab
       await driver.closeWindow();

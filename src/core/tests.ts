@@ -59,8 +59,8 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
 
   // Set Firefox capabilities
   switch (name) {
-    case "firefox":
-      let firefox = runnerDetails.availableApps.find(
+    case "firefox": {
+      const firefox = runnerDetails.availableApps.find(
         (app: any) => app.name === "firefox"
       );
       if (!firefox) break;
@@ -87,6 +87,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         },
       };
       break;
+    }
     case "safari":
       // Set Safari capabilities
       if (runnerDetails.availableApps.find((app: any) => app.name === "safari")) {
@@ -673,8 +674,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
           // Add step result to report
           const stepReport = {
-            ...stepResult,
             ...step,
+            ...stepResult,
           };
           contextReport.steps.push(stepReport);
           report.summary.steps[stepReport.result.toLowerCase()]++;

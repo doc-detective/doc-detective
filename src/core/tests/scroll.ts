@@ -24,7 +24,7 @@ async function scroll(action: any, page: any, config: any) {
     return { result };
   } catch {
     // FAIL
-    status = "PASS";
+    status = "FAIL";
     description = `Couldn't scroll.`;
     result = { status, description };
     return { result };

@@ -1,5 +1,3 @@
-import { validate } from "doc-detective-common";
-
 export { moveTo, instantiateCursor };
 
 async function instantiateCursor(driver: any, options: any = { position: "current" }) {

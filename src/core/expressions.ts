@@ -434,9 +434,6 @@ function preprocessExpression(expression: string): string {
     }
   );
 
-  // Debug the expression after preprocessing
-  console.log(`Preprocessed expression: ${expression}`);
-
   return expression;
 }
 

@@ -1,9 +1,7 @@
 import os from "node:os";
 import { validate } from "doc-detective-common";
 import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
-import { exec } from "node:child_process";
 import path from "node:path";
-import fs from "node:fs";
 import * as browsers from "@puppeteer/browsers";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
@@ -52,26 +50,6 @@ const platformMap: any = {
   darwin: "mac",
   linux: "linux",
   win32: "windows",
-};
-
-// List of default apps to check for
-// Note: Edge/Microsoft Edge is not supported and detection is intentionally excluded
-const defaultAppIDs = {
-  chromium: {
-    linux: "chromium-browser",
-    mac: "org.chromium.Chromium",
-    windows: "chromium",
-  },
-  firefox: {
-    linux: "firefox",
-    mac: "org.mozilla.firefox",
-    windows: "firefox",
-  },
-  chrome: {
-    linux: "google-chrome",
-    mac: "org.google.Chrome",
-    windows: "chrome",
-  },
 };
 
 // List of default file type definitions
@@ -542,7 +520,7 @@ function resolveConcurrentRunners(config: any) {
     return Math.min(os.cpus().length, 4);
   }
   // Respect explicit numeric values and default
-  return config.concurrentRunners || 1;
+  return config.concurrentRunners ?? 1;
 }
 
 /**
@@ -559,6 +537,7 @@ function resolveConcurrentRunners(config: any) {
  */
 async function loadDescriptions(config: any) {
   if (config?.integrations?.openApi) {
+    const failed: any[] = [];
     for (const openApiConfig of config.integrations.openApi) {
       try {
         openApiConfig.definition = await loadDescription(
@@ -570,11 +549,14 @@ async function loadDescriptions(config: any) {
           "error",
           `Failed to load OpenAPI description from ${openApiConfig.descriptionPath}: ${error.message}`
         );
-        // Remove the failed OpenAPI configuration
-        config.integrations.openApi = config.integrations.openApi.filter(
-          (item: any) => item !== openApiConfig
-        );
+        failed.push(openApiConfig);
       }
+    }
+    // Remove failed configurations after iteration
+    if (failed.length > 0) {
+      config.integrations.openApi = config.integrations.openApi.filter(
+        (item: any) => !failed.includes(item)
+      );
     }
   }
 }
