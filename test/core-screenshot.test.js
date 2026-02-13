@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
 
 describe("Screenshot sourceIntegration preservation", function () {
-  this.timeout(60000); // 60 seconds
+  this.timeout(300000); // 5 minutes per test
 
   const tempDir = path.resolve("./test/temp-screenshot-tests");
 

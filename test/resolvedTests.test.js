@@ -9,8 +9,8 @@ const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(`${artifactPath}/resolvedTestsResults.json`);
 
 describe("DOC_DETECTIVE_API environment variable", function () {
-  // Set indefinite timeout
-  this.timeout(0);
+  // 5 minutes per test
+  this.timeout(300000);
 
   it("Should fetch and run resolved tests from API", async () => {
     const apiConfig = {

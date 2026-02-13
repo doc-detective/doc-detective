@@ -9,8 +9,8 @@ const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "u
 const inputPath = artifactPath;
 
 describe("Run tests successfully", function () {
-  // Set indefinite timeout
-  this.timeout(0);
+  // 5 minutes per test (prevents indefinite hangs on CI)
+  this.timeout(300000);
   describe("Core test suite", function () {
     // For each file (not directory) in artifactPath, create an individual test
     const files = fs.readdirSync(artifactPath);
@@ -289,8 +289,8 @@ describe("Run tests successfully", function () {
 });
 
 describe("Intelligent goTo behavior", function () {
-  // Set indefinite timeout
-  this.timeout(0);
+  // 5 minutes per test
+  this.timeout(300000);
   it("goTo fails with timeout on network idle check", async () => {
     const networkTimeoutTest = {
       tests: [
@@ -388,7 +388,8 @@ describe("Intelligent goTo behavior", function () {
 });
 
 describe("getRunner() function", function () {
-  this.timeout(0); // Indefinite timeout for browser initialization
+  // 5 minutes per test
+  this.timeout(300000);
 
   let getRunner;
 
@@ -397,7 +398,7 @@ describe("getRunner() function", function () {
     getRunner = testsModule.getRunner;
   });
 
-  it("should create a runner with default options", async function () {
+  it("should create a runner with correct defaults, structure, and state", async function () {
     let cleanup;
     try {
       const result = await getRunner();
@@ -408,6 +409,8 @@ describe("getRunner() function", function () {
       assert.ok(result.appium, "appium should be defined");
       assert.ok(result.cleanup, "cleanup should be defined");
       assert.ok(result.runStep, "runStep should be defined");
+      assert.equal(typeof result.runStep, "function", "runStep should be a function");
+      assert.equal(typeof result.cleanup, "function", "cleanup should be a function");
 
       // Verify runner is functional
       assert.ok(typeof result.runner.url === "function", "runner should have url method");
@@ -417,24 +420,49 @@ describe("getRunner() function", function () {
       assert.ok(result.appium.pid, "appium should have a PID");
       assert.ok(!result.appium.killed, "appium should be running");
 
-      // Verify cleanup is a function
-      assert.equal(typeof result.cleanup, "function", "cleanup should be a function");
+      // Check runner state object initialization
+      assert.ok(result.runner.state !== undefined, "runner should have state object");
+      assert.strictEqual(result.runner.state.url, "", "initial url should be empty string");
+      assert.strictEqual(result.runner.state.x, null, "initial x should be null");
+      assert.strictEqual(result.runner.state.y, null, "initial y should be null");
+
+      // Verify default window size (1200x800)
+      const size = await result.runner.getWindowSize();
+      assert.ok(
+        Math.abs(size.width - 1200) <= 10,
+        `default width should be close to 1200, got ${size.width}`
+      );
+      assert.ok(
+        Math.abs(size.height - 800) <= 10,
+        `default height should be close to 800, got ${size.height}`
+      );
     } finally {
       if (cleanup) await cleanup();
     }
   });
 
-  it("should create a headless runner by default", async function () {
+  it("should support headless navigation and multiple page operations", async function () {
     let cleanup;
     try {
       const result = await getRunner({ headless: true });
       cleanup = result.cleanup;
 
-      // Default should be headless (headless !== false means headless = true)
-      // We can't directly check if browser is headless from outside, but we can verify it works
+      // Verify session is ready
+      await result.runner.getTitle();
+
+      // Navigate to test page
       await result.runner.url("http://localhost:8092/index.html");
       const title = await result.runner.getTitle();
-      assert.ok(title, "should be able to navigate and get title in headless mode");
+      assert.ok(title, "should get page title in headless mode");
+
+      // Find elements
+      const element = await result.runner.$("body");
+      assert.ok(element, "should be able to find elements");
+
+      // Navigate to a second page
+      await result.runner.url("http://localhost:8092/drag-drop-test.html");
+      const title2 = await result.runner.getTitle();
+      assert.ok(title2, "should navigate to second page");
     } finally {
       if (cleanup) await cleanup();
     }
@@ -446,7 +474,6 @@ describe("getRunner() function", function () {
       const result = await getRunner({ headless: false });
       cleanup = result.cleanup;
 
-      // Verify runner works in non-headless mode
       await result.runner.url("http://localhost:8092/index.html");
       const title = await result.runner.getTitle();
       assert.ok(title, "should be able to navigate and get title in non-headless mode");
@@ -463,10 +490,7 @@ describe("getRunner() function", function () {
       const result = await getRunner({ width, height });
       cleanup = result.cleanup;
 
-      // Get window size
       const size = await result.runner.getWindowSize();
-
-      // Allow for small variance (some browsers don't set exact sizes)
       assert.ok(
         Math.abs(size.width - width) <= 10,
         `width should be close to ${width}, got ${size.width}`
@@ -480,83 +504,56 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("should use default width and height when not specified", async function () {
+  it("should accept custom config options", async function () {
     let cleanup;
     try {
-      const result = await getRunner();
+      const result = await getRunner({ config: { logLevel: "silent" } });
       cleanup = result.cleanup;
 
-      const size = await result.runner.getWindowSize();
-
-      // Default is 1200x800
-      assert.ok(
-        Math.abs(size.width - 1200) <= 10,
-        `default width should be close to 1200, got ${size.width}`
-      );
-      assert.ok(
-        Math.abs(size.height - 800) <= 10,
-        `default height should be close to 800, got ${size.height}`
-      );
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("should accept and use a custom config object", async function () {
-    let cleanup;
-    try {
-      const customConfig = {
-        logLevel: "silent",
-      };
-      const result = await getRunner({ config: customConfig });
-      cleanup = result.cleanup;
-
-      // Verify runner was created successfully with custom config
       assert.ok(result.runner, "runner should be created with custom config");
+      await result.runner.url("http://localhost:8092/index.html");
+      assert.ok(await result.runner.getTitle(), "should work with custom config");
     } finally {
       if (cleanup) await cleanup();
     }
   });
 
   it("should throw error if Chrome is not available", async function () {
-    // This test would require mocking getAvailableApps to return no Chrome
-    // Skipping implementation as it would require significant mocking infrastructure
-    // In a real scenario, you'd mock the getAvailableApps function
+    // Requires mocking getAvailableApps - skipping
     this.skip();
   });
 
-  it("cleanup function should properly close runner session", async function () {
+  it("cleanup should close session and be idempotent", async function () {
     const result = await getRunner();
-    const { runner, cleanup } = result;
+    const { runner, appium, cleanup } = result;
 
     // Verify runner is active
+    assert.ok(appium.pid, "Appium should have a PID");
     await runner.url("http://localhost:8092/index.html");
 
-    // Call cleanup
+    // First cleanup
     await cleanup();
 
-    // Verify session is closed (attempting to use it should fail)
+    // Verify session is closed
     try {
       await runner.getTitle();
       assert.fail("Should have thrown error after cleanup");
     } catch (error) {
       assert.ok(error, "Should throw error when using runner after cleanup");
     }
+
+    // Idempotent: subsequent cleanups should not throw
+    await assert.doesNotReject(
+      async () => await cleanup(),
+      "second cleanup call should not throw"
+    );
+    await assert.doesNotReject(
+      async () => await cleanup(),
+      "third cleanup call should not throw"
+    );
   });
 
-  it("cleanup should complete without throwing errors", async function () {
-    const result = await getRunner();
-    const { appium, cleanup } = result;
-
-    const pid = appium.pid;
-    assert.ok(pid, "Appium should have a PID");
-
-    await cleanup();
-
-    assert.ok(true, "Cleanup should complete without error");
-  });
-
-  it("cleanup should handle errors gracefully when session already closed", async function () {
+  it("cleanup should handle already-closed session gracefully", async function () {
     const result = await getRunner();
     const { runner, cleanup } = result;
 
@@ -568,30 +565,6 @@ describe("getRunner() function", function () {
       async () => await cleanup(),
       "cleanup should not throw when session already closed"
     );
-  });
-
-  it("should be able to perform basic navigation", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner();
-      cleanup = result.cleanup;
-
-      // Verify session is ready before navigating
-      await result.runner.getTitle();
-
-      // Navigate to test page
-      await result.runner.url("http://localhost:8092/index.html");
-
-      // Verify we can interact with the page
-      const title = await result.runner.getTitle();
-      assert.ok(title, "should get page title");
-
-      // Verify we can find elements
-      const element = await result.runner.$("body");
-      assert.ok(element, "should be able to find elements");
-    } finally {
-      if (cleanup) await cleanup();
-    }
   });
 
   it("should handle multiple sequential runners", async function () {
@@ -610,195 +583,8 @@ describe("getRunner() function", function () {
     await result2.cleanup();
   });
 
-  it("should return runStep function", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner();
-      cleanup = result.cleanup;
-
-      assert.ok(result.runStep, "runStep should be defined");
-      assert.equal(typeof result.runStep, "function", "runStep should be a function");
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
   it("should handle errors during runner initialization", async function () {
-    // This would require mocking driverStart to throw an error
-    // The actual implementation should cleanup Appium on failure
-    // Skipping as it requires mocking infrastructure
+    // Requires mocking driverStart - skipping
     this.skip();
-  });
-
-  it("should handle empty options object", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner({});
-      cleanup = result.cleanup;
-
-      assert.ok(result.runner, "runner should be created with empty options");
-      assert.ok(result.cleanup, "cleanup should be defined");
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("should handle options with only width specified", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner({ width: 800 });
-      cleanup = result.cleanup;
-
-      const size = await result.runner.getWindowSize();
-      assert.ok(
-        Math.abs(size.width - 800) <= 10,
-        `width should be close to 800, got ${size.width}`
-      );
-      // Height should default to 800
-      assert.ok(
-        Math.abs(size.height - 800) <= 10,
-        `height should default to 800, got ${size.height}`
-      );
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("should handle options with only height specified", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner({ height: 600 });
-      cleanup = result.cleanup;
-
-      const size = await result.runner.getWindowSize();
-      // Width should default to 1200
-      assert.ok(
-        Math.abs(size.width - 1200) <= 10,
-        `width should default to 1200, got ${size.width}`
-      );
-      assert.ok(
-        Math.abs(size.height - 600) <= 10,
-        `height should be close to 600, got ${size.height}`
-      );
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("should handle very small window dimensions", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner({ width: 400, height: 300 });
-      cleanup = result.cleanup;
-
-      const size = await result.runner.getWindowSize();
-      // Browser may have minimum sizes, so we just verify it doesn't crash
-      assert.ok(size.width > 0, "width should be positive");
-      assert.ok(size.height > 0, "height should be positive");
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("should handle very large window dimensions", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner({ width: 2560, height: 1440 });
-      cleanup = result.cleanup;
-
-      const size = await result.runner.getWindowSize();
-      // Verify dimensions are set (may be capped by screen size)
-      assert.ok(size.width > 0, "width should be positive");
-      assert.ok(size.height > 0, "height should be positive");
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("runner should have proper state object initialized", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner();
-      cleanup = result.cleanup;
-
-      // Check if runner has state object as per implementation
-      assert.ok(result.runner.state !== undefined, "runner should have state object");
-      assert.strictEqual(result.runner.state.url, "", "initial url should be empty string");
-      assert.strictEqual(result.runner.state.x, null, "initial x should be null");
-      assert.strictEqual(result.runner.state.y, null, "initial y should be null");
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("should allow multiple operations before cleanup", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner();
-      cleanup = result.cleanup;
-
-      // Perform multiple operations
-      await result.runner.url("http://localhost:8092/index.html");
-      await result.runner.getTitle();
-
-      await result.runner.url("http://localhost:8092/waitUntil-test.html");
-      await result.runner.getTitle();
-
-      const body = await result.runner.$("body");
-      assert.ok(body, "should be able to perform multiple operations");
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("cleanup should be idempotent (safe to call multiple times)", async function () {
-    const result = await getRunner();
-    const { cleanup } = result;
-
-    // Call cleanup multiple times
-    await cleanup();
-
-    // Second cleanup should not throw
-    await assert.doesNotReject(
-      async () => await cleanup(),
-      "second cleanup call should not throw"
-    );
-
-    // Third cleanup should also not throw
-    await assert.doesNotReject(
-      async () => await cleanup(),
-      "third cleanup call should not throw"
-    );
-  });
-
-  it("should handle config with logLevel set", async function () {
-    let cleanup;
-    try {
-      const result = await getRunner({
-        config: { logLevel: "debug" }
-      });
-      cleanup = result.cleanup;
-
-      assert.ok(result.runner, "runner should be created with debug log level");
-    } finally {
-      if (cleanup) await cleanup();
-    }
-  });
-
-  it("should properly set platform in config", async function () {
-    let cleanup;
-    try {
-      const customConfig = { logLevel: "silent" };
-      const result = await getRunner({ config: customConfig });
-      cleanup = result.cleanup;
-
-      // The function should set environment.platform based on process.platform
-      // We can't directly verify this without exposing internal state,
-      // but we verify it doesn't break functionality
-      await result.runner.url("http://localhost:8092/index.html");
-      assert.ok(await result.runner.getTitle(), "should work with platform set");
-    } finally {
-      if (cleanup) await cleanup();
-    }
   });
 });

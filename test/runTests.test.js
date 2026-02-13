@@ -9,8 +9,8 @@ const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(`${artifactPath}/testResults.json`);
 
 describe("Run tests successfully", function () {
-  // Set indefinite timeout
-  this.timeout(0);
+  // 10 minutes (runs all specs end-to-end via CLI)
+  this.timeout(600000);
   it("All specs pass", async () => {
     await spawnCommand(
       `node ./bin/doc-detective.js -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
