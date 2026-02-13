@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { setConfig, getAvailableApps, getEnvironment, resolveConcurrentRunners };
+export { setConfig, getAvailableApps, getEnvironment, resolveConcurrentRunners, clearAppCache };
 
 /**
  * Deep merge two objects, with override properties taking precedence
@@ -589,8 +589,18 @@ function getEnvironment() {
   return environment;
 }
 
+// Module-level cache for available apps detection.
+// Avoids redundant `npx appium driver list` calls (~17s each) and browser scanning.
+let cachedApps: any[] | null = null;
+
+function clearAppCache() {
+  cachedApps = null;
+}
+
 // Detect available apps.
 async function getAvailableApps({ config }: any) {
+  if (cachedApps) return cachedApps;
+
   setAppiumHome();
   const cwd = process.cwd();
   process.chdir(path.join(__dirname, "../.."));
@@ -662,5 +672,6 @@ async function getAvailableApps({ config }: any) {
   // Detect Android Studio
   // Detect iOS Simulator
 
+  cachedApps = apps;
   return apps;
 }
