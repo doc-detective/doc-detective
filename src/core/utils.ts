@@ -226,6 +226,11 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   const runCommand = spawn(cmd, args, spawnOptions);
   runCommand.on("error", (error) => {});
 
+  // Set up exit code promise BEFORE consuming streams to avoid race condition
+  const exitCodePromise = new Promise((resolve) => {
+    runCommand.on("close", resolve);
+  });
+
   // Capture stdout and stderr concurrently to avoid deadlock
   let stdout = "";
   let stderr = "";
@@ -247,9 +252,7 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   stderr = stderr.replace(/\n$/, "");
 
   // Capture exit code
-  const exitCode = await new Promise((resolve, reject) => {
-    runCommand.on("close", resolve);
-  });
+  const exitCode = await exitCodePromise;
 
   return { stdout, stderr, exitCode };
 }

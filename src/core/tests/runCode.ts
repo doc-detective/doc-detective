@@ -78,12 +78,21 @@ async function runCode({ config, step }: { config: any; step: any }) {
   try {
     if (!step.runCode.command) {
       const lang = step.runCode.language.toLowerCase();
-      step.runCode.command =
-        lang === "python"
-          ? "python"
-          : lang === "javascript"
-          ? "node"
-          : "bash";
+      switch (lang) {
+        case "python":
+        case "py":
+          step.runCode.command = "python";
+          break;
+        case "javascript":
+        case "js":
+        case "node":
+          step.runCode.command = "node";
+          break;
+        case "bash":
+        default:
+          step.runCode.command = "bash";
+          break;
+      }
     }
     const command = step.runCode.command;
     // Make sure the command is available

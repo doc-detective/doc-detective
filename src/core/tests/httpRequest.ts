@@ -26,6 +26,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       let integration = openApiDefinitions.find(
         (openApiConfig: any) => openApiConfig.name === step.httpRequest.openApi.name
       );
+      if (!integration) {
+        result.status = "FAIL";
+        result.description = `OpenAPI integration '${step.httpRequest.openApi.name}' not found in config.`;
+        return result;
+      }
       openApiDefinition = integration.definition;
       step.httpRequest.openApi = {
         ...integration,
@@ -222,6 +227,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     headers: step.httpRequest.request.headers,
     params: step.httpRequest.request.parameters,
     data: step.httpRequest.request.body,
+    timeout: step.httpRequest.timeout,
   };
 
   // Validate request payload against OpenAPI definition
@@ -565,7 +571,7 @@ function arrayExistsInArray(expected: any, actual: any): any {
           value.forEach((item: any) => {
             if (Array.isArray(item)) {
               numActualArrays++;
-            } else if (typeof value === "object") {
+            } else if (typeof item === "object") {
               numActualObjects++;
             }
           });

@@ -172,8 +172,10 @@ async function moveTo({config, step, driver, element}: {config: any; step: any; 
   }
 
   // Add offsets
-  driver.state.x = Math.round(coordinates.x + step.offset.x);
-  driver.state.y = Math.round(coordinates.y + step.offset.y);
+  const offsetX = step.offset?.x ?? 0;
+  const offsetY = step.offset?.y ?? 0;
+  driver.state.x = Math.round(coordinates.x + offsetX);
+  driver.state.y = Math.round(coordinates.y + offsetY);
 
   try {
     // Move mouse

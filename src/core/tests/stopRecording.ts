@@ -75,12 +75,12 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       await new Promise<void>((resolve, reject) => {
         execFile(ffmpegPath, ffmpegArgs)
           .on("close", (code) => {
-            if (targetPath !== downloadPath) {
-              // Delete the downloaded file
-              try { fs.unlinkSync(downloadPath); } catch { /* ignore */ }
-              log(config, "debug", endMessage);
-            }
             if (code === 0) {
+              // Only delete the downloaded file after successful transcoding
+              if (targetPath !== downloadPath) {
+                try { fs.unlinkSync(downloadPath); } catch { /* ignore */ }
+              }
+              log(config, "debug", endMessage);
               resolve();
             } else {
               reject(new Error(`ffmpeg exited with code ${code}`));

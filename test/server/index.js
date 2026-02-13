@@ -29,31 +29,8 @@ function createServer(options = {}) {
     app.use(express.static(staticDir));
   }
 
-  // Echo API endpoint that returns the request body
-  app.all("/api/:path", (req, res) => {
-    try {
-      const requestBody = req.method === "GET" ? req.query : req.body;
-      const modifiedResponse = modifyResponse(req, requestBody);
-      console.log("Request:", {
-        Method: req.method,
-        Path: req.path,
-        Query: req.query,
-        Headers: req.headers,
-        Body: req.body,
-      });
-
-      res.set("x-server", "doc-detective-echo-server");
-
-      console.log("Response:", { Body: modifiedResponse });
-
-      res.json(modifiedResponse);
-    } catch (error) {
-      console.error("Error processing request:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
   // Endpoint for testing DOC_DETECTIVE_API - returns resolved tests
+  // IMPORTANT: Must be registered before the catch-all /api/:path route
   app.get("/api/resolved-tests", (req, res) => {
     try {
       // Check for x-runner-token header
@@ -95,6 +72,30 @@ function createServer(options = {}) {
       res.json(resolvedTests);
     } catch (error) {
       console.error("Error processing resolved tests request:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Echo API endpoint that returns the request body (catch-all)
+  app.all("/api/:path", (req, res) => {
+    try {
+      const requestBody = req.method === "GET" ? req.query : req.body;
+      const modifiedResponse = modifyResponse(req, requestBody);
+      console.log("Request:", {
+        Method: req.method,
+        Path: req.path,
+        Query: req.query,
+        Headers: req.headers,
+        Body: req.body,
+      });
+
+      res.set("x-server", "doc-detective-echo-server");
+
+      console.log("Response:", { Body: modifiedResponse });
+
+      res.json(modifiedResponse);
+    } catch (error) {
+      console.error("Error processing request:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
