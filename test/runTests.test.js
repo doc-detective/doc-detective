@@ -15,8 +15,15 @@ describe("Run tests successfully", function () {
     await spawnCommand(
       `node ./bin/doc-detective.js -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
     );
-    // Wait until the file is written
-    while (!fs.existsSync(outputFile)) {}
+    // Wait until the file is written (poll with async sleep to avoid blocking the event loop)
+    let waitCount = 0;
+    while (!fs.existsSync(outputFile) && waitCount < 600) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      waitCount++;
+    }
+    if (!fs.existsSync(outputFile)) {
+      assert.fail("Output file was not created within the expected time");
+    }
     const result = JSON.parse(fs.readFileSync(outputFile, "utf8"));
     console.log(JSON.stringify(result, null, 2));
     fs.unlinkSync(outputFile);

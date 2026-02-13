@@ -59,8 +59,8 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // Set default values
   step.screenshot = {
     ...step.screenshot,
-    maxVariation: step.screenshot.maxVariation || 0.05,
-    overwrite: step.screenshot.overwrite || "aboveVariation",
+    maxVariation: step.screenshot.maxVariation ?? 0.05,
+    overwrite: step.screenshot.overwrite ?? "aboveVariation",
   };
   // Set default values for crop
   if (typeof step.screenshot.crop === "object") {
@@ -269,7 +269,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     log(config, "debug", { padded_rect: rect });
 
     // Create a new PNG object with the dimensions of the cropped area
-    const croppedPath = path.join(dir, "cropped.png");
+    const croppedPath = path.join(dir, `cropped_${step.stepId || Date.now()}.png`);
     try {
       await sharp(filePath)
         .extract({

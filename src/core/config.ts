@@ -606,67 +606,69 @@ async function getAvailableApps({ config }: any) {
   process.chdir(path.join(__dirname, "../.."));
   const apps: any[] = [];
 
-  const installedBrowsers = await browsers.getInstalledBrowsers({
-    cacheDir: path.resolve("browser-snapshots"),
-  });
-  const installedAppiumDrivers = await spawnCommand("npx appium driver list");
-
-  // Note: Edge/Microsoft Edge detection is intentionally excluded
-  // Only Chrome, Firefox, and Safari are supported browsers
-
-  // Detect Chrome
-  const chrome = installedBrowsers.find(
-    (browser: any) => browser.browser === "chrome"
-  );
-  const chromeVersion = chrome?.buildId;
-  const chromedriver = installedBrowsers.find(
-    (browser: any) => browser.browser === "chromedriver"
-  );
-  const appiumChromium = installedAppiumDrivers.stderr.match(
-    /\n.*chromium.*installed \(npm\).*\n/
-  );
-
-  if (chrome && chromedriver && appiumChromium) {
-    apps.push({
-      name: "chrome",
-      version: chromeVersion,
-      path: chrome.executablePath,
-      driver: chromedriver.executablePath,
+  try {
+    const installedBrowsers = await browsers.getInstalledBrowsers({
+      cacheDir: path.resolve("browser-snapshots"),
     });
-  }
+    const installedAppiumDrivers = await spawnCommand("npx appium driver list");
 
-  // Detect Firefox
-  const firefox = installedBrowsers.find(
-    (browser: any) => browser.browser === "firefox"
-  );
-  const appiumFirefox = installedAppiumDrivers.stderr.match(
-    /\n.*gecko.*installed \(npm\).*\n/
-  );
+    // Note: Edge/Microsoft Edge detection is intentionally excluded
+    // Only Chrome, Firefox, and Safari are supported browsers
 
-  if (firefox && appiumFirefox) {
-    apps.push({
-      name: "firefox",
-      version: firefox.buildId,
-      path: firefox.executablePath,
-    });
-  }
-
-  // Detect Safari
-  if (config.environment.platform === "mac") {
-    const safariVersion = await spawnCommand(
-      "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
+    // Detect Chrome
+    const chrome = installedBrowsers.find(
+      (browser: any) => browser.browser === "chrome"
     );
-    const appiumSafari = installedAppiumDrivers.stderr.match(
-      /\n.*safari.*installed \(npm\).*\n/
+    const chromeVersion = chrome?.buildId;
+    const chromedriver = installedBrowsers.find(
+      (browser: any) => browser.browser === "chromedriver"
+    );
+    const appiumChromium = installedAppiumDrivers.stderr.match(
+      /\n.*chromium.*installed \(npm\).*\n/
     );
 
-    if (safariVersion.exitCode === 0 && appiumSafari) {
-      apps.push({ name: "safari", version: safariVersion, path: "" });
+    if (chrome && chromedriver && appiumChromium) {
+      apps.push({
+        name: "chrome",
+        version: chromeVersion,
+        path: chrome.executablePath,
+        driver: chromedriver.executablePath,
+      });
     }
-  }
 
-  // Return to original working directory after finishing with `BROWSERS`
-  process.chdir(cwd);
+    // Detect Firefox
+    const firefox = installedBrowsers.find(
+      (browser: any) => browser.browser === "firefox"
+    );
+    const appiumFirefox = installedAppiumDrivers.stderr.match(
+      /\n.*gecko.*installed \(npm\).*\n/
+    );
+
+    if (firefox && appiumFirefox) {
+      apps.push({
+        name: "firefox",
+        version: firefox.buildId,
+        path: firefox.executablePath,
+      });
+    }
+
+    // Detect Safari
+    if (config.environment.platform === "mac") {
+      const safariVersion = await spawnCommand(
+        "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
+      );
+      const appiumSafari = installedAppiumDrivers.stderr.match(
+        /\n.*safari.*installed \(npm\).*\n/
+      );
+
+      if (safariVersion.exitCode === 0 && appiumSafari) {
+        apps.push({ name: "safari", version: safariVersion, path: "" });
+      }
+    }
+  } finally {
+    // Always restore the original working directory
+    process.chdir(cwd);
+  }
 
   // TODO
   // Detect Android Studio

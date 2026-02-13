@@ -231,11 +231,13 @@ async function allowUnsafeSteps({ config }: { config: any }) {
   // If allowUnsafeSteps is set to false, return false
   else if (config.allowUnsafeSteps === false) return false;
   // if DOC_DETECTIVE.container is set to true, return true
-  else if (
-    process.env.DOC_DETECTIVE &&
-    JSON.parse(process.env.DOC_DETECTIVE).container
-  )
-    return true;
+  else if (process.env.DOC_DETECTIVE) {
+    try {
+      if (JSON.parse(process.env.DOC_DETECTIVE).container) return true;
+    } catch {
+      // Invalid JSON in DOC_DETECTIVE env var; treat as unset
+    }
+  }
   // If allowUnsafeSteps is not set, return false by default
   else return false;
 }
@@ -962,7 +964,7 @@ async function appiumIsReady(timeoutMs: number = 120000) {
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     try {
-      let resp = await axios.get("http://0.0.0.0:4723/status");
+      let resp = await axios.get("http://127.0.0.1:4723/status");
       if (resp.status === 200) isReady = true;
     } catch {}
   }
@@ -973,7 +975,7 @@ async function appiumIsReady(timeoutMs: number = 120000) {
 async function driverStart(capabilities: any) {
   const driver: any = await wdio.remote({
     protocol: "http",
-    hostname: "0.0.0.0",
+    hostname: "127.0.0.1",
     port: 4723,
     path: "/",
     logLevel: "error",
