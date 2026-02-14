@@ -26,7 +26,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
 
     try {
       const result = await spawnCommand(
-        `node ./src/index.js -o ${outputFile}`
+        `node ./bin/doc-detective.js -o ${outputFile}`
       );
 
       // Wait until the file is written
@@ -69,7 +69,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
 
     try {
       const result = await spawnCommand(
-        `node ./src/index.js -o ${outputFile}`
+        `node ./bin/doc-detective.js -o ${outputFile}`
       );
 
       // Should exit with non-zero code
@@ -97,7 +97,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
 
     try {
       const result = await spawnCommand(
-        `node ./src/index.js -o ${outputFile}`
+        `node ./bin/doc-detective.js -o ${outputFile}`
       );
 
       // Should exit with non-zero code due to 401 response
@@ -131,7 +131,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
 
     try {
       await spawnCommand(
-        `node ./src/index.js -o ${outputFile}`
+        `node ./bin/doc-detective.js -o ${outputFile}`
       );
 
       // Wait until the file is written
