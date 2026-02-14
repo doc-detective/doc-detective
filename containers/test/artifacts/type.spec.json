@@ -1,0 +1,37 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "https://duckduckgo.com"
+        },
+        {
+          "type": ["kittens", "$ENTER$"]
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "goTo": "https://duckduckgo.com"
+        },
+        {
+          "type": "kittens"
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "goTo": "https://duckduckgo.com"
+        },
+        {
+          "type": {
+            "keys": ["kittens", "$ENTER$"],
+            "inputDelay": 100
+          }
+        }
+      ]
+    }
+  ]
+}

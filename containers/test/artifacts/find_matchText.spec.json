@@ -1,0 +1,28 @@
+{
+  "id": "matchTextRegex",
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com/docs/get-started/actions/type"
+        },
+        {
+          "action": "find",
+          "selector": "h2#special-keys",
+          "matchText": "Special keys"
+        },
+        {
+          "action": "find",
+          "selector": "h2#special-keys",
+          "matchText": "/^Special keys$/"
+        },
+        {
+          "action": "find",
+          "selector": "h2#special-keys",
+          "matchText": "/^S.*?s/"
+        }
+      ]
+    }
+  ]
+}
