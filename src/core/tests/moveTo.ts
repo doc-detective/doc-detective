@@ -1,5 +1,13 @@
 export { moveTo, instantiateCursor };
 
+/**
+ * Ensure a visible custom mouse cursor element exists in the page and set its initial position.
+ *
+ * Waits for the document to finish loading, injects a `dd-mouse-pointer` element with styling and event handling if one is not present, and positions the cursor based on the provided options or the driver's stored coordinates.
+ *
+ * @param options - Configuration for cursor instantiation. Recognized property:
+ *   - `position`: `"current"` (default) to use the driver's existing coordinates, or `"center"` to position the cursor at the viewport center.
+ * @returns An object with `status` and `description`. `status` is `"PASS"` when the cursor is present and positioned, or `"FAIL"` if the page could not be waited for or instantiation/positioning failed.
 async function instantiateCursor(driver: any, options: any = { position: "current" }) {
   const result: any = { status: "PASS", description: "Instantiated cursor." };
 
@@ -120,7 +128,14 @@ async function instantiateCursor(driver: any, options: any = { position: "curren
 }
 
 // Move mouse.
-// TODO: Remove most of this function or rework it as it's own step.
+/**
+ * Moves the mouse cursor to a point computed from an element's bounding box using alignment and offsets.
+ *
+ * @param step - Movement options: `alignment` ("center" | "top" | "bottom" | "left" | "right"), optional `offset` `{ x?: number; y?: number }`, and optional `duration` in milliseconds
+ * @param driver - WebDriver-like client whose `state.x` and `state.y` will be updated to the computed coordinates
+ * @param element - Element used to compute the target point; must expose size and location
+ * @returns An object with `status` (`"PASS"` or `"FAIL"`) and `description` describing success or the failure reason
+ */
 async function moveTo({config, step, driver, element}: {config: any; step: any; driver: any; element: any}) {
   let result = {
     status: "PASS",

@@ -4,13 +4,10 @@ import { loadEnvs } from "../utils.js";
 export { loadVariables };
 
 /**
- * Loads variables defined in a step object into the environment.
- * @async
- * @param {Object} step - The step object containing variable definitions.
- * @param {Object} step.loadVariables - The variables to be loaded.
- * @returns {Promise<Object>} A result object indicating success or failure.
- * @returns {string} result.status - "PASS" if successful, "FAIL" otherwise.
- * @returns {string} result.description - Description of the result or error message.
+ * Load variables from a step into the environment.
+ *
+ * @param step - Step object containing a `loadVariables` property with variables to set
+ * @returns An object with `status` set to `"PASS"` if variables were set successfully or `"FAIL"` otherwise, and `description` with a human-readable message
  */
 async function loadVariables({ step }: { step: any }) {
   let result = { status: "PASS", description: "Set variables." };

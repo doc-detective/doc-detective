@@ -18,7 +18,16 @@ if (fs.existsSync(path.resolve(process.cwd(), "package.json"))) {
   }
 }
 
-// Check if dependencies are installed
+/**
+ * Prompts to install local npm dependencies when the project's node_modules directory is missing.
+ *
+ * If node_modules does not exist, asks the user whether to run `npm install`. On affirmative
+ * response it runs `npm install`, waits up to five minutes for completion, and prints success
+ * or failure messages. On timeout, spawn error, or non-zero exit code it logs an error and exits
+ * the process with a non-zero code. If the user declines or presses Ctrl+C, the function exits
+ * the process (Ctrl+C prints a cancellation message). If node_modules already exists, the
+ * function returns without action.
+ */
 function checkDependencies() {
   if (!fs.existsSync(path.resolve(process.cwd(), "node_modules"))) {
     const rl = readline.createInterface({

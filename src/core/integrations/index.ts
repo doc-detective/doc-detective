@@ -15,9 +15,10 @@ const uploaders: any[] = [
 ];
 
 /**
- * Finds the appropriate uploader for a given source integration.
- * @param {Object} sourceIntegration - Source integration metadata from step result
- * @returns {Object|null} Uploader instance or null if none found
+ * Selects the first registered uploader that can handle the provided source integration.
+ *
+ * @param sourceIntegration - Source integration metadata (e.g., from a step result) used to match an uploader
+ * @returns The uploader instance that can handle `sourceIntegration`, or `null` if no match is found
  */
 function getUploader(sourceIntegration: any) {
   if (!sourceIntegration?.type) return null;
@@ -32,14 +33,10 @@ function getUploader(sourceIntegration: any) {
 }
 
 /**
- * Collects all changed files from a test report that have source integrations.
- * @param {Object} report - Test execution report
- * @returns {Array<{localPath: string, sourceIntegration: Object, stepId: string, testId: string, specId: string}>} Array of changed file objects containing:
- *   - localPath: Path to the local file
- *   - sourceIntegration: Source integration metadata (type, integrationName, filePath, contentPath)
- *   - stepId: ID of the step that produced this file
- *   - testId: ID of the test containing this step
- *   - specId: ID of the spec containing this test
+ * Collects changed files that include source integration metadata from a test execution report.
+ *
+ * @param report - The test execution report to scan for changed files
+ * @returns An array of objects each containing `localPath`, `sourceIntegration`, `stepId`, `testId`, and `specId`
  */
 function collectChangedFiles(report: any) {
   const changedFiles: any[] = [];
@@ -73,19 +70,19 @@ function collectChangedFiles(report: any) {
 }
 
 /**
- * Uploads all changed files back to their source integrations.
- * Uses best-effort approach - continues uploading even if individual uploads fail.
- * Uploads are executed in parallel using Promise.allSettled for better performance.
- * @param {Object} options - Upload options
- * @param {Object} options.config - Doc Detective config containing integration configurations
- * @param {Object} options.report - Test execution report from runSpecs
- * @param {Function} options.log - Logging function with signature (config, level, message)
- * @returns {Promise<{total: number, successful: number, failed: number, skipped: number, details: Array<{localPath: string, status: string, description?: string, reason?: string}>}>} Upload results summary with:
- *   - total: Total number of changed files found
- *   - successful: Number of files successfully uploaded
- *   - failed: Number of files that failed to upload
- *   - skipped: Number of files skipped (no uploader or config found)
- *   - details: Array of per-file results with localPath, status (PASS/FAIL/SKIPPED), and description or reason
+ * Upload changed files from a test report to their configured source integrations.
+ *
+ * Continues uploading other files if individual uploads fail and returns an aggregated summary.
+ *
+ * @param config - Doc Detective configuration containing integration definitions
+ * @param report - Test execution report produced by runSpecs
+ * @param log - Logging function with signature (config, level, message)
+ * @returns An object summarizing uploads:
+ *   - `total`: total number of changed files found
+ *   - `successful`: number of files uploaded with status "PASS"
+ *   - `failed`: number of files that failed to upload
+ *   - `skipped`: number of files not attempted due to missing uploader or config
+ *   - `details`: array of per-file results containing `localPath`, `status` ("PASS" | "FAIL" | "SKIPPED"), and an optional `description` or `reason`
  */
 async function uploadChangedFiles({ config, report, log }: { config: any; report: any; log: any }) {
   const results: { total: number; successful: number; failed: number; skipped: number; details: any[] } = {
@@ -235,10 +232,11 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
 }
 
 /**
- * Gets the integration configuration for a source integration.
- * @param {Object} config - Doc Detective config
- * @param {Object} sourceIntegration - Source integration metadata
- * @returns {Object|null} Integration configuration or null if not found
+ * Retrieve the integration configuration that corresponds to a source integration.
+ *
+ * @param config - Doc Detective configuration object containing integration entries
+ * @param sourceIntegration - Source integration metadata; must include `type` and `integrationName`
+ * @returns The matching integration configuration object, or `null` if no match is found
  */
 function getIntegrationConfig(config: any, sourceIntegration: any) {
   if (!sourceIntegration?.type || !sourceIntegration?.integrationName) {
@@ -256,8 +254,10 @@ function getIntegrationConfig(config: any, sourceIntegration: any) {
 }
 
 /**
- * Registers a new uploader.
- * @param {Object} uploader - Uploader instance implementing canHandle and upload methods
+ * Adds an uploader implementation to the runtime registry.
+ *
+ * @param uploader - Uploader instance; must implement `canHandle(sourceIntegration): boolean` and `upload(args): Promise<any>` where `args` includes `config`, `integrationConfig`, `localFilePath`, `sourceIntegration`, and `log`
+ * @throws Error if `uploader` does not implement the required `canHandle` and `upload` methods
  */
 function registerUploader(uploader: any) {
   if (typeof uploader.canHandle !== "function" || typeof uploader.upload !== "function") {

@@ -19,6 +19,12 @@ export {
   isRelativeUrl,
 };
 
+/**
+ * Determines whether a URL string is relative.
+ *
+ * @param url - The URL string to test
+ * @returns `true` if `url` is a relative URL, `false` otherwise
+ */
 function isRelativeUrl(url: string) {
   try {
     new URL(url);
@@ -30,7 +36,11 @@ function isRelativeUrl(url: string) {
   }
 }
 
-// Delete all contents of doc-detective temp directory
+/**
+ * Removes all files and subdirectories inside the "doc-detective" directory within the OS temporary directory.
+ *
+ * If the directory exists, its entries are deleted; the "doc-detective" directory itself is not removed.
+ */
 function cleanTemp() {
   const tempDir = path.join(os.tmpdir(), "doc-detective");
   if (fs.existsSync(tempDir)) {
@@ -48,7 +58,15 @@ function cleanTemp() {
 
 // Fetch a file from a URL and save to a temp directory
 // If the file is not JSON, return the contents as a string
-// If the file is not found, return an error
+/**
+ * Fetches a remote file and caches it in a temporary doc-detective directory.
+ *
+ * Downloads the resource at `fileURL`, normalizes response data to a string (JSON-stringifying objects),
+ * writes the content to a temp file named with an MD5 hash and the original filename, and returns the file path.
+ *
+ * @param fileURL - The HTTP(S) URL of the resource to fetch.
+ * @returns An object with `result: "success"` and `path` when the file was written or already exists; otherwise `result: "error"` and a `message` containing the caught error.
+ */
 async function fetchFile(fileURL: string) {
   try {
     const response = await axios.get(fileURL);
@@ -75,6 +93,15 @@ async function fetchFile(fileURL: string) {
   }
 }
 
+/**
+ * Write `results` as pretty-printed JSON to `path` and emit informational log messages about the saved file and cleanup progress.
+ *
+ * Serializes `results` with 2-space indentation before writing. After writing, logs the results, the output path, and a final cleanup/finish message using the provided `config`.
+ *
+ * @param path - Filesystem path where the JSON results will be written
+ * @param results - The value to serialize and save
+ * @param config - Logger configuration object passed to the internal `log` function
+ */
 async function outputResults(path: string, results: any, config: any) {
   let data = JSON.stringify(results, null, 2);
   fs.writeFileSync(path, data);
@@ -85,13 +112,10 @@ async function outputResults(path: string, results: any, config: any) {
 }
 
 /**
- * Loads environment variables from a specified .env file.
+ * Load environment variables from the specified .env file and apply them with override enabled.
  *
- * @async
- * @param {string} envsFile - Path to the environment variables file.
- * @returns {Promise<Object>} An object containing the operation result.
- * @returns {string} returns.status - "PASS" if environment variables were loaded successfully, "FAIL" otherwise.
- * @returns {string} returns.description - A description of the operation result.
+ * @param envsFile - Path to the .env file to load.
+ * @returns An object with `status` set to `"PASS"` if variables were loaded, `"FAIL"` if the file was not found, and `description` containing a human-readable message.
  */
 async function loadEnvs(envsFile: string) {
   const fileExists = fs.existsSync(envsFile);
@@ -104,6 +128,15 @@ async function loadEnvs(envsFile: string) {
   }
 }
 
+/**
+ * Logs a message to the console when the configured log level allows the given severity.
+ *
+ * Logs are prefixed with the uppercase level in parentheses; if `message` is an object it is printed as pretty JSON on the following lines.
+ *
+ * @param config - Optional configuration object that may include `logLevel` with one of: `"error"`, `"warning"`, `"info"`, or `"debug"`. If omitted the function treats all levels as disabled.
+ * @param level - Severity of the message: `"error"`, `"warning"`, `"info"`, or `"debug"`. Messages are emitted only when `config.logLevel` permits this severity.
+ * @param message - The payload to log. If a string, it is printed on a single line; if an object, it is printed as formatted JSON. If omitted the function supports the two-argument form `log(message, level)`.
+ */
 async function log(config: any, level: string, message?: any) {
   if (message === undefined) {
     // 2-arg form: log(message, level)
@@ -145,6 +178,14 @@ async function log(config: any, level: string, message?: any) {
   }
 }
 
+/**
+ * Recursively replaces environment-variable placeholders in a string or all string values within an object.
+ *
+ * For strings, occurrences of `$VAR` are replaced with the value of `process.env.VAR`. If the placeholder spans the entire string and the environment value parses as JSON to an object, the parsed object is used instead of a string. Replacement is applied recursively to allow nested variables. For objects, the function traverses own enumerable properties and applies the same replacement behavior to each value; it skips keys that could introduce prototype pollution (`__proto__`, `constructor`, `prototype`).
+ *
+ * @param stringOrObject - A string or an object whose string values may contain `$VAR` placeholders.
+ * @returns The input with environment placeholders replaced: a string, an object, or the original value if no replacements were performed.
+ */
 function replaceEnvs(stringOrObject: any): any {
   if (!stringOrObject) return stringOrObject;
   if (typeof stringOrObject === "object") {
@@ -190,6 +231,11 @@ function replaceEnvs(stringOrObject: any): any {
   return stringOrObject;
 }
 
+/**
+ * Generate a compact timestamp string in the format YYYYMMDD-HHMMSS.
+ *
+ * @returns A string formatted as `YYYYMMDD-HHMMSS` representing the current local date and time.
+ */
 function timestamp() {
   let timestamp = new Date();
   return `${timestamp.getFullYear()}${("0" + (timestamp.getMonth() + 1)).slice(
@@ -203,13 +249,14 @@ function timestamp() {
 
 // Perform a native command in the current working directory.
 /**
- * Executes a command in a child process using the `spawn` function from the `child_process` module.
- * @param {string} cmd - The command to execute.
- * @param {string[]} args - The arguments to pass to the command.
- * @param {object} options - The options for the command execution.
- * @param {boolean} options.workingDirectory - Directory in which to execute the command.
- * @param {boolean} options.debug - Whether to enable debug mode.
- * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
+ * Run a shell command and capture its stdout, stderr, and exit code.
+ *
+ * @param cmd - The command to execute (run in a shell).
+ * @param args - Array of arguments to pass to the command.
+ * @param options - Optional execution settings.
+ * @param options.cwd - Working directory in which to run the command.
+ * @param options.debug - If truthy, stream output chunks to the console while the command runs.
+ * @returns An object containing `stdout` (string), `stderr` (string), and `exitCode` (process exit code).
  */
 async function spawnCommand(cmd: string, args: string[] = [], options: any = {}) {
   // Set spawnOptions based on OS
@@ -257,6 +304,13 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   return { stdout, stderr, exitCode };
 }
 
+/**
+ * Detects whether the current process is running inside a containerized environment.
+ *
+ * Checks the `IN_CONTAINER` environment variable and, on Linux, inspects `/proc/1/cgroup` for common container indicators.
+ *
+ * @returns `true` if running inside a container, `false` otherwise.
+ */
 async function inContainer() {
   if (process.env.IN_CONTAINER === "true") return true;
   if (process.platform === "linux") {
@@ -269,12 +323,11 @@ async function inContainer() {
 }
 
 /**
- * Calculates the fractional difference between two strings using Levenshtein distance.
- * @param {string} text1 - First string to compare
- * @param {string} text2 - Second string to compare
- * @returns {number} Fractional difference between 0 and 1, where 0 means identical
- *                   and 1 means completely different. Compare against maxVariation
- *                   thresholds directly (e.g., 0.1 for 10% tolerance).
+ * Computes the fractional difference between two strings based on Levenshtein distance.
+ *
+ * @param text1 - The first string to compare
+ * @param text2 - The second string to compare
+ * @returns A number in the range 0 to 1 representing the edit distance divided by the length of the longer string; `0` means the strings are identical
  */
 function calculateFractionalDifference(text1: string, text2: string) {
   const distance = llevenshteinDistance(text1, text2);
@@ -284,6 +337,13 @@ function calculateFractionalDifference(text1: string, text2: string) {
   return fractionalDiff;
 }
 
+/**
+ * Computes the Levenshtein distance between two strings.
+ *
+ * @param s - The first string (source)
+ * @param t - The second string (target)
+ * @returns The minimum number of single-character insertions, deletions, or substitutions required to transform `s` into `t`
+ */
 function llevenshteinDistance(s: string, t: string) {
   if (!s.length) return t.length;
   if (!t.length) return s.length;

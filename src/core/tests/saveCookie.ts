@@ -6,12 +6,12 @@ import fs from "node:fs";
 export { saveCookie };
 
 /**
- * Save a specific browser cookie to a file or environment variable for later reuse.
- * @async
- * @param {Object} config - The test configuration.
- * @param {Object} step - The step object containing saveCookie options.
- * @param {Object} driver - The WebDriver instance.
- * @returns {Promise<Object>} A result object indicating success or failure.
+ * Save a browser cookie specified by the step to a file and/or environment variable for later reuse.
+ *
+ * @param config - Test configuration (used for resolving output directory and for logging).
+ * @param step - Step payload containing `saveCookie` options; may be a string or an object with `name`, `path`, `directory`, `overwrite`, `domain`, and `variable`.
+ * @param driver - WebDriver instance used to retrieve cookies from the browser.
+ * @returns Result object with `status` ("PASS" or "FAIL"), a `description` message, and optional `outputs` (for example, `path` to the written file).
  */
 async function saveCookie({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result: any = {
@@ -150,9 +150,12 @@ ${netscapeCookie}
 }
 
 /**
- * Format a cookie object for Netscape cookie format.
- * @param {Object} cookie - Cookie object from WebDriver.
- * @returns {string} Formatted cookie string.
+ * Format a WebDriver cookie into a single Netscape cookie-file line.
+ *
+ * The output fields are tab-separated in this order: domain, includeSubdomains flag ("TRUE" or "FALSE"), path, secure ("TRUE" or "FALSE"), expiry (unix timestamp or "0" for session), name, and value.
+ *
+ * @param cookie - Cookie object from WebDriver; expected fields include `domain`, `path`, `secure`, `expiry`, `name`, and `value`.
+ * @returns A single tab-separated Netscape-format cookie line suitable for inclusion in a cookies.txt file.
  */
 function formatCookieForNetscape(cookie: any) {
   // Netscape format: domain	flag	path	secure	expiration	name	value

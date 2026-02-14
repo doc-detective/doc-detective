@@ -11,7 +11,11 @@ const platformMap: Record<string, string> = {
   linux: "linux",
 };
 
-// TODO: Add link to docs
+/**
+ * Log a user-facing notice about telemetry status and how to enable or disable it.
+ *
+ * @param config - Project configuration object; the function reads `config.telemetry.send` to determine which message to log. 
+ */
 function telemetryNotice(config: any) {
   if (config?.telemetry?.send === false) {
     log(
@@ -43,7 +47,16 @@ function telemetryNotice(config: any) {
 //   core_deployment: "node", // node, electron, docker, github-action, lambda, vscode-extension, browser-extension
 // };
 
-// Send telemetry data to PostHog
+/**
+ * Collects runtime metadata and sends a telemetry event to PostHog when telemetry is enabled.
+ *
+ * Builds a set of telemetry properties from environment metadata, package and OS information,
+ * and optionally flattens `results.summary` into properties when `command` is `"runTests"`.
+ *
+ * @param config - Application configuration; if `config.telemetry.send` is strictly `false` no telemetry is sent. If present, `config.telemetry.userId` is used as the event distinctId.
+ * @param command - The name of the telemetry event to send (e.g., `"runTests"`).
+ * @param results - Result object used only when `command` is `"runTests"`. Its `summary` object may contain nested objects which will be flattened into telemetry properties.
+ */
 function sendTelemetry(config: any, command: string, results: any) {
   // Exit early if telemetry is disabled
   if (config?.telemetry?.send === false) return;

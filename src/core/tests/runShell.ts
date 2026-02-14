@@ -9,7 +9,30 @@ import path from "node:path";
 
 export { runShell };
 
-// Run a shell command.
+/**
+ * Execute a configured shell command, validate its results, and return a structured outcome.
+ *
+ * This function validates and normalizes `step.runShell`, runs the specified command with
+ * timeout and working-directory support, captures `stdout`, `stderr`, and the exit code,
+ * evaluates the exit code and optional expected stdio (substring or regex), and optionally
+ * saves `stdout` to a file with configurable overwrite/variation behaviour. The resulting
+ * status may be `PASS`, `FAIL`, or `WARNING` depending on validation and runtime checks.
+ *
+ * @param config - Runner configuration / logger passed through to utilities (used for logging).
+ * @param step - Step definition (validated against the `step_v3` schema). `step.runShell`
+ * may be a string (command) or an object with fields such as:
+ *   - `command` (string)
+ *   - `args` (string[])
+ *   - `exitCodes` (number[])
+ *   - `workingDirectory` (string)
+ *   - `timeout` (ms)
+ *   - `stdio` (string | regex-like string enclosed in slashes)
+ *   - `path` (file path to save stdout)
+ *   - `overwrite` ("true" | "false" | "aboveVariation")
+ *   - `maxVariation` (number between 0 and 1)
+ * @returns An object with `status`, `description`, and `outputs` where `outputs` contains
+ * `exitCode` and `stdio` (`stdout` and `stderr`). `status` will be `PASS`, `FAIL`, or `WARNING`. 
+ */
 async function runShell({ config, step }: { config: any; step: any }) {
   // Promisify and execute command
   const result = {

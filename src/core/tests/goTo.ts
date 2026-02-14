@@ -4,7 +4,21 @@ import { findElement } from "./findElement.js";
 
 export { goTo };
 
-// Open a URI in the browser
+/**
+ * Navigate the browser to a URL from the provided test step and wait for configured readiness conditions.
+ *
+ * Normalizes a string `step.goTo` to an object, resolves relative URLs using `step.goTo.origin` or `config.origin`,
+ * ensures a protocol is present, validates and applies defaults to the step payload, then opens the URL with the
+ * provided `driver`. After navigation, waits for `document.readyState === "complete"` and, within the step timeout,
+ * optionally waits for network idle, DOM stability, and/or an element to be found according to `step.goTo.waitUntil`.
+ * Returns a concise PASS/FAIL result; on failure the `description` lists which conditions passed or failed and include
+ * timeout or error details.
+ *
+ * @param config - Global test configuration (used to resolve origin when a relative URL is supplied).
+ * @param step - The step object containing `goTo` (either a URL string or an object with `url`, `timeout`, and `waitUntil`).
+ * @param driver - Browser automation driver used to navigate and execute in-page checks.
+ * @returns An object with `status` equal to `"PASS"` or `"FAIL"` and a `description` explaining the outcome.
+ */
 async function goTo({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result = { status: "PASS", description: "Opened URL." };
 
@@ -281,8 +295,17 @@ waitResults.elementFound.passed = true;
 }
 
 /**
- * Wait for network activity to be idle for a specified duration.
- * Uses a polling approach to check for network requests.
+ * Waits until the page has had no network requests for a continuous period.
+ *
+ * Instruments the page to track network activity, then waits up to `timeout`
+ * milliseconds for a continuous idle period of `idleTime` milliseconds. Patches
+ * `window.fetch` and `XMLHttpRequest.prototype.open` in the page context to
+ * detect requests and always restores the originals before returning.
+ *
+ * @param driver - A WebDriver-like object with an `execute` method for running code in the page context.
+ * @param idleTime - The required continuous idle duration in milliseconds.
+ * @param timeout - Maximum time in milliseconds to wait before failing.
+ * @throws Error - Throws `"Network idle timeout exceeded"` if the idle condition is not met within `timeout`.
  */
 async function waitForNetworkIdle(driver: any, idleTime: any, timeout: any) {
   const startTime = Date.now(); // Only for Node.js timeout tracking
@@ -396,8 +419,16 @@ async function waitForNetworkIdle(driver: any, idleTime: any, timeout: any) {
 }
 
 /**
- * Wait for the DOM to stop mutating for a specified duration.
- * Uses MutationObserver to detect changes.
+ * Waits until DOM mutations cease for at least the specified idle duration.
+ *
+ * Instruments the page with a MutationObserver and resolves once no mutations have been observed
+ * for `idleTime` milliseconds. Cleans up the injected observer and monitoring state on success
+ * or failure.
+ *
+ * @param driver - A driver capable of executing scripts in the page context (used to install and query the in-page monitor).
+ * @param idleTime - Required consecutive idle time in milliseconds during which no DOM mutations may occur.
+ * @param timeout - Maximum time in milliseconds to wait for the DOM to become stable before failing.
+ * @throws Error - If the timeout is exceeded (message: "DOM stability timeout exceeded") or if an error occurs while monitoring; failures include the original error as the cause.
  */
 async function waitForDOMStable(driver: any, idleTime: any, timeout: any) {
   const startTime = Date.now(); // Only for Node.js timeout tracking

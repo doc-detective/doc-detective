@@ -1,5 +1,19 @@
 export { scroll };
 
+/**
+ * Perform a scroll action on the page or skip if no recordings are active.
+ *
+ * Attempts to scroll the page using `action.x` and `action.y`. If both
+ * `config.videoDetails` and `config.debugRecording` are empty objects the
+ * action is skipped.
+ *
+ * @param action - Object with numeric `x` and `y` delta values for the wheel scroll
+ * @param page - Page-like object exposing `mouse.wheel({ deltaX, deltaY })`
+ * @param config - Configuration containing `videoDetails` and `debugRecording` objects
+ * @returns An object `{ result }` where `result` contains:
+ *          - `status`: `'PASS'` when skipped or scroll succeeds, `'FAIL'` when scroll fails
+ *          - `description`: human-readable explanation of the outcome
+ */
 async function scroll(action: any, page: any, config: any) {
   let status;
   let description;

@@ -17,13 +17,10 @@ const supportMessage = `
 ##########################################################################`;
 
 /**
- * Detects and resolves tests based on the provided configuration.
- * Chains setConfig -> detectTests -> resolveTests.
+ * Detects tests according to the given configuration and returns the resolved test set.
  *
- * @async
- * @param {Object} options
- * @param {Object} options.config - The configuration object
- * @returns {Promise<Object|null>} Resolved tests object or null if none found
+ * @param config - Configuration used to detect and resolve tests
+ * @returns The resolved tests object, or `null` if no tests were detected
  */
 async function detectAndResolveTests({ config }: any) {
   config = await setConfig({ config });
@@ -36,7 +33,15 @@ async function detectAndResolveTests({ config }: any) {
   return resolvedTests;
 }
 
-// Run tests defined in specifications and documentation source files.
+/**
+ * Execute test specifications and return their execution results.
+ *
+ * If `options.resolvedTests` is provided it will be used instead of detecting and resolving tests.
+ *
+ * @param config - Runtime configuration used for detecting, resolving, selecting execution mode (API vs local), and telemetry
+ * @param options - Optional settings. Recognized property: `resolvedTests` — a pre-resolved test set to run instead of performing detection/resolution
+ * @returns The test run results object, or `null` if no tests could be resolved
+ */
 async function runTests(config: any, options: any = {}) {
   let resolvedTests: any;
   let results: any;

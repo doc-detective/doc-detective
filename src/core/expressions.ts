@@ -5,11 +5,13 @@ import { log } from "./utils.js";
 import jq from "jq-web";
 
 /**
- * Resolves runtime expressions that may contain meta values and operators.
- * Can handle both standalone expressions and strings with embedded expressions.
- * @param {string} expression - The expression to resolve.
- * @param {object} context - Context object containing meta values.
- * @returns {*} - The resolved value of the expression.
+ * Resolve a runtime expression that may contain meta value references ($$...), embedded `{{ ... }}` segments, or operator expressions.
+ *
+ * Resolves embedded `{{ ... }}` expressions, replaces meta-value placeholders from `context`, and evaluates expressions containing operators; on evaluation producing an object the result is returned as a JSON string. If the input is not a string it is returned unchanged. On error the original expression is returned.
+ *
+ * @param expression - The expression to resolve; may be a non-string value, a string with embedded `{{ ... }}` segments, or a standalone expression containing meta references or operators.
+ * @param context - Object providing meta values and helpers used during resolution and evaluation.
+ * @returns The resolved value. If the input was non-string it is returned unchanged; if evaluation produces an object it is returned as a JSON string; otherwise the resolved string (or the original expression on error).
  */
 async function resolveExpression({ expression, context }: { expression: any; context: any }): Promise<any> {
   if (typeof expression !== "string") {
@@ -57,10 +59,14 @@ async function resolveExpression({ expression, context }: { expression: any; con
 }
 
 /**
- * Replaces all meta values in an expression with their actual values from context.
- * @param {string} expression - The expression containing meta values.
- * @param {object} context - Context object containing meta values.
- * @returns {*} - The expression with meta values replaced.
+ * Replace all `$$path` meta references in `expression` with their values from `context`.
+ *
+ * Objects are inserted as JSON strings. When the expression contains operators, string
+ * values that include spaces or special characters are wrapped in quotes and escaped.
+ *
+ * @param expression - The input expression containing `$$` meta references (e.g. `$$data.item# /0/name`).
+ * @param context - Context object used to resolve meta paths.
+ * @returns The expression with meta references substituted by their resolved values.
  */
 function replaceMetaValues(expression: string, context: any): any {
   // Regular expression to match meta values with optional JSON pointer
@@ -100,10 +106,11 @@ function replaceMetaValues(expression: string, context: any): any {
 }
 
 /**
- * Gets a meta value from the context based on its path and scope.
- * @param {string} path - The path to the meta value.
- * @param {object} context - Context object containing meta values.
- * @returns {*} - The value of the meta value, or undefined if not found.
+ * Retrieve a meta value from the provided context by path, supporting template variables (e.g., `{{id}}`) and an optional JSON Pointer suffix after `#`.
+ *
+ * @param path - Dot-separated base path into `context`. May include `{{...}}` template variables and an optional `#/<json/pointer>` segment to traverse into the resolved value.
+ * @param context - Object that holds meta values.
+ * @returns The value found at the resolved location, or `undefined` if not present.
  */
 function getMetaValue(path: string, context: any): any {
   if (!context) {
@@ -139,11 +146,13 @@ function getMetaValue(path: string, context: any): any {
 }
 
 /**
- * Replaces simple template variables (e.g., {{id}}) in a path with their values from context.
- * This is specifically for meta value paths, not for general expression evaluation.
- * @param {string} path - The path containing template variables.
- * @param {object} context - Context object containing variable values.
- * @returns {string} - The path with template variables replaced.
+ * Replaces simple template variables (e.g., {{id}}) in a meta path with values from the provided context.
+ *
+ * Currently only `{{id}}` is resolved to `context.id`; unknown templates are left unchanged.
+ *
+ * @param path - The path containing `{{...}}` template variables.
+ * @param context - Object providing template values (uses `context.id` for `{{id}}`).
+ * @returns The path with resolved template variables; unresolved templates are unchanged.
  */
 function resolvePathTemplateVariables(path: string, context: any): string {
   const templateRegex = /\{\{(\w+)\}\}/g;
@@ -158,11 +167,16 @@ function resolvePathTemplateVariables(path: string, context: any): string {
 }
 
 /**
- * Resolves embedded expressions within a string using {{expression}} syntax.
- * This handles full expression evaluation between {{ and }} delimiters.
- * @param {string} str - The string containing embedded expressions.
- * @param {object} context - Context object containing values for evaluation.
- * @returns {string} - The string with embedded expressions replaced with their evaluated values.
+ * Evaluate and replace all {{...}} expressions found within a string.
+ *
+ * Embedded expressions are resolved using the provided context. Non-string
+ * results are converted to strings; objects are JSON-stringified. If
+ * evaluating an embedded expression fails, the original `{{...}}` segment is
+ * left intact.
+ *
+ * @param str - The string containing one or more `{{ expression }}` segments
+ * @param context - Context used when resolving each embedded expression
+ * @returns The input string with each evaluated `{{...}}` segment replaced by its stringified result
  */
 async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> {
   if (typeof str !== "string") {
@@ -203,10 +217,11 @@ async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> 
 }
 
 /**
- * Gets a nested property from an object by its path.
- * @param {object} obj - The object to get the property from.
- * @param {string} path - The path to the property (e.g., 'a.b.c' or 'a.b[0].c').
- * @returns {*} - The value of the property, or undefined if not found.
+ * Retrieve a nested property from an object using dot-and-bracket path notation.
+ *
+ * @param obj - The object to read from.
+ * @param path - Property path using dot notation and optional array indices (e.g., `a.b.c` or `a.b[0].c`).
+ * @returns The value at the specified path, or `undefined` if any segment does not exist.
  */
 function getNestedProperty(obj: any, path: string): any {
   if (!obj || !path) return undefined;
@@ -238,9 +253,9 @@ function getNestedProperty(obj: any, path: string): any {
 }
 
 /**
- * Checks if an expression contains operators.
- * @param {string} expression - The expression to check.
- * @returns {boolean} - Whether the expression contains operators.
+ * Determine whether an expression includes supported operator invocations.
+ *
+ * @returns `true` if the expression contains `jq(` or `extract(`, `false` otherwise.
  */
 function containsOperators(expression: string): boolean {
   // TODO: Add back common operators (!)
@@ -249,10 +264,16 @@ function containsOperators(expression: string): boolean {
 }
 
 /**
- * Evaluates an expression containing operators.
- * @param {string} expression - The expression to evaluate.
- * @param {object} context - Context object that might be needed for evaluation.
- * @returns {*} - The result of the evaluation.
+ * Evaluate an expression that may include custom operators.
+ *
+ * The expression is evaluated within a restricted context that exposes helper
+ * functions (for example `extract` and `jq`) and the provided `context` values.
+ * Operator-like syntax is preprocessed before evaluation. On errors the function
+ * returns `undefined`.
+ *
+ * @param expression - The expression string to evaluate (may contain operators or references)
+ * @param context - Values and identifiers available to the evaluation environment
+ * @returns The computed result of the expression, or `undefined` if evaluation fails
  */
 async function evaluateExpression(expression: string, context: any): Promise<any> {
   try {
@@ -333,10 +354,13 @@ async function evaluateExpression(expression: string, context: any): Promise<any
 }
 
 /**
- * Preprocesses an expression to handle special operators like 'contains', 'oneOf', and 'matches'.
- * Also handles unquoted string literals that should be treated as strings not variables.
- * @param {string} expression - The expression to preprocess.
- * @returns {string} - The preprocessed expression.
+ * Normalizes custom operators and quoting in an expression for evaluation.
+ *
+ * Converts infix `extract` usages into function-call form and ensures unquoted
+ * string-like identifiers are quoted so the expression can be evaluated safely.
+ *
+ * @param expression - The expression to normalize.
+ * @returns The normalized expression suitable for the evaluator (e.g., `extract("a","b")` and quoted identifiers).
  */
 function preprocessExpression(expression: string): string {
   // Replace "contains" operator
@@ -438,10 +462,11 @@ function preprocessExpression(expression: string): string {
 }
 
 /**
- * Evaluates an assertion based on the given expression and context.
- * @param {string} assertion - The assertion expression.
- * @param {object} context - Context object containing meta values.
- * @returns {boolean} - Whether the assertion passes.
+ * Evaluates an assertion expression within the provided context and returns whether it passes.
+ *
+ * @param assertion - The assertion expression to resolve and evaluate; may be a string, boolean, or an expression containing operators or embedded templates.
+ * @param context - Context object providing meta values and helpers used during expression resolution.
+ * @returns `true` if the resolved assertion evaluates to true, `false` otherwise.
  */
 async function evaluateAssertion(assertion: any, context: any): Promise<boolean> {
   try {

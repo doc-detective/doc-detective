@@ -4,6 +4,20 @@ import axios from "axios";
 
 export { checkLink };
 
+/**
+ * Checks that a URL (from the step) resolves and returns an expected HTTP status.
+ *
+ * Normalizes the step payload (accepts a string or an object), resolves relative URLs using
+ * an origin from the step or config, ensures a URL protocol, validates the step against the
+ * `step_v3` schema, applies default `statusCodes` (defaults to [200, 301, 302, 307, 308]),
+ * performs an HTTP GET with sensible headers/timeouts/redirect limits, and determines pass/fail
+ * based on whether the response status matches one of the allowed `statusCodes`.
+ *
+ * @param config - Global configuration; `config.origin` may be used to resolve relative URLs.
+ * @param step - Test step which must include `checkLink` (string or object). If object, relevant
+ *               fields are `url`, optional `origin`, and optional `statusCodes`.
+ * @returns An object with `status` set to `"PASS"` or `"FAIL"` and a human-readable `description`.
+ */
 async function checkLink({ config, step }: { config: any; step: any }) {
   let result = { status: "PASS", description: "Checked link." };
 

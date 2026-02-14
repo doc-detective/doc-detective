@@ -1,5 +1,11 @@
 import { runTests } from "../dist/core/index.js";
 
+/**
+ * Runs the enhanced element finding test suite using a predefined configuration and prints summarized and detailed failure results.
+ *
+ * Executes tests defined in "./test/core-artifacts/enhanced-element-finding.spec.json", logs aggregate counts for specs, tests, and steps,
+ * prints failing tests and failing steps with descriptions, and exits the Node process with code 0 on success or 1 on any failure or runtime error.
+ */
 async function testEnhancedElementFinding() {
   console.log("Testing enhanced element finding...\n");
 

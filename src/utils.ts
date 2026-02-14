@@ -25,7 +25,17 @@ export {
   registerReporter,
 };
 
-// Log function that respects logLevel
+/**
+ * Log a message to the console honoring the configured log level.
+ *
+ * Only messages whose severity is at or above the configured `logLevel` are emitted.
+ * When `level` is `"error"` the message is written with `console.error`; all other
+ * emitted levels use `console.log`.
+ *
+ * @param message - The value to log (any type).
+ * @param level - Severity of the message; one of `"silent"`, `"error"`, `"warning"`, `"info"`, `"debug"`.
+ * @param config - Optional config object that may contain `logLevel` to control the minimum emitted severity.
+ */
 function log(message: any, level: string = "info", config: any = {}) {
   const logLevels = ["silent", "error", "warning", "info", "debug"];
   const currentLevel = config.logLevel || "info";
@@ -42,7 +52,12 @@ function log(message: any, level: string = "info", config: any = {}) {
   }
 }
 
-// Define args
+/**
+ * Parse raw CLI argument array into a normalized argv object for Doc Detective.
+ *
+ * @param args - Raw argument vector (e.g., `process.argv`) to parse; if falsy, an empty object is returned
+ * @returns The parsed argv object containing recognized options (`config`/`-c`, `input`/`-i`, `output`/`-o`, `logLevel`/`-l`, `allow-unsafe`, and help)
+ */
 function setArgs(args: any): any {
   if (!args) return {};
   const argv = yargs(hideBin(args))
@@ -79,7 +94,13 @@ function setArgs(args: any): any {
   return argv;
 }
 
-// Get resolved tests from environment variable, if set
+/**
+ * Fetches and validates resolved tests from the DOC_DETECTIVE_API environment variable and returns them alongside the parsed API configuration.
+ *
+ * @param config - Optional runtime configuration used for logging context.
+ * @returns An object `{ apiConfig, resolvedTests }` containing the parsed API configuration and the validated resolved tests, or `null` if DOC_DETECTIVE_API is not set.
+ *
+ * May exit the process on validation or fetch errors. */
 async function getResolvedTestsFromEnv(config: any = {}) {
   if (!process.env.DOC_DETECTIVE_API) {
     return null;
@@ -155,6 +176,15 @@ async function getResolvedTestsFromEnv(config: any = {}) {
   return { apiConfig, resolvedTests };
 }
 
+/**
+ * Load and validate configuration from the `DOC_DETECTIVE_CONFIG` environment variable.
+ *
+ * Parses `DOC_DETECTIVE_CONFIG` as JSON and validates the result against schemaKey `"config_v3"`.
+ *
+ * @returns The parsed configuration object when present and valid, or `null` if the environment variable is not set.
+ *
+ * @remarks Exits the process with code `1` if the environment variable is set but parsing or validation fails.
+ */
 async function getConfigFromEnv() {
   if (!process.env.DOC_DETECTIVE_CONFIG) {
     return null;
@@ -189,7 +219,15 @@ async function getConfigFromEnv() {
   return envConfig;
 }
 
-// Override config values based on args and validate the config
+/**
+ * Build, validate, and normalize the runtime configuration by combining a configuration file, environment config, and CLI arguments.
+ *
+ * Merges configuration sources (file → environment → CLI overrides), applies schema validation and defaults, resolves file paths, and returns the final config object. Exits the process with code 1 if schema validation fails.
+ *
+ * @param configPath - Optional file path or URL to a configuration file to load (if provided).
+ * @param args - Parsed CLI arguments whose values override corresponding configuration fields.
+ * @returns The validated and normalized configuration object, or `null` if a provided config file could not be read.
+ */
 async function setConfig({ configPath, args }: { configPath?: any; args: any }) {
   if (args.config && !configPath) {
     configPath = args.config;
@@ -719,7 +757,14 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   },
 };
 
-// Helper function to register custom reporters
+/**
+ * Register a custom reporter under the given name.
+ *
+ * @param name - Identifier under which the reporter will be available
+ * @param reporterFunction - The reporter implementation; expected to be a function accepting (config, outputPath, results, options) and returning a Promise or value
+ * @returns `true` when registration succeeds
+ * @throws {Error} If `reporterFunction` is not a function
+ */
 function registerReporter(name: string, reporterFunction: any) {
   if (typeof reporterFunction !== "function") {
     throw new Error("Reporter must be a function");
@@ -728,6 +773,16 @@ function registerReporter(name: string, reporterFunction: any) {
   return true;
 }
 
+/**
+ * Send test context statuses derived from a results object to the configured API.
+ *
+ * Traverses `results.specs` → `tests` → `contexts`, maps each context's `result`
+ * (`"PASS" | "FAIL" | "WARNING" | "SKIPPED"`) to a status (`"passed" | "failed" | "warning" | "skipped"`),
+ * and posts an array of context payloads to the API's `/contexts` endpoint.
+ *
+ * @param apiConfig - API configuration object. Must include `url` (base API URL) and `token` (runner auth token)
+ * @param results - Test run results containing `specs`, each with `tests`, each with `contexts`. Each context must provide `contextId` and `result`
+ */
 async function reportResults({ apiConfig, results }: { apiConfig: any; results: any }) {
   // Transform results into the required format for the API
   // Extract contexts from the nested structure and format them
@@ -792,6 +847,17 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
   }
 }
 
+/**
+ * Run the configured reporters to produce or emit the provided test results.
+ *
+ * This invokes built-in reporters (terminal, json) or custom reporter functions/registered reporters.
+ *
+ * @param config - Runtime configuration used by reporters
+ * @param outputPath - Desired output path or directory used by file-based reporters
+ * @param results - Test results object to be passed to each reporter
+ * @param options - Additional options for reporting; supports `reporters`, an array of reporter identifiers or functions. Shorthand names `"json"` and `"terminal"` are mapped to the built-in reporters.
+ * @returns An array containing each reporter's result value (or `undefined` for reporters that do not return a value)
+ */
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
   // Default to using both built-in reporters if none specified
   const defaultReporters = ["terminal", "json"];
@@ -842,7 +908,15 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
   return Promise.all(reporterPromises);
 }
 
-// Perform a native command in the current working directory.
+/**
+ * Executes a native command in the current working directory and collects its output and exit code.
+ *
+ * If `cmd` contains spaces, the first token is used as the executable and the remaining tokens are combined with `args`.
+ *
+ * @param cmd - The command to run; may include space-separated arguments which will be merged into `args`.
+ * @param args - Optional array of additional arguments to pass to the command.
+ * @returns An object with `stdout` (trimmed stdout string), `stderr` (trimmed stderr string), and `exitCode` (process exit code).
+ */
 async function spawnCommand(cmd: string, args?: string[]) {
   // Split command into command and arguments
   if (cmd.includes(" ")) {
@@ -885,6 +959,19 @@ async function spawnCommand(cmd: string, args?: string[]) {
   return { stdout, stderr, exitCode };
 }
 
+/**
+ * Populate the DOC_DETECTIVE_META environment variable with runtime metadata about the distribution, platform, deployment, and interface.
+ *
+ * If DOC_DETECTIVE_META already contains a JSON object, merge these fields into it; otherwise create a new object. Ensures the following fields are set:
+ * - `distribution`
+ * - `dist_version`
+ * - `dist_platform`
+ * - `dist_platform_version`
+ * - `dist_platform_arch`
+ * - `dist_deployment`
+ * - `dist_deployment_version`
+ * - `dist_interface`
+ */
 function setMeta() {
   const platformMap: Record<string, string> = {
     win32: "windows",
@@ -910,7 +997,15 @@ function setMeta() {
   process.env["DOC_DETECTIVE_META"] = JSON.stringify(meta);
 }
 
-// Get version data programmatically (no console output)
+/**
+ * Collects version and environment information for the application and its doc-detective-* dependencies.
+ *
+ * Builds an object that includes the main package version, discovered dependencies with their installed and expected
+ * versions and status, execution context (execution method, Node.js version, platform, timestamp), and filesystem
+ * locations for each dependency.
+ *
+ * @returns An object containing `main`, `dependencies`, `context`, and `locations` properties describing versions and environment; or `{ error: string }` if an error occurred while gathering data.
+ */
 function getVersionData() {
   try {
     // Get main package version

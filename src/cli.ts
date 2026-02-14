@@ -17,7 +17,16 @@ import fs from "node:fs";
 setMeta();
 main(argv);
 
-// Run
+/**
+ * Orchestrates CLI execution: resolves configuration, runs tests, and emits or reports results.
+ *
+ * Loads CLI arguments, determines the configuration file (preferring an explicit `--config` argument then
+ * local `.doc-detective` JSON/YAML files), builds the runtime configuration, logs version and config data,
+ * resolves any environment-provided test definitions, executes the test run, and either reports results to an API
+ * or writes output according to the loaded configuration.
+ *
+ * @param argv - Command-line arguments to parse (typically `process.argv`)
+ */
 async function main(argv: string[]) {
   // Find index of `doc-detective` or `run` in argv
   const index = argv.findIndex(

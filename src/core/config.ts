@@ -12,10 +12,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export { setConfig, getAvailableApps, getEnvironment, resolveConcurrentRunners, clearAppCache };
 
 /**
- * Deep merge two objects, with override properties taking precedence
- * @param {Object} target - The target object to merge into
- * @param {Object} override - The override object containing properties to merge
- * @returns {Object} A new object with merged properties
+ * Merge two plain objects recursively, with properties from `override` taking precedence.
+ *
+ * Nested plain-object properties are merged; arrays and non-object values from `override` replace the corresponding `target` values. `null` or `undefined` in `override` are treated as values and replace `target`.
+ *
+ * @param target - The base object to merge into; not mutated
+ * @param override - The object whose properties override or extend `target`
+ * @returns A new object containing the merged result
  */
 function deepMerge(target: any, override: any): any {
   const result = { ...target };
@@ -315,11 +318,16 @@ defaultFileTypes = {
 };
 
 /**
- * Sets up and validates the configuration object for Doc Detective
- * @async
- * @param {Object} config - The configuration object to process
- * @returns {Promise<Object>} The processed and validated configuration object
- * @throws Will exit process with code 1 if configuration is invalid
+ * Builds, normalizes, and validates the Doc Detective configuration object.
+ *
+ * Processes environment variable replacements and overrides, resolves and
+ * normalizes file type definitions, detects the runtime environment and
+ * available apps, determines the concurrent runner count, and loads OpenAPI
+ * descriptions so the returned config is ready for use.
+ *
+ * @param config - The raw configuration object to process
+ * @returns The processed and validated configuration object
+ * @throws Error if configuration validation fails or if the config contains invalid file type references
  */
 async function setConfig({ config }: any) {
   // Set environment variables from file
@@ -524,16 +532,13 @@ function resolveConcurrentRunners(config: any) {
 }
 
 /**
- * Loads OpenAPI descriptions for all configured OpenAPI integrations.
+ * Load OpenAPI descriptions for each configured OpenAPI integration.
  *
- * @async
- * @param {Object} config - The configuration object.
- * @returns {Promise<void>} - A promise that resolves when all descriptions are loaded.
+ * For each entry in `config.integrations.openApi` this function loads the description
+ * from the entry's `descriptionPath` and sets it on the entry as `definition`. Entries
+ * whose descriptions fail to load are logged and removed from `config.integrations.openApi`.
  *
- * @remarks
- * This function modifies the input config object by:
- * 1. Adding a 'definition' property to each OpenAPI configuration with the loaded description.
- * 2. Removing any OpenAPI configurations where the description failed to load.
+ * @param config - The configuration object to update; expects `integrations.openApi` to be an array of objects containing `descriptionPath`. This function mutates the provided object in place.
  */
 async function loadDescriptions(config: any) {
   if (config?.integrations?.openApi) {
@@ -561,7 +566,11 @@ async function loadDescriptions(config: any) {
   }
 }
 
-// Detect aspects of the environment running Doc Detective.
+/**
+ * Detects basic runtime environment details.
+ *
+ * @returns An object with `arch` set to the system CPU architecture (from `os.arch()`) and `platform` set to a normalized platform string (`mac`, `linux`, or `windows`) derived from `process.platform`.
+ */
 function getEnvironment() {
   const environment: any = {};
   // Detect system architecture
@@ -575,11 +584,26 @@ function getEnvironment() {
 // Avoids redundant `npx appium driver list` calls (~17s each) and browser scanning.
 let cachedApps: any[] | null = null;
 
+/**
+ * Clears the cached list of detected applications so subsequent calls will re-detect them.
+ */
 function clearAppCache() {
   cachedApps = null;
 }
 
-// Detect available apps.
+/**
+ * Detects installed test-automation/browser applications available on the host.
+ *
+ * Inspects the system for supported browsers and their drivers (Chrome, Firefox, and Safari on macOS)
+ * and returns an array of discovered application descriptors. Results are cached for subsequent calls.
+ *
+ * @param config - Configuration object; `config.environment.platform` is used to determine platform-specific checks (e.g., macOS for Safari).
+ * @returns An array of application descriptors. Each descriptor contains:
+ * - `name`: application name (e.g., `"chrome"`, `"firefox"`, `"safari"`),
+ * - `version`: detected application version string,
+ * - `path`: filesystem path to the application executable (may be empty for some entries),
+ * - `driver` (optional): path to an associated driver executable when available (e.g., Chromedriver).
+ */
 async function getAvailableApps({ config }: any) {
   if (cachedApps) return cachedApps;
 

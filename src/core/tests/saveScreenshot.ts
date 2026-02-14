@@ -8,6 +8,11 @@ import sharp from "sharp";
 
 // pixelmatch v7+ is ESM-only, so we need dynamic import
 let pixelmatch: any;
+/**
+ * Lazily loads and caches the `pixelmatch` function from the `pixelmatch` package for image comparison.
+ *
+ * @returns The `pixelmatch` function used to compute pixel-level differences between images.
+ */
 async function getPixelmatch() {
   if (!pixelmatch) {
     pixelmatch = (await import("pixelmatch")).default;
@@ -17,6 +22,19 @@ async function getPixelmatch() {
 
 export { saveScreenshot };
 
+/**
+ * Saves a screenshot for the provided step, optionally cropping to a found element and comparing or replacing an existing baseline.
+ *
+ * Validates and normalizes `step`, captures a screenshot via the driver, optionally crops the image around a located element with configurable padding, and when a prior file exists performs a pixel diff against it using `maxVariation` and `overwrite` policies to decide whether to replace the baseline or mark a warning. Creates missing directories and preserves optional `sourceIntegration` metadata.
+ *
+ * @param config - Runner configuration and flags (e.g., `recording`) used to control capture and logging.
+ * @param step - A `step_v3` step object containing `stepId` and a `screenshot` configuration; `screenshot` may be boolean, string, or an object with fields such as `path`, `directory`, `crop`, `maxVariation`, `overwrite`, and `sourceIntegration`.
+ * @param driver - Webdriver-like driver used to execute script, save screenshots, and query viewport/device properties.
+ * @returns An object with:
+ *  - `status`: `"PASS" | "FAIL" | "SKIPPED" | "WARNING"` indicating the overall outcome,
+ *  - `description`: human-readable summary or error message,
+ *  - `outputs`: metadata including `screenshotPath` (path to the relevant screenshot), `changed` (boolean indicating whether the screenshot was created/replaced), optional `element` (metadata for the found element when cropping), and optional `sourceIntegration` (preserved metadata for uploads).
+ */
 async function saveScreenshot({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result: any = {
     status: "PASS",

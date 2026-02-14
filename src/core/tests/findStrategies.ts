@@ -1,6 +1,13 @@
 export { findElementBySelectorAndText, findElementByShorthand, findElementByCriteria, setElementOutputs };
 
-// Set element outputs
+/**
+ * Collects multiple runtime properties from a web element and returns a structured outputs object.
+ *
+ * @param element - The element handle to read properties from.
+ * @returns An object with:
+ *  - `element`: an object containing `text`, `html`, `tag`, `value`, `location`, `size`, `clickable`, `enabled`, `selected`, `displayed`, and `displayedInViewport` (each property is the retrieved value or `null` if it could not be obtained).
+ *  - `rawElement`: the original element handle passed in.
+ */
 
 async function setElementOutputs({ element }: { element: any }) {
   // Set element in outputs
@@ -51,6 +58,14 @@ async function setElementOutputs({ element }: { element: any }) {
   return outputs;
 }
 
+/**
+ * Searches the page for the first element whose visible text matches a regular expression.
+ *
+ * @param pattern - A `RegExp` used to test each element's text content.
+ * @param timeout - Milliseconds to wait before beginning the search.
+ * @param driver - WebDriver-compatible client used to query elements.
+ * @returns An object with `element` set to the matched element or `null`, and `foundBy` set to `"regex"` when a match is found or `null` otherwise.
+ */
 async function findElementByRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
   await driver.pause(timeout);
   // Find an element based on a regex pattern in text
@@ -64,6 +79,16 @@ async function findElementByRegex({ pattern, timeout, driver }: { pattern: any; 
   return { element: null, foundBy: null };
 }
 
+/**
+ * Selects the first element whose accessible name (aria-label) or visible text matches the given regular expression.
+ *
+ * Attempts to read each element's `aria-label` first and, if that does not match, falls back to the element's text content.
+ *
+ * @param pattern - A RegExp or regex-like pattern used to test element accessible names and text.
+ * @param timeout - Milliseconds to pause before starting the search.
+ * @param driver - The WebDriverIO `browser`/driver instance to query DOM elements from.
+ * @returns An object with `element` set to the matched element (or `null` if none found) and `foundBy` set to `"elementAria"` when a match was detected, or `null` when no element matched.
+ */
 async function findElementByAriaRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
   await driver.pause(timeout);
   // Find an element based on a regex pattern in accessible name
@@ -89,6 +114,13 @@ async function findElementByAriaRegex({ pattern, timeout, driver }: { pattern: a
   return { element: null, foundBy: null };
 }
 
+/**
+ * Searches the DOM for the first element whose `id` attribute matches the provided pattern after waiting for the specified timeout.
+ *
+ * @param pattern - A regular expression or pattern used to test element `id` values
+ * @param timeout - Time in milliseconds to wait before performing the search
+ * @returns `{ element, foundBy }` where `element` is the matched element and `foundBy` is `"elementId"` if a match is found, otherwise `{ element: null, foundBy: null }`
+ */
 async function findElementByIdRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
   await driver.pause(timeout);
   // Find an element based on a regex pattern in id attribute
@@ -102,6 +134,14 @@ async function findElementByIdRegex({ pattern, timeout, driver }: { pattern: any
   return { element: null, foundBy: null };
 }
 
+/**
+ * Locates the first element whose `data-testid` attribute matches the provided pattern.
+ *
+ * @param pattern - A RegExp or pattern string used to test the `data-testid` attribute.
+ * @param timeout - Milliseconds to wait before querying elements.
+ * @param driver - WebDriver instance used to query the DOM.
+ * @returns An object with `element` set to the matched element or `null`, and `foundBy` set to `'elementTestId'` when a match is found or `null` otherwise.
+ */
 async function findElementByTestIdRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
   await driver.pause(timeout);
   // Find an element based on a regex pattern in data-testid attribute
@@ -115,6 +155,18 @@ async function findElementByTestIdRegex({ pattern, timeout, driver }: { pattern:
   return { element: null, foundBy: null };
 }
 
+/**
+ * Locate an element using a shorthand string that may be a CSS selector, exact text, ARIA label, id, test id, or a regex pattern.
+ *
+ * For regex input (string wrapped in slashes, e.g. `/pattern/`), searches across selector, element text, aria label, id, and data-testid channels in parallel and returns the first match following precedence: selector > elementText > elementAria > elementId > elementTestId.
+ *
+ * For exact-string input, performs parallel existence checks for selector, exact text, aria selector, id, and data-testid, and returns the first found candidate following precedence: elementText > elementAria > elementId > elementTestId > selector.
+ *
+ * @param string - The shorthand to search for. If wrapped in slashes it is treated as a regular expression (e.g. "/foo/"); otherwise treated as an exact match or selector.
+ * @param timeout - Maximum time in milliseconds to wait for element existence when performing exact-match searches (default: 5000).
+ * @param driver - WebDriver-compatible client used to query elements.
+ * @returns An object with `element` set to the matched element or `null`, and `foundBy` indicating which channel matched (`'selector' | 'elementText' | 'elementAria' | 'elementId' | 'elementTestId'`) or `null` if none matched.
+ */
 async function findElementByShorthand({ string, timeout = 5000, driver }: { string: any; timeout?: number; driver: any }) {
   // Find an element based on a string that could be a selector, text, aria label, id, or test id
   // Uses parallel search with precedence: selector > elementText > elementAria > elementId > elementTestId
@@ -241,6 +293,18 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
   return { element: null, foundBy: null };
 }
 
+/**
+ * Locates the first element matching a selector whose visible text equals or matches a provided string or regex.
+ *
+ * Searches elements returned by `driver.$$(selector)` until an element's text exactly equals `text` or, if `text`
+ * is a regex pattern wrapped in slashes (e.g. `/pattern/`), the element's text matches that regex. Polls repeatedly
+ * until a match is found or the provided timeout (in milliseconds) elapses.
+ *
+ * @param selector - A selector passed to `driver.$$` (e.g., CSS or XPath) used to gather candidate elements.
+ * @param text - The expected text to match. Use a string for exact match or a regex pattern wrapped in slashes for pattern matching (e.g. `/foo/`).
+ * @param timeout - Maximum time in milliseconds to keep polling for a matching element.
+ * @returns An object with `element` set to the first matching element (or `null` if none found) and `foundBy` set to `"selector and text"` when a match is returned, or `null` when not found.
+ */
 async function findElementBySelectorAndText({
   selector,
   text,
@@ -290,12 +354,27 @@ async function findElementBySelectorAndText({
   return { element, foundBy: "selector and text" };
 }
 
-// Helper function to check if a string is a regex pattern
+/**
+ * Determines whether a value is a string formatted as a regex literal (starts and ends with `/`).
+ *
+ * @param str - The value to test; may be any type.
+ * @returns `true` if `str` is a string that begins with `/` and ends with `/`, `false` otherwise.
+ */
 function isRegexPattern(str: any) {
   return typeof str === "string" && str.startsWith("/") && str.endsWith("/");
 }
 
-// Helper function to match a value against a pattern (string or regex)
+/**
+ * Checks whether a value matches a given pattern, using exact comparison or a regex.
+ *
+ * If `pattern` is a string wrapped with leading and trailing slashes (e.g. `/foo.*/`),
+ * it is treated as a regular expression; otherwise the function performs an exact
+ * string comparison.
+ *
+ * @param value - The value to test; will be converted to a string for comparison
+ * @param pattern - The expected pattern, either a plain string or a regex-like string wrapped in `/` characters
+ * @returns `true` if `value` matches `pattern`, `false` otherwise
+ */
 function matchesPattern(value: any, pattern: any) {
   if (isRegexPattern(pattern)) {
     const regex = new RegExp(pattern.slice(1, -1));
@@ -304,7 +383,15 @@ function matchesPattern(value: any, pattern: any) {
   return String(value) === String(pattern);
 }
 
-// Helper function to check if element has all required classes
+/**
+ * Determines whether an element's class list contains all required classes.
+ *
+ * The `classes` array may contain exact class names or regex patterns expressed as strings wrapped in slashes (e.g. `/^btn-/`).
+ *
+ * @param element - The element to inspect; must support `getAttribute("class")`.
+ * @param classes - Array of required class identifiers (exact names or `/regex/` strings).
+ * @returns `true` if every required class is present (or matched by its regex), `false` otherwise.
+ */
 async function hasAllClasses(element: any, classes: any[]) {
   const classList = await element.getAttribute("class");
   if (!classList) return false;
@@ -325,7 +412,18 @@ async function hasAllClasses(element: any, classes: any[]) {
   return true;
 }
 
-// Helper function to check if element matches attribute criteria
+/**
+ * Check whether a DOM element satisfies a set of attribute expectations.
+ *
+ * The `attributes` object maps attribute names to expected values:
+ * - boolean: `true` means the attribute must exist, `false` means it must not exist. The `"disabled"` attribute is compared against the element's actual enabled state.
+ * - number: the attribute's numeric value must equal the number.
+ * - string: the attribute's string value must match exactly or match a regex pattern (string wrapped in `/`), as interpreted by `matchesPattern`.
+ *
+ * @param element - The element to evaluate.
+ * @param attributes - An object whose keys are attribute names and values are expected criteria (boolean | number | string/regex).
+ * @returns `true` if every attribute requirement is met, `false` otherwise.
+ */
 async function matchesAttributes(element: any, attributes: any) {
   for (const [attrName, attrValue] of Object.entries(attributes)) {
     const elementAttrValue = await element.getAttribute(attrName);
@@ -358,7 +456,32 @@ async function matchesAttributes(element: any, attributes: any) {
   return true;
 }
 
-// Find element by multiple criteria with AND logic
+/**
+ * Locate the first DOM element that satisfies all provided criteria within a timeout.
+ *
+ * Performs an AND-based search across one or more criteria (selector, text, id,
+ * data-testid, class, attributes, accessible name). Polls until a match is found
+ * or the timeout expires. When a CSS selector is provided the selector is used
+ * to narrow candidates; other criteria are validated against each candidate.
+ *
+ * @param selector - Optional CSS selector to restrict candidate elements.
+ * @param elementText - Exact string or regex pattern (string wrapped in `/.../`) to match element text.
+ * @param elementId - Exact string or regex pattern to match the element's `id` attribute.
+ * @param elementTestId - Exact string or regex pattern to match the element's `data-testid` attribute.
+ * @param elementClass - A class name or array of class names (each may be a regex pattern) that the element must contain.
+ * @param elementAttribute - Object mapping attribute names to expected values. Values may be:
+ *   - boolean: `true` requires the attribute's presence (special handling for `disabled`),
+ *   - number: exact numeric match,
+ *   - string: exact match or regex pattern (wrap in `/.../`) .
+ * @param elementAria - Exact string or regex pattern to match the element's computed accessible name (aria/label).
+ * @param timeout - Maximum time in milliseconds to wait for a matching element (default: 5000).
+ * @param driver - WebDriver-like driver used to query elements (omitted from detailed docs as a standard utility).
+ *
+ * @returns An object with:
+ *   - `element`: the matched element or `null` if none found,
+ *   - `foundBy`: an array of criteria identifiers that were satisfied (includes `"selector"` if a selector was used) or `null` on failure,
+ *   - `error`: `null` on success or an error message string when no element is found or when input validation fails.
+ */
 async function findElementByCriteria({
   selector,
   elementText,

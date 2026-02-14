@@ -66,7 +66,16 @@ const specialKeyMap: Record<string, string> = {
   $ZANKAKU_HANDKAKU$: Key.ZenkakuHankaku,
 };
 
-// Type a sequence of keys in the active element.
+/**
+ * Types a sequence of keys into the active element or into a found element matching provided criteria.
+ *
+ * Validates and normalizes the `step`, optionally finds and focuses a target element, expands keys for recording mode, substitutes special key tokens, and sends keystrokes to the `driver` either one-by-one (with `inputDelay` when `config.recording` is true) or as a single batch.
+ *
+ * @param step - Step payload containing `type` (string | string[] | { keys?: string[]; inputDelay?: number; selector?: string; elementText?: string; elementId?: string; elementTestId?: string; elementClass?: string; elementAttribute?: string; elementAria?: string }) that specifies keys to send and optional element targeting criteria.
+ * @param config - Configuration object; when `config.recording` is true keys are sent per-keystroke and `inputDelay` is applied between keystrokes.
+ * @param driver - WebDriver-compatible driver exposing a `keys` method and element interactions used to perform the typing.
+ * @returns An object with `status` ("PASS", "FAIL", or "SKIPPED") and a human-readable `description`.
+ */
 async function typeKeys({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result = { status: "PASS", description: "Typed keys." };
 

@@ -6,6 +6,20 @@ import os from "node:os";
 
 export { startRecording };
 
+/**
+ * Orchestrates starting a screen recording for a test step by validating inputs, preparing target paths, and initiating capture when supported.
+ *
+ * Validates `step` against the `step_v3` schema, normalizes `step.record` (accepts boolean, string, or object), ensures destination directories exist, and respects `overwrite`. If the browser context is Chrome in non-headless mode, it opens a helper tab, injects an in-page MediaRecorder capture that triggers a download of `<baseName>.webm`, restores the original tab/title, and records metadata on `config.recording`. If recording is not supported or preconditions fail, the function returns a skipped or failed result.
+ *
+ * @param config - Runner configuration object; when recording is started for Chrome, `config.recording` is populated with recording state.
+ * @param context - Execution context containing runtime browser information (e.g., `context.browser.name` and `context.browser.headless`) used to decide support and behavior.
+ * @param step - Test step object validated against `step_v3`; `step.record` may be a boolean, string, or object with `path`, `directory`, and `overwrite` controls.
+ * @param driver - WebDriver-like driver used to control the browser (getTitle, execute, createWindow, switchToWindow, url, getWindowHandle).
+ * @returns Result object with:
+ *  - `status`: `"PASS"`, `"SKIPPED"`, or `"FAIL"`.
+ *  - `description`: a human-readable reason when status is not `"PASS"`.
+ *  - `recording` (when recording started): metadata including `type` (e.g., `"MediaRecorder"`), `tab` (recorder tab handle), `downloadPath` (expected download file in the OS temp dir), and `targetPath` (final desired file path).
+ */
 async function startRecording({ config, context, step, driver }: { config: any; context: any; step: any; driver: any }) {
   let result: any = {
     status: "PASS",

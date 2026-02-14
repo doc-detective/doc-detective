@@ -6,12 +6,10 @@ import fs from "node:fs";
 export { loadCookie };
 
 /**
- * Load a specific cookie from a file or environment variable into the browser.
- * @async
- * @param {Object} config - The test configuration.
- * @param {Object} step - The step object containing loadCookie options.
- * @param {Object} driver - The WebDriver instance.
- * @returns {Promise<Object>} A result object indicating success or failure.
+ * Loads a cookie (from a Netscape-format `.txt` file or a JSON environment variable) and sets it into the browser session.
+ *
+ * @param step - Step payload containing `loadCookie`: either a string (cookie name or `.txt` filepath) or an object with optional `name`, `path`, `directory`, `domain`, and `variable` properties that control the cookie source and selection.
+ * @returns Result object with `status` ("PASS" or "FAIL"), `description`, and `outputs` (on success includes `cookieName` and `domain`).
  */
 async function loadCookie({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result: any = {
@@ -232,9 +230,10 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
 }
 
 /**
- * Check if a domain is localhost or a private network IP address.
- * @param {string} domain - The domain to check.
- * @returns {boolean} True if the domain is localhost or a private IP.
+ * Determine whether a domain is localhost or a private IPv4 address.
+ *
+ * @param domain - The domain or IP address to check.
+ * @returns `true` if the domain is `localhost`, the IPv6 loopback `::1`, or an IPv4 address in loopback/private ranges (127/8, 10/8, 192.168/16, 172.16.0.0–172.31.255.255); `false` otherwise.
  */
 function isLocalOrPrivateNetwork(domain: string) {
   // Check for localhost and IPv6 loopback
@@ -285,9 +284,24 @@ function isLocalOrPrivateNetwork(domain: string) {
 }
 
 /**
- * Parse Netscape cookie file format.
- * @param {string} content - File content.
- * @returns {Array} Array of cookie objects.
+ * Parse Netscape-format cookie file content into an array of cookie objects.
+ *
+ * The parser ignores comment lines and empty lines, treats lines prefixed with
+ * `#HttpOnly_` as HttpOnly cookies, and extracts cookie fields from tab-separated
+ * records. `sameSite` defaults to `"Lax"` when not present. Numeric `expiry`
+ * values are included only if greater than the current time; past or zero expiry
+ * values are omitted (treated as session cookies).
+ *
+ * @param content - Raw content of a Netscape-format cookie file.
+ * @returns An array of cookie objects with properties:
+ * - `domain` (string)
+ * - `path` (string)
+ * - `name` (string)
+ * - `value` (string)
+ * - `secure` (boolean)
+ * - `httpOnly` (boolean)
+ * - `sameSite` (string, defaults to `"Lax"`)
+ * - `expiry` (number, optional; UNIX timestamp included only if in the future)
  */
 function parseNetscapeCookieFile(content: string) {
   const cookies: any[] = [];
@@ -343,10 +357,9 @@ function parseNetscapeCookieFile(content: string) {
 }
 
 /**
- * Check if a cookie domain is compatible with the current page domain.
- * @param {string} currentDomain - Current page domain.
- * @param {string} cookieDomain - Cookie domain.
- * @returns {boolean} True if compatible.
+ * Determine whether a cookie's domain is compatible with the current page domain.
+ *
+ * @returns `true` if the cookie domain is compatible with the current page domain, `false` otherwise.
  */
 function isDomainCompatible(currentDomain: string, cookieDomain: string) {
   if (!cookieDomain) return true;

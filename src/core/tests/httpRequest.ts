@@ -9,6 +9,19 @@ import { log, calculateFractionalDifference, replaceEnvs } from "../utils.js";
 
 export { httpRequest };
 
+/**
+ * Execute or mock an HTTP request step driven by the provided step configuration and optional OpenAPI definitions, validate the request/response against OpenAPI schemas and expectations, and optionally save the response to a file.
+ *
+ * Performs OpenAPI resolution (from a descriptionPath, named integration, or by matching operationId), applies operation examples to request/response defaults, normalizes and validates the step payload, optionally validates request and response bodies against OpenAPI schemas, issues the HTTP request (or constructs a mock response), verifies status codes, required fields, response structure and headers, and conditionally writes the response to a file with overwrite/variation logic.
+ *
+ * @param config - Runner configuration and utilities (used for logging and helpers).
+ * @param step - Step definition describing the HTTP request/response expectations and OpenAPI integration (may be a string URL or an object conforming to the step_v3 schema).
+ * @param openApiDefinitions - Optional list of OpenAPI integrations available for resolving operations when the step references a named integration or operationId.
+ * @returns An object containing:
+ *  - `status` — `"PASS"`, `"FAIL"`, or `"WARNING"`,
+ *  - `description` — human-readable details about checks performed and failures/warnings,
+ *  - `outputs` — ancillary data including `response` (with `body`, `statusCode`, and `headers`) for downstream use.
+ */
 async function httpRequest({ config, step, openApiDefinitions = [] }: { config: any; step: any; openApiDefinitions?: any[] }) {
   let result: any = { status: "", description: "", outputs: {} };
   let openApiDefinition: any;
@@ -499,12 +512,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
 }
 
 /**
- * Checks if a field exists at the specified path in an object.
- * Supports dot notation and array indices.
+ * Determine whether a property exists at the given path within an object.
  *
- * @param {Object} obj - The object to search
- * @param {string} path - The field path (e.g., "user.profile.name" or "items[0].id")
- * @returns {boolean} - True if the field exists, false otherwise
+ * @param obj - The object to search
+ * @param path - Field path using dot notation and optional bracketed indices (e.g., "user.profile.name" or "items[0].id")
+ * @returns `true` if the field exists at the specified path, `false` otherwise
  */
 function fieldExistsAtPath(obj: any, path: string) {
   // Parse the path into segments
@@ -544,6 +556,15 @@ function fieldExistsAtPath(obj: any, path: string) {
   return true;
 }
 
+/**
+ * Verifies whether every element from an expected array structure exists within an actual array, including nested arrays and objects.
+ *
+ * Compares each item in `expected` against `actual`: primitives must be present, objects must match an object in `actual` that contains the expected structure, and nested arrays must have a corresponding nested array in `actual` that satisfies the expected structure.
+ *
+ * @param expected - An array describing the required elements or nested structures to find (may contain primitives, plain objects, or nested arrays).
+ * @param actual - The array to search for the expected elements/structures.
+ * @returns An object with `result.status` set to `"PASS"` if all expected elements are found or `"FAIL"` otherwise, and `result.description` containing human-readable failure details when elements are missing.
+ */
 function arrayExistsInArray(expected: any, actual: any): any {
   let status = "PASS";
   let description = "";
@@ -641,6 +662,13 @@ function arrayExistsInArray(expected: any, actual: any): any {
   return { result };
 }
 
+/**
+ * Check whether an expected object structure and values exist within an actual object, including nested objects and arrays.
+ *
+ * @param expected - An object describing the expected keys, nested objects, arrays, and primitive values to verify.
+ * @param actual - The actual object to inspect for presence and value equality of the expected structure.
+ * @returns An object with a `result` property: `status` is `"PASS"` if all expected keys/values are present and match, `"FAIL"` otherwise; `description` contains failure details (empty when `status` is `"PASS"`).
+ */
 function objectExistsInObject(expected: any, actual: any): any {
   let status = "PASS";
   let description = "";

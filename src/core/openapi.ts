@@ -6,10 +6,11 @@ import parser from "@apidevtools/json-schema-ref-parser";
 JSONSchemaFaker.option({ requiredOnly: true });
 
 /**
- * Dereferences an OpenAPI or Arazzo description
+ * Dereference an OpenAPI or Arazzo description from a file path or URL.
  *
- * @param {String} descriptionPath - The OpenAPI or Arazzo description to be dereferenced.
- * @returns {Promise<Object>} - The dereferenced OpenAPI or Arazzo description.
+ * @param descriptionPath - Path or URL to the OpenAPI/Arazzo description to load and dereference.
+ * @throws {Error} If `descriptionPath` is empty or not provided.
+ * @returns The fully dereferenced OpenAPI/Arazzo definition object.
  */
 async function loadDescription(descriptionPath: string = "") {
   // Error handling
@@ -27,15 +28,15 @@ async function loadDescription(descriptionPath: string = "") {
 }
 
 /**
- * Retrieves the operation details from an OpenAPI definition based on the provided operationId.
+ * Retrieve operation details from an OpenAPI definition by operationId.
  *
- * @param {Object} [definition={}] - The OpenAPI definition object.
- * @param {string} [operationId=""] - The unique identifier for the operation.
- * @param {string} [responseCode=""] - The HTTP response code to filter the operation.
- * @param {string} [exampleKey=""] - The key for the example to be compiled.
- * @param {string} [server=""] - The server URL to use for examples.
- * @throws {Error} Will throw an error if the definition or operationId is not provided.
- * @returns {Object|null} Returns an object containing the operation details, schemas, and example if found; otherwise, returns null.
+ * @param definition - The OpenAPI document object; must include a `paths` property.
+ * @param operationId - The operationId to locate within `definition.paths`.
+ * @param responseCode - Optional response HTTP status code to select a specific response schema/example.
+ * @param exampleKey - Optional example identifier to choose a specific example from an operation's examples.
+ * @param server - Optional server base URL to use when building example URLs; if omitted, the first entry in `definition.servers` is used.
+ * @throws Will throw an error if `definition` or `operationId` is not provided, or if no server URL is available when required.
+ * @returns The operation descriptor containing `path`, `method`, `definition` (operation object), `schemas` (request and response schemas), and `example`, or `null` if no matching operationId is found.
  */
 function getOperation(
   definition: any = {},
@@ -79,6 +80,16 @@ function getOperation(
   return null;
 }
 
+/**
+ * Extracts the request and response JSON Schemas for an operation definition.
+ *
+ * When `responseCode` is omitted, the first defined response code is selected.
+ *
+ * @param definition - An operation object containing optional `requestBody` and `responses` members
+ * @param responseCode - Optional response status code to select; if not provided the first response key is used
+ * @returns An object with `request` (request body schema, if present) and `response` (schema for the selected response)
+ * @throws Error if `definition.responses` is absent or contains no responses
+ */
 function getSchemas(definition: any = {}, responseCode: string = "") {
   const schemas: any = {};
 
@@ -105,13 +116,16 @@ function getSchemas(definition: any = {}, responseCode: string = "") {
 }
 
 /**
- * Compiles an example object based on the provided operation, path, and example key.
+ * Build a runnable example for an OpenAPI operation, producing URL, request (parameters, headers, body) and response (headers, body).
  *
- * @param {Object} operation - The operation object.
- * @param {string} path - The path string.
- * @param {string} exampleKey - The example key string.
- * @returns {Object} - The compiled example object.
- * @throws {Error} - If operation or path is not provided.
+ * The function substitutes path parameters into `path`, populates query and header parameters, includes request and response bodies where available, and applies environment variable replacements.
+ *
+ * @param operation - OpenAPI operation object to derive the example from
+ * @param path - URL or path template to use as the example's base (path parameters will be substituted)
+ * @param responseCode - Optional response status code to select which response to use; defaults to the first defined response
+ * @param exampleKey - Optional example key to prefer named examples when present
+ * @returns The compiled example object with shape `{ url, request: { parameters, headers, body }, response: { headers, body } }`
+ * @throws If `operation` or `path` is not provided
  */
 function compileExample(
   operation: any = {},
@@ -197,13 +211,13 @@ function compileExample(
 
 // Return array of query parameters for the example
 /**
- * Retrieves example parameters based on the given operation, type, and example key.
+ * Collects example values for parameters at a given parameter location of an operation.
  *
- * @param {object} operation - The operation object.
- * @param {string} [type=""] - The type of parameter to retrieve.
- * @param {string} [exampleKey=""] - The example key to use.
- * @returns {Array} - An array of example parameters.
- * @throws {Error} - If the operation is not provided.
+ * @param operation - The operation object containing parameter definitions.
+ * @param type - Parameter location to filter by (e.g., "path", "query", "header").
+ * @param exampleKey - Optional example identifier to select a specific example from parameter examples.
+ * @returns An array of `{ key: string, value: any }` pairs where `key` is the parameter name and `value` is the example value.
+ * @throws If `operation` is not provided.
  */
 function getExampleParameters(operation: any = {}, type: string = "", exampleKey: string = "") {
   const params: any[] = [];
@@ -228,12 +242,15 @@ function getExampleParameters(operation: any = {}, type: string = "", exampleKey
 }
 
 /**
- * Retrieves an example value based on the given definition and example key.
+ * Produce an example value for a schema/definition, preferring explicit examples and falling back to schema-based generation.
  *
- * @param {object} definition - The definition object.
- * @param {string} exampleKey - The key of the example to retrieve.
- * @returns {object|null} - The example value.
- * @throws {Error} - If the definition is not provided.
+ * The function returns an example chosen in this order: an entry from `definition.examples[exampleKey].value` (if present), `definition.example` (if present), or a value generated from the schema (including object/array composition or via JSONSchemaFaker) when generation is enabled or required. If no example can be produced, returns `null`.
+ *
+ * @param definition - The schema or parameter definition to derive an example from.
+ * @param exampleKey - Optional key to select a specific example from `definition.examples`.
+ * @param generateFromSchema - When `true`, force generating an example from the schema; when `false`, do not generate; when `null` (default) the function decides based on presence of examples and requiredness.
+ * @returns The produced example value, or `null` if none could be produced.
+ * @throws If `definition` is not provided.
  */
 function getExample(
   definition: any = {},
@@ -323,11 +340,12 @@ function getExample(
 }
 
 /**
- * Generates an object example based on the provided schema and example key.
+ * Generate an example object from a schema's properties.
  *
- * @param {object} schema - The schema object.
- * @param {string} exampleKey - The example key.
- * @returns {object} - The generated object example.
+ * @param schema - Schema object whose `properties` will be used to build the example.
+ * @param exampleKey - Optional example identifier to select named examples within property definitions.
+ * @param generateFromSchema - If truthy, prefer generating values from property schemas when explicit examples are absent.
+ * @returns An object whose keys mirror `schema.properties` and whose values are examples derived from each property's definition; properties without examples are omitted.
  */
 function generateObjectExample(
   schema: any = {},
@@ -347,11 +365,12 @@ function generateObjectExample(
 }
 
 /**
- * Generates an array example based on the provided items and example key.
+ * Create an array example using the example for the array's item schema.
  *
- * @param {Object} items - The items object.
- * @param {string} exampleKey - The example key.
- * @returns {Array} - The generated array example.
+ * @param items - Schema describing the array items; used to derive the element example.
+ * @param exampleKey - Optional key to select a named example from the schema.
+ * @param generateFromSchema - Optional flag or hint controlling generation from the schema when explicit examples are absent.
+ * @returns An array containing a single example element derived from `items`, or an empty array if no element example could be produced.
  */
 function generateArrayExample(
   items: any = {},
@@ -371,15 +390,22 @@ function generateArrayExample(
 }
 
 /**
- * Checks if the provided definition object contains any examples.
+ * Determine whether a definition object contains any example values.
  *
- * @param {Object} [definition={}] - The object to traverse for examples.
- * @param {string} [exampleKey=""] - The specific key to look for in the examples.
- * @returns {boolean} - Returns true if examples are found, otherwise false.
+ * @param definition - The object to search for example entries; nested objects are traversed.
+ * @param exampleKey - If provided, also checks for `examples[exampleKey].value` entries.
+ * @returns `true` if any examples are found, `false` otherwise.
  */
 function checkForExamples(definition: any = {}, exampleKey: string = "") {
   const examples: any[] = [];
 
+  /**
+   * Recursively walks an object tree and collects any example values it finds.
+   *
+   * Traverses `obj` depth-first; when a property `example` is present its value is appended to the module-scoped `examples` array. If `exampleKey` is set and `obj.examples[exampleKey].value` exists, that value is also appended. Non-object and null inputs are ignored.
+   *
+   * @param obj - The node to traverse; may be any value (non-objects are no-ops)
+   */
   function traverse(obj: any) {
     if (typeof obj !== "object" || obj === null) return;
 

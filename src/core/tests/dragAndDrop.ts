@@ -4,8 +4,31 @@ import { log } from "../utils.js";
 
 export { dragAndDropElement };
 
-// Drag and drop an element from source to target.
+/**
+ * Performs a drag-and-drop from a source element to a target element using the provided driver.
+ *
+ * Attempts a native WebDriver.io dragAndDrop with a configurable duration and, if that appears to have no effect,
+ * falls back to an HTML5 drag-and-drop simulation executed in the browser. Validates the step payload before execution,
+ * locates both source and target elements, and reports success or failure with contextual description text.
+ *
+ * @param config - Test run configuration and utilities used for logging and environment context
+ * @param step - Step payload conforming to `step_v3` containing `dragAndDrop` with `source`, `target`, and optional `duration`
+ *               (where `source`/`target` may be a selector string or a find-object)
+ * @param driver - WebDriver-compatible driver instance used to execute element commands and in-browser scripts
+ * @returns An object with `status` set to `"PASS"` or `"FAIL"`, a human-readable `description`, and an `outputs` map (may include `rawElement` references from lookups)
+ */
 async function dragAndDropElement({ config, step, driver }: { config: any; step: any; driver: any }) {
+  /**
+   * Simulates an HTML5 drag-and-drop sequence between two DOM elements inside the browser.
+   *
+   * Executes a script in the browser context that dispatches `dragstart`, `dragover`, `drop`, and `dragend`
+   * events on the provided elements and populates the events' `DataTransfer` with the source element's
+   * `textContent` and, if present, a `widget-type` value from `source.dataset.widget`.
+   *
+   * @param driver - The WebDriver/driver instance used to execute the script in the browser context
+   * @param sourceElement - A reference to the source DOM element (as accepted by the driver's execute call)
+   * @param targetElement - A reference to the target DOM element (as accepted by the driver's execute call)
+   */
   async function HTML5DragDrop({ driver, sourceElement, targetElement }: { driver: any; sourceElement: any; targetElement: any }) {
     await driver.execute(
       (sourceElement: any, targetElement: any) => {

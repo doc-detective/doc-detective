@@ -5,12 +5,11 @@ import axios from "axios";
 import { validate } from "doc-detective-common";
 
 /**
- * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
+ * Read content from a remote URL or local filesystem path and parse JSON or YAML when applicable.
  *
- * @param {Object} options - Options object
- * @param {string} options.fileURLOrPath - The URL or local file path to read.
- * @returns {Promise<Object|string|null>} Parsed object for JSON or YAML files, raw string for other formats, or null if reading fails.
- * @throws {Error} If fileURLOrPath is missing, not a string, or is an empty string.
+ * @param fileURLOrPath - The URL (http/https) or local file path to read.
+ * @returns Parsed object for JSON or YAML files, the raw file content string for other formats, or `null` if the file could not be read.
+ * @throws Error If `fileURLOrPath` is missing, not a string, or an empty string.
  */
 async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
   if (!fileURLOrPath) {
@@ -80,16 +79,15 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
 }
 
 /**
- * Convert recognized relative path properties in a config or spec object to absolute paths.
+ * Resolve relative path properties in a config or spec object to absolute filesystem or URI paths.
  *
- * @param {Object} options - Options for path resolution.
- * @param {Object} options.config - Configuration containing settings such as relativePathBase.
- * @param {Object} options.object - The config or spec object whose path properties will be resolved.
- * @param {string} options.filePath - Reference file or directory used to resolve relative paths.
- * @param {boolean} [options.nested=false] - True when invoked recursively for nested objects.
- * @param {string} [options.objectType] - 'config' or 'spec'; required for nested invocations.
- * @returns {Promise<Object>} The same object with applicable path properties converted to absolute paths.
- * @throws {Error} If the top-level object matches neither config nor spec schema, or if objectType is missing for nested calls.
+ * @param config - Configuration object that may contain `relativePathBase` used when resolving paths.
+ * @param object - The config or spec object whose path-bearing properties will be resolved in place.
+ * @param filePath - Reference file or directory used as the base when resolving relative paths.
+ * @param nested - True when invoked recursively for nested objects.
+ * @param objectType - `'config'` or `'spec'`; required for recursive calls to determine which properties to resolve.
+ * @returns The same `object` with applicable path properties converted to absolute paths.
+ * @throws Error If the top-level object matches neither the config nor spec schema, if `nested` is true but `objectType` is missing, or if `objectType` is invalid.
  */
 async function resolvePaths({
   config,
@@ -145,6 +143,18 @@ async function resolvePaths({
     "responseParams",
   ];
 
+  /**
+   * Resolve a relative path to an absolute filesystem path or return certain URIs unchanged.
+   *
+   * Resolves `relativePath` against a base derived from `filePath` when `baseType` is `"file"`,
+   * otherwise resolves `relativePath` against the process working directory. If `relativePath`
+   * is already absolute or is an `http://`, `https://`, or `heretto:` URI, it is returned unchanged.
+   *
+   * @param baseType - When `"file"`, use the directory of `filePath` as the resolution base; any other value resolves `relativePath` relative to the process cwd.
+   * @param relativePath - The path or URI to resolve.
+   * @param filePath - Reference path used to derive a base directory when `baseType` is `"file"`. May be a file or directory path.
+   * @returns The resolved absolute filesystem path, or the original `relativePath` unchanged if it is already absolute or is an `http://`, `https://`, or `heretto:` URI.
+   */
   function resolve(baseType: string, relativePath: string, filePath: string) {
     // If the path is an http:// or https:// URL, or a heretto: URI, return it
     if (

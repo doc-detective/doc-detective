@@ -52,7 +52,18 @@ const driverActions = [
   "type",
 ];
 
-// Get Appium driver capabilities and apply options.
+/**
+ * Builds WebDriver/Appium capabilities for a specified browser using the runner's environment and available apps.
+ *
+ * Uses information from `runnerDetails.availableApps` and `runnerDetails.environment` to construct a capabilities
+ * object tailored for Firefox, Chrome/Chromium, or Safari. Returns an empty object when the requested browser
+ * is not available in `runnerDetails.availableApps`.
+ *
+ * @param runnerDetails - Runner metadata including `environment` (platform) and `availableApps` (array of installed apps with `name`, `path`, and `driver` where applicable)
+ * @param name - Browser identifier (e.g., `"firefox"`, `"chrome"`, or `"safari"`)
+ * @param options - Options that influence capability construction (currently reads `headless` to enable headless mode)
+ * @returns A capabilities object appropriate for starting a WebDriver/Appium session, or an empty object if the browser is not available
+ */
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
   let args: string[] = [];
@@ -145,7 +156,12 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
   return capabilities;
 }
 
-// Check if any steps require an Appium driver.
+/**
+ * Determine whether any spec contains steps that require an Appium/WebDriver driver.
+ *
+ * @param specs - Array of resolved spec objects to scan for driver-dependent steps
+ * @returns `true` if any step in the provided specs requires an Appium/WebDriver driver, `false` otherwise.
+ */
 function isAppiumRequired(specs: any[]) {
   let appiumRequired = false;
   specs.forEach((spec: any) => {
@@ -161,6 +177,12 @@ function isAppiumRequired(specs: any[]) {
   return appiumRequired;
 }
 
+/**
+ * Determines whether the test contains any steps that require a WebDriver/Appium driver.
+ *
+ * @param test - Test object with a `steps` array where each step is a descriptor that may include action properties
+ * @returns `true` if at least one step uses an action that requires a driver, `false` otherwise.
+ */
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
   test.steps.forEach((step: any) => {
@@ -172,7 +194,17 @@ function isDriverRequired({ test }: { test: any }) {
   return driverRequired;
 }
 
-// Check if context is supported by current platform and available apps
+/**
+ * Determine whether a test context is supported on the given platform and available apps.
+ *
+ * The context is considered supported when its `platform` equals `platform` and, if `context.browser.name` is provided,
+ * an app with the same `name` exists in `apps`.
+ *
+ * @param context - Test context object; may contain `platform` and an optional `browser.name`
+ * @param apps - Array of available app objects (each with a `name` property)
+ * @param platform - Current platform identifier to match against `context.platform`
+ * @returns `true` if the context's platform matches `platform` and any required browser exists in `apps`, `false` otherwise
+ */
 function isSupportedContext({ context, apps, platform }: { context: any; apps: any[]; platform: any }) {
   // Check browsers
   let isSupportedApp: any = true;
@@ -188,6 +220,12 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   }
 }
 
+/**
+ * Selects a default browser from the runner's available apps in the order: firefox, chrome, safari.
+ *
+ * @param runnerDetails - Runner configuration containing an `availableApps` array of entries with a `name` property
+ * @returns An object `{ name: string }` for the first matching browser, or an empty object if no supported browser is available
+ */
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
   let browser: any = {};
   const browserNames = ["firefox", "chrome", "safari"];
@@ -200,7 +238,17 @@ function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
   return browser;
 }
 
-// Set window size to match target viewport size
+/**
+ * Adjusts the browser window so the page's inner viewport matches the target viewport
+ * dimensions specified on the context.
+ *
+ * If `context.browser.viewport.width` or `.height` is provided, computes the difference
+ * between the current page inner dimensions and the desired viewport size and resizes
+ * the browser window to achieve the requested inner viewport.
+ *
+ * @param context - Test context containing an optional `browser.viewport` object with `width` and/or `height`
+ * @param driver - WebDriver-like instance that supports `execute`, `getWindowSize`, and `setWindowSize`
+ */
 async function setViewportSize(context: any, driver: any) {
   if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
     // Get viewport size, not window size
@@ -226,6 +274,14 @@ async function setViewportSize(context: any, driver: any) {
   }
 }
 
+/**
+ * Determine whether unsafe test steps are permitted in the current environment.
+ *
+ * Checks the runtime configuration and environment to decide if unsafe steps are allowed.
+ *
+ * @param config - Configuration object which may contain `allowUnsafeSteps`
+ * @returns `true` if unsafe steps are allowed, `false` otherwise. When `config.allowUnsafeSteps` is defined it takes precedence; if undefined, the `DOC_DETECTIVE` environment variable (parsed as JSON) enables unsafe steps when its `container` property is truthy.
+ */
 async function allowUnsafeSteps({ config }: { config: any }) {
   // If allowUnsafeSteps is set to true, return true
   if (config.allowUnsafeSteps === true) return true;
@@ -243,7 +299,17 @@ async function allowUnsafeSteps({ config }: { config: any }) {
   return false;
 }
 
-// Run specifications via API.
+/**
+ * Executes a collection of resolved tests by creating and running a remote test run via the Doc Detective API and returns the final run report.
+ *
+ * Creates a run on the API, starts it, polls until completion (respecting `config.apiMaxWaitTime`), and returns the parsed run report.
+ *
+ * @param resolvedTests - The resolved test bundle to send to the API (specs, tests, contexts, and related metadata).
+ * @param apiKey - API key used to authenticate requests to the Doc Detective API.
+ * @param config - Optional configuration for the API run.
+ * @param config.apiMaxWaitTime - Maximum time in seconds to wait for the remote run to complete (default 600).
+ * @returns The parsed run report object on success, or an object containing `status` and `error` describing the failure (e.g., HTTP error status, TIMEOUT, or PARSE_ERROR).
+ */
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
   const baseUrl =
     process.env.DOC_DETECTIVE_API_URL || "https://api.doc-detective.com";
@@ -355,21 +421,14 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
 }
 
 /**
- * Orchestrates execution of resolved test specifications and returns a hierarchical run report.
+ * Execute a bundle of resolved test specifications and produce a hierarchical run report.
  *
- * Executes each spec -> test -> context -> step, conditionally starts Appium and browser drivers,
- * applies viewport/window sizing, handles unsafe-step policies and recording, aggregates per-step,
- * per-context, per-test, and per-spec results, and performs resource cleanup.
+ * Runs each spec → test → context → step, starting Appium and browser drivers when required,
+ * applying viewport/window sizing, enforcing unsafe-step policy, handling recording, aggregating
+ * step/context/test/spec results, performing resource cleanup, and optionally uploading changed artifacts.
  *
- * @param {Object} resolvedTests - Resolved test bundle containing configuration and specs to run.
- * @param {Object} resolvedTests.config - Runner configuration used during execution.
- * @param {Array<Object>} resolvedTests.specs - Array of spec objects to execute.
- * @returns {Object} A report object summarizing results with structure:
- *  {
- *    summary: { specs: {...}, tests: {...}, contexts: {...}, steps: {...} },
- *    specs: [ { specId, description, contentPath, result, tests: [ { testId, description, contentPath, result, contexts: [ { platform, browser, result, steps: [...] } ] } ] } ]
- *  }
- */
+ * @param resolvedTests - Resolved test bundle containing runner configuration and an array of specs to execute. Expected shape includes `config` (runner configuration) and `specs` (array of spec objects).
+ * @returns The run report object containing a `summary` of aggregated counts and a `specs` array with per-spec, per-test, per-context, and per-step results.
 async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const config: any = resolvedTests.config;
   const specs = resolvedTests.specs;
@@ -839,7 +898,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   return report;
 }
 
-// Run a specific step
+/**
+ * Execute a single test step and produce its action result.
+ *
+ * Dispatches to the appropriate action handler based on the step's shape (e.g., click, goTo, httpRequest, record, etc.), replaces environment variables inside the step, manages recording state (including cursor instantiation when the page URL changes), removes internal raw element references from outputs, and resolves any `step.variables` into process environment variables.
+ *
+ * @param step - The step definition object describing the action to perform (one of the supported action keys such as `click`, `goTo`, `httpRequest`, `record`, `screenshot`, `type`, etc.).
+ * @param metaValues - Values used when resolving expressions for `step.variables` and action outputs; merged with action outputs to form the expression evaluation context.
+ * @param options.openApiDefinitions - Optional OpenAPI definitions passed through to HTTP request actions for request validation or resolution.
+ * @returns The action result object produced by the executed action, typically containing `status`, `description`, and an `outputs` object (note: any `outputs.rawElement` is removed before returning).
 async function runStep({
   config = {},
   context = {},
@@ -959,7 +1026,13 @@ async function runStep({
   return actionResult;
 }
 
-// Delay execution until Appium server is available.
+/**
+ * Waits until an Appium server responds at http://127.0.0.1:4723/status or the timeout elapses.
+ *
+ * @param timeoutMs - Maximum time in milliseconds to wait before failing; defaults to 120000 (2 minutes).
+ * @returns `true` if the Appium server became ready before the timeout.
+ * @throws Error if the server did not become ready within `timeoutMs`.
+ */
 async function appiumIsReady(timeoutMs: number = 120000) {
   let isReady = false;
   const start = Date.now();
@@ -976,7 +1049,12 @@ async function appiumIsReady(timeoutMs: number = 120000) {
   return isReady;
 }
 
-// Start the Appium driver specified in `capabilities`.
+/**
+ * Start a WebDriver session using Appium with the provided capabilities.
+ *
+ * @param capabilities - Desired Appium/WebDriver capabilities (browser/device configuration and options)
+ * @returns The active WebDriver instance. The returned driver has an initialized `state` property: `{ url: string, x: number | null, y: number | null }`
+ */
 async function driverStart(capabilities: any) {
   const driver: any = await wdio.remote({
     protocol: "http",
@@ -993,29 +1071,19 @@ async function driverStart(capabilities: any) {
 }
 
 /**
- * Creates and returns a Chrome WebDriver instance with an Appium server.
- * This function is designed for use by external libraries that need a Doc Detective runner.
+ * Create a Chrome WebDriver runner backed by a local Appium server for Doc Detective consumers.
  *
- * @param {Object} options - Configuration options for the runner.
- * @param {Object} [options.config={}] - Doc Detective configuration object for logging.
- * @param {number} [options.width=1200] - Browser window width in pixels.
- * @param {number} [options.height=800] - Browser window height in pixels.
- * @param {boolean} [options.headless=true] - Whether to run browser in headless mode.
- * @returns {Promise<Object>} Object containing:
- *   - runner: WebDriver instance for browser automation
- *   - appium: Appium server process (advanced use; prefer cleanup() for termination)
- *   - cleanup: Async function to properly cleanup driver and Appium server
- *   - runStep: Function to execute Doc Detective test steps
- * @throws {Error} If Chrome is not available or driver initialization fails
- *
- * @example
- * const { runner, cleanup } = await getRunner({ headless: false });
- * try {
- *   await runner.url('https://example.com');
- *   // ... perform automation tasks
- * } finally {
- *   await cleanup();
- * }
+ * @param options - Runner options.
+ * @param options.config - Doc Detective configuration used for logging and environment.
+ * @param options.width - Browser window width in pixels (default: 1200).
+ * @param options.height - Browser window height in pixels (default: 800).
+ * @param options.headless - Whether to run the browser in headless mode (default: true).
+ * @returns An object containing:
+ *   - runner: the WebDriver instance for browser automation
+ *   - appium: the Appium server process handle (advanced use; prefer `cleanup()` to terminate)
+ *   - cleanup: an async function that closes the driver session and stops Appium
+ *   - runStep: a function to execute Doc Detective test steps
+ * @throws Error if Chrome is not available or if the driver cannot be initialized
  */
 async function getRunner(options: any = {}) {
   const environment = getEnvironment();

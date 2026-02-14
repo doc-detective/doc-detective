@@ -7,7 +7,14 @@ import os from "node:os";
 
 export { runCode };
 
-// Create a temporary script file
+/**
+ * Create a temporary script file containing the provided source code and return its path.
+ *
+ * @param code - The source code to write into the temporary file.
+ * @param language - The language hint used to choose a file extension (e.g., "python"/"py" -> .py, "javascript"/"js"/"node" -> .js, "bash" -> .sh). Unknown values produce no extension.
+ * @returns The full filesystem path to the created temporary script file.
+ * @throws Error - If writing the temporary file fails.
+ */
 function createTempScript(code: string, language: string) {
   let extension;
   switch (language) {
@@ -36,7 +43,25 @@ function createTempScript(code: string, language: string) {
   return tmpFile;
 }
 
-// Run gather, compile, and run code.
+/**
+ * Validate, prepare, execute, and clean up a code execution step, returning a unified execution result.
+ *
+ * Creates a temporary script from `step.runCode.code`, resolves or validates the execution command for the
+ * specified language, verifies the command is available, executes the script via an internal shell step,
+ * and removes the temporary script file on completion.
+ *
+ * @param step - Step definition containing `runCode` configuration. Expected `runCode` fields:
+ *   - `code` (string): source to write to the temporary script.
+ *   - `language` (string): language identifier used to infer a command or file extension.
+ *   - `command` (optional string): explicit command to execute the script (inferred from `language` if omitted).
+ *   - `args` (optional string[]): additional arguments passed to the command.
+ *   - `exitCodes` (optional number[]): allowed exit codes (defaults to `[0]`).
+ *   - `workingDirectory`, `maxVariation`, `overwrite`, `timeout` (optional): execution-related options (defaults applied).
+ * @returns An object with the execution outcome:
+ *   - `status`: `"PASS"` or `"FAIL"`.
+ *   - `description`: human-readable description of the outcome.
+ *   - `outputs`: map of outputs produced during execution.
+ */
 async function runCode({ config, step }: { config: any; step: any }) {
   const result: any = {
     status: "PASS",

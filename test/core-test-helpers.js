@@ -2,11 +2,24 @@
 
 console.log("Testing helper functions...\n");
 
-// Test logic inline
+/**
+ * Determine whether a value is a string formatted like a regex literal (enclosed in forward slashes).
+ * @param {*} str - Value to inspect.
+ * @returns {boolean} `true` if `str` is a string that begins and ends with `/`, `false` otherwise.
+ */
 function isRegexPattern(str) {
   return typeof str === "string" && str.startsWith("/") && str.endsWith("/");
 }
 
+/**
+ * Checks whether a value matches a pattern, where the pattern can be a regex-like string (e.g., "/pat/") or a direct value.
+ *
+ * If `pattern` is a string that starts and ends with `/`, it is treated as a regular expression and tested against the string form of `value`. Otherwise, the string forms of `value` and `pattern` are compared for equality.
+ *
+ * @param {*} value - The value to test; will be converted to a string when compared or tested.
+ * @param {*} pattern - A pattern to match against. If a string that begins and ends with `/`, the interior is used to build a `RegExp`; otherwise compared as a string.
+ * @returns {boolean} `true` if `value` matches `pattern`, `false` otherwise.
+ */
 function matchesPattern(value, pattern) {
   if (isRegexPattern(pattern)) {
     const regex = new RegExp(pattern.slice(1, -1));

@@ -10,7 +10,25 @@ import { wait } from "./wait.js";
 
 export { findElement };
 
-// Find a single element
+/**
+ * Locate an element described by the provided step and optionally perform interactions (move, click, type).
+ *
+ * The function validates and normalizes the incoming `step` (schema `step_v3`), supports a shorthand string
+ * selector or a detailed criteria object, populates output metadata for the found element, and can optionally
+ * move the cursor to, click, or type into the element. When `config.recording` is true, a short wait is performed
+ * after successful interactions.
+ *
+ * @param config - Runner configuration and flags (e.g., `recording`)
+ * @param step - Step payload validated against `step_v3`. `step.find` may be a string (shorthand) or an object
+ *               containing fields such as `selector`, `timeout`, `elementText`, `moveTo`, `click`, `type`, and
+ *               other element-matching criteria.
+ * @param driver - Automation driver/context used to locate and interact with elements
+ * @param click - Optional click instruction override; when present, triggers a click even if `step.find.click` is false
+ * @returns An object with:
+ *          - `status`: `"PASS"` if an element was found and requested interactions succeeded, `"FAIL"` otherwise.
+ *          - `description`: human-readable summary of what happened (including error messages on failure).
+ *          - `outputs`: element metadata populated when an element is found.
+ */
 async function findElement({ config, step, driver, click }: { config: any; step: any; driver: any; click?: any }) {
   let result: any = {
     status: "PASS",
