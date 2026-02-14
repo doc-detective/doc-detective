@@ -355,10 +355,10 @@ async function findElementBySelectorAndText({
 }
 
 /**
- * Determines whether a value is a string formatted as a regex literal (starts and ends with `/`).
+ * Determines whether a value is a string formatted as a regex literal (starts and ends with "/").
  *
  * @param str - The value to test; may be any type.
- * @returns `true` if `str` is a string that begins with `/` and ends with `/`, `false` otherwise.
+ * @returns True if str is a string that begins with "/" and ends with "/", false otherwise.
  */
 function isRegexPattern(str: any) {
   return typeof str === "string" && str.startsWith("/") && str.endsWith("/");
@@ -367,13 +367,13 @@ function isRegexPattern(str: any) {
 /**
  * Checks whether a value matches a given pattern, using exact comparison or a regex.
  *
- * If `pattern` is a string wrapped with leading and trailing slashes (e.g. `/foo.*/`),
+ * If pattern is a string wrapped with leading and trailing slashes (e.g. slash-foo-dot-star-slash),
  * it is treated as a regular expression; otherwise the function performs an exact
  * string comparison.
  *
  * @param value - The value to test; will be converted to a string for comparison
- * @param pattern - The expected pattern, either a plain string or a regex-like string wrapped in `/` characters
- * @returns `true` if `value` matches `pattern`, `false` otherwise
+ * @param pattern - The expected pattern, either a plain string or a regex-like string wrapped in slash characters
+ * @returns True if value matches pattern, false otherwise
  */
 function matchesPattern(value: any, pattern: any) {
   if (isRegexPattern(pattern)) {
@@ -386,11 +386,11 @@ function matchesPattern(value: any, pattern: any) {
 /**
  * Determines whether an element's class list contains all required classes.
  *
- * The `classes` array may contain exact class names or regex patterns expressed as strings wrapped in slashes (e.g. `/^btn-/`).
+ * The classes array may contain exact class names or regex patterns expressed as strings wrapped in slashes (e.g. "/^btn-/").
  *
- * @param element - The element to inspect; must support `getAttribute("class")`.
- * @param classes - Array of required class identifiers (exact names or `/regex/` strings).
- * @returns `true` if every required class is present (or matched by its regex), `false` otherwise.
+ * @param element - The element to inspect; must support getAttribute with "class" argument.
+ * @param classes - Array of required class identifiers (exact names or "/regex/" strings).
+ * @returns True if every required class is present (or matched by its regex), false otherwise.
  */
 async function hasAllClasses(element: any, classes: any[]) {
   const classList = await element.getAttribute("class");
@@ -415,14 +415,14 @@ async function hasAllClasses(element: any, classes: any[]) {
 /**
  * Check whether a DOM element satisfies a set of attribute expectations.
  *
- * The `attributes` object maps attribute names to expected values:
- * - boolean: `true` means the attribute must exist, `false` means it must not exist. The `"disabled"` attribute is compared against the element's actual enabled state.
+ * The attributes object maps attribute names to expected values:
+ * - boolean: true means the attribute must exist, false means it must not exist. The "disabled" attribute is compared against the element's actual enabled state.
  * - number: the attribute's numeric value must equal the number.
- * - string: the attribute's string value must match exactly or match a regex pattern (string wrapped in `/`), as interpreted by `matchesPattern`.
+ * - string: the attribute's string value must match exactly or match a regex pattern (string wrapped in "/"), as interpreted by matchesPattern.
  *
  * @param element - The element to evaluate.
  * @param attributes - An object whose keys are attribute names and values are expected criteria (boolean | number | string/regex).
- * @returns `true` if every attribute requirement is met, `false` otherwise.
+ * @returns True if every attribute requirement is met, false otherwise.
  */
 async function matchesAttributes(element: any, attributes: any) {
   for (const [attrName, attrValue] of Object.entries(attributes)) {
@@ -465,22 +465,22 @@ async function matchesAttributes(element: any, attributes: any) {
  * to narrow candidates; other criteria are validated against each candidate.
  *
  * @param selector - Optional CSS selector to restrict candidate elements.
- * @param elementText - Exact string or regex pattern (string wrapped in `/.../`) to match element text.
- * @param elementId - Exact string or regex pattern to match the element's `id` attribute.
- * @param elementTestId - Exact string or regex pattern to match the element's `data-testid` attribute.
+ * @param elementText - Exact string or regex pattern (string wrapped in "/.../") to match element text.
+ * @param elementId - Exact string or regex pattern to match the element's id attribute.
+ * @param elementTestId - Exact string or regex pattern to match the element's data-testid attribute.
  * @param elementClass - A class name or array of class names (each may be a regex pattern) that the element must contain.
  * @param elementAttribute - Object mapping attribute names to expected values. Values may be:
- *   - boolean: `true` requires the attribute's presence (special handling for `disabled`),
+ *   - boolean: true requires the attribute's presence (special handling for disabled),
  *   - number: exact numeric match,
- *   - string: exact match or regex pattern (wrap in `/.../`) .
+ *   - string: exact match or regex pattern (wrap in "/.../") .
  * @param elementAria - Exact string or regex pattern to match the element's computed accessible name (aria/label).
  * @param timeout - Maximum time in milliseconds to wait for a matching element (default: 5000).
  * @param driver - WebDriver-like driver used to query elements (omitted from detailed docs as a standard utility).
  *
  * @returns An object with:
- *   - `element`: the matched element or `null` if none found,
- *   - `foundBy`: an array of criteria identifiers that were satisfied (includes `"selector"` if a selector was used) or `null` on failure,
- *   - `error`: `null` on success or an error message string when no element is found or when input validation fails.
+ *   - element: the matched element or null if none found,
+ *   - foundBy: an array of criteria identifiers that were satisfied (includes "selector" if a selector was used) or null on failure,
+ *   - error: null on success or an error message string when no element is found or when input validation fails.
  */
 async function findElementByCriteria({
   selector,

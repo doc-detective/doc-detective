@@ -15,6 +15,7 @@ export { stopRecording };
  * @param step - Step payload validated against the `step_v3` schema; coerced/defaulted values from validation are used.
  * @param driver - Browser driver used to switch windows/tabs and execute in-page commands to stop the recorder.
  * @returns An object describing the outcome: `status` is `"PASS"` when the recording was stopped and processed, `"SKIPPED"` when no recording was active, or `"FAIL"` with a `description` explaining the error.
+ */
 async function stopRecording({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result: any = {
     status: "PASS",
