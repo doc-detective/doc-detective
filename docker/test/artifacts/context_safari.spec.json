@@ -1,0 +1,19 @@
+{
+  "id": "Make sure Safari is working",
+  "contexts": [
+    {
+      "app": { "name": "safari" },
+      "platforms": ["mac"]
+    }
+  ],
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://www.google.com"
+        }
+      ]
+    }
+  ]
+}

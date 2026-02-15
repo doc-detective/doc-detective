@@ -111,3 +111,10 @@ testResults*
 coverageResults*
 testSuggestions*
 *.mp4
+
+# Docker test outputs
+docker/test/artifacts/output/
+docker/test/artifacts/*.png
+docker/test/artifacts/static/
+docker/test/requires-server/*.png
+docker/test/requires-server/static/

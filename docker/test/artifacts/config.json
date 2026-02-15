@@ -1,0 +1,27 @@
+{
+  "envVariables": "",
+  "input": ".",
+  "output": ".",
+  "recursive": true,
+  "logLevel": "info",
+  "relativePathBase": "file",
+  "runTests": {
+    "input": ".",
+    "output": ".",
+    "setup": "",
+    "cleanup": "",
+    "recursive": true,
+    "detectSteps": false,
+    "mediaDirectory": ".",
+    "downloadDirectory": ".",
+    "contexts": [
+      {
+        "app": { "name": "chrome", "options": { "headless": true } },
+        "platforms": ["mac", "linux", "windows"]
+      }
+    ]
+  },
+  "telemetry": {
+    "send": false
+  }
+}
