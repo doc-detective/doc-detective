@@ -92,9 +92,21 @@ jobs:
         if: steps.check_changes.outputs.skip_release == 'false'
         run: npm install
 
+      - name: Build
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: npm run build
+
       - name: Run tests
         if: steps.check_changes.outputs.skip_release == 'false'
         run: npm test
+
+      - name: Run tests with coverage
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: npm run test:coverage
+
+      - name: Check coverage ratchet
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: npm run test:coverage:ratchet
 
       - name: Configure Git
         run: |
