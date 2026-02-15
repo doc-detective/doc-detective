@@ -46,7 +46,7 @@ The `../requires-server/` directory (at `docker/test/requires-server/`) contains
 - **cookie-test.spec.json**: Tests cookie handling (requires Docker-in-Docker and localhost server)
 - **dragAndDrop.spec.json**: Tests drag-and-drop functionality (requires localhost server on port 8092)
 - **httpRequest.spec.yaml**: Tests HTTP request actions (requires localhost server on port 8092)
-- **runCode.spec.json**: Tests code execution in multiple languages (requires Python, which is not in the container)
+- **runCode.spec.json**: Tests code execution in multiple languages
 - **screenshot.spec.json**: Tests screenshot capture and comparison (has image aspect ratio comparison issues)
 
 These are separated from the main test artifacts directory to avoid failures when running tests in CI/CD environments without the required dependencies or servers.

@@ -61,4 +61,3 @@ ENTRYPOINT [ "npx", "doc-detective" ]
 
 # Set default command
 CMD [ "" ]
-# CMD [ "bash"]
