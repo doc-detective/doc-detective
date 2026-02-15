@@ -116,5 +116,11 @@ testSuggestions*
 docker/test/artifacts/output/
 docker/test/artifacts/*.png
 docker/test/artifacts/static/
+docker/test/artifacts/results*.json
 docker/test/requires-server/*.png
 docker/test/requires-server/static/
+
+# Test output files
+screenshot-boolean.png
+test/core-artifacts/*.png
+test/core-artifacts/static/
