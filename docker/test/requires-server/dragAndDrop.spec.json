@@ -1,0 +1,66 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to drag and drop test page",
+          "goTo": "http://localhost:8092/drag-drop-test.html"
+        },
+        {
+          "description": "Drag Table widget to canvas using simple syntax",
+          "dragAndDrop": {
+            "source": "Table",
+            "target": ".drop-zone[data-drop='zone1']"
+          }
+        },
+        {
+          "description": "Drag Chart widget to specific drop zone using detailed syntax",
+          "dragAndDrop": {
+            "source": {
+              "selector": ".draggable",
+              "elementText": "Chart"
+            },
+            "target": {
+              "selector": ".drop-zone[data-drop='zone1']"
+            },
+            "duration": 1500
+          }
+        },
+        {
+          "description": "Drag Image widget using selector only",
+          "dragAndDrop": {
+            "source": ".draggable[data-widget='image']",
+            "target": ".drop-zone[data-drop='zone2']",
+            "duration": 500
+          }
+        },
+        {
+          "description": "Test regex matching for source element (simple syntax)",
+          "dragAndDrop": {
+            "source": "/Widget Item.*/",
+            "target": ".drop-zone[data-drop='zone1']"
+          }
+        },
+        {
+          "description": "Test regex matching for source elementText (detailed syntax)",
+          "dragAndDrop": {
+            "source": {
+              "selector": ".draggable",
+              "elementText": "/Widget.*2/"
+            },
+            "target": {
+              "selector": ".drop-zone[data-drop='zone2']"
+            }
+          }
+        },
+        {
+          "description": "Test regex matching for target element (simple syntax)",
+          "dragAndDrop": {
+            "source": "Table",
+            "target": "/Drop Zone.*/"
+          }
+        }
+      ]
+    }
+  ]
+}

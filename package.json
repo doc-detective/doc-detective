@@ -30,7 +30,10 @@
     "prerunTests": "node ./dist/checkDependencies.js",
     "runTests": "node ./bin/doc-detective.js runTests",
     "start": "node ./bin/doc-detective.js",
-    "dev": "node ./dev"
+    "dev": "node ./dev",
+    "docker:build": "node docker/scripts/build.cjs",
+    "docker:rebuild": "npm run docker:build -- --no-cache",
+    "docker:test": "mocha docker/test/*.test.cjs"
   },
   "repository": {
     "type": "git",
