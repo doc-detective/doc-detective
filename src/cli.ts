@@ -13,6 +13,9 @@ import { argv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
 
+/* c8 ignore start -- CLI entrypoint: interactive CLI parsing and
+   process.exit()-style behavior is not suitable for unit tests in CI. The
+   functional logic is exported via functions and remains testable. */
 // Run
 setMeta();
 main(argv);
@@ -68,3 +71,4 @@ async function main(argv: string[]) {
     await outputResults(config, output, results, { command: "runTests" });
   }
 }
+/* c8 ignore stop */

@@ -1,0 +1,2 @@
+# Netscape HTTP Cookie File
+# This file has no cookies

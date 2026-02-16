@@ -1,5 +1,6 @@
 export { moveTo, instantiateCursor };
 
+/* c8 ignore start -- instantiateCursor: injects DOM cursor overlay via driver.execute() for screen recording visualization. Only meaningful in non-headless recording mode. */
 async function instantiateCursor(driver: any, options: any = { position: "current" }) {
   const result: any = { status: "PASS", description: "Instantiated cursor." };
 
@@ -118,6 +119,7 @@ async function instantiateCursor(driver: any, options: any = { position: "curren
 
   return result;
 }
+/* c8 ignore stop */
 
 // Move mouse.
 // TODO: Remove most of this function or rework it as it's own step.

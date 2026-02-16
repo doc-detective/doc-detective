@@ -7,7 +7,7 @@ const Ajv = _Ajv as unknown as typeof _Ajv.default;
 import { getOperation, loadDescription } from "../openapi.js";
 import { log, calculateFractionalDifference, replaceEnvs } from "../utils.js";
 
-export { httpRequest };
+export { httpRequest, fieldExistsAtPath, objectExistsInObject, arrayExistsInArray };
 
 async function httpRequest({ config, step, openApiDefinitions = [] }: { config: any; step: any; openApiDefinitions?: any[] }) {
   let result: any = { status: "", description: "", outputs: {} };

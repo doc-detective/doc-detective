@@ -59,6 +59,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
 
   // Set Firefox capabilities
   switch (name) {
+    /* c8 ignore start -- Firefox-specific capabilities require a local
+       Firefox binary and environment (Gecko). These blocks are not
+       reliably testable in CI or headless environments. */
     case "firefox": {
       const firefox = runnerDetails.availableApps.find(
         (app: any) => app.name === "firefox"
@@ -88,6 +91,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
       };
       break;
     }
+    /* c8 ignore stop */
+    /* c8 ignore start -- Safari-specific capabilities require macOS
+       and Safari Remote Automation. Not testable in typical CI. */
     case "safari":
       // Set Safari capabilities
       if (runnerDetails.availableApps.find((app: any) => app.name === "safari")) {
@@ -105,6 +111,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         };
       }
       break;
+    /* c8 ignore stop */
     case "chrome":
       // Set Chrome(ium) capabilities
       if (runnerDetails.availableApps.find((app: any) => app.name === name)) {

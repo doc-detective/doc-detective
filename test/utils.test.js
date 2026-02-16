@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { setArgs, setConfig, outputResults } from "../dist/utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -635,3 +636,73 @@ function deepObjectExpect(actual, expected) {
     }
   });
 }
+
+describe("log() function", function () {
+  let log;
+  before(async function () {
+    const mod = await import("../dist/utils.js");
+    log = mod.log;
+  });
+
+  it("does not throw with logLevel silent", function () {
+    assert.doesNotThrow(() => log("test message", "debug", { logLevel: "silent" }));
+  });
+
+  it("does not throw with logLevel debug and level debug", function () {
+    assert.doesNotThrow(() => log("test message", "debug", { logLevel: "debug" }));
+  });
+
+  it("does not throw with error level", function () {
+    assert.doesNotThrow(() => log("error message", "error", { logLevel: "error" }));
+  });
+
+  it("does not throw with warning level", function () {
+    assert.doesNotThrow(() => log("warn message", "warning", { logLevel: "warning" }));
+  });
+});
+
+describe("setMeta()", function () {
+  let setMeta;
+  let originalMeta;
+
+  before(async function () {
+    const mod = await import("../dist/utils.js");
+    setMeta = mod.setMeta;
+  });
+
+  beforeEach(function () {
+    originalMeta = process.env.DOC_DETECTIVE_META;
+    delete process.env.DOC_DETECTIVE_META;
+  });
+
+  afterEach(function () {
+    if (originalMeta !== undefined) {
+      process.env.DOC_DETECTIVE_META = originalMeta;
+    } else {
+      delete process.env.DOC_DETECTIVE_META;
+    }
+  });
+
+  it("sets DOC_DETECTIVE_META environment variable", function () {
+    setMeta();
+    assert.ok(process.env.DOC_DETECTIVE_META);
+    const meta = JSON.parse(process.env.DOC_DETECTIVE_META);
+    assert.equal(meta.distribution, "doc-detective");
+  });
+});
+
+describe("registerReporter()", function () {
+  let registerReporter;
+  before(async function () {
+    const mod = await import("../dist/utils.js");
+    registerReporter = mod.registerReporter;
+  });
+
+  it("registers a function successfully", function () {
+    assert.doesNotThrow(() => registerReporter("test-reporter", () => {}));
+  });
+
+  it("throws for non-function reporter", function () {
+    assert.throws(() => registerReporter("bad-reporter", "not a function"), /function/i);
+  });
+});

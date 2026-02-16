@@ -1,3 +1,4 @@
+/* c8 ignore start -- Interactive dependency installer: prompts stdin, spawns npm install, calls process.exit(). Only runs during manual development setup. */
 import path from "node:path";
 import fs from "node:fs";
 import readline from "node:readline";
@@ -80,3 +81,5 @@ function checkDependencies() {
     );
   }
 }
+/* c8 ignore stop */
+

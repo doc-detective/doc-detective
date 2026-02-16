@@ -70,6 +70,7 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     return result;
   }
 
+  /* c8 ignore start -- Chrome MediaRecorder recording: requires non-headless Chrome with getDisplayMedia permissions and multi-tab orchestration. Cannot be tested in headless CI. */
   if (
     context?.browser?.name === "chrome" &&
     context?.browser?.headless === false
@@ -173,6 +174,7 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     result.description = `Recording is not supported for this context.`;
     return result;
   }
+  /* c8 ignore stop */
 
   // PASS
   return result;

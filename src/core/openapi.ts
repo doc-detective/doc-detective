@@ -405,4 +405,4 @@ function checkForExamples(definition: any = {}, exampleKey: string = "") {
   return false;
 }
 
-export { getOperation, loadDescription };
+export { getOperation, loadDescription, getSchemas, compileExample, getExampleParameters, getExample, checkForExamples };

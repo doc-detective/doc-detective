@@ -93,6 +93,11 @@ function sendTelemetry(config: any, command: string, results: any) {
 
   const event = { distinctId, event: command, properties: telemetryData };
 
+  /* c8 ignore start -- Telemetry sending makes external HTTP requests to
+     PostHog. The decision logic that determines whether to send telemetry is
+     testable and remains unignored; however the actual network send should
+     be excluded from coverage because it depends on network access and an
+     external service. */
   // Send telemetry
   const client = new PostHog(
     "phc_rjV0MH3nsAd45zFISLgaKAdAXbgDeXt2mOBV2EBHomB",
@@ -100,6 +105,7 @@ function sendTelemetry(config: any, command: string, results: any) {
   );
   client.capture(event);
   client.shutdown();
+  /* c8 ignore stop */
 }
 
 export { telemetryNotice, sendTelemetry };
