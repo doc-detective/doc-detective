@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "http://localhost:8092/no-drop-zone.html" },
+        {
+          "dragAndDrop": {
+            "source": "#nonexistent-element",
+            "target": "#no-drop"
+          }
+        }
+      ]
+    }
+  ]
+}

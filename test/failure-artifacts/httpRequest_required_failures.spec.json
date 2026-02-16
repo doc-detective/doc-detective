@@ -1,0 +1,94 @@
+{
+  "tests": [
+    {
+      "testId": "httpRequest_required_missing_simple_field",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "name": "John Doe"
+              }
+            },
+            "response": {
+              "required": ["name", "email", "age"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_missing_nested_field",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "user": {
+                  "profile": {
+                    "name": "Jane Doe"
+                  }
+                }
+              }
+            },
+            "response": {
+              "required": [
+                "user.profile.name",
+                "user.profile.email"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_out_of_bounds_array",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/orders",
+            "method": "post",
+            "request": {
+              "body": {
+                "orders": [
+                  {
+                    "id": "order-1"
+                  }
+                ]
+              }
+            },
+            "response": {
+              "required": [
+                "orders[0].id",
+                "orders[1].id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "httpRequest_required_missing_parent",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/data",
+            "method": "post",
+            "request": {
+              "body": {
+                "field": "value"
+              }
+            },
+            "response": {
+              "required": ["user.profile.name"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

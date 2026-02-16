@@ -1,3 +1,5 @@
+/* c8 ignore start -- Appium integration: requires Appium server and
+   mobile device/emulator. Cannot be tested in headless CI. */
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -24,3 +26,4 @@ function setAppiumHome() {
   }
   process.env.APPIUM_HOME = appiumParentPath;
 }
+/* c8 ignore stop */

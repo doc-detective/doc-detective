@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/echo-headers",
+            "method": "GET",
+            "response": {
+              "body": { "content-type": "application/json; charset=utf-8" }
+            }
+          }
+        },
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/test-save",
+            "method": "GET"
+          }
+        }
+      ]
+    }
+  ]
+}

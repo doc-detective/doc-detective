@@ -1,0 +1,1 @@
+.example.com	TRUE	/	FALSE	4102444800	foreign_cookie	foreign_value

@@ -48,7 +48,8 @@ class HerettoUploader {
     }
 
     // Construct the API base URL from organizationId
-    const apiBaseUrl = `https://${integrationConfig.organizationId}.heretto.com`;
+    const apiBaseUrl = integrationConfig.baseUrl
+      ?? `https://${integrationConfig.organizationId}.heretto.com`;
 
     // Resolve the file ID using resource dependencies map
     let fileId = sourceIntegration.fileId;

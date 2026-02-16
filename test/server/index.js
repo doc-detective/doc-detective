@@ -76,6 +76,55 @@ function createServer(options = {}) {
     }
   });
 
+  // Fixed status code responses
+  app.get("/api/status/404", (req, res) => res.status(404).json({ error: "Not found" }));
+  app.get("/api/status/500", (req, res) => res.status(500).json({ error: "Internal server error" }));
+
+  // Echo response headers back as JSON body
+  app.get("/api/echo-headers", (req, res) => res.json(req.headers));
+
+  // Slow response (fixed 3-second delay)
+  app.get("/api/slow", (req, res) => setTimeout(() => res.json({ delayed: true }), 3000));
+
+  // Heretto mock endpoints
+  // GET /rest/all-files/:folderId -- list folder contents (XML)
+  app.get("/rest/all-files/:folderId", (req, res) => {
+    res.set("Content-Type", "application/xml");
+    if (req.params.folderId === "root-folder-id") {
+      // Response must match the XML parsing in heretto.ts:
+      // - getFileInFolder uses regex: id="([^"]+)"[^>]*name="filename" (id & name as attributes)
+      // - getChildFolderByName uses regex: <folder\s+name="folderName"\s+id="([^"]+)"
+      res.send(`<resources><resource id="existing-doc-id" name="test-screenshot.png"><name>test-screenshot.png</name><mime-type>image/png</mime-type></resource><folder name="subfolder" id="subfolder-id"/></resources>`);
+    } else if (req.params.folderId === "empty-folder-id") {
+      res.send(`<resources></resources>`);
+    } else {
+      res.status(404).send(`<error>Not found</error>`);
+    }
+  });
+
+  // POST /rest/all-files/:folderId -- create document (XML)
+  app.post("/rest/all-files/:folderId", (req, res) => {
+    res.set("Content-Type", "application/xml");
+    // createDocument parses: id="([^"]+)" from <resource id="uuid">...</resource>
+    res.status(201).send(`<resource id="new-doc-id"><name>created.png</name></resource>`);
+  });
+
+  // PUT /rest/all-files/:documentId/content -- upload file content
+  app.put("/rest/all-files/:documentId/content", (req, res) => {
+    let body = [];
+    req.on("data", chunk => body.push(chunk));
+    req.on("end", () => res.status(200).send("OK"));
+  });
+
+  // POST /ezdnxtgen/api/search -- search files/folders (JSON)
+  app.post("/ezdnxtgen/api/search", express.json(), (req, res) => {
+    if (req.body && req.body.searchResultType === "FOLDERS_ONLY") {
+      res.json({ searchResults: [{ name: req.body.queryString, uuid: "found-folder-id" }] });
+    } else {
+      res.json({ searchResults: [{ name: req.body ? req.body.queryString : "unknown", uuid: "found-file-id" }] });
+    }
+  });
+
   // Echo API endpoint that returns the request body (catch-all)
   app.all("/api/:path", (req, res) => {
     try {

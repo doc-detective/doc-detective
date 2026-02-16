@@ -245,14 +245,11 @@ function getIntegrationConfig(config: any, sourceIntegration: any) {
     return null;
   }
 
-  switch (sourceIntegration.type) {
-    case "heretto":
-      return config?.integrations?.heretto?.find(
-        (h: any) => h.name === sourceIntegration.integrationName
-      ) ?? null;
-    default:
-      return null;
-  }
+  const integrations = config?.integrations?.[sourceIntegration.type];
+  if (!Array.isArray(integrations)) return null;
+  return integrations.find(
+    (i: any) => i.name === sourceIntegration.integrationName
+  ) ?? null;
 }
 
 /**

@@ -31,6 +31,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     return result;
   }
 
+  /* c8 ignore start -- MediaRecorder stop + ffmpeg transcoding: requires active recording session from non-headless Chrome, plus ffmpeg binary. Cannot be tested in headless CI. */
   try {
     if (config.recording.type === "MediaRecorder") {
       // MediaRecorder
@@ -99,6 +100,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     result.description = `Couldn't stop recording. ${error}`;
     return result;
   }
+  /* c8 ignore stop */
 
   // PASS
   return result;

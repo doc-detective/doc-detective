@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "steps": [
+        { "checkLink": "http://localhost:8092/api/status/404" },
+        { "checkLink": { "url": "http://localhost:8092/api/status/500", "statusCodes": [500] } },
+        { "checkLink": "http://no-such-host.doc-detective-test.invalid" }
+      ]
+    }
+  ]
+}

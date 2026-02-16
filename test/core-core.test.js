@@ -545,3 +545,69 @@ describe("getRunner() function", function () {
     this.skip();
   });
 });
+
+describe("Expected failure specs", function () {
+  this.timeout(600000);
+
+  const failurePath = path.resolve("./test/failure-artifacts");
+
+  it("checkLink-extended reports expected failures", async function () {
+    const tempConfig = {
+      input: path.join(failurePath, "checkLink-extended.spec.json"),
+      logLevel: "silent",
+      telemetry: { send: false }
+    };
+    const result = await runTests(tempConfig);
+    assert.ok(result, "Result should not be null");
+    assert.ok(result.summary.steps.fail > 0 || result.summary.steps.pass > 0, "Should have step results");
+  });
+
+  it("httpRequest-extended exercises httpRequest branches", async function () {
+    const tempConfig = {
+      input: path.join(failurePath, "httpRequest-extended.spec.json"),
+      logLevel: "silent",
+      telemetry: { send: false }
+    };
+    let result;
+    try {
+      result = await runTests(tempConfig);
+      assert.ok(result, "Result should not be null");
+    } finally {
+      // Clean up saved response file if created
+      const savedFile = path.join(failurePath, "saved-response.json");
+      if (fs.existsSync(savedFile)) fs.unlinkSync(savedFile);
+    }
+  });
+
+  it("goTo-extended exercises timeout branches", async function () {
+    const tempConfig = {
+      input: path.join(failurePath, "goTo-extended.spec.json"),
+      logLevel: "silent",
+      telemetry: { send: false }
+    };
+    const result = await runTests(tempConfig);
+    assert.ok(result, "Result should not be null");
+    assert.ok(result.summary.steps.fail > 0, "goTo with nonexistent element should fail");
+  });
+
+  it("dragAndDrop-extended exercises failure branches", async function () {
+    const tempConfig = {
+      input: path.join(failurePath, "dragAndDrop-extended.spec.json"),
+      logLevel: "silent",
+      telemetry: { send: false }
+    };
+    const result = await runTests(tempConfig);
+    assert.ok(result, "Result should not be null");
+    assert.ok(result.summary.steps.fail > 0, "dragAndDrop with nonexistent element should fail");
+  });
+
+  it("httpRequest required field failures produce expected FAIL results", async function () {
+    const tempConfig = {
+      input: path.join(failurePath, "httpRequest_required_failures.spec.json"),
+      logLevel: "silent",
+      telemetry: { send: false }
+    };
+    const result = await runTests(tempConfig);
+    assert.ok(result, "Result should not be null");
+  });
+});

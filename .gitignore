@@ -111,3 +111,9 @@ testResults*
 coverageResults*
 testSuggestions*
 *.mp4
+
+# Test-generated screenshot baselines (platform-specific, regenerated on each run)
+test/core-artifacts/static/images/crop.png
+test/core-artifacts/static/images/padding.png
+test/core-artifacts/enhanced-modal.png
+test/core-artifacts/enhanced-modal-large.png

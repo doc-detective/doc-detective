@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092",
+            "waitUntil": {
+              "find": { "selector": "#nonexistent-element-xyz" }
+            },
+            "timeout": 5000
+          }
+        }
+      ]
+    }
+  ]
+}
