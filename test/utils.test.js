@@ -1,6 +1,9 @@
-const { setArgs, setConfig, outputResults } = require("../src/utils");
-const path = require("path");
-const fs = require("fs");
+import { setArgs, setConfig, outputResults } from "../dist/utils.js";
+import path from "node:path";
+import fs from "node:fs";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 before(async function () {
   const { expect } = await import("chai");
@@ -84,7 +87,7 @@ describe("Util tests", function () {
     // This test takes a bit longer
     this.timeout(5000);
 
-    configSets = [
+    const configSets = [
       {
         // Input override
         args: ["node", "runTests.js", "--input", "input.spec.json"],
@@ -227,7 +230,7 @@ describe("Util tests", function () {
     try {
       // Ensure env override is not set for the default-value test
       delete process.env.DOC_DETECTIVE_CONFIG;
-      
+
       // Test 1: Valid environment variable config without file config
       process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({
         logLevel: "debug",

@@ -1,0 +1,39 @@
+{
+  "specId": "enhancedElementFinding",
+  "tests": [
+    
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "click-with-elementTestId",
+          "click": {
+            "elementTestId": "checkout-button"
+          }
+        },
+        {
+          "stepId": "click-with-elementClass",
+          "click": {
+            "elementClass": "enabled",
+            "elementText": "Enabled Primary"
+          }
+        },
+        {
+          "stepId": "backward-compatibility-selector-only",
+          "click": {
+            "selector": "#submit-button"
+          }
+        },
+        {
+          "stepId": "click-with-selector-and-text",
+          "click": {
+            "selector": "button",
+            "elementText": "Submit Form"
+          }
+        }
+      ]
+    }
+  ]
+}

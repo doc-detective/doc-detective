@@ -1,24 +1,32 @@
-const yargs = require("yargs/yargs");
-const { hideBin } = require("yargs/helpers");
-const { validate, resolvePaths, readFile } = require("doc-detective-common");
-const path = require("path");
-const fs = require("fs");
-const { spawn } = require("child_process");
-const os = require("os");
-const axios = require("axios");
+import yargs from "yargs/yargs";
+import { hideBin } from "yargs/helpers";
+import { validate } from "doc-detective-common";
+import { resolvePaths, readFile } from "./core/index.js";
+import path from "node:path";
+import fs from "node:fs";
+import { spawn } from "node:child_process";
+import os from "node:os";
+import axios from "axios";
+import { createRequire } from "node:module";
 
-exports.setArgs = setArgs;
-exports.setConfig = setConfig;
-exports.outputResults = outputResults;
-exports.spawnCommand = spawnCommand;
-exports.setMeta = setMeta;
-exports.getVersionData = getVersionData;
-exports.log = log;
-exports.getResolvedTestsFromEnv = getResolvedTestsFromEnv;
-exports.reportResults = reportResults;
+const require = createRequire(import.meta.url);
+
+export {
+  setArgs,
+  setConfig,
+  outputResults,
+  spawnCommand,
+  setMeta,
+  getVersionData,
+  log,
+  getResolvedTestsFromEnv,
+  reportResults,
+  reporters,
+  registerReporter,
+};
 
 // Log function that respects logLevel
-function log(message, level = "info", config = {}) {
+function log(message: any, level: string = "info", config: any = {}) {
   const logLevels = ["silent", "error", "warning", "info", "debug"];
   const currentLevel = config.logLevel || "info";
   const currentLevelIndex = logLevels.indexOf(currentLevel);
@@ -35,9 +43,9 @@ function log(message, level = "info", config = {}) {
 }
 
 // Define args
-function setArgs(args) {
+function setArgs(args: any): any {
   if (!args) return {};
-  let argv = yargs(hideBin(args))
+  const argv = yargs(hideBin(args))
     .option("config", {
       alias: "c",
       description: "Path to a `config.json` or `config.yaml` file.",
@@ -72,13 +80,13 @@ function setArgs(args) {
 }
 
 // Get resolved tests from environment variable, if set
-async function getResolvedTestsFromEnv(config = {}) {
+async function getResolvedTestsFromEnv(config: any = {}) {
   if (!process.env.DOC_DETECTIVE_API) {
     return null;
   }
 
-  let resolvedTests = null;
-  let apiConfig = null;
+  let resolvedTests: any = null;
+  let apiConfig: any = null;
   try {
     // Parse the environment variable as JSON
     apiConfig = JSON.parse(process.env.DOC_DETECTIVE_API);
@@ -136,7 +144,7 @@ async function getResolvedTestsFromEnv(config = {}) {
       "debug",
       config
     );
-  } catch (error) {
+  } catch (error: any) {
     log(
       `Error fetching resolved tests from DOC_DETECTIVE_API: ${error.message}`,
       "error",
@@ -152,7 +160,7 @@ async function getConfigFromEnv() {
     return null;
   }
 
-  let envConfig = null;
+  let envConfig: any = null;
   try {
     // Parse the environment variable as JSON
     envConfig = JSON.parse(process.env.DOC_DETECTIVE_CONFIG);
@@ -172,7 +180,7 @@ async function getConfigFromEnv() {
     }
 
     log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
-  } catch (error) {
+  } catch (error: any) {
     console.error(
       `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
     );
@@ -182,13 +190,13 @@ async function getConfigFromEnv() {
 }
 
 // Override config values based on args and validate the config
-async function setConfig({ configPath, args }) {
+async function setConfig({ configPath, args }: { configPath?: any; args: any }) {
   if (args.config && !configPath) {
     configPath = args.config;
   }
 
   // If config file exists, read it
-  let config = {};
+  let config: any = {};
   if (configPath) {
     try {
       config = await readFile({ fileURLOrPath: configPath });
@@ -237,9 +245,9 @@ async function setConfig({ configPath, args }) {
   }
   if (args.input) {
     // If input includes commas, split it into an array
-    args.input = args.input.split(",").map((item) => item.trim());
+    args.input = args.input.split(",").map((item: any) => item.trim());
     // Resolve paths
-    args.input = args.input.map((item) => {
+    args.input = args.input.map((item: any) => {
       if (item.startsWith("https://") || item.startsWith("http://")) {
         return item; // Don't resolve URLs
       }
@@ -270,16 +278,16 @@ async function setConfig({ configPath, args }) {
 }
 
 // Internal reporters
-const reporters = {
+const reporters: Record<string, (config: any, outputPath: any, results: any, options: any) => Promise<any>> = {
   // JSON reporter: outputs results to a JSON file
-  jsonReporter: async (config = {}, outputPath, results, options = {}) => {
+  jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     // Define supported output extensions
     const outputExtensions = [".json"];
 
     // Normalize output path
     outputPath = path.resolve(outputPath);
 
-    let data = JSON.stringify(results, null, 2);
+    const data = JSON.stringify(results, null, 2);
     let outputFile = "";
     let outputDir = "";
     let reportType = "doc-detective-results";
@@ -325,7 +333,7 @@ const reporters = {
   },
 
   // Terminal reporter: outputs a summary to the terminal
-  terminalReporter: async (config = {}, outputPath, results, options = {}) => {
+  terminalReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     // Defines colors for terminal output
     const colors = {
       red: "\x1b[31m",
@@ -486,19 +494,19 @@ const reporters = {
         );
 
         // Collect failures
-        const failedSpecs = [];
-        const failedTests = [];
-        const failedContexts = [];
-        const failedSteps = [];
+        const failedSpecs: any[] = [];
+        const failedTests: any[] = [];
+        const failedContexts: any[] = [];
+        const failedSteps: any[] = [];
 
         // Collect skipped
-        const skippedSpecs = [];
-        const skippedTests = [];
-        const skippedContexts = [];
-        const skippedSteps = [];
+        const skippedSpecs: any[] = [];
+        const skippedTests: any[] = [];
+        const skippedContexts: any[] = [];
+        const skippedSteps: any[] = [];
 
         // Process specs array to collect failures and skipped
-        results.specs.forEach((spec, specIndex) => {
+        results.specs.forEach((spec: any, specIndex: any) => {
           // Check if spec has failed
           if (spec.result === "FAIL") {
             failedSpecs.push({
@@ -516,7 +524,7 @@ const reporters = {
 
           // Process tests in this spec
           if (spec.tests && spec.tests.length > 0) {
-            spec.tests.forEach((test, testIndex) => {
+            spec.tests.forEach((test: any, testIndex: any) => {
               // Check if test has failed
               if (test.result === "FAIL") {
                 failedTests.push({
@@ -538,7 +546,7 @@ const reporters = {
 
               // Process contexts in this test
               if (test.contexts && test.contexts.length > 0) {
-                test.contexts.forEach((context, contextIndex) => {
+                test.contexts.forEach((context: any, contextIndex: any) => {
                   // Check if context has failed
                   if (
                     context.result === "FAIL" ||
@@ -576,7 +584,7 @@ const reporters = {
 
                   // Process steps in this context
                   if (context.steps && context.steps.length > 0) {
-                    context.steps.forEach((step, stepIndex) => {
+                    context.steps.forEach((step: any, stepIndex: any) => {
                       // Check if step has failed
                       if (step.result === "FAIL") {
                         failedSteps.push({
@@ -711,11 +719,8 @@ const reporters = {
   },
 };
 
-// Export reporters for external use
-exports.reporters = reporters;
-
 // Helper function to register custom reporters
-function registerReporter(name, reporterFunction) {
+function registerReporter(name: string, reporterFunction: any) {
   if (typeof reporterFunction !== "function") {
     throw new Error("Reporter must be a function");
   }
@@ -723,20 +728,17 @@ function registerReporter(name, reporterFunction) {
   return true;
 }
 
-// Export the registerReporter function
-exports.registerReporter = registerReporter;
-
-async function reportResults({ apiConfig, results }) {
+async function reportResults({ apiConfig, results }: { apiConfig: any; results: any }) {
   // Transform results into the required format for the API
   // Extract contexts from the nested structure and format them
-  const contexts = [];
+  const contexts: any[] = [];
 
   if (results.specs) {
-    results.specs.forEach((spec) => {
+    results.specs.forEach((spec: any) => {
       if (spec.tests) {
-        spec.tests.forEach((test) => {
+        spec.tests.forEach((test: any) => {
           if (test.contexts) {
-            test.contexts.forEach((context) => {
+            test.contexts.forEach((context: any) => {
               // Extract or generate contextId
               const contextId =
                 context.contextId;
@@ -753,8 +755,8 @@ async function reportResults({ apiConfig, results }) {
                 status = "skipped";
               }
               if (!status) {
-                log(config, "error", `Unknown context result status for context ID ${contextId}`);
-                return; 
+                console.error(`Unknown context result status for context ID ${contextId}`);
+                return;
               }
 
               // Build the context payload with the entire context object embedded
@@ -783,14 +785,14 @@ async function reportResults({ apiConfig, results }) {
       },
     });
     console.log("Results reported successfully:", response.data);
-  } catch (error) {
+  } catch (error: any) {
     console.error(
       `Error reporting results to ${apiConfig.url}/contexts: ${error.message}`
     );
   }
 }
 
-async function outputResults(config = {}, outputPath, results, options = {}) {
+async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
   // Default to using both built-in reporters if none specified
   const defaultReporters = ["terminal", "json"];
 
@@ -799,7 +801,7 @@ async function outputResults(config = {}, outputPath, results, options = {}) {
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {
     // Convert any shorthand names to full reporter names
-    activeReporters = activeReporters.map((reporter) => {
+    activeReporters = activeReporters.map((reporter: any) => {
       if (typeof reporter === "string") {
         // Convert shorthand names to actual reporter keys
         switch (reporter.toLowerCase()) {
@@ -816,7 +818,7 @@ async function outputResults(config = {}, outputPath, results, options = {}) {
   }
 
   // Execute each reporter
-  const reporterPromises = activeReporters.map((reporter) => {
+  const reporterPromises = activeReporters.map((reporter: any) => {
     if (typeof reporter === "function") {
       // Direct function reference
       return reporter(config, outputPath, results, options);
@@ -841,12 +843,12 @@ async function outputResults(config = {}, outputPath, results, options = {}) {
 }
 
 // Perform a native command in the current working directory.
-async function spawnCommand(cmd, args) {
+async function spawnCommand(cmd: string, args?: string[]) {
   // Split command into command and arguments
   if (cmd.includes(" ")) {
     const cmdArray = cmd.split(" ");
     cmd = cmdArray[0];
-    cmdArgs = cmdArray.slice(1);
+    const cmdArgs = cmdArray.slice(1);
     // Add arguments to args array
     if (args) {
       args = cmdArgs.concat(args);
@@ -884,20 +886,20 @@ async function spawnCommand(cmd, args) {
 }
 
 function setMeta() {
-  const platformMap = {
+  const platformMap: Record<string, string> = {
     win32: "windows",
     darwin: "mac",
     linux: "linux",
   };
 
   // Set meta
-  const meta =
+  const meta: any =
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const package = require("../package.json");
+  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = package.version;
+  meta.dist_version = pkg.version;
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -913,7 +915,7 @@ function getVersionData() {
   try {
     // Get main package version
     const mainPackage = require("../package.json");
-    const versionData = {
+    const versionData: any = {
       main: {
         "doc-detective": {
           version: mainPackage.version,
@@ -932,7 +934,7 @@ function getVersionData() {
 
     // Auto-discover all doc-detective-* packages in node_modules
     const nodeModulesPath = path.resolve(process.cwd(), "node_modules");
-    const dependenciesToCheck = [];
+    const dependenciesToCheck: string[] = [];
 
     if (fs.existsSync(nodeModulesPath)) {
       const nodeModulesContents = fs.readdirSync(nodeModulesPath);
@@ -1003,7 +1005,7 @@ function getVersionData() {
             error: "package.json not found",
           };
         }
-      } catch (error) {
+      } catch (error: any) {
         versionData.dependencies[dep] = {
           installed: null,
           expected:
@@ -1017,7 +1019,7 @@ function getVersionData() {
     });
 
     return versionData;
-  } catch (error) {
+  } catch (error: any) {
     return { error: error.message };
   }
 }

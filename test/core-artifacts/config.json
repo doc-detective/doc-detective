@@ -1,0 +1,41 @@
+{
+  "envVariables": "",
+  "input": ".",
+  "output": ".",
+  "recursive": true,
+  "logLevel": "debug",
+  "relativePathBase": "file",
+  "runTests": {
+    "input": "./dev/doc-content.md",
+    "output": ".",
+    "setup": "",
+    "cleanup": "",
+    "recursive": true,
+    "detectSteps": false,
+    "mediaDirectory": ".",
+    "downloadDirectory": ".",
+    "contexts": [
+      {
+        "app": { "name": "firefox", "options": { "headless": true } },
+        "platforms": ["mac", "linux"]
+      },
+      {
+        "app": { "name": "firefox", "options": { "headless": true } },
+        "platforms": ["windows"]
+      }
+    ]
+  },
+  "integrations": {
+    "openApi": [
+      {
+        "name": "reqres_live",
+        "descriptionPath": "./test/core-need_updates/reqres.openapi.yaml",
+        "server": "https://reqres.in/api",
+        "useExample": "request"
+      }
+    ]
+  },
+  "telemetry": {
+    "send": false
+  }
+}

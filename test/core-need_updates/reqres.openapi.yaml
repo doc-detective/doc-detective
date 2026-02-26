@@ -1,0 +1,195 @@
+openapi: 3.0.3
+info:
+  title: Reqres API
+  description: Sample API for testing and prototyping
+  version: 0.0.1
+servers:
+- url: https://reqres.in/api
+tags:
+- name: Test
+  description: Test operations
+security:
+- {}
+paths:
+  "/users":
+    post:
+      tags:
+      - Test
+      summary: Add a new user
+      description: Add a new user
+      operationId: addUser
+      requestBody:
+        description: Create a new pet in the store
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/userRequest"
+        required: true
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/userResponse"
+              examples:
+                test:
+                  value:
+                    name: morpheus
+                    job: leader
+                foobar:
+                  value:
+                    name: neo
+                    job: the-one
+        '400':
+          description: Invalid input
+          headers:
+            X-Rate-Limit:
+              description: The number of allowed requests in the current period
+              required: true
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+                  isDone:
+                    type: boolean
+                  count:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      job:
+                        type: string
+                    required:
+                    - name
+                    - job
+    get:
+      tags:
+      - Test
+      summary: Return a list of users
+      description: Return a list of users
+      operationId: getUsers
+      parameters:
+      - name: page
+        in: query
+        description: Select the portition of record you want back
+        required: false
+        schema:
+          type: integer
+          example: 1
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/userResponse"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  "/users/{id}":
+    put:
+      tags:
+      - Test
+      summary: Update an existing user
+      description: Update an existing user by Id
+      operationId: updateUser
+      parameters:
+      - name: id
+        in: path
+        description: id of user to delete
+        required: true
+        example: 1
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        description: Update an existent pet in the store
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/userRequest"
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/userResponse"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      tags:
+      - Test
+      summary: Deletes a user
+      description: delete a user
+      operationId: deleteUser
+      parameters:
+      - name: id
+        in: path
+        description: id of user to delete
+        required: true
+        example: 1
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '204':
+          description: No content
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+components:
+  schemas:
+    userResponse:
+      description: response payload
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        job:
+          type: string
+        id:
+          type: string
+        createdAt:
+          type: string
+    userRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        job:
+          type: string

@@ -1,51 +1,30 @@
-const { createServer } = require("./server");
-const path = require("path");
-const { spawnCommand } = require("../src/utils");
-const assert = require("assert").strict;
-const fs = require("fs");
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnCommand } from "../dist/utils.js";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(`${artifactPath}/testResults.json`);
 
-// Create a server with custom options
-const server = createServer({
-  port: 8092,
-  staticDir: './test/server/public',
-  modifyResponse: (req, body) => {
-    // Optional modification of responses
-    return { ...body, extraField: 'added by server' };
-  }
-});
-
-// Start the server before tests
-before(async () => {
-  try {
-    await server.start();
-  } catch (error) {
-    console.error(`Failed to start test server: ${error.message}`);
-    throw error;
-  }
-});
-
-// Stop the server after tests
-after(async () => {
-  try {
-    await server.stop();
-  } catch (error) {
-    console.error(`Failed to stop test server: ${error.message}`);
-    // Don't rethrow here to avoid masking test failures
-  }
-});
-
 describe("Run tests successfully", function () {
-  // Set indefinite timeout
-  this.timeout(0);
+  // 10 minutes (runs all specs end-to-end via CLI)
+  this.timeout(600000);
   it("All specs pass", async () => {
     await spawnCommand(
-      `node ./src/index.js -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
+      `node ./bin/doc-detective.js -c ${artifactPath}/config.json -i ${artifactPath} -o ${outputFile}`
     );
-    // Wait until the file is written
-    while (!fs.existsSync(outputFile)) {}
-    const result = require(outputFile);
+    // Wait until the file is written (poll with async sleep to avoid blocking the event loop)
+    let waitCount = 0;
+    while (!fs.existsSync(outputFile) && waitCount < 600) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      waitCount++;
+    }
+    if (!fs.existsSync(outputFile)) {
+      assert.fail("Output file was not created within the expected time");
+    }
+    const result = JSON.parse(fs.readFileSync(outputFile, "utf8"));
     console.log(JSON.stringify(result, null, 2));
     fs.unlinkSync(outputFile);
     assert.equal(result.summary.specs.fail, 0);

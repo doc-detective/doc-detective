@@ -1,0 +1,19 @@
+{
+  "id": "Make sure Chrome is working",
+  "contexts": [
+    {
+      "app": { "name": "chrome", "options": { "headless": true } },
+      "platforms": ["windows", "mac", "linux"]
+    }
+  ],
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://www.google.com"
+        }
+      ]
+    }
+  ]
+}

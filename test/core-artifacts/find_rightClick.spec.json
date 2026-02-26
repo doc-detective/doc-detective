@@ -1,0 +1,21 @@
+{
+    "id": "find_rightClick",
+    "tests": [
+      {
+        "steps": [
+          {
+            "action": "goTo",
+            "url": "http://localhost:8092"
+          },
+          {
+            "action": "find",
+            "selector": "#text-input",
+            "click": {
+              "button": "right"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  

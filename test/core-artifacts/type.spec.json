@@ -1,0 +1,46 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "#text-input"
+        },
+        {
+          "type": ["kittens", "$ENTER$"]
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "#text-input"
+        },
+        {
+          "type": "kittens"
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "#text-input"
+        },
+        {
+          "type": {
+            "keys": ["kittens", "$ENTER$"],
+            "inputDelay": 100
+          }
+        }
+      ]
+    }
+  ]
+}

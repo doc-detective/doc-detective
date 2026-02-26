@@ -1,7 +1,5 @@
-#!/usr/bin/env node
-
-const { runTests } = require("doc-detective-core");
-const {
+import { runTests } from "./core/index.js";
+import {
   setArgs,
   setConfig,
   outputResults,
@@ -10,30 +8,30 @@ const {
   log,
   getResolvedTestsFromEnv,
   reportResults,
-} = require("./utils");
-const { argv } = require("node:process");
-const path = require("path");
-const fs = require("fs");
+} from "./utils.js";
+import { argv } from "node:process";
+import path from "node:path";
+import fs from "node:fs";
 
 // Run
 setMeta();
 main(argv);
 
 // Run
-async function main(argv) {
+async function main(argv: string[]) {
   // Find index of `doc-detective` or `run` in argv
   const index = argv.findIndex(
     (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")
   );
   // Set args
-  argv = setArgs(argv);
+  const args: any = setArgs(argv);
 
   // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
   const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-  const configPath = fs.existsSync(argv.config)
-    ? argv.config
+  const configPath = fs.existsSync(args.config)
+    ? args.config
     : fs.existsSync(configPathJSON)
     ? configPathJSON
     : fs.existsSync(configPathYAML)
@@ -43,7 +41,7 @@ async function main(argv) {
     : null;
 
   // Set config
-  const config = await setConfig({ configPath: configPath, args: argv });
+  const config: any = await setConfig({ configPath: configPath, args: args });
 
   log(
     `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
@@ -53,9 +51,9 @@ async function main(argv) {
   log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
 
   // Check for DOC_DETECTIVE_API environment variable
-  let api = await getResolvedTestsFromEnv(config);
-  let resolvedTests = api?.resolvedTests || null;
-  let apiConfig = api?.apiConfig || null;
+  const api = await getResolvedTestsFromEnv(config);
+  const resolvedTests = api?.resolvedTests || null;
+  const apiConfig = api?.apiConfig || null;
 
   // Run tests
   const output = config.output;

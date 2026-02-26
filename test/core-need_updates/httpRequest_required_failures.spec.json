@@ -1,0 +1,98 @@
+{
+  "tests": [
+    {
+      "id": "httpRequest_required_missing_simple_field",
+      "description": "Test that missing simple fields are detected",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "name": "John Doe"
+              }
+            },
+            "response": {
+              "required": ["name", "email", "age"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "httpRequest_required_missing_nested_field",
+      "description": "Test that missing nested fields are detected",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "method": "post",
+            "request": {
+              "body": {
+                "user": {
+                  "profile": {
+                    "name": "Jane Doe"
+                  }
+                }
+              }
+            },
+            "response": {
+              "required": [
+                "user.profile.name",
+                "user.profile.email"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "httpRequest_required_out_of_bounds_array",
+      "description": "Test that out of bounds array indices are detected",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/orders",
+            "method": "post",
+            "request": {
+              "body": {
+                "orders": [
+                  {
+                    "id": "order-1"
+                  }
+                ]
+              }
+            },
+            "response": {
+              "required": [
+                "orders[0].id",
+                "orders[1].id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "httpRequest_required_missing_parent",
+      "description": "Test that missing parent objects are detected",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/data",
+            "method": "post",
+            "request": {
+              "body": {
+                "field": "value"
+              }
+            },
+            "response": {
+              "required": ["user.profile.name"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

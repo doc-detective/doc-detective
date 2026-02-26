@@ -1,7 +1,6 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const path = require("path");
-const fs = require("fs");
+import express from "express";
+import bodyParser from "body-parser";
+import fs from "node:fs";
 
 /**
  * Creates an echo server that can serve static content and echo back API requests
@@ -30,36 +29,13 @@ function createServer(options = {}) {
     app.use(express.static(staticDir));
   }
 
-  // Echo API endpoint that returns the request body
-  app.all("/api/:path", (req, res) => {
-    try {
-      const requestBody = req.method === "GET" ? req.query : req.body;
-      const modifiedResponse = modifyResponse(req, requestBody);
-      console.log("Request:", {
-        Method: req.method,
-        Path: req.path,
-        Query: req.query,
-        Headers: req.headers,
-        Body: req.body,
-      });
-
-      res.set("x-server", "doc-detective-echo-server");
-
-      console.log("Response:", { Body: modifiedResponse });
-
-      res.json(modifiedResponse);
-    } catch (error) {
-      console.error("Error processing request:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
   // Endpoint for testing DOC_DETECTIVE_API - returns resolved tests
+  // IMPORTANT: Must be registered before the catch-all /api/:path route
   app.get("/api/resolved-tests", (req, res) => {
     try {
       // Check for x-runner-token header
       const token = req.headers['x-runner-token'];
-      
+
       if (!token || token !== 'test-token-123') {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -96,6 +72,30 @@ function createServer(options = {}) {
       res.json(resolvedTests);
     } catch (error) {
       console.error("Error processing resolved tests request:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Echo API endpoint that returns the request body (catch-all)
+  app.all("/api/:path", (req, res) => {
+    try {
+      const requestBody = req.method === "GET" ? req.query : req.body;
+      const modifiedResponse = modifyResponse(req, requestBody);
+      console.log("Request:", {
+        Method: req.method,
+        Path: req.path,
+        Query: req.query,
+        Headers: req.headers,
+        Body: req.body,
+      });
+
+      res.set("x-server", "doc-detective-echo-server");
+
+      console.log("Response:", { Body: modifiedResponse });
+
+      res.json(modifiedResponse);
+    } catch (error) {
+      console.error("Error processing request:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -158,28 +158,4 @@ function createServer(options = {}) {
 }
 
 // Export the function
-module.exports = { createServer };
-
-// If this file is run directly, start a server
-if (require.main === module) {
-  const server = createServer({
-    port: process.env.PORT || 8092,
-    staticDir:
-      process.env.STATIC_DIR ||
-      path.join(process.cwd(), "./test/server/public"),
-  });
-
-  server.start();
-
-  // Handle graceful shutdown
-  const shutdown = () => {
-    console.log("Shutting down server...");
-    server
-      .stop()
-      .then(() => process.exit(0))
-      .catch(() => process.exit(1));
-  };
-
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
-}
+export { createServer };
