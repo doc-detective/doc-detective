@@ -152,7 +152,7 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
       sourceInitialSize.width !== sourceFinalSize.width ||
       sourceInitialSize.height !== sourceFinalSize.height;
 
-    if (!sourceChanged) {
+    if (!sourceChanged && !driver?.isNativeApp) {
       // WebDriver.io method failed silently, try HTML5 simulation
       log(
         config,
@@ -178,6 +178,10 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
         "Performed drag and drop with HTML5 simulation as fallback after WebDriver.io failed silently."
       );
       result.description += " Performed drag and drop.";
+    } else if (!sourceChanged && driver?.isNativeApp) {
+      result.status = "FAIL";
+      result.description += " Drag and drop didn't appear to move the element.";
+      return result;
     } else {
       log(config, "debug", "Performed drag and drop with WebDriver.io.");
       result.description += " Performed drag and drop.";

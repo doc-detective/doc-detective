@@ -53,7 +53,20 @@ const driverActions = [
 ];
 
 // Get Appium driver capabilities and apply options.
-function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
+function getDriverCapabilities({ runnerDetails, name, options, app }: { runnerDetails: any; name?: any; options?: any; app?: any }): any {
+  // If app is provided, return NovaWindows capabilities for native Windows app automation
+  if (app) {
+    const capabilities: any = {
+      platformName: "Windows",
+      "appium:automationName": "NovaWindows",
+      "appium:newCommandTimeout": 600,
+      "appium:app": app.path,
+    };
+    if (app.arguments) capabilities["appium:appArguments"] = app.arguments;
+    if (app.workingDir) capabilities["appium:appWorkingDir"] = app.workingDir;
+    return capabilities;
+  }
+
   let capabilities: any = {};
   let args: string[] = [];
 
@@ -174,12 +187,15 @@ function isDriverRequired({ test }: { test: any }) {
 
 // Check if context is supported by current platform and available apps
 function isSupportedContext({ context, apps, platform }: { context: any; apps: any[]; platform: any }) {
-  // Check browsers
-  let isSupportedApp: any = true;
   // Check platform
   const isSupportedPlatform = context.platform === platform;
+  let isSupportedApp: any = true;
+  // Check browser availability
   if (context?.browser?.name)
     isSupportedApp = apps.find((app: any) => app.name === context.browser.name);
+  // Check native app availability (requires NovaWindows driver)
+  if (context?.app)
+    isSupportedApp = apps.find((app: any) => app.name === "novawindows");
   // Return boolean
   if (isSupportedApp && isSupportedPlatform) {
     return true;
@@ -485,7 +501,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         }
 
         // If "browser" isn't defined but is required by the test, set it to the first available browser in the sequence of Firefox, Chrome, Safari
-        if (!context.browser && isDriverRequired({ test: context })) {
+        // Don't default to a browser if this is a native app context
+        if (!context.browser && !context.app && isDriverRequired({ test: context })) {
           context.browser = getDefaultBrowser({ runnerDetails });
         }
 
@@ -494,6 +511,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           contextId: context.contextId || randomUUID(),
           platform: context.platform,
           browser: context.browser,
+          app: context.app,
           steps: [],
         };
         // Set meta values
@@ -532,16 +550,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         const driverRequired = isDriverRequired({ test: context });
         if (driverRequired) {
           // Define driver capabilities
-          // TODO: Support custom apps
-          let caps: any = getDriverCapabilities({
-            runnerDetails: runnerDetails,
-            name: context.browser.name,
-            options: {
-              width: context.browser?.window?.width || 1200,
-              height: context.browser?.window?.height || 800,
-              headless: context.browser?.headless !== false,
-            },
-          });
+          let caps: any;
+          if (context.app) {
+            caps = getDriverCapabilities({
+              runnerDetails: runnerDetails,
+              app: context.app,
+            });
+          } else {
+            caps = getDriverCapabilities({
+              runnerDetails: runnerDetails,
+              name: context.browser.name,
+              options: {
+                width: context.browser?.window?.width || 1200,
+                height: context.browser?.window?.height || 800,
+                headless: context.browser?.headless !== false,
+              },
+            });
+          }
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
 
@@ -549,6 +574,19 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           try {
             driver = await driverStart(caps);
           } catch (error: any) {
+            if (context.app) {
+              // No headless fallback for native apps — fail directly
+              const errorMessage = `Failed to start NovaWindows session for '${context.app.path}'.`;
+              log(config, "error", errorMessage);
+              contextReport = {
+                result: "SKIPPED",
+                resultDescription: errorMessage,
+                ...contextReport,
+              };
+              report.summary.contexts.skipped++;
+              testReport.contexts.push(contextReport);
+              continue;
+            }
             try {
               // If driver fails to start, try again as headless
               log(
@@ -585,7 +623,25 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
             }
           }
 
-          if (
+          // Set native app flag on driver for step handlers to check
+          if (context.app) {
+            driver.isNativeApp = true;
+          }
+
+          // Window/viewport sizing
+          if (context.app) {
+            // For native apps, optionally set window size
+            if (context.app.window?.width || context.app.window?.height) {
+              try {
+                await driver.setWindowSize(
+                  context.app.window.width || 800,
+                  context.app.window.height || 600
+                );
+              } catch (e: any) {
+                log(config, "warning", `Failed to set native app window size: ${e.message}`);
+              }
+            }
+          } else if (
             context.browser?.viewport?.width ||
             context.browser?.viewport?.height
           ) {
@@ -686,8 +742,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           }
         }
 
-        // If recording, stop recording
-        if (config.recording) {
+        // If recording, stop recording (skip for native apps)
+        if (config.recording && !driver?.isNativeApp) {
           const stopRecordStep = {
             stopRecord: true,
             description: "Stopping recording",
@@ -931,7 +987,8 @@ async function runStep({
     };
   }
   // If recording, wait until browser is loaded, then instantiate cursor
-  if (config?.recording) {
+  // Skip cursor/URL tracking for native apps
+  if (config?.recording && !driver?.isNativeApp) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;

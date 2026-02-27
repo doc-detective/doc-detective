@@ -8,6 +8,11 @@ export { goTo };
 async function goTo({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result = { status: "PASS", description: "Opened URL." };
 
+  // Skip for native app contexts
+  if (driver?.isNativeApp) {
+    return { status: "SKIPPED", description: "goTo is not supported in native app contexts." };
+  }
+
   // Resolve to object
   if (typeof step.goTo === "string") {
     step.goTo = { url: step.goTo };

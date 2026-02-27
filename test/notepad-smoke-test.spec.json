@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "steps": [
+        { "find": "Text Editor" },
+        { "type": "Hello from Doc Detective!" },
+        { "screenshot": "notepad-test.png" }
+      ]
+    }
+  ],
+  "runOn": [
+    {
+      "platforms": ["windows"],
+      "apps": [{ "path": "C:\\Windows\\notepad.exe" }]
+    }
+  ]
+}

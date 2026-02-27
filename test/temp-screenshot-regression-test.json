@@ -1,0 +1,18 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/drag-drop-test.html"
+        },
+        {
+          "screenshot": {
+            "path": "C:\\Users\\hawkeyexl\\Documents\\Workspaces\\doc-detective\\test\\temp-regression-screenshot.png",
+            "maxVariation": 0.05,
+            "overwrite": "aboveVariation"
+          }
+        }
+      ]
+    }
+  ]
+}

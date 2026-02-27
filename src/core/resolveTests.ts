@@ -37,12 +37,12 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
   log(config, "debug", `Determining required contexts for test: ${test.testId}`);
   const resolvedContexts: any[] = [];
 
-  // Check if current test requires a browser
-  let browserRequired = false;
+  // Check if current test requires a driver
+  let driverRequired = false;
   test.steps.forEach((step: any) => {
     // Check if test includes actions that require a driver.
     driverActions.forEach((action) => {
-      if (typeof step[action] !== "undefined") browserRequired = true;
+      if (typeof step[action] !== "undefined") driverRequired = true;
     });
   });
 
@@ -65,6 +65,22 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         return browser;
       });
     }
+    // Normalize apps: string/object → array, string items → { path: string }
+    if (context.apps) {
+      if (
+        typeof context.apps === "string" ||
+        (typeof context.apps === "object" &&
+          !Array.isArray(context.apps))
+      ) {
+        context.apps = [context.apps];
+      }
+      context.apps = context.apps.map((app: any) => {
+        if (typeof app === "string") {
+          app = { path: app };
+        }
+        return app;
+      });
+    }
     if (context.platforms) {
       if (typeof context.platforms === "string") {
         context.platforms = [context.platforms];
@@ -72,18 +88,37 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     }
   });
 
-  // Resolve to final contexts. Each context should include a single platform and at most a single browser.
+  // Resolve to final contexts. Each context should include a single platform and at most a single browser or app.
   contexts.forEach((context) => {
     const staticContexts: any[] = [];
     context.platforms.forEach((platform: any) => {
-      if (!browserRequired) {
+      const hasBrowsers = context.browsers && context.browsers.length > 0;
+      const hasApps = context.apps && context.apps.length > 0;
+
+      if (!driverRequired && !hasBrowsers && !hasApps) {
         const staticContext = { platform };
         staticContexts.push(staticContext);
       } else {
-        context.browsers.forEach((browser: any) => {
-          const staticContext = { platform, browser };
+        // Expand browser contexts
+        if (hasBrowsers) {
+          context.browsers.forEach((browser: any) => {
+            const staticContext = { platform, browser };
+            staticContexts.push(staticContext);
+          });
+        }
+        // Expand app contexts (separate from browser contexts)
+        if (hasApps) {
+          context.apps.forEach((app: any) => {
+            const staticContext = { platform, app };
+            staticContexts.push(staticContext);
+          });
+        }
+        // If neither browsers nor apps are specified but a driver is required,
+        // create a context without either (will get default browser later)
+        if (!hasBrowsers && !hasApps && driverRequired) {
+          const staticContext = { platform };
           staticContexts.push(staticContext);
-        });
+        }
       }
     });
     // For each static context, check if a matching object already exists in resolvedContexts.
@@ -92,7 +127,9 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         return (
           resolvedContext.platform === staticContext.platform &&
           JSON.stringify(resolvedContext.browser) ===
-            JSON.stringify(staticContext.browser)
+            JSON.stringify(staticContext.browser) &&
+          JSON.stringify(resolvedContext.app) ===
+            JSON.stringify(staticContext.app)
         );
       });
       if (!existingContext) {

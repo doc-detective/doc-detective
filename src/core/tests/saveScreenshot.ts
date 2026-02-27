@@ -136,12 +136,6 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       ...(await element.getLocation()),
       ...(await element.getSize()),
     };
-    const viewport = await driver.execute(() => {
-      return {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      };
-    });
 
     // Calculate padding
     let padding = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -154,45 +148,56 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       padding = step.screenshot.crop.padding;
     }
 
-    // Check if element can fit in viewport
-    if (
-      rect.width + padding.right + padding.left > viewport.width ||
-      rect.height + padding.top + padding.bottom > viewport.height
-    ) {
-      result.status = "FAIL";
-      result.description = `Element can't fit in viewport.`;
-      return result;
+    if (driver?.isNativeApp) {
+      // For native apps, skip viewport check and scrollIntoView (no browser viewport)
+    } else {
+      const viewport = await driver.execute(() => {
+        return {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        };
+      });
+
+      // Check if element can fit in viewport
+      if (
+        rect.width + padding.right + padding.left > viewport.width ||
+        rect.height + padding.top + padding.bottom > viewport.height
+      ) {
+        result.status = "FAIL";
+        result.description = `Element can't fit in viewport.`;
+        return result;
+      }
+
+      // Scroll element into view at top-left with padding
+      await driver.execute(
+        (el: any, pad: any) => {
+          el.scrollIntoView({
+            block: "start",
+            inline: "start",
+            behavior: "instant",
+          });
+          window.scrollBy(-pad.left, -pad.top);
+        },
+        element,
+        padding
+      );
+
+      // Wait for scroll to complete
+      await driver.pause(100);
     }
-
-    // Scroll element into view at top-left with padding
-    await driver.execute(
-      (el: any, pad: any) => {
-        el.scrollIntoView({
-          block: "start",
-          inline: "start",
-          behavior: "instant",
-        });
-        window.scrollBy(-pad.left, -pad.top);
-      },
-      element,
-      padding
-    );
-
-    // Wait for scroll to complete
-    await driver.pause(100);
   }
 
   try {
-    // If recording is true, hide cursor
-    if (config.recording) {
+    // If recording is true, hide cursor (skip for native apps)
+    if (config.recording && !driver?.isNativeApp) {
       await driver.execute(() => {
         (document.querySelector("dd-mouse-pointer") as any).style.display = "none";
       });
     }
     // Save screenshot
     await driver.saveScreenshot(filePath);
-    // If recording is true, show cursor
-    if (config.recording) {
+    // If recording is true, show cursor (skip for native apps)
+    if (config.recording && !driver?.isNativeApp) {
       await driver.execute(() => {
         (document.querySelector("dd-mouse-pointer") as any).style.display = "block";
       });
@@ -220,19 +225,34 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       padding = step.screenshot.crop.padding;
     }
 
-    // Get pixel density
-    const pixelDensity = await driver.execute(() => window.devicePixelRatio);
+    // Get pixel density and element bounding rectangle
+    let pixelDensity: number;
+    let rect: any;
 
-    // Get the bounding rectangle of the element relative to the viewport after scroll
-    const rect = await driver.execute((el: any) => {
-      const bounds = el.getBoundingClientRect();
-      return {
-        x: bounds.left,
-        y: bounds.top,
-        width: bounds.width,
-        height: bounds.height,
+    if (driver?.isNativeApp) {
+      // For native apps, use WebDriver-based approach instead of browser JS
+      pixelDensity = 1;
+      const location = await element.getLocation();
+      const size = await element.getSize();
+      rect = {
+        x: location.x,
+        y: location.y,
+        width: size.width,
+        height: size.height,
       };
-    }, element);
+    } else {
+      pixelDensity = await driver.execute(() => window.devicePixelRatio);
+      // Get the bounding rectangle of the element relative to the viewport after scroll
+      rect = await driver.execute((el: any) => {
+        const bounds = el.getBoundingClientRect();
+        return {
+          x: bounds.left,
+          y: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+        };
+      }, element);
+    }
     log(config, "debug", { rect });
 
     // Calculate the padding based on the provided padding values

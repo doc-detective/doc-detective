@@ -647,6 +647,21 @@ async function getAvailableApps({ config }: any) {
         apps.push({ name: "safari", version: safariVersion.stdout.trim(), path: "" });
       }
     }
+
+    // Detect NovaWindows driver (native Windows app automation)
+    if (config.environment.platform === "windows") {
+      const appiumNovaWindows = installedAppiumDrivers.stderr.match(
+        /\n.*novawindows.*installed \(npm\).*\n/
+      );
+      if (appiumNovaWindows) {
+        apps.push({
+          name: "novawindows",
+          version: "",
+          path: "",
+          driver: "novawindows",
+        });
+      }
+    }
   } finally {
     // Always restore the original working directory
     process.chdir(cwd);

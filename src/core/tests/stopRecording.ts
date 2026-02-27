@@ -14,6 +14,11 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     description: "Stopped recording.",
   };
 
+  // Skip for native app contexts
+  if (driver?.isNativeApp) {
+    return { status: "SKIPPED", description: "Recording is not supported in native app contexts." };
+  }
+
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {

@@ -1,0 +1,3 @@
+[submodule "workspace/common"]
+	path = workspace/common
+	url = https://github.com/doc-detective/common
