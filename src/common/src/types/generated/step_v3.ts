@@ -143,7 +143,7 @@ export type RecordBoolean = boolean;
 /**
  * Stop the current recording.
  */
-export type StopRecord1 = boolean;
+export type StopRecord1 = boolean | null;
 /**
  * Load environment variables from the specified `.env` file.
  */
@@ -582,7 +582,7 @@ export interface RunShellCommandDetailed {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -682,7 +682,7 @@ export interface RunCodeDetailed {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**

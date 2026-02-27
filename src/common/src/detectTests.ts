@@ -8,6 +8,24 @@ import YAML from "yaml";
 import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
 
+// Set of property names that must not be used as object keys to prevent prototype pollution
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Creates a RegExp from a pattern string with safety checks against ReDoS.
+ * Returns null if the pattern is invalid or potentially unsafe.
+ */
+function safeRegExp(pattern: string, flags: string): RegExp | null {
+  if (typeof pattern !== 'string' || pattern.length === 0) return null;
+  // Reject excessively long patterns
+  if (pattern.length > 1500) return null;
+  try {
+    return new RegExp(pattern, flags);
+  } catch {
+    return null;
+  }
+}
+
 // Web Crypto API compatible UUID generation
 /* c8 ignore next 10 - crypto.randomUUID always available in Node.js; fallback is for browsers */
 function generateUUID(): string {
@@ -143,6 +161,8 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
     // Handle dot notation for nested objects
     if (keyPath.includes(".")) {
       const keys = keyPath.split(".");
+      // Skip paths that could cause prototype pollution
+      if (keys.some(k => FORBIDDEN_KEYS.has(k))) continue;
       let current = result;
 
       for (let i = 0; i < keys.length - 1; i++) {
@@ -154,7 +174,7 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
       }
 
       current[keys[keys.length - 1]] = value;
-    } else {
+    } else if (!FORBIDDEN_KEYS.has(keyPath)) {
       result[keyPath] = value;
     }
   }
@@ -327,12 +347,8 @@ export async function parseContent({
       return;
 
     fileType.inlineStatements[statementType as keyof typeof fileType.inlineStatements]!.forEach((statementRegex) => {
-      let regex: RegExp;
-      try {
-        regex = new RegExp(statementRegex, "g");
-      } catch {
-        return;
-      }
+      const regex = safeRegExp(statementRegex, "g");
+      if (!regex) return;
       const matches = [...content.matchAll(regex)];
       matches.forEach((match: any) => {
         match.type = statementType;
@@ -345,12 +361,8 @@ export async function parseContent({
   if (config.detectSteps && fileType.markup) {
     fileType.markup.forEach((markup) => {
       markup.regex.forEach((pattern) => {
-        let regex: RegExp;
-        try {
-          regex = new RegExp(pattern, "g");
-        } catch {
-          return;
-        }
+        const regex = safeRegExp(pattern, "g");
+        if (!regex) return;
         const matches = [...content.matchAll(regex)];
         if (matches.length > 0 && markup.batchMatches) {
           const combinedMatch: any = {

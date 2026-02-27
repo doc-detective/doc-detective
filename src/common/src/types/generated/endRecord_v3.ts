@@ -7,4 +7,4 @@
 /**
  * Stop the current recording.
  */
-export type EndRecord = boolean;
+export type EndRecord = boolean | null;

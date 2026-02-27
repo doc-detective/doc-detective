@@ -1,7 +1,7 @@
 {
   "title": "moveMouse",
   "type": "object",
-  "description": "Move the mouse to an element specified by a CSS sepector. Only runs if a test is being recorded.",
+  "description": "Move the mouse to an element specified by a CSS selector. Only runs if a test is being recorded.",
   "properties": {
     "action": {
       "type": "string",
@@ -13,7 +13,7 @@
     },
     "alignH": {
       "type": "string",
-      "description": "Horizantal alignment of the mouse to the element.",
+      "description": "Horizontal alignment of the mouse to the element.",
       "enum": [
         "left",
         "center",

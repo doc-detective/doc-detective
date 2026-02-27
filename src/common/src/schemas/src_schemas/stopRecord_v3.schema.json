@@ -4,8 +4,7 @@
   "description": "Stop the current recording.",
   "anyOf": [
     {
-      "type": "boolean",
-      "nullable": true
+      "type": ["boolean", "null"]
     }
   ],
   "examples": [

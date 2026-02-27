@@ -127,13 +127,13 @@ async function dereferenceSchemas() {
   // Build final schemas.json file
   console.log("Building schemas.json file...");
   const schemas = {};
-  files.forEach(async (file) => {
+  for (const file of files) {
     const key = file.replace(".schema.json", "");
     // Load schema from file
-    let schema = require(`${outputDir}/${file}`);
+    const schema = require(`${outputDir}/${file}`);
     // Load into `schema` object
     schemas[key] = schema;
-  });
+  }
   fs.writeFileSync(
     `${__dirname}/schemas.json`,
     JSON.stringify(schemas, null, 2)
@@ -175,10 +175,10 @@ function updateRefPaths(schema) {
     }
     if (key === "$ref" && !value.startsWith("#")) {
       // File name of the referenced schema
-      valueFile = value.split("#")[0];
+      const valueFile = value.split("#")[0];
       // Attribute path in the referenced schema
-      valueAttribute = value.split("#")[1];
-      valuePath = path.resolve(`${__dirname}/build/${valueFile}`);
+      const valueAttribute = value.split("#")[1];
+      const valuePath = path.resolve(`${__dirname}/build/${valueFile}`);
       schema[key] = `${valuePath}#${valueAttribute}`;
       // console.log({value, valueFile, valueAttribute, final: schema[key]})
     }

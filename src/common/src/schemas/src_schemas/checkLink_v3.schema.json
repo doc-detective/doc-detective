@@ -82,7 +82,7 @@
     },
     {
       "url": "/search",
-      "origin": "www.google.com",
+      "origin": "https://www.google.com",
       "statusCodes": [
         200
       ]

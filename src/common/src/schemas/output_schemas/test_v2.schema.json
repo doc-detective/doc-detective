@@ -428,7 +428,7 @@
               "action": {
                 "type": "string",
                 "const": "httpRequest",
-                "description": "Aciton to perform."
+                "description": "Action to perform."
               },
               "url": {
                 "type": "string",
@@ -1221,7 +1221,7 @@
               },
               "maxVariation": {
                 "type": "number",
-                "description": "Allowed variation in percentage of pixels between the new screenshot and the exisitng screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
                 "default": 5,
                 "minimum": 0,
                 "maximum": 100
