@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "context",
+  "type": "object",
+  "description": "A context in which to perform tests. If no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For example, if a browser isn't specified but is required by steps in the test, Doc Detective will search for and use a supported browser available in the current environment.",
+  "additionalProperties": false,
+  "dynamicDefaults": {
+    "contextId": "uuid"
+  },
+  "properties": {
+    "$schema": {
+      "description": "JSON Schema for this object.",
+      "type": "string",
+      "enum": [
+        "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json"
+      ]
+    },
+    "contextId": {
+      "type": "string",
+      "description": "Unique identifier for the context."
+    },
+    "platforms": {
+      "description": "Platforms to run tests on.",
+      "anyOf": [
+        {
+          "$ref": "#/components/schemas/platform"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/platform"
+          }
+        }
+      ]
+    },
+    "browsers": {
+      "description": "Browsers to run tests on.",
+      "anyOf": [
+        {
+          "$ref": "#/components/schemas/browserName"
+        },
+        {
+          "$ref": "#/components/schemas/browser"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/browserName"
+              },
+              {
+                "$ref": "#/components/schemas/browser"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+      "platform": {
+        "type": "string",
+        "enum": ["linux", "mac", "windows"]
+      },
+      "browserName": {
+        "type": "string",
+        "description": "Name of the browser.",
+        "enum": ["chrome", "firefox", "safari", "webkit"],
+        "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+      },
+      "browser": {
+        "type": "object",
+        "description": "Browser configuration.",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/browserName"
+          },
+          "headless": {
+            "type": "boolean",
+            "description": "If `true`, runs the browser in headless mode.",
+            "default": true
+          },
+          "window": {
+            "type": "object",
+            "description": "Browser dimensions.",
+            "additionalProperties": false,
+            "properties": {
+              "width": {
+                "type": "integer",
+                "description": "Width of the browser window in pixels."
+              },
+              "height": {
+                "type": "integer",
+                "description": "Height of the browser window in pixels."
+              }
+            },
+            "title": "Browser Window"
+          },
+          "viewport": {
+            "type": "object",
+            "description": "Viewport dimensions.",
+            "additionalProperties": false,
+            "properties": {
+              "width": {
+                "type": "integer",
+                "description": "Width of the viewport in pixels."
+              },
+              "height": {
+                "type": "integer",
+                "description": "Height of the viewport in pixels."
+              }
+            },
+            "title": "Browser Viewport"
+          }
+        },
+        "title": "Browser"
+      }
+    }
+  },
+  "examples": [
+    {
+      "platforms": "linux",
+      "browsers": "chrome"
+    },
+    {
+      "platforms": ["windows", "mac", "linux"],
+      "browsers": ["chrome", "firefox", "webkit"]
+    },
+    {
+      "browsers": {
+        "name": "chrome",
+        "headless": true
+      }
+    },
+    {
+      "browsers": [
+        {
+          "name": "chrome",
+          "headless": true
+        },
+        {
+          "name": "firefox"
+        }
+      ]
+    },
+    {
+      "platforms": ["mac", "linux"],
+      "browsers": {
+        "name": "chrome",
+        "headless": true
+      }
+    },
+    {
+      "platforms": ["windows", "mac", "linux"],
+      "browsers": [
+        {
+          "name": "chrome",
+          "headless": true,
+          "window": {
+            "width": 1920,
+            "height": 1080
+          },
+          "viewport": {
+            "width": 1600,
+            "height": 900
+          }
+        },
+        {
+          "name": "firefox",
+          "window": {
+            "width": 1366,
+            "height": 768
+          }
+        },
+        {
+          "name": "webkit",
+          "headless": false,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        }
+      ]
+    },
+    {
+      "platforms": "mac",
+      "browsers": [
+        {
+          "name": "safari",
+          "window": {
+            "width": 1280,
+            "height": 800
+          }
+        }
+      ]
+    }
+  ]
+}

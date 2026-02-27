@@ -1,0 +1,245 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "saveCookie",
+  "description": "Save a specific browser cookie to a file or environment variable for later reuse.",
+  "anyOf": [
+    {
+      "type": "string",
+      "title": "Cookie name",
+      "description": "Name of the specific cookie to save. Will be saved to a default file path or environment variable.",
+      "pattern": "^[A-Za-z0-9_./\\-]+$",
+      "transform": [
+        "trim"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$schema": {
+          "description": "Optional self-describing schema URI for linters",
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "name": {
+          "type": "string",
+          "title": "Cookie name",
+          "description": "Name of the specific cookie to save.",
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "transform": [
+            "trim"
+          ]
+        },
+        "variable": {
+          "type": "string",
+          "title": "Environment variable name",
+          "description": "Environment variable name to store the cookie as JSON string.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "transform": [
+            "trim"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "title": "Cookie file path",
+          "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+          "transform": [
+            "trim"
+          ]
+        },
+        "directory": {
+          "type": "string",
+          "title": "Directory path",
+          "description": "Directory to save the cookie file. If not specified, uses output directory.",
+          "transform": [
+            "trim"
+          ]
+        },
+        "overwrite": {
+          "type": "boolean",
+          "title": "Overwrite existing file",
+          "description": "Whether to overwrite existing cookie file.",
+          "default": false
+        },
+        "domain": {
+          "type": "string",
+          "title": "Cookie domain",
+          "description": "Specific domain to filter the cookie by (optional).",
+          "transform": [
+            "trim"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "path"
+          ],
+          "not": {
+            "required": [
+              "variable"
+            ]
+          }
+        },
+        {
+          "required": [
+            "variable"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "directory"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Save cookie (detailed)"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "type": "string",
+        "title": "Cookie name",
+        "description": "Name of the specific cookie to save. Will be saved to a default file path or environment variable.",
+        "pattern": "^[A-Za-z0-9_./\\-]+$",
+        "transform": [
+          "trim"
+        ]
+      },
+      "object": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "Optional self-describing schema URI for linters",
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "name": {
+            "type": "string",
+            "title": "Cookie name",
+            "description": "Name of the specific cookie to save.",
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "variable": {
+            "type": "string",
+            "title": "Environment variable name",
+            "description": "Environment variable name to store the cookie as JSON string.",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "title": "Cookie file path",
+            "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+            "transform": [
+              "trim"
+            ]
+          },
+          "directory": {
+            "type": "string",
+            "title": "Directory path",
+            "description": "Directory to save the cookie file. If not specified, uses output directory.",
+            "transform": [
+              "trim"
+            ]
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite existing file",
+            "description": "Whether to overwrite existing cookie file.",
+            "default": false
+          },
+          "domain": {
+            "type": "string",
+            "title": "Cookie domain",
+            "description": "Specific domain to filter the cookie by (optional).",
+            "transform": [
+              "trim"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "path"
+            ],
+            "not": {
+              "required": [
+                "variable"
+              ]
+            }
+          },
+          {
+            "required": [
+              "variable"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "path"
+                  ]
+                },
+                {
+                  "required": [
+                    "directory"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "title": "Save cookie (detailed)"
+      }
+    }
+  },
+  "examples": [
+    "session_token",
+    "test_env_cookie",
+    {
+      "name": "auth_cookie",
+      "path": "auth-cookie.txt"
+    },
+    {
+      "name": "session_token",
+      "variable": "SESSION_TOKEN"
+    },
+    {
+      "name": "test_cookie",
+      "path": "test-cookie.txt",
+      "overwrite": true
+    },
+    {
+      "name": "user_session",
+      "path": "user-session.txt",
+      "directory": "./test-data",
+      "overwrite": true
+    },
+    {
+      "name": "login_token",
+      "path": "login-token.txt",
+      "domain": "app.example.com"
+    }
+  ]
+}

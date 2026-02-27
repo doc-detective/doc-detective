@@ -1,6 +1,6 @@
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { validate } from "doc-detective-common";
+import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import path from "node:path";
 import fs from "node:fs";

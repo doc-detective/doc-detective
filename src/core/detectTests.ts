@@ -8,7 +8,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
-import { validate, detectTests as parseContent } from "doc-detective-common";
+import { validate } from "../common/src/validate.js";
+import { detectTests as parseContent } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
 

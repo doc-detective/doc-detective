@@ -1,0 +1,42 @@
+{
+  "title": "wait",
+  "type": "object",
+  "description": "Pause before performing the next action.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "wait"
+    },
+    "css": {
+      "type": "string",
+      "description": "CSS selector that uniquely identified the element to find."
+    },
+    "duration": {
+      "type": "number",
+      "description": "Seconds to wait. If `css` is set, the maximum duration to wait for the element to become available.",
+      "default": 10000
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "wait"
+    },
+    {
+      "action": "wait",
+      "css": "[title=Search]"
+    },
+    {
+      "action": "wait",
+      "duration": 5000
+    },
+    {
+      "action": "wait",
+      "css": "[title=Search]",
+      "duration": 5000
+    }
+  ]
+}

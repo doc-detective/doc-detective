@@ -1,0 +1,56 @@
+{
+  "title": "startRecording",
+  "type": "object",
+  "description": "Start recording the current browser viewport. Must be followed by a `stopRecording` action. Only runs when the context `app` is `chrome` and `headless` is `false`. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "startRecording",
+      "description": "The action to perform."
+    },
+    "path": {
+      "type": "string",
+      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+      "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)"
+    },
+    "directory": {
+      "type": "string",
+      "description": "Directory of the file. Attempts to create the directory if it doesn't exist."
+    },
+    "overwrite": {
+      "type": "boolean",
+      "description": "If `true`, overwrites the existing file at `path` if it exists.",
+      "default": false
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": [
+    "action"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "startRecording"
+    },
+    {
+      "action": "startRecording",
+      "path": "results.mp4"
+    },
+    {
+      "action": "startRecording",
+      "path": "results.mp4",
+      "directory": "static/media",
+      "overwrite": true
+    }
+  ]
+}

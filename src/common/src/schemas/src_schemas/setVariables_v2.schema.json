@@ -1,0 +1,38 @@
+{
+  "title": "setVariables",
+  "type": "object",
+  "description": "Load environment variables from a `.env` file.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "setVariables",
+      "description": "Action to perform."
+    },
+    "path": {
+      "type": "string",
+      "description": "Path to the `.env` file."
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": [
+    "action",
+    "path"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "setVariables",
+      "path": ".env"
+    }
+  ]
+}

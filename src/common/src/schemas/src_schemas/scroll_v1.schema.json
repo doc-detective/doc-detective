@@ -1,0 +1,50 @@
+{
+  "title": "scroll",
+  "type": "object",
+  "description": "Scroll the page by the specified number of pixels. Only runs if a test is being recorded.",
+  "anyOf": [
+    {
+      "required": [
+        "x"
+      ]
+    },
+    {
+      "required": [
+        "y"
+      ]
+    }
+  ],
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "scroll"
+    },
+    "x": {
+      "type": "integer",
+      "description": "Number of pixels to scroll along the X axis. Positive values scroll to the right. Negative values scroll to the left."
+    },
+    "y": {
+      "type": "integer",
+      "description": "Number of pixels to scroll along the Y axis. Positive values scroll to the top. Negative values scroll to the bottom."
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "scroll",
+      "x": 100
+    },
+    {
+      "action": "scroll",
+      "y": 100
+    },
+    {
+      "action": "scroll",
+      "x": 100,
+      "y": 100
+    }
+  ]
+}

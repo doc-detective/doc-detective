@@ -1,0 +1,59 @@
+{
+  "name": "doc-detective-common",
+  "version": "4.0.0-beta.0-dev.1",
+  "description": "Shared components for Doc Detective projects.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "generate:types": "node scripts/generateTypes.cjs",
+    "dereferenceSchemas": "node ./src/schemas/dereferenceSchemas.cjs",
+    "compile": "tsc && node scripts/createCjsWrapper.js",
+    "build": "npm run dereferenceSchemas && npm run generate:types && npm run compile",
+    "test": "mocha",
+    "test:coverage": "c8 mocha",
+    "test:coverage:html": "c8 --reporter=html mocha",
+    "test:coverage:check": "c8 check-coverage",
+    "test:coverage:ratchet": "node scripts/check-coverage-ratchet.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doc-detective/doc-detective-common.git"
+  },
+  "author": "Manny Silva",
+  "license": "AGPL-3.0-only",
+  "bugs": {
+    "url": "https://github.com/doc-detective/doc-detective-common/issues"
+  },
+  "homepage": "https://github.com/doc-detective/doc-detective-common#readme",
+  "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "^15.2.2",
+    "@types/node": "^25.2.3",
+    "c8": "^10.1.3",
+    "esbuild": "^0.27.3",
+    "chai": "^6.2.2",
+    "json-schema-to-typescript": "^15.0.4",
+    "mocha": "^11.7.5",
+    "sinon": "^21.0.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-errors": "^3.0.0",
+    "ajv-formats": "^3.0.1",
+    "ajv-keywords": "^5.1.0",
+    "yaml": "^2.8.2"
+  }
+}

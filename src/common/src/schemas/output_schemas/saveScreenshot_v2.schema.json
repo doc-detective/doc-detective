@@ -1,0 +1,149 @@
+{
+  "title": "saveScreenshot",
+  "type": "object",
+  "description": "Takes a screenshot in PNG format.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "saveScreenshot",
+      "description": "The action to perform."
+    },
+    "path": {
+      "type": "string",
+      "description": "File path of the PNG file, relative to `directory`. If not specified, the file name is the ID of the step.",
+      "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)"
+    },
+    "directory": {
+      "type": "string",
+      "description": "Directory of the PNG file. If the directory doesn't exist, creates the directory."
+    },
+    "maxVariation": {
+      "type": "number",
+      "description": "Allowed variation in percentage of pixels between the new screenshot and the exisitng screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+      "default": 5,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "overwrite": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `byVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+      "enum": [
+        "true",
+        "false",
+        "byVariation"
+      ],
+      "default": "false"
+    },
+    "crop": {
+      "type": "object",
+      "description": "Crops the screenshot.",
+      "properties": {
+        "selector": {
+          "type": "string",
+          "description": "Selector of the element to crop the image to."
+        },
+        "padding": {
+          "oneOf": [
+            {
+              "type": "number",
+              "description": "Padding in pixels to add to the bounds of the element.",
+              "minimum": 0
+            },
+            {
+              "type": "object",
+              "properties": {
+                "top": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "right": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "bottom": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "left": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": [
+    "action"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "saveScreenshot"
+    },
+    {
+      "action": "saveScreenshot",
+      "path": "results.png"
+    },
+    {
+      "action": "saveScreenshot",
+      "path": "results.png",
+      "directory": "static/images"
+    },
+    {
+      "action": "saveScreenshot",
+      "path": "results.png",
+      "directory": "static/images",
+      "maxVariation": 10,
+      "overwrite": "byVariation"
+    },
+    {
+      "action": "saveScreenshot",
+      "path": "results.png",
+      "directory": "static/images",
+      "crop": {
+        "selector": "#element"
+      }
+    },
+    {
+      "action": "saveScreenshot",
+      "path": "results.png",
+      "directory": "static/images",
+      "crop": {
+        "selector": "#element",
+        "padding": 10
+      }
+    },
+    {
+      "action": "saveScreenshot",
+      "path": "results.png",
+      "directory": "static/images",
+      "crop": {
+        "selector": "#element",
+        "padding": {
+          "top": 10,
+          "right": 20,
+          "bottom": 30,
+          "left": 40
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "title": "runShell",
+  "type": "object",
+  "description": "Perform a native shell command.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "runShell"
+    },
+    "command": {
+      "type": "string",
+      "description": "Command to perform in the machine's default shell."
+    },
+    "env": {
+      "type": "string",
+      "description": "Path to a `.env` file to load before performing the action."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "command"
+  ],
+  "examples": [
+    {
+      "action": "runShell",
+      "command": "echo $username"
+    },
+    {
+      "action": "runShell",
+      "command": "echo $username",
+      "env": "./variables.env"
+    }
+  ]
+}

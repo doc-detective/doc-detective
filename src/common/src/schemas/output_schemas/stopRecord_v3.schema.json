@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "stopRecord",
+  "description": "Stop the current recording.",
+  "anyOf": [
+    {
+      "type": "boolean",
+      "nullable": true
+    }
+  ],
+  "examples": [
+    true
+  ]
+}

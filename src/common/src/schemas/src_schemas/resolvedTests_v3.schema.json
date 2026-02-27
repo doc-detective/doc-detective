@@ -1,0 +1,237 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "resolvedTests",
+  "description": "A collection of resolved tests ready to be performed.",
+  "type": "object",
+  "dynamicDefaults": {
+    "resolvedTestsId": "uuid"
+  },
+  "properties": {
+    "resolvedTestsId": {
+      "type": "string",
+      "description": "Unique identifier for the resolved tests."
+    },
+    "config": {
+      "$ref": "config_v3.schema.json#"
+    },
+    "specs": {
+      "description": "Test specifications that were performed.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "spec_v3.schema.json#"
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "specs"
+  ],
+  "examples": [
+    {
+      "config": {
+        "input": [
+          "/home/hawkeyexl/Workspaces/resolver/dev/doc-content-yaml.md"
+        ],
+        "logLevel": "debug",
+        "output": ".",
+        "recursive": true,
+        "relativePathBase": "file",
+        "detectSteps": true,
+        "fileTypes": [
+          {
+            "name": "markdown",
+            "extensions": [
+              "md",
+              "markdown",
+              "mdx"
+            ],
+            "inlineStatements": {
+              "testStart": [
+                "{\\/\\*\\s*test\\s+?([\\s\\S]*?)\\s*\\*\\/}",
+                "<!--\\s*test\\s*([\\s\\S]*?)\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(test\\s*(.*?)\\s*\\)",
+                "\\[comment\\]:\\s+#\\s+\\(test start\\s*(.*?)\\s*\\)"
+              ],
+              "testEnd": [
+                "{\\/\\*\\s*test end\\s*\\*\\/}",
+                "<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(test end\\)"
+              ],
+              "ignoreStart": [
+                "{\\/\\*\\s*test ignore start\\s*\\*\\/}",
+                "<!--\\s*test ignore start\\s*-->"
+              ],
+              "ignoreEnd": [
+                "{\\/\\*\\s*test ignore end\\s*\\*\\/}",
+                "<!--\\s*test ignore end\\s*-->"
+              ],
+              "step": [
+                "{\\/\\*\\s*step\\s+?([\\s\\S]*?)\\s*\\*\\/}",
+                "<!--\\s*step\\s*([\\s\\S]*?)\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(step\\s*(.*?)\\s*\\)"
+              ]
+            },
+            "markup": [
+              {
+                "name": "checkHyperlink",
+                "regex": [
+                  "(?<!\\!)\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"
+                ],
+                "actions": [
+                  "checkLink"
+                ]
+              },
+              {
+                "name": "clickOnscreenText",
+                "regex": [
+                  "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+\\*\\*((?:(?!\\*\\*).)+)\\*\\*"
+                ],
+                "actions": [
+                  "click"
+                ]
+              },
+              {
+                "name": "findOnscreenText",
+                "regex": [
+                  "\\*\\*((?:(?!\\*\\*).)+)\\*\\*"
+                ],
+                "actions": [
+                  "find"
+                ]
+              },
+              {
+                "name": "goToUrl",
+                "regex": [
+                  "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"
+                ],
+                "actions": [
+                  "goTo"
+                ]
+              },
+              {
+                "name": "screenshotImage",
+                "regex": [
+                  "!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}"
+                ],
+                "actions": [
+                  "screenshot"
+                ]
+              },
+              {
+                "name": "typeText",
+                "regex": [
+                  "\\b(?:press|enter|type)\\b\\s+\"([^\"]+)\""
+                ],
+                "actions": [
+                  "type"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "asciidoc",
+            "extensions": [
+              "adoc",
+              "asciidoc",
+              "asc"
+            ],
+            "inlineStatements": {
+              "testStart": [
+                "\\/\\/\\s+\\(\\s*test\\s+([\\s\\S]*?)\\s*\\)"
+              ],
+              "testEnd": [
+                "\\/\\/\\s+\\(\\s*test end\\s*\\)"
+              ],
+              "ignoreStart": [
+                "\\/\\/\\s+\\(\\s*test ignore start\\s*\\)"
+              ],
+              "ignoreEnd": [
+                "\\/\\/\\s+\\(\\s*test ignore end\\s*\\)"
+              ],
+              "step": [
+                "\\/\\/\\s+\\(\\s*step\\s+([\\s\\S]*?)\\s*\\)"
+              ]
+            },
+            "markup": []
+          },
+          {
+            "name": "html",
+            "extensions": [
+              "html",
+              "htm"
+            ],
+            "inlineStatements": {
+              "testStart": [
+                "<!--\\s*test\\s+?([\\s\\S]*?)\\s*-->"
+              ],
+              "testEnd": [
+                "<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->"
+              ],
+              "ignoreStart": [
+                "<!--\\s*test ignore start\\s*-->"
+              ],
+              "ignoreEnd": [
+                "<!--\\s*test ignore end\\s*-->"
+              ],
+              "step": [
+                "<!--\\s*step\\s+?([\\s\\S]*?)\\s*-->"
+              ]
+            },
+            "markup": []
+          }
+        ],
+        "telemetry": {
+          "send": true
+        },
+        "configId": "3e467e5d-27cb-41f3-800f-aeb3c20dcb4c",
+        "environment": {
+          "arch": "x64",
+          "platform": "linux",
+          "workingDirectory": "/home/hawkeyexl/Workspaces/resolver"
+        }
+      },
+      "specs": [
+        {
+          "specId": "cc656bba-132f-4f0f-b093-2cfbdd784f69",
+          "contentPath": "/home/hawkeyexl/Workspaces/resolver/dev/doc-content-yaml.md",
+          "tests": [
+            {
+              "testId": "doc-detective-docs",
+              "detectSteps": false,
+              "runOn": [],
+              "openApi": [],
+              "contexts": [
+                {
+                  "steps": [
+                    {
+                      "checkLink": "https://doc-detective.com"
+                    },
+                    {
+                      "checkLink": "https://doc-detective.com/docs/get-started/intro"
+                    },
+                    {
+                      "goTo": "https://doc-detective.com/docs/get-started/actions/type"
+                    },
+                    {
+                      "find": "Special keys"
+                    },
+                    {
+                      "screenshot": "reference.png"
+                    }
+                  ],
+                  "contextId": "eec1d123-7dfd-4362-b41a-942f36e0da5a"
+                }
+              ]
+            }
+          ],
+          "runOn": [],
+          "openApi": []
+        }
+      ]
+    }
+  ]
+}

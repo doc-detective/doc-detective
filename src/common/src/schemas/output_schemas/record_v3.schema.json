@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "record",
+  "description": "Start recording the current browser viewport. Must be followed by a `stopRecord` step. Only runs in Chrome browsers when they are visible. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+  "anyOf": [
+    {
+      "title": "Record (simple)",
+      "type": "string",
+      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+      "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+          "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+          "transform": [
+            "trim"
+          ]
+        },
+        "directory": {
+          "type": "string",
+          "description": "Directory of the file. If the directory doesn't exist, creates the directory.",
+          "transform": [
+            "trim"
+          ]
+        },
+        "overwrite": {
+          "type": "string",
+          "description": "If `true`, overwrites the existing recording at `path` if it exists.",
+          "enum": [
+            "true",
+            "false"
+          ]
+        }
+      },
+      "title": "Record (detailed)"
+    },
+    {
+      "type": "boolean",
+      "title": "Record (boolean)",
+      "description": "If `true`, records the current browser viewport. If `false`, doesn't record the current browser viewport."
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "title": "Record (simple)",
+        "type": "string",
+        "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+        "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+        "transform": [
+          "trim"
+        ]
+      },
+      "object": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+            "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+            "transform": [
+              "trim"
+            ]
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory of the file. If the directory doesn't exist, creates the directory.",
+            "transform": [
+              "trim"
+            ]
+          },
+          "overwrite": {
+            "type": "string",
+            "description": "If `true`, overwrites the existing recording at `path` if it exists.",
+            "enum": [
+              "true",
+              "false"
+            ]
+          }
+        },
+        "title": "Record (detailed)"
+      }
+    }
+  },
+  "examples": [
+    true,
+    "results.mp4",
+    {
+      "path": "results.mp4",
+      "directory": "static/media",
+      "overwrite": "true"
+    }
+  ]
+}

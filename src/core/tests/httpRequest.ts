@@ -1,4 +1,4 @@
-import { validate } from "doc-detective-common";
+import { validate } from "../../common/src/validate.js";
 import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";

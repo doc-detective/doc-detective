@@ -1,0 +1,115 @@
+{
+  "title": "httpRequest",
+  "type": "object",
+  "description": "Perform a generic HTTP request, for example to a REST API.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "httpRequest"
+    },
+    "uri": {
+      "type": "string",
+      "description": "The URI for the HTTP request."
+    },
+    "statusCodes": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "default": [
+        200
+      ]
+    },
+    "env": {
+      "type": "string",
+      "description": ""
+    },
+    "method": {
+      "type": "string",
+      "description": "Method of the HTTP request",
+      "enum": [
+        "get",
+        "post",
+        "patch",
+        "delete"
+      ],
+      "default": "get"
+    },
+    "requestHeaders": {
+      "description": "Headers to include in the HTTP request, in key/value format.",
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1,
+      "properties": {}
+    },
+    "responseHeaders": {
+      "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the action fails.",
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1,
+      "properties": {}
+    },
+    "requestParams": {
+      "description": "URL parameters to include in the HTTP request, in key/value format.",
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1,
+      "properties": {}
+    },
+    "responseParams": {
+      "description": "URL parameters expected in the response, in key/value format. If one or more `responseParams` entries aren't present in the response, the action fails.",
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1,
+      "properties": {}
+    },
+    "requestData": {
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1,
+      "properties": {}
+    },
+    "responseData": {
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1,
+      "properties": {}
+    }
+  },
+  "required": [
+    "action",
+    "uri"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "httpRequest",
+      "uri": "https://www.api-server.com",
+      "method": "post"
+    },
+    {
+      "action": "httpRequest",
+      "env": "path/to/variables.env",
+      "uri": "https://www.api-server.com",
+      "method": "post",
+      "requestHeaders": {
+        "header": "value"
+      },
+      "requestParams": {
+        "param": "value"
+      },
+      "requestData": {
+        "field": "value"
+      },
+      "responseHeaders": {
+        "header": "value"
+      },
+      "responseData": {
+        "field": "value"
+      },
+      "statusCodes": [
+        200
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "title": "startRecording",
+  "type": "object",
+  "description": "Start recording the current browser viewport. Must be followed by a `stopeRecording` action. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "startRecording"
+    },
+    "overwrite": {
+      "type": "boolean",
+      "description": "If `true`, overwrites files at the specified path. If `false`, skips the action if a file exists at the specified path.",
+      "default": false
+    },
+    "mediaDirectory": {
+      "type": "string",
+      "description": "The directory path for media created by the action. Overrides the default directory config. Default is config.imageDirectory or config.videoDirectory depending on the file type."
+    },
+    "filename": {
+      "type": "string",
+      "description": "Name of the media file. If not specified, the filename is randomized."
+    },
+    "fps": {
+      "type": "integer",
+      "description": "Target frames-per-second for the recording.",
+      "default": 30
+    },
+    "width": {
+      "type": "integer",
+      "description": "Target width of the recording. Defaults to the browser window width."
+    },
+    "height": {
+      "type": "integer",
+      "description": "Target height of the recording. Defaults to the browser window height."
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "startRecording"
+    },
+    {
+      "action": "startRecording",
+      "overwrite": false,
+      "mediaDirectory": "./samples",
+      "filename": "results.mp4",
+      "fps": 30,
+      "width": 1200,
+      "height": 800
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "title": "find",
+  "type": "object",
+  "description": "Check if an element exists with the specified CSS selector.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "find"
+    },
+    "css": {
+      "type": "string",
+      "description": "CSS selector that uniquely identified the element."
+    },
+    "wait": {
+      "type": "object",
+      "description": "Pause before performing the next action.",
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "type": "number",
+          "description": "Seconds to wait. If `css` is set, the maximum duration to wait for the element to become available.",
+          "default": 10000
+        }
+      }
+    },
+    "matchText": {
+      "type": "object",
+      "description": "Check if an element displays the expected text.",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Text that the element should display."
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "moveMouse": {
+      "type": "object",
+      "description": "Move the mouse to an element specified by a CSS sepector. Only runs if a test is being recorded.",
+      "additionalProperties": false,
+      "properties": {
+        "alignH": {
+          "type": "string",
+          "description": "Horizantal alignment of the mouse to the element.",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "alignV": {
+          "type": "string",
+          "description": "Vertical alignment of the mouse to the element.",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "offsetX": {
+          "type": "integer",
+          "description": "Number of pixels to offset the mouse along the X axis, relative to the element center. Positive values offset to the right. Negative values offset to the left."
+        },
+        "offsetY": {
+          "type": "integer",
+          "description": "Number of pixels to offset the mouse along the Y axis, relative to the element center. Positive values offset to the top. Negative values offset to the bottom."
+        }
+      }
+    },
+    "click": {
+      "type": "object",
+      "description": "Click an element specified by a CSS sepector.",
+      "additionalProperties": false,
+      "properties": {
+        "alignH": {
+          "type": "string",
+          "description": "Horizantal alignment of the mouse to the element.",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "alignV": {
+          "type": "string",
+          "description": "Vertical alignment of the mouse to the element.",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "offsetX": {
+          "type": "integer",
+          "description": "Number of pixels to offset the mouse along the X axis, relative to the element center. Positive values offset to the right. Negative values offset to the left."
+        },
+        "offsetY": {
+          "type": "integer",
+          "description": "Number of pixels to offset the mouse along the Y axis, relative to the element center. Positive values offset to the top. Negative values offset to the bottom."
+        }
+      }
+    },
+    "type": {
+      "type": "object",
+      "description": "Click an element specified by a CSS sepector.",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "keys"
+          ]
+        },
+        {
+          "required": [
+            "trailingSpecialKey"
+          ]
+        }
+      ],
+      "properties": {
+        "keys": {
+          "type": "string",
+          "description": "String of keys to enter."
+        },
+        "trailingSpecialKey": {
+          "type": "string",
+          "description": "Special key pressed after the 'keys' value, if present. Supported values: https://github.com/puppeteer/puppeteer/blob/main/src/common/USKeyboardLayout.ts"
+        },
+        "env": {
+          "type": "string",
+          "description": "Path to a `.env` file to load before performing the action."
+        }
+      }
+    }
+  },
+  "required": [
+    "action",
+    "css"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "find",
+      "css": "[title=Search]"
+    },
+    {
+      "action": "find",
+      "css": "[title=Search]",
+      "wait": {
+        "duration": 10000
+      },
+      "matchText": {
+        "text": "Search"
+      },
+      "moveMouse": {
+        "alignH": "center",
+        "alignV": "center",
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      "click": {},
+      "type": {
+        "keys": "$SHORTHAIR_CAT_SEARCH",
+        "trailingSpecialKey": "Enter",
+        "env": "./sample/variables.env"
+      }
+    }
+  ]
+}

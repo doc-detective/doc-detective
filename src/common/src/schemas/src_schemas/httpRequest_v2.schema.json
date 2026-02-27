@@ -1,0 +1,284 @@
+{
+  "title": "httpRequest",
+  "type": "object",
+  "description": "Perform a generic HTTP request, for example to an API.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "httpRequest",
+      "description": "Aciton to perform."
+    },
+    "url": {
+      "type": "string",
+      "description": "URL for the HTTP request.",
+      "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+      "transform": ["trim"]
+    },
+    "openApi": {
+      "allOf": [
+        {
+          "$ref": "openApi_v2.schema.json#"
+        },
+        {
+          "type": "object",
+          "required": ["operationId"]
+        }
+      ]
+    },
+    "statusCodes": {
+      "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "default": [200]
+    },
+    "method": {
+      "type": "string",
+      "description": "Method of the HTTP request",
+      "enum": ["get", "put", "post", "patch", "delete"],
+      "transform": ["trim", "toEnumCase"],
+      "default": "get"
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Timeout for the HTTP request, in milliseconds.",
+      "default": 60000
+    },
+    "requestHeaders": {
+      "description": "Headers to include in the HTTP request, in key/value format.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {},
+      "default": {}
+    },
+    "responseHeaders": {
+      "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {},
+      "default": {}
+    },
+    "requestParams": {
+      "description": "URL parameters to include in the HTTP request, in key/value format.",
+      "type": "object",
+      "additionalProperties": true,
+      "default": {},
+      "properties": {}
+    },
+    "responseParams": {
+      "description": "DEPRECATED.",
+      "type": "object",
+      "additionalProperties": true,
+      "default": {},
+      "properties": {}
+    },
+    "requestData": {
+      "description": "JSON object to include as the body of the HTTP request.",
+      "type": "object",
+      "additionalProperties": true,
+      "default": {},
+      "properties": {}
+    },
+    "responseData": {
+      "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+      "type": "object",
+      "additionalProperties": true,
+      "default": {},
+      "properties": {}
+    },
+    "allowAdditionalFields": {
+      "type": "boolean",
+      "description": "If `false`, the step fails when the response data contains fields not specified in `responseData`.",
+      "default": true
+    },
+    "savePath": {
+      "type": "string",
+      "description": "File path to save the command's output, relative to `saveDirectory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+    },
+    "saveDirectory": {
+      "type": "string",
+      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+    },
+    "maxVariation": {
+      "type": "integer",
+      "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "overwrite": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
+      "enum": ["true", "false", "byVariation"],
+      "default": "false"
+    },
+    "envsFromResponseData": {
+      "description": "Environment variables to set based on response variables, as an object of the environment variable name and the jq filter applied to the response data to identify the variable's value.",
+      "type": "array",
+      "default": [],
+      "items": {
+        "oneOf": [
+          {
+            "description": "",
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Name of the environment variable to set.",
+                "type": "string"
+              },
+              "jqFilter": {
+                "description": "jq filter to apply to the response data. If the filter doesn't return a value, the environment variable isn't set.",
+                "type": "string"
+              }
+            },
+            "required": ["name", "jqFilter"]
+          }
+        ]
+      }
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "anyOf": [
+    {
+      "required": ["url"]
+    },
+    {
+      "required": ["openApi"]
+    }
+  ],
+  "required": ["action"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "httpRequest",
+      "url": "https://reqres.in/api/users"
+    },
+    {
+      "action": "httpRequest",
+      "url": "https://reqres.in/api/users/2",
+      "method": "put",
+      "requestData": {
+        "name": "morpheus",
+        "job": "zion resident"
+      }
+    },
+    {
+      "action": "httpRequest",
+      "url": "https://reqres.in/api/users",
+      "method": "post",
+      "requestData": {
+        "name": "morpheus",
+        "job": "leader"
+      },
+      "responseData": {
+        "name": "morpheus",
+        "job": "leader"
+      },
+      "statusCodes": [200, 201]
+    },
+    {
+      "action": "httpRequest",
+      "url": "https://www.api-server.com",
+      "method": "post",
+      "timeout": 30000,
+      "requestHeaders": {
+        "header": "value"
+      },
+      "requestParams": {
+        "param": "value"
+      },
+      "requestData": {
+        "field": "value"
+      },
+      "responseHeaders": {
+        "header": "value"
+      },
+      "responseData": {
+        "field": "value"
+      },
+      "statusCodes": [200]
+    },
+    {
+      "action": "httpRequest",
+      "url": "https://reqres.in/api/users",
+      "method": "post",
+      "requestData": {
+        "name": "morpheus",
+        "job": "leader"
+      },
+      "responseData": {
+        "name": "morpheus",
+        "job": "leader"
+      },
+      "statusCodes": [200, 201],
+      "savePath": "response.json",
+      "saveDirectory": "media",
+      "maxVariation": 5,
+      "overwrite": "byVariation"
+    },
+    {
+      "action": "httpRequest",
+      "openApi": {
+        "name": "Reqres",
+        "operationId": "getUserById"
+      },
+      "requestParams": {
+        "id": 123
+      }
+    },
+    {
+      "action": "httpRequest",
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "getUserById"
+      },
+      "requestParams": {
+        "id": 123
+      }
+    },
+    {
+      "action": "httpRequest",
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "createUser",
+        "useExample": "both"
+      }
+    },
+    {
+      "action": "httpRequest",
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "updateUser",
+        "useExample": "request",
+        "exampleKey": "acme"
+      }
+    },
+    {
+      "action": "httpRequest",
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "updateUser",
+        "useExample": "request",
+        "exampleKey": "acme",
+        "requestHeaders": {
+          "Authorization": "Bearer $TOKEN"
+        }
+      }
+    }
+  ]
+}

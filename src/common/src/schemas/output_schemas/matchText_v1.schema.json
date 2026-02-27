@@ -1,0 +1,32 @@
+{
+  "title": "matchText",
+  "type": "object",
+  "description": "Check if an element displays the expected text.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "matchText"
+    },
+    "css": {
+      "type": "string",
+      "description": "CSS selector that uniquely identified the element."
+    },
+    "text": {
+      "type": "string",
+      "description": "Text that the element should display."
+    }
+  },
+  "required": [
+    "action",
+    "css",
+    "text"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "matchText",
+      "css": "#gbqfbb",
+      "text": "I'm Feeling Lucky"
+    }
+  ]
+}

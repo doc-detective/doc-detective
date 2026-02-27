@@ -1,4 +1,4 @@
-import { validate } from "doc-detective-common";
+import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { log } from "../utils.js";
 import path from "node:path";

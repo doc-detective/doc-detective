@@ -1,4 +1,4 @@
-import { validate } from "doc-detective-common";
+import { validate } from "../../common/src/validate.js";
 import { isRelativeUrl } from "../utils.js";
 import axios from "axios";
 

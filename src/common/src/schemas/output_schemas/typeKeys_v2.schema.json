@@ -1,0 +1,71 @@
+{
+  "title": "typeKeys",
+  "type": "object",
+  "description": "Type keys. To type special keys, begin and end the string with `$` and use the special key's enum. For example, to type the Escape key, enter `$ESCAPE$`.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "typeKeys",
+      "description": "The action to perform."
+    },
+    "keys": {
+      "description": "String of keys to enter.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "delay": {
+      "type": "number",
+      "description": "Delay in milliseconds between each key press. Only valid during a recording.",
+      "default": 100
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": [
+    "action",
+    "keys"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "typeKeys",
+      "keys": "kittens"
+    },
+    {
+      "action": "typeKeys",
+      "keys": [
+        "$ENTER$"
+      ]
+    },
+    {
+      "action": "typeKeys",
+      "keys": [
+        "kittens",
+        "$ENTER$"
+      ],
+      "delay": 500
+    }
+  ]
+}

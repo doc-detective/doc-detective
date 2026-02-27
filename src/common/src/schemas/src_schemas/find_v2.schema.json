@@ -1,0 +1,155 @@
+{
+  "title": "find",
+  "type": "object",
+  "description": "Check if an element exists with the specified CSS selector.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "find",
+      "description": "Action to perform."
+    },
+    "selector": {
+      "description": "Selector that uniquely identifies the element.",
+      "type": "string"
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Max duration in milliseconds to wait for the element to exist.",
+      "default": 5000
+    },
+    "matchText": {
+      "type": "string",
+      "description": "Text that the element should contain. If the element doesn't contain the text, the step fails. Accepts both strings an regular expressions. To use a regular expression, the expression should start and end with a `/`. For example, `/search/`."
+    },
+    "moveTo": {
+      "description": "Move to the element. If the element isn't visible, it's scrolled into view. Only runs the if the test is being recorded.",
+      "oneOf": [
+        {
+          "type": "boolean"
+        }
+      ],
+      "default": false
+    },
+    "click": {
+      "description": "Click the element.",
+      "oneOf": [
+        {
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "button": {
+              "description": "Kind of click to perform.",
+              "type": "string",
+              "enum": ["left", "right", "middle"]
+            }
+          }
+        }
+      ]
+    },
+    "typeKeys": {
+      "description": "Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`typeKeys`](typeKeys). To type in the element, make the element active with the `click` parameter.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keys": {
+              "$ref": "typeKeys_v2.schema.json#/properties/keys"
+            },
+            "delay": {
+              "$ref": "typeKeys_v2.schema.json#/properties/delay"
+            }
+          }
+        }
+      ]
+    },
+    "setVariables": {
+      "type": "array",
+      "description": "Extract environment variables from the element's text.",
+      "items": {
+        "oneOf": [
+          {
+            "description": "",
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Name of the environment variable to set.",
+                "type": "string"
+              },
+              "regex": {
+                "description": "Regex to extract the environment variable from the element's text.",
+                "type": "string"
+              }
+            },
+            "required": ["name", "regex"]
+          }
+        ]
+      },
+      "default": []
+    }
+  },
+  "required": ["action", "selector"],
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "find",
+      "selector": "[title=Search]"
+    },
+    {
+      "action": "find",
+      "selector": "[title=Search]",
+      "timeout": 10000,
+      "matchText": "Search",
+      "moveTo": true,
+      "click": true,
+      "typeKeys": "shorthair cat"
+    },
+    {
+      "action": "find",
+      "selector": "[title=Search]",
+      "click": {
+        "button": "right"
+      }
+    },
+    {
+      "action": "find",
+      "selector": "[title=Search]",
+      "timeout": 10000,
+      "matchText": "Search",
+      "moveTo": true,
+      "click": true,
+      "typeKeys": {
+        "keys": ["shorthair cat"],
+        "delay": 100
+      }
+    },
+    {
+      "action": "find",
+      "selector": "[title=ResultsCount]",
+      "setVariables": [
+        {
+          "name": "resultsCount",
+          "regex": ".*"
+        }
+      ]
+    }
+  ]
+}

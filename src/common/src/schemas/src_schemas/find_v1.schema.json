@@ -1,0 +1,137 @@
+{
+  "title": "find",
+  "type": "object",
+  "description": "Check if an element exists with the specified CSS selector.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "find"
+    },
+    "css": {
+      "type": "string",
+      "description": "CSS selector that uniquely identified the element."
+    },
+    "wait": {
+      "type": "object",
+      "description": "Pause before performing the next action.",
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "$ref": "wait_v1.schema.json#/properties/duration"
+        }
+      }
+    },
+    "matchText": {
+      "type": "object",
+      "description": "Check if an element displays the expected text.",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "$ref": "matchText_v1.schema.json#/properties/text"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "moveMouse": {
+      "type": "object",
+      "description": "Move the mouse to an element specified by a CSS sepector. Only runs if a test is being recorded.",
+      "additionalProperties": false,
+      "properties": {
+        "alignH": {
+          "$ref": "moveMouse_v1.schema.json#/properties/alignH"
+        },
+        "alignV": {
+          "$ref": "moveMouse_v1.schema.json#/properties/alignV"
+        },
+        "offsetX": {
+          "$ref": "moveMouse_v1.schema.json#/properties/offsetX"
+        },
+        "offsetY": {
+          "$ref": "moveMouse_v1.schema.json#/properties/offsetY"
+        }
+      }
+    },
+    "click": {
+      "type": "object",
+      "description": "Click an element specified by a CSS sepector.",
+      "additionalProperties": false,
+      "properties": {
+        "alignH": {
+          "$ref": "click_v1.schema.json#/properties/alignH"
+        },
+        "alignV": {
+          "$ref": "click_v1.schema.json#/properties/alignV"
+        },
+        "offsetX": {
+          "$ref": "click_v1.schema.json#/properties/offsetX"
+        },
+        "offsetY": {
+          "$ref": "click_v1.schema.json#/properties/offsetY"
+        }
+      }
+    },
+    "type": {
+      "type": "object",
+      "description": "Click an element specified by a CSS sepector.",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "keys"
+          ]
+        },
+        {
+          "required": [
+            "trailingSpecialKey"
+          ]
+        }
+      ],
+      "properties": {
+        "keys": {
+          "$ref": "type_v1.schema.json#/properties/keys"
+        },
+        "trailingSpecialKey": {
+          "$ref": "type_v1.schema.json#/properties/trailingSpecialKey"
+        },
+        "env": {
+          "$ref": "type_v1.schema.json#/properties/env"
+        }
+      }
+    }
+  },
+  "required": [
+    "action",
+    "css"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "find",
+      "css": "[title=Search]"
+    },
+    {
+      "action": "find",
+      "css": "[title=Search]",
+      "wait": {
+        "duration": 10000
+      },
+      "matchText": {
+        "text": "Search"
+      },
+      "moveMouse": {
+        "alignH": "center",
+        "alignV": "center",
+        "offsetX": 0,
+        "offsetY": 0
+      },
+      "click": {},
+      "type": {
+        "keys": "$SHORTHAIR_CAT_SEARCH",
+        "trailingSpecialKey": "Enter",
+        "env": "./sample/variables.env"
+      }
+    }
+  ]
+}

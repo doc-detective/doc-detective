@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "test",
+  "type": "object",
+  "description": "A Doc Detective test.",
+  "properties": {
+    "testId": {
+      "type": "string",
+      "description": "Unique identifier for the test."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the test."
+    },
+    "contentPath": {
+      "type": "string",
+      "description": "Path to the content that the test is associated with."
+    },
+    "detectSteps": {
+      "type": "boolean",
+      "description": "Whether or not to detect steps in input files based on markup regex.",
+      "default": true
+    },
+    "runOn": {
+      "type": "array",
+      "description": "Contexts to run the test in. Overrides contexts defined at the config and spec levels.",
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "context_v3.schema.json#"
+          }
+        ]
+      }
+    },
+    "openApi": {
+      "$ref": "#/components/schemas/openApi"
+    },
+    "before": {
+      "type": "string",
+      "description": "Path to a test specification to perform before this test, while maintaining this test's context. Useful for setting up testing environments. Only the `steps` property is used from the first test in the setup spec."
+    },
+    "after": {
+      "type": "string",
+      "description": "Path to a test specification to perform after this test, while maintaining this test's context. Useful for cleaning up testing environments. Only the `steps` property is used from the first test in the cleanup spec."
+    },
+    "steps": {
+      "description": "Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "step_v3.schema.json#"
+      }
+    },
+    "contexts": {
+      "title": "Resolved contexts",
+      "type": "array",
+      "readOnly": true,
+      "description": "Resolved contexts to run the test in. This is a resolved version of the `runOn` property. It is not user-defined and should not be used in test specifications.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "Platform to run the test on. This is a resolved version of the `platforms` property."
+          },
+          "browser": {
+            "$ref": "context_v3.schema.json#/components/schemas/browser"
+          },
+          "openApi": {
+            "$ref": "#/components/schemas/openApi"
+          },
+          "steps": {
+            "description": "Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "step_v3.schema.json#"
+            }
+          }
+        },
+        "title": "Resolved context"
+      }
+    }
+  },
+  "dynamicDefaults": {
+    "testId": "uuid"
+  },
+  "anyOf": [
+    {
+      "required": ["steps"]
+    },
+    {
+      "required": ["contexts"]
+    }
+  ],
+  "additionalProperties": false,
+  "components": {
+    "schemas": {
+      "openApi": {
+        "type": "array",
+        "items": {
+          "allOf": [
+            {
+              "$ref": "openApi_v3.schema.json#"
+            },
+            {
+              "type": "object",
+              "not": {
+                "required": ["operationId"]
+              },
+              "required": ["name", "descriptionPath"],
+              "title": "OpenAPI description (test)"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "steps": [
+        {
+          "checkLink": "https://www.duckduckgo.com"
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "goTo": {
+            "url": "https://www.duckduckgo.com"
+          }
+        },
+        {
+          "find": {
+            "selector": "[title=Search]",
+            "click": true,
+            "type": {
+              "keys": ["shorthair cats", "$ENTER$"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "Do all the things! - Test",
+      "description": "This test includes every property across all actions.",
+      "before": "setup.json",
+      "after": "cleanup.json",
+      "runOn": [
+        {
+          "platforms": ["linux"],
+          "browsers": {
+            "name": "firefox",
+            "window": {},
+            "viewport": {}
+          }
+        }
+      ],
+      "steps": [
+        {
+          "loadVariables": ".env"
+        },
+        {
+          "runShell": {
+            "command": "echo",
+            "args": ["$USER"],
+            "maxVariation": 0,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {}
+        },
+        {
+          "checkLink": {
+            "url": "https://www.duckduckgo.com"
+          }
+        },
+        {
+          "httpRequest": {
+            "method": "post",
+            "url": "https://reqres.in/api/users",
+            "request": {
+              "body": {
+                "name": "morpheus",
+                "job": "leader"
+              }
+            },
+            "response": {
+              "body": {
+                "name": "morpheus",
+                "job": "leader"
+              }
+            },
+            "statusCodes": [200, 201],
+            "maxVariation": 0,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {}
+        },
+        {
+          "goTo": {
+            "url": "https://www.duckduckgo.com"
+          }
+        },
+        {
+          "find": {
+            "selector": "[title=Search]",
+            "elementText": "Search",
+            "timeout": 10000,
+            "moveTo": true,
+            "click": true,
+            "type": {
+              "keys": ["shorthair cat"]
+            }
+          },
+          "variables": {}
+        },
+        {
+          "type": {
+            "keys": ["$ENTER$"]
+          }
+        },
+        {
+          "screenshot": {
+            "maxVariation": 0,
+            "overwrite": "aboveVariation"
+          }
+        }
+      ],
+      "detectSteps": true
+    },
+    {
+      "testId": "c61b02e8-7485-44d3-8065-f873673379c6",
+      "openApi": [
+        {
+          "descriptionPath": "https://www.acme.com/openapi.json",
+          "server": "https://api.acme.com",
+          "validateAgainstSchema": "both",
+          "useExample": "none",
+          "exampleKey": "",
+          "name": "Acme"
+        }
+      ],
+      "steps": [
+        {
+          "httpRequest": {
+            "openApi": {
+              "operationId": "getUserById",
+              "validateAgainstSchema": "both",
+              "useExample": "none",
+              "exampleKey": ""
+            },
+            "request": {
+              "parameters": {
+                "id": 123
+              }
+            },
+            "response": {},
+            "maxVariation": 0,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {}
+        }
+      ],
+      "detectSteps": true
+    }
+  ]
+}

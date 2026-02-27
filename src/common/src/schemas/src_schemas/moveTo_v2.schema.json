@@ -1,0 +1,89 @@
+{
+  "title": "moveTo",
+  "type": "object",
+  "description": "Move the mouse to a specific location.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "moveTo",
+      "description": "The action to perform."
+    },
+    "selector": {
+      "description": "Selector for the element to move to.",
+      "type": "string"
+    },
+    "alignment": {
+      "description": "Alignment of the element to move to.",
+      "type": "string",
+      "enum": ["top", "bottom", "left", "right", "center"],
+      "default": "center"
+    },
+    "offset": {
+      "description": "Offset from the element to move to.",
+      "type": "object",
+      "properties": {
+        "x": {
+          "description": "Offset from the element to move to in x direction. Negative values move left, positive values move right.",
+          "type": "number",
+          "default": 0
+        },
+        "y": {
+          "description": "Offset from the element to move to in y direction. Negative values move up, positive values move down.",
+          "type": "number",
+          "default": 0
+        }
+      },
+      "default": {},
+      "additionalProperties": false
+    },
+    "duration": {
+      "description": "Duration of the move in milliseconds.",
+      "type": "number",
+      "minimum": 0,
+      "default": 500
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": ["action", "selector"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "moveTo",
+      "selector": "#searchInput"
+    },
+    {
+      "action": "moveTo",
+      "selector": "#searchInput",
+      "alignment": "left"
+    },
+    {
+      "action": "moveTo",
+      "selector": "#searchInput",
+      "alignment": "left",
+      "offset": {
+        "x": 10,
+        "y": 10
+      }
+    },
+    {
+      "action": "moveTo",
+      "selector": "#searchInput",
+      "alignment": "left",
+      "offset": {
+        "x": 10,
+        "y": 10
+      },
+      "duration": 1000
+    }
+  ]
+}

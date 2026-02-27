@@ -1,0 +1,62 @@
+{
+  "title": "goTo",
+  "type": "object",
+  "description": "Navigate to a specified URL.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "goTo",
+      "description": "Action to perform."
+    },
+    "url": {
+      "type": "string",
+      "description": "URL to navigate to.",
+      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "origin": {
+      "type": "string",
+      "description": "Protocol and domain to navigate to. Prepended to `url`.",
+      "transform": [
+        "trim"
+      ]
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": [
+    "action",
+    "url"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "goTo",
+      "url": "https://www.google.com"
+    },
+    {
+      "id": "ddec5e20-2e81-4f38-867c-92c8d9516755",
+      "description": "This is a test!",
+      "action": "goTo",
+      "url": "https://www.google.com"
+    },
+    {
+      "id": "ddec5e20-2e81-4f38-867c-92c8d9516756",
+      "description": "This is a test!",
+      "action": "goTo",
+      "url": "/search",
+      "origin": "https://www.google.com"
+    }
+  ]
+}

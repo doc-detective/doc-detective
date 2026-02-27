@@ -1,0 +1,60 @@
+{
+  "title": "click",
+  "type": "object",
+  "description": "Click an element specified by a CSS sepector.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "click"
+    },
+    "css": {
+      "type": "string",
+      "description": "CSS selector that uniquely identified the element."
+    },
+    "alignH": {
+      "type": "string",
+      "description": "Horizantal alignment of the mouse to the element.",
+      "enum": [
+        "left",
+        "center",
+        "right"
+      ]
+    },
+    "alignV": {
+      "type": "string",
+      "description": "Vertical alignment of the mouse to the element.",
+      "enum": [
+        "left",
+        "center",
+        "right"
+      ]
+    },
+    "offsetX": {
+      "type": "integer",
+      "description": "Number of pixels to offset the mouse along the X axis, relative to the element center. Positive values offset to the right. Negative values offset to the left."
+    },
+    "offsetY": {
+      "type": "integer",
+      "description": "Number of pixels to offset the mouse along the Y axis, relative to the element center. Positive values offset to the top. Negative values offset to the bottom."
+    }
+  },
+  "required": [
+    "action",
+    "css"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "click",
+      "css": "#gbqfbb"
+    },
+    {
+      "action": "click",
+      "css": "#gbqfbb",
+      "alignH": "center",
+      "alignV": "center",
+      "offsetX": 10,
+      "offsetY": 10
+    }
+  ]
+}

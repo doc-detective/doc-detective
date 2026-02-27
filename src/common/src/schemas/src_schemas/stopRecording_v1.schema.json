@@ -1,0 +1,20 @@
+{
+  "title": "stopRecording",
+  "type": "object",
+  "description": "Stop recording the current browser viewport.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "stopRecording"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "action"
+  ],
+  "examples": [
+    {
+      "action": "stopRecording"
+    }
+  ]
+}

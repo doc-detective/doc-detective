@@ -1,0 +1,41 @@
+{
+  "title": "wait",
+  "type": "object",
+  "description": "Pause before performing the next action.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "wait",
+      "description": "The action to perform."
+    },
+    "duration": {
+      "type": "number",
+      "description": "Milliseconds to wait.",
+      "default": 5000
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": [
+    "action"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "wait"
+    },
+    {
+      "action": "wait",
+      "duration": 5000
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "checkLink",
+  "anyOf": [
+    {
+      "$ref": "#/components/schemas/string"
+    },
+    {
+      "$ref": "#/components/schemas/object"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "title": "Check link (detailed)",
+        "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+        "type": "string",
+        "pattern": "(^(http://|https://|\\/).*|\\$[A-Za-z0-9_]+$)",
+        "transform": [
+          "trim"
+        ]
+      },
+      "object": {
+        "title": "Check link (detailed)",
+        "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
+            "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+            "transform": [
+              "trim"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "description": "Protocol and domain to navigate to. Prepended to `url`.",
+            "transform": [
+              "trim"
+            ]
+          },
+          "statusCodes": {
+            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    }
+                  ]
+                }
+              }
+            ],
+            "default": [
+              200,
+              301,
+              302,
+              307,
+              308
+            ]
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    "https://www.google.com",
+    "/search",
+    {
+      "url": "https://www.google.com",
+      "statusCodes": 200
+    },
+    {
+      "url": "/search",
+      "origin": "www.google.com",
+      "statusCodes": [
+        200
+      ]
+    }
+  ]
+}

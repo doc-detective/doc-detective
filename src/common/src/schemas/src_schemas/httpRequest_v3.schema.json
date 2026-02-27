@@ -1,0 +1,402 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "httpRequest",
+  "description": "Perform a generic HTTP request, for example to an API.",
+  "anyOf": [
+    {
+      "$ref": "#/components/schemas/url"
+    },
+    {
+      "$ref": "#/components/schemas/object"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "url": {
+        "title": "HTTP request (simple)",
+        "type": "string",
+        "description": "URL for the HTTP request.",
+        "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+        "transform": ["trim"]
+      },
+      "object": {
+        "title": "HTTP request (detailed)",
+        "type": "object",
+        "anyOf": [
+          {
+            "required": ["url"]
+          },
+          {
+            "required": ["openApi"]
+          }
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "$ref": "#/components/schemas/url"
+          },
+          "openApi": {
+            "anyOf": [
+              {
+                "allOf": [
+                  {
+                    "$ref": "openApi_v3.schema.json#/components/schemas/operationId"
+                  },
+                  {
+                    "title": "Operation ID",
+                    "description": "Operation ID from the OpenAPI schema. Only valid if the OpenAPI description path is specified elsewhere and the operation ID is unique among all specified OpenAPI descriptions."
+                  }
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "$ref": "openApi_v3.schema.json#"
+                  },
+                  {
+                    "type": "object",
+                    "required": ["operationId"],
+                    "title": "OpenAPI definition (httpRequest)"
+                  }
+                ]
+              }
+            ]
+          },
+          "statusCodes": {
+            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "default": [200, 201]
+          },
+          "method": {
+            "type": "string",
+            "description": "Method of the HTTP request",
+            "enum": ["get", "put", "post", "patch", "delete"],
+            "transform": ["trim", "toEnumCase"],
+            "default": "get"
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Timeout for the HTTP request, in milliseconds.",
+            "default": 60000
+          },
+          "request": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "headers": {
+                "description": "Headers to include in the HTTP request.",
+                "default": {},
+                "anyOf": [
+                  {
+                    "title": "Request headers (object)",
+                    "description": "Headers to include in the HTTP request, in key/value format.",
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {}
+                  },
+                  {
+                    "title": "Request headers (string)",
+                    "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
+                    "type": "string"
+                  }
+                ]
+              },
+              "parameters": {
+                "description": "URL parameters to include in the HTTP request, in key/value format.",
+                "type": "object",
+                "additionalProperties": true,
+                "default": {},
+                "properties": {},
+                "title": "Request parameters"
+              },
+              "body": {
+                "description": "The body of the HTTP request.",
+                "anyOf": [
+                  {
+                    "title": "Request body (object)",
+                    "description": "JSON object to include as the body of the HTTP request.",
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {}
+                  },
+                  {
+                    "title": "Request body (array)",
+                    "description": "JSON array to include as the body of the HTTP request.",
+                    "type": "array",
+                    "items": {}
+                  },
+                  {
+                    "title": "Request body (string)",
+                    "description": "String to include as the body of the HTTP request.",
+                    "type": "string"
+                  }
+                ],
+                "default": {}
+              }
+            },
+            "title": "Request"
+          },
+          "response": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "headers": {
+                "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {},
+                "default": {},
+                "title": "Response headers"
+              },
+              "body": {
+                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {},
+                    "title": "Response body object",
+                    "description": "JSON key/value pairs expected in the response."
+                  },
+                  {
+                    "title": "Response body array",
+                    "description": "JSON array expected in the response.",
+                    "type": "array",
+                    "items": {}
+                  },
+                  {
+                    "title": "Response body string",
+                    "description": "String expected in the response.",
+                    "type": "string"
+                  }
+                ],
+                "default": {}
+              },
+              "required": {
+                "type": "array",
+                "description": "Array of field paths that must exist in the response body. Uses dot notation for nested fields (e.g., 'user.name') and bracket notation for array indices (e.g., 'items[0].id'). Fields must be present but may have any value including null.",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              }
+            },
+            "title": "Response"
+          },
+          "allowAdditionalFields": {
+            "type": "boolean",
+            "description": "If `false`, the step fails when the response data contains fields not specified in the response body.",
+            "default": true
+          },
+          "path": {
+            "type": "string",
+            "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+          },
+          "maxVariation": {
+            "type": "number",
+            "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 1
+          },
+          "overwrite": {
+            "type": "string",
+            "description": "If `true`, overwrites the existing output at `path` if it exists.\nIf `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.",
+            "enum": ["true", "false", "aboveVariation"],
+            "default": "aboveVariation"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    "https://reqres.in/api/users",
+    {
+      "url": "https://reqres.in/api/users"
+    },
+    {
+      "url": "https://reqres.in/api/users/2",
+      "method": "put",
+      "request": {
+        "body": {
+          "name": "morpheus",
+          "job": "zion resident"
+        }
+      }
+    },
+    {
+      "url": "https://reqres.in/api/users",
+      "method": "post",
+      "request": {
+        "body": {
+          "name": "morpheus",
+          "job": "leader"
+        }
+      },
+      "response": {
+        "body": {
+          "name": "morpheus",
+          "job": "leader"
+        }
+      },
+      "statusCodes": [200, 201]
+    },
+    {
+      "url": "https://www.api-server.com",
+      "method": "post",
+      "timeout": 30000,
+      "request": {
+        "body": {
+          "field": "value"
+        },
+        "headers": {
+          "header": "value"
+        },
+        "parameters": {
+          "param": "value"
+        }
+      },
+      "response": {
+        "body": {
+          "field": "value"
+        },
+        "headers": {
+          "header": "value"
+        }
+      },
+      "statusCodes": [200]
+    },
+    {
+      "url": "https://reqres.in/api/users",
+      "method": "post",
+      "request": {
+        "body": {
+          "name": "morpheus",
+          "job": "leader"
+        }
+      },
+      "response": {
+        "body": {
+          "name": "morpheus",
+          "job": "leader"
+        }
+      },
+      "statusCodes": [200, 201],
+      "path": "response.json",
+      "directory": "media",
+      "maxVariation": 0.05,
+      "overwrite": "aboveVariation"
+    },
+    {
+      "openApi": "getUserById"
+    },
+    {
+      "openApi": {
+        "name": "Reqres",
+        "operationId": "getUserById"
+      },
+      "request": {
+        "parameters": {
+          "id": 123
+        }
+      }
+    },
+    {
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "getUserById"
+      },
+      "request": {
+        "parameters": {
+          "id": 123
+        }
+      }
+    },
+    {
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "createUser",
+        "useExample": "both"
+      }
+    },
+    {
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "updateUser",
+        "useExample": "request",
+        "exampleKey": "acme"
+      }
+    },
+    {
+      "openApi": {
+        "descriptionPath": "https://api.example.com/openapi.json",
+        "operationId": "updateUser",
+        "useExample": "request",
+        "exampleKey": "acme",
+        "headers": {
+          "Authorization": "Bearer $TOKEN"
+        }
+      }
+    },
+    {
+      "url": "https://www.api-server.com",
+      "method": "post",
+      "request": {
+        "headers": "Content-Type: application/json\\nAuthorization: Bearer token"
+      }
+    },
+    {
+      "url": "https://api.example.com/users/123",
+      "response": {
+        "required": ["id", "email", "createdAt"]
+      }
+    },
+    {
+      "url": "https://api.example.com/users/123",
+      "response": {
+        "required": [
+          "user.profile.name",
+          "user.profile.avatar",
+          "user.settings.notifications"
+        ]
+      }
+    },
+    {
+      "url": "https://api.example.com/orders",
+      "response": {
+        "required": [
+          "orders[0].id",
+          "orders[0].total",
+          "orders[0].items[0].productId"
+        ]
+      }
+    },
+    {
+      "url": "https://api.example.com/users",
+      "response": {
+        "required": [
+          "sessionToken",
+          "expiresAt",
+          "user.id"
+        ],
+        "body": {
+          "status": "success",
+          "user": {
+            "role": "admin"
+          }
+        }
+      }
+    }
+  ]
+}

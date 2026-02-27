@@ -1,4 +1,4 @@
-import { validate } from "doc-detective-common";
+import { validate } from "../../common/src/validate.js";
 import { instantiateCursor } from "./moveTo.js";
 import path from "node:path";
 import fs from "node:fs";

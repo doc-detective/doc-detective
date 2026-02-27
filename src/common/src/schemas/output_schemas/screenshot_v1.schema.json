@@ -1,0 +1,48 @@
+{
+  "title": "screenshot",
+  "type": "object",
+  "description": "Navigate to a specified URI.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "screenshot"
+    },
+    "mediaDirectory": {
+      "type": "string",
+      "description": "The directory path for media created by the action. Overrides the default directory config. Default is config.imageDirectory or config.videoDirectory depending on the file type."
+    },
+    "filename": {
+      "type": "string",
+      "description": "Name of the media file. If not specified, the filename is randomized."
+    },
+    "matchPrevious": {
+      "type": "boolean",
+      "description": "If `true`, performs a pixel-diff against an image that matches the path of the new screenshot. If a previous image doesn't exist at the path, this option is ignored.",
+      "default": false
+    },
+    "matchThreshold": {
+      "type": "number",
+      "description": "Decimal value of percentage of pixels that must be different between the old and new screenshots to fail the action. For example, a value of `0.3` fails the action if the diff is 30% or more of pixels.",
+      "default": 0.3,
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "screenshot",
+      "filename": "results.png"
+    },
+    {
+      "action": "screenshot",
+      "mediaDirectory": "samples",
+      "filename": "results.png",
+      "matchPrevious": true,
+      "matchThreshold": 0.3
+    }
+  ]
+}

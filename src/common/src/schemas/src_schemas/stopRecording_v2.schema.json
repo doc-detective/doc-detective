@@ -1,0 +1,32 @@
+{
+    "title": "stopRecording",
+    "type": "object",
+    "description": "Stop the current recording.",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "ID of the step."
+      },
+      "description": {
+        "type": "string",
+        "description": "Description of the step."
+      },
+      "action": {
+        "type": "string",
+        "const": "stopRecording",
+        "description": "The action to perform."
+      }
+    },
+    "dynamicDefaults": {
+      "id": "uuid"
+    },
+    "required": [
+      "action"
+    ],
+    "additionalProperties": false,
+    "examples": [
+      {
+        "action": "stopRecording"
+      }
+    ]
+  }

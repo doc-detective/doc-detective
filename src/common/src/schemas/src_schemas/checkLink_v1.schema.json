@@ -1,0 +1,42 @@
+{
+  "title": "checkLink",
+  "type": "object",
+  "description": "Check if a URI returns an acceptable status code from a GET request.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "checkLink"
+    },
+    "uri": {
+      "type": "string",
+      "description": "URI to check."
+    },
+    "statusCodes": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "default": [
+        200
+      ]
+    }
+  },
+  "required": [
+    "action",
+    "uri"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "checkLink",
+      "uri": "https://www.google.com"
+    },
+    {
+      "action": "checkLink",
+      "uri": "https://www.google.com",
+      "statusCodes": [
+        200
+      ]
+    }
+  ]
+}

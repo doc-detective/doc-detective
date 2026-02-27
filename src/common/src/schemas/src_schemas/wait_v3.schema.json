@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "wait",
+  "description": "Pause (in milliseconds) before performing the next action.",
+  "default": 5000,
+  "anyOf": [
+    {
+      "type": "number",
+      "title": "Wait (simple)"
+    },
+    {
+      "$ref": "#/components/schemas/string"
+    },
+    {
+      "type": "boolean",
+      "title": "Wait (boolean)"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "title": "Wait (environment variable)",
+        "type": "string",
+        "pattern": "(\\$[A-Za-z0-9_]+)",
+        "transform": [
+          "trim"
+        ]
+      }
+    }
+  },
+  "examples": [
+    5000,
+    "$WAIT_DURATION",
+    true
+  ]
+}

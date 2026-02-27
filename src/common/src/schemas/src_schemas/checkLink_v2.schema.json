@@ -1,0 +1,65 @@
+{
+  "title": "checkLink",
+  "type": "object",
+  "description": "Check if a URL returns an acceptable status code from a GET request.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "checkLink",
+      "description": "Action to perform."
+    },
+    "url": {
+      "type": "string",
+      "description": "URL to check.",
+      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+      "transform": ["trim"]
+    },
+    "origin": {
+      "type": "string",
+      "description": "Protocol and domain to navigate to. Prepended to `url`.",
+      "transform": ["trim"]
+    },
+    "statusCodes": {
+      "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "default": [200, 201, 202]
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "required": ["action", "url"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "checkLink",
+      "url": "https://www.google.com"
+    },
+    {
+      "action": "checkLink",
+      "url": "https://www.google.com",
+      "statusCodes": [200]
+    },
+    {
+      "action": "checkLink",
+      "url": "/search",
+      "origin": "www.google.com",
+      "statusCodes": [200]
+    }
+  ]
+}

@@ -1,0 +1,2628 @@
+{
+  "title": "config",
+  "description": "Configuration options for Doc Detective operations.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "defaultCommand": {
+      "description": "Default command to run when no command is specified.",
+      "type": "string",
+      "enum": [
+        "runTests",
+        "runCoverage"
+      ]
+    },
+    "input": {
+      "default": ".",
+      "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "output": {
+      "default": ".",
+      "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
+      "type": "string"
+    },
+    "recursive": {
+      "default": true,
+      "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
+      "type": "boolean"
+    },
+    "relativePathBase": {
+      "description": "Whether paths should be interpreted as relative to the current working directory (`cwd`) or to the file in which they're specified (`file`).",
+      "type": "string",
+      "enum": [
+        "cwd",
+        "file"
+      ],
+      "default": "cwd"
+    },
+    "envVariables": {
+      "description": "Path to a `.env` file to load before performing a Doc Detective operation.",
+      "type": "string"
+    },
+    "runTests": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Options for running tests. When running tests, values set here override general configuration options.",
+      "properties": {
+        "input": {
+          "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "output": {
+          "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
+          "type": "string",
+          "default": "."
+        },
+        "setup": {
+          "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "cleanup": {
+          "description": "Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "recursive": {
+          "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
+          "type": "boolean"
+        },
+        "detectSteps": {
+          "type": "boolean",
+          "description": "Whether or not to detect steps in input files based on markup regex.",
+          "default": false
+        },
+        "mediaDirectory": {
+          "description": "DEPRECATED.",
+          "type": "string",
+          "default": "."
+        },
+        "downloadDirectory": {
+          "description": "Path of the directory in which to store downloaded files.",
+          "type": "string",
+          "default": "."
+        },
+        "contexts": {
+          "type": "array",
+          "description": "Application/platform sets to run tests in. If no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it.",
+          "items": {
+            "oneOf": [
+              {
+                "title": "context",
+                "type": "object",
+                "description": "An application and supported platforms.\n\nIf no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For browsers, context priority is Firefox > Chrome > Chromium.",
+                "properties": {
+                  "app": {
+                    "type": "object",
+                    "description": "The application to run.",
+                    "additionalProperties": false,
+                    "required": [
+                      "name"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the application.",
+                        "enum": [
+                          "chrome",
+                          "firefox",
+                          "safari",
+                          "edge"
+                        ]
+                      },
+                      "path": {
+                        "type": "string",
+                        "description": "Absolute path or command for the application. If not specified, defaults to typical install paths per platform. If specified but the path is invalid, the context is skipped."
+                      },
+                      "options": {
+                        "type": "object",
+                        "description": "Options to pass to the app. Only works when `name` is `firefox` or `chrome`.",
+                        "additionalProperties": false,
+                        "properties": {
+                          "width": {
+                            "type": "integer",
+                            "description": "Width of the window in pixels."
+                          },
+                          "height": {
+                            "type": "integer",
+                            "description": "Height of the window in pixels."
+                          },
+                          "viewport_height": {
+                            "type": "integer",
+                            "description": "Height of the viewport in pixels. Overrides `height`."
+                          },
+                          "viewport_width": {
+                            "type": "integer",
+                            "description": "Width of the viewport in pixels. Overrides `width`."
+                          },
+                          "headless": {
+                            "type": "boolean",
+                            "description": "If `true`, runs the browser in headless mode. Not supported by Safari."
+                          },
+                          "driverPath": {
+                            "type": "string",
+                            "description": "Path to the browser driver. If not specified, defaults to internally managed dependencies."
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "platforms": {
+                    "description": "Supported platforms for the application.",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "linux",
+                        "mac",
+                        "windows"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "app",
+                  "platforms"
+                ],
+                "additionalProperties": false,
+                "examples": [
+                  {
+                    "app": {
+                      "name": "chrome"
+                    },
+                    "platforms": [
+                      "linux"
+                    ]
+                  },
+                  {
+                    "app": {
+                      "name": "chrome",
+                      "options": {
+                        "viewport_width": 800,
+                        "viewport_height": 600
+                      }
+                    },
+                    "platforms": [
+                      "linux"
+                    ]
+                  },
+                  {
+                    "app": {
+                      "name": "firefox",
+                      "options": {
+                        "width": 800,
+                        "height": 600,
+                        "headless": false,
+                        "driverPath": "/usr/bin/geckodriver"
+                      }
+                    },
+                    "platforms": [
+                      "linux",
+                      "windows",
+                      "mac"
+                    ]
+                  },
+                  {
+                    "app": {
+                      "name": "safari"
+                    },
+                    "platforms": [
+                      "mac"
+                    ]
+                  },
+                  {
+                    "app": {
+                      "name": "firefox",
+                      "path": "/usr/bin/firefox"
+                    },
+                    "platforms": [
+                      "linux"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "default": [
+            {
+              "app": {
+                "name": "firefox",
+                "options": {
+                  "width": 1200,
+                  "height": 800,
+                  "headless": true
+                }
+              },
+              "platforms": [
+                "linux",
+                "mac",
+                "windows"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "runCoverage": {
+      "description": "Options for performing test coverage analysis on documentation source files.  When performing coveration analysis, values set here override general configuration options.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "output": {
+          "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
+          "type": "string",
+          "default": "."
+        },
+        "recursive": {
+          "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
+          "type": "boolean"
+        },
+        "markup": {
+          "default": [
+            "onscreenText",
+            "emphasis",
+            "image",
+            "hyperlink",
+            "codeInline",
+            "codeBlock",
+            "interaction"
+          ],
+          "description": "Markup types to include when performing this operation. If no markup types are specified, the operation includes all markup types as defined in `fileTypes`.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "suggestTests": {
+      "description": "Options for suggesting tests based on documentation source files.  When suggesting tests, values set here override general condiguration options.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "output": {
+          "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
+          "type": "string",
+          "default": "."
+        },
+        "recursive": {
+          "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
+          "type": "boolean"
+        },
+        "markup": {
+          "default": [
+            "onscreenText",
+            "emphasis",
+            "image",
+            "hyperlink",
+            "codeInline",
+            "codeBlock",
+            "interaction"
+          ],
+          "description": "Markup types to include when performing this operation. If no markup types are specified, the operation includes all markup types as defined in `fileTypes`.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "fileTypes": {
+      "description": "Information on supported file types and how to parse the markup within them.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "description": "Name of the file type.",
+                "type": "string"
+              },
+              "extensions": {
+                "description": "File extensions to support with this configuration.",
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "testStartStatementOpen": {
+                "description": "Opening of an in-document test start statement.",
+                "type": "string"
+              },
+              "testStartStatementClose": {
+                "description": "Close of an in-document test start statement.",
+                "type": "string"
+              },
+              "testIgnoreStatement": {
+                "description": "Text for an in-document test ignore statement.",
+                "type": "string"
+              },
+              "testEndStatement": {
+                "description": "Text for an in-document test end statement.",
+                "type": "string"
+              },
+              "stepStatementOpen": {
+                "description": "Opening of an in-document step statement.",
+                "type": "string"
+              },
+              "stepStatementClose": {
+                "description": "Close of an in-document step statement.",
+                "type": "string"
+              },
+              "markup": {
+                "description": "Markup types and associated regex patterns to find in documentation source files.",
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "description": "Name of the markup type.",
+                          "type": "string"
+                        },
+                        "regex": {
+                          "description": "Regex patterns to find the markup type in documentation source files.",
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "actions": {
+                          "description": "Actions that apply to the markup type.",
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "checkLink",
+                                  "find",
+                                  "goTo",
+                                  "httpRequest",
+                                  "runShell",
+                                  "saveScreenshot",
+                                  "setVariables",
+                                  "startRecording",
+                                  "stopRecording",
+                                  "typeKeys",
+                                  "wait"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "name": {
+                                    "description": "Name of the action.",
+                                    "type": "string",
+                                    "enum": [
+                                      "checkLink",
+                                      "find",
+                                      "goTo",
+                                      "httpRequest",
+                                      "runShell",
+                                      "saveScreenshot",
+                                      "setVariables",
+                                      "startRecording",
+                                      "stopRecording",
+                                      "typeKeys",
+                                      "wait"
+                                    ]
+                                  },
+                                  "params": {
+                                    "description": "Parameters for the action.",
+                                    "type": "object",
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "required": [
+                                  "name"
+                                ]
+                              },
+                              {
+                                "title": "checkLink",
+                                "type": "object",
+                                "description": "Check if a URL returns an acceptable status code from a GET request.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "checkLink",
+                                    "description": "Action to perform."
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                    "description": "URL to check.",
+                                    "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                    "transform": [
+                                      "trim"
+                                    ]
+                                  },
+                                  "origin": {
+                                    "type": "string",
+                                    "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                    "transform": [
+                                      "trim"
+                                    ]
+                                  },
+                                  "statusCodes": {
+                                    "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+                                    "type": "array",
+                                    "items": {
+                                      "oneOf": [
+                                        {
+                                          "type": "integer"
+                                        }
+                                      ]
+                                    },
+                                    "default": [
+                                      200,
+                                      201,
+                                      202
+                                    ]
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action",
+                                  "url"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "checkLink",
+                                    "url": "https://www.google.com"
+                                  },
+                                  {
+                                    "action": "checkLink",
+                                    "url": "https://www.google.com",
+                                    "statusCodes": [
+                                      200
+                                    ]
+                                  },
+                                  {
+                                    "action": "checkLink",
+                                    "url": "/search",
+                                    "origin": "www.google.com",
+                                    "statusCodes": [
+                                      200
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "find",
+                                "type": "object",
+                                "description": "Check if an element exists with the specified CSS selector.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "find",
+                                    "description": "Action to perform."
+                                  },
+                                  "selector": {
+                                    "description": "Selector that uniquely identifies the element.",
+                                    "type": "string"
+                                  },
+                                  "timeout": {
+                                    "type": "integer",
+                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "default": 5000
+                                  },
+                                  "matchText": {
+                                    "type": "string",
+                                    "description": "Text that the element should contain. If the element doesn't contain the text, the step fails. Accepts both strings an regular expressions. To use a regular expression, the expression should start and end with a `/`. For example, `/search/`."
+                                  },
+                                  "moveTo": {
+                                    "description": "Move to the element. If the element isn't visible, it's scrolled into view. Only runs the if the test is being recorded.",
+                                    "oneOf": [
+                                      {
+                                        "type": "boolean"
+                                      }
+                                    ],
+                                    "default": false
+                                  },
+                                  "click": {
+                                    "description": "Click the element.",
+                                    "oneOf": [
+                                      {
+                                        "type": "boolean",
+                                        "default": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "button": {
+                                            "description": "Kind of click to perform.",
+                                            "type": "string",
+                                            "enum": [
+                                              "left",
+                                              "right",
+                                              "middle"
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "typeKeys": {
+                                    "description": "Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`typeKeys`](typeKeys). To type in the element, make the element active with the `click` parameter.",
+                                    "oneOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "keys": {
+                                            "description": "String of keys to enter.",
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
+                                                  "oneOf": [
+                                                    {
+                                                      "type": "string"
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          "delay": {
+                                            "type": "number",
+                                            "description": "Delay in milliseconds between each key press. Only valid during a recording.",
+                                            "default": 100
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "setVariables": {
+                                    "type": "array",
+                                    "description": "Extract environment variables from the element's text.",
+                                    "items": {
+                                      "oneOf": [
+                                        {
+                                          "description": "",
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "description": "Name of the environment variable to set.",
+                                              "type": "string"
+                                            },
+                                            "regex": {
+                                              "description": "Regex to extract the environment variable from the element's text.",
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "regex"
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    "default": []
+                                  }
+                                },
+                                "required": [
+                                  "action",
+                                  "selector"
+                                ],
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "find",
+                                    "selector": "[title=Search]"
+                                  },
+                                  {
+                                    "action": "find",
+                                    "selector": "[title=Search]",
+                                    "timeout": 10000,
+                                    "matchText": "Search",
+                                    "moveTo": true,
+                                    "click": true,
+                                    "typeKeys": "shorthair cat"
+                                  },
+                                  {
+                                    "action": "find",
+                                    "selector": "[title=Search]",
+                                    "click": {
+                                      "button": "right"
+                                    }
+                                  },
+                                  {
+                                    "action": "find",
+                                    "selector": "[title=Search]",
+                                    "timeout": 10000,
+                                    "matchText": "Search",
+                                    "moveTo": true,
+                                    "click": true,
+                                    "typeKeys": {
+                                      "keys": [
+                                        "shorthair cat"
+                                      ],
+                                      "delay": 100
+                                    }
+                                  },
+                                  {
+                                    "action": "find",
+                                    "selector": "[title=ResultsCount]",
+                                    "setVariables": [
+                                      {
+                                        "name": "resultsCount",
+                                        "regex": ".*"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "goTo",
+                                "type": "object",
+                                "description": "Navigate to a specified URL.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "goTo",
+                                    "description": "Action to perform."
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                    "description": "URL to navigate to.",
+                                    "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                    "transform": [
+                                      "trim"
+                                    ]
+                                  },
+                                  "origin": {
+                                    "type": "string",
+                                    "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                    "transform": [
+                                      "trim"
+                                    ]
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action",
+                                  "url"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "goTo",
+                                    "url": "https://www.google.com"
+                                  },
+                                  {
+                                    "id": "ddec5e20-2e81-4f38-867c-92c8d9516755",
+                                    "description": "This is a test!",
+                                    "action": "goTo",
+                                    "url": "https://www.google.com"
+                                  },
+                                  {
+                                    "id": "ddec5e20-2e81-4f38-867c-92c8d9516756",
+                                    "description": "This is a test!",
+                                    "action": "goTo",
+                                    "url": "/search",
+                                    "origin": "https://www.google.com"
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "httpRequest",
+                                "type": "object",
+                                "description": "Perform a generic HTTP request, for example to an API.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "httpRequest",
+                                    "description": "Aciton to perform."
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                    "description": "URL for the HTTP request.",
+                                    "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                                    "transform": [
+                                      "trim"
+                                    ]
+                                  },
+                                  "openApi": {
+                                    "allOf": [
+                                      {
+                                        "version": "1.0.0",
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "openApi",
+                                        "type": "object",
+                                        "description": "OpenAPI definition and configuration.",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "description": "Name of the OpenAPI definition, as defined in your configuration."
+                                          },
+                                          "descriptionPath": {
+                                            "type": "string",
+                                            "description": "URL or local path to the OpenAPI definition."
+                                          },
+                                          "operationId": {
+                                            "type": "string",
+                                            "description": "ID of the operation to use for the request."
+                                          },
+                                          "server": {
+                                            "type": "string",
+                                            "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
+                                          },
+                                          "validateAgainstSchema": {
+                                            "type": "string",
+                                            "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
+                                            "enum": [
+                                              "request",
+                                              "response",
+                                              "both",
+                                              "none"
+                                            ],
+                                            "default": "both"
+                                          },
+                                          "mockResponse": {
+                                            "type": "boolean",
+                                            "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                                          },
+                                          "statusCode": {
+                                            "type": "integer",
+                                            "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                                          },
+                                          "useExample": {
+                                            "type": [
+                                              "string"
+                                            ],
+                                            "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                                            "enum": [
+                                              "request",
+                                              "response",
+                                              "both",
+                                              "none"
+                                            ],
+                                            "default": "none"
+                                          },
+                                          "exampleKey": {
+                                            "type": "string",
+                                            "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
+                                            "default": ""
+                                          },
+                                          "requestHeaders": {
+                                            "type": "object",
+                                            "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          {
+                                            "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "operationId"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "statusCodes": {
+                                    "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+                                    "type": "array",
+                                    "items": {
+                                      "oneOf": [
+                                        {
+                                          "type": "integer"
+                                        }
+                                      ]
+                                    },
+                                    "default": [
+                                      200
+                                    ]
+                                  },
+                                  "method": {
+                                    "type": "string",
+                                    "description": "Method of the HTTP request",
+                                    "enum": [
+                                      "get",
+                                      "put",
+                                      "post",
+                                      "patch",
+                                      "delete"
+                                    ],
+                                    "transform": [
+                                      "trim",
+                                      "toEnumCase"
+                                    ],
+                                    "default": "get"
+                                  },
+                                  "timeout": {
+                                    "type": "integer",
+                                    "description": "Timeout for the HTTP request, in milliseconds.",
+                                    "default": 60000
+                                  },
+                                  "requestHeaders": {
+                                    "description": "Headers to include in the HTTP request, in key/value format.",
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "properties": {},
+                                    "default": {}
+                                  },
+                                  "responseHeaders": {
+                                    "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "properties": {},
+                                    "default": {}
+                                  },
+                                  "requestParams": {
+                                    "description": "URL parameters to include in the HTTP request, in key/value format.",
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "default": {},
+                                    "properties": {}
+                                  },
+                                  "responseParams": {
+                                    "description": "DEPRECATED.",
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "default": {},
+                                    "properties": {}
+                                  },
+                                  "requestData": {
+                                    "description": "JSON object to include as the body of the HTTP request.",
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "default": {},
+                                    "properties": {}
+                                  },
+                                  "responseData": {
+                                    "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                                    "type": "object",
+                                    "additionalProperties": true,
+                                    "default": {},
+                                    "properties": {}
+                                  },
+                                  "allowAdditionalFields": {
+                                    "type": "boolean",
+                                    "description": "If `false`, the step fails when the response data contains fields not specified in `responseData`.",
+                                    "default": true
+                                  },
+                                  "savePath": {
+                                    "type": "string",
+                                    "description": "File path to save the command's output, relative to `saveDirectory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+                                  },
+                                  "saveDirectory": {
+                                    "type": "string",
+                                    "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                  },
+                                  "maxVariation": {
+                                    "type": "integer",
+                                    "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
+                                    "default": 0,
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  },
+                                  "overwrite": {
+                                    "type": "string",
+                                    "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
+                                    "enum": [
+                                      "true",
+                                      "false",
+                                      "byVariation"
+                                    ],
+                                    "default": "false"
+                                  },
+                                  "envsFromResponseData": {
+                                    "description": "Environment variables to set based on response variables, as an object of the environment variable name and the jq filter applied to the response data to identify the variable's value.",
+                                    "type": "array",
+                                    "default": [],
+                                    "items": {
+                                      "oneOf": [
+                                        {
+                                          "description": "",
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "description": "Name of the environment variable to set.",
+                                              "type": "string"
+                                            },
+                                            "jqFilter": {
+                                              "description": "jq filter to apply to the response data. If the filter doesn't return a value, the environment variable isn't set.",
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "jqFilter"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "anyOf": [
+                                  {
+                                    "required": [
+                                      "url"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "openApi"
+                                    ]
+                                  }
+                                ],
+                                "required": [
+                                  "action"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "httpRequest",
+                                    "url": "https://reqres.in/api/users"
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "url": "https://reqres.in/api/users/2",
+                                    "method": "put",
+                                    "requestData": {
+                                      "name": "morpheus",
+                                      "job": "zion resident"
+                                    }
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "url": "https://reqres.in/api/users",
+                                    "method": "post",
+                                    "requestData": {
+                                      "name": "morpheus",
+                                      "job": "leader"
+                                    },
+                                    "responseData": {
+                                      "name": "morpheus",
+                                      "job": "leader"
+                                    },
+                                    "statusCodes": [
+                                      200,
+                                      201
+                                    ]
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "url": "https://www.api-server.com",
+                                    "method": "post",
+                                    "timeout": 30000,
+                                    "requestHeaders": {
+                                      "header": "value"
+                                    },
+                                    "requestParams": {
+                                      "param": "value"
+                                    },
+                                    "requestData": {
+                                      "field": "value"
+                                    },
+                                    "responseHeaders": {
+                                      "header": "value"
+                                    },
+                                    "responseData": {
+                                      "field": "value"
+                                    },
+                                    "statusCodes": [
+                                      200
+                                    ]
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "url": "https://reqres.in/api/users",
+                                    "method": "post",
+                                    "requestData": {
+                                      "name": "morpheus",
+                                      "job": "leader"
+                                    },
+                                    "responseData": {
+                                      "name": "morpheus",
+                                      "job": "leader"
+                                    },
+                                    "statusCodes": [
+                                      200,
+                                      201
+                                    ],
+                                    "savePath": "response.json",
+                                    "saveDirectory": "media",
+                                    "maxVariation": 5,
+                                    "overwrite": "byVariation"
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "openApi": {
+                                      "name": "Reqres",
+                                      "operationId": "getUserById"
+                                    },
+                                    "requestParams": {
+                                      "id": 123
+                                    }
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "openApi": {
+                                      "descriptionPath": "https://api.example.com/openapi.json",
+                                      "operationId": "getUserById"
+                                    },
+                                    "requestParams": {
+                                      "id": 123
+                                    }
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "openApi": {
+                                      "descriptionPath": "https://api.example.com/openapi.json",
+                                      "operationId": "createUser",
+                                      "useExample": "both"
+                                    }
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "openApi": {
+                                      "descriptionPath": "https://api.example.com/openapi.json",
+                                      "operationId": "updateUser",
+                                      "useExample": "request",
+                                      "exampleKey": "acme"
+                                    }
+                                  },
+                                  {
+                                    "action": "httpRequest",
+                                    "openApi": {
+                                      "descriptionPath": "https://api.example.com/openapi.json",
+                                      "operationId": "updateUser",
+                                      "useExample": "request",
+                                      "exampleKey": "acme",
+                                      "requestHeaders": {
+                                        "Authorization": "Bearer $TOKEN"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "runShell",
+                                "type": "object",
+                                "description": "Perform a native shell command.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "runShell",
+                                    "description": "The action to perform."
+                                  },
+                                  "command": {
+                                    "type": "string",
+                                    "description": "Command to perform in the machine's default shell."
+                                  },
+                                  "args": {
+                                    "type": "array",
+                                    "description": "Arguments for the command.",
+                                    "items": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        }
+                                      ]
+                                    },
+                                    "default": []
+                                  },
+                                  "workingDirectory": {
+                                    "type": "string",
+                                    "description": "Working directory for the command.",
+                                    "default": "."
+                                  },
+                                  "exitCodes": {
+                                    "type": "array",
+                                    "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
+                                    "items": {
+                                      "oneOf": [
+                                        {
+                                          "type": "integer"
+                                        }
+                                      ]
+                                    },
+                                    "default": [
+                                      0
+                                    ]
+                                  },
+                                  "output": {
+                                    "type": "string",
+                                    "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
+                                  },
+                                  "savePath": {
+                                    "type": "string",
+                                    "description": "File path to save the command's output, relative to `saveDirectory`."
+                                  },
+                                  "saveDirectory": {
+                                    "type": "string",
+                                    "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                  },
+                                  "maxVariation": {
+                                    "type": "integer",
+                                    "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
+                                    "default": 0,
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  },
+                                  "overwrite": {
+                                    "type": "string",
+                                    "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
+                                    "enum": [
+                                      "true",
+                                      "false",
+                                      "byVariation"
+                                    ],
+                                    "default": "false"
+                                  },
+                                  "timeout": {
+                                    "type": "integer",
+                                    "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.",
+                                    "default": 60000
+                                  },
+                                  "setVariables": {
+                                    "type": "array",
+                                    "description": "Extract environment variables from the command's output.",
+                                    "items": {
+                                      "oneOf": [
+                                        {
+                                          "description": "",
+                                          "type": "object",
+                                          "properties": {
+                                            "name": {
+                                              "description": "Name of the environment variable to set.",
+                                              "type": "string"
+                                            },
+                                            "regex": {
+                                              "description": "Regex to extract the environment variable from the command's output.",
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "name",
+                                            "regex"
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    "default": []
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "additionalProperties": false,
+                                "required": [
+                                  "action",
+                                  "command"
+                                ],
+                                "examples": [
+                                  {
+                                    "action": "runShell",
+                                    "command": "echo",
+                                    "args": [
+                                      "$USER"
+                                    ]
+                                  },
+                                  {
+                                    "action": "runShell",
+                                    "command": "echo",
+                                    "args": [
+                                      "hello-world"
+                                    ],
+                                    "id": "ddec5e20-2e81-4f38-867c-92c8d9516755",
+                                    "description": "This is a test!"
+                                  },
+                                  {
+                                    "action": "runShell",
+                                    "command": "docker run hello-world",
+                                    "timeout": 20000,
+                                    "exitCodes": [
+                                      0
+                                    ],
+                                    "output": "Hello from Docker!"
+                                  },
+                                  {
+                                    "action": "runShell",
+                                    "command": "false",
+                                    "exitCodes": [
+                                      1
+                                    ]
+                                  },
+                                  {
+                                    "action": "runShell",
+                                    "command": "echo",
+                                    "args": [
+                                      "setup"
+                                    ],
+                                    "exitCodes": [
+                                      0
+                                    ],
+                                    "output": "/.*?/",
+                                    "setVariables": [
+                                      {
+                                        "name": "TEST",
+                                        "regex": ".*"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "action": "runShell",
+                                    "command": "docker run hello-world",
+                                    "workingDirectory": ".",
+                                    "exitCodes": [
+                                      0
+                                    ],
+                                    "output": "Hello from Docker!",
+                                    "savePath": "docker-output.txt",
+                                    "saveDirectory": "output",
+                                    "maxVariation": 10,
+                                    "overwrite": "byVariation"
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "saveScreenshot",
+                                "type": "object",
+                                "description": "Takes a screenshot in PNG format.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "saveScreenshot",
+                                    "description": "The action to perform."
+                                  },
+                                  "path": {
+                                    "type": "string",
+                                    "description": "File path of the PNG file, relative to `directory`. If not specified, the file name is the ID of the step.",
+                                    "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)"
+                                  },
+                                  "directory": {
+                                    "type": "string",
+                                    "description": "Directory of the PNG file. If the directory doesn't exist, creates the directory."
+                                  },
+                                  "maxVariation": {
+                                    "type": "number",
+                                    "description": "Allowed variation in percentage of pixels between the new screenshot and the exisitng screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                    "default": 5,
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  },
+                                  "overwrite": {
+                                    "type": "string",
+                                    "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `byVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                    "enum": [
+                                      "true",
+                                      "false",
+                                      "byVariation"
+                                    ],
+                                    "default": "false"
+                                  },
+                                  "crop": {
+                                    "type": "object",
+                                    "description": "Crops the screenshot.",
+                                    "properties": {
+                                      "selector": {
+                                        "type": "string",
+                                        "description": "Selector of the element to crop the image to."
+                                      },
+                                      "padding": {
+                                        "oneOf": [
+                                          {
+                                            "type": "number",
+                                            "description": "Padding in pixels to add to the bounds of the element.",
+                                            "minimum": 0
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "top": {
+                                                "type": "number",
+                                                "minimum": 0
+                                              },
+                                              "right": {
+                                                "type": "number",
+                                                "minimum": 0
+                                              },
+                                              "bottom": {
+                                                "type": "number",
+                                                "minimum": 0
+                                              },
+                                              "left": {
+                                                "type": "number",
+                                                "minimum": 0
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "selector"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "saveScreenshot"
+                                  },
+                                  {
+                                    "action": "saveScreenshot",
+                                    "path": "results.png"
+                                  },
+                                  {
+                                    "action": "saveScreenshot",
+                                    "path": "results.png",
+                                    "directory": "static/images"
+                                  },
+                                  {
+                                    "action": "saveScreenshot",
+                                    "path": "results.png",
+                                    "directory": "static/images",
+                                    "maxVariation": 10,
+                                    "overwrite": "byVariation"
+                                  },
+                                  {
+                                    "action": "saveScreenshot",
+                                    "path": "results.png",
+                                    "directory": "static/images",
+                                    "crop": {
+                                      "selector": "#element"
+                                    }
+                                  },
+                                  {
+                                    "action": "saveScreenshot",
+                                    "path": "results.png",
+                                    "directory": "static/images",
+                                    "crop": {
+                                      "selector": "#element",
+                                      "padding": 10
+                                    }
+                                  },
+                                  {
+                                    "action": "saveScreenshot",
+                                    "path": "results.png",
+                                    "directory": "static/images",
+                                    "crop": {
+                                      "selector": "#element",
+                                      "padding": {
+                                        "top": 10,
+                                        "right": 20,
+                                        "bottom": 30,
+                                        "left": 40
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "setVariables",
+                                "type": "object",
+                                "description": "Load environment variables from a `.env` file.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "setVariables",
+                                    "description": "Action to perform."
+                                  },
+                                  "path": {
+                                    "type": "string",
+                                    "description": "Path to the `.env` file."
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action",
+                                  "path"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "setVariables",
+                                    "path": ".env"
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "startRecording",
+                                "type": "object",
+                                "description": "Start recording the current browser viewport. Must be followed by a `stopRecording` action. Only runs when the context `app` is `chrome` and `headless` is `false`. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "startRecording",
+                                    "description": "The action to perform."
+                                  },
+                                  "path": {
+                                    "type": "string",
+                                    "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+                                    "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)"
+                                  },
+                                  "directory": {
+                                    "type": "string",
+                                    "description": "Directory of the file. Attempts to create the directory if it doesn't exist."
+                                  },
+                                  "overwrite": {
+                                    "type": "boolean",
+                                    "description": "If `true`, overwrites the existing file at `path` if it exists.",
+                                    "default": false
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "startRecording"
+                                  },
+                                  {
+                                    "action": "startRecording",
+                                    "path": "results.mp4"
+                                  },
+                                  {
+                                    "action": "startRecording",
+                                    "path": "results.mp4",
+                                    "directory": "static/media",
+                                    "overwrite": true
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "stopRecording",
+                                "type": "object",
+                                "description": "Stop the current recording.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "stopRecording",
+                                    "description": "The action to perform."
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "stopRecording"
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "typeKeys",
+                                "type": "object",
+                                "description": "Type keys. To type special keys, begin and end the string with `$` and use the special key's enum. For example, to type the Escape key, enter `$ESCAPE$`.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "typeKeys",
+                                    "description": "The action to perform."
+                                  },
+                                  "keys": {
+                                    "description": "String of keys to enter.",
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string"
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "delay": {
+                                    "type": "number",
+                                    "description": "Delay in milliseconds between each key press. Only valid during a recording.",
+                                    "default": 100
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action",
+                                  "keys"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "typeKeys",
+                                    "keys": "kittens"
+                                  },
+                                  {
+                                    "action": "typeKeys",
+                                    "keys": [
+                                      "$ENTER$"
+                                    ]
+                                  },
+                                  {
+                                    "action": "typeKeys",
+                                    "keys": [
+                                      "kittens",
+                                      "$ENTER$"
+                                    ],
+                                    "delay": 500
+                                  }
+                                ]
+                              },
+                              {
+                                "title": "wait",
+                                "type": "object",
+                                "description": "Pause before performing the next action.",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "description": "ID of the step."
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "description": "Description of the step."
+                                  },
+                                  "action": {
+                                    "type": "string",
+                                    "const": "wait",
+                                    "description": "The action to perform."
+                                  },
+                                  "duration": {
+                                    "type": "number",
+                                    "description": "Milliseconds to wait.",
+                                    "default": 5000
+                                  }
+                                },
+                                "dynamicDefaults": {
+                                  "id": "uuid"
+                                },
+                                "required": [
+                                  "action"
+                                ],
+                                "additionalProperties": false,
+                                "examples": [
+                                  {
+                                    "action": "wait"
+                                  },
+                                  {
+                                    "action": "wait",
+                                    "duration": 5000
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "regex"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "extensions",
+              "testStartStatementOpen",
+              "testStartStatementClose",
+              "testIgnoreStatement",
+              "testEndStatement",
+              "stepStatementOpen",
+              "stepStatementClose",
+              "markup"
+            ]
+          }
+        ]
+      },
+      "default": [
+        {
+          "name": "Markdown",
+          "extensions": [
+            ".md",
+            ".markdown",
+            ".mdx"
+          ],
+          "testStartStatementOpen": "[comment]: # (test start",
+          "testStartStatementClose": ")",
+          "testIgnoreStatement": "[comment]: # (test ignore)",
+          "testEndStatement": "[comment]: # (test end)",
+          "stepStatementOpen": "[comment]: # (step",
+          "stepStatementClose": ")",
+          "markup": [
+            {
+              "name": "onscreenText",
+              "regex": [
+                "\\*\\*.+?\\*\\*"
+              ],
+              "actions": [
+                "find"
+              ]
+            },
+            {
+              "name": "emphasis",
+              "regex": [
+                "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
+              ]
+            },
+            {
+              "name": "image",
+              "regex": [
+                "!\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "checkLink"
+              ]
+            },
+            {
+              "name": "hyperlink",
+              "regex": [
+                "(?<!!)\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "checkLink"
+              ]
+            },
+            {
+              "name": "navigationLink",
+              "regex": [
+                "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "goTo"
+              ]
+            },
+            {
+              "name": "orderedList",
+              "regex": [
+                "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
+              ]
+            },
+            {
+              "name": "unorderedList",
+              "regex": [
+                "(?<=\n) *?\\*.\\s*.*",
+                "(?<=\n) *?-.\\s*.*"
+              ]
+            },
+            {
+              "name": "codeInline",
+              "regex": [
+                "(?<!`)`(?!`).+?(?<!`)`(?!`)"
+              ]
+            },
+            {
+              "name": "interaction",
+              "regex": [
+                "[cC]lick",
+                "[tT]ap",
+                "[tT]ouch",
+                "[sS]elect",
+                "[cC]hoose",
+                "[tT]oggle",
+                "[eE]nable",
+                "[dD]isable",
+                "[tT]urn [oO][ff|n]",
+                "[tT]ype",
+                "[eE]nter",
+                "[sS]end",
+                "[aA]dd",
+                "[rR]emove",
+                "[dD]elete",
+                "[uU]pload",
+                "[dD]ownload",
+                "[sS]croll",
+                "[sS]earch",
+                "[fF]ilter",
+                "[sS]ort",
+                "[cC]opy",
+                "[pP]aste",
+                "[cC]ut",
+                "[rR]eplace",
+                "[cC]lear",
+                "[rR]efresh",
+                "[rR]evert",
+                "[rR]estore",
+                "[rR]eset",
+                "[lL]ogin",
+                "[lL]ogout",
+                "[sS]ign [iI]n",
+                "[sS]ign [oO]ut",
+                "[sS]ubmit",
+                "[cC]ancel",
+                "[cC]lose",
+                "[aA]ccept",
+                "[dD]ecline",
+                "[dD]eny",
+                "[rR]eject",
+                "[rR]etry",
+                "[rR]estart",
+                "[rR]esume"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "AsciiDoc",
+          "extensions": [
+            ".adoc",
+            ".asciidoc, .asc"
+          ],
+          "testStartStatementOpen": "// (test start",
+          "testStartStatementClose": ")",
+          "testIgnoreStatement": "// (test ignore)",
+          "testEndStatement": "// (test end)",
+          "stepStatementOpen": "// (step",
+          "stepStatementClose": ")",
+          "markup": []
+        },
+        {
+          "name": "HTML/XML",
+          "extensions": [
+            ".html",
+            ".htm",
+            ".xml",
+            ".xhtml"
+          ],
+          "testStartStatementOpen": "<!-- test start",
+          "testStartStatementClose": "-->",
+          "testIgnoreStatement": "<!-- test ignore -->",
+          "testEndStatement": "<!-- test end -->",
+          "stepStatementOpen": "<!-- step",
+          "stepStatementClose": "-->",
+          "markup": []
+        }
+      ]
+    },
+    "integrations": {
+      "description": "Options for connecting to external services.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "openApi": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "version": "1.0.0",
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "openApi",
+                "type": "object",
+                "description": "OpenAPI definition and configuration.",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the OpenAPI definition, as defined in your configuration."
+                  },
+                  "descriptionPath": {
+                    "type": "string",
+                    "description": "URL or local path to the OpenAPI definition."
+                  },
+                  "operationId": {
+                    "type": "string",
+                    "description": "ID of the operation to use for the request."
+                  },
+                  "server": {
+                    "type": "string",
+                    "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
+                  },
+                  "validateAgainstSchema": {
+                    "type": "string",
+                    "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
+                    "enum": [
+                      "request",
+                      "response",
+                      "both",
+                      "none"
+                    ],
+                    "default": "both"
+                  },
+                  "mockResponse": {
+                    "type": "boolean",
+                    "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                  },
+                  "statusCode": {
+                    "type": "integer",
+                    "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                  },
+                  "useExample": {
+                    "type": [
+                      "string"
+                    ],
+                    "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                    "enum": [
+                      "request",
+                      "response",
+                      "both",
+                      "none"
+                    ],
+                    "default": "none"
+                  },
+                  "exampleKey": {
+                    "type": "string",
+                    "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
+                    "default": ""
+                  },
+                  "requestHeaders": {
+                    "type": "object",
+                    "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": [
+                  {
+                    "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "null",
+                    "$commment": "Only allow operationId at the step level."
+                  }
+                },
+                "required": [
+                  "name",
+                  "descriptionPath"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "telemetry": {
+      "description": "Options around sending telemetry for Doc Detective usage.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "send": {
+          "description": "If `true`, sends Doc Detective telemetry.",
+          "type": "boolean",
+          "default": true
+        },
+        "userId": {
+          "description": "Identifier for the organization, group, or individual running Doc Detective.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "send"
+      ],
+      "default": {
+        "send": true
+      }
+    },
+    "logLevel": {
+      "description": "Amount of detail to output when performing an operation.",
+      "type": "string",
+      "enum": [
+        "silent",
+        "error",
+        "warning",
+        "info",
+        "debug"
+      ],
+      "default": "info"
+    }
+  },
+  "definitions": {
+    "input": {
+      "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "recursive": {
+      "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
+      "type": "boolean"
+    },
+    "output": {
+      "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
+      "type": "string",
+      "default": "."
+    },
+    "markupToInclude": {
+      "description": "Markup types to include when performing this operation. If no markup types are specified, the operation includes all markup types as defined in `fileTypes`.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string"
+          }
+        ]
+      }
+    }
+  },
+  "examples": [
+    {},
+    {
+      "input": ".",
+      "output": "."
+    },
+    {
+      "defaultCommand": "runTests",
+      "envVariables": "",
+      "input": ".",
+      "output": ".",
+      "recursive": true,
+      "logLevel": "info",
+      "runTests": {
+        "input": ".",
+        "output": ".",
+        "setup": "",
+        "cleanup": "",
+        "recursive": true,
+        "downloadDirectory": ".",
+        "contexts": [
+          {
+            "app": {
+              "name": "firefox",
+              "path": ""
+            },
+            "platforms": [
+              "linux",
+              "mac",
+              "windows"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "integrations": {
+        "openApi": [
+          {
+            "name": "Acme",
+            "descriptionPath": "https://www.acme.com/openapi.json",
+            "server": "https://api.acme.com",
+            "mockResponse": true
+          }
+        ]
+      }
+    },
+    {
+      "envVariables": "",
+      "input": ".",
+      "output": ".",
+      "recursive": true,
+      "logLevel": "info",
+      "runTests": {
+        "input": ".",
+        "output": ".",
+        "setup": "",
+        "cleanup": "",
+        "recursive": true,
+        "downloadDirectory": ".",
+        "contexts": [
+          {
+            "app": {
+              "name": "firefox",
+              "path": ""
+            },
+            "platforms": [
+              "linux",
+              "mac",
+              "windows"
+            ]
+          }
+        ]
+      },
+      "runCoverage": {
+        "recursive": true,
+        "input": ".",
+        "output": ".",
+        "markup": []
+      },
+      "fileTypes": [
+        {
+          "name": "Markdown",
+          "extensions": [
+            ".md",
+            ".markdown",
+            ".mdx"
+          ],
+          "testStartStatementOpen": "[comment]: # (test start",
+          "testStartStatementClose": ")",
+          "testIgnoreStatement": "[comment]: # (test ignore)",
+          "testEndStatement": "[comment]: # (test end)",
+          "stepStatementOpen": "[comment]: # (step",
+          "stepStatementClose": ")",
+          "markup": [
+            {
+              "name": "onscreenText",
+              "regex": [
+                "\\*\\*.+?\\*\\*"
+              ],
+              "actions": [
+                "find"
+              ]
+            },
+            {
+              "name": "emphasis",
+              "regex": [
+                "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
+              ]
+            },
+            {
+              "name": "image",
+              "regex": [
+                "!\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "checkLink"
+              ]
+            },
+            {
+              "name": "hyperlink",
+              "regex": [
+                "(?<!!)\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "checkLink"
+              ]
+            },
+            {
+              "name": "navigationLink",
+              "regex": [
+                "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "goTo"
+              ]
+            },
+            {
+              "name": "orderedList",
+              "regex": [
+                "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
+              ]
+            },
+            {
+              "name": "unorderedList",
+              "regex": [
+                "(?<=\n) *?\\*.\\s*.*",
+                "(?<=\n) *?-.\\s*.*"
+              ]
+            },
+            {
+              "name": "codeInline",
+              "regex": [
+                "(?<!`)`(?!`).+?(?<!`)`(?!`)"
+              ]
+            },
+            {
+              "name": "codeBlock",
+              "regex": [
+                "(?=(```))(\\w|\\W)*(?<=```)"
+              ]
+            },
+            {
+              "name": "interaction",
+              "regex": [
+                "[cC]lick",
+                "[tT]ap",
+                "[tT]ouch",
+                "[sS]elect",
+                "[cC]hoose",
+                "[tT]oggle",
+                "[eE]nable",
+                "[dD]isable",
+                "[tT]urn [oO][ff|n]",
+                "[tT]ype",
+                "[eE]nter",
+                "[sS]end",
+                "[aA]dd",
+                "[rR]emove",
+                "[dD]elete",
+                "[uU]pload",
+                "[dD]ownload",
+                "[sS]croll",
+                "[sS]earch",
+                "[fF]ilter",
+                "[sS]ort",
+                "[cC]opy",
+                "[pP]aste",
+                "[cC]ut",
+                "[rR]eplace",
+                "[cC]lear",
+                "[rR]efresh",
+                "[rR]evert",
+                "[rR]estore",
+                "[rR]eset",
+                "[lL]ogin",
+                "[lL]ogout",
+                "[sS]ign [iI]n",
+                "[sS]ign [oO]ut",
+                "[sS]ubmit",
+                "[cC]ancel",
+                "[cC]lose",
+                "[aA]ccept",
+                "[dD]ecline",
+                "[dD]eny",
+                "[rR]eject",
+                "[rR]etry",
+                "[rR]estart",
+                "[rR]esume"
+              ]
+            }
+          ]
+        }
+      ],
+      "integrations": {},
+      "telemetry": {
+        "send": true,
+        "userId": "Doc Detective"
+      }
+    },
+    {
+      "envVariables": "",
+      "input": [
+        "."
+      ],
+      "output": ".",
+      "recursive": true,
+      "relativePathBase": "cwd",
+      "logLevel": "info",
+      "runTests": {
+        "input": [
+          "."
+        ],
+        "output": ".",
+        "setup": [
+          "."
+        ],
+        "cleanup": [
+          "."
+        ],
+        "recursive": true,
+        "downloadDirectory": ".",
+        "contexts": [
+          {
+            "app": {
+              "name": "firefox",
+              "options": {
+                "width": 1200,
+                "height": 800,
+                "headless": true
+              }
+            },
+            "platforms": [
+              "linux",
+              "mac",
+              "windows"
+            ]
+          }
+        ]
+      },
+      "runCoverage": {
+        "recursive": true,
+        "input": [
+          "."
+        ],
+        "output": ".",
+        "markup": []
+      },
+      "fileTypes": [
+        {
+          "name": "Markdown",
+          "extensions": [
+            ".md",
+            ".markdown",
+            ".mdx"
+          ],
+          "testStartStatementOpen": "[comment]: # (test start",
+          "testStartStatementClose": ")",
+          "testIgnoreStatement": "[comment]: # (test ignore)",
+          "testEndStatement": "[comment]: # (test end)",
+          "stepStatementOpen": "[comment]: # (step",
+          "stepStatementClose": ")",
+          "markup": [
+            {
+              "name": "onscreenText",
+              "regex": [
+                "\\*\\*.+?\\*\\*"
+              ],
+              "actions": [
+                "find"
+              ]
+            },
+            {
+              "name": "emphasis",
+              "regex": [
+                "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
+              ]
+            },
+            {
+              "name": "image",
+              "regex": [
+                "!\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "checkLink"
+              ]
+            },
+            {
+              "name": "hyperlink",
+              "regex": [
+                "(?<!!)\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "checkLink"
+              ]
+            },
+            {
+              "name": "navigationLink",
+              "regex": [
+                "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
+              ],
+              "actions": [
+                "goTo"
+              ]
+            },
+            {
+              "name": "orderedList",
+              "regex": [
+                "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
+              ]
+            },
+            {
+              "name": "unorderedList",
+              "regex": [
+                "(?<=\n) *?\\*.\\s*.*",
+                "(?<=\n) *?-.\\s*.*"
+              ]
+            },
+            {
+              "name": "codeInline",
+              "regex": [
+                "(?<!`)`(?!`).+?(?<!`)`(?!`)"
+              ]
+            },
+            {
+              "name": "codeBlock",
+              "regex": [
+                "(?=(```))(\\w|\\W)*(?<=```)"
+              ]
+            },
+            {
+              "name": "interaction",
+              "regex": [
+                "[cC]lick",
+                "[tT]ap",
+                "[tT]ouch",
+                "[sS]elect",
+                "[cC]hoose",
+                "[tT]oggle",
+                "[eE]nable",
+                "[dD]isable",
+                "[tT]urn [oO][ff|n]",
+                "[tT]ype",
+                "[eE]nter",
+                "[sS]end",
+                "[aA]dd",
+                "[rR]emove",
+                "[dD]elete",
+                "[uU]pload",
+                "[dD]ownload",
+                "[sS]croll",
+                "[sS]earch",
+                "[fF]ilter",
+                "[sS]ort",
+                "[cC]opy",
+                "[pP]aste",
+                "[cC]ut",
+                "[rR]eplace",
+                "[cC]lear",
+                "[rR]efresh",
+                "[rR]evert",
+                "[rR]estore",
+                "[rR]eset",
+                "[lL]ogin",
+                "[lL]ogout",
+                "[sS]ign [iI]n",
+                "[sS]ign [oO]ut",
+                "[sS]ubmit",
+                "[cC]ancel",
+                "[cC]lose",
+                "[aA]ccept",
+                "[dD]ecline",
+                "[dD]eny",
+                "[rR]eject",
+                "[rR]etry",
+                "[rR]estart",
+                "[rR]esume"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "AsciiDoc",
+          "extensions": [
+            ".adoc",
+            ".asciidoc, .asc"
+          ],
+          "testStartStatementOpen": "// (test start",
+          "testStartStatementClose": ")",
+          "testIgnoreStatement": "// (test ignore)",
+          "testEndStatement": "// (test end)",
+          "stepStatementOpen": "// (step",
+          "stepStatementClose": ")",
+          "markup": []
+        },
+        {
+          "name": "HTML/XML",
+          "extensions": [
+            ".html",
+            ".htm",
+            ".xml",
+            ".xhtml"
+          ],
+          "testStartStatementOpen": "<!-- test start",
+          "testStartStatementClose": "-->",
+          "testIgnoreStatement": "<!-- test ignore -->",
+          "testEndStatement": "<!-- test end -->",
+          "stepStatementOpen": "<!-- step",
+          "stepStatementClose": "-->",
+          "markup": []
+        }
+      ],
+      "integrations": {},
+      "telemetry": {
+        "send": true,
+        "userId": "Doc Detective"
+      }
+    }
+  ]
+}

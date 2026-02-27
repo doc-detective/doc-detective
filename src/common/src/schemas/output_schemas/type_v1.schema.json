@@ -1,0 +1,62 @@
+{
+  "title": "type",
+  "type": "object",
+  "description": "Click an element specified by a CSS sepector.",
+  "anyOf": [
+    {
+      "required": [
+        "keys"
+      ]
+    },
+    {
+      "required": [
+        "trailingSpecialKey"
+      ]
+    }
+  ],
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "type"
+    },
+    "css": {
+      "type": "string",
+      "description": "CSS selector that uniquely identified the element."
+    },
+    "keys": {
+      "type": "string",
+      "description": "String of keys to enter."
+    },
+    "trailingSpecialKey": {
+      "type": "string",
+      "description": "Special key pressed after the 'keys' value, if present. Supported values: https://github.com/puppeteer/puppeteer/blob/main/src/common/USKeyboardLayout.ts"
+    },
+    "env": {
+      "type": "string",
+      "description": "Path to a `.env` file to load before performing the action."
+    }
+  },
+  "required": [
+    "action",
+    "css"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "type",
+      "css": "[title=Search]",
+      "keys": "kittens"
+    },
+    {
+      "action": "type",
+      "css": "[title=Search]",
+      "trailingSpecialKey": "Enter"
+    },
+    {
+      "action": "type",
+      "css": "[title=Search]",
+      "keys": "kittens",
+      "trailingSpecialKey": "Enter"
+    }
+  ]
+}

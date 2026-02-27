@@ -1,0 +1,232 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "goTo",
+  "anyOf": [
+    {
+      "$ref": "#/components/schemas/string"
+    },
+    {
+      "$ref": "#/components/schemas/object"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "title": "Go to URL (simple)",
+        "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+        "type": "string",
+        "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+        "transform": ["trim"]
+      },
+      "object": {
+        "description": "Navigate to an HTTP or HTTPS URL.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
+            "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+            "transform": ["trim"]
+          },
+          "origin": {
+            "type": "string",
+            "description": "Protocol and domain to navigate to. Prepended to `url`.",
+            "transform": ["trim"]
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+            "default": 30000,
+            "minimum": 0
+          },
+          "waitUntil": {
+            "type": "object",
+            "description": "Configuration for waiting conditions after navigation.",
+            "additionalProperties": false,
+            "properties": {
+              "networkIdleTime": {
+                "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.",
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": 500
+              },
+              "domIdleTime": {
+                "description": "Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.",
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": 1000
+              },
+              "find": {
+                "type": "object",
+                "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
+                "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "required": ["selector"]
+                  },
+                  {
+                    "required": ["elementText"]
+                  },
+                  {
+                    "required": ["elementId"]
+                  },
+                  {
+                    "required": ["elementTestId"]
+                  },
+                  {
+                    "required": ["elementClass"]
+                  },
+                  {
+                    "required": ["elementAttribute"]
+                  },
+                  {
+                    "required": ["elementAria"]
+                  }
+                ],
+                "properties": {
+                  "selector": {
+                    "type": "string",
+                    "description": "CSS selector for the element to wait for."
+                  },
+                  "elementText": {
+                    "type": "string",
+                    "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                  },
+                  "elementId": {
+                    "type": "string",
+                    "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                  },
+                  "elementTestId": {
+                    "type": "string",
+                    "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                  },
+                  "elementClass": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                  },
+                  "elementAttribute": {
+                    "type": "object",
+                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  },
+                  "elementAria": {
+                    "type": "string",
+                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "title": "Go to URL (detailed)"
+      }
+    }
+  },
+  "examples": [
+    "https://www.google.com",
+    "/search",
+    {
+      "url": "https://www.google.com"
+    },
+    {
+      "url": "/search",
+      "origin": "https://www.google.com"
+    },
+    {
+      "url": "https://www.example.com",
+      "waitUntil": {
+        "networkIdleTime": 500
+      }
+    },
+    {
+      "url": "https://www.example.com/dashboard",
+      "waitUntil": {
+        "find": {
+          "selector": "[data-testid='dashboard-loaded']"
+        }
+      }
+    },
+    {
+      "url": "https://www.example.com/app",
+      "timeout": 60000,
+      "waitUntil": {
+        "networkIdleTime": 500,
+        "domIdleTime": 1000,
+        "find": {
+          "selector": ".main-content",
+          "elementText": "Dashboard"
+        }
+      }
+    },
+    {
+      "url": "https://www.example.com/app",
+      "timeout": 60000,
+      "waitUntil": {
+        "networkIdleTime": null
+      }
+    },
+    {
+      "url": "https://www.example.com/status",
+      "waitUntil": {
+        "find": {
+          "elementText": "System operational"
+        }
+      }
+    },
+    {
+      "url": "http://localhost:8092",
+      "waitUntil": {
+        "find": {
+          "selector": "button",
+          "elementText": "Standard Button",
+          "elementTestId": "standard-btn",
+          "elementAria": "Sample Standard Button",
+          "elementId": "standard-btn",
+          "elementClass": ["btn"],
+          "elementAttribute": {
+            "type": "button",
+            "value": "Standard Button"
+          }
+        }
+      }
+    }
+  ]
+}
