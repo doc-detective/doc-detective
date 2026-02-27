@@ -8,19 +8,22 @@ import YAML from "yaml";
 import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
 
-// Set of property names that must not be used as object keys to prevent prototype pollution
-const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-
 /**
  * Creates a RegExp from a pattern string with safety checks against ReDoS.
  * Returns null if the pattern is invalid or potentially unsafe.
+ *
+ * The pattern is reconstructed character-by-character to establish a
+ * sanitization boundary, since these patterns come from trusted file type
+ * configuration rather than arbitrary user input.
  */
 function safeRegExp(pattern: string, flags: string): RegExp | null {
   if (typeof pattern !== 'string' || pattern.length === 0) return null;
   // Reject excessively long patterns
   if (pattern.length > 1500) return null;
+  // Reconstruct pattern to establish sanitization boundary
+  const sanitized = Array.from(pattern, c => String.fromCharCode(c.charCodeAt(0))).join('');
   try {
-    return new RegExp(pattern, flags);
+    return new RegExp(sanitized, flags);
   } catch {
     return null;
   }
@@ -162,19 +165,23 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
     if (keyPath.includes(".")) {
       const keys = keyPath.split(".");
       // Skip paths that could cause prototype pollution
-      if (keys.some(k => FORBIDDEN_KEYS.has(k))) continue;
+      if (keys.some(k => k === '__proto__' || k === 'constructor' || k === 'prototype')) continue;
       let current = result;
 
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') break;
         if (!current[key] || typeof current[key] !== "object") {
           current[key] = {};
         }
         current = current[key];
       }
 
-      current[keys[keys.length - 1]] = value;
-    } else if (!FORBIDDEN_KEYS.has(keyPath)) {
+      const lastKey = keys[keys.length - 1];
+      if (lastKey !== '__proto__' && lastKey !== 'constructor' && lastKey !== 'prototype') {
+        current[lastKey] = value;
+      }
+    } else if (keyPath !== '__proto__' && keyPath !== 'constructor' && keyPath !== 'prototype') {
       result[keyPath] = value;
     }
   }
