@@ -63,7 +63,12 @@ function main() {
   
   for (const metric of metrics) {
     const baseline = thresholds[metric];
-    const currentValue = current[metric].pct;
+    const currentMetric = current?.[metric];
+    if (typeof baseline !== 'number' || typeof currentMetric?.pct !== 'number') {
+      console.error(`Invalid or missing coverage metric: "${metric}"`);
+      process.exit(1);
+    }
+    const currentValue = currentMetric.pct;
     const diff = (currentValue - baseline).toFixed(2);
     
     let status;

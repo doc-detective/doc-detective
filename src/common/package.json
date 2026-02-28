@@ -30,14 +30,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/doc-detective/doc-detective-common.git"
+    "url": "git+https://github.com/doc-detective/doc-detective.git"
   },
   "author": "Manny Silva",
   "license": "AGPL-3.0-only",
   "bugs": {
-    "url": "https://github.com/doc-detective/doc-detective-common/issues"
+    "url": "https://github.com/doc-detective/doc-detective/issues"
   },
-  "homepage": "https://github.com/doc-detective/doc-detective-common#readme",
+  "homepage": "https://github.com/doc-detective/doc-detective/tree/main/src/common#readme",
   "devDependencies": {
     "@apidevtools/json-schema-ref-parser": "^15.2.2",
     "@types/node": "^25.2.3",

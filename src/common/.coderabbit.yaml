@@ -16,7 +16,7 @@ reviews:
   changed_files_summary: true
   labeling_instructions: []
   path_filters:
-    - "!src/schemas/**"
+    - "!src/common/src/schemas/**"
   path_instructions: []
   abort_on_close: true
   auto_review:

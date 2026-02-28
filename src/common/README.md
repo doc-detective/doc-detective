@@ -14,7 +14,7 @@ npm install doc-detective-common@dev
 
 ## 🚀 Development Releases
 
-This package automatically publishes development versions on every commit to the main branch. This enables dependent libraries to consume the latest changes without waiting for formal releases.
+When the monorepo auto-dev-release workflow is enabled, this package publishes development versions from `main` commits. This enables dependent libraries to consume the latest changes without waiting for formal releases.
 
 - **Dev versions** follow the pattern: `3.1.0-dev.1`, `3.1.0-dev.2`, etc.
 - **Available via npm**: `npm install doc-detective-common@dev`
