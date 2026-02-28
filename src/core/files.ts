@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
 import axios from "axios";
-import { validate } from "doc-detective-common";
+import { validate } from "../common/src/validate.js";
 
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.

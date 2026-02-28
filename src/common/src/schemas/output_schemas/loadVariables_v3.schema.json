@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "loadVariables",
+  "type": "string",
+  "description": "Load environment variables from the specified `.env` file.",
+  "examples": [
+    ".env"
+  ]
+}

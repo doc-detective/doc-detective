@@ -1,5 +1,5 @@
 import os from "node:os";
-import { validate } from "doc-detective-common";
+import { validate } from "../common/src/validate.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
 import path from "node:path";
 import * as browsers from "@puppeteer/browsers";

@@ -1,0 +1,30 @@
+{
+  "title": "goTo",
+  "type": "object",
+  "description": "Navigate to a specified URI.",
+  "properties": {
+    "action": {
+      "type": "string",
+      "const": "goTo"
+    },
+    "uri": {
+      "type": "string",
+      "description": "URI to navigate to."
+    }
+  },
+  "required": [
+    "action",
+    "uri"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "action": "goTo",
+      "uri": "https://www.google.com"
+    },
+    {
+      "action": "goTo",
+      "uri": "$URI"
+    }
+  ]
+}

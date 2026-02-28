@@ -1,9 +1,9 @@
 import { replaceEnvs } from "./utils.js";
-import { JSONSchemaFaker } from "json-schema-faker";
+import { createGenerator } from "json-schema-faker";
 import { readFile } from "./files.js";
 import parser from "@apidevtools/json-schema-ref-parser";
 
-JSONSchemaFaker.option({ requiredOnly: true });
+const jsf = createGenerator({ optionalsProbability: 0 });
 
 /**
  * Dereferences an OpenAPI or Arazzo description
@@ -37,7 +37,7 @@ async function loadDescription(descriptionPath: string = "") {
  * @throws {Error} Will throw an error if the definition or operationId is not provided.
  * @returns {Object|null} Returns an object containing the operation details, schemas, and example if found; otherwise, returns null.
  */
-function getOperation(
+async function getOperation(
   definition: any = {},
   operationId: string = "",
   responseCode: string = "",
@@ -65,7 +65,7 @@ function getOperation(
             );
           }
         }
-        const example = compileExample(
+        const example = await compileExample(
           operation,
           server + path,
           responseCode,
@@ -113,7 +113,7 @@ function getSchemas(definition: any = {}, responseCode: string = "") {
  * @returns {Object} - The compiled example object.
  * @throws {Error} - If operation or path is not provided.
  */
-function compileExample(
+async function compileExample(
   operation: any = {},
   path: string = "",
   responseCode: string = "",
@@ -135,19 +135,19 @@ function compileExample(
   };
 
   // Path parameters
-  const pathParameters = getExampleParameters(operation, "path", exampleKey);
+  const pathParameters = await getExampleParameters(operation, "path", exampleKey);
   pathParameters.forEach((param: any) => {
     example.url = example.url.replace(`{${param.key}}`, param.value);
   });
 
   // Query parameters
-  const queryParameters = getExampleParameters(operation, "query", exampleKey);
+  const queryParameters = await getExampleParameters(operation, "query", exampleKey);
   queryParameters.forEach((param: any) => {
     example.request.parameters[param.key] = param.value;
   });
 
   // Headers
-  const headerParameters = getExampleParameters(
+  const headerParameters = await getExampleParameters(
     operation,
     "header",
     exampleKey
@@ -158,7 +158,7 @@ function compileExample(
 
   // Request body
   if (operation.requestBody) {
-    const requestBody = getExample(operation.requestBody, exampleKey);
+    const requestBody = await getExample(operation.requestBody, exampleKey);
     if (typeof requestBody != "undefined") {
       example.request.body = requestBody;
     }
@@ -173,7 +173,7 @@ function compileExample(
   // Response headers
   if (response.headers) {
     for (const header in response.headers) {
-      const headerExample = getExample(response.headers[header], exampleKey);
+      const headerExample = await getExample(response.headers[header], exampleKey);
       if (typeof headerExample != "undefined")
         example.response.headers[header] = headerExample;
     }
@@ -182,7 +182,7 @@ function compileExample(
   // Response body
   if (response.content) {
     for (const key in response.content) {
-      const responseBody = getExample(response.content[key], exampleKey);
+      const responseBody = await getExample(response.content[key], exampleKey);
       if (typeof responseBody != "undefined") {
         example.response.body = responseBody;
       }
@@ -205,7 +205,7 @@ function compileExample(
  * @returns {Array} - An array of example parameters.
  * @throws {Error} - If the operation is not provided.
  */
-function getExampleParameters(operation: any = {}, type: string = "", exampleKey: string = "") {
+async function getExampleParameters(operation: any = {}, type: string = "", exampleKey: string = "") {
   const params: any[] = [];
 
   // Error handling
@@ -217,7 +217,7 @@ function getExampleParameters(operation: any = {}, type: string = "", exampleKey
   // Find all query parameters
   for (const parameter of operation.parameters) {
     if (parameter.in === type) {
-      const value = getExample(parameter, exampleKey);
+      const value = await getExample(parameter, exampleKey);
       if (value) {
         params.push({ key: parameter.name, value });
       }
@@ -235,11 +235,11 @@ function getExampleParameters(operation: any = {}, type: string = "", exampleKey
  * @returns {object|null} - The example value.
  * @throws {Error} - If the definition is not provided.
  */
-function getExample(
+async function getExample(
   definition: any = {},
   exampleKey: string = "",
   generateFromSchema: any = null
-): any {
+): Promise<any> {
   // Debug
   // console.log({definition, exampleKey});
 
@@ -261,7 +261,7 @@ function getExample(
 
   if (generateFromSchema && definition.type) {
     try {
-      example = JSONSchemaFaker.generate(definition);
+      example = await jsf.generate(definition);
       if (example) return example;
     } catch (error) {
       console.warn(`Error generating example: ${error}`);
@@ -306,15 +306,15 @@ function getExample(
     }
 
     if (schema.type === "object") {
-      example = generateObjectExample(schema, exampleKey, generateFromSchema);
+      example = await generateObjectExample(schema, exampleKey, generateFromSchema);
     } else if (schema.type === "array") {
-      example = generateArrayExample(
+      example = await generateArrayExample(
         schema.items,
         exampleKey,
         generateFromSchema
       );
     } else {
-      example = getExample(schema, exampleKey, generateFromSchema);
+      example = await getExample(schema, exampleKey, generateFromSchema);
     }
   }
 
@@ -329,14 +329,14 @@ function getExample(
  * @param {string} exampleKey - The example key.
  * @returns {object} - The generated object example.
  */
-function generateObjectExample(
+async function generateObjectExample(
   schema: any = {},
   exampleKey: string = "",
   generateFromSchema: any = null
 ) {
   const example: any = {};
   for (const property in schema.properties) {
-    const objectExample = getExample(
+    const objectExample = await getExample(
       schema.properties[property],
       exampleKey,
       generateFromSchema
@@ -353,7 +353,7 @@ function generateObjectExample(
  * @param {string} exampleKey - The example key.
  * @returns {Array} - The generated array example.
  */
-function generateArrayExample(
+async function generateArrayExample(
   items: any = {},
   exampleKey: string = "",
   generateFromSchema: any = null
@@ -362,7 +362,7 @@ function generateArrayExample(
   // console.log({ items, exampleKey });
 
   const example: any[] = [];
-  const itemExample = getExample(items, exampleKey, generateFromSchema);
+  const itemExample = await getExample(items, exampleKey, generateFromSchema);
   if (itemExample) example.push(itemExample);
 
   // Debug

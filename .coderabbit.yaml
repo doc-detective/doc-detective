@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: false
+reviews:
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: true
+  review_status: true
+  review_details: false
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_pause_after_reviewed_commits: 0
+  path_filters:
+    - "!src/common/src/schemas/output_schemas/**"
+    - "!src/common/src/schemas/schemas.json"
+  tools:
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+chat:
+  auto_reply: true

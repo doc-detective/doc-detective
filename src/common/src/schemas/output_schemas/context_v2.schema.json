@@ -1,0 +1,134 @@
+{
+  "title": "context",
+  "type": "object",
+  "description": "An application and supported platforms.\n\nIf no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For browsers, context priority is Firefox > Chrome > Chromium.",
+  "properties": {
+    "app": {
+      "type": "object",
+      "description": "The application to run.",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the application.",
+          "enum": [
+            "chrome",
+            "firefox",
+            "safari",
+            "edge"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "description": "Absolute path or command for the application. If not specified, defaults to typical install paths per platform. If specified but the path is invalid, the context is skipped."
+        },
+        "options": {
+          "type": "object",
+          "description": "Options to pass to the app. Only works when `name` is `firefox` or `chrome`.",
+          "additionalProperties": false,
+          "properties": {
+            "width": {
+              "type": "integer",
+              "description": "Width of the window in pixels."
+            },
+            "height": {
+              "type": "integer",
+              "description": "Height of the window in pixels."
+            },
+            "viewport_height": {
+              "type": "integer",
+              "description": "Height of the viewport in pixels. Overrides `height`."
+            },
+            "viewport_width": {
+              "type": "integer",
+              "description": "Width of the viewport in pixels. Overrides `width`."
+            },
+            "headless": {
+              "type": "boolean",
+              "description": "If `true`, runs the browser in headless mode. Not supported by Safari."
+            },
+            "driverPath": {
+              "type": "string",
+              "description": "Path to the browser driver. If not specified, defaults to internally managed dependencies."
+            }
+          }
+        }
+      }
+    },
+    "platforms": {
+      "description": "Supported platforms for the application.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "linux",
+          "mac",
+          "windows"
+        ]
+      }
+    }
+  },
+  "required": [
+    "app",
+    "platforms"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "app": {
+        "name": "chrome"
+      },
+      "platforms": [
+        "linux"
+      ]
+    },
+    {
+      "app": {
+        "name": "chrome",
+        "options": {
+          "viewport_width": 800,
+          "viewport_height": 600
+        }
+      },
+      "platforms": [
+        "linux"
+      ]
+    },
+    {
+      "app": {
+        "name": "firefox",
+        "options": {
+          "width": 800,
+          "height": 600,
+          "headless": false,
+          "driverPath": "/usr/bin/geckodriver"
+        }
+      },
+      "platforms": [
+        "linux",
+        "windows",
+        "mac"
+      ]
+    },
+    {
+      "app": {
+        "name": "safari"
+      },
+      "platforms": [
+        "mac"
+      ]
+    },
+    {
+      "app": {
+        "name": "firefox",
+        "path": "/usr/bin/firefox"
+      },
+      "platforms": [
+        "linux"
+      ]
+    }
+  ]
+}

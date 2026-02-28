@@ -5,13 +5,6 @@ declare module "jq-web" {
   export default jq;
 }
 
-declare module "json-schema-faker" {
-  export const JSONSchemaFaker: {
-    option(opts: Record<string, any>): void;
-    generate(schema: any): any;
-  };
-}
-
 declare module "tree-kill" {
   function kill(pid: number, signal?: string, callback?: (err?: Error) => void): void;
   export default kill;

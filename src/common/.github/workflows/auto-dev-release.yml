@@ -1,0 +1,192 @@
+name: Auto Dev Release
+
+on:
+  push:
+    branches:
+      - main
+    # Don't trigger on release events to avoid conflicts with main release workflow
+  workflow_dispatch:
+    # Allow manual triggering for testing
+
+jobs:
+  auto-dev-release:
+    concurrency:
+      group: auto-dev-release-main
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Skip if this is a release commit or docs-only changes
+    if: |
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      !contains(github.event.head_commit.message, 'Release') &&
+      github.event_name != 'release'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Need full history for proper version bumping
+          fetch-depth: 0
+          # Use a token that can push back to the repo
+          token: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Check for documentation-only changes
+        id: check_changes
+        run: |
+          # Always release on workflow_dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "skip_release=false" >> $GITHUB_OUTPUT
+            echo "Manual trigger: proceeding with release"
+            exit 0
+          fi
+
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check if only documentation files changed
+          if echo "$CHANGED_FILES" | grep -v -E '\.(md|txt|yml|yaml)$|^\.github/' | grep -q .; then
+            echo "skip_release=false" >> $GITHUB_OUTPUT
+            echo "Code changes detected, proceeding with release"
+          else
+            echo "skip_release=true" >> $GITHUB_OUTPUT
+            echo "Only documentation changes detected, skipping release"
+          fi
+
+      - name: Validate package.json
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          # Validate package.json exists and is valid JSON
+          if [ ! -f "package.json" ]; then
+            echo "❌ package.json not found"
+            exit 1
+          fi
+          
+          # Validate JSON syntax
+          if ! node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))" > /dev/null 2>&1; then
+            echo "❌ package.json is not valid JSON"
+            exit 1
+          fi
+          
+          # Check for required fields
+          if ! node -p "require('./package.json').name" > /dev/null 2>&1; then
+            echo "❌ package.json missing 'name' field"
+            exit 1
+          fi
+          
+          if ! node -p "require('./package.json').version" > /dev/null 2>&1; then
+            echo "❌ package.json missing 'version' field"
+            exit 1
+          fi
+          
+          echo "✅ package.json validation passed"
+
+      - name: Install dependencies
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: npm ci
+
+      - name: Run tests
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: npm test
+
+      - name: Run build
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: npm run build
+
+      - name: Run coverage and ratchet check
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          npm run test:coverage
+          npm run test:coverage:ratchet
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Generate dev version
+        if: steps.check_changes.outputs.skip_release == 'false'
+        id: version
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Extract base version (remove existing -dev.X suffix if present)
+          BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/-dev\.[0-9]*$//')
+          echo "Base version: $BASE_VERSION"
+          
+          # Check if we need to get the latest dev version from npm
+          LATEST_DEV=$(npm view doc-detective-common@dev version 2>/dev/null || echo "")
+          
+          CURRENT_DEV_NUM=$(echo "$CURRENT_VERSION" | sed -n 's/^.*-dev\.\([0-9][0-9]*\)$/\1/p')
+
+          if [ -n "$LATEST_DEV" ] && [[ "$LATEST_DEV" == "$BASE_VERSION"-dev.* ]]; then
+            # Extract the dev number and increment it
+            DEV_NUM=$(echo $LATEST_DEV | grep -o 'dev\.[0-9]*$' | grep -o '[0-9]*$')
+            NEW_DEV_NUM=$((DEV_NUM + 1))
+          elif [ -n "$CURRENT_DEV_NUM" ]; then
+            # Bootstrap path when npm has no dev tag yet
+            NEW_DEV_NUM=$((CURRENT_DEV_NUM + 1))
+          else
+            # Start with dev.1
+            NEW_DEV_NUM=1
+          fi
+          
+          NEW_VERSION="$BASE_VERSION-dev.$NEW_DEV_NUM"
+          echo "New version: $NEW_VERSION"
+          
+          # Update package.json
+          npm version $NEW_VERSION --no-git-tag-version
+          
+          # Set outputs
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Publish to npm
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          # Add error handling for npm publish
+          set -e
+          echo "Publishing to npm with 'dev' tag..."
+          npm publish --tag dev
+          echo "Successfully published to npm"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit version change
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          git add package.json package-lock.json
+          git commit -m "Auto dev release: v${{ steps.version.outputs.version }} [skip ci]"
+
+      - name: Create and push git tag
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+          git push origin main
+
+      - name: Summary
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          echo "✅ Auto dev release completed successfully!"
+          echo "📦 Version: v${{ steps.version.outputs.version }}"
+          echo "🏷️ NPM Tag: dev"
+          echo "📋 Install with: npm install doc-detective-common@dev"
+          
+      - name: Skip summary  
+        if: steps.check_changes.outputs.skip_release == 'true'
+        run: |
+          echo "⏭️ Auto dev release skipped"
+          echo "📝 Only documentation changes detected"

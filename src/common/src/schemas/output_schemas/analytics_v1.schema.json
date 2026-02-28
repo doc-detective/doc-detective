@@ -1,0 +1,585 @@
+{
+  "title": "analytics",
+  "type": "object",
+  "description": "Perform a native shell command.",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "userId": {
+      "type": "string"
+    },
+    "detailLevel": {
+      "type": "string",
+      "enum": [
+        "run",
+        "tests",
+        "action-simple",
+        "action-detailed"
+      ]
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "numberTests": {
+          "type": "integer"
+        },
+        "passed": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "numberTests",
+        "passed",
+        "failed"
+      ]
+    },
+    "actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "numberActions": {
+          "type": "integer"
+        },
+        "averageNumberActionsPerTest": {
+          "type": "integer"
+        },
+        "maxActionsPerTest": {
+          "type": "integer"
+        },
+        "minActionsPerTest": {
+          "type": "integer"
+        },
+        "passed": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "numberActions",
+        "averageNumberActionsPerTest",
+        "maxActionsPerTest",
+        "minActionsPerTest",
+        "passed",
+        "failed"
+      ]
+    },
+    "actionDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "goTo": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "uri": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "numberInstances",
+            "passed",
+            "failed",
+            "uri"
+          ]
+        },
+        "find": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "wait": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "numberInstances": {
+                  "type": "integer"
+                },
+                "duration": {
+                  "type": "integer"
+                }
+              }
+            },
+            "matchText": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "numberInstances": {
+                  "type": "integer"
+                },
+                "text": {
+                  "type": "integer"
+                }
+              }
+            },
+            "moveMouse": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "numberInstances": {
+                  "type": "integer"
+                },
+                "alignH": {
+                  "type": "integer"
+                },
+                "alignV": {
+                  "type": "integer"
+                },
+                "offsetX": {
+                  "type": "integer"
+                },
+                "offsetY": {
+                  "type": "integer"
+                }
+              }
+            },
+            "click": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "numberInstances": {
+                  "type": "integer"
+                }
+              }
+            },
+            "type": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "numberInstances": {
+                  "type": "integer"
+                },
+                "keys": {
+                  "type": "integer"
+                },
+                "trailingSpecialKey": {
+                  "type": "integer"
+                },
+                "env": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "matchText": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "css": {
+              "type": "integer"
+            },
+            "text": {
+              "type": "integer"
+            }
+          }
+        },
+        "click": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "css": {
+              "type": "integer"
+            }
+          }
+        },
+        "type": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "css": {
+              "type": "integer"
+            },
+            "keys": {
+              "type": "integer"
+            },
+            "trailingSpecialKey": {
+              "type": "integer"
+            },
+            "env": {
+              "type": "integer"
+            }
+          }
+        },
+        "moveMouse": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "css": {
+              "type": "integer"
+            },
+            "alignH": {
+              "type": "integer"
+            },
+            "alignV": {
+              "type": "integer"
+            },
+            "offsetX": {
+              "type": "integer"
+            },
+            "offsetY": {
+              "type": "integer"
+            }
+          }
+        },
+        "scroll": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            }
+          }
+        },
+        "wait": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "duration": {
+              "type": "integer"
+            },
+            "css": {
+              "type": "integer"
+            }
+          }
+        },
+        "screenshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "mediaDirectory": {
+              "type": "integer"
+            },
+            "filename": {
+              "type": "integer"
+            },
+            "matchPrevious": {
+              "type": "integer"
+            },
+            "matchThreshold": {
+              "type": "integer"
+            }
+          }
+        },
+        "startRecording": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "mediaDirectory": {
+              "type": "integer"
+            },
+            "filename": {
+              "type": "integer"
+            },
+            "gifFps": {
+              "type": "integer"
+            },
+            "gifWidth": {
+              "type": "integer"
+            }
+          }
+        },
+        "stopRecording": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            }
+          }
+        },
+        "checkLink": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "uri": {
+              "type": "integer"
+            },
+            "statusCodes": {
+              "type": "integer"
+            }
+          }
+        },
+        "runShell": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "numberInstances": {
+              "type": "integer"
+            },
+            "passed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "command": {
+              "type": "integer"
+            },
+            "env": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "version",
+    "detailLevel"
+  ],
+  "examples": [
+    {
+      "version": "0.1.8",
+      "userId": "",
+      "detailLevel": "action-detailed",
+      "tests": {
+        "numberTests": 0,
+        "passed": 0,
+        "failed": 0
+      },
+      "actions": {
+        "numberActions": 0,
+        "averageNumberActionsPerTest": 0,
+        "maxActionsPerTest": 0,
+        "minActionsPerTest": 0,
+        "passed": 0,
+        "failed": 0
+      },
+      "actionDetails": {
+        "goTo": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "uri": 0
+        },
+        "find": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "wait": {
+            "numberInstances": 0,
+            "duration": 0
+          },
+          "matchText": {
+            "numberInstances": 0,
+            "text": 0
+          },
+          "moveMouse": {
+            "numberInstances": 0,
+            "alignH": 0,
+            "alignV": 0,
+            "offsetX": 0,
+            "offsetY": 0
+          },
+          "click": {
+            "numberInstances": 0
+          },
+          "type": {
+            "numberInstances": 0,
+            "keys": 0,
+            "trailingSpecialKey": 0,
+            "env": 0
+          }
+        },
+        "matchText": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "css": 0,
+          "text": 0
+        },
+        "click": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "css": 0
+        },
+        "type": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "css": 0,
+          "keys": 0,
+          "trailingSpecialKey": 0,
+          "env": 0
+        },
+        "moveMouse": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "css": 0,
+          "alignH": 0,
+          "alignV": 0,
+          "offsetX": 0,
+          "offsetY": 0
+        },
+        "scroll": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "x": 0,
+          "y": 0
+        },
+        "wait": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "duration": 0,
+          "css": 0
+        },
+        "screenshot": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "mediaDirectory": 0,
+          "filename": 0,
+          "matchPrevious": 0,
+          "matchThreshold": 0
+        },
+        "startRecording": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "mediaDirectory": 0,
+          "filename": 0,
+          "gifFps": 0,
+          "gifWidth": 0
+        },
+        "stopRecording": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0
+        },
+        "checkLink": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "uri": 0,
+          "statusCodes": 0
+        },
+        "runShell": {
+          "numberInstances": 0,
+          "passed": 0,
+          "failed": 0,
+          "command": 0,
+          "env": 0
+        }
+      }
+    }
+  ]
+}

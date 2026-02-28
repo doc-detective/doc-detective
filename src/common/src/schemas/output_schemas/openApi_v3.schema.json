@@ -1,0 +1,162 @@
+{
+  "version": "1.0.0",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "openApi",
+  "type": "object",
+  "description": "OpenAPI description and configuration.",
+  "additionalProperties": false,
+  "anyOf": [
+    {
+      "required": [
+        "descriptionPath"
+      ]
+    },
+    {
+      "required": [
+        "operationId"
+      ]
+    }
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the OpenAPI description, as defined in your configuration."
+    },
+    "descriptionPath": {
+      "type": "string",
+      "description": "URL or local path to the OpenAPI description."
+    },
+    "definition": {
+      "type": "object",
+      "readOnly": true,
+      "description": "OpenAPI definition object loaded from the `descriptionPath`. This is a resolved version of the OpenAPI description and should not be user-defined.",
+      "additionalProperties": true,
+      "title": "OpenAPI definition"
+    },
+    "operationId": {
+      "type": "string",
+      "description": "ID of the operation to use for the request."
+    },
+    "server": {
+      "type": "string",
+      "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI description."
+    },
+    "validateAgainstSchema": {
+      "type": "string",
+      "description": "Validates the request and/or response against the schema in the OpenAPI description. If the request or response doesn't match the schema, the step fails.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "both"
+    },
+    "mockResponse": {
+      "type": "boolean",
+      "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+    },
+    "statusCode": {
+      "type": "integer",
+      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+    },
+    "useExample": {
+      "type": [
+        "string"
+      ],
+      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "none"
+    },
+    "exampleKey": {
+      "type": "string",
+      "description": "Key of the example to use from the `examples` property in the OpenAPI description. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
+      "default": ""
+    },
+    "headers": {
+      "type": "object",
+      "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "OpenAPI request headers"
+    }
+  },
+  "components": {
+    "schemas": {
+      "operationId": {
+        "type": "string",
+        "description": "ID of the operation to use for the request."
+      },
+      "descriptionPath": {
+        "type": "string",
+        "description": "URL or local path to the OpenAPI description."
+      }
+    }
+  },
+  "examples": [
+    {
+      "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
+    },
+    {
+      "name": "Reqres",
+      "operationId": "getUserById"
+    },
+    {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "getUserById"
+    },
+    {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both"
+    },
+    {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1"
+    },
+    {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201
+    },
+    {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201,
+      "validateAgainstSchema": "none"
+    },
+    {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201,
+      "validateAgainstSchema": "none",
+      "mockResponse": true
+    },
+    {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201,
+      "validateAgainstSchema": "none",
+      "mockResponse": true,
+      "headers": {
+        "Authorization": "Bearer 12345"
+      }
+    }
+  ]
+}

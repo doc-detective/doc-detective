@@ -1,0 +1,8 @@
+{
+  "all": true,
+  "include": ["dist/**/*.js"],
+  "exclude": ["dist/types/generated/**/*.js", "dist/**/*.d.ts", "dist/**/*.cjs"],
+  "reporter": ["text", "lcov", "json", "json-summary"],
+  "report-dir": "coverage",
+  "check-coverage": false
+}

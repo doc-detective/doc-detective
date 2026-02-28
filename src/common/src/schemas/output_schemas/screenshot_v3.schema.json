@@ -1,0 +1,681 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "screenshot",
+  "description": "Takes a screenshot in PNG format.",
+  "anyOf": [
+    {
+      "title": "Screenshot (simple)",
+      "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+      "type": "string",
+      "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Screenshot (simple)",
+          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+          "type": "string",
+          "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+          "transform": [
+            "trim"
+          ]
+        },
+        "directory": {
+          "type": "string",
+          "description": "Directory of the PNG file. If the directory doesn't exist, creates the directory.",
+          "transform": [
+            "trim"
+          ]
+        },
+        "maxVariation": {
+          "type": "number",
+          "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+          "default": 0.05,
+          "minimum": 0,
+          "maximum": 1
+        },
+        "overwrite": {
+          "type": "string",
+          "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+          "enum": [
+            "true",
+            "false",
+            "aboveVariation"
+          ],
+          "default": "aboveVariation"
+        },
+        "crop": {
+          "anyOf": [
+            {
+              "title": "Crop by element (simple)",
+              "type": "string",
+              "description": "Display text or selector of the element to screenshot."
+            },
+            {
+              "title": "Crop by element (detailed)",
+              "type": "object",
+              "description": "Crop the screenshot to a specific element.",
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "selector"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementText"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementId"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementTestId"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementClass"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementAttribute"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementAria"
+                  ]
+                }
+              ],
+              "properties": {
+                "elementText": {
+                  "type": "string",
+                  "description": "Display text of the element to screenshot."
+                },
+                "selector": {
+                  "type": "string",
+                  "description": "Selector of the element to screenshot."
+                },
+                "elementId": {
+                  "type": "string",
+                  "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                },
+                "elementTestId": {
+                  "type": "string",
+                  "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                },
+                "elementClass": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                },
+                "elementAttribute": {
+                  "type": "object",
+                  "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  }
+                },
+                "elementAria": {
+                  "type": "string",
+                  "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                },
+                "padding": {
+                  "anyOf": [
+                    {
+                      "title": "Padding (simple)",
+                      "type": "number",
+                      "description": "Padding in pixels to add to the bounds of the element.",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "top": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "right": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "bottom": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "left": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      },
+                      "title": "Padding (detailed)",
+                      "description": "Padding in pixels to add to the bounds of the element."
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "sourceIntegration": {
+          "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "title": "sourceIntegration",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "integrationName"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+              "enum": [
+                "heretto"
+              ]
+            },
+            "integrationName": {
+              "type": "string",
+              "description": "The name of the integration configuration in the config file. Used to look up authentication credentials."
+            },
+            "fileId": {
+              "type": "string",
+              "description": "The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path."
+            },
+            "filePath": {
+              "type": "string",
+              "description": "The path of the file in the source CMS. Used for lookup if fileId is not available."
+            },
+            "contentPath": {
+              "type": "string",
+              "description": "The local path to the file that references this source. Used for resolving relative paths."
+            }
+          },
+          "examples": [
+            {
+              "type": "heretto",
+              "integrationName": "my-heretto",
+              "fileId": "8f3ed200-cbba-11e1-ac51-c82a1446d15c",
+              "filePath": "/db/organizations/example/repositories/docs/images/screenshot.png"
+            },
+            {
+              "type": "heretto",
+              "integrationName": "my-heretto",
+              "filePath": "images/screenshot.png",
+              "contentPath": "/tmp/doc-detective/heretto_abc123/topic.dita"
+            }
+          ]
+        }
+      },
+      "title": "Capture screenshot (detailed)"
+    },
+    {
+      "type": "boolean",
+      "title": "Capture screenshot",
+      "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot."
+    }
+  ],
+  "components": {
+    "schemas": {
+      "path": {
+        "title": "Screenshot (simple)",
+        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+        "type": "string",
+        "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+        "transform": [
+          "trim"
+        ]
+      },
+      "object": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "title": "Screenshot (simple)",
+            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+            "type": "string",
+            "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+            "transform": [
+              "trim"
+            ]
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory of the PNG file. If the directory doesn't exist, creates the directory.",
+            "transform": [
+              "trim"
+            ]
+          },
+          "maxVariation": {
+            "type": "number",
+            "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+            "default": 0.05,
+            "minimum": 0,
+            "maximum": 1
+          },
+          "overwrite": {
+            "type": "string",
+            "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+            "enum": [
+              "true",
+              "false",
+              "aboveVariation"
+            ],
+            "default": "aboveVariation"
+          },
+          "crop": {
+            "anyOf": [
+              {
+                "title": "Crop by element (simple)",
+                "type": "string",
+                "description": "Display text or selector of the element to screenshot."
+              },
+              {
+                "title": "Crop by element (detailed)",
+                "type": "object",
+                "description": "Crop the screenshot to a specific element.",
+                "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "required": [
+                      "selector"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementText"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementId"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementTestId"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementClass"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementAttribute"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementAria"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "elementText": {
+                    "type": "string",
+                    "description": "Display text of the element to screenshot."
+                  },
+                  "selector": {
+                    "type": "string",
+                    "description": "Selector of the element to screenshot."
+                  },
+                  "elementId": {
+                    "type": "string",
+                    "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                  },
+                  "elementTestId": {
+                    "type": "string",
+                    "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                  },
+                  "elementClass": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                  },
+                  "elementAttribute": {
+                    "type": "object",
+                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  },
+                  "elementAria": {
+                    "type": "string",
+                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                  },
+                  "padding": {
+                    "anyOf": [
+                      {
+                        "title": "Padding (simple)",
+                        "type": "number",
+                        "description": "Padding in pixels to add to the bounds of the element.",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "top": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "right": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "bottom": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "left": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        },
+                        "title": "Padding (detailed)",
+                        "description": "Padding in pixels to add to the bounds of the element."
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "sourceIntegration": {
+            "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "sourceIntegration",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "integrationName"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                "enum": [
+                  "heretto"
+                ]
+              },
+              "integrationName": {
+                "type": "string",
+                "description": "The name of the integration configuration in the config file. Used to look up authentication credentials."
+              },
+              "fileId": {
+                "type": "string",
+                "description": "The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path."
+              },
+              "filePath": {
+                "type": "string",
+                "description": "The path of the file in the source CMS. Used for lookup if fileId is not available."
+              },
+              "contentPath": {
+                "type": "string",
+                "description": "The local path to the file that references this source. Used for resolving relative paths."
+              }
+            },
+            "examples": [
+              {
+                "type": "heretto",
+                "integrationName": "my-heretto",
+                "fileId": "8f3ed200-cbba-11e1-ac51-c82a1446d15c",
+                "filePath": "/db/organizations/example/repositories/docs/images/screenshot.png"
+              },
+              {
+                "type": "heretto",
+                "integrationName": "my-heretto",
+                "filePath": "images/screenshot.png",
+                "contentPath": "/tmp/doc-detective/heretto_abc123/topic.dita"
+              }
+            ]
+          }
+        },
+        "title": "Capture screenshot (detailed)"
+      },
+      "crop_element": {
+        "title": "Crop by element (detailed)",
+        "type": "object",
+        "description": "Crop the screenshot to a specific element.",
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "selector"
+            ]
+          },
+          {
+            "required": [
+              "elementText"
+            ]
+          },
+          {
+            "required": [
+              "elementId"
+            ]
+          },
+          {
+            "required": [
+              "elementTestId"
+            ]
+          },
+          {
+            "required": [
+              "elementClass"
+            ]
+          },
+          {
+            "required": [
+              "elementAttribute"
+            ]
+          },
+          {
+            "required": [
+              "elementAria"
+            ]
+          }
+        ],
+        "properties": {
+          "elementText": {
+            "type": "string",
+            "description": "Display text of the element to screenshot."
+          },
+          "selector": {
+            "type": "string",
+            "description": "Selector of the element to screenshot."
+          },
+          "elementId": {
+            "type": "string",
+            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "elementTestId": {
+            "type": "string",
+            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "elementClass": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+          },
+          "elementAttribute": {
+            "type": "object",
+            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "elementAria": {
+            "type": "string",
+            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "padding": {
+            "anyOf": [
+              {
+                "title": "Padding (simple)",
+                "type": "number",
+                "description": "Padding in pixels to add to the bounds of the element.",
+                "minimum": 0
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "top": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "right": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "bottom": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "left": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "title": "Padding (detailed)",
+                "description": "Padding in pixels to add to the bounds of the element."
+              }
+            ]
+          }
+        }
+      },
+      "padding": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "top": {
+            "type": "number",
+            "minimum": 0
+          },
+          "right": {
+            "type": "number",
+            "minimum": 0
+          },
+          "bottom": {
+            "type": "number",
+            "minimum": 0
+          },
+          "left": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "title": "Padding (detailed)",
+        "description": "Padding in pixels to add to the bounds of the element."
+      }
+    }
+  },
+  "examples": [
+    true,
+    "image.png",
+    "static/images/image.png",
+    "/User/manny/projects/doc-detective/static/images/image.png",
+    {
+      "path": "image.png",
+      "directory": "static/images",
+      "maxVariation": 0.1,
+      "overwrite": "aboveVariation",
+      "crop": "#elementToScreenshot"
+    },
+    {
+      "path": "image.png",
+      "directory": "static/images",
+      "maxVariation": 0.1,
+      "overwrite": "aboveVariation"
+    },
+    {
+      "path": "image.png",
+      "directory": "static/images",
+      "maxVariation": 0.1,
+      "overwrite": "aboveVariation",
+      "crop": {
+        "selector": "#elementToScreenshot",
+        "elementText": "Element text",
+        "padding": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      }
+    }
+  ]
+}

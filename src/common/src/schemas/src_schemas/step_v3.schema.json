@@ -1,0 +1,632 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "step",
+  "description": "A step in a test.",
+  "type": "object",
+  "components": {
+    "schemas": {
+      "common": {
+        "type": "object",
+        "dynamicDefaults": {
+          "stepId": "uuid"
+        },
+        "properties": {
+          "$schema": {
+            "$ref": "#/components/schemas/$schema"
+          },
+          "stepId": {
+            "$ref": "#/components/schemas/stepId"
+          },
+          "description": {
+            "$ref": "#/components/schemas/description"
+          },
+          "unsafe": {
+            "$ref": "#/components/schemas/unsafe"
+          },
+          "outputs": {
+            "$ref": "#/components/schemas/outputs"
+          },
+          "variables": {
+            "$ref": "#/components/schemas/variables"
+          },
+          "breakpoint": {
+            "$ref": "#/components/schemas/breakpoint"
+          }
+        },
+        "title": "Common"
+      },
+      "$schema": {
+        "description": "JSON Schema for this object.",
+        "type": "string",
+        "enum": [
+          "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
+        ]
+      },
+      "stepId": {
+        "type": "string",
+        "description": "ID of the step."
+      },
+      "description": {
+        "type": "string",
+        "description": "Description of the step."
+      },
+      "unsafe": {
+        "type": "boolean",
+        "description": "Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.",
+        "default": false
+      },
+      "outputs": {
+        "type": "object",
+        "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+        "default": {},
+        "patternProperties": {
+          "^[A-Za-z0-9_]+$": {
+            "type": "string",
+            "description": "Runtime expression for a user-defined output value."
+          }
+        },
+        "title": "Outputs (step)"
+      },
+      "variables": {
+        "type": "object",
+        "description": "Environment variables to set from user-defined expressions.",
+        "default": {},
+        "patternProperties": {
+          "^[A-Za-z0-9_]+$": {
+            "type": "string",
+            "description": "Runtime expression for a user-defined output value."
+          }
+        },
+        "title": "Variables (step)"
+      },
+      "breakpoint": {
+        "type": "boolean",
+        "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
+        "default": false
+      }
+    }
+  },
+  "anyOf": [
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["checkLink"],
+          "properties": {
+            "checkLink": {
+              "$ref": "checkLink_v3.schema.json#"
+            }
+          },
+          "title": "checkLink"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["click"],
+          "properties": {
+            "click": {
+              "$ref": "click_v3.schema.json#"
+            }
+          },
+          "title": "click"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["find"],
+          "properties": {
+            "find": {
+              "$ref": "find_v3.schema.json#"
+            }
+          },
+          "title": "find"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["goTo"],
+          "properties": {
+            "goTo": {
+              "$ref": "goTo_v3.schema.json#"
+            }
+          },
+          "title": "goTo"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["httpRequest"],
+          "properties": {
+            "httpRequest": {
+              "$ref": "httpRequest_v3.schema.json#"
+            }
+          },
+          "title": "httpRequest"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["runShell"],
+          "properties": {
+            "runShell": {
+              "$ref": "runShell_v3.schema.json#"
+            }
+          },
+          "title": "runShell"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["runCode"],
+          "properties": {
+            "runCode": {
+              "$ref": "runCode_v3.schema.json#"
+            }
+          },
+          "title": "runCode"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "$ref": "type_v3.schema.json#"
+            }
+          },
+          "title": "type"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["screenshot"],
+          "properties": {
+            "screenshot": {
+              "$ref": "screenshot_v3.schema.json#"
+            }
+          },
+          "title": "screenshot"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["saveCookie"],
+          "properties": {
+            "saveCookie": {
+              "$ref": "saveCookie_v3.schema.json#"
+            }
+          },
+          "title": "saveCookie"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["record"],
+          "properties": {
+            "record": {
+              "$ref": "record_v3.schema.json#"
+            }
+          },
+          "title": "record"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["stopRecord"],
+          "properties": {
+            "stopRecord": {
+              "$ref": "stopRecord_v3.schema.json#"
+            }
+          },
+          "title": "stopRecord"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "loadVariables",
+          "type": "object",
+          "required": ["loadVariables"],
+          "properties": {
+            "loadVariables": {
+              "$ref": "loadVariables_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "dragAndDrop",
+          "type": "object",
+          "required": ["dragAndDrop"],
+          "properties": {
+            "dragAndDrop": {
+              "$ref": "dragAndDrop_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "loadCookie",
+          "type": "object",
+          "required": ["loadCookie"],
+          "properties": {
+            "loadCookie": {
+              "$ref": "loadCookie_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "wait",
+          "type": "object",
+          "required": ["wait"],
+          "properties": {
+            "wait": {
+              "$ref": "wait_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "stepId": "uuid",
+      "description": "Description of the step.",
+      "checkLink": "https://www.google.com",
+      "outputs": {
+        "outputKey": "outputValue"
+      },
+      "variables": {
+        "variableKey": "variableValue"
+      }
+    },
+    {
+      "checkLink": "https://www.google.com"
+    },
+    {
+      "stepId": "path-only",
+      "checkLink": "/search"
+    },
+    {
+      "stepId": "status-code",
+      "checkLink": {
+        "url": "https://www.google.com",
+        "statusCodes": [200]
+      }
+    },
+    {
+      "goTo": {
+        "url": "https://www.google.com"
+      }
+    },
+    {
+      "goTo": "https://www.google.com"
+    },
+    {
+      "wait": 5000
+    },
+    {
+      "runCode": {
+        "language": "python",
+        "code": "print('Hello from Python')",
+        "workingDirectory": ".",
+        "exitCodes": [0],
+        "stdio": "Hello from Python!",
+        "path": "python-output.txt",
+        "directory": "output",
+        "maxVariation": 0.1,
+        "overwrite": "aboveVariation"
+      }
+    },
+    {
+      "stopRecord": true
+    },
+    {
+      "screenshot": true
+    },
+    {
+      "screenshot": "image.png"
+    },
+    {
+      "screenshot": "static/images/image.png"
+    },
+    {
+      "screenshot": "/User/manny/projects/doc-detective/static/images/image.png"
+    },
+    {
+      "screenshot": {
+        "path": "image.png",
+        "directory": "static/images",
+        "maxVariation": 0.1,
+        "overwrite": "aboveVariation",
+        "crop": "#elementToScreenshot"
+      }
+    },
+    {
+      "screenshot": {
+        "path": "image.png",
+        "directory": "static/images",
+        "maxVariation": 0.1,
+        "overwrite": "aboveVariation"
+      }
+    },
+    {
+      "screenshot": {
+        "path": "image.png",
+        "directory": "static/images",
+        "maxVariation": 0.1,
+        "overwrite": "aboveVariation",
+        "crop": {
+          "selector": "#elementToScreenshot",
+          "elementText": "Element text",
+          "padding": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          }
+        }
+      }
+    },
+    {
+      "record": true
+    },
+    {
+      "record": "video.mp4"
+    },
+    {
+      "record": "static/media/video.mp4"
+    },
+    {
+      "record": "/User/manny/projects/doc-detective/static/media/video.mp4"
+    },
+    {
+      "record": {
+        "path": "video.mp4",
+        "directory": "static/media",
+        "overwrite": true
+      }
+    },
+    {
+      "loadVariables": "variables.env"
+    },
+    {
+      "saveCookie": "session_token"
+    },
+    {
+      "saveCookie": {
+        "name": "auth_cookie",
+        "path": "auth-session.txt",
+        "directory": "./test-data",
+        "overwrite": true
+      }
+    },
+    {
+      "loadCookie": "session_token"
+    },
+    {
+      "loadCookie": {
+        "name": "auth_cookie",
+        "path": "auth-session.txt",
+        "directory": "./test-data"
+      }
+    },
+    {
+      "find": {
+        "$ref": "find_v3.schema.json#/examples/0"
+      }
+    },
+    {
+      "find": {
+        "$ref": "find_v3.schema.json#/examples/1"
+      }
+    },
+    {
+      "find": {
+        "$ref": "find_v3.schema.json#/examples/2"
+      }
+    },
+    {
+      "find": {
+        "$ref": "find_v3.schema.json#/examples/3"
+      }
+    },
+    {
+      "find": {
+        "$ref": "find_v3.schema.json#/examples/4"
+      }
+    },
+    {
+      "click": {
+        "$ref": "click_v3.schema.json#/examples/0"
+      }
+    },
+    {
+      "click": {
+        "$ref": "click_v3.schema.json#/examples/1"
+      }
+    },
+    {
+      "click": {
+        "$ref": "click_v3.schema.json#/examples/2"
+      }
+    },
+    {
+      "click": {
+        "$ref": "click_v3.schema.json#/examples/3"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/0"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/1"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/2"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/3"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/4"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/5"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/6"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/7"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/8"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/9"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/10"
+      }
+    },
+    {
+      "httpRequest": {
+        "$ref": "httpRequest_v3.schema.json#/examples/11"
+      }
+    },
+    {
+      "stepId": "breakpoint-example",
+      "description": "Step with breakpoint enabled",
+      "goTo": "https://www.example.com",
+      "breakpoint": true
+    },
+    {
+      "checkLink": "https://www.google.com",
+      "breakpoint": false
+    },
+    {
+      "dragAndDrop": {
+        "source": {
+          "selector": "#sourceElement"
+        },
+        "target": {
+          "selector": "#targetElement"
+        }
+      }
+    }
+  ]
+}

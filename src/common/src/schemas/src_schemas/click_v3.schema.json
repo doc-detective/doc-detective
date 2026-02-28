@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "click",
+  "description": "Click or tap an element.",
+  "anyOf": [
+    {
+      "$ref": "#/components/schemas/string"
+    },
+    {
+      "$ref": "#/components/schemas/object"
+    },
+    {
+      "type": "boolean"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "title": "Click element (simple)",
+        "type": "string",
+        "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
+      },
+      "button": {
+        "description": "Kind of click to perform.",
+        "type": "string",
+        "enum": [
+          "left",
+          "right",
+          "middle"
+        ]
+      },
+      "object": {
+        "title": "Click element (detailed)",
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "selector"
+            ]
+          },
+          {
+            "required": [
+              "elementText"
+            ]
+          },
+          {
+            "required": [
+              "elementId"
+            ]
+          },
+          {
+            "required": [
+              "elementTestId"
+            ]
+          },
+          {
+            "required": [
+              "elementClass"
+            ]
+          },
+          {
+            "required": [
+              "elementAttribute"
+            ]
+          },
+          {
+            "required": [
+              "elementAria"
+            ]
+          }
+        ],
+        "properties": {
+          "button": {
+            "$ref": "#/components/schemas/button"
+          },
+          "elementText": {
+            "type": "string",
+            "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
+          },
+          "selector": {
+            "type": "string",
+            "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
+          },
+          "elementId": {
+            "type": "string",
+            "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "elementTestId": {
+            "type": "string",
+            "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "elementClass": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+          },
+          "elementAttribute": {
+            "type": "object",
+            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "elementAria": {
+            "type": "string",
+            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    true,
+    "Submit",
+    {
+      "button": "left",
+      "elementText": "Element text"
+    },
+    {
+      "selector": "#elementToScreenshot",
+      "elementText": "Element text",
+      "button": "middle"
+    }
+  ]
+}

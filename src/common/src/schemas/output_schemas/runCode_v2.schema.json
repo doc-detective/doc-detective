@@ -1,0 +1,200 @@
+{
+  "title": "runCode",
+  "type": "object",
+  "description": "Assemble and run code.",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the step."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the step."
+    },
+    "action": {
+      "type": "string",
+      "const": "runCode",
+      "description": "The action to perform."
+    },
+    "language": {
+      "type": "string",
+      "description": "Language of the code to run. If not specified, the code is run in the shell.",
+      "enum": [
+        "python",
+        "bash",
+        "javascript"
+      ]
+    },
+    "code": {
+      "type": "string",
+      "description": "Code to run."
+    },
+    "args": {
+      "type": "array",
+      "description": "Arguments for the command.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "default": []
+    },
+    "workingDirectory": {
+      "type": "string",
+      "description": "Working directory for the command.",
+      "default": "."
+    },
+    "exitCodes": {
+      "type": "array",
+      "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "default": [
+        0
+      ]
+    },
+    "output": {
+      "type": "string",
+      "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
+    },
+    "savePath": {
+      "type": "string",
+      "description": "File path to save the command's output, relative to `saveDirectory`."
+    },
+    "saveDirectory": {
+      "type": "string",
+      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+    },
+    "maxVariation": {
+      "type": "integer",
+      "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "overwrite": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
+      "enum": [
+        "true",
+        "false",
+        "byVariation"
+      ],
+      "default": "false"
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.",
+      "default": 60000
+    },
+    "setVariables": {
+      "type": "array",
+      "description": "Extract environment variables from the command's output.",
+      "items": {
+        "oneOf": [
+          {
+            "description": "",
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Name of the environment variable to set.",
+                "type": "string"
+              },
+              "regex": {
+                "description": "Regex to extract the environment variable from the command's output.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "regex"
+            ]
+          }
+        ]
+      },
+      "default": []
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+      "patternProperties": {
+        "^[A-Za-z0-9_]+$": {
+          "type": "string",
+          "description": "Runtime expression for a user-defined output value."
+        }
+      },
+      "properties": {
+        "stdout": {
+          "type": "string",
+          "description": "Standard output of the command.",
+          "readOnly": true
+        },
+        "stderr": {
+          "type": "string",
+          "description": "Standard error of the command.",
+          "readOnly": true
+        },
+        "exitCode": {
+          "type": "integer",
+          "description": "Exit code of the command.",
+          "readOnly": true
+        }
+      }
+    }
+  },
+  "dynamicDefaults": {
+    "id": "uuid"
+  },
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "code",
+    "language"
+  ],
+  "examples": [
+    {
+      "action": "runCode",
+      "language": "javascript",
+      "code": "console.log('Hello, ${process.env.USER}!');"
+    },
+    {
+      "action": "runCode",
+      "language": "bash",
+      "code": "docker run hello-world",
+      "timeout": 20000,
+      "exitCodes": [
+        0
+      ],
+      "output": "Hello from Docker!"
+    },
+    {
+      "action": "runCode",
+      "language": "javascript",
+      "code": "return false",
+      "exitCodes": [
+        1
+      ]
+    },
+    {
+      "action": "runCode",
+      "language": "python",
+      "code": "print('Hello from Python')",
+      "workingDirectory": ".",
+      "exitCodes": [
+        0
+      ],
+      "output": "Hello from Python!",
+      "savePath": "python-output.txt",
+      "saveDirectory": "output",
+      "maxVariation": 10,
+      "overwrite": "byVariation"
+    }
+  ]
+}

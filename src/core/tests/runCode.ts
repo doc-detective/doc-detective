@@ -1,4 +1,4 @@
-import { validate } from "doc-detective-common";
+import { validate } from "../../common/src/validate.js";
 import { spawnCommand, log } from "../utils.js";
 import { runShell } from "./runShell.js";
 import fs from "node:fs";

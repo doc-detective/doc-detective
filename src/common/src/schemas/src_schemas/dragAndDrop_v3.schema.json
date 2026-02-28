@@ -1,0 +1,185 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "dragAndDrop",
+  "description": "Drag and drop an element from source to target.",
+  "type": "object",
+  "required": ["source", "target"],
+  "properties": {
+    "source": {
+      "$ref": "#/components/schemas/elementSpecification",
+      "description": "The element to drag."
+    },
+    "target": {
+      "$ref": "#/components/schemas/elementSpecification",
+      "description": "The target location to drop the element."
+    },
+    "duration": {
+      "type": "integer",
+      "description": "Duration of the drag operation in milliseconds.",
+      "default": 1000,
+      "minimum": 0
+    }
+  },
+  "components": {
+    "schemas": {
+      "elementSpecification": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/string"
+          },
+          {
+            "$ref": "#/components/schemas/object"
+          }
+        ]
+      },
+      "string": {
+        "title": "Element (simple)",
+        "type": "string",
+        "description": "Display text, selector, or regex pattern (enclosed in forward slashes) of the element."
+      },
+      "object": {
+        "title": "Element (detailed)",
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "selector"
+            ]
+          },
+          {
+            "required": [
+              "elementText"
+            ]
+          },
+          {
+            "required": [
+              "elementId"
+            ]
+          },
+          {
+            "required": [
+              "elementTestId"
+            ]
+          },
+          {
+            "required": [
+              "elementClass"
+            ]
+          },
+          {
+            "required": [
+              "elementAttribute"
+            ]
+          },
+          {
+            "required": [
+              "elementAria"
+            ]
+          }
+        ],
+        "properties": {
+          "elementText": {
+            "type": "string",
+            "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
+          },
+          "selector": {
+            "type": "string",
+            "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
+          },
+          "elementId": {
+            "type": "string",
+            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "elementTestId": {
+            "type": "string",
+            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "elementClass": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+          },
+          "elementAttribute": {
+            "type": "object",
+            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "elementAria": {
+            "type": "string",
+            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "default": 5000
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "source": "Table",
+      "target": "#canvas"
+    },
+    {
+      "source": ".draggable-block",
+      "target": ".drop-zone",
+      "duration": 2000
+    },
+    {
+      "source": {
+        "selector": ".widget",
+        "elementText": "Data Table"
+      },
+      "target": {
+        "selector": "#design-canvas"
+      },
+      "duration": 500
+    },
+    {
+      "source": {
+        "selector": ".draggable",
+        "timeout": 10000
+      },
+      "target": {
+        "elementText": "Drop Zone",
+        "timeout": 5000
+      }
+    },
+    {
+      "source": "/Widget Item.*/",
+      "target": "#canvas"
+    },
+    {
+      "source": {
+        "selector": ".draggable",
+        "elementText": "/Button [0-9]+/"
+      },
+      "target": {
+        "elementText": "/Drop Zone.*/"
+      }
+    }
+  ]
+}

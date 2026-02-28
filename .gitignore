@@ -111,3 +111,7 @@ testResults*
 coverageResults*
 testSuggestions*
 *.mp4
+
+# Common subpackage build artifacts
+src/common/dist/
+src/common/node_modules/

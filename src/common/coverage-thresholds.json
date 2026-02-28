@@ -1,0 +1,8 @@
+{
+  "description": "Coverage baseline thresholds. These values should only increase, never decrease.",
+  "lastUpdated": "2026-01-07",
+  "lines": 100,
+  "statements": 100,
+  "functions": 100,
+  "branches": 100
+}

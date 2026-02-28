@@ -1,0 +1,633 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "config",
+  "description": "Configuration options for Doc Detective operations.",
+  "type": "object",
+  "additionalProperties": false,
+  "dynamicDefaults": {
+    "configId": "uuid"
+  },
+  "properties": {
+    "$schema": {
+      "description": "JSON Schema for this object.",
+      "type": "string",
+      "enum": [
+        "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json"
+      ]
+    },
+    "configId": {
+      "description": "Identifier for the configuration.",
+      "type": "string"
+    },
+    "configPath": {
+      "description": "Path to the configuration file.",
+      "type": "string",
+      "readOnly": true
+    },
+    "input": {
+      "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
+      "default": ".",
+      "anyOf": [
+        {
+          "$ref": "#/components/schemas/stringOrArray"
+        }
+      ]
+    },
+    "output": {
+      "description": "Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters.",
+      "type": "string",
+      "default": "."
+    },
+    "recursive": {
+      "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.",
+      "type": "boolean",
+      "default": true
+    },
+    "relativePathBase": {
+      "description": "Whether paths should be interpreted as relative to the current working directory (`cwd`) or to the file in which they're specified (`file`).",
+      "type": "string",
+      "enum": ["cwd", "file"],
+      "default": "file"
+    },
+    "loadVariables": {
+      "$ref": "loadVariables_v3.schema.json#"
+    },
+    "origin": {
+      "description": "Default protocol and domain to use for relative URLs.",
+      "type": "string"
+    },
+    "beforeAny": {
+      "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "afterAll": {
+      "description": "Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "detectSteps": {
+      "type": "boolean",
+      "description": "Whether or not to detect steps in input files based on defined markup.",
+      "default": true
+    },
+    "allowUnsafeSteps": {
+      "type": "boolean",
+      "description": "Whether or not to run potentially unsafe steps, such as those that might modify files or system state."
+    },
+    "crawl": {
+      "description": "If `true`, crawls sitemap.xml files specified by URL to find additional files to test.",
+      "type": "boolean",
+      "default": false
+    },
+    "processDitaMaps": {
+      "description": "If `true`, processes DITA maps and includes generated files as inputs.",
+      "type": "boolean",
+      "default": true
+    },
+    "logLevel": {
+      "description": "Amount of detail to output when performing an operation.",
+      "type": "string",
+      "enum": ["silent", "error", "warning", "info", "debug"],
+      "default": "info"
+    },
+    "runOn": {
+      "$ref": "test_v3.schema.json#/properties/runOn"
+    },
+    "fileTypes": {
+      "description": "Configuration for file types and their markup detection.",
+      "default": ["markdown", "asciidoc", "html", "dita"],
+      "anyOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "$comment": "Simple mode: Reference predefined templates by name.",
+                "title": "File type (predefined)",
+                "type": "string",
+                "enum": ["markdown", "asciidoc", "html", "dita"]
+              },
+              {
+                "$comment": "Custom mode: Extend predefined templates or write whole new ones.",
+                "title": "File type (custom)",
+                "type": "object",
+                "anyOf": [
+                  { "required": ["extensions"] },
+                  { "required": ["extends"] }
+                ],
+                "properties": {
+                  "name": {
+                    "description": "Name of the file type.",
+                    "type": "string"
+                  },
+                  "extends": {
+                    "description": "Base template to extend.",
+                    "type": "string",
+                    "enum": ["markdown", "asciidoc", "html"]
+                  },
+                  "extensions": {
+                    "description": "File extensions to use with type.",
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/stringOrArray"
+                      }
+                    ]
+                  },
+                  "inlineStatements": {
+                    "$ref": "#/components/schemas/inlineStatements"
+                  },
+                  "markup": {
+                    "description": "Markup definitions for the file type.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/markupDefinition"
+                    }
+                  }
+                }
+              },
+              {
+                "title": "File type (executable)",
+                "$comment": "Executable mode: Convert executable inputs directly into tests.",
+                "type": "object",
+                "required": ["extensions"],
+                "properties": {
+                  "extensions": {
+                    "description": "File extensions to use with type.",
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/stringOrArray"
+                      }
+                    ]
+                  },
+                  "runShell": {
+                    "description": "`runShell` step to perform for this file type. Use $1 as a placeholder for the file path.",
+                    "anyOf": [
+                      {
+                        "$ref": "runShell_v3.schema.json#"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "integrations": {
+      "description": "Options for connecting to external services.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "openApi": {
+          "$ref": "test_v3.schema.json#/properties/openApi"
+        },
+        "docDetectiveApi": {
+          "type": "object",
+          "description": "Configuration for Doc Detective Orchestration API integration.",
+          "additionalProperties": false,
+          "properties": {
+            "apiKey": {
+              "type": "string",
+              "description": "API key for authenticating with the Doc Detective Orchestration API."
+            }
+          },
+          "title": "Doc Detective Orchestration API"
+        },
+        "heretto": {
+          "type": "array",
+          "description": "Configuration for Heretto CMS integrations. Each entry specifies a Heretto instance and a scenario to build and test.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "organizationId", "username", "apiToken"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Unique identifier for this Heretto integration. Used in logs and results."
+              },
+              "organizationId": {
+                "type": "string",
+                "description": "The organization subdomain used to access Heretto CCMS (e.g., 'thunderbird' for thunderbird.heretto.com)."
+              },
+              "username": {
+                "type": "string",
+                "description": "Heretto CCMS username (email address) for API authentication."
+              },
+              "apiToken": {
+                "format": "password",
+                "minLength": 1,
+                "type": "string",
+                "description": "API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3"
+              },
+              "scenarioName": {
+                "type": "string",
+                "description": "Name of the scenario to build and test.",
+                "default": "Doc Detective"
+              },
+              "outputPath": {
+                "type": "string",
+                "description": "Local path where Heretto content was downloaded. Set automatically during processing.",
+                "readOnly": true
+              },
+              "fileMapping": {
+                "type": "object",
+                "description": "Mapping of local file paths to Heretto file metadata. Set automatically during content loading.",
+                "readOnly": true,
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "fileId": {
+                      "type": "string",
+                      "description": "The UUID of the file in Heretto."
+                    },
+                    "filePath": {
+                      "type": "string",
+                      "description": "The path of the file in Heretto."
+                    }
+                  }
+                }
+              },
+              "uploadOnChange": {
+                "type": "boolean",
+                "description": "If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.",
+                "default": false
+              },
+              "resourceDependencies": {
+                "type": "object",
+                "description": "Mapping of Heretto file paths to their UUIDs and metadata. Set automatically during content loading by fetching ditamap resource dependencies.",
+                "readOnly": true,
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "uuid": {
+                      "type": "string",
+                      "description": "The UUID of the file in Heretto."
+                    },
+                    "fullPath": {
+                      "type": "string",
+                      "description": "The full xmldb path of the file in Heretto."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The file name."
+                    },
+                    "parentFolderId": {
+                      "type": "string",
+                      "description": "The UUID of the parent folder in Heretto."
+                    }
+                  }
+                }
+              }
+            },
+            "title": "Heretto CMS integration"
+          },
+          "title": "Heretto CMS integrations"
+        }
+      },
+      "title": "Integrations options"
+    },
+    "telemetry": {
+      "description": "Options around sending telemetry for Doc Detective usage.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "send": {
+          "description": "If `true`, sends Doc Detective telemetry.",
+          "type": "boolean",
+          "default": true
+        },
+        "userId": {
+          "description": "Identifier for the organization, group, or individual running Doc Detective.",
+          "type": "string"
+        }
+      },
+      "required": ["send"],
+      "default": {
+        "send": true
+      },
+      "title": "Telemetry options"
+    },
+    "concurrentRunners": {
+      "type": ["integer", "boolean"],
+      "default": 1,
+      "minimum": 1,
+      "description": "Number of concurrent test runners. Set to true to use CPU core count (capped at 4).",
+      "not": {
+        "const": false
+      }
+    },
+    "environment": {
+      "$ref": "#/components/schemas/environment"
+    },
+    "debug": {
+      "description": "Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging.",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "enum": ["stepThrough"]
+        }
+      ],
+      "default": false
+    }
+  },
+  "components": {
+    "schemas": {
+      "environment": {
+        "type": "object",
+        "description": "Environment information for the system running Doc Detective.",
+        "readOnly": true,
+        "additionalProperties": false,
+        "required": ["platform"],
+        "properties": {
+          "workingDirectory": {
+            "description": "The current working directory of the process running Doc Detective.",
+            "type": "string"
+          },
+          "platform": {
+            "description": "The operating system type running Doc Detective.",
+            "type": "string",
+            "enum": ["linux", "mac", "windows"]
+          },
+          "arch": {
+            "description": "The processor architecture of the system running Doc Detective.",
+            "type": "string",
+            "enum": ["arm32", "arm64", "x32", "x64"]
+          }
+        },
+        "title": "Environment details"
+      },
+      "markupDefinition": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name of the markup definition",
+            "type": "string"
+          },
+          "regex": {
+            "description": "Regular expressions to match the markup type.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "batchMatches": {
+            "description": "If `true`, all matches are combined into a single string.",
+            "type": "boolean",
+            "default": false
+          },
+          "actions": {
+            "description": "Actions to perform when the markup type is detected.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/markupActionString"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/markupActionString"
+                    },
+                    {
+                      "$ref": "step_v3.schema.json#"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "title": "Markup definition"
+      },
+      "markupActionString": {
+        "type": "string",
+        "enum": [
+          "checkLink",
+          "click",
+          "find",
+          "goTo",
+          "httpRequest",
+          "loadCookie",
+          "loadVariables",
+          "record",
+          "runCode",
+          "runShell",
+          "saveCookie",
+          "screenshot",
+          "stopRecord",
+          "type",
+          "wait"
+        ]
+      },
+      "inlineStatements": {
+        "description": "Statements to include tests and steps inside the content of the file, such as within Markdown.",
+        "type": "object",
+        "properties": {
+          "testStart": {
+            "description": "Regular expressions that indicate the start of a test. If capture groups are used, the first capture group is used for the statement. If no capture groups are used, the entire match is used for the statement.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "testEnd": {
+            "description": "Regular expressions that indicate that the current test is complete.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "ignoreStart": {
+            "description": "Regular expressions that indicates that the following content should be ignored for testing purposes.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "ignoreEnd": {
+            "description": "Regular expressions that indicate that the ignored section of content is complete.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "step": {
+            "description": "Regular expressions that indicate a step in a test.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          }
+        },
+        "title": "Inline statement definition"
+      },
+      "stringOrArray": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "examples": [
+    {},
+    {
+      "input": ".",
+      "output": ".",
+      "recursive": true,
+      "loadVariables": ".env",
+      "fileTypes": ["markdown"]
+    },
+    {
+      "fileTypes": [
+        {
+          "extends": "markdown",
+          "extensions": ["md", "markdown", "mdx"],
+          "inlineStatements": {
+            "testStart": "<!--\\s*testStart\\s*(.*?)\\s*-->",
+            "testEnd": "<!-- testEnd -->",
+            "ignoreStart": "<!-- ignoreStart -->",
+            "ignoreEnd": "<!-- ignoreEnd -->",
+            "step": "<!--\\s*step\\s*(.*?)\\s*-->"
+          },
+          "markup": [
+            {
+              "name": "onscreenText",
+              "regex": "\\*\\*.+?\\*\\*",
+              "actions": "find"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fileTypes": [
+        {
+          "name": "Jupyter Notebooks",
+          "extensions": "ipynb",
+          "runShell": {
+            "command": "jupyter",
+            "args": [
+              "nbconvert",
+              "--to",
+              "script",
+              "--execute",
+              "$1",
+              "--stdout"
+            ]
+          }
+        },
+        {
+          "name": "JavaScript",
+          "extensions": "js",
+          "runShell": {
+            "command": "node $1"
+          }
+        },
+        {
+          "name": "Python",
+          "extensions": "py",
+          "runShell": {
+            "command": "python $1"
+          }
+        }
+      ]
+    },
+    {
+      "environment": {
+        "platform": "windows",
+        "arch": "x64"
+      }
+    },
+    {
+      "concurrentRunners": 1
+    },
+    {
+      "concurrentRunners": true
+    },
+    {
+      "concurrentRunners": 4
+    },
+    {
+      "debug": false
+    },
+    {
+      "debug": true
+    },
+    {
+      "debug": "stepThrough"
+    },
+    {
+      "integrations": {
+        "docDetectiveApi": {
+          "apiKey": "your-api-key-here"
+        }
+      }
+    },
+    {
+      "crawl": true
+    },
+    {
+      "processDitaMaps": true
+    },
+    {
+      "integrations": {
+        "heretto": [
+          {
+            "name": "example",
+            "organizationId": "your-organization-id",
+            "username": "your-username",
+            "apiToken": "your-api-token"
+          }
+        ]
+      }
+    }
+  ]
+}
