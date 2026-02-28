@@ -354,7 +354,7 @@
               },
               "examples": [
                 true,
-                "right",
+                "Submit",
                 {
                   "button": "left",
                   "elementText": "Element text"
@@ -1003,7 +1003,7 @@
                 },
                 "examples": [
                   true,
-                  "right",
+                  "Submit",
                   {
                     "button": "left",
                     "elementText": "Element text"

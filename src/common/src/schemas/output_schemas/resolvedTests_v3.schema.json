@@ -1435,7 +1435,7 @@
                                                     },
                                                     "examples": [
                                                       true,
-                                                      "right",
+                                                      "Submit",
                                                       {
                                                         "button": "left",
                                                         "elementText": "Element text"
@@ -1874,7 +1874,7 @@
                                                                 },
                                                                 "examples": [
                                                                   true,
-                                                                  "right",
+                                                                  "Submit",
                                                                   {
                                                                     "button": "left",
                                                                     "elementText": "Element text"
@@ -2523,7 +2523,7 @@
                                                                   },
                                                                   "examples": [
                                                                     true,
-                                                                    "right",
+                                                                    "Submit",
                                                                     {
                                                                       "button": "left",
                                                                       "elementText": "Element text"
@@ -6652,13 +6652,9 @@
                                                     "$schema": "http://json-schema.org/draft-07/schema#",
                                                     "title": "stopRecord",
                                                     "description": "Stop the current recording.",
-                                                    "anyOf": [
-                                                      {
-                                                        "type": [
-                                                          "boolean",
-                                                          "null"
-                                                        ]
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "null"
                                                     ],
                                                     "examples": [
                                                       true
@@ -7920,7 +7916,7 @@
                                             "click": true
                                           },
                                           {
-                                            "click": "right"
+                                            "click": "Submit"
                                           },
                                           {
                                             "click": {
@@ -9540,7 +9536,7 @@
                                       },
                                       "examples": [
                                         true,
-                                        "right",
+                                        "Submit",
                                         {
                                           "button": "left",
                                           "elementText": "Element text"
@@ -9979,7 +9975,7 @@
                                                   },
                                                   "examples": [
                                                     true,
-                                                    "right",
+                                                    "Submit",
                                                     {
                                                       "button": "left",
                                                       "elementText": "Element text"
@@ -10628,7 +10624,7 @@
                                                     },
                                                     "examples": [
                                                       true,
-                                                      "right",
+                                                      "Submit",
                                                       {
                                                         "button": "left",
                                                         "elementText": "Element text"
@@ -14757,13 +14753,9 @@
                                       "$schema": "http://json-schema.org/draft-07/schema#",
                                       "title": "stopRecord",
                                       "description": "Stop the current recording.",
-                                      "anyOf": [
-                                        {
-                                          "type": [
-                                            "boolean",
-                                            "null"
-                                          ]
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "null"
                                       ],
                                       "examples": [
                                         true
@@ -16025,7 +16017,7 @@
                               "click": true
                             },
                             {
-                              "click": "right"
+                              "click": "Submit"
                             },
                             {
                               "click": {
@@ -18334,7 +18326,7 @@
                                         },
                                         "examples": [
                                           true,
-                                          "right",
+                                          "Submit",
                                           {
                                             "button": "left",
                                             "elementText": "Element text"
@@ -18773,7 +18765,7 @@
                                                     },
                                                     "examples": [
                                                       true,
-                                                      "right",
+                                                      "Submit",
                                                       {
                                                         "button": "left",
                                                         "elementText": "Element text"
@@ -19422,7 +19414,7 @@
                                                       },
                                                       "examples": [
                                                         true,
-                                                        "right",
+                                                        "Submit",
                                                         {
                                                           "button": "left",
                                                           "elementText": "Element text"
@@ -23551,13 +23543,9 @@
                                         "$schema": "http://json-schema.org/draft-07/schema#",
                                         "title": "stopRecord",
                                         "description": "Stop the current recording.",
-                                        "anyOf": [
-                                          {
-                                            "type": [
-                                              "boolean",
-                                              "null"
-                                            ]
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "null"
                                         ],
                                         "examples": [
                                           true
@@ -24819,7 +24807,7 @@
                                 "click": true
                               },
                               {
-                                "click": "right"
+                                "click": "Submit"
                               },
                               {
                                 "click": {
@@ -25913,7 +25901,7 @@
                                               },
                                               "examples": [
                                                 true,
-                                                "right",
+                                                "Submit",
                                                 {
                                                   "button": "left",
                                                   "elementText": "Element text"
@@ -26352,7 +26340,7 @@
                                                           },
                                                           "examples": [
                                                             true,
-                                                            "right",
+                                                            "Submit",
                                                             {
                                                               "button": "left",
                                                               "elementText": "Element text"
@@ -27001,7 +26989,7 @@
                                                             },
                                                             "examples": [
                                                               true,
-                                                              "right",
+                                                              "Submit",
                                                               {
                                                                 "button": "left",
                                                                 "elementText": "Element text"
@@ -31130,13 +31118,9 @@
                                               "$schema": "http://json-schema.org/draft-07/schema#",
                                               "title": "stopRecord",
                                               "description": "Stop the current recording.",
-                                              "anyOf": [
-                                                {
-                                                  "type": [
-                                                    "boolean",
-                                                    "null"
-                                                  ]
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "null"
                                               ],
                                               "examples": [
                                                 true
@@ -32398,7 +32382,7 @@
                                       "click": true
                                     },
                                     {
-                                      "click": "right"
+                                      "click": "Submit"
                                     },
                                     {
                                       "click": {
