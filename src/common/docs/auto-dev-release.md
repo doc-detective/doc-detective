@@ -19,6 +19,7 @@ The **Auto Dev Release** workflow automatically:
 The workflow requires the following repository secret to be configured:
 
 - **`NPM_TOKEN`**: npm automation token for publishing packages
+- **`DD_DEP_UPDATE_TOKEN`**: GitHub token for checkout/push authentication and downstream repository dispatch
 
 ### How to Create NPM Token
 
@@ -48,12 +49,12 @@ Your `package.json` must include:
 
 ### Workflow Features
 
-- **Node.js 18** runtime environment
+- **Node.js 24** runtime environment
 - **npm ci** for dependency installation
 - **Automated git configuration** with github-actions bot
 - **Smart skipping** for documentation-only changes
 - **Error handling** and rollback capabilities
-- **10-minute timeout** to prevent hanging processes
+- **5-minute timeout** to prevent hanging processes
 
 ## 📦 Version Management
 
