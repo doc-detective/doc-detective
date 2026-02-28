@@ -29,7 +29,7 @@ npm install doc-detective-common
 ### JavaScript (Unchanged)
 
 ```javascript
-const { validate, schemas, resolvePaths, readFile } = require('doc-detective-common');
+const { validate, schemas } = require('doc-detective-common');
 
 // Use as before
 const result = validate({
@@ -41,15 +41,11 @@ const result = validate({
 ### TypeScript (New)
 
 ```typescript
-import { 
-  validate, 
-  schemas, 
-  resolvePaths, 
-  readFile,
+import {
+  validate,
+  schemas,
   ValidateOptions,
-  ValidateResult,
-  ResolvePathsOptions,
-  ReadFileOptions
+  ValidateResult
 } from 'doc-detective-common';
 
 // Now with full type safety
@@ -137,69 +133,6 @@ const options: TransformOptions = {
 const upgraded = transformToSchemaKey(options);
 ```
 
-#### `resolvePaths()`
-
-```typescript
-import { ResolvePathsOptions } from 'doc-detective-common';
-
-interface ResolvePathsOptions {
-  config: { relativePathBase: 'file' | 'cwd' };
-  object: Record<string, any>;
-  filePath: string;
-  nested?: boolean;
-  objectType?: 'config' | 'spec';
-}
-```
-
-**Example:**
-```typescript
-import { resolvePaths, ResolvePathsOptions } from 'doc-detective-common';
-
-const options: ResolvePathsOptions = {
-  config: { relativePathBase: 'file' },
-  object: {
-    tests: [{
-      steps: [{
-        screenshot: { path: './screenshot.png' }
-      }]
-    }]
-  },
-  filePath: '/path/to/spec.json'
-};
-
-const resolved = await resolvePaths(options);
-```
-
-#### `readFile()`
-
-```typescript
-import { ReadFileOptions } from 'doc-detective-common';
-
-interface ReadFileOptions {
-  fileURLOrPath: string;
-}
-```
-
-**Example:**
-```typescript
-import { readFile, ReadFileOptions } from 'doc-detective-common';
-
-const options: ReadFileOptions = {
-  fileURLOrPath: './config.yaml'
-};
-
-const content: unknown | string | null = await readFile(options);
-
-// Type narrowing
-if (content !== null) {
-  if (typeof content === 'string') {
-    console.log('Raw content:', content);
-  } else {
-    console.log('Parsed object:', content);
-  }
-}
-```
-
 ### Schema Types
 
 ```typescript
@@ -250,49 +183,7 @@ if (!result.valid) {
 }
 ```
 
-### Pattern 2: Type-Safe Config Loading
-
-```typescript
-import { readFile, validate } from 'doc-detective-common';
-
-async function loadConfig(path: string) {
-  const content = await readFile({ fileURLOrPath: path });
-  
-  if (content === null) {
-    throw new Error(`Failed to read config from ${path}`);
-  }
-
-  const result = validate({
-    schemaKey: 'config_v3',
-    object: content,
-    addDefaults: true
-  });
-
-  if (!result.valid) {
-    throw new Error(`Invalid config: ${result.errors}`);
-  }
-
-  return result.object;
-}
-```
-
-### Pattern 3: Path Resolution with Type Safety
-
-```typescript
-import { resolvePaths, ResolvePathsOptions } from 'doc-detective-common';
-
-async function processSpec(spec: any, specPath: string) {
-  const options: ResolvePathsOptions = {
-    config: { relativePathBase: 'file' },
-    object: spec,
-    filePath: specPath
-  };
-
-  return await resolvePaths(options);
-}
-```
-
-### Pattern 4: Schema Version Upgrade
+### Pattern 2: Schema Version Upgrade
 
 ```typescript
 import { transformToSchemaKey, validate } from 'doc-detective-common';
@@ -397,38 +288,7 @@ function checkStep(step: unknown): boolean {
 }
 ```
 
-### Example 2: File Reading with Type Guards
-
-**Before (JavaScript):**
-```javascript
-const { readFile } = require('doc-detective-common');
-
-async function loadSpec(path) {
-  const content = await readFile({ fileURLOrPath: path });
-  if (content) {
-    return content;
-  }
-  throw new Error('Failed to load');
-}
-```
-
-**After (TypeScript):**
-```typescript
-import { readFile, ReadFileOptions } from 'doc-detective-common';
-
-async function loadSpec(path: string): Promise<unknown> {
-  const options: ReadFileOptions = { fileURLOrPath: path };
-  const content = await readFile(options);
-  
-  if (content === null) {
-    throw new Error('Failed to load');
-  }
-  
-  return content;
-}
-```
-
-### Example 3: Schema Transformation with Error Handling
+### Example 2: Schema Transformation with Error Handling
 
 **Before (JavaScript):**
 ```javascript
@@ -493,29 +353,7 @@ function processUserConfig(userInput: unknown) {
 }
 ```
 
-### 2. Use Type Narrowing for File Content
-
-```typescript
-import { readFile } from 'doc-detective-common';
-
-async function loadYaml(path: string) {
-  const content = await readFile({ fileURLOrPath: path });
-
-  // Type narrowing
-  if (content === null) {
-    throw new Error('File not found');
-  }
-
-  if (typeof content === 'string') {
-    throw new Error('Failed to parse YAML');
-  }
-
-  // Now content is 'unknown' (parsed object)
-  return content;
-}
-```
-
-### 3. Combine Validation with Type Assertions
+### 2. Combine Validation with Type Assertions
 
 ```typescript
 import { validate } from 'doc-detective-common';
@@ -537,30 +375,6 @@ function loadConfig(data: unknown): ExpectedConfig {
 
   // Safe to assert after validation
   return result.object as ExpectedConfig;
-}
-```
-
-### 4. Handle Async Operations Properly
-
-```typescript
-import { resolvePaths, readFile } from 'doc-detective-common';
-
-async function processSpecFile(path: string) {
-  // Load file
-  const content = await readFile({ fileURLOrPath: path });
-  
-  if (content === null || typeof content === 'string') {
-    throw new Error('Invalid spec file');
-  }
-
-  // Resolve paths
-  const resolved = await resolvePaths({
-    config: { relativePathBase: 'file' },
-    object: content,
-    filePath: path
-  });
-
-  return resolved;
 }
 ```
 

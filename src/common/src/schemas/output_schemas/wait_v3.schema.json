@@ -11,7 +11,7 @@
     {
       "title": "Wait (environment variable)",
       "type": "string",
-      "pattern": "(\\$[A-Za-z0-9_]+)",
+      "pattern": "^\\$[A-Za-z0-9_]+$",
       "transform": [
         "trim"
       ]
@@ -26,7 +26,7 @@
       "string": {
         "title": "Wait (environment variable)",
         "type": "string",
-        "pattern": "(\\$[A-Za-z0-9_]+)",
+        "pattern": "^\\$[A-Za-z0-9_]+$",
         "transform": [
           "trim"
         ]

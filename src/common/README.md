@@ -26,21 +26,20 @@ This package exports the following components:
 
 - `schemas` - JSON schemas for validation
 - `validate` - Validation functions
-- `resolvePaths` - Path resolution utilities
-- `readFile` - File reading utilities
 - `transformToSchemaKey` - Schema key transformation
+- `detectTests` - Test detection utilities
 
 ### TypeScript Support
 
 Full TypeScript support with exported types:
 
 ```typescript
-import { 
-  validate, 
-  ValidateOptions, 
+import {
+  validate,
+  ValidateOptions,
   ValidateResult,
-  resolvePaths,
-  ResolvePathsOptions
+  schemas,
+  SchemaKey
 } from 'doc-detective-common';
 ```
 
