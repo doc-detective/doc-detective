@@ -36,7 +36,7 @@
     },
     "moveMouse": {
       "type": "object",
-      "description": "Move the mouse to an element specified by a CSS sepector. Only runs if a test is being recorded.",
+      "description": "Move the mouse to an element specified by a CSS selector. Only runs if a test is being recorded.",
       "additionalProperties": false,
       "properties": {
         "alignH": {
@@ -55,7 +55,7 @@
     },
     "click": {
       "type": "object",
-      "description": "Click an element specified by a CSS sepector.",
+      "description": "Click an element specified by a CSS selector.",
       "additionalProperties": false,
       "properties": {
         "alignH": {
@@ -74,7 +74,7 @@
     },
     "type": {
       "type": "object",
-      "description": "Click an element specified by a CSS sepector.",
+      "description": "Click an element specified by a CSS selector.",
       "additionalProperties": false,
       "anyOf": [
         {
