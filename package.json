@@ -29,7 +29,7 @@
     "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const s=p.join('src','common','src','schemas','schemas.json');const d=p.join('dist','common','src','schemas','schemas.json');fs.mkdirSync(p.dirname(d),{recursive:true});fs.copyFileSync(s,d);\"",
     "build": "npm run build:common && npm run compile && npm run copy:schemas",
     "mocha": "mocha",
-    "test": "mocha --exit test/*.test.js",
+    "test": "mocha --exit test/*.test.js && npm run test:common",
     "test:common": "cd src/common && npm test",
     "prerunTests": "node ./dist/checkDependencies.js",
     "runTests": "node ./bin/doc-detective.js runTests",

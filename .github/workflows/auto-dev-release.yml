@@ -135,11 +135,50 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Generate dev version for common
+        if: steps.check_changes.outputs.skip_release == 'false'
+        id: common_version
+        run: |
+          # Get current version from common package.json
+          CURRENT_VERSION=$(node -p "require('./src/common/package.json').version")
+          echo "Current common version: $CURRENT_VERSION"
+
+          # Extract base version (remove existing -dev.X suffix if present)
+          BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/-dev\.[0-9]*$//')
+          echo "Base version: $BASE_VERSION"
+
+          # Check if we need to get the latest dev version from npm
+          LATEST_DEV=$(npm view doc-detective-common@dev version 2>/dev/null || echo "")
+
+          CURRENT_DEV_NUM=$(echo "$CURRENT_VERSION" | sed -n 's/^.*-dev\.\([0-9][0-9]*\)$/\1/p')
+
+          if [ -n "$LATEST_DEV" ] && [[ "$LATEST_DEV" == "$BASE_VERSION"-dev.* ]]; then
+            # Extract the dev number and increment it
+            DEV_NUM=$(echo $LATEST_DEV | grep -o 'dev\.[0-9]*$' | grep -o '[0-9]*$')
+            NEW_DEV_NUM=$((DEV_NUM + 1))
+          elif [ -n "$CURRENT_DEV_NUM" ]; then
+            # Bootstrap path when npm has no dev tag yet
+            NEW_DEV_NUM=$((CURRENT_DEV_NUM + 1))
+          else
+            # Start with dev.1
+            NEW_DEV_NUM=1
+          fi
+
+          NEW_VERSION="$BASE_VERSION-dev.$NEW_DEV_NUM"
+          echo "New common version: $NEW_VERSION"
+
+          # Update src/common/package.json
+          npm version $NEW_VERSION --no-git-tag-version -w src/common
+
+          # Set outputs
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+
       - name: Commit version change
         if: steps.check_changes.outputs.skip_release == 'false'
         run: |
-          git add package.json package-lock.json
-          git commit -m "Auto dev release: v${{ steps.version.outputs.version }} [skip ci]"
+          git add package.json package-lock.json src/common/package.json
+          git commit -m "Auto dev release: doc-detective@${{ steps.version.outputs.version }}, doc-detective-common@${{ steps.common_version.outputs.version }} [skip ci]"
 
       - name: Create and push git tag
         if: steps.check_changes.outputs.skip_release == 'false'
@@ -159,13 +198,28 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Publish common to npm
+        if: steps.check_changes.outputs.skip_release == 'false'
+        run: |
+          set -e
+          echo "📦 Publishing doc-detective-common to npm with 'dev' tag..."
+          npm publish --workspace src/common --tag dev
+          echo "✅ Successfully published doc-detective-common to npm"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Summary
         if: steps.check_changes.outputs.skip_release == 'false'
         run: |
           echo "✅ Auto dev release completed successfully!"
-          echo "📦 Version: v${{ steps.version.outputs.version }}"
-          echo "🏷️ NPM Tag: dev"
+          echo ""
+          echo "📦 doc-detective: v${{ steps.version.outputs.version }}"
           echo "📋 Install with: npm install doc-detective@dev"
+          echo ""
+          echo "📦 doc-detective-common: v${{ steps.common_version.outputs.version }}"
+          echo "📋 Install with: npm install doc-detective-common@dev"
+          echo ""
+          echo "🏷️ NPM Tag: dev"
           
       - name: Skip summary  
         if: steps.check_changes.outputs.skip_release == 'true'

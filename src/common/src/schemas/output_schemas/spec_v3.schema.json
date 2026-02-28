@@ -1389,7 +1389,7 @@
                                   "title": "Check link (detailed)",
                                   "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
                                   "type": "string",
-                                  "pattern": "(^(http://|https://|\\/).*|\\$[A-Za-z0-9_]+$)",
+                                  "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
                                   "transform": [
                                     "trim"
                                   ]
@@ -1406,7 +1406,7 @@
                                     "url": {
                                       "type": "string",
                                       "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                                      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                      "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
                                       "transform": [
                                         "trim"
                                       ]
@@ -1452,7 +1452,7 @@
                                     "title": "Check link (detailed)",
                                     "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
                                     "type": "string",
-                                    "pattern": "(^(http://|https://|\\/).*|\\$[A-Za-z0-9_]+$)",
+                                    "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
                                     "transform": [
                                       "trim"
                                     ]
@@ -1469,7 +1469,7 @@
                                       "url": {
                                         "type": "string",
                                         "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                                        "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
                                         "transform": [
                                           "trim"
                                         ]
@@ -8093,7 +8093,7 @@
                                 {
                                   "title": "Wait (environment variable)",
                                   "type": "string",
-                                  "pattern": "(\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^\\$[A-Za-z0-9_]+$",
                                   "transform": [
                                     "trim"
                                   ]
@@ -8108,7 +8108,7 @@
                                   "string": {
                                     "title": "Wait (environment variable)",
                                     "type": "string",
-                                    "pattern": "(\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^\\$[A-Za-z0-9_]+$",
                                     "transform": [
                                       "trim"
                                     ]
@@ -8964,7 +8964,7 @@
                                         "title": "Check link (detailed)",
                                         "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
                                         "type": "string",
-                                        "pattern": "(^(http://|https://|\\/).*|\\$[A-Za-z0-9_]+$)",
+                                        "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
                                         "transform": [
                                           "trim"
                                         ]
@@ -8981,7 +8981,7 @@
                                           "url": {
                                             "type": "string",
                                             "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                                            "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -9027,7 +9027,7 @@
                                           "title": "Check link (detailed)",
                                           "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
                                           "type": "string",
-                                          "pattern": "(^(http://|https://|\\/).*|\\$[A-Za-z0-9_]+$)",
+                                          "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
                                           "transform": [
                                             "trim"
                                           ]
@@ -9044,7 +9044,7 @@
                                             "url": {
                                               "type": "string",
                                               "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                                              "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -15668,7 +15668,7 @@
                                       {
                                         "title": "Wait (environment variable)",
                                         "type": "string",
-                                        "pattern": "(\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^\\$[A-Za-z0-9_]+$",
                                         "transform": [
                                           "trim"
                                         ]
@@ -15683,7 +15683,7 @@
                                         "string": {
                                           "title": "Wait (environment variable)",
                                           "type": "string",
-                                          "pattern": "(\\$[A-Za-z0-9_]+)",
+                                          "pattern": "^\\$[A-Za-z0-9_]+$",
                                           "transform": [
                                             "trim"
                                           ]
