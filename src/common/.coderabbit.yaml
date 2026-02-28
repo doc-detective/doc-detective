@@ -15,7 +15,8 @@ reviews:
   sequence_diagrams: true
   changed_files_summary: true
   labeling_instructions: []
-  path_filters: []
+  path_filters:
+    - "!src/schemas/**"
   path_instructions: []
   abort_on_close: true
   auto_review:

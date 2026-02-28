@@ -114,3 +114,6 @@ test/
 .coderabbit.yaml
 .gitignore
 CONTRIBUTIONS.md
+AGENTS.md
+CLAUDE.md
+.claude/
