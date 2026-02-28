@@ -17,7 +17,7 @@ detectSteps: false
 Some pages also have unique headings. If you open [type](https://doc-detective.com/docs/get-started/actions/type) it has **Special keys**.
 
 <!-- step goTo: "https://doc-detective.com/docs/get-started/actions/type" -->
-<!-- step find: Special keys -->
+<!-- step find: "text=Special keys" -->
 
 ![Search results.](reference.png){ .screenshot }
 <!-- step screenshot: reference.png -->

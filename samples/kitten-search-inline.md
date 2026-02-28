@@ -2,14 +2,14 @@ To search for American Shorthair kittens,
 
 1. Go to [DuckDuckGo](https://www.duckduckgo.com).
 
-   [comment]: # (step { "action": "goTo", "url": "https://www.duckduckgo.com"})
-   [comment]: # (step { "action": "startRecording", "path": "search-results.gif"})
+   <!-- step goTo: "https://www.duckduckgo.com" -->
+   <!-- step record: "search-results.gif" -->
 
 2. In the search bar, enter "American Shorthair kittens", then press Enter.
 
-   [comment]: # (step { "action": "find", "selector": "#searchbox_input", "click": true })
-   [comment]: # (step { "action": "typeKeys", "keys": ["American Shorthair kittens", "$ENTER$"] })
-   [comment]: # (step { "action": "find", "selector": "[data-testid='web-vertical']" })
-   [comment]: # (step { "action": "stopRecording" })
+   <!-- step click: "#searchbox_input" -->
+   <!-- step type: ["American Shorthair kittens", "$ENTER$"] -->
+   <!-- step find: "[data-testid='web-vertical']" -->
+   <!-- step endRecord: true -->
 
 ![](search-results.gif)
