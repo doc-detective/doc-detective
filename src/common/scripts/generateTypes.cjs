@@ -20,9 +20,9 @@ async function generateTypes() {
 
   for (const file of v3Schemas) {
     const schemaPath = path.join(schemasDir, file);
-    const schema = JSON.parse(await fs.readFile(schemaPath, "utf-8"));
 
     try {
+      const schema = JSON.parse(await fs.readFile(schemaPath, "utf-8"));
       const ts = await compile(schema, schema.title || file.replace(".schema.json", ""), {
         bannerComment: `/* eslint-disable */\n/**\n * Auto-generated from ${file}\n * Do not edit manually\n */`,
         style: {

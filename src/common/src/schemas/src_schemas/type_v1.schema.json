@@ -1,7 +1,7 @@
 {
   "title": "type",
   "type": "object",
-  "description": "Click an element specified by a CSS sepector.",
+  "description": "Type keys into an element specified by a CSS selector.",
   "anyOf": [
     {
       "required": [

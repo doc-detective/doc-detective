@@ -473,7 +473,7 @@ export async function parseContent({
               if (action === "runCode") return;
               step[action] = statement[1] || statement[0];
               if (config.origin && (action === "goTo" || action === "checkLink")) {
-                step[action] = { ...step[action], origin: config.origin };
+                step[action] = { url: step[action], origin: config.origin };
               }
               // Attach sourceIntegration for Heretto
               if (action === "screenshot" && config._herettoPathMapping) {

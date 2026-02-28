@@ -75,7 +75,7 @@ async function dereferenceSchemas() {
   // Update schema reference paths
   console.log("Updating schema reference paths...");
   for (const file of files) {
-    console.log(`File: ${file}`)
+    console.log(`File: ${file}`);
     const filePath = path.resolve(`${inputDir}/${file}`);
     const buildFilePath = path.resolve(`${buildDir}/${file}`);
     try {
@@ -179,7 +179,9 @@ function updateRefPaths(schema) {
       // Attribute path in the referenced schema
       const valueAttribute = value.split("#")[1];
       const valuePath = path.resolve(`${__dirname}/build/${valueFile}`);
-      schema[key] = `${valuePath}#${valueAttribute}`;
+      schema[key] = valueAttribute !== undefined
+        ? `${valuePath}#${valueAttribute}`
+        : valuePath;
       // console.log({value, valueFile, valueAttribute, final: schema[key]})
     }
   }

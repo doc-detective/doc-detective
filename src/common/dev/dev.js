@@ -1,4 +1,4 @@
-const { validate, schemas } = require("../dist/index.cjs");
+const { validate } = require("../dist/index.cjs");
 
 const object = {
   tests: [

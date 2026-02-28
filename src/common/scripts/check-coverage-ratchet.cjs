@@ -6,7 +6,7 @@
  * Compares current coverage against baseline thresholds.
  * Fails if any metric has decreased.
  * 
- * Usage: node scripts/check-coverage-ratchet.js
+ * Usage: node scripts/check-coverage-ratchet.cjs
  */
 
 const fs = require('fs');

@@ -1826,10 +1826,10 @@
                         },
                         "matchText": {
                           "type": "string",
-                          "description": "Text that the element should contain. If the element doesn't contain the text, the step fails. Accepts both strings an regular expressions. To use a regular expression, the expression should start and end with a `/`. For example, `/search/`."
+                          "description": "Text that the element should contain. If the element doesn't contain the text, the step fails. Accepts both strings and regular expressions. To use a regular expression, the expression should start and end with a `/`. For example, `/search/`."
                         },
                         "moveTo": {
-                          "description": "Move to the element. If the element isn't visible, it's scrolled into view. Only runs the if the test is being recorded.",
+                          "description": "Move to the element. If the element isn't visible, it's scrolled into view. Only runs if the test is being recorded.",
                           "oneOf": [
                             {
                               "type": "boolean"

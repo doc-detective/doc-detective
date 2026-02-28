@@ -24,9 +24,9 @@
       "type": "string",
       "description": "Vertical alignment of the mouse to the element.",
       "enum": [
-        "left",
+        "top",
         "center",
-        "right"
+        "bottom"
       ]
     },
     "offsetX": {
