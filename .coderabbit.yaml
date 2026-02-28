@@ -12,7 +12,6 @@ reviews:
     drafts: false
     auto_pause_after_reviewed_commits: 0
   path_filters:
-    - "!src/common/src/schemas/**"
     - "!src/common/src/schemas/output_schemas/**"
     - "!src/common/src/schemas/schemas.json"
   tools:
