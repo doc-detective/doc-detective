@@ -73,6 +73,7 @@ function setArgs(args: any): any {
       description: "Allow execution of potentially unsafe tests",
       type: "boolean",
     })
+    .version(require("../package.json").version)
     .help()
     .alias("help", "h").argv;
 
