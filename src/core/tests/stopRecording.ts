@@ -46,7 +46,14 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         result.status = "FAIL";
         result.description =
           "Recording was not properly started. The recorder object doesn't exist in the browser context.";
+        const allHandles = await driver.getWindowHandles();
         await driver.closeWindow();
+        const remainingHandles = allHandles.filter(
+          (h: string) => h !== config.recording.tab
+        );
+        if (remainingHandles.length > 0) {
+          await driver.switchToWindow(remainingHandles[0]);
+        }
         config.recording = null;
         return result;
       }

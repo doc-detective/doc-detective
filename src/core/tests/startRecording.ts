@@ -94,7 +94,14 @@ async function startRecording({ config, context, step, driver }: { config: any; 
 
     // Start recording
     const recorderStarted = await driver.executeAsync((baseName: any, done: any) => {
-      let stream;
+      let doneCalled = false;
+      const safeDone = (value: boolean) => {
+        if (!doneCalled) {
+          doneCalled = true;
+          done(value);
+        }
+      };
+      let stream: any;
       const displayMediaOptions = {
         video: {
           displaySurface: "browser",
@@ -120,11 +127,16 @@ async function startRecording({ config, context, step, driver }: { config: any; 
         }
       }
       async function captureAndDownload() {
-        stream = await startCapture(displayMediaOptions);
-        if (stream) {
+        try {
+          stream = await startCapture(displayMediaOptions);
+          if (!stream) {
+            safeDone(false);
+            return null;
+          }
           await recordStream(stream);
-        } else {
-          done(false);
+        } catch (err) {
+          console.error(`Error: ${err}`);
+          safeDone(false);
         }
         return stream;
       }
@@ -134,7 +146,7 @@ async function startRecording({ config, context, step, driver }: { config: any; 
 
         (window as any).recorder.ondataavailable = (event: any) => data.push(event.data);
         (window as any).recorder.start();
-        done(true);
+        safeDone(true);
 
         let stopped = new Promise((resolve, reject) => {
           (window as any).recorder.onstop = resolve;

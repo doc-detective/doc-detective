@@ -1,6 +1,6 @@
 {
   "specId": "recording",
-  "description": "Tests for screen recording start/stop lifecycle. Requires Chrome with screen recording permissions for non-headless tests. Doesn't run on Linux due to lack of support for screen recording in headless mode.",
+  "description": "Tests for screen recording start/stop lifecycle. Non-headless tests require Chrome with screen recording permissions and only run on Windows and macOS. Headless tests verify skip/guard behavior on all platforms.",
   "tests": [
     {
       "testId": "recording-basic",
@@ -40,7 +40,7 @@
       "description": "Start and stop recording with mp4 output.",
       "runOn": [
         {
-          "platforms": ["windows", "mac", "linux"],
+          "platforms": ["windows", "mac"],
           "browsers": {
             "name": "chrome",
             "headless": false
