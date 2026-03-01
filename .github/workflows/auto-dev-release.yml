@@ -88,13 +88,12 @@ jobs:
           
           echo "✅ package.json validation passed"
 
-      - name: Install dependencies
+      - name: Install, build, and test
         if: steps.check_changes.outputs.skip_release == 'false'
-        run: npm install
-
-      - name: Run tests
-        if: steps.check_changes.outputs.skip_release == 'false'
-        run: npm test
+        run: |
+          npm install
+          npm run build
+          npm test
 
       - name: Configure Git
         run: |
