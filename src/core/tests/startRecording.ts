@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { log } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -92,7 +93,7 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     config.recording.tab = await driver.getWindowHandle();
 
     // Start recording
-    await driver.execute((baseName: any) => {
+    const recorderStarted = await driver.executeAsync((baseName: any, done: any) => {
       let stream;
       const displayMediaOptions = {
         video: {
@@ -122,6 +123,8 @@ async function startRecording({ config, context, step, driver }: { config: any; 
         stream = await startCapture(displayMediaOptions);
         if (stream) {
           await recordStream(stream);
+        } else {
+          done(false);
         }
         return stream;
       }
@@ -131,8 +134,9 @@ async function startRecording({ config, context, step, driver }: { config: any; 
 
         (window as any).recorder.ondataavailable = (event: any) => data.push(event.data);
         (window as any).recorder.start();
+        done(true);
 
-        const stopped = new Promise((resolve, reject) => {
+        let stopped = new Promise((resolve, reject) => {
           (window as any).recorder.onstop = resolve;
           (window as any).recorder.onerror = (event: any) => reject(event.name);
         });
@@ -154,6 +158,24 @@ async function startRecording({ config, context, step, driver }: { config: any; 
       }
       captureAndDownload();
     }, baseName);
+
+    // Handle recording failure
+    if (!recorderStarted) {
+      config.recording = null;
+      result.status = "FAIL";
+      result.description =
+        "Failed to start recording. getDisplayMedia may have been rejected. " +
+        "On macOS, ensure Chrome has screen recording permission in " +
+        "System Preferences > Privacy & Security > Screen Recording.";
+      log(config, "error", result.description);
+      await driver.closeWindow();
+      await driver.switchToWindow(originalTab);
+      await driver.execute((documentTitle: any) => {
+        document.title = documentTitle;
+      }, documentTitle);
+      return result;
+    }
+
     // Switch to original tab
     await driver.switchToWindow(originalTab);
     // Set document title back to original
