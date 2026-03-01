@@ -37,6 +37,27 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
 
       // Switch to recording tab
       await driver.switchToWindow(config.recording.tab);
+
+      // Check that recorder was properly initialized
+      const recorderExists = await driver.execute(() => {
+        return typeof (window as any).recorder !== "undefined" && (window as any).recorder !== null;
+      });
+      if (!recorderExists) {
+        result.status = "FAIL";
+        result.description =
+          "Recording was not properly started. The recorder object doesn't exist in the browser context.";
+        const allHandles = await driver.getWindowHandles();
+        await driver.closeWindow();
+        const remainingHandles = allHandles.filter(
+          (h: string) => h !== config.recording.tab
+        );
+        if (remainingHandles.length > 0) {
+          await driver.switchToWindow(remainingHandles[0]);
+        }
+        config.recording = null;
+        return result;
+      }
+
       // Stop recording
       await driver.execute(() => {
         (window as any).recorder.stop();

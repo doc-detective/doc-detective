@@ -1,0 +1,117 @@
+{
+  "specId": "recording",
+  "description": "Tests for screen recording start/stop lifecycle. Non-headless tests require Chrome with screen recording permissions and only run on Windows and macOS. Headless tests verify skip/guard behavior on all platforms.",
+  "tests": [
+    {
+      "testId": "recording-basic",
+      "description": "Start and stop a basic recording.",
+      "runOn": [
+        {
+          "platforms": ["windows", "mac"],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "recording-basic.webm",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "recording-mp4",
+      "description": "Start and stop recording with mp4 output.",
+      "runOn": [
+        {
+          "platforms": ["windows", "mac"],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "recording-mp4.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "recording-headless-skipped",
+      "description": "Recording should be skipped in headless mode.",
+      "runOn": [
+        {
+          "platforms": ["windows", "mac", "linux"],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": true
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "recording-stop-without-start",
+      "description": "Stopping a recording that was never started should be skipped.",
+      "runOn": [
+        {
+          "platforms": ["windows", "mac", "linux"],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
