@@ -27,7 +27,7 @@ jobs:
           cd docs
           OUTPUT=$(fern generate --docs --preview 2>&1) || true
           echo "$OUTPUT"
-          URL=$(echo "$OUTPUT" | grep -oP 'Published docs to \K.*(?= \()')
+          URL=$(echo "$OUTPUT" | grep -oP 'Published docs to \K.*(?= \()') || true
           if [ -z "$URL" ]; then
             echo "preview_url=" >> "$GITHUB_OUTPUT"
             echo "⚠️ Failed to generate docs preview. Check the workflow logs for details." > preview_url.txt

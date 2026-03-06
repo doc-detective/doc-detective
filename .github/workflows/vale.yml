@@ -8,6 +8,10 @@ on:
       - '.vale.ini'
       - '!**/changelog/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   vale:
     runs-on: ubuntu-latest
