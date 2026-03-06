@@ -1,0 +1,81 @@
+---
+title: Installation
+sidebar-title: Installation
+---
+
+Downloading and running Doc Detective is straightforward. You can install Doc Detective using NPX (Node.js) or Docker. Follow the instructions for your preferred method:
+
+Choose *NPX* if you have Node.js installed and want to install Doc Detective on your machine locally. Choose *Docker* if you can't install applications locally, prefer containerized environments, need to avoid Node.js installation, or want to isolate Doc Detective from your system.
+
+<Tabs>
+{/* test {"testId":"installation-npx-flow","detectSteps":false} */}
+  <Tab title="NPX" language="npx">
+
+1. Install prerequisites:
+
+    - [Node.js](https://nodejs.org/) v18 or later
+    {/* step {"stepId":"check-nodejs-link","description":"Verify Node.js download link","checkLink":"https://nodejs.org/"} */}
+
+2. In a terminal, install Doc Detective globally:
+
+    <CodeBlock language="bash" title="Install Doc Detective">
+      npm i -g doc-detective
+    </CodeBlock>
+    {/* step {"stepId":"install-npm","description":"Install Doc Detective globally via npm","runShell":{"command":"npm i -g doc-detective"}} */}
+
+    <Note>
+
+    If you're working in a local copy of the `doc-detective` repository, you need to run `npm i` to install local dependencies.
+
+    </Note>
+
+3.  Save this file to your current directory as _sample.spec.json_:
+
+    <Code src="sample.spec.json" />
+
+4. Run a test, pointing to the file you just created:
+
+    <CodeBlock language="bash" title="Run test">
+      npx doc-detective --input sample.spec.json
+    </CodeBlock>
+    {/* step {"stepId":"run-npx-test","description":"Run Doc Detective test with NPX","runShell":{"command":"npx doc-detective --input sample.spec.json","workingDirectory":"."}} */}
+
+  </Tab>
+{/* test end */}
+
+{/* test {"testId":"installation-docker-flow","detectSteps":false} */}
+  <Tab title="Docker" language="docker">
+
+1. Install prerequisites:
+
+    - [Docker](https://docs.docker.com/get-docker/)
+    {/* step {"stepId":"check-docker-link","description":"Verify Docker installation link","checkLink":"https://docs.docker.com/get-docker/"} */}
+
+2. Save this file to your current directory as _sample.spec.json_:
+
+    <Code src="sample.spec.json" />
+
+3. Run a test, pointing to the file you just created:
+
+    <CodeBlock language="bash" title="Run test">
+      docker run -v .:/app docdetective/docdetective --input /app/sample.spec.json
+    </CodeBlock>
+    {/* step {"stepId":"run-docker-test","description":"Run Doc Detective test with Docker","runShell":{"command":"docker run -v .:/app docdetective/docdetective --input /app/sample.spec.json","workingDirectory":".","timeout":180000}} */}
+
+    <Note>
+
+    The `-v` argument mounts your current directory (`.`) to `/app` in the container, giving Doc Detective access to your test specification and enabling it to output results and screenshots. If your test specification is hosted at an HTTPS URL, the `-v` argument is not necessary.
+
+    </Note>
+
+  </Tab>
+{/* test end */}
+</Tabs>
+
+Congratulations! You've run your first test with Doc Detective. :tada:
+
+You should see output in the terminal indicating the progress and results of the test. Results are also saved in a `testResults-<timestamp>.json` file in the current directory (configurable with the `--output` option), and this test saves a screenshot to *example.png*.
+
+## Next steps
+
+Next up, take a look at some of the [concepts](/docs/get-started/concepts) native to Doc Detective, check out some of the guided [tutorials](/tutorials), or explore how to write [tests](/docs/tests) and [actions](/docs/actions) to automate your documentation testing.

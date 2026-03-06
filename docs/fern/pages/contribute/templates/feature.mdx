@@ -1,0 +1,391 @@
+---
+title: Feature documentation template
+description: Template for documenting new or changed features.
+sidebar-title: Feature Template
+---
+
+Use this template to document new features or significant changes to existing features.
+
+## When to use this template
+
+Use feature documentation when:
+
+- A new feature has been added
+- An existing feature has changed significantly
+- Users need to understand what changed and how to use it
+- Migration from old to new behavior is needed
+
+**Examples:**
+
+- New action type added to Doc Detective
+- Configuration options changed
+- New integration or plugin
+- Breaking changes to existing functionality
+
+## Template
+
+Copy and adapt this template for your feature documentation:
+
+````markdown
+---
+title: [Feature name]
+description: [One-sentence description of what this feature does]
+---
+
+# [Feature name]
+
+[2-3 sentences explaining what this feature is, why it was added, and what problem it solves.]
+
+[If this is a change to existing functionality, briefly mention what changed.]
+
+## What's new
+
+[Bullet list of key changes or capabilities. Keep it concise.]
+
+- Key change or capability 1
+- Key change or capability 2
+- Key change or capability 3
+
+## Why this matters
+
+[Explain the benefits and use cases. Help users understand when they would use this feature.]
+
+[Use "you" and focus on user benefits, not technical implementation.]
+
+## How to use [feature name]
+
+[Provide a complete, working example showing the most common use case.]
+
+### Basic example
+
+```[language] title="[filename]"
+[Code showing simplest usage]
+```
+
+[Explain what this code does and what to expect.]
+
+### Advanced example
+
+```[language] title="[filename]"
+[More complex example]
+```
+
+[Optional: Show a more complex or real-world usage.]
+
+```[language] title="[filename]"
+[More complex example]
+```
+
+[Explain the additional capabilities demonstrated.]
+
+## Configuration options
+
+[If the feature has configuration, document each option.]
+
+| Option  | Type   | Required | Default | Description           |
+| ------- | ------ | -------- | ------- | --------------------- |
+| option1 | string | Yes      | -       | What this option does |
+| option2 | number | No       | 10      | What this option does |
+
+### Example configuration
+
+```json title=".doc-detective.json"
+{ "featureName": { "option1": "value", "option2": 20 } }
+```
+
+## Migration guide
+
+[If this replaces or changes existing functionality, provide migration guidance.]
+
+### From old behavior
+
+[Show how users currently do this.]
+
+```[language]
+[Old way]
+```
+
+### To new behavior
+
+[Show how users should do this now.]
+
+```[language]
+[New way]
+```
+
+### Breaking changes
+
+[List any breaking changes. Be explicit about what breaks and how to fix it.]
+
+- **[What breaks]**: [How to fix it]
+- **[What breaks]**: [How to fix it]
+
+## Compatibility
+
+[Document version requirements and compatibility considerations.]
+
+- **Minimum version**: [Version number]
+- **Browser support**: [If applicable]
+- **Platform support**: [If applicable]
+- **Deprecated features**: [If this replaces something]
+
+## Troubleshooting
+
+[Document common issues users might encounter with this feature.]
+
+### [Common issue]
+
+**Symptoms:** [What users see]
+
+**Cause:** [Why this happens]
+
+**Solution:**
+
+1. [Step 1]
+2. [Step 2]
+
+## See also
+
+[Link to related documentation.]
+
+- [Related feature or action](link)
+- [Configuration reference](link)
+- [Tutorial using this feature](link)
+````
+
+## Writing tips
+
+### Lead with benefits
+
+Start with why users should care:
+
+✅ Good:
+
+> The `parallel` option lets you run tests simultaneously, reducing execution time by up to 70% for large test suites.
+
+⛔ Too technical:
+
+> The `parallel` option implements concurrent test execution using worker threads.
+
+### Show before and after
+
+For changes, show both the old and new way:
+
+✅ Good:
+
+> **Before:** You had to manually specify each test file
+>
+> ```bash
+> doc-detective test1.spec.json test2.spec.json test3.spec.json
+> ```
+>
+> **Now:** Use glob patterns to match multiple files
+>
+> ```bash
+> doc-detective "tests/**/*.spec.json"
+> ```
+
+### Provide complete examples
+
+Examples should be copy-pasteable and work as-is:
+
+✅ Complete:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "action": "screenshot",
+          "path": "screenshot.png",
+          "fullPage": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+⛔ Incomplete:
+
+```json
+{
+  "screenshot": {
+    "fullPage": true
+  }
+}
+```
+
+### Document breaking changes
+
+Be explicit about what breaks:
+
+✅ Clear:
+
+> **Breaking change:** The `timeout` option now accepts milliseconds instead of seconds.
+>
+> **Before:** `"timeout": 30` (30 seconds) **After:** `"timeout": 30000` (30 seconds in milliseconds)
+>
+> **To update:** Multiply all timeout values by 1000.
+
+### Version your examples
+
+If behavior varies by version:
+
+```markdown
+<Note title="Version differences">
+This feature works differently depending on your Doc Detective version:
+
+**v2.x:** Uses `oldOption` **v3.x and later:** Uses `newOption`
+</Note>
+```
+
+## Example feature documentation
+
+Here's a complete example:
+
+````markdown
+---
+title: Screenshot cropping
+description: Capture screenshots of specific elements instead of the entire page.
+---
+
+# Screenshot cropping
+
+Crop screenshots to specific elements on the page, making it easier to highlight relevant parts of your documentation without capturing unnecessary UI.
+
+## What's new
+
+- `screenshot` action now supports element-based cropping
+- New `cropTo` option to specify target element
+- Automatic padding around cropped elements
+- Works with both CSS selectors and XPath
+
+## Why this matters
+
+When documenting specific features, you often want screenshots that focus on a particular UI element—like a button, form, or menu—without including the entire page. Element-based cropping:
+
+- Creates focused, professional screenshots
+- Reduces file size by capturing only what matters
+- Automatically updates when UI changes
+- Makes documentation clearer and easier to follow
+
+## How to use screenshot cropping
+
+### Basic example
+
+Capture just a specific button:
+
+```json title="screenshot-button.spec.json"
+{ "tests": [ { "steps": [ { "action": "goTo", "url": "https://doc-detective.com" }, { "action": "screenshot", "path": "get-started-button.png", "cropTo": { "selector": "a[href='/docs/get-started']" } } ] } ] }
+```
+
+This captures only the "Get Started" link, not the entire page.
+
+### Advanced example
+
+Crop to an element with padding:
+
+```json title="screenshot-with-padding.spec.json"
+{ "tests": [ { "steps": [ { "action": "goTo", "url": "https://doc-detective.com" }, { "action": "screenshot", "path": "navigation-menu.png", "cropTo": { "selector": "nav.navbar", "padding": 20 } } ] } ] }
+```
+
+Adds 20 pixels of padding around the navigation element for context.
+
+## Configuration options
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| path | string | Yes | - | Where to save the screenshot |
+| cropTo | object | No | - | Element to crop to (see below) |
+| cropTo.selector | string | Yes\* | - | CSS selector or XPath of element |
+| cropTo.padding | number | No | 0 | Pixels of padding around element |
+| fullPage | boolean | No | false | Ignored if cropTo is specified |
+
+\*Required if `cropTo` is used
+
+### Example configuration
+
+```json title=".doc-detective.json"
+{ "tests": [ { "steps": [ { "action": "screenshot", "path": "feature.png", "cropTo": { "selector": "#feature-section", "padding": 15 } } ] } ] }
+```
+
+## Migration guide
+
+If you were using full-page screenshots and want to crop:
+
+### From full-page screenshots
+
+```json
+{ "action": "screenshot", "path": "page.png", "fullPage": true }
+```
+
+### To element-based cropping
+
+```json
+{ "action": "screenshot", "path": "element.png", "cropTo": { "selector": "#target-element" } }
+```
+
+### Breaking changes
+
+None. This is a backward-compatible addition. Existing screenshots continue to work unchanged.
+
+## Compatibility
+
+- **Minimum version**: Doc Detective 3.1.0
+- **Browser support**: All supported browsers (Chrome, Firefox, Edge)
+- **Platform support**: All platforms (Windows, macOS, Linux)
+
+## Troubleshooting
+
+### Element not found for cropping
+
+**Symptoms:** Error message "Could not find element for cropping"
+
+**Cause:** The selector doesn't match any element on the page
+
+**Solution:**
+
+1. Verify the element exists on the page
+2. Use browser dev tools to test your selector
+3. Add a `wait` action before screenshot if element loads slowly
+4. Try a different selector (ID, class, or XPath)
+
+### Screenshot is too small
+
+**Symptoms:** Cropped screenshot is tiny or cuts off content
+
+**Cause:** Element is smaller than expected or padding is insufficient
+
+**Solution:**
+
+1. Increase the `padding` value
+2. Select a parent element that includes more context
+3. Verify you're selecting the correct element
+
+## See also
+
+- [screenshot action reference](/docs/actions/screenshot)
+- [CSS selectors guide](/docs/selectors/css)
+- [Tutorial: Capture screenshots](/tutorials/capture-screenshot)
+````
+
+## Checklist before submitting
+
+- [ ] Explains what the feature is and why it matters
+- [ ] Provides complete, working examples
+- [ ] Documents all configuration options
+- [ ] Includes migration guide if replacing existing functionality
+- [ ] Lists any breaking changes explicitly
+- [ ] Documents version requirements
+- [ ] Includes troubleshooting for common issues
+- [ ] Links to related documentation
+- [ ] Examples have been tested
+
+## Related templates
+
+- **[How-To](how-to)**: For task-oriented guides using the feature
+- **[Tutorial](tutorial)**: For learning-oriented guides
+- **[Reference](reference)**: For detailed technical specifications
+- **[Troubleshooting](troubleshooting)**: For problem-solution documentation

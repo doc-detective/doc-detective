@@ -1,0 +1,6 @@
+{
+  "detectSteps": false,
+  "telemetry": {
+    "send": true
+  }
+}

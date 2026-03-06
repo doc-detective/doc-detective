@@ -1,0 +1,373 @@
+---
+title: Review process
+description: What to expect when your contribution is reviewed.
+sidebar-title: Review process
+---
+
+Understand what happens after you submit a pull request and how to navigate the review process.
+
+## Timeline expectations
+
+We strive to provide timely feedback:
+
+- **Initial response**: Within 2 business days.
+- **Complete review**: Within 5 business days for standard contributions.
+- **Expedited review**: Within 24 hours for critical fixes.
+
+Critical fixes include
+
+- Security documentation issues
+- Incorrect information that could break user workflows
+- Broken links to essential resources
+- Major accessibility issues
+
+If you don't receive a response within these timeframes, feel free to:
+
+- Comment on the PR asking for an update
+- Ask in [Discord](https://discord.gg/2M7wXEThfF)
+
+## Automated checks
+
+Before human review, automated checks verify your contribution.
+
+### What runs automatically
+
+1. **Vale (style checking)**: Checks adherence to Google Developer Style Guide
+2. **Build verification**: Ensures the site builds successfully
+3. **Link validation**: Verifies all links work
+4. **CLA check**: Confirms you've signed the Contributor License Agreement
+
+### Check status indicators
+
+In your pull request, you'll see status checks:
+
+- ✅ **Green check**: Passed
+- ❌ **Red X**: Failed
+- 🟡 **Yellow circle**: Running
+
+### If checks fail
+
+Don't panic. Failed checks happen and can usually be fixed.
+
+#### Vale failures
+
+Vale checks writing style. Common issues:
+
+**"Use second person instead of first person"**
+
+- ⛔ `We recommend using...`
+- ✅ `Use...` or `You can use...`
+
+**"Avoid using 'please' in instructions"**
+
+- ⛔ `Please click the button`
+- ✅ `Click the button`
+
+**"Use active voice"**
+
+- ⛔ `The file can be uploaded by...`
+- ✅ `Upload the file by...`
+
+**Handling Vale suggestions:**
+
+- **Errors**: Should be fixed
+- **Warnings**: Strongly consider fixing
+- **Suggestions**: Optional—reviewers use judgment
+
+If you disagree with a Vale suggestion, explain why in a comment. Reviewers can override automated checks when it makes sense.
+
+#### Build failures
+
+Usually indicate syntax errors:
+
+Common causes include
+
+- Unclosed code blocks (missing closing ` ``` `)
+- Invalid front matter (YAML syntax errors)
+- Broken Markdown syntax
+- Missing closing tags in JSX
+
+How to fix failures:
+
+1. Check the error message for the specific file and line number
+2. Fix the syntax error
+3. If working locally, run `npm run build` to verify
+4. Commit and push the fix
+
+#### Link validation failures
+
+Means a link is broken or inaccessible:
+
+Common causes include
+
+- Typo in URL
+- Link to a page that doesn't exist yet
+- External site is temporarily down
+- Case sensitivity issue in path
+
+How to fix:
+
+1. Check the error message for which link failed
+2. Verify the URL is correct
+3. For internal links, ensure the file exists at that path
+4. For external links, verify the site is accessible
+
+#### CLA check failure
+
+You need to sign the Contributor License Agreement:
+
+1. Click the CLA check in your PR
+2. Follow the prompts to sign
+3. The check automatically re-runs after signing
+
+## Human review
+
+After automated checks pass, a maintainer reviews your contribution.
+
+### What reviewers check
+
+#### ✅ Technical accuracy
+
+Is the information correct?
+
+- Code examples work as shown
+- Steps produce expected results
+- Claims are accurate
+- Links point to correct resources
+
+#### ✅ User value
+
+Does this serve users well?
+
+- Addresses a real user need
+- Fits the intended user journey
+- Is discoverable when needed
+- Clear and understandable
+
+#### ✅ Completeness
+
+Does it cover what's needed?
+
+- Prerequisites are listed
+- Steps are complete
+- Examples are sufficient
+- Related content is linked
+
+#### ✅ Consistency
+
+Does it match existing documentation?
+
+- Similar structure to comparable pages
+- Consistent terminology
+- Follows established patterns
+- Proper formatting
+
+### What reviewers DON'T block on
+
+#### ⛔ Perfect prose
+
+We value clear communication over elegant writing. If the meaning is clear, it's good enough.
+
+#### ⛔ Comprehensive edge cases
+
+Documentation doesn't need to cover every possible scenario. Focus on common use cases.
+
+#### ⛔ Advanced formatting
+
+Basic formatting is sufficient. Fancy design elements are nice-to-have, not required.
+
+#### ⛔ Minor style issues
+
+If automated tools miss something minor, reviewers won't block on it. We fix small things during review.
+
+## Types of feedback
+
+### Blocking feedback
+
+Must be addressed before merging:
+
+- **Incorrect information**: Technical errors that could mislead users
+- **Missing critical steps**: Gaps that make instructions unusable
+- **Broken links**: Links that don't work
+- **Build failures**: Syntax errors preventing deployment
+
+How to respond:
+
+- Fix the issue
+- Commit and push changes
+- Reply to the comment explaining what you fixed
+
+### Non-blocking suggestions
+
+Optional improvements:
+
+- **Better phrasing**: Alternative wording that might be clearer
+- **Additional examples**: Nice-to-have but not required
+- **Related content**: Suggestions for future enhancements
+- **Style suggestions**: Minor improvements to match conventions
+
+How to respond:
+
+- Make the change if you agree
+- Or explain why you prefer your approach
+- Or note it for future improvement
+
+### Questions
+
+Reviewer needs clarification:
+
+- "Why did you choose this approach?"
+- "Can you explain what this code does?"
+- "Is this the recommended method?"
+
+How to respond:
+
+- Answer the question in a comment
+- Consider if the documentation should include this clarification
+- Update the docs if the question reveals a gap
+
+## Responding to feedback
+
+### Be collaborative
+
+Remember, reviewers want to help you succeed:
+
+- **Ask questions**: If feedback is unclear, ask for clarification
+- **Explain reasoning**: If you disagree, explain your perspective
+- **Suggest alternatives**: Propose different solutions if needed
+- **Thank reviewers**: Appreciate their time and expertise
+
+### Making changes
+
+1. **Make requested changes** in your local branch
+2. **Commit with descriptive messages**:
+   ```bash
+   git add docs/path/to/file.mdx
+   git commit -m "Address review feedback: clarify prerequisites"
+   ```
+3. **Push to your branch**:
+   ```bash
+   git push origin your-branch-name
+   ```
+4. **Reply to comments**: Let reviewer know you've addressed their feedback
+
+The pull request automatically updates with your new commits.
+
+### Re-requesting review
+
+After addressing feedback, you can re-request review:
+
+1. **Resolve conversations**: Click "Resolve conversation" on addressed comments
+2. **Leave unresolved**: Keep conversations open if you have questions
+3. **Re-request review**: Click "Re-request review" from the reviewer
+
+### If you disagree
+
+It's okay to disagree with feedback:
+
+1. **Explain your reasoning**: Why you prefer your approach
+2. **Provide evidence**: Link to examples or documentation supporting your view
+3. **Suggest compromise**: Offer an alternative solution
+4. **Be open**: The reviewer might have context you don't
+
+Most disagreements resolve through discussion.
+
+## Approval and merge
+
+### When your PR is approved
+
+Congratulations! Your contribution will be merged soon.
+
+What happens next:
+
+1. **Maintainer merges**: A maintainer with merge permissions merges your PR
+2. **Automatic deployment**: GitHub Actions automatically deploys to production
+3. **Live in minutes**: Your changes appear on doc-detective.com within 5-10 minutes
+
+### After merge
+
+Celebrate! 🎉 You've contributed to open source! Post about it, add to your portfolio, tell your friends.
+
+If your PR addresses an issue, it should close automatically.
+
+Found something else to improve? Open another PR.
+
+## Special cases
+
+### Merge conflicts
+
+If your PR shows merge conflicts:
+
+**Option 1: Sync your branch (recommended)**
+
+```bash
+# Update your local main branch
+git checkout main
+git pull upstream main
+
+# Switch back to your feature branch
+git checkout your-branch-name
+
+# Merge main into your branch
+git merge main
+
+# Resolve any conflicts in your editor
+# Then commit and push
+git add .
+git commit -m "Resolve merge conflicts"
+git push origin your-branch-name
+```
+
+**Option 2: Ask for help**
+
+Comment on the PR: "I have merge conflicts and need help resolving them."
+
+Maintainers can help or resolve conflicts for you.
+
+### Stale PRs
+
+If your PR hasn't been updated in a while:
+
+- **30 days**: Maintainer may comment asking for status
+- **60 days**: PR may be closed with a note that you can reopen
+- **Reopen anytime**: Closing is not a rejection—update and reopen when ready
+
+### Multiple reviews
+
+Substantial contributions may involve multiple reviewers:
+
+- **Technical reviewer**: Verifies accuracy
+- **Documentation reviewer**: Checks clarity and structure
+- **Subject matter expert**: Validates domain knowledge
+
+Each reviewer may provide feedback. Address all feedback before final approval.
+
+## Getting help during review
+
+### Stuck on feedback?
+
+- **Ask in the PR**: Comment asking for clarification
+- **Ask in Discord**: [Join the Discord](https://discord.gg/2M7wXEThfF) and ask in #documentation
+
+### Need more time?
+
+Life happens. If you can't address feedback right away,
+
+1. **Comment on the PR**: Let reviewers know you'll return to it
+2. **Mark as draft**: Convert to draft PR if you need more time
+3. **No deadline**: Take the time you need—we appreciate all contributions
+
+## After your first contribution
+
+### What's next?
+
+- **Look for more issues**: [Good first issue label](https://github.com/doc-detective/doc-detective.github.io/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+- **Review others' PRs**: Help review other contributions
+- **Suggest improvements**: Open issues for documentation gaps you notice
+- **Join the community**: Engage in Discord discussions
+
+### You're now a contributor!
+
+Thank you for making Doc Detective better. Your contribution, no matter how small, helps all of our users.
+
+Every great open source contributor started with one pull request. This is yours. 🌟

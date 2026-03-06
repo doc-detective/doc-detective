@@ -1,0 +1,270 @@
+---
+title: DITA input format
+sidebar-title: DITA
+description: Use Doc Detective with DITA XML files and semantic markup.
+---
+
+<Info>
+
+**Beta**: DITA markup patterns are available in beta and subject to change.
+
+</Info>
+
+DITA (Darwin Information Typing Architecture) is an XML-based format for technical documentation. Doc Detective supports DITA task topics and can extract tests from semantic markup elements.
+
+## File extensions
+
+Doc Detective processes DITA files with the following extensions:
+
+- `.dita`
+- `.ditamap`
+- `.xml`
+
+## Inline test syntax
+
+DITA files use XML processing instructions or HTML comments to define inline tests. Processing instructions must start with `<?doc-detective` for Doc Detective to recognize them.
+
+### JSON format
+
+```xml
+<?doc-detective test {"testId": "my-test", "detectSteps": false} ?>
+<?doc-detective step {"checkLink": "https://example.com"} ?>
+<?doc-detective test end?>
+```
+
+### YAML format
+
+```xml
+<?doc-detective test
+  testId: my-test
+  detectSteps: false
+?>
+<?doc-detective step checkLink: "https://example.com" ?>
+<?doc-detective test end?>
+```
+
+### XML attribute format
+
+```xml
+<?doc-detective test testId="my-test" detectSteps=false ?>
+<?doc-detective step checkLink="https://example.com" ?>
+<?doc-detective test end?>
+```
+
+Attribute values are automatically converted to the appropriate type: booleans (`detectSteps=false`), numbers (`wait=500`), and strings. You can use dot notation for nested objects—for example, `<?doc-detective step httpRequest.url="https://api.example.com" httpRequest.method="GET" ?>`.
+
+### HTML comment syntax
+
+You can also use HTML comment syntax as an alternative:
+
+```xml
+<!-- test testId="my-test" detectSteps=false -->
+<!-- step checkLink="https://example.com" -->
+<!-- test end -->
+```
+
+HTML comments and processing instructions work identically. Use whichever fits your workflow better.
+
+## DITA semantic elements
+
+DITA task topics use semantic elements to structure procedural documentation. Doc Detective recognizes these elements and extracts the appropriate test actions:
+
+**UI Elements:**
+- `<uicontrol>` - UI controls like buttons, fields, menus, and options
+- `<wintitle>` - Window or dialog titles
+- `<menucascade>` - Menu sequences (like File > Save As)
+
+**User Input:**
+- `<userinput>` - Text that users should type
+- `<shortcut>` - Keyboard keys (like Enter)
+
+**System Output:**
+- `<systemoutput>` - Expected output from commands or system responses
+- `<msgph>` - Message text from the application
+
+**Command Execution:**
+- `<cmdname>` - Command names to execute
+- `<codeblock>` - Code blocks with `outputclass` for language specification
+
+**Navigation:**
+- `<xref>` - Cross-references and external links
+
+## Action verb patterns
+
+Doc Detective recognizes specific action verbs in `<cmd>` elements to determine which test action to generate:
+
+**Click actions** - Triggers `click`:
+- click, tap, select, press, choose
+
+**Type actions** - Triggers `type`:
+- type, enter, input
+
+**Navigation actions** - Triggers `goTo`:
+- navigate to, open, go to, visit, browse to
+
+**Verification actions** - Triggers `find`:
+- verify, check, confirm, ensure
+
+**Command execution** - Triggers `runShell`:
+- run, execute
+
+When these verbs appear with DITA semantic elements, Doc Detective automatically extracts the complete action. For example, `<cmd>Click the <uicontrol>Save</uicontrol> button</cmd>` generates `{ "click": "Save" }`.
+
+## Best practices
+
+- Use semantic DITA elements (`<uicontrol>`, `<userinput>`, etc.) for accurate test detection
+- Structure procedures as DITA task topics with `<steps>` and `<cmd>` elements
+- Use `scope="external"` on `<xref>` elements for external links
+- Add `outputclass` attributes to `<codeblock>` elements to specify language
+- Combine inline processing instructions with detected tests for comprehensive coverage
+- Use action verbs consistently (click, type, navigate, verify, etc.)
+
+## Default DITA patterns
+
+### Key patterns
+
+#### clickUiControl
+
+Detects click verbs with `<uicontrol>` elements in DITA `<cmd>` elements and clicks on that UI control.
+
+- **Pattern**: `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>`
+- **Action**: Clicks the "Submit" button using its text content
+- **Recognized verbs**: click, tap, select, press, choose
+
+#### typeIntoUiControl
+
+Detects type verbs with `<userinput>` and `<uicontrol>` elements and types text into the specified field.
+
+- **Pattern**: `<cmd>Type <userinput>testuser</userinput> into the <uicontrol>Username</uicontrol> field</cmd>`
+- **Action**: Types "testuser" into the field labeled "Username"
+- **Recognized verbs**: type, enter, input
+
+#### navigateToXref
+
+Detects navigation verbs with `<xref>` elements in `<cmd>` elements and opens the URL.
+
+- **Pattern**: `<cmd>Navigate to <xref href="https://example.com">Example Site</xref></cmd>`
+- **Action**: Opens https://example.com in the browser
+- **Recognized verbs**: navigate to, open, go to, visit, browse to
+
+#### runShellCmdWithCodeblock
+
+Detects run/execute commands followed by shell codeblocks in `<info>` elements.
+
+- **Pattern**: `<cmd>Run the following command</cmd>` followed by `<info><codeblock outputclass="shell">npm install</codeblock></info>`
+- **Action**: Executes "npm install" as a shell command
+- **Recognized verbs**: run, execute
+
+#### verifySystemOutput
+
+Detects verification verbs with `<systemoutput>` elements and checks for expected output.
+
+- **Pattern**: `<cmd>Verify the output shows <systemoutput>Success</systemoutput></cmd>`
+- **Action**: Searches for "Success" on the current page
+- **Recognized verbs**: verify, check, confirm, ensure
+
+#### checkExternalXref
+
+Detects `<xref>` elements with `scope="external"` and checks link accessibility.
+
+- **Pattern**: `<xref href="https://docs.example.com" scope="external">Documentation</xref>`
+- **Action**: Performs a GET request to verify the link returns a valid status code
+
+### Additional patterns
+
+Doc Detective also recognizes these DITA elements:
+
+- `<uicontrol>` standalone - generates `find` action
+- `<wintitle>` - generates `find` action for window titles
+- `<cmdname>` with execute/run verbs - generates `runShell` action
+- `<codeblock outputclass="bash">` - generates `runShell` action
+- `<codeblock outputclass="python|js">` - generates `runCode` action
+- `<codeblock outputclass="http">` - generates `httpRequest` action
+- `<image outputclass="screenshot">` - generates `screenshot` action
+
+For a complete list of patterns, see the [configuration reference](/reference/schemas/config).
+
+## Example with detected tests
+
+**DITA task topic:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="create-user-account">
+  <title>Create a User Account</title>
+  <?doc-detective test testId="user-account-test" detectSteps=true ?>
+  <taskbody>
+    <context>
+      <p>This procedure shows how to create a new user account in the system.</p>
+    </context>
+    <steps>
+      <step>
+        <cmd>Navigate to <xref href="https://app.example.com/login" format="html" scope="external">the application</xref></cmd>
+      </step>
+      <step>
+        <cmd>Click the <uicontrol>Sign In</uicontrol> button</cmd>
+      </step>
+      <step>
+        <cmd>Type <userinput>admin@example.com</userinput> into the <uicontrol>Username</uicontrol> field</cmd>
+      </step>
+      <step>
+        <cmd>Type <userinput>password123</userinput> into the <uicontrol>Password</uicontrol> field</cmd>
+      </step>
+      <step>
+        <cmd>Press <shortcut>Enter</shortcut> to submit the form</cmd>
+      </step>
+      <step>
+        <cmd>Verify the <wintitle>Create User</wintitle> dialog appears</cmd>
+      </step>
+    </steps>
+  </taskbody>
+  <?doc-detective test end?>
+</task>
+```
+
+**Detected tests:**
+
+```json
+{
+  "tests": [
+    {
+      "testId": "user-account-test",
+      "steps": [
+        {
+          "goTo": "https://app.example.com/login"
+        },
+        {
+          "click": "Sign In"
+        },
+        {
+          "type": {
+            "keys": "admin@example.com",
+            "selector": "Username"
+          }
+        },
+        {
+          "type": {
+            "keys": "password123",
+            "selector": "Password"
+          }
+        },
+        {
+          "type": {
+            "keys": "Enter"
+          }
+        },
+        {
+          "find": "Create User"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Next steps
+
+- Learn about [inline tests](/docs/tests/inline-tests) for manual test definition
+- Learn about [detected tests](/docs/tests/detected-tests) for automatic test generation
+- See [custom inputs](custom) to extend DITA patterns

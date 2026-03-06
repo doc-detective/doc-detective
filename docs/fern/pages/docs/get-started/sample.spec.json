@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Go to the specified URL",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Verify the presence of the main heading",
+          "find": "Example Domain"
+        },
+        {
+          "description": "Verify that the 'Learn more' link is present and working",
+          "click": "Learn more"
+        },
+        {
+          "description": "Capture a screenshot of the resulting page",
+          "screenshot": "example.png"
+        }
+      ]
+    }
+  ]
+}

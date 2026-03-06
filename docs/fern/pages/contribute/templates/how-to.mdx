@@ -1,0 +1,176 @@
+---
+title: How-To guide template
+description: Template for creating task-oriented documentation.
+sidebar-title: How-To
+---
+
+Use this template for task-oriented documentation that helps users accomplish a specific goal.
+
+## When to use this template
+
+Use a how-to guide when users:
+
+- Know what they want to accomplish
+- Need step-by-step instructions
+- Want to complete a specific task
+- Already understand basic concepts
+
+Examples:
+
+- How to configure browser settings
+- How to run tests in parallel
+- How to capture screenshots
+- How to use environment variables
+
+## Template
+
+Copy and adapt this template for your how-to guide:
+
+````markdown
+---
+title: How to [accomplish task]
+description: [One-sentence description of what users will accomplish]
+---
+
+# How to [accomplish task]
+
+[One or two sentences explaining what this guide helps users do and why they might want to do it.]
+
+## Before you begin
+
+[List prerequisites and required setup. If none, remove this section.]
+
+- Prerequisite 1
+- Prerequisite 2
+- Prerequisite 3
+
+## Step 1: [First major action]
+
+[Explain what this step accomplishes and why it's necessary.]
+
+[Provide detailed instructions. Use numbered sub-steps if needed.]
+
+```[language] title="[filename if applicable]"
+[Code example or command]
+```
+
+[Explain what this code does or what to expect.]
+
+## Step 2: [Second major action]
+
+[Continue with subsequent steps, following the same pattern.]
+
+## Step 3: [Third major action]
+
+[Add as many steps as needed to complete the task.]
+
+## Verify it works
+
+[Optional: Provide a way for users to verify they completed the task successfully.]
+
+[What should they see or be able to do?]
+
+## Troubleshooting
+
+[Optional: List common issues and solutions. If none, remove this section.]
+
+### [Problem description]
+
+**Cause:** [Why this happens]
+
+**Solution:** [How to fix it]
+
+### [Another problem]
+
+**Cause:** [Why this happens]
+
+**Solution:** [How to fix it]
+
+## What's next
+
+[Suggest related tasks or next steps. Optional but recommended.]
+
+- [Related task 1](link)
+- [Related task 2](link)
+- [Learn more about X](link)
+````
+
+## Writing tips
+
+### Keep it focused
+
+- **One task per guide**: Don't try to cover multiple unrelated tasks
+- **Clear scope**: State what the guide covers (and doesn't cover)
+- **Direct instructions**: Get to the steps quickly
+
+### Use clear headings
+
+Step headings should describe actions:
+
+✅ Good:
+
+- Step 1: Configure the test environment
+- Step 2: Create the test file
+- Step 3: Run your first test
+
+⛔ Avoid:
+
+- Step 1: Configuration
+- Step 2: Files
+- Step 3: Execution
+
+### Write imperative instructions
+
+Start instructions with action verbs:
+
+✅ Good:
+
+- Click the **Settings** button
+- Type `npm install` in the terminal
+- Navigate to the config file
+
+⛔ Avoid:
+
+- You should click the Settings button
+- The user can type npm install
+- It's possible to navigate to the config
+
+### Provide context
+
+Explain why steps are necessary:
+
+✅ Good:
+
+> Create a `.env` file to store configuration values separately from your test code. This makes it easier to use different values for different environments.
+
+⛔ Avoid:
+
+> Create a `.env` file.
+
+### Test your instructions
+
+Before submitting:
+
+1. ✅ Follow your own steps exactly as written
+2. ✅ Verify the outcome matches what you documented
+3. ✅ Test on a clean environment if possible
+4. ✅ Note any assumptions or prerequisites
+
+## Checklist before submitting
+
+- [ ] Title starts with "How to"
+- [ ] One clear task is documented
+- [ ] Prerequisites are listed
+- [ ] Steps are numbered and sequential
+- [ ] Each step has a clear heading
+- [ ] Code examples are tested and work
+- [ ] Instructions use imperative mood
+- [ ] Related content is linked
+- [ ] Troubleshooting covers common issues (if applicable)
+
+## Related templates
+
+- **[Tutorial](tutorial)**: For learning-oriented guides
+- **[Troubleshooting](troubleshooting)**: For problem-solution documentation
+- **[Reference](reference)**: For technical specifications
+- **[Feature](feature)**: For documenting new features

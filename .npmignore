@@ -1,0 +1,46 @@
+# Source files (dist is published)
+src/
+tsconfig.json
+
+# Tests
+test/
+coverage/
+.nyc_output/
+.c8rc.json
+.mocharc.yml
+
+# Dev tooling
+dev/
+scripts/
+samples/
+docs/
+browser-snapshots/
+
+# CI/CD and repo config
+.github/
+.claude/
+.coderabbit.yaml
+.gitignore
+.eslintcache
+
+# Images and branding (not needed at runtime)
+doc-detective.svg
+icon.png
+image.png
+reference.png
+
+# Build artifacts and logs
+*.log
+*.tgz
+*.tsbuildinfo
+*.mp4
+
+# Test output
+testResults*
+coverageResults*
+testSuggestions*
+
+# Environment and local config
+.env
+.env.test
+settings.local.json

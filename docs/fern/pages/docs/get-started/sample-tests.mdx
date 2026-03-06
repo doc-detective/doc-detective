@@ -1,0 +1,147 @@
+---
+title: Explore sample tests
+---
+
+Use the sample test files provided to experiment with Doc Detective's capabilities and see how it handles different scenarios.
+
+## Get sample files
+
+To get a few samples, [view the samples on GitHub](https://github.com/doc-detective/doc-detective/tree/main/samples) or clone the repo and navigate to the `samples` directory:
+
+```bash
+git clone https://github.com/doc-detective/doc-detective.git
+cd doc-detective/samples
+npm i
+```
+
+## Run tests
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective
+```
+
+<Note>
+The `-v` argument mounts your current directory (`.`) to `/app` in the container, giving Doc Detective access to your test specifications.
+</Note>
+
+  </Tab>
+</Tabs>
+
+By default, Doc Detective scans the current directory for valid tests, but you can specify your test file with the `--input` argument. For example, to run tests in a file named `doc-content-inline-tests.md`, run the following command:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input doc-content-inline-tests.md
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --input /app/doc-content-inline-tests.md
+```
+
+  </Tab>
+</Tabs>
+
+If you have test files in multiple directories or want to specify multiple files, enter them separated with commas:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input doc-content-inline-tests.md,/apis/api-tests.md
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --input /app/doc-content-inline-tests.md,/app/apis/api-tests.md
+```
+
+  </Tab>
+</Tabs>
+
+To customize your test, file type, and directory options, create a `.doc-detective.json` [config](/reference/schemas/config) file. If a `.doc-detective.json` file exists in the directory when you run the command, Doc Detective loads the config. Otherwise, you can specify a config path with the `--config` argument.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --config .doc-detective.json
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --config /app/.doc-detective.json
+```
+
+  </Tab>
+</Tabs>
+
+**Note**: All paths are relative to the current working directory, regardless of the config file's location.
+
+You can override config options with command-line arguments. For example, to run tests in a file named `tests.spec.json`, even if that isn't included in your config, run the following command:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --config .doc-detective.json --input tests.spec.json
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --config /app/.doc-detective.json --input /app/tests.spec.json
+```
+
+  </Tab>
+</Tabs>
+
+### Remotely hosted tests
+
+You can run tests hosted remotely by specifying the URL of the test file with the `--input` argument. For example, to run tests from a file hosted at `https://doc-detective.com/sample.spec.json`, run the following command:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input https://doc-detective.com/sample.spec.json
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run docdetective/docdetective --input https://doc-detective.com/sample.spec.json
+```
+
+<Note>
+The `-v` argument is not necessary for remotely hosted tests since Docker doesn't need access to local files.
+</Note>
+
+  </Tab>
+</Tabs>
+
+These tests run the same way as local tests, but Doc Detective fetches the test file from the specified URL and stores it in a temporary directory. The URL must be accessible to the machine running the tests.
+
+## Next steps
+
+- [Resources](./resources)

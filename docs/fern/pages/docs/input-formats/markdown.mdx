@@ -1,0 +1,293 @@
+---
+title: Markdown input format
+sidebar-title: Markdown
+description: Use Doc Detective with Markdown, MDX, and Markdown variants.
+---
+
+Markdown is the most commonly used format for documentation sites. Doc Detective supports standard Markdown, MDX, and various Markdown flavors including GitHub Flavored Markdown.
+
+## File extensions
+
+Doc Detective processes Markdown files with the following extensions:
+
+- `.md`
+- `.markdown`
+- `.mdx`
+
+## Inline test syntax
+
+Markdown files support multiple comment styles for inline tests:
+
+**JSX-style comments** (recommended for MDX):
+```markdown
+{/* test { "testId": "my-test" } */}
+{/* step { "goTo": "https://example.com" } */}
+{/* test end */}
+```
+
+**HTML comments**:
+```markdown
+<!-- test { "testId": "my-test" } -->
+<!-- step { "goTo": "https://example.com" } -->
+<!-- test end -->
+```
+
+**Markdown link comments**:
+```markdown
+[comment]: # (test { "testId": "my-test" })
+[comment]: # (step { "goTo": "https://example.com" })
+[comment]: # (test end)
+```
+
+All three styles work identically. Choose the style that fits your documentation workflow.
+
+## Best practices
+
+- Use **bold text** for UI elements you want to interact with (buttons, menu items, etc.)
+- Use explicit navigation verbs (go to, navigate to, etc.) before links you want to open
+- Add the `.screenshot` class to images you want to capture as screenshots
+- Combine inline and detected tests for comprehensive coverage
+- Use `testIgnore` in code blocks that should not be executed as tests
+
+## Detected test patterns
+
+Doc Detective includes default markup patterns for Markdown files that automatically detect tests from your documentation content.
+
+### Default Markdown patterns
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "markdown",
+      "extensions": ["md", "markdown", "mdx"],
+      "markup": [
+        {
+          "name": "checkHyperlink",
+          "regex": [
+            "(?<!\\!)\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"
+          ],
+          "actions": ["checkLink"]
+        },
+        {
+          "name": "clickOnscreenText",
+          "regex": [
+            "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+\\*\\*((?:(?!\\*\\*).)+)\\*\\*"
+          ],
+          "actions": ["click"]
+        },
+        {
+          "name": "findOnscreenText",
+          "regex": ["\\*\\*((?:(?!\\*\\*).)+)\\*\\*"],
+          "actions": ["find"]
+        },
+        {
+          "name": "goToUrl",
+          "regex": [
+            "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"
+          ],
+          "actions": ["goTo"]
+        },
+        {
+          "name": "screenshotImage",
+          "regex": [
+            "!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}"
+          ],
+          "actions": ["screenshot"]
+        },
+        {
+          "name": "typeText",
+          "regex": ["\\b(?:press|enter|type)\\b\\s+\"([^\"]+)\""],
+          "actions": ["type"]
+        },
+        {
+          "name": "httpRequestFormat",
+          "regex": [
+            "```(?:http)?\\r?\\n([A-Z]+)\\s+([^\\s]+)(?:\\s+HTTP\\/[\\d.]+)?\\r?\\n((?:[^\\s]+:\\s+[^\\s]+\\r?\\n)*)?(?:\\s+([\\s\\S]*?)\\r?\\n+)?```"
+          ],
+          "actions": [
+            {
+              "httpRequest": {
+                "method": "$1",
+                "url": "$2",
+                "request": {
+                  "headers": "$3",
+                  "body": "$4"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "runCode",
+          "regex": [
+            "```(bash|python|py|javascript|js)(?![^\\r\\n]*testIgnore)[^\\r\\n]*\\r?\\n([\\s\\S]*?)\\r?\\n```"
+          ],
+          "actions": [
+            {
+              "unsafe": true,
+              "runCode": {
+                "language": "$1",
+                "code": "$2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Pattern descriptions
+
+#### checkHyperlink
+
+Detects standard Markdown links (excluding images) and checks that they return a valid HTTP status code.
+
+- **Pattern**: `[link text](https://example.com)`
+- **Action**: Performs a GET request to verify the link is accessible
+
+#### clickOnscreenText
+
+Detects action verbs followed by bold text and clicks on that element.
+
+- **Pattern**: `Click **Button Name**`, `Tap **Menu Item**`, `Select **Option**`
+- **Action**: Clicks on the specified element using its text content
+- **Recognized verbs**: click, tap, left-click, choose, select, check
+
+#### findOnscreenText
+
+Detects any bold text and verifies it exists on the page.
+
+- **Pattern**: `**Any Bold Text**`
+- **Action**: Searches for the text on the current page
+
+#### goToUrl
+
+Detects navigation instructions with links and opens the URL.
+
+- **Pattern**: `Go to [Page Name](https://example.com)`, `Navigate to [Site](https://example.com)`
+- **Action**: Opens the specified URL in the browser
+- **Recognized verbs**: go to, open, navigate to, visit, access, proceed to, launch
+
+#### screenshotImage
+
+Detects images with a `.screenshot` class or attribute and takes a screenshot.
+
+- **Pattern**: `![Alt text](image.png){.screenshot}`
+- **Action**: Saves a screenshot to the specified path
+
+#### typeText
+
+Detects typing instructions with quoted text and types the content.
+
+- **Pattern**: `Type "Hello World"`, `Enter "username"`, `Press "Submit"`
+- **Action**: Types the specified text into the active element
+- **Recognized verbs**: press, enter, type
+
+#### httpRequestFormat
+
+Detects HTTP request code blocks and executes the request.
+
+- **Pattern**: HTTP request in code blocks with method, URL, headers, and body
+- **Example**:
+  ````markdown
+  ```http
+  GET https://api.example.com/users HTTP/1.1
+  Authorization: Bearer token123
+  Content-Type: application/json
+
+  {"query": "test"}
+  ```
+  ````
+- **Action**: Executes the HTTP request with the specified parameters
+
+#### runCode
+
+Detects code blocks in supported languages and executes the code.
+
+- **Pattern**: Code blocks with `bash`, `python`, `py`, `javascript`, or `js` language tags
+- **Example**:
+  ````markdown
+  ```bash
+  npm install doc-detective
+  ```
+  ````
+- **Action**: Executes the code in the specified language (marked as unsafe)
+- **Note**: Add `testIgnore` to the code block info string to skip execution (for example, ` ```bash testIgnore`)
+
+## Example with detected tests
+
+**Markdown input:**
+
+```markdown
+To get started,
+
+1. Go to [Acme Console](https://console.acme.com).
+2. Click **Search**.
+3. Type "American Shorthair kittens".
+
+Check out our [documentation](https://docs.example.com) for more information.
+
+![Search results](search-results.png){ .screenshot }
+```
+
+**Detected tests:**
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "https://console.acme.com"
+        },
+        {
+          "click": "Search"
+        },
+        {
+          "type": "American Shorthair kittens"
+        },
+        {
+          "checkLink": "https://docs.example.com"
+        },
+        {
+          "screenshot": "search-results.png"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Combining inline and detected tests
+
+You can mix inline test statements with detected tests for maximum flexibility:
+
+```markdown
+{/* test { "testId": "tutorial", "detectSteps": true } */}
+
+## Setup Instructions
+
+1. Go to [Console](https://console.example.com).
+2. Click **Login**.
+
+{/* step { "type": { "keys": "username", "selector": "[name=username]" } } */}
+{/* step { "type": { "keys": "password", "selector": "[name=password]" } } */}
+
+3. Click **Submit**.
+
+{/* test end */}
+```
+
+In this example:
+- The navigation and button clicks are detected automatically
+- Specific form field typing is defined inline for precise control
+- `detectSteps: true` enables detection within the test block
+
+## Next steps
+
+- Learn about [inline tests](/docs/tests/inline-tests) for manual test definition
+- Learn about [detected tests](/docs/tests/detected-tests) for automatic test generation
+- See [custom inputs](custom) to extend Markdown patterns

@@ -1,0 +1,155 @@
+---
+title: AsciiDoc input format
+sidebar-title: AsciiDoc
+description: Use Doc Detective with AsciiDoc files.
+---
+
+AsciiDoc is a lightweight markup language popular in technical documentation. Doc Detective supports inline tests in AsciiDoc files.
+
+## File extensions
+
+Doc Detective processes AsciiDoc files with the following extensions:
+
+- `.adoc`
+- `.asciidoc`
+- `.asc`
+
+## Inline test syntax
+
+AsciiDoc files use line comments for inline tests:
+
+```asciidoc
+// (test { "testId": "my-test" })
+// (step { "goTo": "https://example.com" })
+// (test end)
+```
+
+The comment syntax uses parentheses to distinguish test comments from regular AsciiDoc comments.
+
+**Test start:**
+```asciidoc
+// (test { "testId": "my-test" })
+```
+
+**Step:**
+```asciidoc
+// (step { "goTo": "https://example.com" })
+```
+
+**Test end:**
+```asciidoc
+// (test end)
+```
+
+**Ignore blocks:**
+```asciidoc
+// (test ignore start)
+Content to ignore
+// (test ignore end)
+```
+
+## Example
+
+Here's a complete example of an AsciiDoc file with inline tests:
+
+```asciidoc
+// (test { "testId": "doc-test" })
+
+== Getting Started
+
+Navigate to the application:
+
+// (step { "goTo": "https://app.example.com" })
+
+Click the *Start* button:
+
+// (step { "click": "Start" })
+
+Enter your username:
+
+// (step { "type": { "keys": "testuser", "selector": "[name=username]" } })
+
+Submit the form:
+
+// (step { "click": "Submit" })
+
+// (test end)
+```
+
+## Detected tests
+
+<Info>
+
+AsciiDoc currently only supports inline test statements. Detected test patterns (automatic test generation from content) are not included in the default configuration.
+
+</Info>
+
+To add detected test functionality to AsciiDoc files, you can define custom markup patterns in your configuration. See [custom inputs](custom) for examples.
+
+Example custom pattern for AsciiDoc:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "asciidoc",
+      "extensions": ["adoc", "asciidoc", "asc"],
+      "markup": [
+        {
+          "name": "clickOnscreenText",
+          "regex": ["\\b(?:[Cc]lick|[Tt]ap)\\b\\s+\\*(.+?)\\*"],
+          "actions": ["click"]
+        },
+        {
+          "name": "goToUrl",
+          "regex": ["\\b(?:[Gg]o\\s+to|[Nn]avigate\\s+to)\\b\\s+link:(https?:\\/\\/[^\\[]+)\\["],
+          "actions": ["goTo"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## JSON and YAML syntax
+
+AsciiDoc inline tests support both JSON and YAML syntax:
+
+**JSON syntax:**
+```asciidoc
+// (test { "testId": "my-test", "description": "Test description" })
+// (step { "goTo": "https://example.com" })
+```
+
+**YAML syntax:**
+```asciidoc
+// (test testId: my-test description: Test description)
+// (step goTo: https://example.com)
+```
+
+Both formats work identically. Choose the format that's most readable for your team.
+
+## Best practices
+
+- Use parentheses in comments to distinguish test statements from regular comments
+- Keep test comments on a single line
+- Use descriptive test IDs to identify tests in results
+- Combine inline tests with custom markup patterns for comprehensive coverage
+- Use YAML syntax for simpler, more readable inline tests
+
+## Integration with AsciiDoc toolchains
+
+AsciiDoc test comments are standard AsciiDoc comments and don't affect document rendering. This makes Doc Detective tests invisible to your documentation build process while still being testable.
+
+Common AsciiDoc toolchains that work with Doc Detective:
+
+- **Asciidoctor**: The most popular AsciiDoc processor
+- **Antora**: Site generator for AsciiDoc documentation
+- **Jekyll AsciiDoc**: AsciiDoc plugin for Jekyll
+- **Hugo**: Static site generator with AsciiDoc support
+
+## Next steps
+
+- Learn about [inline tests](/docs/tests/inline-tests) for manual test definition
+- See [custom inputs](custom) to add detected test patterns for AsciiDoc
+- Explore [Markdown](markdown) and [DITA](dita) formats for detected test examples

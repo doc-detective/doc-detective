@@ -1,0 +1,385 @@
+---
+title: Troubleshooting entry template
+description: Template for creating problem-solution documentation.
+sidebar-title: Troubleshooting
+---
+
+Use this template for problem-solution documentation that helps users resolve issues.
+
+## When to use this template
+
+Use troubleshooting documentation for:
+
+- Common errors users encounter
+- Issues with specific symptoms and known solutions
+- Problems that require diagnostic steps
+- Workarounds for known issues
+
+Examples:
+
+- "Tests fail with 'element not found' error"
+- "Browser doesn't launch"
+- "Screenshots are blank"
+- "Vale check fails on valid content"
+
+## Template
+
+Copy and adapt this template for troubleshooting entries:
+
+```markdown
+---
+title: [Problem description]
+description: [One-sentence description of the issue]
+---
+
+# [Problem description]
+
+[One sentence describing the problem and its impact.]
+
+## Symptoms
+
+[What users see or experience. Be specific about error messages, behaviors, or outcomes.]
+
+- Symptom 1
+- Symptom 2
+- Error message: `[exact error text]`
+
+## Cause
+
+[Explain why this problem occurs. Help users understand the root cause.]
+
+[If multiple causes exist, list them separately in subsections below.]
+
+## Solution
+
+[Provide step-by-step instructions to resolve the issue.]
+
+1. **[Action 1]**: [Explanation]
+
+2. **[Action 2]**: [Explanation]
+
+3. **[Action 3]**: [Explanation]
+
+[Explain what to expect after following these steps.]
+
+## Verify the fix
+
+[Tell users how to confirm the problem is resolved.]
+
+[What should they see or be able to do now?]
+
+## Alternative solutions
+
+[Optional: If multiple solutions exist, document alternatives.]
+
+### Option 1: [Solution description]
+
+[When to use this option]
+
+[Steps for this solution]
+
+### Option 2: [Solution description]
+
+[When to use this option]
+
+[Steps for this solution]
+
+## Prevention
+
+[Optional: How to avoid this problem in the future.]
+
+- Prevention tip 1
+- Prevention tip 2
+
+## If this doesn't help
+
+[What to do if the solution doesn't work.]
+
+- [Try related solution](link)
+- [Report an issue](link)
+- [Ask in Discord](https://discord.gg/2M7wXEThfF)
+
+## See also
+
+[Link to related troubleshooting or documentation.]
+
+- [Related issue](link)
+- [Related configuration](link)
+- [Related concept](link)
+```
+
+## Writing tips
+
+### Start with symptoms, not causes
+
+Users search for what they see, not why it happens:
+
+✅ Good:
+
+> # Tests fail with "Element not found"
+>
+> ## Symptoms
+>
+> - Tests pass locally but fail in CI
+> - Error message: `Error: Element with selector "#username" not found`
+
+⛔ Less findable:
+
+> # Timing issues in CI environments
+>
+> (Users don't search for "timing issues")
+
+### Use exact error messages
+
+Help users find solutions by matching error text:
+
+✅ Searchable:
+
+> Error message: `ECONNREFUSED: Connection refused at http://localhost:3000`
+
+⛔ Less useful:
+
+> Error message about connection
+
+### Provide concrete steps
+
+Avoid vague instructions:
+
+✅ Specific:
+
+> 1. Open `.doc-detective.json`
+> 2. Add `"timeout": 10000` to the test configuration
+> 3. Save the file and run tests again
+
+⛔ Vague:
+
+> Increase the timeout value in your configuration
+
+### Show before and after
+
+When changing configuration, show both states:
+
+✅ Clear:
+
+> **Before:**
+>
+> ```json
+> { "timeout": 5000 }
+> ```
+>
+> **After:**
+>
+> ```json
+> { "timeout": 10000 }
+> ```
+
+### Explain why solutions work
+
+Help users understand, don't just give commands:
+
+✅ Educational:
+
+> Increase the timeout to 10000 ms (10 seconds) to give the page more time to load. CI environments are often slower than local machines.
+
+⛔ Just commands:
+
+> Set timeout to 10000.
+
+## Example troubleshooting entry
+
+Here's a complete example:
+
+````markdown
+---
+title: Browser doesn't launch when running tests
+description: Resolve issues where Doc Detective fails to open a browser.
+---
+
+# Browser doesn't launch when running tests
+
+Tests fail immediately without opening a browser window, preventing Doc Detective from executing any actions.
+
+## Symptoms
+
+- Tests fail with error: `Error: Failed to launch browser`
+- No browser window appears
+- Error may include: `Could not find Chrome executable`
+- Tests work on some machines but not others
+
+## Cause
+
+Doc Detective can't locate or launch the browser for several reasons:
+
+1. **No browser installed**: Chrome, Firefox, or Edge isn't installed
+2. **Browser not in PATH**: Browser is installed but not in system PATH
+3. **Permissions issue**: Doc Detective doesn't have permission to launch the browser
+4. **Conflicting browser process**: Another process is interfering with browser launch
+5. **Incorrect browser specified**: Configuration specifies a browser that's not available
+
+## Solution
+
+### Step 1: Verify browser is installed
+
+Check that you have a supported browser:
+
+```bash
+
+# Check Chrome
+google-chrome --version # Linux
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --version # Windows
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --version # macOS
+
+# Check Firefox
+firefox --version
+```
+
+If the command fails, install a supported browser:
+
+- **Chrome**: https://www.google.com/chrome/
+- **Firefox**: https://www.mozilla.org/firefox/
+- **Edge**: https://www.microsoft.com/edge
+
+### Step 2: Specify browser explicitly
+
+Add browser configuration to `.doc-detective.json`:
+
+```json title=".doc-detective.json"
+{
+  "contexts": [
+    {
+      "app": {
+        "browser": "chrome"
+      }
+    }
+  ]
+}
+```
+
+Valid values: `"chrome"`, `"firefox"`, `"edge"`
+
+### Step 3: Restart your terminal
+
+Close and reopen your terminal, then try again:
+
+```bash
+npx doc-detective
+```
+
+## Verify the fix
+
+Run a simple test:
+
+```bash
+npx doc-detective --input your-test.spec.json
+```
+
+You should see:
+
+1. A browser window opens
+2. Test executes normally
+3. Browser closes after test completes
+
+## Alternative solutions
+
+### Option 1: Use a different browser
+
+If one browser doesn't work, try another:
+
+```json
+{ "contexts": [{ "app": { "browser": "firefox" } }] }
+```
+
+### Option 2: Specify browser path manually
+
+If the browser is installed in a non-standard location:
+
+```json
+{
+  "contexts": [
+    {
+      "app": { "browser": "chrome", "executablePath": "/custom/path/to/chrome" }
+    }
+  ]
+}
+```
+
+### Option 3: Run in headless mode
+
+If browser UI isn't working but headless mode might:
+
+```json
+{ "contexts": [{ "app": { "browser": "chrome", "headless": true } }] }
+```
+
+## Prevention
+
+```json
+{
+  "contexts": [
+    {
+      "app": { "browser": "chrome", "executablePath": "/custom/path/to/chrome" }
+    }
+  ]
+}
+```
+
+### Option 3: Run in headless mode
+
+If browser UI isn't working but headless mode might:
+
+```json
+{ "contexts": [{ "app": { "browser": "chrome", "headless": true } }] }
+```
+
+## Prevention
+
+To avoid browser launch issues:
+
+- **Install browsers system-wide**: Use official installers, not portable versions
+- **Keep browsers updated**: Update browsers regularly
+- **Test your environment**: Run a simple test after setup
+- **Document your setup**: Note browser versions in your README
+
+## If this doesn't help
+
+If you've tried these solutions and still have issues:
+
+1. **Check detailed error logs**: Run with `--logLevel debug` `bash npx doc-detective runTests --logLevel debug `
+
+2. **Try a minimal test**: Rule out test-specific issues `json { "tests": [{ "steps": [{ "action": "goTo", "url": "https://example.com" }] }] } `
+
+3. **Report the issue**: [Open an issue](https://github.com/doc-detective/doc-detective/issues) with:
+
+   - Your operating system and version
+   - Browser and version
+   - Complete error message
+   - Output from `npx doc-detective runTests --logLevel debug`
+
+4. **Ask for help**: Join [Discord](https://discord.gg/2M7wXEThfF) and share your issue in #help
+
+## See also
+
+- [Context configuration](/docs/configuration/contexts)
+{/*- [Supported browsers](/reference/browsers)*/}
+- [Browser options reference](/reference/schemas/browser)
+````
+
+## Checklist before submitting
+
+- [ ] Problem is stated in the title
+- [ ] Symptoms are specific and observable
+- [ ] Exact error messages are included
+- [ ] Root cause is explained
+- [ ] Solution steps are clear and numbered
+- [ ] Verification steps are provided
+- [ ] Alternative solutions documented (if applicable)
+- [ ] Prevention tips included (if applicable)
+- [ ] Next steps provided if solution doesn't work
+- [ ] Related documentation is linked
+
+## Related templates
+
+- **[How-To](how-to)**: For task-oriented guides
+- **[Tutorial](tutorial)**: For learning-oriented guides
+- **[Reference](reference)**: For technical specifications
+- **[Feature](feature)**: For documenting features

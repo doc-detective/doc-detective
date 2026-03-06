@@ -1,0 +1,308 @@
+---
+title: Custom input formats
+sidebar-title: Custom inputs
+description: Define custom input formats and markup patterns for your documentation.
+---
+
+You can define custom input formats and extend existing formats by modifying your [configuration file](/reference/schemas/config). This allows you to support new file types or customize test detection for your specific documentation patterns.
+
+## Creating a custom file type
+
+To define a custom file type, add an entry to the `fileTypes` array in your configuration:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "custom-format",
+      "extensions": ["custom", "cst"],
+      "testStartStatementOpen": "## TEST START:",
+      "testStartStatementClose": "",
+      "testEndStatementOpen": "## TEST END",
+      "testEndStatementClose": "",
+      "stepStatementOpen": "## STEP:",
+      "stepStatementClose": "",
+      "markup": []
+    }
+  ]
+}
+```
+
+### Configuration properties
+
+**Required properties:**
+
+- `name`: A descriptive name for the file type
+- `extensions`: Array of file extensions to process with this configuration
+
+**Optional properties for inline tests:**
+
+- `testStartStatementOpen`: Pattern that starts a test declaration (for example, `"<!-- test "`)
+- `testStartStatementClose`: Pattern that ends a test declaration (for example, `" -->"`)
+- `testEndStatementOpen`: Pattern that marks the end of a test (for example, `"<!-- test end"`)
+- `testEndStatementClose`: Pattern that closes the test end marker (for example, `" -->"`)
+- `stepStatementOpen`: Pattern that starts a step declaration (for example, `"<!-- step "`)
+- `stepStatementClose`: Pattern that ends a step declaration (for example, `" -->"`)
+- `testIgnoreStatement`: Pattern for ignoring blocks
+
+**Optional properties for detected tests:**
+
+- `markup`: Array of markup pattern objects that define how to extract tests from content
+
+## Adding custom markup patterns
+
+Markup patterns define how Doc Detective extracts tests from your documentation content. Each pattern includes:
+
+- `name`: Descriptive name for the pattern
+- `regex`: Array of regular expressions to match content
+- `actions`: Array of actions to generate when pattern matches
+
+### Example: Custom Markdown pattern
+
+Add a pattern to detect custom syntax for API calls:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "markdown",
+      "extensions": ["md", "markdown", "mdx"],
+      "markup": [
+        {
+          "name": "apiCall",
+          "regex": ["API:\\s*(GET|POST|PUT|DELETE)\\s+`([^`]+)`"],
+          "actions": [
+            {
+              "httpRequest": {
+                "method": "$1",
+                "url": "$2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+This pattern matches content like:
+```markdown
+API: GET `https://api.example.com/users`
+```
+
+And generates:
+```json
+{
+  "httpRequest": {
+    "method": "GET",
+    "url": "https://api.example.com/users"
+  }
+}
+```
+
+### Using capture groups
+
+Regular expression capture groups (numbered $1, $2, etc.) are substituted into the action definition:
+
+```json
+{
+  "name": "customFind",
+  "regex": ["Find the (\\w+) element"],
+  "actions": [
+    {
+      "find": {
+        "selector": "aria/$1",
+        "timeout": 5000
+      }
+    }
+  ]
+}
+```
+
+Matches "Find the button element" and generates:
+```json
+{
+  "find": {
+    "selector": "aria/button",
+    "timeout": 5000
+  }
+}
+```
+
+### Default actions
+
+For basic patterns, you can use action shortcuts. Doc Detective substitutes the first capture group (or entire match) into the default location:
+
+```json
+{
+  "name": "simpleClick",
+  "regex": ["Click: (\\w+)"],
+  "actions": ["click"]
+}
+```
+
+This is equivalent to:
+```json
+{
+  "name": "simpleClick",
+  "regex": ["Click: (\\w+)"],
+  "actions": [{ "click": "$1" }]
+}
+```
+
+## Extending existing formats
+
+You can extend existing formats by adding patterns to the default configuration. Doc Detective merges your custom patterns with the built-in patterns.
+
+### Example: Enhanced Markdown
+
+Add patterns for RST-style directives in Markdown:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "markdown",
+      "extensions": ["md", "markdown", "mdx"],
+      "markup": [
+        {
+          "name": "rstDirective",
+          "regex": ["\\.\\. (\\w+)::\\s*([^\\n]+)"],
+          "actions": ["$1"]
+        },
+        {
+          "name": "codeDirective",
+          "regex": ["\\.\\. code::\\s*(\\w+)\\s*\\n\\s+([\\s\\S]+?)\\n\\n"],
+          "actions": [
+            {
+              "runCode": {
+                "language": "$1",
+                "code": "$2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Example: Custom documentation format
+
+Here's a complete example for a hypothetical custom documentation format:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "custom-docs",
+      "extensions": ["cdoc"],
+      "testStartStatementOpen": "TEST[",
+      "testStartStatementClose": "]",
+      "testEndStatementOpen": "END_TEST",
+      "testEndStatementClose": "",
+      "stepStatementOpen": "STEP[",
+      "stepStatementClose": "]",
+      "testIgnoreStatement": "IGNORE",
+      "markup": [
+        {
+          "name": "navigate",
+          "regex": ["@navigate\\s+(.+)"],
+          "actions": ["goTo"]
+        },
+        {
+          "name": "interact",
+          "regex": ["@(click|type|find)\\s+\"([^\"]+)\""],
+          "actions": ["$1"]
+        },
+        {
+          "name": "verify",
+          "regex": ["@verify\\s+(.+?)\\s+contains\\s+\"([^\"]+)\""],
+          "actions": [
+            {
+              "find": {
+                "selector": "$1",
+                "matchText": "$2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+This configuration supports a custom format like:
+
+```
+TEST[testId: "custom-test"]
+
+# Getting Started
+
+@navigate https://example.com
+@click "Login"
+@type "username"
+@verify #welcome contains "Welcome"
+
+END_TEST
+```
+
+## Testing custom patterns
+
+To test your custom patterns:
+
+1. Create a sample documentation file in your format
+2. Add test comments or content that matches your patterns
+3. Run Doc Detective with the `--input` flag pointing to your file
+4. Check the generated test results to verify patterns were detected correctly
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input sample.cdoc --config custom-config.json
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --input /app/sample.cdoc --config /app/custom-config.json
+```
+
+<Note>
+The `-v` argument mounts your current directory (`.`) to `/app` in the container.
+</Note>
+
+  </Tab>
+</Tabs>
+
+## Best practices
+
+- **Start with basics**: Begin with basic patterns and add complexity as needed
+- **Test thoroughly**: Validate patterns with various input examples
+- **Use descriptive names**: Give patterns descriptive names so you can understand their purpose
+- **Document patterns**: Add comments in your config to explain custom patterns
+- **Consider escaping**: Properly escape special characters in regex patterns
+- **Optimize regex**: Use specific patterns to avoid unintended matches
+- **Version control**: Track configuration changes to understand pattern evolution
+
+## Common use cases
+
+Custom input formats are useful for:
+
+- **Proprietary formats**: Internal documentation formats used by your organization
+- **Legacy systems**: Older documentation systems with specific markup
+- **Domain-specific languages**: DSLs for specialized documentation
+- **Enhanced detection**: More sophisticated pattern matching for existing formats
+- **Tool integration**: Custom formats from specific authoring tools
+
+## Next steps
+
+- Review the [configuration reference](/reference/schemas/config) for all available options
+- Study existing patterns in [Markdown](markdown) and [DITA](dita) formats
+- Learn about [detected tests](/docs/tests/detected-tests) for automatic test generation
+- See [inline tests](/docs/tests/inline-tests) for manual test definition

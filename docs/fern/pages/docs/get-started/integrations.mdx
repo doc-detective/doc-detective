@@ -1,0 +1,91 @@
+---
+title: Integrations
+sidebar-title: Integrations
+---
+
+When Doc Detective tests fail in CI, you can trigger AI-powered integrations to investigate failures and suggest fixes. These integrations respond to GitHub issues created when tests fail.
+
+## How integrations work
+
+1. Configure the GitHub Action to create issues on test failure (`create_issue_on_fail: true`).
+2. Specify which integrations to trigger in the `integrations` input.
+3. When tests fail, Doc Detective creates a GitHub issue and mentions the specified integrations.
+4. Each integration analyzes the test results and provides suggestions.
+
+## Supported integrations
+
+| Integration | Description |
+|-------------|-------------|
+| `claude` | Anthropic's Claude AI assistant |
+| `copilot` | GitHub Copilot |
+| `cursor` | Cursor AI assistant |
+| `dosu` | Dosu AI assistant |
+| `promptless` | Promptless documentation automation |
+| `doc-sentinel` | Doc Sentinel documentation monitoring |
+| `opencode` | OpenCode AI assistant |
+
+## Using integrations
+
+To trigger integrations, add them to your GitHub Actions workflow:
+
+```yaml
+name: doc-detective
+on: [pull_request]
+
+jobs:
+  runTests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v1
+        with:
+          create_issue_on_fail: true
+          integrations: claude,copilot
+```
+
+Specify multiple integrations by separating them with commas.
+
+### Custom prompts
+
+Use the `prompt` input to customize the instructions sent to integrations:
+
+```yaml
+- uses: doc-detective/github-action@v1
+  with:
+    create_issue_on_fail: true
+    integrations: claude
+    prompt: "Analyze these test failures and suggest specific fixes for the documentation."
+```
+
+The default prompt is: "Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes."
+
+## Integration behaviors
+
+Each integration responds differently when triggered:
+
+| Integration | Behavior |
+|-------------|----------|
+| `claude` | Doc Detective adds an `@claude` mention to the issue. Claude analyzes test results and suggests fixes. |
+| `copilot` | The issue is automatically assigned to GitHub Copilot instead of being mentioned in a collapsible section. |
+| `cursor` | Doc Detective adds a `@cursor` mention to the issue. Cursor analyzes test results and suggests fixes. |
+| `dosu` | Doc Detective mentions Dosu in the issue to analyze context and provide suggestions. |
+| `promptless` | Promptless analyzes test failures and can automatically create documentation updates. |
+| `doc-sentinel` | Doc Detective mentions Doc Sentinel to help monitor and identify documentation issues. |
+| `opencode` | Doc Detective mentions OpenCode to analyze failures and suggest code-related fixes. |
+
+<Note>
+
+Each integration requires setup in your repository before use:
+
+- **Claude**: Install the Claude GitHub app.
+- **Copilot**: Enable GitHub Copilot and configure it for issue handling.
+- **Cursor**: Install the Cursor GitHub app.
+- **Dosu**: Install the Dosu app.
+- **Promptless**: Connect your repository to Promptless.
+- **Doc Sentinel**: Configure Doc Sentinel.
+- **OpenCode**: Install OpenCode.
+
+</Note>

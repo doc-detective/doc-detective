@@ -1,0 +1,177 @@
+---
+title: Inline tests
+description: Define tests directly in your documentation source files using inline comments.
+---
+
+You can define tests directly in your documentation source files using inline JSON or YAML. Inline tests are useful for small tests that you want to keep close to the content they test.
+
+Inline tests are also excellent for maintaining tests because you can update them and keep them in sync with the content they test as the content changes.
+
+> Inline tests depend on your [config](/reference/schemas/config)'s `fileType` definitions. This page uses the default Markdown configuration, but you should update your config to match your documentation source files.
+
+## How inline tests work
+
+Inline tests use specially formatted comments with JSON or YAML objects to declare the tests and steps. Doc Detective reads the input file, line by line, and extracts the tests and steps from the comments. You can declare multiple tests and steps in a single file, using your config's test start, test end, step, and ignore patterns.
+
+> All test and step comments must be on a single line. Doc Detective doesn't support multi-line comments.
+
+When you declare a test, you can specify any of the test properties available in the standalone JSON format, though `steps` is normally omitted. See [`test`](/reference/schemas/test).
+
+If you declare a new test without closing the previous test, Doc Detective automatically closes the previous test before starting the new one.
+
+When you declare a step, you can specify any of the properties of the action you want to perform. See [Actions](/docs/actions).
+
+If you declare a step without declaring a test, Doc Detective automatically creates a test to contain the step.
+
+## Benefits of inline tests
+
+Inline tests offer several advantages:
+
+- **Proximity to content**: Tests are defined right next to the instructions they validate, making it easier to keep them in sync.
+- **Easy maintenance**: When you update documentation, the associated tests are immediately visible and can be updated at the same time.
+- **Documentation as code**: Tests become part of the documentation source, ensuring that documentation and testing evolve together.
+- **Quick validation**: Small, focused tests can be quickly added to validate specific instructions or procedures.
+
+Inline tests can be combined with [detected tests](./detected-tests) to create comprehensive test coverage with minimal manual test definition.
+
+## Comment patterns by file type
+
+Doc Detective supports different comment patterns depending on your file type. For more information about input formats, see [Input formats](/docs/input-formats/overview).
+
+**Markdown files** (`.md`, `.markdown`, `.mdx`):
+
+- JSX-style comments: `{/* test { "testId": "my-test" } */}`
+- HTML comments: `<!-- test { "testId": "my-test" } -->`
+- Markdown link comments: `[comment]: # (test { "testId": "my-test" })`
+- Step comments: `{/* step { "goTo": "https://example.com" } */}`
+- Test end: `{/* test end */}`, `<!-- test end -->`, or `[comment]: # (test end)`
+- Ignore blocks: `{/* test ignore start */}` and `{/* test ignore end */}`
+
+**HTML files** (`.html`, `.htm`):
+
+- Test comments: `<!-- test { "testId": "my-test" } -->`
+- Step comments: `<!-- step { "goTo": "https://example.com" } -->`
+- Test end: `<!-- test end -->`
+- Ignore blocks: `<!-- test ignore start -->` and `<!-- test ignore end -->`
+
+**AsciiDoc files** (`.adoc`, `.asciidoc`, `.asc`):
+
+- Line comments: `// (test { "testId": "my-test" })`
+- Step comments: `// (step { "goTo": "https://example.com" })`
+- Test end: `// (test end)`
+- Ignore blocks: `// (test ignore start)` and `// (test ignore end)`
+
+**DITA XML files** (`.dita`, `.ditamap`, `.xml`):
+
+DITA (Darwin Information Typing Architecture) files use XML processing instructions to define tests. Processing instructions must start with `<?doc-detective` for Doc Detective to recognize them.
+
+DITA supports multiple syntax options:
+
+**JSON format:**
+- Test comments: `<?doc-detective test {"testId": "my-test", "detectSteps": false} ?>`
+- Step comments: `<?doc-detective step {"checkLink": "https://example.com"} ?>`
+- Test end: `<?doc-detective test end?>`
+- Ignore blocks: `<?doc-detective test ignore start?>` and `<?doc-detective test ignore end?>`
+
+**YAML format:**
+- Test comments:
+
+  ```
+  <?doc-detective test
+    testId: my-test
+    detectSteps: false
+  ?>
+  ```
+- Step comments: `<?doc-detective step checkLink: "https://example.com" ?>`
+- Test end: `<?doc-detective test end?>`
+- Ignore blocks: `<?doc-detective test ignore start?>` and `<?doc-detective test ignore end?>`
+
+**XML attribute format:**
+- Test comments: `<?doc-detective test testId="my-test" detectSteps=false ?>`
+- Step comments: `<?doc-detective step checkLink="https://example.com" ?>`
+- Test end: `<?doc-detective test end?>`
+- Ignore blocks: `<?doc-detective test ignore start?>` and `<?doc-detective test ignore end?>`
+
+Attribute values are automatically converted to the appropriate type: booleans (`detectSteps=false`), numbers (`wait=500`), and strings. You can use dot notation for nested objects—for example, `<?doc-detective step httpRequest.url="https://api.example.com" httpRequest.method="GET" ?>` creates a nested `httpRequest` object with `url` and `method` properties.
+
+You can also use HTML comment syntax as an alternative to processing instructions:
+
+- Test comments: `<!-- test testId="my-test" detectSteps=false -->`
+- Step comments: `<!-- step checkLink="https://example.com" -->`
+- Test end: `<!-- test end -->`
+- Ignore blocks: `<!-- test ignore start -->` and `<!-- test ignore end -->`
+
+HTML comments and processing instructions work identically. You can use whichever fits your documentation workflow better, or mix them in the same file.
+
+## Examples
+
+Here's an example using **JSON syntax** in Markdown:
+
+```markdown
+[comment]: # 'test {"testId": "kitten-search"}'
+
+To search for American Shorthair kittens,
+
+1. Go to [Google](https://www.google.com).
+
+   [comment]: # 'step {"goTo": "https://www.google.com"}'
+
+2. In the search bar, enter "American Shorthair kittens", then press Enter.
+
+   [comment]: # 'step { "find": { "selector": "[title=Search]", "click": true } }'
+   [comment]: # 'step { "type": ["American Shorthair kittens", "$ENTER$"] }'
+   [comment]: # 'step { "wait": 5000 }'
+
+![Search results](search-results.png)
+
+[comment]: # 'step { "screenshot": "search-results.png" }'
+[comment]: # "test end"
+```
+
+Here's the same example using **YAML syntax** in Markdown:
+
+```markdown
+{/* test testId: kitten-search */}
+
+To search for American Shorthair kittens,
+
+1. Go to [Google](https://www.google.com).
+
+   {/* step goTo: https://www.google.com */}
+
+2. In the search bar, enter "American Shorthair kittens", then press Enter.
+
+   {/* step find: selector: "[title=Search]" click: true */} {/* step type: - "American Shorthair kittens" - "$ENTER$" */} {/* step wait: 5000 */}
+
+![Search results](search-results.png)
+
+{/* step screenshot: search-results.png */} {/* test end */}
+```
+
+**HTML example**:
+
+```html
+<!-- test { "testId": "navigation-test" } -->
+<p>Navigate to our homepage:</p>
+<!-- step { "goTo": "https://example.com" } -->
+
+<p>Click the menu button:</p>
+<!-- step { "click": "Menu" } -->
+
+<!-- test end -->
+```
+
+**AsciiDoc example**:
+
+```asciidoc
+// (test { "testId": "doc-test" })
+== Getting Started
+
+Navigate to the application:
+// (step { "goTo": "https://app.example.com" })
+
+Click the *Start* button:
+// (step { "click": "Start" })
+
+// (test end)
+```
