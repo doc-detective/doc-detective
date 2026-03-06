@@ -12,7 +12,7 @@ git clone https://github.com/doc-detective/docs
 cd docs
 
 # Install dependencies
-npm run setup
+npm install
 
 # Start the development server
 npm start

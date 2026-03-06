@@ -25,7 +25,7 @@ This project uses Doc Detective to test its own documentation.
 
 - Run documentation tests with `npm run doc-detective`.
 - Tests are defined in `*.spec.json` files. These files contain a series of steps that Doc Detective executes against the live documentation site to ensure it's accurate.
-- You can find a test example at `fern/pages/docs/get-started/installation/sample.spec.json`.
+- You can find a test example at `fern/pages/docs/get-started/sample.spec.json`.
 
 - **DO:** When you change documentation related to a feature, review the corresponding `.spec.json` file to see if the test needs to be updated.
 
