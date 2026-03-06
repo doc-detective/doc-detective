@@ -40,6 +40,6 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b #v3.0.1
         with:
-          file-path: preview_url.txt
+          file-path: docs/preview_url.txt
           comment-tag: preview-docs
           mode: upsert
