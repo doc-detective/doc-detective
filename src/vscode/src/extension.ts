@@ -657,7 +657,7 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
               } catch (e) {
                 console.error('Failed to acquire VS Code API:', e);
                 document.getElementById('debug-info').style.display = 'block';
-                document.getElementById('debug-info').innerHTML += '<br>VS Code API error: ' + e.message;
+                document.getElementById('debug-info').textContent += ' VS Code API error: ' + e.message;
               }
             } catch (e) {
               console.error('Error in webview script:', e);

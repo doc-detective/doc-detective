@@ -25,7 +25,7 @@ export function matchFileType(filePath: string, fileTypes: FileType[]): FileType
   const ext = filePath.split('.').pop()?.toLowerCase();
   if (!ext) { return null; }
   for (const ft of fileTypes) {
-    if (ft.extensions.some(e => e.toLowerCase() === ext)) {
+    if (ft.extensions.some(e => e.replace(/^\./, '').toLowerCase() === ext)) {
       return ft;
     }
   }
