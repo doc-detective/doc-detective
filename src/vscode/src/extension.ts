@@ -78,9 +78,8 @@ async function findConfigFile(workspaceFolders: readonly vscode.WorkspaceFolder[
       }
     }
 
-    // If we get here, the custom path wasn't found
-    log(`Custom config path not found: ${configPath}`);
-    return null;
+    // If we get here, the custom path wasn't found; fall back to workspace defaults
+    log(`Custom config path not found: ${configPath}; falling back to workspace defaults`);
   }
 
   // If no custom path or not found, look for default files in workspace root
@@ -187,10 +186,12 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
 
       // Get open files
       const editors = vscode.window.visibleTextEditors;
-      const filePaths = editors
-        .filter(e => e.document.uri.scheme === 'file')
-        .map(e => e.document.uri.fsPath);
-      const uniquePaths = Array.from(new Set(filePaths));
+      const editorsByPath = new Map(
+        editors
+          .filter(e => e.document.uri.scheme === 'file')
+          .map(e => [e.document.uri.fsPath, e] as const)
+      );
+      const uniquePaths = Array.from(editorsByPath.keys());
 
       log(`Found ${uniquePaths.length} unique file paths`);
 
@@ -234,7 +235,9 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
         try {
           log(`Detecting tests for file: ${file}`);
 
-          const content = await fsp.readFile(file, 'utf8');
+          const content =
+            editorsByPath.get(file)?.document.getText() ??
+            await fsp.readFile(file, 'utf8');
           const fileType = matchFileType(file, fileTypes);
 
           if (!fileType) {
@@ -560,19 +563,17 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
                                     '<span class="collapsible"><span class="toggle">&#x25BC;</span> <span class="key">' +
                                     escapeHTML(firstKey) + ':</span></span>';
 
-                            if (typeof value[firstKey] === 'object' && value[firstKey] !== null) {
-                              html += '<div class="content">' + renderYAML(value[firstKey], indent + 1) + '</div>';
-                            } else {
-                              html += ' ' + renderYAML(value[firstKey], 0);
-                              html += '<div class="content">';
-                              for (let k = 1; k < keys.length; k++) {
-                                html += '<div>' +
-                                        '<span class="yaml-indent">' + pad(indent + 1) + '</span>' +
-                                        '<span class="key">' + escapeHTML(keys[k]) + ':</span> ' +
-                                        renderYAML(value[keys[k]], 0) + '</div>';
-                              }
-                              html += '</div>';
+                            html += '<div class="content">';
+                            html += (typeof value[firstKey] === 'object' && value[firstKey] !== null)
+                              ? renderYAML(value[firstKey], indent + 1)
+                              : '<div>' + renderYAML(value[firstKey], 0) + '</div>';
+                            for (let k = 1; k < keys.length; k++) {
+                              html += '<div>' +
+                                      '<span class="yaml-indent">' + pad(indent + 1) + '</span>' +
+                                      '<span class="key">' + escapeHTML(keys[k]) + ':</span> ' +
+                                      renderYAML(value[keys[k]], 0) + '</div>';
                             }
+                            html += '</div>';
                           } else {
                             html += '<li>' + indentSpan + '<span class="yaml-dash">-</span> ' +
                                     '<span class="key">' + escapeHTML(firstKey) + ':</span> ' +
