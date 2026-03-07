@@ -3,7 +3,7 @@
     {
       "steps": [
         {
-          "goTo": "https://duckduckgo.com"
+          "goTo": "https://www.google.com"
         },
         {
           "type": ["kittens", "$ENTER$"]
@@ -13,7 +13,7 @@
     {
       "steps": [
         {
-          "goTo": "https://duckduckgo.com"
+          "goTo": "https://www.google.com"
         },
         {
           "type": "kittens"
@@ -23,7 +23,7 @@
     {
       "steps": [
         {
-          "goTo": "https://duckduckgo.com"
+          "goTo": "https://www.google.com"
         },
         {
           "type": {

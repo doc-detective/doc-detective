@@ -9,7 +9,7 @@
       "steps": [
         {
           "action": "checkLink",
-          "url": "https://www.duckduckgo.com"
+          "url": "https://www.google.com"
         },
         {
           "action": "goTo",

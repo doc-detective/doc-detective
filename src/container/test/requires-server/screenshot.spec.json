@@ -4,7 +4,7 @@
     {
       "steps": [
         {
-          "goTo": "https://duckduckgo.com"
+          "goTo": "https://www.google.com"
         },
         {
           "stepId": "screenshot-boolean",
@@ -20,7 +20,7 @@
             "path": "crop.png",
             "directory": "static/images",
             "maxVariation": 0.1,
-            "crop": "#searchbox_input"
+            "crop": "[title=Search]"
           }
         },
         {
@@ -30,7 +30,7 @@
             "directory": "static/images",
             "maxVariation": 0.1,
             "crop": {
-              "selector": "#searchbox_input",
+              "selector": "[title=Search]",
               "padding": 5
             }
           }
@@ -42,7 +42,7 @@
             "directory": "static/images",
             "maxVariation": 0.1,
             "crop": {
-              "selector": "#searchbox_input",
+              "selector": "[title=Search]",
               "padding": {
                 "top": 5,
                 "right": 5,
