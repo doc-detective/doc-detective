@@ -50,7 +50,7 @@ if (dockerOSType === "windows") {
   envVariables.DOCKER_BUILDKIT = "0";
 } else {
   os = "linux";
-  tags = ["linux", "latest", "latest-linux", version, `${version}-linux`];
+  tags = [...new Set(["linux", "latest", "latest-linux", version, `${version}-linux`])];
 }
 console.log(`Building for OS: ${os}`);
 console.log(`Tags: ${tags}`);

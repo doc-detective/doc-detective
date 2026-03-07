@@ -50,7 +50,7 @@ RUN $env:Path = 'C:\Program Files\nodejs;' + $env:Path; \
     npm -v; \
     npm install -g npm@latest
 
-    # Download and install Python
+# Download and install Python
 RUN $PythonVersion = $env:PYTHON_VERSION; \
     $PythonMajorMinor = ($PythonVersion -split '\.')[0..1] -join ''; \
     $PythonUrl = 'https://www.python.org/ftp/python/' + $PythonVersion + '/python-' + $PythonVersion + '-amd64.exe'; \
