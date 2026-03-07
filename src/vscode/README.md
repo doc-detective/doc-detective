@@ -11,11 +11,11 @@ The Doc Detective VSCode Extension integrates the [Doc Detective](https://doc-de
 
 ## How It Works
 
-Doc Detective is a documentation testing framework that helps validate documentation against real product behavior. This extension uses `doc-detective-resolver` to scan your documentation files for embedded tests and displays them in the sidebar panel.
-    
+Doc Detective is a documentation testing framework that helps validate documentation against real product behavior. This extension uses `doc-detective-common` (the shared library in `src/common`) to scan your documentation files for embedded tests and displays them in the sidebar panel.
+
 ## Requirements
 
-- Visual Studio Code v1.100.0 or higher
+- Visual Studio Code v1.101.0 or higher
 
 ## Installation
 
@@ -30,7 +30,7 @@ Doc Detective is a documentation testing framework that helps validate documenta
 
 If you prefer to install the extension manually:
 
-1. Download the VSIX file from the [latest release](https://github.com/doc-detective/vscode/releases/latest)
+1. Download the VSIX file from the [latest release](https://github.com/doc-detective/doc-detective/releases/latest)
 2. In VS Code, go to the Extensions view (Ctrl+Shift+X)
 3. Click the "..." menu in the top right of the Extensions view
 4. Select "Install from VSIX..." and choose the downloaded file
@@ -62,24 +62,24 @@ The path can be:
 
 If no custom path is specified, the extension automatically searches for these files in your workspace root:
 - `.doc-detective.json`
-- `.doc-detective.yaml` 
+- `.doc-detective.yaml`
 - `.doc-detective.yml`
 
 The configuration file can be in JSON or YAML format and follows the Doc Detective configuration schema.
 
 ## Related Projects
 
-Doc Detective has multiple components that work together:
+This extension is part of the [Doc Detective monorepo](https://github.com/doc-detective/doc-detective):
 
-- [Doc Detective](https://github.com/doc-detective/doc-detective): The main CLI tool for running documentation tests
-- [Doc Detective Resolver](https://github.com/doc-detective/resolver): Library for detecting tests in documentation files
-- [Doc Detective Core](https://github.com/doc-detective/doc-detective-core): Core testing functionality
-- [Doc Detective Common](https://github.com/doc-detective/doc-detective-common): Shared utilities and components
+- **`src/common`**: Shared library for test detection and schema validation
+- **`src/core`**: Core testing functionality (browser automation, HTTP requests, etc.)
+- **`src/vscode`**: This VS Code extension
+- **`src/container`**: Docker image for running Doc Detective in containers
 
 ## Learn More
 
 - [Doc Detective Documentation](https://doc-detective.com)
-- [GitHub Repository](https://github.com/doc-detective/vscode)
+- [GitHub Repository](https://github.com/doc-detective/doc-detective)
 - [Discord Community](https://discord.gg/2M7wXEThfF)
 
 ## Contributing

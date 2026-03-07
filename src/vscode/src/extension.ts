@@ -7,6 +7,10 @@ import type { SchemaKey } from "../../common/src/schemas/index.js";
 import YAML from "yaml";
 import { resolveFileTypes, matchFileType } from "./fileTypeResolver.js";
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // Create an output channel for logging
 const outputChannel = vscode.window.createOutputChannel('Doc Detective');
 
@@ -358,7 +362,7 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
         </style>
       </head>      <body>
         <h3>Doc Detective Error</h3>
-        <div class="error">${errorMessage}</div>
+        <div class="error">${escapeHtml(errorMessage)}</div>
         <p>Check the Doc Detective output channel for more details.</p>
         <p><em>Doc Detective automatically updates when files are saved.</em></p>
       </body>
@@ -372,10 +376,9 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
         return this.getNoFilesHtml();
       }
 
-      // Properly escape the JSON for embedding in JavaScript
-      const jsonString = JSON.stringify(JSON.stringify(jsonObj))
-        .slice(1, -1)
-        .replace(/\\"/g, '\\"');
+      // Properly escape the JSON for embedding in a <script> tag
+      const jsonString = JSON.stringify(jsonObj)
+        .replace(/</g, '\\u003c');
 
       log(`JSON string prepared (first 100 chars): ${jsonString.substring(0, 100)}...`);
 
@@ -494,7 +497,7 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
           <div id="json"></div><script>
             // Error handling wrapper
             try {
-              const jsonObj = JSON.parse("${jsonString}");
+              const jsonObj = ${jsonString};
 
               if (!jsonObj || Object.keys(jsonObj).length === 0) {
                 document.getElementById('json').innerHTML = '<div class="no-results">No results to display</div>';
@@ -659,9 +662,8 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
             } catch (e) {
               console.error('Error in webview script:', e);
               document.getElementById('debug-info').style.display = 'block';
-              document.getElementById('debug-info').innerHTML = 'Error in webview: ' + e.message;
-              document.getElementById('json').innerHTML =
-                '<div class="error-info">Error processing results: ' + e.message + '</div>';
+              document.getElementById('debug-info').textContent = 'Error in webview: ' + e.message;
+              document.getElementById('json').textContent = 'Error processing results: ' + e.message;
             }
           </script>
         </body>
@@ -690,11 +692,18 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider('docDetectiveView', provider)
   );
 
+  // Debounced update to avoid overlapping work from rapid events
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  function debouncedUpdate() {
+    if (debounceTimer) { clearTimeout(debounceTimer); }
+    debounceTimer = setTimeout(() => { provider.updateWebview(); }, 300);
+  }
+
   // Refresh the webview when visible editors change
   context.subscriptions.push(
     vscode.window.onDidChangeVisibleTextEditors(() => {
       log('Visible editors changed, updating webview...');
-      provider.updateWebview();
+      debouncedUpdate();
     })
   );
 
@@ -702,7 +711,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(() => {
       log('Active editor changed, updating webview...');
-      provider.updateWebview();
+      debouncedUpdate();
     })
   );
 
@@ -710,7 +719,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
       log(`File saved: ${document.uri.fsPath}, updating webview...`);
-      provider.updateWebview();
+      debouncedUpdate();
     })
   );
 
@@ -719,7 +728,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidChangeActiveColorTheme(() => {
       log('Color theme changed, updating webview...');
       if (provider.hasView()) {
-        provider.updateWebview();
+        debouncedUpdate();
       }
     })
   );
@@ -730,7 +739,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (e.affectsConfiguration('docDetective.configPath')) {
         log('Doc Detective configuration changed, updating webview...');
         if (provider.hasView()) {
-          provider.updateWebview();
+          debouncedUpdate();
         }
       }
     })

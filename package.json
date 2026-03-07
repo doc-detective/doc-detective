@@ -37,6 +37,7 @@
     "runTests": "node ./bin/doc-detective.js runTests",
     "start": "node ./bin/doc-detective.js",
     "dev": "node ./dev",
+    "setup:vscode": "cd src/vscode && npm install",
     "build:vscode": "cd src/vscode && npm run compile",
     "test:vscode": "cd src/vscode && npm test",
     "container:build": "node src/container/scripts/build.cjs",

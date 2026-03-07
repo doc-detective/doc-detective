@@ -15,7 +15,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:doc-detective-vsc.helloWorld",
+    "onCommand:doc-detective.helloWorld",
     "onView:docDetectiveView"
   ],
   "main": "./dist/extension.js",
@@ -69,13 +69,14 @@
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "watch-tests": "tsc -p tsconfig.test.json -w",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@vscode/vsce": "^3.4.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.0.3",
     "@types/vscode": "^1.101.0",
@@ -90,7 +91,6 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "@vscode/vsce": "^3.4.2",
     "ajv": "^8.17.1",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^3.0.1",

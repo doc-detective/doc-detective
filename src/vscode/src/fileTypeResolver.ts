@@ -149,9 +149,9 @@ export function resolveFileTypes(configFileTypes?: (string | FileType)[]): FileT
       fileType = JSON.parse(JSON.stringify(ft));
     }
 
-    fileType = applyExtends(fileType);
     normalizeInlineStatements(fileType!);
     normalizeMarkup(fileType!);
+    fileType = applyExtends(fileType);
     resolved.push(fileType!);
   }
 
