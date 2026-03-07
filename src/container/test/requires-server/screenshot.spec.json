@@ -1,0 +1,58 @@
+{
+  "specId": "screenshot",
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "https://duckduckgo.com"
+        },
+        {
+          "stepId": "screenshot-boolean",
+          "screenshot": true
+        },
+        {
+          "stepId": "screenshot-string",
+          "screenshot": "image.png"
+        },
+        {
+          "stepId": "screenshot-object-crop-string",
+          "screenshot": {
+            "path": "crop.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "crop": "#searchbox_input"
+          }
+        },
+        {
+          "stepId": "screenshot-object-crop-object-padding-integer",
+          "screenshot": {
+            "path": "padding.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "crop": {
+              "selector": "#searchbox_input",
+              "padding": 5
+            }
+          }
+        },
+        {
+          "stepId": "screenshot-object-crop-object-padding-object",
+          "screenshot": {
+            "path": "padding.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "crop": {
+              "selector": "#searchbox_input",
+              "padding": {
+                "top": 5,
+                "right": 5,
+                "bottom": 5,
+                "left": 5
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

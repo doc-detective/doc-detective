@@ -1,0 +1,21 @@
+{
+    "id": "find_right click",
+    "tests": [
+      {
+        "steps": [
+          {
+            "action": "goTo",
+            "url": "https://www.duckduckgo.com"
+          },
+          {
+            "action": "find",
+            "selector": "#searchbox_input",
+            "click": {
+              "button": "right"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  

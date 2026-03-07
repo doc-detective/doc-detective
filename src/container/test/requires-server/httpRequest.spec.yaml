@@ -1,0 +1,37 @@
+tests:
+- steps:
+  - loadVariables: env
+  - httpRequest:
+      url: http://localhost:8092/api/users
+      method: post
+      request:
+        body:
+          name: $USER
+          job: $JOB
+      response:
+        body:
+          name: John Doe
+          job: Software Engineer
+  - httpRequest:
+      url: http://localhost:8092/api/users
+      method: post
+      request:
+        body:
+          data:
+            - first_name: George
+              last_name: Bluth
+              id: 1
+      response:
+        body:
+          data:
+            - first_name: George
+              last_name: Bluth
+    variables:
+      ID: $$response.body.data[0].id
+  - httpRequest:
+      url: http://localhost:8092/api/$ID
+      method: get
+      timeout: 1000
+    savePath: response.json
+    maxVariation: 0
+    overwrite: aboveVariation

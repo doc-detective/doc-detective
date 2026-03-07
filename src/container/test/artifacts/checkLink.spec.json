@@ -1,0 +1,36 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "loadVariables": "env"
+        },
+        {
+          "checkLink": "https://www.google.com"
+        },
+        {
+          "checkLink": {
+            "url": "https://www.google.com",
+            "statusCodes": "200"
+          }
+        },
+        {
+          "checkLink": {
+            "url": "/images",
+            "origin": "https://www.google.com",
+            "statusCodes": [200]
+          }
+        },
+        {
+          "checkLink": "$URL"
+        },
+        {
+          "checkLink": {
+            "url": "/images",
+            "origin": "$URL"
+          }
+        }
+      ]
+    }
+  ]
+}

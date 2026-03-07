@@ -1,0 +1,40 @@
+{
+  "id": "runCode",
+  "tests": [
+    {
+      "contexts": [
+        {
+          "app": { "name": "firefox" },
+          "platforms": ["linux", "mac", "windows"]
+        }
+      ],
+      "steps": [
+        {
+          "action": "runCode",
+          "language": "javascript",
+          "code": "console.log('Hello, World!');",
+          "output": "Hello, World!"
+        },
+        {
+          "action": "runCode",
+          "language": "python",
+          "code": "print('Hello, World!')",
+          "output": "Hello, World!"
+        }
+      ]
+    },
+    {
+      "contexts": [
+        { "app": { "name": "firefox" }, "platforms": ["linux", "mac"] }
+      ],
+      "steps": [
+        {
+          "action": "runCode",
+          "language": "bash",
+          "code": "echo 'Hello, World!'",
+          "output": "Hello, World!"
+        }
+      ]
+    }
+  ]
+}

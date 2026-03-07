@@ -1,0 +1,107 @@
+{
+  "specId": "cookie-tests",
+  "description": "Doesn't run on macOS because the macOS runner doesn't have Docker (ARM-based macOS doesn't support nested virtualization). Doesn't run on Windows because the Windows runner only allows Windows containers.",
+  "runOn": [
+    {
+      "browsers": [
+        {
+          "name": "firefox",
+          "headless": true
+        }
+      ],
+      "platforms": ["linux"]
+    }
+  ],
+  "tests": [
+    {
+      "testId": "cookie-setup",
+      "steps": [
+        {
+          "runShell": "docker pull kennethreitz/httpbin && docker run -d -p 8080:80 kennethreitz/httpbin"
+        }
+      ]
+    },
+    {
+      "testId": "cookie-env-save",
+      "description": "Test single cookie save functionality",
+      "steps": [
+        {
+          "goTo": "http://localhost:8080/cookies/set/test_env_cookie/test_env_value"
+        },
+        {
+          "saveCookie": "test_env_cookie"
+        },
+        {
+          "goTo": "http://localhost:8080/cookies"
+        }
+      ]
+    },
+    {
+      "testId": "cookie-env-load",
+      "steps": [
+        {
+          "goTo": "http://localhost:8080/"
+        },
+        {
+          "loadCookie": "test_env_cookie"
+        },
+        {
+          "goTo": "http://localhost:8080/cookies"
+        },
+        {
+          "find": "/.*?test_env_value.*?/"
+        }
+      ]
+    },
+    {
+      "testId": "cookie-file-save",
+      "description": "Test single cookie save and load functionality",
+      "steps": [
+        {
+          "goTo": "http://localhost:8080/cookies/set/test_cookie/test_value"
+        },
+        {
+          "saveCookie": {
+            "name": "test_cookie",
+            "path": "test-cookie.txt",
+            "overwrite": "true"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "cookie-file-load",
+      "steps": [
+        {
+          "goTo": "http://localhost:8080/"
+        },
+        {
+          "loadCookie": {
+            "name": "test_cookie",
+            "path": "test-cookie.txt"
+          }
+        },
+        {
+          "goTo": "http://localhost:8080/cookies"
+        },
+        {
+          "find": "/.*?test_value.*?/"
+        }
+      ]
+    },
+    {
+      "testId": "cookie-cleanup",
+      "steps": [
+        {
+          "runShell": {
+            "command": "rm -f test-cookie.txt",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "runShell": "docker stop $(docker ps -q --filter ancestor=kennethreitz/httpbin)"
+        }
+      ]
+    }
+  ]
+}

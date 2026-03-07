@@ -1,0 +1,81 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "loadVariables": "env"
+        },
+        {
+          "runShell": "echo 'Hello from Docker!'"
+        },
+        {
+          "runShell": {
+            "command": "echo",
+            "args": ["$USER"]
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo",
+            "args": ["hello-world"]
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo 'Hello from Docker!'",
+            "timeout": 20000,
+            "exitCodes": [0],
+            "stdio": "Hello from Docker!"
+          }
+        },
+        {
+          "runShell": {
+            "command": "false",
+            "exitCodes": [1]
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo",
+            "args": ["setup"],
+            "exitCodes": [0],
+            "stdio": "/.*?/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo 'Hello from Docker!'",
+            "workingDirectory": ".",
+            "exitCodes": [0],
+            "stdio": "Hello from Docker!",
+            "path": "docker-output.txt",
+            "directory": "output",
+            "maxVariation": 0.1,
+            "overwrite": "aboveVariation"
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo",
+            "args": ["setup"],
+            "exitCodes": [0],
+            "stdio": "setup"
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo",
+            "args": ["timeout"],
+            "timeout": 2000
+          }
+        },
+        {
+          "runShell": {
+            "command": "exit 1",
+            "exitCodes": [1, -2]
+          }
+        }
+      ]
+    }
+  ]
+}

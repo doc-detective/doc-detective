@@ -96,11 +96,11 @@ jobs:
         run: |
           echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
 
-      - name: Trigger GitHub Action in docker-image repo
+      - name: Trigger container build workflow
         run: |
           curl -X POST -H "Authorization: token ${{ secrets.DD_DEP_UPDATE_TOKEN }}" \
                -H "Accept: application/vnd.github.everest-preview+json" \
-               "https://api.github.com/repos/doc-detective/docker-image/dispatches" \
+               "https://api.github.com/repos/${{ github.repository }}/dispatches" \
                -d '{ "event_type": "build-push", "client_payload": { "version": "${{ steps.get_version.outputs.version }}", "additional_info": "triggered from npm-publish workflow" } }'
 
   publish-npm-common:

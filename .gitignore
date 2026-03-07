@@ -112,6 +112,11 @@ coverageResults*
 testSuggestions*
 *.mp4
 
+# Container test outputs
+src/container/test/artifacts/results*.json
+src/container/test/artifacts/output/
+src/container/test/artifacts/*.png
+
 # Common subpackage build artifacts
 src/common/dist/
 src/common/node_modules/
