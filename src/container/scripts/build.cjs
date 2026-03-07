@@ -12,7 +12,12 @@ let version = "latest";
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === "--version" || arg === "-v") {
-    version = args[i + 1] || "";
+    const nextArg = args[i + 1];
+    if (!nextArg || nextArg.startsWith("-")) {
+      console.error(`Missing value for ${arg}`);
+      process.exit(1);
+    }
+    version = nextArg;
     break;
   }
   if (arg.startsWith("--version=") || arg.startsWith("-v=")) {

@@ -16,7 +16,7 @@ LABEL authors="Doc Detective" \
     vendor="Doc Detective"
 
 # Set environment container to trigger container-based behaviors
-ENV DOC_DETECTIVE='{"container": "docdetective/docdetective:windows", "version": "'$PACKAGE_VERSION'"}'
+ENV DOC_DETECTIVE={"container":"docdetective/docdetective:windows","version":"${PACKAGE_VERSION}"}
 
 # Set up PowerShell with proper error handling and execution policy
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
@@ -47,8 +47,7 @@ RUN $env:Path = 'C:\Program Files\nodejs;' + $env:Path; \
     [Environment]::SetEnvironmentVariable('Path', $env:Path, [System.EnvironmentVariableTarget]::Machine); \
     Set-ExecutionPolicy Bypass -Scope Process -Force; \
     node -v; \
-    npm -v; \
-    npm install -g npm@latest
+    npm -v
 
 # Download and install Python
 RUN $PythonVersion = $env:PYTHON_VERSION; \
