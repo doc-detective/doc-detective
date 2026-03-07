@@ -694,11 +694,24 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider('docDetectiveView', provider)
   );
 
-  // Debounced update to avoid overlapping work from rapid events
+  // Debounced + serialized update to avoid overlapping work from rapid events
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let updateInFlight: Promise<void> | null = null;
+  let rerunRequested = false;
   function debouncedUpdate() {
     if (debounceTimer) { clearTimeout(debounceTimer); }
-    debounceTimer = setTimeout(() => { provider.updateWebview(); }, 300);
+    debounceTimer = setTimeout(async () => {
+      if (updateInFlight) {
+        rerunRequested = true;
+        return;
+      }
+      do {
+        rerunRequested = false;
+        updateInFlight = provider.updateWebview();
+        await updateInFlight;
+        updateInFlight = null;
+      } while (rerunRequested);
+    }, 300);
   }
 
   // Refresh the webview when visible editors change

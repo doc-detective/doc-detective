@@ -22,7 +22,7 @@ Doc Detective is a documentation testing framework that helps validate documenta
 ### Via VS Code Marketplace
 
 1. Open VS Code
-2. Go to the Extensions view (Ctrl+Shift+X)
+2. Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
 3. Search for "Doc Detective"
 4. Click Install
 
@@ -31,7 +31,7 @@ Doc Detective is a documentation testing framework that helps validate documenta
 If you prefer to install the extension manually:
 
 1. Download the VSIX file from the [latest release](https://github.com/doc-detective/doc-detective/releases/latest)
-2. In VS Code, go to the Extensions view (Ctrl+Shift+X)
+2. In VS Code, open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
 3. Click the "..." menu in the top right of the Extensions view
 4. Select "Install from VSIX..." and choose the downloaded file
 
@@ -52,7 +52,7 @@ The extension will automatically scan open files for:
 
 You can specify a custom path to your Doc Detective configuration file using the `docDetective.configPath` setting:
 
-1. Open VS Code Settings (File > Preferences > Settings)
+1. Open VS Code Settings (`Ctrl+,` / `Cmd+,`)
 2. Search for "Doc Detective"
 3. Set the "Config Path" field to your configuration file path
 
