@@ -5,11 +5,11 @@
         "steps": [
           {
             "action": "goTo",
-            "url": "https://www.duckduckgo.com"
+            "url": "https://www.google.com"
           },
           {
             "action": "find",
-            "selector": "#searchbox_input",
+            "selector": "[title=Search]",
             "click": {
               "button": "right"
             }
