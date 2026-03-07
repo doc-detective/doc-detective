@@ -37,8 +37,8 @@
     "runTests": "node ./bin/doc-detective.js runTests",
     "start": "node ./bin/doc-detective.js",
     "dev": "node ./dev",
-    "container:build": "node src/container/scripts/build.js",
-    "container:rebuild": "node src/container/scripts/build.js --no-cache",
+    "container:build": "node src/container/scripts/build.cjs",
+    "container:rebuild": "node src/container/scripts/build.cjs --no-cache",
     "container:test": "mocha src/container/test/*.test.cjs --timeout 0"
   },
   "repository": {

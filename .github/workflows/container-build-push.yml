@@ -20,6 +20,9 @@ on:
         default: false
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   build:
     timeout-minutes: 60
