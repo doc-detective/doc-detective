@@ -1,0 +1,5 @@
+USER="John Doe"
+JOB="Software Engineer"
+SECRET="YOUR_SECRET_KEY"
+URL="https://www.google.com"
+WAIT="1"

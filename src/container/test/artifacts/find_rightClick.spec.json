@@ -1,0 +1,21 @@
+{
+    "id": "find_right click",
+    "tests": [
+      {
+        "steps": [
+          {
+            "action": "goTo",
+            "url": "https://www.google.com"
+          },
+          {
+            "action": "find",
+            "selector": "[title=Search]",
+            "click": {
+              "button": "right"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  

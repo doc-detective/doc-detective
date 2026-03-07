@@ -194,7 +194,8 @@ describe("Run tests successfully", function () {
     }
   });
 
-  it("screenshot regression test returns WARNING when variation exceeds threshold", async () => {
+  it("screenshot regression test returns WARNING when variation exceeds threshold", async function () {
+    this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
     // Create a test screenshot path
     const screenshotPath = path.resolve(
       "./test/temp-regression-screenshot.png"

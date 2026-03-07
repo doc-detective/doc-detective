@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "id": "Set env variable from element text",
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com/docs/get-started/actions/type"
+        },
+        {
+          "description": "Set HEADING variable to the text of the element with id 'special-keys'.",
+          "action": "find",
+          "selector": "h2#special-keys",
+          "setVariables": [
+            {
+              "name": "HEADING",
+              "regex": ".*"
+            }
+          ]
+        },
+        {
+          "description": "Print and validate the value of the HEADING variable.",
+          "action": "runShell",
+          "command": "echo $HEADING",
+          "output": "Special keys"
+        }
+      ]
+    }
+  ]
+}
