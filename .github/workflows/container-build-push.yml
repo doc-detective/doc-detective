@@ -26,6 +26,8 @@ permissions:
 jobs:
   build:
     timeout-minutes: 60
+    env:
+      IMAGE_VERSION: ${{ github.event.client_payload.version || inputs.version || 'latest' }}
     strategy:
       matrix:
         os:
@@ -52,24 +54,22 @@ jobs:
 
       - name: Build Docker Image
         shell: bash
-        env:
-          VERSION: ${{ github.event.client_payload.version || inputs.version || 'latest' }}
-        run: npm run container:build -- --version="$VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
 
       - name: Post-build Test
         shell: bash
         env:
-          VERSION: ${{ github.event.client_payload.version || inputs.version || 'latest' }}
-        run: npm run container:test -- --version="$VERSION"
+          VERSION: ${{ env.IMAGE_VERSION }}
+        run: npm run container:test
 
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request' && inputs.version != 'latest'
+        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Push Docker image
-        if: github.event_name != 'pull_request' && inputs.version != 'latest'
+        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
         run: |
           docker push --all-tags docdetective/docdetective

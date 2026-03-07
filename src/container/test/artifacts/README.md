@@ -27,8 +27,6 @@ Test specification files that validate different Doc Detective actions:
 - **find_setVariables.spec.json**: Tests variable setting from found elements
 - **runShell.spec.json**: Tests shell command execution
 - **runShell_pipes.spec.json**: Tests piped shell commands
-- **runCode.spec.json**: Tests code execution (JavaScript, Python, Bash)
-- **screenshot.spec.json**: Tests screenshot capture functionality
 - **type.spec.json**: Tests keyboard input
 - **wait.spec.json**: Tests wait/delay functionality
 
@@ -42,7 +40,7 @@ Test specification files that validate different Doc Detective actions:
 - **httpRequestFormat.md**: Documentation for HTTP request formatting
 
 ### Server-Dependent and Environment-Specific Tests
-The `../requires-server/` directory (at `test/requires-server/`) contains tests that require special environments:
+The `../requires-server/` directory (at `src/container/test/requires-server/` from the repository root) contains tests that require special environments:
 - **cookie-test.spec.json**: Tests cookie handling (requires Docker-in-Docker and localhost server)
 - **dragAndDrop.spec.json**: Tests drag-and-drop functionality (requires localhost server on port 8092)
 - **httpRequest.spec.yaml**: Tests HTTP request actions (requires localhost server on port 8092)
@@ -55,15 +53,15 @@ These are separated from the main test artifacts directory to avoid failures whe
 
 ### Full Test Suite
 ```bash
-npm test
+npm run container:test
 ```
 
-This runs all spec files in the test/artifacts directory inside the Docker container. Tests in the `test/requires-server/` directory are not included.
+This runs all spec files in `src/container/test/artifacts` inside the Docker container. Tests in `src/container/test/requires-server/` are not included.
 
 ### Individual Spec Files
 To run a specific spec file:
 ```bash
-docker run --rm -v "$(pwd)/test/artifacts:/app" docdetective/docdetective:latest-linux \
+docker run --rm -v "$(pwd)/src/container/test/artifacts:/app" docdetective/docdetective:latest-linux \
   -c /app/config.json \
   -i /app/checkLink.spec.json
 ```
@@ -71,12 +69,12 @@ docker run --rm -v "$(pwd)/test/artifacts:/app" docdetective/docdetective:latest
 ### With Test Server
 To run server-dependent tests, first start a test server on port 8092, then:
 ```bash
-docker run --rm --network=host -v "$(pwd)/test/requires-server:/app" docdetective/docdetective:latest-linux \
+docker run --rm --network=host -v "$(pwd)/src/container/test/requires-server:/app" docdetective/docdetective:latest-linux \
   -c /app/config.json \
   -i /app/
 ```
 
-Note: These tests are located in `test/requires-server/` directory, not `test/artifacts/requires-server/`.
+Note: These tests are located in `src/container/test/requires-server/`, not under `src/container/test/artifacts/`.
 
 ## Test Results
 
@@ -85,15 +83,3 @@ Tests generate a `results.json` file with detailed information about:
 - Test pass/fail counts
 - Context execution results
 - Individual step results
-
-## Maintenance
-
-These test artifacts are synchronized with [doc-detective/core](https://github.com/doc-detective/core/tree/main/test/artifacts) to ensure they remain up-to-date with the latest Doc Detective features and best practices.
-
-To update artifacts from core:
-```bash
-# From test/artifacts directory
-BASE_URL="https://raw.githubusercontent.com/doc-detective/core/main/test/artifacts"
-wget -N "$BASE_URL/checkLink.spec.json"
-# ... download other files as needed
-```

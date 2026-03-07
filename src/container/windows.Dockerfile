@@ -125,6 +125,5 @@ WORKDIR /app
 # Add entrypoint command base
 ENTRYPOINT ["cmd.exe", "/c", "npx doc-detective"]
 
-# ENTRYPOINT ["cmd.exe"]
 # Set default command
 CMD []

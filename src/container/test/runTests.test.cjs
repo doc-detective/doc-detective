@@ -5,10 +5,7 @@ const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(artifactPath, "results.json");
 const { spawn } = require("child_process");
 
-// Parse command line arguments
-const args = process.argv.slice(2);
-const versionArg = args.find(arg => arg.startsWith('--version=') || arg.startsWith('-v='));
-const version = versionArg ? versionArg.split('=')[1] : 'latest';
+const version = process.env.VERSION || 'latest';
 
 let os;
 let internalPath;

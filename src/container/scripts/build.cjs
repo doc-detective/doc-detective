@@ -1,5 +1,5 @@
 // Script to build Docker image with version from package.json
-const { execSync } = require("child_process");
+const { execFileSync, execSync } = require("child_process");
 const path = require("path");
 
 const containerDir = path.resolve(__dirname, "..");
@@ -42,7 +42,7 @@ let envVariables = {
 if (dockerOSType === "windows") {
   os = "windows";
   tags = ["windows", "latest-windows", `${version}-windows`];
-  envVariables.DOCKER_BUILDKIT = 0;
+  envVariables.DOCKER_BUILDKIT = "0";
 } else {
   os = "linux";
   tags = ["linux", "latest", "latest-linux", version, `${version}-linux`];
@@ -51,32 +51,29 @@ console.log(`Building for OS: ${os}`);
 console.log(`Tags: ${tags}`);
 
 // Construct '-t' arguments for Docker build
-const tagArgs = tags
-  .map((tag) => `-t docdetective/docdetective:${tag}`)
-  .join(" ");
-console.log(`Tag arguments: ${tagArgs}`);
+const tagArgs = tags.flatMap((tag) => ["-t", `docdetective/docdetective:${tag}`]);
+console.log(`Tag arguments: ${tagArgs.join(" ")}`);
 
-let pullOption = "";
-if (args.includes("--pull")) pullOption = "--pull ";
+// Build the Docker command args
+const dockerArgs = [
+  "build",
+  ...(args.includes("--pull") ? ["--pull"] : []),
+  "-f",
+  path.join(containerDir, `${os}.Dockerfile`),
+  ...tagArgs,
+  "--build-arg",
+  `PACKAGE_VERSION=${version}`,
+  ...(args.includes("--no-cache") ? ["--no-cache"] : []),
+  containerDir,
+];
 
-// Build the Docker command
-let dockerCommand = `docker build ${pullOption} -f ${path.join(containerDir, `${os}.Dockerfile`)} ${tagArgs} ${containerDir} --build-arg PACKAGE_VERSION=${version}`;
-
-// Add --no-cache flag if requested
-// Check if --no-cache is passed as an argument
-const useNoCache = args.includes("--no-cache");
-if (useNoCache) {
-  console.log("Using --no-cache option");
-  dockerCommand += " --no-cache";
-}
-
-console.log(`Docker command: ${dockerCommand}`);
+console.log(`Docker command: docker ${dockerArgs.join(" ")}`);
 
 // Execute the command
 try {
-  console.log(`Executing: ${dockerCommand}`);
+  console.log(`Executing: docker ${dockerArgs.join(" ")}`);
 
-  execSync(dockerCommand, {
+  execFileSync("docker", dockerArgs, {
     stdio: "inherit",
     env: envVariables,
   });

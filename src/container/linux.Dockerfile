@@ -1,4 +1,4 @@
-# Builder stage to install packages and dependencies
+# Install packages and dependencies
 FROM node:22-slim AS runtime
 ARG PACKAGE_VERSION=latest
 
