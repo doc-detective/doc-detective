@@ -16,7 +16,7 @@ LABEL authors="Doc Detective" \
     vendor="Doc Detective"
 
 # Set environment container to trigger container-based behaviors
-ENV DOC_DETECTIVE={"container":"docdetective/docdetective:windows","version":"${PACKAGE_VERSION}"}
+ENV DOC_DETECTIVE='{"container": "docdetective/docdetective:windows", "version": "'$PACKAGE_VERSION'"}'
 
 # Set up PowerShell with proper error handling and execution policy
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]

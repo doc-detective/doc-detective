@@ -3,8 +3,8 @@ FROM node:22-slim AS runtime
 ARG PACKAGE_VERSION=latest
 
 # Set environment container to trigger container-based behaviors
-ENV DEBIAN_FRONTEND=noninteractive
-ENV DOC_DETECTIVE={"container":"docdetective/docdetective:linux","version":"${PACKAGE_VERSION}"}
+ENV DEBIAN_FRONTEND=noninteractive \
+    DOC_DETECTIVE='{"container": "docdetective/docdetective:linux", "version": "'$PACKAGE_VERSION'"}'
 
 LABEL authors="Doc Detective" \
     description="The official Docker image for Doc Detective. Keep your docs accurate with ease." \
