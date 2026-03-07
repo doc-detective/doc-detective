@@ -12,6 +12,8 @@ on:
       - opened
       - reopened
       - synchronize
+    paths-ignore:
+      - 'docs/**'
   release:
     types:
       - published

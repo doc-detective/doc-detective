@@ -1,0 +1,9 @@
+# Rejected spellings
+# Terms that should not be used - suggest alternatives in style guide
+
+# Use "you" instead
+the user
+
+# Use specific names instead
+stuff
+things

@@ -1,0 +1,237 @@
+# yaml-language-server: $schema=https://schema.buildwithfern.dev/docs-yml.json
+
+############
+# Basic info
+############
+
+instances:
+  - url: doc-detective.docs.buildwithfern.com # {yourorg}.docs.buildwithfern.com
+    custom-domain: docs.doc-detective.com # custom domain for live site
+
+title: Doc Detective
+
+ai-search:
+  location:
+    - docs
+
+##########
+# Branding
+##########
+
+logo:
+  href: https://doc-detective.docs.buildwithfern.com
+  dark: assets/logo/doc-detective.svg
+  light: assets/logo/doc-detective.svg
+  height: 40
+
+colors:
+  accentPrimary:
+    dark: "#3EB16E"
+    light: "#22623D"
+  background:
+    light: "#ffffff"
+    dark: "#0d0e11"
+
+favicon: assets/logo/favicon.ico
+
+#########
+# Socials
+#########
+
+metadata:
+  # Core platform identity
+  og:site_name: "Doc Detective | Documentation"
+  og:title: "Doc Detective | Documentation content testing framework"
+  og:description: "A documentation content testing framework that simplifies the process of keeping your docs accurate and up-to-date."
+  og:url: "https://doc-detective.com"
+#
+#  # Social sharing assets
+#
+#  og:image: "https://developer.squareup.com/images/docs-social-card.png"
+#  og:image:width: 1200
+#  og:image:height: 630
+#  og:locale: "en_US"
+#  og:logo: "https://developer.squareup.com/images/square-logo.png"
+
+########
+# Layout
+########
+
+layout:
+  searchbar-placement: header
+  tabs-placement: header
+
+tabs:
+  home:
+    display-name: Home
+    icon: fa-solid fa-home
+  docs:
+    display-name: Documentation
+    icon: fa-solid fa-file
+    slug: docs
+  tutorials:
+    display-name: Tutorials
+    icon: fa-solid fa-graduation-cap
+  reference:
+    display-name: Reference
+    icon: fa-solid fa-line-columns
+  support:
+    display-name: Support
+    icon: fa-solid fa-heart
+
+navbar-links:
+  - type: minimal
+    text: Discord
+    href: https://discord.gg/2M7wXEThfF
+    target: _blank
+    icon: fa-brands fa-discord
+  - type: github
+    value: https://github.com/doc-detective/doc-detective
+
+footer-links:
+  github: https://github.com/doc-detective
+  linkedin: https://www.linkedin.com/company/doc-detective
+  discord: https://discord.gg/2M7wXEThfF
+
+######################
+# Navigation structure
+######################
+
+navigation:
+  - tab: home
+    layout:
+      - section: Home
+        contents:
+          - page: Welcome
+            path: pages/index.mdx
+
+  - tab: docs
+    layout:
+      - page: Introduction
+        path: pages/docs/intro.mdx
+
+      - section: Get started
+        contents:
+          - page: Installation
+            path: pages/docs/get-started/installation.mdx
+          - page: Concepts
+            path: pages/docs/get-started/concepts.md
+          - page: Create your first test
+            path: pages/docs/get-started/create-your-first-test.mdx
+          - page: Sample tests
+            path: pages/docs/get-started/sample-tests.mdx
+          - page: CI
+            path: pages/docs/get-started/ci.mdx
+          - page: Integrations
+            path: pages/docs/get-started/integrations.mdx
+          - page: Resources
+            path: pages/docs/get-started/resources.mdx
+
+      - section: Configuration
+        contents:
+          - page: Contexts
+            path: pages/docs/config/contexts.md
+
+      - section: Tests
+        contents:
+          - page: Overview
+            path: pages/docs/tests/overview.mdx
+          - page: Standalone tests
+            path: pages/docs/tests/standalone.mdx
+          - page: Inline tests
+            path: pages/docs/tests/inline.mdx
+          - page: Detected tests
+            path: pages/docs/tests/detected.mdx
+
+      - section: Input formats
+        contents:
+          - page: Overview
+            path: pages/docs/input-formats/overview.mdx
+          - page: Markdown
+            path: pages/docs/input-formats/markdown.mdx
+          - page: DITA
+            path: pages/docs/input-formats/dita.mdx
+          - page: AsciiDoc
+            path: pages/docs/input-formats/asciidoc.mdx
+            slug: asciidoc
+          - page: HTML
+            path: pages/docs/input-formats/html.mdx
+          - page: Custom
+            path: pages/docs/input-formats/custom.mdx
+
+      - folder: pages/docs/actions
+        title: Actions
+
+      - section: Selectors
+        contents:
+          - page: CSS selectors
+            path: pages/docs/selectors/css.mdx
+            slug: css
+          - page: XPath selectors
+            path: pages/docs/selectors/xpath.mdx
+            slug: xpath
+
+      - section: Contribute
+        contents:
+          - page: Contribute to the docs
+            path: pages/contribute/index.mdx
+          - page: Quick start
+            path: pages/contribute/quick-start.mdx
+          - page: Standard contributions
+            path: pages/contribute/standard-contributions.mdx
+          - page: Substantial contributions
+            path: pages/contribute/substantial-contributions.mdx
+          - page: Local development
+            path: pages/contribute/local-development.mdx
+          - page: Review process
+            path: pages/contribute/review-process.mdx
+          - page: Testing the docs
+            path: pages/contribute/testing.mdx
+            slug: testing
+          - section: Content templates
+            contents:
+              - page: How-to template
+                path: pages/contribute/templates/how-to.mdx
+                slug: how-to
+              - page: Tutorial template
+                path: pages/contribute/templates/tutorial.mdx
+                slug: tutorial
+              - page: Reference template
+                path: pages/contribute/templates/reference.mdx
+                slug: reference
+              - page: Feature template
+                path: pages/contribute/templates/feature.mdx
+                slug: feature
+              - page: Troubleshooting template
+                path: pages/contribute/templates/troubleshooting.mdx
+                slug: troubleshooting
+          - folder: pages/contribute/repos
+            title: Repository guides
+
+      - section: Legal
+        contents:
+          - page: Privacy policy (Companion app)
+            path: pages/legal/privacy-policy-companion.md
+
+  - tab: tutorials
+    layout:
+      - page: Set up your test environment
+        path: pages/tutorials/set-up-your-test-environment.mdx
+      - page: Fill fields
+        path: pages/tutorials/fill-fields.mdx
+      - page: Capture screenshot
+        path: pages/tutorials/capture-screenshot.mdx
+      - page: Record video
+        path: pages/tutorials/record-video.mdx
+
+  - tab: reference
+    layout:
+      - page: Glossary
+        path: pages/reference/glossary.mdx
+      - folder: pages/reference/schemas
+        title: Schemas
+
+  - tab: support
+    layout:
+      - page: Support
+        path: pages/support.mdx

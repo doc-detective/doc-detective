@@ -1,0 +1,192 @@
+---
+title: loadCookie
+description: Load a cookie from a file or environment variable into the browser.
+---
+
+
+The `loadCookie` action loads a cookie from a file or environment variable into the browser. This action is useful for restoring authentication sessions, user preferences, or other stateful information that was previously saved using the [`saveCookie`](/docs/actions/save-cookie) action.
+
+> For comprehensive options, see the [`loadCookie`](/reference/schemas/loadcookie) reference.
+
+## Use cases
+
+- **Session restoration**: Load previously saved authentication cookies to skip login steps
+- **Test setup optimization**: Reduce test execution time by reusing authentication state
+- **Cross-test data sharing**: Share cookies between different test specifications
+- **CI/CD integration**: Load authentication state from environment variables in automated pipelines
+- **Test isolation**: Ensure consistent starting state by loading known cookie values
+- **Multi-user testing**: Load different user sessions for testing various user roles
+
+## Formats
+
+The `loadCookie` action supports multiple formats:
+
+### String format
+
+Load a cookie by name from default location or by file path:
+
+```json title="Load from environment variable"
+{
+  "loadCookie": "session_token"
+}
+```
+
+```json title="Load from file"
+{
+  "loadCookie": "session_token.txt"
+}
+```
+
+### Object format
+
+Load a cookie with detailed configuration:
+
+```json
+{
+  "loadCookie": {
+    "name": "auth_cookie",
+    "path": "auth-session.txt",
+    "directory": "./test-data"
+  }
+}
+```
+
+## Configuration options
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `name` | string | **Required.** Name of the specific cookie to load. | |
+| `variable` | string | Environment variable name containing the cookie as JSON string. Can't be used with `path`. | |
+| `path` | string | File path to cookie file, relative to directory. Supports Netscape cookie format. Can't be used with `variable`. | |
+| `directory` | string | Directory containing the cookie file. | |
+| `domain` | string | Specific domain to filter the cookie by when loading from multi-cookie file (optional). | |
+
+## Examples
+
+### Load from default location
+
+```json
+{
+  "steps": [
+    {
+      "description": "Load saved session cookie",
+      "loadCookie": "session_token"
+    },
+    {
+      "description": "Navigate to protected page",
+      "goTo": "https://example.com/dashboard"
+    }
+  ]
+}
+```
+
+### Load from specific file
+
+```json
+{
+  "steps": [
+    {
+      "description": "Load authentication cookie from file",
+      "loadCookie": {
+        "name": "auth_cookie",
+        "path": "auth-session.txt",
+        "directory": "./test-data"
+      }
+    }
+  ]
+}
+```
+
+### Load from environment variable
+
+```json
+{
+  "steps": [
+    {
+      "description": "Load session cookie from environment variable",
+      "loadCookie": {
+        "name": "session_token",
+        "variable": "SESSION_TOKEN"
+      }
+    }
+  ]
+}
+```
+
+### Load with domain filtering
+
+```json
+{
+  "steps": [
+    {
+      "description": "Load cookie for specific domain from multi-cookie file",
+      "loadCookie": {
+        "name": "user_session",
+        "path": "saved-cookies.txt",
+        "domain": "app.example.com"
+      }
+    }
+  ]
+}
+```
+
+### Complete workflow example
+
+```json
+{
+  "tests": [
+    {
+      "description": "Setup test - authenticate and save session",
+      "steps": [
+        {
+          "description": "Navigate to login page",
+          "goTo": "https://example.com/login"
+        },
+        {
+          "description": "Enter credentials and login",
+          "find": {
+            "elementText": "Username",
+            "type": "testuser"
+          }
+        },
+        {
+          "description": "Save authentication cookie",
+          "saveCookie": {
+            "name": "session_token",
+            "path": "session.txt"
+          }
+        }
+      ]
+    },
+    {
+      "description": "Main test - use saved session",
+      "steps": [
+        {
+          "description": "Load saved authentication cookie",
+          "loadCookie": {
+            "name": "session_token",
+            "path": "session.txt"
+          }
+        },
+        {
+          "description": "Navigate directly to protected page",
+          "goTo": "https://example.com/dashboard"
+        },
+        {
+          "description": "Verify authenticated access",
+          "find": {
+            "elementText": "Welcome back"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Related actions
+
+- [`saveCookie`](/docs/actions/save-cookie): Save a browser cookie to a file or environment variable
+- [`loadVariables`](/docs/actions/load-variables): Load environment variables from .env files
+
+

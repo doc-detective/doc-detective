@@ -1,0 +1,159 @@
+---
+title: CI integration
+sidebar-title: CI
+---
+
+Run Doc Detective in continuous integration (CI) pipelines using the GitHub Action. Test your docs on every push or pull request.
+
+## Set up the GitHub Action
+
+To add Doc Detective to your GitHub Actions workflow, create a YAML file in your `.github/workflows` directory:
+
+```yaml
+name: doc-detective
+on: [pull_request]
+
+jobs:
+  runTests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v1
+```
+
+This runs Doc Detective tests whenever a pull request is opened or updated.
+
+## Configuration options
+
+Customize the action with inputs by adding a `with` key to the `uses` block:
+
+```yaml
+- uses: doc-detective/github-action@v1
+  with:
+    version: latest
+    input: ./docs
+    config: .doc-detective.json
+```
+
+### Common inputs
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `version` | `latest` | Doc Detective version (npm version or tag) |
+| `working_directory` | Repository root | Directory to run the action in |
+| `config` | None | Path to configuration file |
+| `input` | None | Path to input file or directory (overrides config) |
+| `command` | `runTests` | Command to run (`runTests` or `runCoverage`) |
+| `exit_on_fail` | `false` | Exit with non-zero code if tests fail |
+
+## Create pull requests automatically
+
+Doc Detective might update files in your repository when it runs—like refreshing screenshots or updating command output. You can automatically create a pull request with these changes.
+
+```yaml
+name: doc-detective
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight
+
+jobs:
+  runTests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v1
+        with:
+          create_pr_on_change: true
+          pr_title: Doc Detective found changes
+          pr_labels: doc-detective,for-review
+```
+
+<Note>
+
+You must enable GitHub Actions to create pull requests for your repository. Go to **Settings** > **Actions** > **General** and select **Allow GitHub Actions to create and approve pull requests**.
+
+</Note>
+
+### Pull request options
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `create_pr_on_change` | `false` | Create a PR if files change |
+| `pr_branch` | `doc-detective-{DATE}` | Branch name for the PR |
+| `pr_title` | `Doc Detective Changes` | PR title |
+| `pr_body` | See default | PR description (`$RUN_URL` inserts the workflow URL) |
+| `pr_labels` | `doc-detective` | Comma-separated labels |
+| `pr_assignees` | None | Comma-separated usernames to assign |
+| `pr_reviewers` | None | Comma-separated usernames to request reviews |
+
+## Create issues on test failure
+
+If tests fail, you can automatically create a GitHub issue to track the problem. You can also trigger [integrations](/docs/get-started/integrations) to investigate and fix failures.
+
+```yaml
+name: doc-detective
+on: [pull_request]
+
+jobs:
+  runTests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v1
+        with:
+          create_issue_on_fail: true
+          issue_title: Doc Detective found documentation issues
+          integrations: claude
+```
+
+### Issue options
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `create_issue_on_fail` | `false` | Create an issue if tests fail |
+| `issue_title` | `Doc Detective Failure` | Issue title |
+| `issue_body` | See default | Issue body (`$RESULTS` inserts test results, `$RUN_URL` inserts workflow URL, `$PROMPT` inserts the prompt text) |
+| `issue_labels` | `doc-detective` | Comma-separated labels |
+| `issue_assignees` | None | Comma-separated usernames to assign |
+| `integrations` | None | Comma-separated integrations to trigger (see [Integrations](/docs/get-started/integrations)) |
+| `prompt` | See default | Custom prompt to pass to integrations |
+
+## Action outputs
+
+The action provides outputs you can use in subsequent workflow steps:
+
+| Output | Description |
+|--------|-------------|
+| `results` | JSON-formatted test results |
+| `pull_request_url` | URL of created PR (if applicable) |
+| `issue_url` | URL of created issue (if applicable) |
+
+Example using outputs:
+
+```yaml
+- uses: doc-detective/github-action@v1
+  id: doc-detective
+- run: echo "Results: ${{ steps.doc-detective.outputs.results }}"
+```
+
+## Browser modes
+
+On Ubuntu runners, the action only supports headless browser mode. Chrome and Firefox contexts automatically fall back to headless mode when necessary.
+
+If your tests require non-headless mode (like video recording with `record`), use macOS or Windows runners instead:
+
+```yaml
+jobs:
+  runTests:
+    runs-on: macos-latest  # or windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v1
+```

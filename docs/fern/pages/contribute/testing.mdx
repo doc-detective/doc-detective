@@ -1,0 +1,520 @@
+---
+title: Testing the docs
+description: Learn how to test your documentation contributions with Doc Detective.
+sidebar-title: Testing the docs
+---
+
+Doc Detective uses itself to test its own documentation. Learn how to write tests for documentation and when they're required.
+
+## When to add tests
+
+### Required for substantial contributions
+
+Tests are **required** when documenting:
+- New features with user-facing actions
+- Step-by-step procedures
+- Configuration changes
+- UI workflows
+- Command-line operations
+
+### Optional for standard contributions
+
+Tests are **optional but recommended** for:
+- Adding examples to existing docs
+- Troubleshooting procedures
+- Tutorial content
+- How-to guides
+
+### Not needed for quick contributions
+
+Tests are **not needed** for:
+- Typo fixes
+- Clarifying existing content
+- Updating links
+- Fixing formatting
+- Conceptual explanations
+
+## What makes a good documentation test
+
+Good tests verify that documented procedures actually work:
+
+✅ **Do test:**
+- Steps users follow produce expected results
+- UI elements exist where documentation says they do
+- Code examples execute without errors
+- Links resolve to real pages
+- Screenshots match current UI
+
+⛔ **Don't test:**
+- Grammar and style (use Vale for this)
+- Spelling (automated spellcheckers handle this)
+- Internal implementation details
+- Edge cases not mentioned in docs
+
+## Test file structure
+
+Tests are defined in `.spec.json` files, typically placed alongside the documentation they test.
+
+### Basic test structure
+
+```json title="docs/your-feature/your-feature.spec.json"
+{
+  "tests": [
+    {
+      "id": "test-your-feature",
+      "description": "Verify the your-feature documentation is accurate",
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com/docs/your-feature"
+        },
+        {
+          "action": "find",
+          "selector": "h1",
+          "matchText": "Your Feature"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Test components
+
+#### Test metadata
+
+```json
+{
+  "id": "unique-test-identifier",
+  "description": "What this test verifies",
+  "steps": []
+}
+```
+
+#### Steps (actions)
+
+Each step is an action Doc Detective performs:
+
+```json
+{
+  "action": "goTo",
+  "url": "https://doc-detective.com"
+}
+```
+
+Common actions:
+- `goTo`: Navigate to a URL
+- `find`: Verify an element exists
+- `click`: Click an element
+- `type`: Enter text
+- `checkLink`: Verify a link works
+- `screenshot`: Capture a screenshot
+
+See [Actions](/docs/actions) for all available actions.
+
+## Example: Testing a tutorial
+
+Let's say you documented this tutorial:
+
+### Tutorial: Create your first test
+
+1. Create a file named `test.spec.json`
+2. Add a test that navigates to doc-detective.com
+3. Run the test with `npx doc-detective`
+
+### Corresponding test
+
+```json title="docs/tutorials/first-test.spec.json"
+{
+  "tests": [
+    {
+      "id": "verify-first-test-tutorial",
+      "description": "Verify the first test tutorial instructions work",
+      "steps": [
+        {
+          "action": "runShell",
+          "command": "echo '{\"tests\":[{\"steps\":[{\"action\":\"goTo\",\"url\":\"https://doc-detective.com\"}]}]}' > test.spec.json"
+        },
+        {
+          "action": "runShell",
+          "command": "npx doc-detective runTests --input test.spec.json"
+        },
+        {
+          "action": "runShell",
+          "command": "rm test.spec.json"
+        }
+      ]
+    }
+  ]
+}
+```
+
+This test:
+1. Creates the test file as documented
+2. Runs it as documented
+3. Cleans up after itself
+
+## Running tests locally
+
+### Prerequisites
+
+- Local development environment set up
+- Doc Detective installed (included in `package.json`)
+
+### Run all tests
+
+```bash
+npm run doc-detective
+```
+
+This runs all `.spec.json` files in the repository.
+
+### Run specific tests
+
+```bash
+npx doc-detective runTests --input docs/your-feature/your-feature.spec.json
+```
+
+### Run tests for a directory
+
+```bash
+npx doc-detective runTests --input docs/tutorials/
+```
+
+### View test results
+
+Test results are output to `testResults-<timestamp>.json` in the repository root:
+
+```json
+{
+  "status": "pass",
+  "tests": [
+    {
+      "id": "test-your-feature",
+      "status": "pass",
+      "steps": [
+        {
+          "status": "pass",
+          "action": "goTo"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Common test patterns
+
+### Verify page content
+
+Test that documented content exists:
+
+```json
+{
+  "action": "goTo",
+  "url": "https://doc-detective.com/docs/your-page"
+},
+{
+  "action": "find",
+  "selector": "h1",
+  "matchText": "Expected Heading"
+},
+{
+  "action": "find",
+  "selector": "code",
+  "matchText": "npm install"
+}
+```
+
+### Test command-line examples
+
+Verify command examples work:
+
+```json
+{
+  "action": "runShell",
+  "command": "npx doc-detective --version"
+}
+```
+
+### Test navigation flows
+
+Verify user can navigate as documented:
+
+```json
+{
+  "action": "goTo",
+  "url": "https://doc-detective.com"
+},
+{
+  "action": "click",
+  "selector": "a[href='/docs/get-started/intro']"
+},
+{
+  "action": "find",
+  "selector": "h1",
+  "matchText": "Introduction"
+}
+```
+
+### Verify links
+
+Test that documented links work:
+
+```json
+{
+  "action": "checkLink",
+  "url": "https://doc-detective.com/reference"
+}
+```
+
+### Capture screenshots
+
+Take screenshots for documentation:
+
+```json
+{
+  "action": "goTo",
+  "url": "https://doc-detective.com/docs/get-started"
+},
+{
+  "action": "screenshot",
+  "path": "static/img/screenshots/get-started.png"
+}
+```
+
+## Test configuration
+
+### Test contexts
+
+Define test contexts for different environments:
+
+```json
+{
+  "contexts": [
+    {
+      "id": "default",
+      "app": {
+        "url": "https://doc-detective.com"
+      },
+      "platforms": ["linux", "mac", "windows"]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test-with-context",
+      "runOnContexts": ["default"],
+      "steps": []
+    }
+  ]
+}
+```
+
+### Environment variables
+
+Use environment variables for dynamic values:
+
+```json
+{
+  "action": "goTo",
+  "url": "$BASE_URL/docs/intro"
+}
+```
+
+Set in `.env` file:
+```
+BASE_URL=https://doc-detective.com
+```
+
+## Debugging failing tests
+
+### Common failure causes
+
+#### Element not found
+
+**Error**: `find` action can't locate selector
+
+**Solutions:**
+- Check selector syntax (CSS or XPath)
+- Wait for page to load fully
+- Verify element exists on page
+- Check for typos in selector
+
+**Example fix:**
+```json
+{
+  "action": "wait",
+  "duration": 2000
+},
+{
+  "action": "find",
+  "selector": "#element-id"
+}
+```
+
+#### Timing issues
+
+**Error**: Actions happen before page is ready
+
+**Solutions:**
+- Add `wait` actions between steps
+- Use `find` to wait for elements
+- Increase timeout values
+
+**Example fix:**
+```json
+{
+  "action": "goTo",
+  "url": "https://doc-detective.com"
+},
+{
+  "action": "find",
+  "selector": "body.loaded",
+  "timeout": 10000
+}
+```
+
+#### Environment differences
+
+**Error**: Tests pass locally but fail in CI
+
+**Solutions:**
+- Check for hardcoded paths
+- Use environment variables
+- Verify dependencies are installed
+- Check for timing differences
+
+#### Command failures
+
+**Error**: Shell commands fail
+
+**Solutions:**
+- Verify command is available in environment
+- Check working directory
+- Use full paths when needed
+- Add error handling
+
+### Enable debug logging
+
+Get detailed test output:
+
+```bash
+npx doc-detective runTests --input your-test.spec.json --logLevel debug
+```
+
+## Test best practices
+
+### Keep tests straightforward
+
+✅ **Do:**
+- Test one concept per test
+- Use clear, descriptive IDs
+- Keep steps minimal
+- Test what users actually do
+
+⛔ **Don't:**
+- Test implementation details
+- Create overly complex scenarios
+- Test multiple features in one test
+- Rely on external services when possible
+
+### Make tests maintainable
+
+✅ **Do:**
+- Use comments to explain complex steps
+- Group related tests in the same file
+- Use descriptive action parameters
+- Clean up after tests (delete files, etc.)
+
+⛔ **Don't:**
+- Hardcode values that might change
+- Create dependencies between tests
+- Leave test artifacts behind
+- Use brittle selectors
+
+### Write defensive tests
+
+Account for common issues:
+
+```json
+{
+  "action": "goTo",
+  "url": "https://doc-detective.com"
+},
+{
+  "action": "wait",
+  "duration": 1000,
+  "comment": "Wait for page load"
+},
+{
+  "action": "find",
+  "selector": "h1",
+  "timeout": 5000,
+  "comment": "Verify page loaded"
+}
+```
+
+## CI/CD integration
+
+Tests run automatically in GitHub Actions:
+
+### When tests run
+
+- On every pull request
+- On commits to main branch
+- Can be run manually from Actions tab
+
+### Viewing CI test results
+
+1. Go to your pull request
+2. Check the "Tests" status check
+3. Click "Details" to see full output
+4. Failed tests show specific error messages
+
+### Failing CI tests
+
+If tests fail in CI but pass locally:
+
+1. **Check the logs**: Click "Details" on the failed check
+2. **Look for environment differences**: Paths, dependencies, timing
+3. **Run tests in Docker** (mimics CI environment):
+   ```bash
+   docker run --rm -v $(pwd):/app -w /app node:20 npm run doc-detective
+   ```
+4. **Ask for help**: Comment on the PR with the error details
+
+## When to skip tests
+
+It's okay to skip tests when:
+- Changes are purely conceptual (no procedures to test)
+- Testing would require external services unavailable in CI
+- The benefit doesn't justify the maintenance cost
+- Quick fixes that don't change user-facing procedures
+
+In these cases, note in your PR: "Tests not added because [reason]"
+
+## Getting help with tests
+
+### Resources
+
+- **Doc Detective docs**: [Test documentation](/docs/tests/overview)
+- **Actions reference**: [All available actions](/docs/actions)
+- **Example tests**: Browse `.spec.json` files in this repository
+- **Discord**: Ask in the #documentation channel
+
+### Test review
+
+Maintainers review tests as part of PR review. They can help with:
+- Improving test structure
+- Fixing failing tests
+- Optimizing test performance
+- Deciding what to test
+
+Don't hesitate to ask for help—testing documentation is a unique skill.
+
+## Next steps
+
+- **Write your first test**: Add a test for your contribution
+- **Run tests locally**: Verify tests pass before submitting PR
+- **Learn more**: Read the [full test documentation](/docs/tests/overview)
+- **See examples**: Browse existing `.spec.json` files for patterns

@@ -1,0 +1,45 @@
+name: Preview docs
+
+on:
+  pull_request:
+    paths:
+      - "docs/fern/**"
+  workflow_dispatch:
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+
+      - name: Set up Fern CLI
+        uses: fern-api/setup-fern-cli@d07601425e9c9ede8745d71ca75c4c462d98755d #v1
+
+      - name: Generate preview URL
+        id: generate-docs
+        env:
+          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+        run: |
+          cd docs
+          OUTPUT=$(fern generate --docs --preview 2>&1) || true
+          echo "$OUTPUT"
+          URL=$(echo "$OUTPUT" | grep -oP 'Published docs to \K.*(?= \()') || true
+          if [ -z "$URL" ]; then
+            echo "preview_url=" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Failed to generate docs preview. Check the workflow logs for details." > preview_url.txt
+          else
+            echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
+            echo "🌿 Preview your docs: $URL" > preview_url.txt
+          fi
+
+      - name: Comment URL in PR
+        if: github.event_name == 'pull_request'
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b #v3.0.1
+        with:
+          file-path: docs/preview_url.txt
+          comment-tag: preview-docs
+          mode: upsert

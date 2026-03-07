@@ -1,0 +1,150 @@
+---
+title: saveCookie
+description: Save a browser cookie to a file or environment variable for later reuse.
+---
+
+
+The `saveCookie` action saves a browser cookie to a file or environment variable for later reuse. This action is useful for preserving authentication sessions, user preferences, or other stateful information between test runs or across different tests.
+
+Reload saved cookies with the [`loadCookie`](/docs/actions/load-cookie) action.
+
+> For comprehensive options, see the [`saveCookie`](/reference/schemas/savecookie) reference.
+
+## Use cases
+
+- **Session persistence**: Save authentication cookies to maintain login state across test runs
+- **Multi-step workflows**: Preserve cookies between different test specifications
+- **Cross-browser testing**: Transfer cookies between different browser contexts
+- **CI/CD integration**: Store authentication state as environment variables for automated testing
+- **Test data management**: Save cookies to files for debugging and test data inspection
+
+## Formats
+
+The `saveCookie` action supports multiple formats:
+
+### String format
+
+Save a cookie by name to a default location:
+
+```json title="Save to environment variable"
+{
+  "saveCookie": "session_token"
+}
+```
+
+```json title="Save to file"
+{
+  "saveCookie": "session_token.txt"
+}
+```
+
+### Object format
+
+Save a cookie with detailed configuration:
+
+```json
+{
+  "saveCookie": {
+    "name": "auth_cookie",
+    "path": "auth-session.txt",
+    "directory": "./test-data",
+    "overwrite": "true"
+  }
+}
+```
+
+## Configuration options
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `name` | string | **Required.** Name of the specific cookie to save. | |
+| `variable` | string | Environment variable name to store the cookie as JSON string. Can't be used with `path`. | |
+| `path` | string | File path to save the cookie, relative to directory. Uses Netscape cookie format. Can't be used with `variable`. | |
+| `directory` | string | Directory to save the cookie file. If not specified, uses output directory. | |
+| `overwrite` | string | Whether to overwrite existing cookie file. Options: `"true"`, `"false"`. | `"false"` |
+| `domain` | string | Specific domain to filter the cookie by (optional). | |
+
+## Examples
+
+### Save to default location
+
+```json
+{
+  "steps": [
+    {
+      "description": "Navigate to login page and authenticate",
+      "goTo": "https://example.com/login"
+    },
+    {
+      "description": "Fill in login credentials",
+      "find": {
+        "elementText": "Username",
+        "type": "testuser"
+      }
+    },
+    {
+      "description": "Save the session cookie after login",
+      "saveCookie": "session_token"
+    }
+  ]
+}
+```
+
+### Save to specific file
+
+```json
+{
+  "steps": [
+    {
+      "description": "Save authentication cookie to specific file",
+      "saveCookie": {
+        "name": "auth_cookie",
+        "path": "auth-session.txt",
+        "directory": "./test-data",
+        "overwrite": "true"
+      }
+    }
+  ]
+}
+```
+
+### Save to environment variable
+
+```json
+{
+  "steps": [
+    {
+      "description": "Save session cookie to environment variable",
+      "saveCookie": {
+        "name": "session_token",
+        "variable": "SESSION_TOKEN"
+      }
+    }
+  ]
+}
+```
+
+### Save with domain filtering
+
+```json
+{
+  "steps": [
+    {
+      "description": "Save cookie for specific domain",
+      "saveCookie": {
+        "name": "login_token",
+        "path": "login-token.txt",
+        "domain": "app.example.com"
+      }
+    }
+  ]
+}
+```
+
+## Related actions
+
+- [`loadCookie`](/docs/actions/load-cookie): Load a saved cookie back into the browser
+- [`loadVariables`](/docs/actions/load-variables): Load environment variables from .env files
+
+
+

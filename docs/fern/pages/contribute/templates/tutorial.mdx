@@ -1,0 +1,448 @@
+---
+title: Tutorial template
+description: Template for creating learning-oriented documentation.
+sidebar-title: Tutorial Template
+---
+
+Use this template for learning-oriented documentation that guides users through a complete workflow to build understanding.
+
+## When to use this template
+
+Use a tutorial when users:
+
+- Are learning a new concept or feature
+- Need to understand a complete workflow
+- Want hands-on practice
+- May not know what they don't know yet
+
+**Examples:**
+
+- Create your first Doc Detective test
+- Build a complete test suite
+- Test a documentation site end-to-end
+- Set up automated testing in CI/CD
+
+## Template
+
+Copy and adapt this template for your tutorial:
+
+````markdown
+---
+title: [Tutorial name]
+description: [What users will learn and accomplish]
+---
+
+# [Tutorial name]
+
+[2-3 sentences explaining what this tutorial teaches and why it's valuable. Set expectations for what users will learn and build.]
+
+## What you'll learn
+
+[List 3-5 key concepts or skills users will gain.]
+
+- Concept or skill 1
+- Concept or skill 2
+- Concept or skill 3
+
+## What you'll build
+
+[Describe the end result. What will users have created by the end?]
+
+## What you'll need
+
+[List prerequisites, tools, and time commitment.]
+
+- Prerequisite knowledge or skill
+- Required tool or software
+- Estimated time (for example, "30 minutes")
+
+## Step 1: [First major concept or action]
+
+[Explain the concept and why it's important before showing how to do it.]
+
+### [Sub-concept or detailed step]
+
+[Detailed explanation with context.]
+
+```[language] title="[filename]"
+[Code example]
+```
+
+[Explain what this code does and why.]
+
+<Tip>
+
+[Helpful insight or best practice related to this step]
+
+</Tip>
+
+## Step 2: [Second major concept or action]
+
+[Continue building on previous steps. Show how concepts connect.]
+
+## Step 3: [Third major concept or action]
+
+[Keep building. Tutorials typically have 3-7 major steps.]
+
+## Try it yourself
+
+[Optional: Provide a challenge or variation for users to practice what they learned.]
+
+[Describe what to try and what result to expect.]
+
+## What you learned
+
+[Recap the key concepts. Help users connect what they did to what they learned.]
+
+- You learned [concept 1]
+- You practiced [skill 2]
+- You built [outcome 3]
+
+## Troubleshooting
+
+[Optional but recommended: Address common issues learners encounter.]
+
+### [Common problem]
+
+If you see [symptom], this means [explanation].
+
+**To fix:**
+
+1. [Step 1]
+2. [Step 2]
+
+## Next steps
+
+[Suggest logical next tutorials or topics to explore.]
+
+- [Next tutorial in sequence](link)
+- [Related advanced topic](link)
+- [Additional practice](link)
+````
+
+## Writing tips
+
+### Make it safe to learn
+
+Tutorials are for learning, not reference:
+
+✅ **Do:**
+
+- Explain concepts before showing code
+- Provide context for why things work
+- Encourage experimentation
+- Make failure safe and instructive
+
+⛔ **Don't:**
+
+- Assume prior knowledge
+- Skip explanations for brevity
+- Punish mistakes
+- Jump to advanced topics too quickly
+
+### Build progressively
+
+Each step should build on previous ones:
+
+✅ Good progression:
+
+1. Create a basic test with one action
+2. Add a second action to create a flow
+3. Add error handling
+4. Organize into a test suite
+
+⛔ Poor progression:
+
+1. Create a basic test
+2. Deploy to production (too big a jump)
+
+### Explain the why
+
+Users should understand not just _how_ but _why_:
+
+✅ Good:
+
+> Use the `find` action to verify the element exists before interacting with it. This makes tests more reliable by waiting for elements to load.
+
+⛔ Insufficient:
+
+> Use the `find` action.
+
+### Use a friendly tone
+
+Tutorials should be encouraging:
+
+✅ Good:
+
+> Great! You've created your first test. Let's make it more useful by adding another action.
+
+⛔ Too formal:
+
+> The test has been created. Proceed to add additional actions.
+
+### Show the outcome
+
+After each major step, show what users should see:
+
+✅ Good:
+
+> You should now see output like this:
+>
+> ```
+> [PASS] test-1: Passed (2.3s)
+> ```
+>
+> This confirms your test ran successfully.
+
+⛔ Missing:
+
+> Run the test.
+
+### Test your tutorial
+
+Before submitting:
+
+1. Follow the tutorial yourself from scratch
+2. Have someone unfamiliar with the topic try it
+3. Note where they get stuck or confused
+4. Revise based on feedback
+
+## Example tutorial
+
+Here's a complete example:
+
+````markdown
+---
+title: Create your first Doc Detective test
+description: Learn to write and run a simple documentation test in 10 minutes.
+---
+
+# Create your first Doc Detective test
+
+Learn the basics of Doc Detective by creating a simple test that verifies a web page loads and contains expected content. By the end, you'll understand how tests work and be ready to test your own documentation.
+
+## What you'll learn
+
+- How to structure a Doc Detective test file
+- The basic actions: `goTo` and `find`
+- How to run tests from the command line
+- How to interpret test results
+
+## What you'll build
+
+A test that:
+
+1. Navigates to the Doc Detective homepage
+2. Verifies the page title appears
+3. Confirms a key feature is mentioned
+
+## What you'll need
+
+- Node.js 20 or later installed
+- A text editor
+- 10 minutes
+
+## Step 1: Create your test file
+
+Doc Detective tests are defined in JSON files with a `.spec.json` extension.
+
+Create a file named `first-test.spec.json`:
+
+```json title="first-test.spec.json"
+{
+  "tests": []
+}
+```
+
+This is the basic structure. The `tests` array will contain your test definitions.
+
+### Add your first test
+
+```json title="first-test.spec.json"
+{
+  "tests": [
+    {
+      "id": "homepage-check",
+      "description": "Verify the Doc Detective homepage loads"
+    }
+  ]
+}
+```
+
+Inside the `tests` array, add a test object:
+
+```json title="first-test.spec.json"
+{
+  "tests": [
+    {
+      "id": "homepage-check",
+      "description": "Verify the Doc Detective homepage loads"
+    }
+  ]
+}
+```
+
+The `id` uniquely identifies this test, and `description` explains what it does.
+
+<Tip>
+
+Use descriptive IDs and descriptions. They help you understand test results and maintain tests over time.
+
+</Tip>
+
+## Step 2: Add actions
+
+Tests contain `steps`—actions that Doc Detective performs. Add a `steps` array:
+
+```json title="first-test.spec.json"
+{
+  "tests": [
+    {
+      "id": "homepage-check",
+      "description": "Verify the Doc Detective homepage loads",
+      "steps": []
+    }
+  ]
+}
+```
+
+### Navigate to a URL
+
+Add a `goTo` action to navigate to the homepage:
+
+```json title="first-test.spec.json"
+{
+  "tests": [
+    {
+      "id": "homepage-check",
+      "description": "Verify the Doc Detective homepage loads",
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com"
+        }
+      ]
+    }
+  ]
+}
+```
+
+  The `goTo` action opens a browser and navigates to the specified URL.
+
+### Verify content
+
+Add a `find` action to verify the page title exists:
+
+```json title="first-test.spec.json"
+{
+  "tests": [
+    {
+      "id": "homepage-check",
+      "description": "Verify the Doc Detective homepage loads",
+      "steps": [
+        {
+          "action": "goTo",
+          "url": "https://doc-detective.com"
+        },
+        {
+          "action": "find",
+          "selector": "h1",
+          "matchText": "Doc Detective"
+        }
+      ]
+    }
+  ]
+}
+```
+
+This finds an `h1` element and verifies it contains "Doc Detective".
+
+## Step 3: Run your test
+
+Run the test using npx:
+
+```bash
+npx doc-detective runTests --input first-test.spec.json
+```
+
+You should see output like:
+
+```
+[INFO] Running test: homepage-check
+[INFO] ✓ goTo - Navigated to https://doc-detective.com
+[INFO] ✓ find - Found element matching criteria
+[PASS] Test completed successfully (3.2s)
+```
+
+Success! Your test passed.
+
+## Try it yourself
+
+Modify your test to verify another element on the page:
+
+1. Visit https://doc-detective.com in your browser.
+2. Right-click an element and select "Inspect".
+3. Note the element's selector.
+4. Add another `find` action to your test.
+5. Run the test again.
+
+Can you verify that the "Get Started" link exists?
+
+## What you learned
+
+Congratulations! You've created and run your first Doc Detective test. You learned:
+
+- How to structure a test file with tests and steps
+- How to use `goTo` to navigate to pages
+- How to use `find` to verify content exists
+- How to run tests from the command line
+
+## Troubleshooting
+
+### Test fails with "Element not found"
+
+If your `find` action fails, the selector might be incorrect.
+
+To fix,
+
+1. Open the URL in your browser.
+2. Right-click the element and select "Inspect".
+3. Verify the selector matches the HTML.
+4. Try a different selector (class, ID, or text).
+
+### Browser doesn't open
+
+Doc Detective needs a browser to run tests. Make sure:
+
+- You have Chrome, Firefox, or Edge installed
+- The browser is up to date
+- No other process is using the browser
+
+## Next steps
+
+Now that you understand the basics:
+
+- [Add more actions to your tests](/docs/actions)
+- [Learn about test contexts](/docs/configuration/contexts)
+- [Write tests for your own documentation](/contribute/testing)
+````
+
+## Checklist before submitting
+
+- [ ] States what users will learn
+- [ ] Lists what users will build
+- [ ] Prerequisites and time estimate included
+- [ ] Steps build progressively
+- [ ] Concepts are explained before code
+- [ ] Code examples are complete and tested
+- [ ] Outcome is shown after each major step
+- [ ] Troubleshooting addresses common issues
+- [ ] "What you learned" section recaps key points
+- [ ] Next steps suggest logical progression
+
+## Related templates
+
+- **[How-To](how-to)**: For task-oriented guides
+- **[Troubleshooting](troubleshooting)**: For problem-solution documentation
+- **[Reference](reference)**: For technical specifications
+- **[Feature](feature)**: For documenting new features

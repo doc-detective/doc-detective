@@ -1,0 +1,180 @@
+---
+title: HTML input format
+sidebar-title: HTML
+description: Use Doc Detective with HTML files.
+---
+
+HTML is the standard format for web pages. Doc Detective supports inline tests in HTML files using HTML comment syntax.
+
+## File extensions
+
+Doc Detective processes HTML files with the following extensions:
+
+- `.html`
+- `.htm`
+
+## Inline test syntax
+
+HTML files use HTML comments for inline tests:
+
+```html
+<!-- test { "testId": "my-test" } -->
+<!-- step { "goTo": "https://example.com" } -->
+<!-- test end -->
+```
+
+**Test start:**
+```html
+<!-- test { "testId": "my-test" } -->
+```
+
+**Step:**
+```html
+<!-- step { "goTo": "https://example.com" } -->
+```
+
+**Test end:**
+```html
+<!-- test end -->
+```
+
+**Ignore blocks:**
+```html
+<!-- test ignore start -->
+Content to ignore
+<!-- test ignore end -->
+```
+
+## Example
+
+Here's a complete example of an HTML file with inline tests:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Getting Started</title>
+</head>
+<body>
+  <!-- test { "testId": "navigation-test" } -->
+
+  <h1>Getting Started</h1>
+
+  <p>Navigate to our homepage:</p>
+  <!-- step { "goTo": "https://example.com" } -->
+
+  <p>Click the menu button:</p>
+  <!-- step { "click": "Menu" } -->
+
+  <p>Enter your search query:</p>
+  <!-- step { "type": { "keys": "test query", "selector": "[name=search]" } } -->
+
+  <p>Submit the search:</p>
+  <!-- step { "click": "Search" } -->
+
+  <!-- test end -->
+
+  <p>For more information, see our <a href="https://docs.example.com">documentation</a>.</p>
+</body>
+</html>
+```
+
+## Detected tests
+
+<Info>
+
+HTML currently only supports inline test statements. Detected test patterns (automatic test generation from content) are not included in the default configuration.
+
+</Info>
+
+To add detected test functionality to HTML files, you can define custom markup patterns in your configuration. See [custom inputs](custom) for examples.
+
+Example custom patterns for HTML:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "html",
+      "extensions": ["html", "htm"],
+      "markup": [
+        {
+          "name": "checkHyperlink",
+          "regex": ["<a\\s+href=\"(https?:\\/\\/[^\"]+)\"[^>]*>"],
+          "actions": ["checkLink"]
+        },
+        {
+          "name": "clickOnscreenText",
+          "regex": ["\\b(?:[Cc]lick|[Tt]ap)\\b\\s+<(strong|b)>([^<]+)<\\/\\1>"],
+          "actions": [{ "click": "$2" }]
+        },
+        {
+          "name": "goToUrl",
+          "regex": ["\\b(?:[Gg]o\\s+to|[Nn]avigate\\s+to)\\b[^<]*<a\\s+href=\"(https?:\\/\\/[^\"]+)\""],
+          "actions": ["goTo"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## JSON and YAML syntax
+
+HTML inline tests support both JSON and YAML syntax:
+
+**JSON syntax:**
+```html
+<!-- test { "testId": "my-test", "description": "Test description" } -->
+<!-- step { "goTo": "https://example.com" } -->
+```
+
+**YAML syntax:**
+```html
+<!-- test testId: my-test description: Test description -->
+<!-- step goTo: https://example.com -->
+```
+
+Both formats work identically. Choose the format that's most readable for your team.
+
+## Best practices
+
+- Keep test comments on a single line
+- Place test comments near the content they validate
+- Use descriptive test IDs to identify tests in results
+- Consider using custom markup patterns for automatic test detection
+- Validate your HTML to ensure comments don't break document structure
+
+## Integration with HTML toolchains
+
+HTML test comments are standard HTML comments and don't affect page rendering or functionality. This makes Doc Detective tests invisible to browsers and build tools while still being testable.
+
+Common HTML documentation tools that work with Doc Detective:
+
+- **Static HTML sites**: Any manually created HTML documentation
+- **Generated HTML**: HTML output from documentation generators
+- **HTML help systems**: CHM files and other HTML-based help formats
+- **Single-page applications**: SPAs with HTML documentation sections
+
+## Working with templated HTML
+
+If you use templating systems (like Handlebars, Jinja2, or EJS), you can include Doc Detective comments in your templates:
+
+**Handlebars example:**
+```handlebars
+{{#if showTutorial}}
+  <!-- test { "testId": "tutorial-test" } -->
+  <h2>Tutorial</h2>
+  <p>Navigate to the dashboard:</p>
+  <!-- step { "goTo": "{{dashboardUrl}}" } -->
+  <!-- test end -->
+{{/if}}
+```
+
+The test comments remain in the generated HTML and can be processed by Doc Detective.
+
+## Next steps
+
+- Learn about [inline tests](/docs/tests/inline-tests) for manual test definition
+- See [custom inputs](custom) to add detected test patterns for HTML
+- Explore [Markdown](markdown) and [DITA](dita) formats for detected test examples

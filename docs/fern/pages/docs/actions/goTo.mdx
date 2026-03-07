@@ -1,0 +1,217 @@
+---
+title: goTo
+description: Navigate to a specified URL.
+---
+
+
+The `goTo` action navigates the browser to a specified URL. This is typically used to start a test at a specific page or navigate between pages during a test.
+
+You can specify the target URL directly as a string, or use an object for more options:
+
+- **String Shorthand:** Provide the full URL, a path (starting with `/`), or a variable reference directly as the value for the `goTo` key. If a path is provided, it navigates relative to the current URL or the global `origin` if set in the configuration.
+- **Object Format:** Use an object with the following properties:
+  - `url`: (Required) The URL to navigate to. Can be a full URL, a path, or a variable reference.
+  - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. Overrides the global `origin` if set.
+
+> For comprehensive options, see the [`goTo`](/reference/schemas/goto) reference.
+
+## Examples
+
+Here are a few ways you might use the `goTo` action:
+
+### Navigate to a full URL (string shorthand)
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to example.com.",
+          "goTo": "https://example.com"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Navigate to a relative path (string shorthand)
+
+Assumes the browser is currently at `https://example.com` or a global `origin` is set.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to the /about path.",
+          "goTo": "/about"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Navigate using an object with a full URL
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to example.com using object format.",
+          "goTo": {
+            "url": "https://example.com"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Navigate using an object with a relative path and specific origin
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to Google search using a specific origin.",
+          "goTo": {
+            "url": "/search",
+            "origin": "https://www.google.com"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Wait conditions
+
+The `goTo` action supports advanced waiting conditions after navigation to ensure pages are fully loaded and ready before the next step runs.
+
+When using the object format, you can configure:
+
+- `timeout`: (Optional) Maximum time in milliseconds to wait for all conditions to be met. If exceeded, the goTo action fails (default: 30000).
+- `waitUntil`: (Optional) Object specifying conditions to wait for:
+  - `networkIdleTime`: (Optional) Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check (default: 500).
+  - `domIdleTime`: (Optional) Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check (default: 1000).
+- `find`: (Optional) Wait for a specific element to be present in the DOM. At least one of `selector` or `elementText` must be specified.
+  - `selector`: (Optional) CSS selector for the element to wait for.
+  - `elementText`: (Optional) Text content the element must contain.
+
+### Wait for network idle
+
+Navigate to a page and wait for network activity to settle.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate and wait for network idle.",
+          "goTo": {
+            "url": "https://www.example.com",
+            "waitUntil": {
+              "networkIdleTime": 500
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Wait for a specific element
+
+Navigate to a dashboard and wait for a specific element to appear.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to dashboard and wait for it to load.",
+          "goTo": {
+            "url": "https://www.example.com/dashboard",
+            "waitUntil": {
+              "find": {
+                "selector": "[data-testid='dashboard-loaded']"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Wait for element with text
+
+Wait for an element containing specific text to appear.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to status page and wait for operational message.",
+          "goTo": {
+            "url": "https://www.example.com/status",
+            "waitUntil": {
+              "find": {
+                "elementText": "System operational"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Combine multiple wait conditions
+
+Use multiple wait conditions together with a custom timeout.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate to app with comprehensive wait conditions.",
+          "goTo": {
+            "url": "https://www.example.com/app",
+              "timeout": 60000,
+            "waitUntil": {
+              "networkIdleTime": 500,
+              "domIdleTime": 1000,
+              "find": {
+                "selector": ".main-content",
+                "elementText": "Dashboard"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+

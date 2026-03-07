@@ -1,0 +1,271 @@
+---
+title: Tests overview
+description: Tests tell Doc Detective what actions to perform, how, and where.
+---
+
+Tests tell Doc Detective what actions to perform, how, and where. Tests are made of three sets of components:
+
+- **Test specification**: The highest-level component, test specifications (or specs) are collection of tests that should run together. [Contexts](/docs/configuration/contexts) defined in the spec are shared by all tests in the spec. Test specifications are equivalent to test suites in other testing frameworks.
+- **Test**: A test to run within a spec. Each test has a name, and a set of steps to perform. Tests are equivalent to test cases in other testing frameworks.
+- **Steps**: A step is a single action to perform within a test. Each individual step acts as an assertion that the step completes as expected. Steps are roughly equivalent to assertions in other testing frameworks.
+
+  Each step can perform an action, which is a command that tells Doc Detective what to do. Actions can have additional properties that further define the action.
+
+  - [**checkLink**](/docs/actions/check-link): Check if a URL returns an acceptable status code from a GET request.
+  - [**click**](/docs/actions/click): Click or tap an element.
+  - [**dragAndDrop**](/docs/actions/drag-and-drop): Drag an element and drop it on a target.
+  - [**find**](/docs/actions/find): Check if an element exists with the specified selector.
+  - [**goTo**](/docs/actions/go-to): Navigate to a specified URL.
+  - [**httpRequest**](/docs/actions/http-request): Perform a generic HTTP request, for example to an API.
+  - [**loadVariables**](/docs/actions/load-variables): Load environment variables from a `.env` file.
+  - [**saveCookie**](/docs/actions/save-cookie): Save a specific browser cookie to a file or environment variable for later reuse.
+  - [**loadCookie**](/docs/actions/load-cookie): Load a specific cookie from a file or environment variable into the browser.
+  - [**record**](/docs/actions/record) and [**stopRecord**](/docs/actions/stop-record): Capture a video of test execution.
+  - [**runCode**](/docs/actions/run-code): Assemble and run code.
+  - [**runShell**](/docs/actions/run-shell): Perform a native shell command.
+  - [**screenshot**](/docs/actions/screenshot): Take a screenshot in PNG format.
+  - [**type**](/docs/actions/type): Type keys. To type special keys, begin and end the string with `$` and use the special key's enum. For example, to type the Escape key, enter `$ESCAPE$`.
+  - [**wait**](/docs/actions/wait): Pause before performing the next action.
+
+## Test results
+
+When Doc Detective runs a test, the result is one of four statuses:
+
+- **PASS**: The test completed successfully.
+- **FAIL**: The test encountered an error or assertion failure.
+- **WARNING**: The test detected differences during regression testing that exceeded the specified threshold.
+- **SKIPPED**: The test couldn't run in the current environment.
+
+### Skipped tests
+
+When Doc Detective runs tests, it checks if each [context](/docs/configuration/contexts) matches your current environment. If a context specifies a platform or browser that doesn't match the system running the test, Doc Detective skips that context and its associated test.
+
+Doc Detective skips tests when:
+
+- **Platform mismatch**: The context specifies a platform (Windows, macOS, or Linux) that doesn't match your current operating system.
+- **Browser unavailable**: The context specifies a browser that isn't installed or available on your system.
+- **All contexts skipped**: If all contexts for a test are skipped, the entire test is marked as SKIPPED (not PASS).
+
+When a test is skipped, the results show a SKIPPED status in the output JSON:
+
+```json
+{
+  "summary": {
+    "tests": {
+      "pass": 0,
+      "fail": 0,
+      "warning": 0,
+      "skipped": 1  // Test was skipped
+    },
+    "contexts": {
+      "pass": 0,
+      "fail": 0,
+      "warning": 0,
+      "skipped": 1  // Context didn't match environment
+    }
+  },
+  "specs": [
+    {
+      "result": "SKIPPED",
+      "tests": [
+        {
+          "result": "SKIPPED",
+          "contexts": [
+            {
+              "result": "SKIPPED",
+              "platform": "windows",  // Current platform: linux
+              "browser": {
+                "name": "chrome"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+This keeps your test reporting accurate and prevents skipped tests from incorrectly appearing as passing.
+
+### Warning results
+
+WARNING results occur during regression testing when differences exceed your specified threshold. When you use actions like `screenshot`, `runShell`, or `runCode` with regression testing, Doc Detective compares the new output to a reference baseline.
+
+You get a WARNING when:
+
+- **Visual regression testing**: A screenshot differs from the reference image by more than the `maxVariation` threshold.
+- **Output regression testing**: Command or code output differs from the reference file by more than the `maxVariation` threshold.
+
+When a step returns WARNING:
+
+- The test continues executing (unlike FAIL, which stops the test).
+- The new output is captured for review.
+- Whether the reference is updated depends on the `overwrite` setting.
+
+The output JSON shows the WARNING status:
+
+```json
+{
+  "summary": {
+    "tests": {
+      "pass": 0,
+      "fail": 0,
+      "warning": 1,  // Test completed with warnings
+      "skipped": 0
+    },
+    "contexts": {
+      "pass": 0,
+      "fail": 0,
+      "warning": 1,  // Context had regression differences
+      "skipped": 0
+    }
+  },
+  "specs": [
+    {
+      "result": "WARNING",
+      "tests": [
+        {
+          "result": "WARNING",
+          "contexts": [
+            {
+              "result": "WARNING",
+              "steps": [
+                {
+                  "action": "screenshot",
+                  "result": "WARNING"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+This lets you catch and review unexpected changes while your test suite continues running.
+
+## Define a test
+
+You can define test specs in multiple ways:
+
+- [Standalone JSON files](./standalone-tests): Help you see the entirety of the spec and keep it in a separate, machine-readable format.
+- [Inline JSON](./inline-tests): Define tests directly in your documentation source files.
+- [Detected tests](./detected-tests): Automatically generated by Doc Detective based on your documentation source files and your configuration.
+
+## Run tests
+
+Doc Detective's `doc-detective` command runs your tests. Input files are read from your config's `input` property, but you can also specify input files directly in the command with the `--input` flag.
+
+This example runs all test specs in your config's `input` and `runTest.input` parameters:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective
+```
+
+<Note>
+The `-v` argument mounts your current directory (`.`) to `/app` in the container, giving Doc Detective access to your test specifications.
+</Note>
+
+  </Tab>
+</Tabs>
+
+This example runs all test specs in a file named `doc-content.md` in the `samples` directory:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input ./samples/doc-content.md
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --input /app/samples/doc-content.md
+```
+
+  </Tab>
+</Tabs>
+
+### Remotely hosted tests
+
+You can run tests hosted remotely by specifying the URL of the test file with the `--input` argument. For example, to run tests from a file hosted at `https://doc-detective.com/sample.spec.json`, run the following command:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input https://doc-detective.com/sample.spec.json
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run docdetective/docdetective --input https://doc-detective.com/sample.spec.json
+```
+
+<Note>
+The `-v` argument is not necessary for remotely hosted tests since Docker doesn't need access to local files.
+</Note>
+
+  </Tab>
+</Tabs>
+
+These tests run the same way as local tests, but Doc Detective fetches the test file from the specified URL and stores it in a temporary directory. The URL must be accessible to the machine running the tests.
+
+### Run tests with multiple files
+
+You can run tests using multiple files in multiple directories. Add as many comma-separated input values as necessary.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input inline-tests.md,https://doc-detective.com/sample.spec.json,./samples/doc-content.md
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --input /app/inline-tests.md,https://doc-detective.com/sample.spec.json,/app/samples/doc-content.md
+```
+
+  </Tab>
+</Tabs>
+
+## Read the results
+
+Doc Detective outputs test results to a `testResults-<timestamp>.json` file in your `output` directory. You can also specify your output directory with the `--output` flag:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --input ./samples/doc-content.md --output ./samples/
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --input /app/samples/doc-content.md --output /app/samples/
+```
+
+  </Tab>
+</Tabs>

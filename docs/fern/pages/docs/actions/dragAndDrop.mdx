@@ -1,0 +1,101 @@
+---
+title: dragAndDrop
+description: Drag an element to a target location.
+---
+
+
+The `dragAndDrop` action allows you to drag an element and drop it at a target location. This is useful for testing drag-and-drop interfaces, reordering lists, moving items between containers, and other interactive UI elements.
+
+The `dragAndDrop` action requires both a source and target element, which can be specified using element text, CSS/XPath selectors, or detailed objects with additional configuration options.
+
+<Info>
+
+Drag-and-drop has many different implementations, and Doc Detective wants to support them all. If you find that your specific use case isn't working, don't give up. Please [open an issue](https://github.com/doc-detective/doc-detective/issues) or [start a thread on our Discord](https://discord.gg/2M7wXEThfF).
+
+</Info>
+
+## Use cases
+
+The `dragAndDrop` action is particularly useful for testing:
+
+- **Kanban boards**: Moving tasks between different status columns
+- **File uploads**: Dragging files from desktop to upload areas
+- **List reordering**: Changing the order of items in sortable lists
+- **Dashboard widgets**: Rearranging components on customizable dashboards
+- **Form builders**: Moving form elements between different sections
+- **Shopping carts**: Adding items by dragging them to the cart area
+
+## Properties
+
+The `dragAndDrop` action requires an object with the following properties:
+
+- `source`: (Required) The element to drag from. Can be a string (element text or selector) or a detailed object.
+- `target`: (Required) The element to drop onto. Can be a string (element text or selector) or a detailed object.
+
+### Source and target element properties
+
+When using detailed objects for `source` or `target`, you can specify:
+
+- `elementText`: (Optional) Display text of the element. If combined with `selector`, the element must match both the text and the selector.
+- `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element. If combined with `elementText`, the element must match both the text and the selector.
+- `timeout`: (Optional) Maximum duration in milliseconds to wait for this specific element to exist.
+
+> For comprehensive options, see the full [`dragAndDrop`](/reference/schemas/draganddrop) reference.
+
+## Examples
+
+Here are several ways you might use the `dragAndDrop` action:
+
+### Drag and drop using selectors or element text
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Drag 'Item 1' and drop it onto 'Drop Zone'",
+          "dragAndDrop": {
+            "source": "#source-list .draggable-item:first-child",
+            "target": "Drop Zone"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Drag and drop with detailed element objects
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Drag a specific task to a different column",
+          "dragAndDrop": {
+            "source": {
+              "selector": ".task-card",
+              "elementText": "Complete documentation"
+            },
+            "target": {
+              "selector": ".column",
+              "elementText": "In Progress"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Related actions
+
+- [`click`](/docs/actions/click): Click elements to interact with them
+- [`find`](/docs/actions/find): Locate elements before performing other actions
+- [`wait`](/docs/actions/wait): Add delays for animations to complete
+
+

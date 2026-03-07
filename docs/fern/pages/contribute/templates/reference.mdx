@@ -1,0 +1,212 @@
+---
+title: Reference template
+description: Template for creating technical reference documentation.
+sidebar-title: Reference
+---
+
+Use this template for technical reference documentation like API documentation, configuration options, or command-line reference.
+
+## When to use this template
+
+Use reference documentation for:
+
+- API or action documentation
+- Configuration file reference
+- Command-line interface reference
+- Schema or data format specifications
+- Complete lists of options or parameters
+
+Examples:
+
+- Doc Detective action reference (`find`, `click`, `type`, etc.)
+- Configuration file schema
+- CLI command reference
+- Environment variables reference
+
+## Template
+
+Copy and adapt this template for your reference documentation:
+
+````markdown
+---
+title: [API/command/option name]
+description: [One-sentence description of what this does]
+---
+
+# [Name]
+
+[2-3 sentences explaining what this is and when to use it.]
+
+## Syntax
+
+[Show the basic syntax pattern. Use a code block.]
+
+```[language]
+[Syntax pattern with placeholders]
+```
+
+## Parameters
+
+[Table of all parameters/options/properties.]
+
+| Parameter | Type    | Required | Default | Description              |
+| --------- | ------- | -------- | ------- | ------------------------ |
+| param1    | string  | Yes      | -       | What this parameter does |
+| param2    | number  | No       | 10      | What this parameter does |
+| param3    | boolean | No       | false   | What this parameter does |
+
+### param1
+
+[Detailed description if needed.]
+
+**Type:** string
+**Required:** Yes
+
+[Additional details, constraints, or important notes.]
+
+### param2
+
+[Detailed description if needed.]
+
+**Type:** number
+**Required:** No
+**Default:** 10
+**Valid values:** 1-100
+
+[Additional details, constraints, or important notes.]
+
+## Return value
+
+[For APIs: What does this return? For commands: What's the output?]
+
+**Type:** [Return type]
+
+[Description of what's returned.]
+
+## Examples
+
+### Basic example
+
+[Show the simplest possible usage.]
+
+```[language] title="[filename if applicable]"
+[Code]
+```
+
+[Brief explanation of what this example does.]
+
+### Example with [specific feature]
+
+[Show usage with additional options.]
+
+```[language] title="[filename if applicable]"
+[Code]
+```
+
+[Brief explanation of what this example demonstrates.]
+
+### Advanced example
+
+[Show more complex usage combining multiple features.]
+
+```[language] title="[filename if applicable]"
+[Code]
+```
+
+[Brief explanation of the advanced usage.]
+
+## Remarks
+
+[Optional: Important notes, behaviors, limitations, or caveats.]
+
+- Important note 1
+- Important note 2
+- Known limitation
+
+## See also
+
+[Link to related reference documentation.]
+
+- [Related item 1](#)
+- [Related item 2](#)
+- [Tutorial using this](#)
+````
+
+## Writing tips
+
+### Be precise and complete
+
+Reference documentation should be authoritative:
+
+✅ Good:
+
+**Type:** `string | number`<br/> **Required:** No<br/> **Default:** `"auto"`<br/> **Valid values:** `"auto"`, `"light"`, `"dark"`, or any number 0-100
+
+⛔ Vague:
+
+Theme setting (optional)
+
+### Use consistent structure
+
+All entries in a reference should follow the same pattern:
+
+✅ Consistent:
+
+- Every parameter has: Type, Required, Default (if applicable), Description
+- Every example has: Code block, Explanation
+- Every section appears in the same order
+
+### Document edge cases
+
+Reference docs should cover unusual behavior:
+
+✅ Complete:
+
+> If `timeout` is set to `0`, the action waits indefinitely. If `timeout` is negative, it defaults to 5000 ms.
+
+⛔ Incomplete:
+
+> The timeout value in milliseconds.
+
+### Provide multiple examples
+
+Show common use cases:
+
+✅ Good examples:
+
+- Basic: Minimal configuration
+- Intermediate: Common options
+- Advanced: Complex real-world usage
+- Edge case: Unusual but valid usage
+
+### Link to related content
+
+Help users discover related information:
+
+```markdown
+## See also
+
+- **Conceptual**: [Understanding test contexts](/docs/concepts/contexts)
+- **How-to**: [How to configure contexts](/docs/how-to/configure-contexts)
+- **Related actions**: [goTo action](/docs/references/goto)
+```
+
+## Checklist before submitting
+
+- [ ] Syntax section shows clear usage pattern
+- [ ] All parameters are documented in a table
+- [ ] Each parameter has: type, required status, default (if applicable), description
+- [ ] Complex parameters have detailed subsections
+- [ ] Return value is documented (if applicable)
+- [ ] At least 3 examples provided (basic, intermediate, advanced)
+- [ ] Important remarks or limitations are noted
+- [ ] Related documentation is linked
+- [ ] All examples have been tested
+
+## Related templates
+
+- **[How-To](how-to)**: For task-oriented guides using this reference
+- **[Tutorial](tutorial)**: For learning-oriented guides
+- **[Feature](feature)**: For documenting new features
+- **[Troubleshooting](troubleshooting)**: For problem-solution documentation
+```

@@ -1,0 +1,19 @@
+{
+  "name": "doc-detective-docs",
+  "version": "1.0.0",
+  "description": "Documentation for Doc Detective, built on Fern",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm i -g mdx2vast doc-detective@latest",
+    "start": "npx fern docs dev",
+    "test": "npx doc-detective"
+  },
+  "engines": {
+    "node": "^22.12.0 || ^24.11.1",
+    "npm": "^10.9.2 || ^11.6.2",
+    "pnpm": "^10.24.0"
+  },
+  "dependencies": {
+    "fern-api": "^4.15.1"
+  }
+}

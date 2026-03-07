@@ -1,0 +1,79 @@
+---
+title: Input formats
+description: Doc Detective supports multiple documentation formats for defining and detecting tests.
+---
+
+Doc Detective supports multiple documentation formats for defining and detecting tests. You can use [inline tests](/docs/tests/inline-tests) and [detected tests](/docs/tests/detected-tests) in any of these formats.
+
+## Supported formats
+
+Doc Detective includes built-in support for:
+
+- [**Markdown**](markdown): The most common format, with support for MDX and various Markdown flavors
+- [**DITA**](dita): XML-based format with semantic markup for technical documentation
+- [**AsciiDoc**](asciidoc): Lightweight markup language popular in technical writing
+- [**HTML**](html): Standard web format with HTML comment syntax
+
+Each format has its own comment patterns for inline tests and markup patterns for detected tests.
+
+## How input formats work
+
+Input formats are defined in your [configuration file](/reference/schemas/config) using the `fileTypes` array. Each file type definition includes:
+
+- **name**: A descriptive name for the file type
+- **extensions**: File extensions that should be processed with this configuration
+- **testStartStatementOpen/Close**: Patterns for declaring test start comments
+- **testEndStatementOpen/Close**: Patterns for declaring test end comments
+- **testIgnoreStatement**: Patterns for ignoring test detection in specific areas
+- **stepStatementOpen/Close**: Patterns for declaring individual test steps
+- **markup**: Regex patterns for detecting tests from documentation content
+
+## Default configurations
+
+Doc Detective includes default configurations for common file types:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "markdown",
+      "extensions": ["md", "markdown", "mdx"]
+    },
+    {
+      "name": "html",
+      "extensions": ["html", "htm"]
+    },
+    {
+      "name": "asciidoc",
+      "extensions": ["adoc", "asciidoc", "asc"]
+    },
+    {
+      "name": "dita",
+      "extensions": ["dita", "ditamap", "xml"]
+    }
+  ]
+}
+```
+
+## Choosing an input format
+
+The input format you choose depends on your documentation toolchain and team preferences:
+
+- Use **Markdown** for most modern documentation sites and static site generators
+- Use **DITA** for enterprise documentation with semantic markup requirements
+- Use **AsciiDoc** for technical documentation with advanced formatting needs
+- Use **HTML** for web-based documentation or when working directly with HTML files
+
+## Custom input formats
+
+You can define custom input formats by extending the default configuration. See [Custom inputs](custom) for more information.
+
+## Next steps
+
+Learn more about each specific input format:
+
+- [Markdown input format](markdown)
+- [DITA input format](dita)
+- [AsciiDoc input format](asciidoc)
+- [HTML input format](html)
+- [Custom input formats](custom)

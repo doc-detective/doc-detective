@@ -1,0 +1,101 @@
+---
+title: Quick changes (2-10 minutes)
+description: Make quick documentation fixes in 2-10 minutes using your browser.
+sidebar-title: Quick changes
+---
+
+Fix typos, broken links, and small issues directly in your browser—no setup required.
+
+## What you can fix quickly
+
+- Typos and grammar issues
+- Confusing wording or unclear instructions
+- Missing punctuation or formatting issues
+
+## How to make quick edits
+
+Every documentation page has an **Edit this page** link at the bottom. This is the fastest way to contribute.
+
+1. __Find the issue__: Navigate to the page with the problem.
+2. __Open the editor__: Click **Edit this page**, located at the bottom of every doc page.
+
+   GitHub opens the file in a web-based editor.
+
+3. __Make your changes__: Edit the Markdown file directly in the browser to fix the issue.
+4. __Preview your changes__: Open a preview panel (Ctrl+Shift+V) to see how it looks.
+5. __Commit your changes__:
+   1. In the side panel, click the **Source Control** button (looks like a branch icon).
+   1. Add a brief description of what you changed (for example, "Fix typo in installation steps").
+   1. Click "Commit & Push".
+6. __Create a pull request__:
+   1. Review the changes one more time.
+   1. In the Source Control panel, click the **Create Pull Request** button (looks like a vertical line with dots on both ends with an arrow pointing to the top and a plus sign).
+   1. Enter a name and description for the pull request.
+   1. Click **Create** to submit.
+
+That's it. A maintainer will review your contribution.
+
+## Tips for quick contributions
+
+### Writing commit messages
+
+Keep them short and descriptive:
+
+✅ Good examples:
+- `Fix typo in quick-start guide`
+- `Update broken link to API reference`
+- `Clarify installation prerequisites`
+
+⛔ Avoid:
+- `Update docs`
+- `Fix stuff`
+- `Changes`
+
+### Making multiple edits
+
+If you're fixing several small issues on the same page, you can make all the changes in one pull request. Just edit the file multiple times before creating the pull request.
+
+For one issue across multiple pages, include all changes in a single pull request.
+
+For different issues across different pages, create separate pull requests—it's faster for reviewers.
+
+## What happens next
+
+1. __Automated checks__: Our CI/CD pipeline runs automated checks on your contribution
+   - Style checks (Vale)
+   - Link validation
+   - Build verification
+2. __Review__: A maintainer reviews your changes (usually within 2 business days)
+3. __Feedback__: If changes are needed, the reviewer will comment on your pull request
+4. __Merge__: Once approved, your contribution is merged and goes live.
+
+## Common contributor concerns (and why you don't need to worry)
+
+### Do I need to test my changes?
+
+For quick fixes like typos and link updates, no testing is required. The automated checks catch most issues.
+
+### What if the automated checks fail?
+
+Don't worry. The reviewer will help you fix any issues. Most common failures are correctable:
+- __Vale failures__: Usually suggest alternative wording (often just suggestions)
+- __Link check failures__: Means a link is broken or inaccessible
+- __Build failures__: Usually means there's a syntax error in Markdown
+
+### Can I edit multiple pages at once?
+
+Yes, but it's easier through local development. For small edits across multiple pages, consider creating separate pull requests—it's faster for both you and reviewers.
+
+### Do I need to sign anything?
+
+Yes, but only once. Before your first contribution can be merged, you'll be prompted to sign the [Contributor License Agreement](https://cla-assistant.io/doc-detective/doc-detective.github.io). This is a one-time process that happens automatically when you create your first pull request.
+
+## Need help?
+
+- __Questions about the change?__ Ask in the pull request comments
+- __Not sure what to change?__ Join our [Discord server](https://discord.gg/2M7wXEThfF)
+- __Found a bigger issue?__ Consider a [standard contribution](standard-contributions) instead
+
+## Ready for more?
+
+Once you're comfortable with quick edits, try [standard contributions](standard-contributions) to add new content and examples.

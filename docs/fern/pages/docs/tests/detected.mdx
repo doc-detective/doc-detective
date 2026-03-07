@@ -1,0 +1,253 @@
+---
+title: Detected tests
+description: Automatically generate tests based on your documentation source files.
+---
+
+Doc Detective can automatically generate tests based on your documentation source files and your `fileTypes` configuration. Detected tests are useful for large, complex test suites that you want to keep in sync with your documentation. Test detection works by setting `detectSteps` to `true` and defining markup patterns and associated actions in the `fileTypes.markup` array in your [config](/reference/schemas/config), which Doc Detective uses to extract steps from your doc source files. You can define multiple test patterns in your config to extract different types of tests from your documentation.
+
+Detected tests are useful for keeping your tests in sync with your documentation. When you update your documentation, Doc Detective automatically updates the tests based on the new content. Detected tests are generated automatically. You can't edit detected tests directly, but you can update your config or documentation source files to change the tests.
+
+> You can mix detected tests with [inline tests](./inline-tests) to declare steps that might not be covered in your content, such starting or stopping a recording.
+
+## Benefits of detected tests
+
+Detected tests provide several advantages:
+
+- **Automatic synchronization**: Tests update automatically when documentation changes
+- **Reduced maintenance**: No need to manually update test specifications
+- **Consistent coverage**: Ensures all documented procedures are tested
+- **Time savings**: Eliminates the need to write many test specifications manually
+
+Combine detected tests with [inline tests](./inline-tests) for comprehensive test coverage with minimal manual effort.
+
+## Default markup patterns
+
+Doc Detective includes default markup patterns for Markdown and DITA files. For comprehensive information about each input format and their patterns, see [Input formats](/docs/input-formats/overview).
+
+### Markdown patterns
+
+Doc Detective recognizes common Markdown patterns and converts them into test actions:
+
+- **checkHyperlink**: Standard Markdown links like `[link text](https://example.com)` generate `checkLink` actions
+- **clickOnscreenText**: Action verbs followed by bold text like `Click **Button Name**` generate `click` actions
+- **findOnscreenText**: Bold text like `**Any Bold Text**` generates `find` actions
+- **goToUrl**: Navigation instructions with links like `Go to [Page Name](https://example.com)` generate `goTo` actions
+- **screenshotImage**: Images with a `.screenshot` class like `![Alt text](image.png){.screenshot}` generate `screenshot` actions
+- **typeText**: Typing instructions like `Type "Hello World"` generate `type` actions
+- **httpRequestFormat**: HTTP request code blocks generate `httpRequest` actions
+- **runCode**: Code blocks with language tags generate `runCode` actions
+
+For the complete Markdown pattern configuration and detailed examples, see [Markdown input format](/docs/input-formats/markdown).
+
+### DITA patterns
+
+<Info>
+
+**Beta**: DITA markup patterns are available in beta and subject to change.
+
+</Info>
+
+Doc Detective extracts tests from DITA task topics using semantic markup. It recognizes DITA elements like `<uicontrol>`, `<userinput>`, `<systemoutput>`, `<shortcut>`, and `<cmdname>` within `<cmd>` elements and automatically generates tests from properly structured DITA content.
+
+Key DITA patterns include:
+
+- **clickUiControl**: `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` actions
+- **typeIntoUiControl**: `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates `type` actions
+- **navigateToXref**: `<cmd>Navigate to <xref href="https://example.com">Site</xref></cmd>` generates `goTo` actions
+- **verifySystemOutput**: `<cmd>Verify <systemoutput>Success</systemoutput></cmd>` generates `find` actions
+- **checkExternalXref**: External links with `scope="external"` generate `checkLink` actions
+
+For the complete DITA pattern configuration and semantic element reference, see [DITA input format](/docs/input-formats/dita).
+
+## Example with detected tests
+
+With the default configuration, Doc Detective takes the following Markdown and generates tests automatically:
+
+**Markdown:**
+
+```markdown
+To get started,
+
+1. Go to [Acme Console](https://console.acme.com).
+2. Click **Search**.
+3. Type "American Shorthair kittens".
+
+Check out our [documentation](https://docs.example.com) for more information.
+
+![Search results](search-results.png){ .screenshot }
+```
+
+**Detected tests:**
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "https://console.acme.com"
+        },
+        {
+          "click": "Search"
+        },
+        {
+          "type": "American Shorthair kittens"
+        },
+        {
+          "checkLink": "https://docs.example.com"
+        },
+        {
+          "screenshot": "search-results.png"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Custom markup patterns
+
+You can extend or override the default patterns by defining custom markup patterns in your configuration:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "markdown",
+      "extensions": ["md", "markdown", "mdx"],
+      "markup": [
+        {
+          "name": "customAction",
+          "regex": ["\\b(?:custom)\\b\\s+\\*\\*(.+?)\\*\\*"],
+          "actions": [
+            {
+              "find": {
+                "selector": "aria/$1",
+                "timeout": 10000
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Default actions
+
+If you only need to perform basic steps, you can define actions using a shorthand of only specifying the action name. Doc Detective uses default actions, substituting the first capture group (or if there are no capture groups, the entire match) from the regex pattern into the most common location for the action.
+
+The default actions are as follows:
+
+#### `checkLink`
+
+Check that the match returns a valid status code.
+
+```json
+{ "checkLink": "$1" }
+```
+
+### `click`
+
+Click or tap the match.
+
+```json
+{ "click": "$1" }
+```
+
+#### `goTo`
+
+Open the match as a URL in a browser.
+
+```json
+{ "goTo": "$1" }
+```
+
+#### `find`
+
+Find an element on the current page that has an ARIA label that equals the match.
+
+```json
+{ "find": "$1" }
+```
+
+#### `screenshot`
+
+Save a screenshot to a path equalling the match.
+
+```json
+{ "screenshot": "$1" }
+```
+
+#### `type`
+
+Type the match into the current page.
+
+```json
+{ "type": "$1" }
+```
+
+#### `httpRequest`
+
+Make an GET request to the match.
+
+```json
+{ "httpRequest": "$1" }
+```
+
+#### `runShell`
+
+Run the match as a shell command.
+
+```json
+{ "runShell": "$1" }
+```
+
+#### `record`
+
+Start recording a video to a path equalling the match.
+
+```json
+{ "record": "$1" }
+```
+
+#### `stopRecord`
+
+Stop recording a video.
+
+```json
+{ "stopRecord": true }
+```
+
+#### `wait`
+
+Wait for the specified duration.
+
+```json
+{ "wait": "$1" }
+```
+
+#### `loadVariables`
+
+Load environment variables from an `.env` file, where the path is the match.
+
+```json
+{ "loadVariables": "$1" }
+```
+
+#### `saveCookie`
+
+Save a browser cookie by name to a default location.
+
+```json
+{ "saveCookie": "$1" }
+```
+
+#### `loadCookie`
+
+Load a browser cookie by name from a default location.
+
+```json
+{ "loadCookie": "$1" }
+```
