@@ -120,3 +120,8 @@ src/container/test/artifacts/*.png
 # Common subpackage build artifacts
 src/common/dist/
 src/common/node_modules/
+
+# VSCode extension build artifacts
+src/vscode/dist/
+src/vscode/out/
+src/vscode/node_modules/
