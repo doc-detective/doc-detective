@@ -120,7 +120,7 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
 WORKDIR /app
 
 # Add entrypoint command base
-ENTRYPOINT ["cmd.exe", "/c", "npx doc-detective"]
+ENTRYPOINT ["C:\\Program Files\\nodejs\\npx.cmd", "doc-detective"]
 
 # Set default command
 CMD []
