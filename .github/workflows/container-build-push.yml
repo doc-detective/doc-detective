@@ -20,6 +20,10 @@ on:
         default: false
         required: false
 
+concurrency:
+  group: container-build-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

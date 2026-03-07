@@ -19,6 +19,10 @@ on:
       - published
   workflow_dispatch:
 
+concurrency:
+  group: test-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
