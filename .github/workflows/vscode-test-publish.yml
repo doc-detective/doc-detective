@@ -1,0 +1,95 @@
+name: VSCode Extension Test (& Publish)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/vscode/**'
+      - 'src/common/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/vscode-test-publish.yml'
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - 'src/vscode/**'
+      - 'src/common/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/vscode-test-publish.yml'
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    timeout-minutes: 10
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+        #   - ubuntu-latest    Ubuntu omitted because GitHub Actions' Ubuntu image doesn't have compatible X server
+          - windows-latest
+          - macos-latest
+        node:
+          - 22
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            src/vscode/package-lock.json
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build common
+        run: cd src/common && npm run build
+
+      - name: Install vscode extension dependencies
+        run: cd src/vscode && npm ci
+
+      - name: Run vscode extension tests
+        run: cd src/vscode && npm test
+
+  publish-vsc:
+    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            src/vscode/package-lock.json
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build common
+        run: cd src/common && npm run build
+
+      - name: Install vscode extension dependencies
+        run: cd src/vscode && npm ci
+
+      - name: Publish to VS Code Marketplace
+        run: cd src/vscode && npx vsce publish --no-yarn
+        env:
+          VSCE_PAT: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}

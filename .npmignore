@@ -40,6 +40,9 @@ testResults*
 coverageResults*
 testSuggestions*
 
+# VSCode extension (not part of npm package)
+src/vscode/
+
 # Environment and local config
 .env
 .env.test

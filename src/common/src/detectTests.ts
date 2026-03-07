@@ -53,6 +53,7 @@ export interface FileType {
     step?: string[];
   };
   markup?: Array<{
+    name?: string;
     regex: string[];
     actions?: (string | Record<string, any>)[];
     batchMatches?: boolean;

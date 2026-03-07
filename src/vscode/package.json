@@ -1,0 +1,100 @@
+{
+  "name": "doc-detective-vscode",
+  "displayName": "Doc Detective",
+  "publisher": "DocDetective",
+  "description": "View Doc Detective tests for active files.",
+  "version": "0.0.13",
+  "sponsor": {
+    "url": "https://github.com/sponsors/doc-detective"
+  },
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:doc-detective.helloWorld",
+    "onView:docDetectiveView"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "doc-detective.helloWorld",
+        "title": "Hello World"
+      }
+    ],
+    "configuration": {
+      "title": "Doc Detective",
+      "properties": {
+        "docDetective.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Doc Detective configuration file. If not specified, the extension looks for .doc-detective.json, .doc-detective.yaml, or .doc-detective.yml in the workspace root."
+        }
+      }
+    },
+    "menus": {
+      "view/title": []
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "docDetectiveSidebar",
+          "title": "Doc Detective",
+          "icon": "media/dd-mono.png"
+        }
+      ]
+    },
+    "views": {
+      "docDetectiveSidebar": [
+        {
+          "id": "docDetectiveView",
+          "name": "Detected Tests",
+          "type": "webview"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/doc-detective/doc-detective.git",
+    "directory": "src/vscode"
+  },
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "watch-tests": "tsc -p tsconfig.test.json -w",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.4.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.0.3",
+    "@types/vscode": "^1.101.0",
+    "@typescript-eslint/eslint-plugin": "^8.35.0",
+    "@typescript-eslint/parser": "^8.32.1",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.29.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-errors": "^3.0.0",
+    "ajv-formats": "^3.0.1",
+    "ajv-keywords": "^5.1.0",
+    "yaml": "^2.8.2"
+  }
+}
