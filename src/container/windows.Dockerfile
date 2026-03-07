@@ -1,6 +1,8 @@
 FROM mcr.microsoft.com/windows/server:ltsc2022 AS system
 ARG PACKAGE_VERSION=latest
 ARG PYTHON_VERSION=3.13.1
+ENV PACKAGE_VERSION=${PACKAGE_VERSION}
+ENV PYTHON_VERSION=${PYTHON_VERSION}
 
 LABEL authors="Doc Detective" \
     description="The official Docker image for Doc Detective. Keep your docs accurate with ease." \
@@ -74,7 +76,6 @@ RUN $PythonVersion = $env:PYTHON_VERSION; \
 
 # Download and install Microsoft OpenJDK 17
 RUN $JavaVersion = '17.0.14'; \
-    $JavaBuild = '9'; \
     $JavaUrl = 'https://aka.ms/download-jdk/microsoft-jdk-' + $JavaVersion + '-windows-x64.zip'; \
     $JavaZip = 'C:\openjdk.zip'; \
     Write-Host 'Downloading Microsoft OpenJDK 17...'; \

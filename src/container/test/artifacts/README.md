@@ -9,7 +9,7 @@ These test artifacts validate various Doc Detective actions and ensure the Docke
 ## Files
 
 ### Configuration
-- **config.json**: Main configuration file that sets up test contexts for Chrome and Firefox browsers on different platforms
+- **config.json**: Main configuration file that sets up test contexts for the Chrome browser on different platforms
 - **env**: Environment variables file used by tests (contains USER, JOB, SECRET, URL, WAIT variables)
 
 ### Spec Files
@@ -46,7 +46,7 @@ The `../requires-server/` directory (at `test/requires-server/`) contains tests 
 - **cookie-test.spec.json**: Tests cookie handling (requires Docker-in-Docker and localhost server)
 - **dragAndDrop.spec.json**: Tests drag-and-drop functionality (requires localhost server on port 8092)
 - **httpRequest.spec.yaml**: Tests HTTP request actions (requires localhost server on port 8092)
-- **runCode.spec.json**: Tests code execution in multiple languages (requires Python, which is not in the container)
+- **runCode.spec.json**: Tests code execution in multiple languages with additional runtimes/tooling that may not be available in all container or CI/CD environments
 - **screenshot.spec.json**: Tests screenshot capture and comparison (has image aspect ratio comparison issues)
 
 These are separated from the main test artifacts directory to avoid failures when running tests in CI/CD environments without the required dependencies or servers.

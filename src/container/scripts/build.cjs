@@ -15,6 +15,10 @@ const versionArg = args.find(
 if (versionArg) {
   version = versionArg.split("=")[1];
 }
+if (!/^[\w.\-]+$/.test(version)) {
+  console.error(`Invalid version string: ${version}`);
+  process.exit(1);
+}
 console.log(`Building Docker image with version: ${version}`);
 
 // Detect Docker container mode

@@ -1,10 +1,9 @@
-// const { createServer } = require("./server");
 const path = require("path");
 const assert = require("assert").strict;
 const fs = require("fs");
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(artifactPath, "results.json");
-const { exec } = require("child_process");
+const { spawn } = require("child_process");
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -21,38 +20,8 @@ if (process.platform === "win32") {
   internalPath = path.join("/","app");
 }
 
-// // Create a server with custom options
-// const server = createServer({
-//   port: 8080,
-//   staticDir: './test/server/public',
-//   modifyResponse: (req, body) => {
-//     // Optional modification of responses
-//     return { ...body, extraField: 'added by server' };
-//   }
-// });
-
-// // Start the server before tests
-// before(async () => {
-//   try {
-//     await server.start();
-//   } catch (error) {
-//     console.error(`Failed to start test server: ${error.message}`);
-//     throw error;
-//   }
-// });
-
-// // Stop the server after tests
-// after(async () => {
-//   try {
-//     await server.stop();
-//   } catch (error) {
-//     console.error(`Failed to stop test server: ${error.message}`);
-//     // Don't rethrow here to avoid masking test failures
-//   }
-// });
-
 // Run tests in Docker container
-describe("Run tests successfully", async function () {
+describe("Run tests successfully", function () {
   // Set indefinite timeout
   this.timeout(0);
   it("All specs pass", async () => {
@@ -65,9 +34,15 @@ describe("Run tests successfully", async function () {
         callback();
       };
 
-      const runTests = exec(
-        `docker run --rm --memory=2g --cpus=2 -v "${artifactPath}:${internalPath}" docdetective/docdetective:${version}-${os} -c ./config.json -i . -o ./results.json`,
-        { maxBuffer: 10 * 1024 * 1024 } // 10MB buffer for output
+      const runTests = spawn(
+        "docker",
+        [
+          "run", "--rm", "--memory=2g", "--cpus=2",
+          "-v", `${artifactPath}:${internalPath}`,
+          `docdetective/docdetective:${version}-${os}`,
+          "-c", "./config.json", "-i", ".", "-o", "./results.json",
+        ],
+        { stdio: ["ignore", "pipe", "pipe"] }
       );
 
       runTests.stdout.on("data", (data) => {

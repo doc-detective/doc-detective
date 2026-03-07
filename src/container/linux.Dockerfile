@@ -18,8 +18,8 @@ LABEL authors="Doc Detective" \
     vendor="Doc Detective"
 
 # Install essential dependencies for building Node.js packages
-RUN apt update \
-    && apt install -y --no-install-recommends software-properties-common curl xz-utils unzip \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends software-properties-common curl xz-utils unzip \
     ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 \
     libatk1.0-0 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libglib2.0-0 \
     libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libx11-6 libx11-xcb1 libxcb1 \
@@ -28,8 +28,8 @@ RUN apt update \
     default-jre \
     python3 python3-pip python3-venv \
     && update-ca-certificates \
-    && apt autoclean -y \
-    && apt autoremove -y \
+    && apt-get autoclean -y \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Doc Detective from NPM
@@ -37,7 +37,7 @@ RUN npm install -g doc-detective@$PACKAGE_VERSION
 
 # Install DITA-OT
 ARG DITA_OT_VERSION=4.3.4
-RUN curl -kL https://github.com/dita-ot/dita-ot/releases/download/${DITA_OT_VERSION}/dita-ot-${DITA_OT_VERSION}.zip -o /tmp/dita-ot.zip \
+RUN curl -fSL https://github.com/dita-ot/dita-ot/releases/download/${DITA_OT_VERSION}/dita-ot-${DITA_OT_VERSION}.zip -o /tmp/dita-ot.zip \
     && unzip /tmp/dita-ot.zip -d /opt \
     && mv /opt/dita-ot-${DITA_OT_VERSION} /opt/dita-ot \
     && rm /tmp/dita-ot.zip
@@ -60,5 +60,4 @@ WORKDIR /app
 ENTRYPOINT [ "npx", "doc-detective" ]
 
 # Set default command
-CMD [ "" ]
-# CMD [ "bash"]
+CMD []

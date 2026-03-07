@@ -51,10 +51,16 @@ jobs:
           docker info
 
       - name: Build Docker Image
-        run: npm run container:build -- --version=${{ github.event.client_payload.version || inputs.version || 'latest' }} ${{ inputs.no_cache && '--no-cache' || '' }}
+        shell: bash
+        env:
+          VERSION: ${{ github.event.client_payload.version || inputs.version || 'latest' }}
+        run: npm run container:build -- --version="$VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
 
       - name: Post-build Test
-        run: npm run container:test -- --version=${{ github.event.client_payload.version || inputs.version || 'latest' }}
+        shell: bash
+        env:
+          VERSION: ${{ github.event.client_payload.version || inputs.version || 'latest' }}
+        run: npm run container:test -- --version="$VERSION"
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request' && inputs.version != 'latest'
