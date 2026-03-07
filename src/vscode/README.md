@@ -4,7 +4,7 @@ The Doc Detective VSCode Extension integrates the [Doc Detective](https://doc-de
 
 ## Features
 
-- **Real-time Test Detection**: Automatically detects Doc Detective tests in your open files
+- **Automatic Test Detection**: Detects Doc Detective tests in your open files on save and editor changes
 - **Sidebar Integration**: View detected tests in a dedicated Doc Detective panel in the activity bar
 - **Interactive Test Explorer**: Navigate through detected tests with collapsible sections for easy viewing
 - **Syntax Highlighting**: Tests are displayed with proper syntax highlighting for improved readability

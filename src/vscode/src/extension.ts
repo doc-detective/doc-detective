@@ -378,7 +378,9 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
 
       // Properly escape the JSON for embedding in a <script> tag
       const jsonString = JSON.stringify(jsonObj)
-        .replace(/</g, '\\u003c');
+        .replace(/</g, '\\u003c')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
 
       log(`JSON string prepared (first 100 chars): ${jsonString.substring(0, 100)}...`);
 
@@ -544,11 +546,11 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
                     if (typeof value === 'object' && value !== null) {
                       if (Array.isArray(value)) {
                         html += '<li>' + indentSpan + '<span class="yaml-dash">-</span> ' +
-                                renderYAML(value, indent + 1, true) + '</li>';
+                                renderYAML(value, indent + 1, true);
                       } else {
                         const keys = Object.keys(value);
                         if (keys.length === 0) {
-                          html += '<li>' + indentSpan + '<span class="yaml-dash">-</span> {}</li>';
+                          html += '<li>' + indentSpan + '<span class="yaml-dash">-</span> {}';
                         } else {
                           const hasNested = hasNestedObjects(value);
                           const firstKey = keys[0];
@@ -590,7 +592,7 @@ class DocDetectiveWebviewViewProvider implements vscode.WebviewViewProvider {
                       }
                     } else {
                       html += '<li>' + indentSpan + '<span class="yaml-dash">-</span> ' +
-                              renderYAML(value, 0, true) + '</li>';
+                              renderYAML(value, 0, true);
                     }
                     html += '</li>';
                   }
