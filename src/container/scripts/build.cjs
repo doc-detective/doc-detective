@@ -9,11 +9,16 @@ const args = process.argv.slice(2);
 
 // Check if a custom version is specified with --version
 let version = "latest";
-const versionArg = args.find(
-  (arg) => arg.startsWith("--version=") || arg.startsWith("-v=")
-);
-if (versionArg) {
-  version = versionArg.split("=")[1];
+for (let i = 0; i < args.length; i++) {
+  const arg = args[i];
+  if (arg === "--version" || arg === "-v") {
+    version = args[i + 1] || "";
+    break;
+  }
+  if (arg.startsWith("--version=") || arg.startsWith("-v=")) {
+    version = arg.split("=")[1];
+    break;
+  }
 }
 if (!/^[\w.\-]+$/.test(version)) {
   console.error(`Invalid version string: ${version}`);
