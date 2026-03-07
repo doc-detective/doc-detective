@@ -24,11 +24,9 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 # Set PowerShell execution policy to allow scripts to run
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force
 
-# Configure TLS for secure downloads
-RUN [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-
 # Download and install Node.js directly from nodejs.org
-RUN $NodeJsUrl = 'https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi'; \
+RUN [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; \
+    $NodeJsUrl = 'https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi'; \
     $NodeJsInstaller = 'C:\node-installer.msi'; \
     (New-Object System.Net.WebClient).DownloadFile($NodeJsUrl, $NodeJsInstaller); \
     # Verify checksum

@@ -69,12 +69,15 @@ docker run --rm -v "$(pwd)/src/container/test/artifacts:/app" docdetective/docde
 ### With Test Server
 To run server-dependent tests, first start a test server on port 8092, then:
 ```bash
-docker run --rm --network=host -v "$(pwd)/src/container/test/requires-server:/app" docdetective/docdetective:latest-linux \
-  -c /app/config.json \
+docker run --rm --network=host \
+  -v "$(pwd)/src/container/test/artifacts:/artifacts" \
+  -v "$(pwd)/src/container/test/requires-server:/app" \
+  docdetective/docdetective:latest-linux \
+  -c /artifacts/config.json \
   -i /app/
 ```
 
-Note: These tests are located in `src/container/test/requires-server/`, not under `src/container/test/artifacts/`.
+Note: These tests are located in `src/container/test/requires-server/`, not under `src/container/test/artifacts/`. The config file is mounted from `artifacts/` since `requires-server/` does not include its own.
 
 ## Test Results
 
