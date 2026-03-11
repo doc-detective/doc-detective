@@ -10,6 +10,7 @@ import {
   replaceNumericVariables,
   log,
   getLineNumber,
+  getLineStarts,
 } from "../dist/detectTests.js";
 import { detectFileTypeFromContent, defaultFileTypes } from "../dist/fileTypes.js";
 
@@ -2517,6 +2518,76 @@ function readFixture(filename) {
       it("should handle index at newline character itself", function () {
         // Index 5 is the newline in "hello\nworld"
         expect(getLineNumber("hello\nworld", 5)).to.equal(1);
+      });
+    });
+
+    // ========== getLineStarts ==========
+    describe("getLineStarts", function () {
+      it("should return [0] for single-line content", function () {
+        expect(getLineStarts("hello")).to.deep.equal([0]);
+      });
+
+      it("should return correct starts for multi-line content", function () {
+        // "hello\nworld" → line 1 starts at 0, line 2 starts at 6
+        expect(getLineStarts("hello\nworld")).to.deep.equal([0, 6]);
+      });
+
+      it("should handle three lines", function () {
+        // "line1\nline2\nline3" → starts at 0, 6, 12
+        expect(getLineStarts("line1\nline2\nline3")).to.deep.equal([0, 6, 12]);
+      });
+
+      it("should return [0] for empty string", function () {
+        expect(getLineStarts("")).to.deep.equal([0]);
+      });
+
+      it("should handle trailing newline", function () {
+        // "hello\n" → line 1 at 0, line 2 at 6
+        expect(getLineStarts("hello\n")).to.deep.equal([0, 6]);
+      });
+    });
+
+    // ========== getLineNumber with lineStarts (binary search) ==========
+    describe("getLineNumber with lineStarts", function () {
+      it("should return 1 for index 0", function () {
+        const content = "hello\nworld";
+        const starts = getLineStarts(content);
+        expect(getLineNumber(content, 0, starts)).to.equal(1);
+      });
+
+      it("should return 2 for index after first newline", function () {
+        const content = "hello\nworld";
+        const starts = getLineStarts(content);
+        expect(getLineNumber(content, 6, starts)).to.equal(2);
+      });
+
+      it("should return 3 for index on third line", function () {
+        const content = "line1\nline2\nline3";
+        const starts = getLineStarts(content);
+        expect(getLineNumber(content, 12, starts)).to.equal(3);
+      });
+
+      it("should return 1 for content with no newlines", function () {
+        const content = "single line";
+        const starts = getLineStarts(content);
+        expect(getLineNumber(content, 5, starts)).to.equal(1);
+      });
+
+      it("should handle index at newline character itself", function () {
+        const content = "hello\nworld";
+        const starts = getLineStarts(content);
+        expect(getLineNumber(content, 5, starts)).to.equal(1);
+      });
+
+      it("should match linear scan results for all indices", function () {
+        const content = "abc\ndef\nghi\njkl";
+        const starts = getLineStarts(content);
+        for (let i = 0; i < content.length; i++) {
+          expect(getLineNumber(content, i, starts)).to.equal(
+            getLineNumber(content, i),
+            `Mismatch at index ${i}`
+          );
+        }
       });
     });
 

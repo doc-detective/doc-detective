@@ -236,7 +236,7 @@ const defaultFileTypesBase: Record<string, FileType> = {
             },
             {
                 name: "typeText",
-                regex: ['\\b(?:press|enter|type)\\b\\s+"([^"]+)"'],
+                regex: ['\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"'],
                 actions: ["type"],
             },
             {

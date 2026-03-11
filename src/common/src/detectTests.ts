@@ -44,10 +44,31 @@ function generateUUID(): string {
 }
 
 /**
- * Returns the 1-indexed line number for a given character index in content.
- * Counts newline characters before the index.
+ * Precomputes an array of line-start character offsets for the given content.
+ * Each entry is the index of the first character on that line (0-indexed offsets, 1-indexed lines).
  */
-export function getLineNumber(content: string, index: number): number {
+export function getLineStarts(content: string): number[] {
+  const starts: number[] = [0];
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] === '\n') starts.push(i + 1);
+  }
+  return starts;
+}
+
+/**
+ * Returns the 1-indexed line number for a given character index.
+ * Uses binary search over precomputed line starts, or scans linearly if none provided.
+ */
+export function getLineNumber(content: string, index: number, lineStarts?: number[]): number {
+  if (lineStarts) {
+    let lo = 0, hi = lineStarts.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (lineStarts[mid] <= index) lo = mid + 1;
+      else hi = mid - 1;
+    }
+    return lo; // 1-indexed: lo is the count of starts <= index
+  }
   let line = 1;
   for (let i = 0; i < index; i++) {
     if (content[i] === '\n') line++;
@@ -344,9 +365,14 @@ export async function parseContent({
   }
 
   // Determine file type based on provided fileType, file extension, or content detection
+  const ext = (filePath?.split('.').pop() || "").toLowerCase();
   fileType = fileType
-    || Object.values(defaultFileTypes).find(ft => ft.extensions.includes(filePath?.split('.').pop() || ""))
+    || Object.values(defaultFileTypes).find(ft => ft.extensions.includes(ext))
     || detectFileTypeFromContent(content);
+
+  // Precompute line starts for efficient line number lookups
+  const lineStarts = getLineStarts(content);
+
   // Test for each statement type
   statementTypes.forEach((statementType) => {
     if (
@@ -364,7 +390,7 @@ export async function parseContent({
         match.sortIndex = match[1] ? match.index + match[1].length : match.index;
         match._startIndex = match.index;
         match._endIndex = match.index + match[0].length;
-        match._line = getLineNumber(content, match.index);
+        match._line = getLineNumber(content, match.index, lineStarts);
       });
       statements.push(...matches);
     });
@@ -386,7 +412,7 @@ export async function parseContent({
             sortIndex: startIdx,
             _startIndex: startIdx,
             _endIndex: endIdx,
-            _line: getLineNumber(content, startIdx),
+            _line: getLineNumber(content, startIdx, lineStarts),
           };
           statements.push(combinedMatch);
         } else if (matches.length > 0) {
@@ -396,7 +422,7 @@ export async function parseContent({
             match.sortIndex = match[1] ? match.index + match[1].length : match.index;
             match._startIndex = match.index;
             match._endIndex = match.index + match[0].length;
-            match._line = getLineNumber(content, match.index);
+            match._line = getLineNumber(content, match.index, lineStarts);
           });
           statements.push(...matches);
         }

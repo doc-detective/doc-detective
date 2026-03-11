@@ -10,7 +10,7 @@ import os from "node:os";
 import crypto from "node:crypto";
 import YAML from "yaml";
 import { validate } from "../common/src/validate.js";
-import { detectTests as parseContent, getLineNumber } from "../common/src/detectTests.js";
+import { detectTests as parseContent, getLineNumber, getLineStarts } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
 
@@ -321,17 +321,30 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
     let content: any = "";
-    content = await readFile({ fileURLOrPath: file });
+    let rawContent: string | undefined;
 
-    if (typeof content === "object") {
-      // Attach source locations from raw file content
-      let rawContent: string | undefined;
+    // For JSON/YAML specs, read raw content once and parse from it
+    if (extension === "json" || extension === "yaml" || extension === "yml") {
       try {
         rawContent = await fs.promises.readFile(file, "utf8");
-      } catch {}
+        if (extension === "json") {
+          content = JSON.parse(rawContent);
+        } else {
+          content = YAML.parse(rawContent);
+        }
+      } catch (err: any) {
+        console.warn(`Failed to read/parse ${file}: ${err.message}`);
+        content = await readFile({ fileURLOrPath: file });
+      }
+    } else {
+      content = await readFile({ fileURLOrPath: file });
+    }
+
+    if (typeof content === "object") {
       if (rawContent && content.tests) {
         try {
           const doc = YAML.parseDocument(rawContent);
+          const lineStarts = getLineStarts(rawContent);
           const testsNode = doc.get("tests", true);
           if (testsNode && YAML.isSeq(testsNode)) {
             for (let t = 0; t < testsNode.items.length; t++) {
@@ -345,7 +358,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
                 const stepNode = stepsNode.items[s] as any;
                 if (stepNode?.range) {
                   test.steps[s].location = {
-                    line: getLineNumber(rawContent, stepNode.range[0]),
+                    line: getLineNumber(rawContent, stepNode.range[0], lineStarts),
                     startIndex: stepNode.range[0],
                     endIndex: stepNode.range[1],
                   };

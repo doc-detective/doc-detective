@@ -4,7 +4,7 @@ import os from "node:os";
 import assert from "node:assert/strict";
 import { parseTests } from "../dist/core/detectTests.js";
 
-const tmpDir = os.tmpdir();
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-spec-loc-"));
 
 function writeTempFile(name, content) {
   const filePath = path.join(tmpDir, name);
@@ -18,6 +18,10 @@ function cleanupFile(filePath) {
 
 describe("Spec file step location tracking", function () {
   this.timeout(30000);
+
+  after(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
 
   const minimalConfig = { logLevel: "silent" };
 
