@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="create-user-account">
+  <title>Create a User Account</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Navigate to <xref href="https://app.example.com/login" scope="external">the application</xref></cmd></step>
+      <step><cmd>Click <uicontrol>Sign In</uicontrol></cmd></step>
+      <step><cmd>Type <userinput>admin@example.com</userinput> into the <uicontrol>Username</uicontrol> field</cmd></step>
+      <step><cmd>Enter <userinput>password123</userinput> into the <uicontrol>Password</uicontrol> field</cmd></step>
+      <step><cmd>Click the <uicontrol>Submit</uicontrol> button</cmd></step>
+      <step><cmd>Verify the <wintitle>Dashboard</wintitle> appears</cmd></step>
+    </steps>
+  </taskbody>
+</task>

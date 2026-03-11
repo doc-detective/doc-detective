@@ -20,8 +20,9 @@
   "scripts": {
     "generate:types": "node scripts/generateTypes.cjs",
     "dereferenceSchemas": "node ./src/schemas/dereferenceSchemas.cjs",
-    "compile": "tsc && node scripts/createCjsWrapper.js",
-    "build": "npm run dereferenceSchemas && npm run generate:types && npm run compile",
+    "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
+    "compile": "npm run clean && tsc && node scripts/createCjsWrapper.js",
+    "build": "npm run dereferenceSchemas && npm run generate:types && npm run compile && npm run test:coverage",
     "test": "mocha",
     "test:coverage": "c8 mocha",
     "test:coverage:html": "c8 --reporter=html mocha",

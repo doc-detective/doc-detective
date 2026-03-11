@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE concept PUBLIC "-//OASIS//DTD DITA Concept//EN" "concept.dtd">
+<concept id="useful-links">
+  <title>Useful Links</title>
+  <conbody>
+    <p>For more information, see <xref href="https://example.com/docs" scope="external">our documentation</xref>.</p>
+    <p>You can also visit <xref href="https://example.com/api">the API reference</xref>.</p>
+    <p>Check the <link href="https://example.com/status">status page</link> for service availability.</p>
+    <p>For bold text detection, find <b>Important Notice</b> on the page.</p>
+    <p>Click <b>Accept Terms</b> to continue.</p>
+    <p>Type "hello world" in the input field.</p>
+  </conbody>
+</concept>

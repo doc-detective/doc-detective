@@ -7,6 +7,7 @@
 import YAML from "yaml";
 import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
+import { defaultFileTypes, detectFileTypeFromContent, FileType } from "./fileTypes.js";
 
 /**
  * Creates a RegExp from a pattern string with safety checks against ReDoS.
@@ -42,23 +43,7 @@ function generateUUID(): string {
   });
 }
 
-export interface FileType {
-  name?: string;
-  extensions: string[];
-  inlineStatements?: {
-    testStart?: string[];
-    testEnd?: string[];
-    ignoreStart?: string[];
-    ignoreEnd?: string[];
-    step?: string[];
-  };
-  markup?: Array<{
-    regex: string[];
-    actions?: (string | Record<string, any>)[];
-    batchMatches?: boolean;
-  }>;
-  runShell?: Record<string, any>;
-}
+export { FileType } from "./fileTypes.js";
 
 export interface DetectTestsConfig {
   detectSteps?: boolean;
@@ -76,8 +61,8 @@ export interface DetectedTest {
 
 export interface DetectTestsInput {
   content: string;
-  filePath: string;
-  fileType: FileType;
+  filePath?: string;
+  fileType?: FileType;
   config?: DetectTestsConfig;
 }
 
@@ -107,7 +92,7 @@ export interface DetectTestsInput {
  */
 export async function detectTests(input: DetectTestsInput): Promise<DetectedTest[]> {
   return parseContent({
-    config: input.config || {},
+    config: input.config,
     content: input.content,
     filePath: input.filePath,
     fileType: input.fileType,
@@ -170,6 +155,7 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
 
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
+        /* c8 ignore next - unreachable: line 153 already skips any keyPath containing these segments */
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') break;
         if (!current[key] || typeof current[key] !== "object") {
           current[key] = {};
@@ -323,15 +309,15 @@ export function replaceNumericVariables(
  * @returns Array of parsed and validated test objects
  */
 export async function parseContent({
-  config,
+  config = {},
   content,
-  filePath,
+  filePath = "",
   fileType,
 }: {
-  config: DetectTestsConfig;
+  config?: DetectTestsConfig;
   content: string;
-  filePath: string;
-  fileType: FileType;
+  filePath?: string;
+  fileType?: FileType;
 }): Promise<DetectedTest[]> {
   const statements: Array<any> = [];
   const statementTypes = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"];
@@ -345,6 +331,10 @@ export async function parseContent({
     return test;
   }
 
+  // Determine file type based on provided fileType, file extension, or content detection
+  fileType = fileType
+    || Object.values(defaultFileTypes).find(ft => ft.extensions.includes(filePath?.split('.').pop() || ""))
+    || detectFileTypeFromContent(content);
   // Test for each statement type
   statementTypes.forEach((statementType) => {
     if (
@@ -365,7 +355,7 @@ export async function parseContent({
     });
   });
 
-  if (config.detectSteps && fileType.markup) {
+  if ((config.detectSteps ?? true) && fileType.markup) {
     fileType.markup.forEach((markup) => {
       markup.regex.forEach((pattern) => {
         const regex = safeRegExp(pattern, "g");
