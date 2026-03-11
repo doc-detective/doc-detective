@@ -43,6 +43,18 @@ function generateUUID(): string {
   });
 }
 
+/**
+ * Returns the 1-indexed line number for a given character index in content.
+ * Counts newline characters before the index.
+ */
+export function getLineNumber(content: string, index: number): number {
+  let line = 1;
+  for (let i = 0; i < index; i++) {
+    if (content[i] === '\n') line++;
+  }
+  return line;
+}
+
 export { FileType } from "./fileTypes.js";
 
 export interface DetectTestsConfig {
@@ -350,6 +362,9 @@ export async function parseContent({
       matches.forEach((match: any) => {
         match.type = statementType;
         match.sortIndex = match[1] ? match.index + match[1].length : match.index;
+        match._startIndex = match.index;
+        match._endIndex = match.index + match[0].length;
+        match._line = getLineNumber(content, match.index);
       });
       statements.push(...matches);
     });
@@ -362,11 +377,16 @@ export async function parseContent({
         if (!regex) return;
         const matches = [...content.matchAll(regex)];
         if (matches.length > 0 && markup.batchMatches) {
+          const startIdx = Math.min(...matches.map((m) => m.index!));
+          const endIdx = Math.max(...matches.map((m) => m.index! + m[0].length));
           const combinedMatch: any = {
             1: matches.map((match) => match[1] || match[0]).join("\n"),
             type: "detectedStep",
             markup: markup,
-            sortIndex: Math.min(...matches.map((match) => match.index!)),
+            sortIndex: startIdx,
+            _startIndex: startIdx,
+            _endIndex: endIdx,
+            _line: getLineNumber(content, startIdx),
           };
           statements.push(combinedMatch);
         } else if (matches.length > 0) {
@@ -374,6 +394,9 @@ export async function parseContent({
             match.type = "detectedStep";
             match.markup = markup;
             match.sortIndex = match[1] ? match.index + match[1].length : match.index;
+            match._startIndex = match.index;
+            match._endIndex = match.index + match[0].length;
+            match._line = getLineNumber(content, match.index);
           });
           statements.push(...matches);
         }
@@ -539,6 +562,15 @@ export async function parseContent({
               }
             }
 
+            // Attach source location
+            if (typeof statement._startIndex === 'number') {
+              step.location = {
+                line: statement._line,
+                startIndex: statement._startIndex,
+                endIndex: statement._endIndex,
+              };
+            }
+
             // Validate step
             const valid = validate({
               schemaKey: "step_v3" as SchemaKey,
@@ -563,6 +595,16 @@ export async function parseContent({
         if (!parsedStep || typeof parsedStep !== 'object') break;
 
         let step = parsedStep;
+
+        // Attach source location
+        if (typeof statement._startIndex === 'number') {
+          step.location = {
+            line: statement._line,
+            startIndex: statement._startIndex,
+            endIndex: statement._endIndex,
+          };
+        }
+
         const validation = validate({
           schemaKey: "step_v3" as SchemaKey,
           object: step,
@@ -584,6 +626,13 @@ export async function parseContent({
         break;
     }
   });
+
+  // Set contentPath on tests when filePath is provided
+  if (filePath) {
+    tests.forEach((test) => {
+      test.contentPath = filePath;
+    });
+  }
 
   // Validate test objects
   const validatedTests: DetectedTest[] = [];

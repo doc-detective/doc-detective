@@ -9,6 +9,7 @@ import {
   parseObject,
   replaceNumericVariables,
   log,
+  getLineNumber,
 } from "../dist/detectTests.js";
 import { detectFileTypeFromContent, defaultFileTypes } from "../dist/fileTypes.js";
 
@@ -2492,6 +2493,228 @@ function readFixture(filename) {
         expect(steps.filter((s) => s.type).length).to.be.equal(1);
         expect(steps.filter((s) => s.wait).length).to.be.equal(1);
         expect(steps.filter((s) => s.screenshot).length).to.be.equal(1);
+      });
+    });
+
+    // ========== getLineNumber ==========
+    describe("getLineNumber", function () {
+      it("should return 1 for index 0", function () {
+        expect(getLineNumber("hello\nworld", 0)).to.equal(1);
+      });
+
+      it("should return 2 for index after first newline", function () {
+        expect(getLineNumber("hello\nworld", 6)).to.equal(2);
+      });
+
+      it("should return 3 for index on third line", function () {
+        expect(getLineNumber("line1\nline2\nline3", 12)).to.equal(3);
+      });
+
+      it("should return 1 for content with no newlines", function () {
+        expect(getLineNumber("single line", 5)).to.equal(1);
+      });
+
+      it("should handle index at newline character itself", function () {
+        // Index 5 is the newline in "hello\nworld"
+        expect(getLineNumber("hello\nworld", 5)).to.equal(1);
+      });
+    });
+
+    // ========== step location tracking ==========
+    describe("step location", function () {
+      // File type with checkLink action that correctly maps URL from capture group $2
+      const locationFileType = {
+        extensions: ["md"],
+        inlineStatements: {
+          testStart: ["<!-- test (.*?)-->"],
+          testEnd: ["<!-- test end -->"],
+          step: ["<!-- step (.*?)-->"],
+        },
+        markup: [
+          {
+            regex: ["\\[([^\\]]+)\\]\\(([^)]+)\\)"],
+            actions: [{ checkLink: { url: "$2" } }],
+          },
+        ],
+      };
+
+      it("should include location on markup-detected steps (checkLink)", async function () {
+        const content = "Check [Example](https://example.com) for details.";
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: locationFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step).to.have.property("location");
+        expect(step.location).to.have.property("line", 1);
+        expect(step.location).to.have.property("startIndex");
+        expect(step.location).to.have.property("endIndex");
+        // startIndex should be where the markdown link starts
+        expect(step.location.startIndex).to.equal(content.indexOf("[Example]"));
+        // endIndex should be exclusive (past the closing paren)
+        expect(step.location.endIndex).to.equal(content.indexOf(") for") + 1);
+      });
+
+      it("should have correct line numbers for multi-line content", async function () {
+        const content = "Line 1 text\nLine 2 text\nCheck [Link](https://example.com) here.";
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: locationFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step.location.line).to.equal(3);
+      });
+
+      it("should include location on inline step statements", async function () {
+        const content = '<!-- step {"goTo": "https://example.com"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: locationFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step).to.have.property("location");
+        expect(step.location.line).to.equal(1);
+        expect(step.location.startIndex).to.equal(0);
+        expect(step.location.endIndex).to.equal(content.length);
+      });
+
+      it("should include location on inline step on later lines", async function () {
+        const content = 'Some intro text\n\n<!-- step {"goTo": "https://example.com"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: locationFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step.location.line).to.equal(3);
+        expect(step.location.startIndex).to.equal(content.indexOf("<!-- step"));
+        expect(step.location.endIndex).to.equal(content.length);
+      });
+
+      it("should have endIndex exclusive of the match", async function () {
+        const content = "Check [Example](https://example.com) for details.";
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: locationFileType,
+        });
+        const step = result[0].steps[0];
+        const matchedText = content.substring(step.location.startIndex, step.location.endIndex);
+        expect(matchedText).to.equal("[Example](https://example.com)");
+      });
+
+      it("should include location for multiple steps with correct positions", async function () {
+        const content = "[First](https://first.com)\n[Second](https://second.com)";
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: locationFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].steps).to.have.lengthOf(2);
+
+        const step1 = result[0].steps[0];
+        expect(step1.location.line).to.equal(1);
+        expect(step1.location.startIndex).to.equal(0);
+
+        const step2 = result[0].steps[1];
+        expect(step2.location.line).to.equal(2);
+        expect(step2.location.startIndex).to.equal(content.indexOf("[Second]"));
+      });
+
+      it("should use earliest start and latest end for batchMatches", async function () {
+        const batchFileType = {
+          extensions: ["md"],
+          inlineStatements: {},
+          markup: [
+            {
+              regex: ["\\[([^\\]]+)\\]\\([^)]+\\)"],
+              actions: ["find"],
+              batchMatches: true,
+            },
+          ],
+        };
+        const content = "[First](https://first.com)\n[Second](https://second.com)";
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: batchFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        // batchMatches combines all matches into one step
+        const step = result[0].steps[0];
+        expect(step).to.have.property("location");
+        expect(step.location.startIndex).to.equal(0);
+        expect(step.location.endIndex).to.equal(content.length);
+        expect(step.location.line).to.equal(1);
+      });
+    });
+
+    // ========== contentPath on detected tests ==========
+    describe("contentPath on detected tests", function () {
+      it("should set contentPath on each test when filePath is provided", async function () {
+        const content = '<!-- step {"goTo": "https://example.com"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "docs/test.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0]).to.have.property("contentPath", "docs/test.md");
+      });
+
+      it("should set contentPath on multiple tests", async function () {
+        const content =
+          '<!-- test {"steps": [{"goTo": "https://example.com"}]} -->\n' +
+          "<!-- test end -->\n" +
+          '<!-- test {"steps": [{"goTo": "https://other.com"}]} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "docs/multi.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(2);
+        expect(result[0]).to.have.property("contentPath", "docs/multi.md");
+        expect(result[1]).to.have.property("contentPath", "docs/multi.md");
+      });
+
+      it("should not set contentPath when filePath is empty", async function () {
+        const content = '<!-- step {"goTo": "https://example.com"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0]).to.not.have.property("contentPath");
+      });
+
+      it("should not set contentPath when filePath is undefined", async function () {
+        const content = '<!-- step {"goTo": "https://example.com"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0]).to.not.have.property("contentPath");
       });
     });
   });

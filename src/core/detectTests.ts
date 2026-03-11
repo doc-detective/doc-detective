@@ -8,12 +8,13 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
+import YAML from "yaml";
 import { validate } from "../common/src/validate.js";
-import { detectTests as parseContent } from "../common/src/detectTests.js";
+import { detectTests as parseContent, getLineNumber } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
 
-export { detectTests };
+export { detectTests, parseTests };
 
 /**
  * Detects tests from files based on config.
@@ -323,6 +324,38 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     content = await readFile({ fileURLOrPath: file });
 
     if (typeof content === "object") {
+      // Attach source locations from raw file content
+      let rawContent: string | undefined;
+      try {
+        rawContent = await fs.promises.readFile(file, "utf8");
+      } catch {}
+      if (rawContent && content.tests) {
+        try {
+          const doc = YAML.parseDocument(rawContent);
+          const testsNode = doc.get("tests", true);
+          if (testsNode && YAML.isSeq(testsNode)) {
+            for (let t = 0; t < testsNode.items.length; t++) {
+              const testNode = testsNode.get(t, true);
+              if (!testNode || !YAML.isMap(testNode)) continue;
+              const stepsNode = testNode.get("steps", true);
+              if (!stepsNode || !YAML.isSeq(stepsNode)) continue;
+              const test = content.tests[t];
+              if (!test?.steps) continue;
+              for (let s = 0; s < stepsNode.items.length && s < test.steps.length; s++) {
+                const stepNode = stepsNode.items[s] as any;
+                if (stepNode?.range) {
+                  test.steps[s].location = {
+                    line: getLineNumber(rawContent, stepNode.range[0]),
+                    startIndex: stepNode.range[0],
+                    endIndex: stepNode.range[1],
+                  };
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+
       // JSON/YAML spec file - resolve paths and validate
       content = await resolvePaths({
         config: config,
