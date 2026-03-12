@@ -460,9 +460,18 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             test.steps[pos].location = loc;
           }
         }
-        // Clean up markers
-        for (const step of test.steps) {
-          delete step._fromBefore;
+      }
+
+      // Clean up _fromBefore markers from all tests/steps, even if
+      // stepLocations is empty (e.g., AST parse failed).
+      if (content?.tests) {
+        for (const test of content.tests) {
+          if (!test?.steps) continue;
+          for (const step of test.steps) {
+            if (step && "_fromBefore" in step) {
+              delete step._fromBefore;
+            }
+          }
         }
       }
 

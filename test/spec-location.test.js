@@ -172,4 +172,52 @@ describe("Spec file step location tracking", function () {
       }
     });
   });
+
+  describe("Before-step merging with location offsets", function () {
+    it("should apply location to original steps (not before-steps) and not leak _fromBefore", async function () {
+      // Create a before-spec with one setup step
+      const beforeContent = JSON.stringify({
+        tests: [{ steps: [{ runShell: { command: "echo setup" } }] }],
+      }, null, 2);
+      const beforePath = writeTempFile("before-spec.json", beforeContent);
+
+      // Create a main spec that references the before-spec
+      const mainContent = JSON.stringify({
+        tests: [
+          {
+            before: beforePath,
+            steps: [
+              { goTo: "https://example.com" },
+              { find: "hello" },
+            ],
+          },
+        ],
+      }, null, 2);
+      const mainPath = writeTempFile("main-with-before.json", mainContent);
+
+      try {
+        const specs = await parseTests({ config: minimalConfig, files: [mainPath] });
+        assert.equal(specs.length, 1);
+        const steps = specs[0].tests[0].steps;
+
+        // Should have 3 steps: 1 from before + 2 original
+        assert.equal(steps.length, 3, `Expected 3 steps but got ${steps.length}`);
+
+        // No step should have _fromBefore marker
+        for (let i = 0; i < steps.length; i++) {
+          assert.ok(!("_fromBefore" in steps[i]), `Step ${i} should not have _fromBefore marker`);
+        }
+
+        // The before-step (index 0) should NOT have location (not in original spec)
+        // The original steps (index 1, 2) should have location from the main spec
+        assert.ok(steps[1].location, "Original step 0 (at index 1) should have location");
+        assert.ok(steps[2].location, "Original step 1 (at index 2) should have location");
+        assert.ok(steps[2].location.line > steps[1].location.line,
+          "Second original step should be on a later line");
+      } finally {
+        cleanupFile(mainPath);
+        cleanupFile(beforePath);
+      }
+    });
+  });
 });
