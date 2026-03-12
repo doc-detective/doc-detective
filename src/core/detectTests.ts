@@ -381,14 +381,16 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         filePath: file,
       });
 
-      // Track before-step counts per test for location offset calculation
-      const beforeStepCounts: Map<number, number> = new Map();
+      // Merge before/after steps, tracking which steps came from before-specs.
       for (let t = 0; t < content.tests.length; t++) {
         const test = content.tests[t];
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
           if (setup?.tests?.[0]?.steps) {
-            beforeStepCounts.set(t, setup.tests[0].steps.length);
+            // Tag before-steps with a marker that survives validation cloning
+            for (const step of setup.tests[0].steps) {
+              step._fromBefore = true;
+            }
             test.steps = setup.tests[0].steps.concat(test.steps);
           }
         }
@@ -439,16 +441,28 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         filePath: file,
       });
 
-      // Apply step locations after all validation/transformation (v2→v3 safe)
+      // Apply step locations after all validation/transformation (v2→v3 safe).
+      // Compute offset from surviving before-steps (tagged with _fromBefore).
       for (const [testIdx, testMap] of stepLocations) {
         const test = content.tests[testIdx];
         if (!test?.steps) continue;
-        const offset = beforeStepCounts.get(testIdx) ?? 0;
+        let offset = 0;
+        for (const step of test.steps) {
+          if (step._fromBefore) {
+            offset++;
+          } else {
+            break;
+          }
+        }
         for (const [stepIdx, loc] of testMap) {
           const pos = offset + stepIdx;
           if (pos < test.steps.length) {
             test.steps[pos].location = loc;
           }
+        }
+        // Clean up markers
+        for (const step of test.steps) {
+          delete step._fromBefore;
         }
       }
 

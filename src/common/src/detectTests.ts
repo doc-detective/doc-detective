@@ -188,7 +188,7 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
 
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
-        /* c8 ignore next - unreachable: line 153 already skips any keyPath containing these segments */
+        /* c8 ignore next - unreachable: the keys.some() guard above already skips any keyPath containing these segments */
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') break;
         if (!current[key] || typeof current[key] !== "object") {
           current[key] = {};
