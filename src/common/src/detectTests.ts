@@ -7,6 +7,7 @@
 import YAML from "yaml";
 import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
+import { defaultFileTypes, detectFileTypeFromContent, FileType } from "./fileTypes.js";
 
 /**
  * Creates a RegExp from a pattern string with safety checks against ReDoS.
@@ -42,23 +43,40 @@ function generateUUID(): string {
   });
 }
 
-export interface FileType {
-  name?: string;
-  extensions: string[];
-  inlineStatements?: {
-    testStart?: string[];
-    testEnd?: string[];
-    ignoreStart?: string[];
-    ignoreEnd?: string[];
-    step?: string[];
-  };
-  markup?: Array<{
-    regex: string[];
-    actions?: (string | Record<string, any>)[];
-    batchMatches?: boolean;
-  }>;
-  runShell?: Record<string, any>;
+/**
+ * Precomputes an array of line-start character offsets for the given content.
+ * Each entry is the index of the first character on that line (0-indexed offsets, 1-indexed lines).
+ */
+export function getLineStarts(content: string): number[] {
+  const starts: number[] = [0];
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] === '\n') starts.push(i + 1);
+  }
+  return starts;
 }
+
+/**
+ * Returns the 1-indexed line number for a given character index.
+ * Uses binary search over precomputed line starts, or scans linearly if none provided.
+ */
+export function getLineNumber(content: string, index: number, lineStarts?: number[]): number {
+  if (lineStarts) {
+    let lo = 0, hi = lineStarts.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (lineStarts[mid] <= index) lo = mid + 1;
+      else hi = mid - 1;
+    }
+    return lo; // 1-indexed: lo is the count of starts <= index
+  }
+  let line = 1;
+  for (let i = 0; i < index; i++) {
+    if (content[i] === '\n') line++;
+  }
+  return line;
+}
+
+export { FileType } from "./fileTypes.js";
 
 export interface DetectTestsConfig {
   detectSteps?: boolean;
@@ -76,8 +94,8 @@ export interface DetectedTest {
 
 export interface DetectTestsInput {
   content: string;
-  filePath: string;
-  fileType: FileType;
+  filePath?: string;
+  fileType?: FileType;
   config?: DetectTestsConfig;
 }
 
@@ -107,7 +125,7 @@ export interface DetectTestsInput {
  */
 export async function detectTests(input: DetectTestsInput): Promise<DetectedTest[]> {
   return parseContent({
-    config: input.config || {},
+    config: input.config,
     content: input.content,
     filePath: input.filePath,
     fileType: input.fileType,
@@ -170,6 +188,7 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
 
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
+        /* c8 ignore next - unreachable: the keys.some() guard above already skips any keyPath containing these segments */
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') break;
         if (!current[key] || typeof current[key] !== "object") {
           current[key] = {};
@@ -323,15 +342,15 @@ export function replaceNumericVariables(
  * @returns Array of parsed and validated test objects
  */
 export async function parseContent({
-  config,
+  config = {},
   content,
-  filePath,
+  filePath = "",
   fileType,
 }: {
-  config: DetectTestsConfig;
+  config?: DetectTestsConfig;
   content: string;
-  filePath: string;
-  fileType: FileType;
+  filePath?: string;
+  fileType?: FileType;
 }): Promise<DetectedTest[]> {
   const statements: Array<any> = [];
   const statementTypes = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"];
@@ -344,6 +363,15 @@ export async function parseContent({
     }
     return test;
   }
+
+  // Determine file type based on provided fileType, file extension, or content detection
+  const ext = (filePath?.split('.').pop() || "").toLowerCase();
+  fileType = fileType
+    || Object.values(defaultFileTypes).find(ft => ft.extensions.includes(ext))
+    || detectFileTypeFromContent(content);
+
+  // Precompute line starts for efficient line number lookups
+  const lineStarts = getLineStarts(content);
 
   // Test for each statement type
   statementTypes.forEach((statementType) => {
@@ -360,23 +388,31 @@ export async function parseContent({
       matches.forEach((match: any) => {
         match.type = statementType;
         match.sortIndex = match[1] ? match.index + match[1].length : match.index;
+        match._startIndex = match.index;
+        match._endIndex = match.index + match[0].length;
+        match._line = getLineNumber(content, match.index, lineStarts);
       });
       statements.push(...matches);
     });
   });
 
-  if (config.detectSteps && fileType.markup) {
+  if ((config.detectSteps ?? true) && fileType.markup) {
     fileType.markup.forEach((markup) => {
       markup.regex.forEach((pattern) => {
         const regex = safeRegExp(pattern, "g");
         if (!regex) return;
         const matches = [...content.matchAll(regex)];
         if (matches.length > 0 && markup.batchMatches) {
+          const startIdx = Math.min(...matches.map((m) => m.index!));
+          const endIdx = Math.max(...matches.map((m) => m.index! + m[0].length));
           const combinedMatch: any = {
             1: matches.map((match) => match[1] || match[0]).join("\n"),
             type: "detectedStep",
             markup: markup,
-            sortIndex: Math.min(...matches.map((match) => match.index!)),
+            sortIndex: startIdx,
+            _startIndex: startIdx,
+            _endIndex: endIdx,
+            _line: getLineNumber(content, startIdx, lineStarts),
           };
           statements.push(combinedMatch);
         } else if (matches.length > 0) {
@@ -384,6 +420,9 @@ export async function parseContent({
             match.type = "detectedStep";
             match.markup = markup;
             match.sortIndex = match[1] ? match.index + match[1].length : match.index;
+            match._startIndex = match.index;
+            match._endIndex = match.index + match[0].length;
+            match._line = getLineNumber(content, match.index, lineStarts);
           });
           statements.push(...matches);
         }
@@ -549,6 +588,15 @@ export async function parseContent({
               }
             }
 
+            // Attach source location
+            if (typeof statement._startIndex === 'number') {
+              step.location = {
+                line: statement._line,
+                startIndex: statement._startIndex,
+                endIndex: statement._endIndex,
+              };
+            }
+
             // Validate step
             const valid = validate({
               schemaKey: "step_v3" as SchemaKey,
@@ -573,6 +621,16 @@ export async function parseContent({
         if (!parsedStep || typeof parsedStep !== 'object') break;
 
         let step = parsedStep;
+
+        // Attach source location
+        if (typeof statement._startIndex === 'number') {
+          step.location = {
+            line: statement._line,
+            startIndex: statement._startIndex,
+            endIndex: statement._endIndex,
+          };
+        }
+
         const validation = validate({
           schemaKey: "step_v3" as SchemaKey,
           object: step,
@@ -594,6 +652,13 @@ export async function parseContent({
         break;
     }
   });
+
+  // Set contentPath on tests when filePath is provided
+  if (filePath) {
+    tests.forEach((test) => {
+      test.contentPath = filePath;
+    });
+  }
 
   // Validate test objects
   const validatedTests: DetectedTest[] = [];

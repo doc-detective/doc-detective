@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="setup-project">
+  <title>Set Up Your Project</title>
+  <?doc-detective test testId="setup-project-test" ?>
+  <taskbody>
+    <prereq>
+      <p>Before you begin, visit <xref href="https://docs.example.com/prereqs" scope="external">the prerequisites page</xref>.</p>
+    </prereq>
+    <steps>
+      <step>
+        <cmd>Go to <xref href="https://app.example.com/projects" scope="external">the projects page</xref></cmd>
+      </step>
+      <step>
+        <cmd>Click <uicontrol>New Project</uicontrol></cmd>
+      </step>
+      <step>
+        <cmd>Type <userinput>My Project</userinput> into the <uicontrol>Project Name</uicontrol> field</cmd>
+      </step>
+      <step>
+        <cmd>Click the <uicontrol>Create</uicontrol> button</cmd>
+      </step>
+    </steps>
+    <result>
+      <p>The <wintitle>Project Dashboard</wintitle> is displayed with your new project.</p>
+    </result>
+  </taskbody>
+  <?doc-detective test end?>
+</task>

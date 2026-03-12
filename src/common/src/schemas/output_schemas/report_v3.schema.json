@@ -1277,6 +1277,35 @@
                                       "type": "boolean",
                                       "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                       "default": false
+                                    },
+                                    "location": {
+                                      "type": "object",
+                                      "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                      "readOnly": true,
+                                      "properties": {
+                                        "line": {
+                                          "type": "integer",
+                                          "description": "1-indexed line number in the source file where the step was detected.",
+                                          "minimum": 1
+                                        },
+                                        "startIndex": {
+                                          "type": "integer",
+                                          "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                          "minimum": 0
+                                        },
+                                        "endIndex": {
+                                          "type": "integer",
+                                          "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                          "minimum": 0
+                                        }
+                                      },
+                                      "required": [
+                                        "line",
+                                        "startIndex",
+                                        "endIndex"
+                                      ],
+                                      "additionalProperties": false,
+                                      "title": "Source Location"
                                     }
                                   },
                                   "title": "Common"
@@ -1329,6 +1358,35 @@
                                   "type": "boolean",
                                   "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                   "default": false
+                                },
+                                "location": {
+                                  "type": "object",
+                                  "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                  "readOnly": true,
+                                  "properties": {
+                                    "line": {
+                                      "type": "integer",
+                                      "description": "1-indexed line number in the source file where the step was detected.",
+                                      "minimum": 1
+                                    },
+                                    "startIndex": {
+                                      "type": "integer",
+                                      "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                      "minimum": 0
+                                    },
+                                    "endIndex": {
+                                      "type": "integer",
+                                      "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                      "minimum": 0
+                                    }
+                                  },
+                                  "required": [
+                                    "line",
+                                    "startIndex",
+                                    "endIndex"
+                                  ],
+                                  "additionalProperties": false,
+                                  "title": "Source Location"
                                 }
                               }
                             },
@@ -1389,6 +1447,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -1605,6 +1692,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -1928,6 +2044,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -3348,6 +3493,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -3838,6 +4012,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -4903,6 +5106,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -5210,6 +5442,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -5503,6 +5764,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -5818,6 +6108,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -6570,6 +6889,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -6886,6 +7234,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -7058,6 +7435,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -7141,6 +7547,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -7221,6 +7656,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -7788,6 +8252,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -8087,6 +8580,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     },
                                     "title": "Common"
@@ -8852,6 +9374,35 @@
                                             "type": "boolean",
                                             "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                             "default": false
+                                          },
+                                          "location": {
+                                            "type": "object",
+                                            "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                            "readOnly": true,
+                                            "properties": {
+                                              "line": {
+                                                "type": "integer",
+                                                "description": "1-indexed line number in the source file where the step was detected.",
+                                                "minimum": 1
+                                              },
+                                              "startIndex": {
+                                                "type": "integer",
+                                                "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                "minimum": 0
+                                              },
+                                              "endIndex": {
+                                                "type": "integer",
+                                                "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                "minimum": 0
+                                              }
+                                            },
+                                            "required": [
+                                              "line",
+                                              "startIndex",
+                                              "endIndex"
+                                            ],
+                                            "additionalProperties": false,
+                                            "title": "Source Location"
                                           }
                                         },
                                         "title": "Common"
@@ -8904,6 +9455,35 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "location": {
+                                        "type": "object",
+                                        "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true,
+                                        "properties": {
+                                          "line": {
+                                            "type": "integer",
+                                            "description": "1-indexed line number in the source file where the step was detected.",
+                                            "minimum": 1
+                                          },
+                                          "startIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                            "minimum": 0
+                                          },
+                                          "endIndex": {
+                                            "type": "integer",
+                                            "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "line",
+                                          "startIndex",
+                                          "endIndex"
+                                        ],
+                                        "additionalProperties": false,
+                                        "title": "Source Location"
                                       }
                                     }
                                   },
@@ -8964,6 +9544,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -9180,6 +9789,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -9503,6 +10141,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -10923,6 +11590,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -11413,6 +12109,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -12478,6 +13203,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -12785,6 +13539,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -13078,6 +13861,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -13393,6 +14205,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -14145,6 +14986,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -14461,6 +15331,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -14633,6 +15532,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -14716,6 +15644,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -14796,6 +15753,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -15363,6 +16349,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
@@ -15662,6 +16677,35 @@
                                               "type": "boolean",
                                               "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                               "default": false
+                                            },
+                                            "location": {
+                                              "type": "object",
+                                              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true,
+                                              "properties": {
+                                                "line": {
+                                                  "type": "integer",
+                                                  "description": "1-indexed line number in the source file where the step was detected.",
+                                                  "minimum": 1
+                                                },
+                                                "startIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                                                  "minimum": 0
+                                                },
+                                                "endIndex": {
+                                                  "type": "integer",
+                                                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                                                  "minimum": 0
+                                                }
+                                              },
+                                              "required": [
+                                                "line",
+                                                "startIndex",
+                                                "endIndex"
+                                              ],
+                                              "additionalProperties": false,
+                                              "title": "Source Location"
                                             }
                                           },
                                           "title": "Common"
