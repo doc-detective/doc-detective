@@ -204,6 +204,7 @@ export interface Common {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation;
   [k: string]: unknown;
 }
 /**
@@ -229,6 +230,23 @@ export interface VariablesStep {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface CheckLink {
   checkLink: CheckLink1;
@@ -274,6 +292,7 @@ export interface Common1 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation1;
   [k: string]: unknown;
 }
 /**
@@ -299,6 +318,23 @@ export interface VariablesStep1 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation1 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface Click {
   click: Click1;
@@ -327,6 +363,7 @@ export interface Common2 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation2;
   [k: string]: unknown;
 }
 /**
@@ -352,6 +389,23 @@ export interface VariablesStep2 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation2 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface Find {
   find: Find1;
@@ -380,6 +434,7 @@ export interface Common3 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation3;
   [k: string]: unknown;
 }
 /**
@@ -405,6 +460,23 @@ export interface VariablesStep3 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation3 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface GoTo {
   goTo: GoTo1;
@@ -469,6 +541,7 @@ export interface Common4 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation4;
   [k: string]: unknown;
 }
 /**
@@ -494,6 +567,23 @@ export interface VariablesStep4 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation4 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface HttpRequest {
   httpRequest: HttpRequest1;
@@ -522,6 +612,7 @@ export interface Common5 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation5;
   [k: string]: unknown;
 }
 /**
@@ -547,6 +638,23 @@ export interface VariablesStep5 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation5 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface RunShell {
   runShell: RunShell1;
@@ -618,6 +726,7 @@ export interface Common6 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation6;
   [k: string]: unknown;
 }
 /**
@@ -643,6 +752,23 @@ export interface VariablesStep6 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation6 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface RunCode {
   runCode: RunCode1;
@@ -719,6 +845,7 @@ export interface Common7 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation7;
   [k: string]: unknown;
 }
 /**
@@ -744,6 +871,23 @@ export interface VariablesStep7 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation7 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface Type {
   type: TypeKeys;
@@ -809,6 +953,7 @@ export interface Common8 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation8;
   [k: string]: unknown;
 }
 /**
@@ -834,6 +979,23 @@ export interface VariablesStep8 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation8 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface Screenshot {
   screenshot: Screenshot1;
@@ -905,6 +1067,7 @@ export interface Common9 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation9;
   [k: string]: unknown;
 }
 /**
@@ -930,6 +1093,23 @@ export interface VariablesStep9 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation9 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface SaveCookie {
   saveCookie: SaveCookie1;
@@ -958,6 +1138,7 @@ export interface Common10 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation10;
   [k: string]: unknown;
 }
 /**
@@ -983,6 +1164,23 @@ export interface VariablesStep10 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation10 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface Record {
   record: Record1;
@@ -1026,6 +1224,7 @@ export interface Common11 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation11;
   [k: string]: unknown;
 }
 /**
@@ -1051,6 +1250,23 @@ export interface VariablesStep11 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation11 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface StopRecord {
   stopRecord: StopRecord1;
@@ -1079,6 +1295,7 @@ export interface Common12 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation12;
   [k: string]: unknown;
 }
 /**
@@ -1104,6 +1321,23 @@ export interface VariablesStep12 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation12 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface LoadVariables {
   loadVariables: LoadVariables1;
@@ -1132,6 +1366,7 @@ export interface Common13 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation13;
   [k: string]: unknown;
 }
 /**
@@ -1157,6 +1392,23 @@ export interface VariablesStep13 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation13 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface DragAndDrop {
   dragAndDrop: DragAndDrop1;
@@ -1203,6 +1455,7 @@ export interface Common14 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation14;
   [k: string]: unknown;
 }
 /**
@@ -1228,6 +1481,23 @@ export interface VariablesStep14 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation14 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface LoadCookie {
   loadCookie: LoadCookie1;
@@ -1256,6 +1526,7 @@ export interface Common15 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  location?: SourceLocation15;
   [k: string]: unknown;
 }
 /**
@@ -1281,6 +1552,23 @@ export interface VariablesStep15 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation15 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
 }
 export interface Wait {
   wait: Wait1;

@@ -1,31 +1,11 @@
-const { validate } = require("../dist/index.cjs");
+import { detectTests } from "../dist/index.cjs";
 
-const object = {
-  tests: [
-    {
-      steps: [
-        {
-          goTo: {
-            url: "http://localhost:8092",
-            waitUntil: {
-              find: {
-                selector: "button",
-                elementText: "Standard Button",
-                elementTestId: "standard-btn",
-                elementAria: "Sample Standard Button",
-                elementId: "standard-btn",
-                elementClass: ["btn"],
-                elementAttribute: {
-                  type: "button",
-                  value: "Standard Button",
-                },
-              },
-            },
-          },
-        },
-      ],
-    },
-  ],
-};
+const text = `To search for American Shorthair kittens,
 
-console.log(validate({ schemaKey: "spec_v3", object }));
+1. Go to [DuckDuckGo](https://www.duckduckgo.com).
+2. In the search bar, enter "American Shorthair kittens", then press Enter.
+
+<!-- step wait: 10000 -->
+
+!["Search results for kittens"](search-results.png){ .screenshot }`;
+console.log(JSON.stringify(await detectTests({content: text}), null, 2));

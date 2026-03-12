@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="ignore-test">
+  <title>Test with Ignore Blocks</title>
+  <?doc-detective test testId="ignore-test" ?>
+  <taskbody>
+    <steps>
+      <step><cmd>Click <uicontrol>Start</uicontrol></cmd></step>
+      <?doc-detective test ignore start?>
+      <step><cmd>Click <uicontrol>Ignored Button</uicontrol></cmd></step>
+      <step><cmd>Visit <xref href="https://ignored.example.com" scope="external">ignored link</xref></cmd></step>
+      <?doc-detective test ignore end?>
+      <step><cmd>Click <uicontrol>Finish</uicontrol></cmd></step>
+    </steps>
+  </taskbody>
+  <?doc-detective test end?>
+</task>

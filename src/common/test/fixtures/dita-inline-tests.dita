@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="login-test">
+  <title>Login to the Application</title>
+  <?doc-detective test testId="login-test" detectSteps=false ?>
+  <taskbody>
+    <steps>
+      <step>
+        <cmd>Navigate to the login page.</cmd>
+        <?doc-detective step goTo="https://app.example.com/login" ?>
+      </step>
+      <step>
+        <cmd>Click the Sign In button.</cmd>
+        <?doc-detective step click="Sign In" ?>
+      </step>
+      <step>
+        <cmd>Check the documentation link.</cmd>
+        <!-- step checkLink: "https://docs.example.com" -->
+      </step>
+    </steps>
+  </taskbody>
+  <?doc-detective test end?>
+</task>

@@ -8,12 +8,13 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
+import YAML from "yaml";
 import { validate } from "../common/src/validate.js";
-import { detectTests as parseContent } from "../common/src/detectTests.js";
+import { detectTests as parseContent, getLineNumber, getLineStarts } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
 
-export { detectTests };
+export { detectTests, parseTests };
 
 /**
  * Detects tests from files based on config.
@@ -320,20 +321,76 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
     let content: any = "";
-    content = await readFile({ fileURLOrPath: file });
+    let rawContent: string | undefined;
+
+    // For JSON/YAML specs, read raw content once and parse from it
+    if (extension === "json" || extension === "yaml" || extension === "yml") {
+      try {
+        rawContent = await fs.promises.readFile(file, "utf8");
+        if (extension === "json") {
+          content = JSON.parse(rawContent);
+        } else {
+          content = YAML.parse(rawContent);
+        }
+      } catch (err: any) {
+        console.warn(`Failed to read/parse ${file}: ${err.message}`);
+        content = await readFile({ fileURLOrPath: file });
+      }
+    } else {
+      content = await readFile({ fileURLOrPath: file });
+    }
 
     if (typeof content === "object") {
-      // JSON/YAML spec file - resolve paths and validate
+      // Collect step location data from YAML AST before validation/transformation.
+      // Location must be applied AFTER resolvePaths (which may transform v2→v3 steps).
+      const stepLocations: Map<number, Map<number, { line: number; startIndex: number; endIndex: number }>> = new Map();
+      if (rawContent && content.tests) {
+        try {
+          const doc = YAML.parseDocument(rawContent);
+          const lineStarts = getLineStarts(rawContent);
+          const testsNode = doc.get("tests", true);
+          if (testsNode && YAML.isSeq(testsNode)) {
+            for (let t = 0; t < testsNode.items.length; t++) {
+              const testNode = testsNode.get(t, true);
+              if (!testNode || !YAML.isMap(testNode)) continue;
+              const stepsNode = testNode.get("steps", true);
+              if (!stepsNode || !YAML.isSeq(stepsNode)) continue;
+              const test = content.tests[t];
+              if (!test?.steps) continue;
+              const testMap = new Map<number, { line: number; startIndex: number; endIndex: number }>();
+              for (let s = 0; s < stepsNode.items.length && s < test.steps.length; s++) {
+                const stepNode = stepsNode.items[s] as any;
+                if (stepNode?.range) {
+                  testMap.set(s, {
+                    line: getLineNumber(rawContent, stepNode.range[0], lineStarts),
+                    startIndex: stepNode.range[0],
+                    endIndex: stepNode.range[1],
+                  });
+                }
+              }
+              if (testMap.size > 0) stepLocations.set(t, testMap);
+            }
+          }
+        } catch {}
+      }
+
+      // JSON/YAML spec file - resolve paths and validate (transforms v2→v3)
       content = await resolvePaths({
         config: config,
         object: content,
         filePath: file,
       });
 
-      for (const test of content.tests) {
+      // Merge before/after steps, tracking which steps came from before-specs.
+      for (let t = 0; t < content.tests.length; t++) {
+        const test = content.tests[t];
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
           if (setup?.tests?.[0]?.steps) {
+            // Tag before-steps with a marker that survives validation cloning
+            for (const step of setup.tests[0].steps) {
+              step._fromBefore = true;
+            }
             test.steps = setup.tests[0].steps.concat(test.steps);
           }
         }
@@ -383,6 +440,41 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         object: content,
         filePath: file,
       });
+
+      // Apply step locations after all validation/transformation (v2→v3 safe).
+      // Compute offset from surviving before-steps (tagged with _fromBefore).
+      for (const [testIdx, testMap] of stepLocations) {
+        const test = content.tests[testIdx];
+        if (!test?.steps) continue;
+        let offset = 0;
+        for (const step of test.steps) {
+          if (step._fromBefore) {
+            offset++;
+          } else {
+            break;
+          }
+        }
+        for (const [stepIdx, loc] of testMap) {
+          const pos = offset + stepIdx;
+          if (pos < test.steps.length) {
+            test.steps[pos].location = loc;
+          }
+        }
+      }
+
+      // Clean up _fromBefore markers from all tests/steps, even if
+      // stepLocations is empty (e.g., AST parse failed).
+      if (content?.tests) {
+        for (const test of content.tests) {
+          if (!test?.steps) continue;
+          for (const step of test.steps) {
+            if (step && "_fromBefore" in step) {
+              delete step._fromBefore;
+            }
+          }
+        }
+      }
+
       specs.push(content);
     } else {
       // Text content - use common's detectTests for parsing
