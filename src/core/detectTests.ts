@@ -341,6 +341,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     }
 
     if (typeof content === "object") {
+      // Collect step location data from YAML AST before validation/transformation.
+      // Location must be applied AFTER resolvePaths (which may transform v2→v3 steps).
+      const stepLocations: Map<number, Map<number, { line: number; startIndex: number; endIndex: number }>> = new Map();
       if (rawContent && content.tests) {
         try {
           const doc = YAML.parseDocument(rawContent);
@@ -354,32 +357,38 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
               if (!stepsNode || !YAML.isSeq(stepsNode)) continue;
               const test = content.tests[t];
               if (!test?.steps) continue;
+              const testMap = new Map<number, { line: number; startIndex: number; endIndex: number }>();
               for (let s = 0; s < stepsNode.items.length && s < test.steps.length; s++) {
                 const stepNode = stepsNode.items[s] as any;
                 if (stepNode?.range) {
-                  test.steps[s].location = {
+                  testMap.set(s, {
                     line: getLineNumber(rawContent, stepNode.range[0], lineStarts),
                     startIndex: stepNode.range[0],
                     endIndex: stepNode.range[1],
-                  };
+                  });
                 }
               }
+              if (testMap.size > 0) stepLocations.set(t, testMap);
             }
           }
         } catch {}
       }
 
-      // JSON/YAML spec file - resolve paths and validate
+      // JSON/YAML spec file - resolve paths and validate (transforms v2→v3)
       content = await resolvePaths({
         config: config,
         object: content,
         filePath: file,
       });
 
-      for (const test of content.tests) {
+      // Track before-step counts per test for location offset calculation
+      const beforeStepCounts: Map<number, number> = new Map();
+      for (let t = 0; t < content.tests.length; t++) {
+        const test = content.tests[t];
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
           if (setup?.tests?.[0]?.steps) {
+            beforeStepCounts.set(t, setup.tests[0].steps.length);
             test.steps = setup.tests[0].steps.concat(test.steps);
           }
         }
@@ -429,6 +438,20 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         object: content,
         filePath: file,
       });
+
+      // Apply step locations after all validation/transformation (v2→v3 safe)
+      for (const [testIdx, testMap] of stepLocations) {
+        const test = content.tests[testIdx];
+        if (!test?.steps) continue;
+        const offset = beforeStepCounts.get(testIdx) ?? 0;
+        for (const [stepIdx, loc] of testMap) {
+          const pos = offset + stepIdx;
+          if (pos < test.steps.length) {
+            test.steps[pos].location = loc;
+          }
+        }
+      }
+
       specs.push(content);
     } else {
       // Text content - use common's detectTests for parsing
