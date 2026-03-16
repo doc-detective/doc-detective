@@ -36,7 +36,7 @@ All page content lives in `fern/pages/`, organized by navigation tab:
 | Reference | `fern/pages/reference/` | Glossary and schema reference pages |
 | Support | `fern/pages/support.mdx` | Support page |
 
-Pages use `.mdx` (MDX) or `.md` (Markdown) format. The navigation tree is defined in `fern/docs.yml` — adding a new page requires both creating the file and adding it to `docs.yml`.
+Pages use `.mdx` (MDX) format. The navigation tree is defined in `fern/docs.yml` — adding a new page requires both creating the file and adding it to `docs.yml`.
 
 ### Doc Detective Self-Testing
 

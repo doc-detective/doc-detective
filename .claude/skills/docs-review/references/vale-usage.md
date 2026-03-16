@@ -44,7 +44,7 @@ The Doc Detective monorepo already has a `.vale.ini` at `docs/.vale.ini`. No
 configuration setup is needed. Run Vale from the `docs/` directory so it picks up that
 config automatically, or pass it explicitly with `--config`.
 
-Linting MDX files requires the `mdx2vast` package installed globally. If `mdx2vast` is not available, run `npm install` from within the `docs/` directory.
+Linting MDX files requires the `mdx2vast` NPM package installed globally. If `mdx2vast` is not available, run `npm install` from within the `docs/` directory.
 
 ---
 
@@ -56,7 +56,7 @@ Run Vale in one of two ways:
 
 ### Lint a single file
 ```bash
-vale docs/getting-started.md
+vale docs/getting-started.mdx
 ```
 
 ### Lint all supported files in docs/
@@ -66,12 +66,12 @@ vale docs/
 
 ### Output as JSON (useful for scripting)
 ```bash
-vale --output=JSON docs/getting-started.md
+vale --output=JSON docs/getting-started.mdx
 ```
 
 ### Explicitly specify the config file (if running from the repo root)
 ```bash
-vale --config=docs/.vale.ini docs/getting-started.md
+vale --config=docs/.vale.ini docs/getting-started.mdx
 ```
 
 ---
@@ -79,7 +79,7 @@ vale --config=docs/.vale.ini docs/getting-started.md
 ## Understanding Vale Output
 
 ```
-docs/getting-started.md
+docs/getting-started.mdx
  14:5   warning  Use 'we' sparingly.                    Google.We
  22:1   error    'is returned' looks like passive voice.  Google.Passive
  37:10  suggestion  Try to avoid using 'simply'.        Google.Simple
@@ -103,9 +103,9 @@ docs/getting-started.md
 
 | Task | Command |
 |---|---|
-| Lint a file | `vale docs/<file>.md` |
+| Lint a file | `vale docs/<file>.mdx` |
 | Lint all docs | `vale docs/` |
-| JSON output | `vale --output=JSON docs/<file>.md` |
+| JSON output | `vale --output=JSON docs/<file>.mdx` |
 | Check config | `vale ls-config` |
 
 ---
