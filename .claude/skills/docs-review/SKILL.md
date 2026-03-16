@@ -49,23 +49,13 @@ Read it before reviewing any document. Pay special attention to:
 ## Vale Linter
 
 Vale is a prose linter that automates style checking. If Vale is available in the
-environment, use it. Setup and usage instructions are in:
+environment, use it alongside your manual review. Usage instructions are in:
 
-> 📄 `references/vale-setup.md`
+> 📄 `references/vale-usage.md`
 
-**To run Vale** (if configured):
-```bash
-vale <filename>.md
+```bash Check that Vale is available
+vale -v
 ```
-
-Vale output format:
-```
-filename.md:LINE:COL  SEVERITY  MESSAGE  RULE
-```
-
-Severity levels: `error` > `warning` > `suggestion`
-
-When Vale is not available, perform the review manually using the style guide reference.
 
 ---
 
@@ -137,29 +127,11 @@ Action names are always in code font and match their JSON key exactly:
 
 ---
 
-## Common Issues to Watch For
-
-These patterns appear frequently in Doc Detective docs:
-
-| Pattern | Problem | Fix |
-|---|---|---|
-| "Doc Detective will run..." | Future tense | "Doc Detective runs..." |
-| "We recommend..." | First-person plural | "Use..." or "For best results..." |
-| "The user can..." | Third person | "You can..." |
-| "Simply run the command" | Filler word | Remove "simply" |
-| "Please note that..." | Filler phrase | Remove or restructure |
-| Bare URL in prose | Non-descriptive link | Wrap in descriptive anchor text |
-| `fileName` vs `filename` | Casing | "filename" (one word, lowercase) per Google style |
-| Title Case Headings | Wrong casing | Sentence case only |
-| "higher" for version ranges | Word choice | Use "later" ("version 2.0 or later") |
-
----
-
 ## Workflow
 
 1. **Read** `references/google-style-guide.md` if you haven't already this session
-2. **Run Vale** if available: `vale <file>` (see `references/vale-setup.md` for config)
-3. **Apply checklist** above, section by section
+2. **Run Vale** if available: `vale <file>` (see `references/vale-usage.md` for config)
+3. **Review manually** based on the Google Style Guide
 4. **Produce output** in the appropriate mode (inline edits, report, or hybrid)
 5. **Flag any ambiguities** — if a Doc Detective-specific term or convention is unclear,
    note it and ask the user rather than guessing
@@ -172,4 +144,4 @@ These patterns appear frequently in Doc Detective docs:
 |---|---|
 | `SKILL.md` | This file — workflow, conventions, checklist |
 | `references/google-style-guide.md` | Condensed Google Dev Docs style guide |
-| `references/vale-setup.md` | Vale installation, config, and usage for Doc Detective |
+| `references/vale-usage.md` | Vale usage for Doc Detective |
