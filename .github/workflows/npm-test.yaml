@@ -111,7 +111,7 @@ jobs:
       - name: Get package version
         id: get_version
         shell: bash
-        run: echo "version=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - name: Install dependencies
         run: npm ci

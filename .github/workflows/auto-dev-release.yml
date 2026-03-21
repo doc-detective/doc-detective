@@ -210,21 +210,33 @@ jobs:
     if: needs.auto-dev-release.outputs.released == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - name: Wait for npm propagation
         run: |
           echo "Waiting for npm registry to propagate..."
+          EXPECTED="${{ needs.auto-dev-release.outputs.version }}"
           for i in $(seq 1 12); do
             PUBLISHED=$(npm view doc-detective@dev version 2>/dev/null || echo "")
-            if [ "$PUBLISHED" = "${{ needs.auto-dev-release.outputs.version }}" ]; then
+            if [ "$PUBLISHED" = "$EXPECTED" ]; then
               echo "Version $PUBLISHED available on npm"
               break
             fi
-            echo "Attempt $i: expected ${{ needs.auto-dev-release.outputs.version }}, got '$PUBLISHED'. Waiting 10s..."
+            echo "Attempt $i: expected $EXPECTED, got '$PUBLISHED'. Waiting 10s..."
             sleep 10
           done
+
+          # Final check: fail the job if the expected version is still not available
+          PUBLISHED=$(npm view doc-detective@dev version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "ERROR: Expected dev version $EXPECTED to be available on npm, but found '$PUBLISHED'. Failing job."
+            exit 1
+          fi
+
+          echo "Confirmed dev version $EXPECTED is available on npm."
 
       - uses: doc-detective/github-action@latest
         with:
