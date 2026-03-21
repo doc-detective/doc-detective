@@ -9,6 +9,11 @@
     "doc-detective": "bin/doc-detective.js"
   },
   "type": "module",
+    "files": [
+    "dist/",
+    "bin/",
+    "scripts/postinstall.js"
+  ],
   "main": "dist/index.cjs",
   "types": "dist/index.d.ts",
   "exports": {
