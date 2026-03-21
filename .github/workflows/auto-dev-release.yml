@@ -240,7 +240,7 @@ jobs:
 
       - uses: doc-detective/github-action@latest
         with:
-          version: "dev"
+          version: "${{ needs.auto-dev-release.outputs.version }}"
           config: ./test/artifacts/config.json
           input: ./test/artifacts/doc-content.md
           exit_on_fail: "true"

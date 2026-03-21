@@ -128,6 +128,24 @@ jobs:
           docker context use $contextName
           docker info
 
+      - name: Wait for npm propagation
+        shell: bash
+        run: |
+          EXPECTED="${{ steps.get_version.outputs.version }}"
+          for i in $(seq 1 12); do
+            PUBLISHED=$(npm view "doc-detective@$EXPECTED" version 2>/dev/null || echo "")
+            if [ "$PUBLISHED" = "$EXPECTED" ]; then
+              echo "Version $PUBLISHED available on npm"
+              break
+            fi
+            echo "Attempt $i: expected $EXPECTED, got '$PUBLISHED'. Waiting 10s..."
+            sleep 10
+          done
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "ERROR: Timed out waiting for doc-detective@$EXPECTED on npm"
+            exit 1
+          fi
+
       - name: Build Docker Image
         shell: bash
         run: npm run container:build -- --version="${{ steps.get_version.outputs.version }}"
