@@ -89,23 +89,81 @@ jobs:
           exit_on_fail: "true"
 
   build-docker-image:
-    name: Build Docker Image
+    name: Build & Push Docker Image (${{ matrix.os }})
     needs: publish-npm
-    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Get package version
         id: get_version
-        run: |
-          echo "version=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Trigger container build workflow
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Switch to Windows Docker Daemon
+        if: runner.os == 'Windows'
         run: |
-          curl --fail-with-body --silent --show-error -X POST -H "Authorization: token ${{ secrets.DD_DEP_UPDATE_TOKEN }}" \
-               -H "Accept: application/vnd.github.everest-preview+json" \
-               "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-               -d '{ "event_type": "build-push", "client_payload": { "version": "${{ steps.get_version.outputs.version }}", "additional_info": "triggered from npm-publish workflow" } }'
+          echo "Switching to Windows Docker Daemon"
+          $contextName = docker context ls | Select-String -Pattern "windows" | ForEach-Object { $_.ToString().Trim() -split '\s+' | Select-Object -First 1 }
+          if (-not $contextName) {
+            Write-Error "No Docker context matching 'windows' found"
+            exit 1
+          }
+          docker context use $contextName
+          docker info
+
+      - name: Wait for npm propagation
+        shell: bash
+        run: |
+          EXPECTED="${{ steps.get_version.outputs.version }}"
+          for i in $(seq 1 12); do
+            PUBLISHED=$(npm view "doc-detective@$EXPECTED" version 2>/dev/null || echo "")
+            if [ "$PUBLISHED" = "$EXPECTED" ]; then
+              echo "Version $PUBLISHED available on npm"
+              break
+            fi
+            echo "Attempt $i: expected $EXPECTED, got '$PUBLISHED'. Waiting 10s..."
+            sleep 10
+          done
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "ERROR: Timed out waiting for doc-detective@$EXPECTED on npm"
+            exit 1
+          fi
+
+      - name: Build Docker Image
+        shell: bash
+        run: npm run container:build -- --version="${{ steps.get_version.outputs.version }}"
+
+      - name: Post-build Test
+        shell: bash
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: npm run container:test
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker image
+        run: docker push --all-tags docdetective/docdetective
 
   publish-npm-common:
     if: github.event_name == 'release' && github.event.action == 'published'
@@ -123,6 +181,16 @@ jobs:
 
       - run: npm install
       - run: npm run build
+
+      - name: Sync common version to root
+        run: |
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+          COMMON_VERSION=$(node -p "require('./src/common/package.json').version")
+          if [ "$ROOT_VERSION" != "$COMMON_VERSION" ]; then
+            echo "Syncing common to root: $ROOT_VERSION"
+            npm version $ROOT_VERSION --no-git-tag-version -w src/common
+          fi
+
       - run: npm publish --workspace src/common
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
