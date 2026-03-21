@@ -1,9 +1,6 @@
 name: Build and Push Docker Images
 
 on:
-  repository_dispatch:
-    types:
-      - build-push
   pull_request:
     paths:
       - 'src/container/**'
@@ -31,7 +28,7 @@ jobs:
   build:
     timeout-minutes: 60
     env:
-      IMAGE_VERSION: ${{ github.event.client_payload.version || inputs.version || 'latest' }}
+      IMAGE_VERSION: ${{ inputs.version || 'latest' }}
     strategy:
       matrix:
         os:
