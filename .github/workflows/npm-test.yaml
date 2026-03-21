@@ -121,6 +121,10 @@ jobs:
         run: |
           echo "Switching to Windows Docker Daemon"
           $contextName = docker context ls | Select-String -Pattern "windows" | ForEach-Object { $_.ToString().Trim() -split '\s+' | Select-Object -First 1 }
+          if (-not $contextName) {
+            Write-Error "No Docker context matching 'windows' found"
+            exit 1
+          }
           docker context use $contextName
           docker info
 
