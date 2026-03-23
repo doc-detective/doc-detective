@@ -162,9 +162,30 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.checkLink.url).to.equal("https://example.com");
       });
 
-      // Note: wait_v2 transformation has a known issue where it assigns the whole object
-      // to wait instead of extracting the duration. Removing this test as it throws.
-      // The direct transformToSchemaKey test below documents the current behavior.
+      it("should transform wait_v2 to step_v3 via validate", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            action: "wait",
+            duration: 3000,
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.wait).to.equal(3000);
+      });
+
+      it("should transform wait_v2 with missing duration to step_v3 via validate", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            action: "wait",
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.wait).to.equal(5000);
+      });
 
       it("should transform typeKeys_v2 with delay to step_v3 with inputDelay", function () {
         const result = validate({
