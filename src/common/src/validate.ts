@@ -387,14 +387,14 @@ export function transformToSchemaKey({
     } else if (currentSchema === "stopRecording_v2") {
       transformedObject.stopRecord = true;
     } else if (currentSchema === "wait_v2") {
-      transformedObject.wait = object;
+      transformedObject.wait = object.duration ?? 5000;
     }
     const result = validate({
       schemaKey: "step_v3",
       object: transformedObject,
     });
     if (!result.valid) {
-      throw new Error(`Invalid object: ${result.errors}`);
+      throw new Error(`Failed to transform object to step.\nErrors: ${result.errors}`);
     }
     return result.object;
   } else if (targetSchema === "config_v3") {
