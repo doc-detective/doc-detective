@@ -394,7 +394,7 @@ export function transformToSchemaKey({
       object: transformedObject,
     });
     if (!result.valid) {
-      throw new Error(`Invalid object: ${result.errors}`);
+      throw new Error(`Failed to transform object to step.\nObject: ${JSON.stringify(result.object, null, 2)}\nErrors: ${result.errors}`);
     }
     return result.object;
   } else if (targetSchema === "config_v3") {
