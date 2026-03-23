@@ -9,10 +9,10 @@ if (fs.existsSync(backupPath)) {
   fs.unlinkSync(backupPath);
   console.log("Restored package.json from backup after npm pack / publish.");
 } else {
-  // Fallback: re-add workspaces manually if backup is missing
-  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-  const { name, version, description, ...rest } = pkg;
-  const restored = { name, version, description, workspaces: ["src/common"], ...rest };
-  fs.writeFileSync("package.json", JSON.stringify(restored, null, 2) + "\n");
-  console.warn("No backup found; restored workspaces field manually after npm pack / publish.");
+  console.error(
+    "Error: package.json.prepack-backup is missing. " +
+      "Cannot safely restore package.json after npm pack / publish. " +
+      "Please restore package.json from version control (e.g., git checkout -- package.json)."
+  );
+  process.exit(1);
 }
