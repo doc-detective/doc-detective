@@ -387,7 +387,7 @@ export function transformToSchemaKey({
     } else if (currentSchema === "stopRecording_v2") {
       transformedObject.stopRecord = true;
     } else if (currentSchema === "wait_v2") {
-      transformedObject.wait = object.duration ?? 1000;
+      transformedObject.wait = object.duration ?? 5000;
     }
     const result = validate({
       schemaKey: "step_v3",

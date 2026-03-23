@@ -520,16 +520,16 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = transformToSchemaKey({
           currentSchema: "wait_v2",
           targetSchema: "step_v3",
-          object: { duration: 5000 },
+          object: { duration: 1000 },
         });
-        expect(result.wait).to.equal(5000);
+        expect(result.wait).to.equal(1000);
 
         const result2 = transformToSchemaKey({
           currentSchema: "wait_v2",
           targetSchema: "step_v3",
           object: {},
         });
-        expect(result2.wait).to.equal(1000);
+        expect(result2.wait).to.equal(5000);
 
       });
     });
