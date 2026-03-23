@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "4.0.1-dev.3",
+  "version": "4.0.1-npx.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -30,6 +30,8 @@
     "./cli": "./bin/doc-detective.js"
   },
   "scripts": {
+    "prepack": "node --disable-warning=DEP0190 scripts/prepack.js",
+    "postpack": "node --disable-warning=DEP0190 scripts/postpack.js",
     "postinstall": "node --disable-warning=DEP0190 scripts/postinstall.js",
     "build:common": "cd src/common && npm run build",
     "compile": "tsc && node scripts/createCjsWrapper.js",
