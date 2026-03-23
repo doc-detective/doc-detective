@@ -520,10 +520,17 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = transformToSchemaKey({
           currentSchema: "wait_v2",
           targetSchema: "step_v3",
-          object: 1000,
+          object: { duration: 1000 },
         });
-
         expect(result.wait).to.equal(1000);
+        
+        const result2 = transformToSchemaKey({
+          currentSchema: "wait_v2",
+          targetSchema: "step_v3",
+          object: { },
+        });
+        expect(result2.wait).to.equal(true);
+
       });
     });
 
@@ -1045,7 +1052,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
               // Missing required url property
             },
           })
-        ).to.throw(/Invalid object/);
+        ).to.throw(/Failed to transform object to step/);
       });
 
       it("should throw error when openApi_v2 to openApi_v3 transformation results in invalid object", function () {
