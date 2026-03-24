@@ -53,6 +53,10 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm test
+        env:
+          HERETTO_ORG_ID: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_ORG_ID || '' }}
+          HERETTO_USERNAME: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_USERNAME || '' }}
+          HERETTO_TOKEN: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_TOKEN || '' }}
 
   publish-npm:
     if: github.event_name == 'release' && github.event.action == 'published'
