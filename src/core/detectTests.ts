@@ -13,6 +13,7 @@ import { validate } from "../common/src/validate.js";
 import { detectTests as parseContent, getLineNumber, getLineStarts } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
+import { loadHerettoContent } from "./integrations/heretto.js";
 
 export { detectTests, parseTests };
 
@@ -232,11 +233,37 @@ async function qualifyFiles({ config }: { config: any }) {
 
     // Check if source is a heretto:<name> reference
     if (source.startsWith("heretto:")) {
-      log(
-        config,
-        "warning",
-        `Heretto integration "${source}" is not supported in core. Use the resolver module for Heretto support.`
+      const herettoName = source.substring(8);
+      const herettoConfig = config?.integrations?.heretto?.find(
+        (h: any) => h.name === herettoName
       );
+
+      if (!herettoConfig) {
+        log(config, "warning", `Heretto integration "${herettoName}" not found in config. Skipping.`);
+        continue;
+      }
+
+      if (!herettoConfig.outputPath) {
+        try {
+          const outputPath = await loadHerettoContent(herettoConfig, log, config);
+          if (outputPath) {
+            herettoConfig.outputPath = outputPath;
+            config._herettoPathMapping[outputPath] = herettoName;
+            const currentIndex = sequence.indexOf(source);
+            sequence.splice(currentIndex + 1, 0, outputPath);
+            ignoredDitaMaps.push(outputPath);
+          } else {
+            log(config, "warning", `Failed to load Heretto content for "${herettoName}". Skipping.`);
+          }
+        } catch (error: any) {
+          log(config, "warning", `Failed to load Heretto content from "${herettoName}": ${error.message}`);
+        }
+      } else {
+        if (!sequence.includes(herettoConfig.outputPath)) {
+          const currentIndex = sequence.indexOf(source);
+          sequence.splice(currentIndex + 1, 0, herettoConfig.outputPath);
+        }
+      }
       continue;
     }
 
