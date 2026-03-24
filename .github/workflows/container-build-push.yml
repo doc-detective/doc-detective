@@ -47,13 +47,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Switch to Windows Docker Daemon
+      - name: Switch Docker to Windows containers
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          echo "Switching to Windows Docker Daemon"
-          $contextName = docker context ls | Select-String -Pattern "windows" | ForEach-Object { $_.ToString().Trim() -split '\s+' | Select-Object -First 1 }
-          docker context use $contextName
+          Write-Host "Switching Docker to Windows containers..."
+          $dockerCli = "$Env:ProgramFiles\Docker\Docker\DockerCli.exe"
+          if (-not (Test-Path $dockerCli)) {
+            throw "DockerCli.exe not found at $dockerCli"
+          }
+          & $dockerCli -SwitchWindowsEngine
+          Start-Sleep -Seconds 10
+          docker version
           docker info
+
+      - name: Verify Windows container mode
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $os = docker info --format '{{.OSType}}'
+          if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
+          Write-Host "Docker OSType=$os"
 
       - name: Build Docker Image
         shell: bash
