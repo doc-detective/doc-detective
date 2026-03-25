@@ -1136,6 +1136,9 @@ export async function triggerPublishingJob(
     scenario: scenarioId,
     parameters: [],
   });
+  if (!response.data?.jobId) {
+    throw new Error("Publishing job response missing jobId");
+  }
   return response.data;
 }
 
@@ -1156,9 +1159,10 @@ export async function getJobAssetDetails(
   const allAssets: string[] = [];
   let page = 0;
   const pageSize = 100;
+  const maxPages = 1000;
   let hasMorePages = true;
 
-  while (hasMorePages) {
+  while (hasMorePages && page < maxPages) {
     const response = await client.get(
       `/files/${fileId}/publishes/${jobId}/assets`,
       { params: { page, size: pageSize } }
@@ -1197,6 +1201,11 @@ export async function pollJobStatus(
 
       if (job?.status?.result) {
         log(config, "debug", `Job ${jobId} completed with result: ${job.status.result}`);
+
+        if (job.status.result !== "success") {
+          log(config, "warning", `Publishing job ${jobId} finished with non-success result: ${job.status.result}`);
+          return null;
+        }
 
         try {
           const assets = await getJobAssetDetails(client, fileId, jobId);
@@ -1272,13 +1281,14 @@ export async function downloadAndExtractOutput(
     const resolvedOutputDir = path.resolve(outputDir);
 
     for (const entry of zip.getEntries()) {
-      // Skip entries with path traversal patterns
-      if (entry.entryName.includes("..")) {
-        log(config, "warning", `Skipping potentially malicious ZIP entry: ${entry.entryName}`);
+      const normalizedName = path.posix.normalize(entry.entryName.replace(/\\/g, "/"));
+
+      // Reject entries with path traversal sequences
+      if (normalizedName.startsWith("..") || normalizedName.includes("/..")) {
+        log(config, "warning", `Skipping ZIP entry with path traversal: ${entry.entryName}`);
         continue;
       }
 
-      const normalizedName = path.posix.normalize(entry.entryName);
       const resolvedPath = path.resolve(outputDir, normalizedName);
 
       if (
@@ -1302,11 +1312,17 @@ export async function downloadAndExtractOutput(
     log(config, "info", `Heretto content "${herettoName}" extracted to ${outputDir}`);
     return outputDir;
   } catch (error: any) {
-    // Clean up zip file if it was created before the error
+    // Clean up zip file and partial output directory
     try {
       const zipCleanupPath = path.join(tempDir, `heretto_${hash}.zip`);
       if (fsModule.existsSync(zipCleanupPath)) {
         fsModule.unlinkSync(zipCleanupPath);
+      }
+    } catch { /* best-effort cleanup */ }
+    try {
+      const cleanupOutputDir = path.join(tempDir, `heretto_${hash}`);
+      if (fsModule.existsSync(cleanupOutputDir)) {
+        fsModule.rmSync(cleanupOutputDir, { recursive: true, force: true });
       }
     } catch { /* best-effort cleanup */ }
     log(config, "warning", `Failed to download or extract output: ${error.message}`);

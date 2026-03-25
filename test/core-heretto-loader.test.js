@@ -240,6 +240,17 @@ describe("Heretto Content Loader", function () {
         { message: "Server error" }
       );
     });
+
+    it("should throw if response is missing jobId", async function () {
+      const mockClient = {
+        post: sinon.stub().resolves({ data: { status: "ok" } }),
+      };
+
+      await assert.rejects(
+        () => triggerPublishingJob(mockClient, "file-uuid", "scenario-1"),
+        { message: "Publishing job response missing jobId" }
+      );
+    });
   });
 
   describe("getJobStatus", function () {
@@ -363,6 +374,15 @@ describe("Heretto Content Loader", function () {
           content: [{ filePath: "ot-output/dita/topic.dita" }],
           totalPages: 1,
         },
+      });
+
+      const result = await pollJobStatus(mockClient, "file-uuid", "job-1", mockLog, mockConfig);
+      assert.equal(result, null);
+    });
+
+    it("should return null when job completes with non-success result", async function () {
+      mockClient.get.withArgs("/files/file-uuid/publishes/job-1").resolves({
+        data: { status: { status: "completed", result: "failure" }, jobId: "job-1" },
       });
 
       const result = await pollJobStatus(mockClient, "file-uuid", "job-1", mockLog, mockConfig);

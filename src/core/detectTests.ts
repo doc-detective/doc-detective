@@ -228,7 +228,8 @@ async function qualifyFiles({ config }: { config: any }) {
     config._herettoPathMapping = {};
   }
 
-  for (let source of sequence) {
+  for (let i = 0; i < sequence.length; i++) {
+    let source = sequence[i];
     log(config, "debug", `source: ${source}`);
 
     // Check if source is a heretto:<name> reference
@@ -249,8 +250,7 @@ async function qualifyFiles({ config }: { config: any }) {
           if (outputPath) {
             herettoConfig.outputPath = outputPath;
             config._herettoPathMapping[outputPath] = herettoName;
-            const currentIndex = sequence.indexOf(source);
-            sequence.splice(currentIndex + 1, 0, outputPath);
+            sequence.splice(i + 1, 0, outputPath);
             ignoredDitaMaps.push(outputPath);
           } else {
             log(config, "warning", `Failed to load Heretto content for "${herettoName}". Skipping.`);
@@ -260,10 +260,11 @@ async function qualifyFiles({ config }: { config: any }) {
         }
       } else {
         config._herettoPathMapping[herettoConfig.outputPath] = herettoName;
-        if (!sequence.includes(herettoConfig.outputPath)) {
-          const currentIndex = sequence.indexOf(source);
-          sequence.splice(currentIndex + 1, 0, herettoConfig.outputPath);
+        if (!ignoredDitaMaps.includes(herettoConfig.outputPath)) {
           ignoredDitaMaps.push(herettoConfig.outputPath);
+        }
+        if (!sequence.includes(herettoConfig.outputPath)) {
+          sequence.splice(i + 1, 0, herettoConfig.outputPath);
         }
       }
       continue;
