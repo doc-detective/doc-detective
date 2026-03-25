@@ -1272,14 +1272,20 @@ export async function downloadAndExtractOutput(
     const resolvedOutputDir = path.resolve(outputDir);
 
     for (const entry of zip.getEntries()) {
-      const entryPath = path.join(outputDir, entry.entryName);
-      const resolvedPath = path.resolve(entryPath);
+      // Skip entries with path traversal patterns
+      if (entry.entryName.includes("..")) {
+        log(config, "warning", `Skipping potentially malicious ZIP entry: ${entry.entryName}`);
+        continue;
+      }
+
+      const normalizedName = path.posix.normalize(entry.entryName);
+      const resolvedPath = path.resolve(outputDir, normalizedName);
 
       if (
         !resolvedPath.startsWith(resolvedOutputDir + path.sep) &&
         resolvedPath !== resolvedOutputDir
       ) {
-        log(config, "warning", `Skipping potentially malicious ZIP entry: ${entry.entryName}`);
+        log(config, "warning", `Skipping ZIP entry outside output directory: ${entry.entryName}`);
         continue;
       }
 
