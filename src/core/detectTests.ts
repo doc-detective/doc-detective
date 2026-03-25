@@ -13,7 +13,7 @@ import { validate } from "../common/src/validate.js";
 import { detectTests as parseContent, getLineNumber, getLineStarts } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
-import { loadHerettoContent } from "./integrations/heretto.js";
+import { loadHerettoContent, createRestApiClient, findScenario, getResourceDependencies } from "./integrations/heretto.js";
 
 export { detectTests, parseTests };
 
@@ -265,6 +265,18 @@ async function qualifyFiles({ config }: { config: any }) {
         }
         if (!sequence.includes(herettoConfig.outputPath)) {
           sequence.splice(i + 1, 0, herettoConfig.outputPath);
+        }
+        // Hydrate resourceDependencies for uploadOnChange on reuse runs
+        if (herettoConfig.uploadOnChange && !herettoConfig.resourceDependencies) {
+          try {
+            const restClient = createRestApiClient(herettoConfig);
+            const scenario = await findScenario(restClient, log, config, herettoConfig.scenario || herettoConfig.name);
+            if (scenario) {
+              herettoConfig.resourceDependencies = await getResourceDependencies(restClient, scenario.fileId, log, config);
+            }
+          } catch (error: any) {
+            log(config, "warning", `Failed to fetch resource dependencies for "${herettoName}": ${error.message}`);
+          }
         }
       }
       continue;
