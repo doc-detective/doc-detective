@@ -35,6 +35,7 @@
     "postinstall": "node --disable-warning=DEP0190 scripts/postinstall.js",
     "build:common": "cd src/common && npm run build",
     "compile": "tsc && node scripts/createCjsWrapper.js",
+    "watch": "nodemon --watch src --ext ts --exec \"npm run compile\"",
     "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const s=p.join('src','common','src','schemas','schemas.json');const d=p.join('dist','common','src','schemas','schemas.json');fs.mkdirSync(p.dirname(d),{recursive:true});fs.copyFileSync(s,d);\"",
     "build": "npm run build:common && npm run compile && npm run copy:schemas",
     "mocha": "mocha",
@@ -69,6 +70,7 @@
     "@apidevtools/json-schema-ref-parser": "^15.3.1",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@puppeteer/browsers": "^2.13.0",
+    "adm-zip": "^0.5.16",
     "ajv": "^8.18.0",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^3.0.1",
@@ -79,6 +81,7 @@
     "appium-safari-driver": "^4.1.9",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
+    "fast-xml-parser": "^5.3.3",
     "geckodriver": "^6.1.0",
     "jq-web": "^0.6.2",
     "json-schema-faker": "^0.6.0",
@@ -126,6 +129,7 @@
     "@img/sharp-win32-x64": "^0.34.5"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/node": "^25.5.0",
     "@types/yargs": "^17.0.35",
     "body-parser": "^2.2.2",
@@ -135,8 +139,9 @@
     "express": "^5.2.1",
     "json-schema-to-typescript": "^15.0.4",
     "mocha": "^11.7.5",
-    "sinon": "^21.0.3",
+    "nodemon": "^3.1.14",
     "semver": "^7.7.4",
+    "sinon": "^21.0.3",
     "typescript": "^5.9.3"
   }
 }
