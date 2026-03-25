@@ -1092,10 +1092,10 @@ export async function findScenario(
 
     log(config, "debug", `Scenario parameters: ${JSON.stringify(scenarioParameters.content?.map((p: any) => ({ name: p.name, type: p.type, value: p.value })))}`);
 
-    const transtypeParam = scenarioParameters.content.find(
+    const transtypeParam = scenarioParameters.content?.find(
       (param: any) => param.name === "transtype"
     );
-    if (!transtypeParam || transtypeParam?.value !== "dita" && transtypeParam.options[0]?.value !== "dita") {
+    if (!transtypeParam || (transtypeParam.value !== "dita" && transtypeParam.options?.[0]?.value !== "dita")) {
       log(config, "error", `Existing "${scenarioName}" scenario: "transtype" must be set to "dita".`);
       return null;
     }
@@ -1119,7 +1119,7 @@ export async function findScenario(
     log(config, "debug", `Found existing "${scenarioName}" scenario: ${foundScenario.id}`);
     return {
       scenarioId: foundScenario.id,
-      fileId: fileUuidPickerParam?.value ?? fileUuidPickerParam?.options[0]?.value,
+      fileId: fileUuidPickerParam.value,
     };
   } catch (error: any) {
     log(config, "error", `Failed to find publishing scenario: ${error.message}`);
@@ -1243,14 +1243,15 @@ export async function downloadAndExtractOutput(
   const fsModule = deps?.fsModule || fs;
   const ZipClass = deps?.ZipClass || AdmZip;
 
+  const tempDir = path.join(os.tmpdir(), "doc-detective");
+  const hash = crypto
+    .createHash("md5")
+    .update(`${herettoName}_${jobId}`)
+    .digest("hex");
+
   try {
-    const tempDir = path.join(os.tmpdir(), "doc-detective");
     fsModule.mkdirSync(tempDir, { recursive: true });
 
-    const hash = crypto
-      .createHash("md5")
-      .update(`${herettoName}_${jobId}`)
-      .digest("hex");
     const outputDir = path.join(tempDir, `heretto_${hash}`);
 
     log(config, "debug", `Downloading publishing job output for ${herettoName}...`);
@@ -1295,6 +1296,13 @@ export async function downloadAndExtractOutput(
     log(config, "info", `Heretto content "${herettoName}" extracted to ${outputDir}`);
     return outputDir;
   } catch (error: any) {
+    // Clean up zip file if it was created before the error
+    try {
+      const zipCleanupPath = path.join(tempDir, `heretto_${hash}.zip`);
+      if (fsModule.existsSync(zipCleanupPath)) {
+        fsModule.unlinkSync(zipCleanupPath);
+      }
+    } catch { /* best-effort cleanup */ }
     log(config, "warning", `Failed to download or extract output: ${error.message}`);
     return null;
   }

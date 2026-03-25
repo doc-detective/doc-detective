@@ -259,9 +259,11 @@ async function qualifyFiles({ config }: { config: any }) {
           log(config, "warning", `Failed to load Heretto content from "${herettoName}": ${error.message}`);
         }
       } else {
+        config._herettoPathMapping[herettoConfig.outputPath] = herettoName;
         if (!sequence.includes(herettoConfig.outputPath)) {
           const currentIndex = sequence.indexOf(source);
           sequence.splice(currentIndex + 1, 0, herettoConfig.outputPath);
+          ignoredDitaMaps.push(herettoConfig.outputPath);
         }
       }
       continue;

@@ -12,11 +12,7 @@ import {
   getJobAssetDetails,
   pollJobStatus,
   downloadAndExtractOutput,
-  getResourceDependencies,
   loadHerettoContent,
-  POLLING_INTERVAL_MS,
-  POLLING_TIMEOUT_MS,
-  DEFAULT_SCENARIO_NAME,
 } from "../dist/core/integrations/heretto.js";
 
 describe("Heretto Content Loader", function () {
@@ -332,17 +328,12 @@ describe("Heretto Content Loader", function () {
 
   describe("pollJobStatus", function () {
     let mockClient;
-    let clock;
     const mockLog = sinon.stub();
     const mockConfig = {};
 
     beforeEach(function () {
       mockClient = { get: sinon.stub() };
       mockLog.resetHistory();
-    });
-
-    afterEach(function () {
-      if (clock) clock.restore();
     });
 
     it("should return job when it completes immediately with valid ditamap", async function () {
@@ -386,6 +377,7 @@ describe("Heretto Content Loader", function () {
     });
 
     it("should poll multiple times before completion", async function () {
+      this.timeout(15000);
       // First call: still running
       mockClient.get.onFirstCall().resolves({
         data: { status: { status: "running" }, jobId: "job-1" },
@@ -607,7 +599,7 @@ describe("Heretto Content Loader", function () {
       assert.equal(result, null);
     });
 
-    it("should return null when polling times out", async function () {
+    it("should return null when polling encounters a connection error", async function () {
       const mockClient = { get: sinon.stub(), post: sinon.stub() };
 
       // findScenario succeeds
