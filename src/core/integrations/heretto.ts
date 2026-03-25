@@ -1100,7 +1100,7 @@ export async function findScenario(
       return null;
     }
 
-    const toolKitParam = scenarioParameters.content.find(
+    const toolKitParam = scenarioParameters.content?.find(
       (param: any) => param.name === "tool-kit-name"
     );
     if (!toolKitParam || !toolKitParam.value) {
@@ -1108,7 +1108,7 @@ export async function findScenario(
       return null;
     }
 
-    const fileUuidPickerParam = scenarioParameters.content.find(
+    const fileUuidPickerParam = scenarioParameters.content?.find(
       (param: any) => param.type === "file_uuid_picker"
     );
     if (!fileUuidPickerParam || !fileUuidPickerParam.value) {
