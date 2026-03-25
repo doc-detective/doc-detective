@@ -42,7 +42,7 @@ Add entries to the `integrations.heretto` array in your config file:
 | `organizationId` | string | Yes | Your Heretto organization ID. |
 | `username` | string | Yes | Your Heretto username. Can be set via `HERETTO_USERNAME` environment variable. |
 | `apiToken` | string | Yes | Your Heretto API token. Can be set via `HERETTO_TOKEN` environment variable. |
-| `scenarioName` | string | No | Publishing scenario name in Heretto. Defaults to `doc-detective`. |
+| `scenarioName` | string | No | Publishing scenario name in Heretto. Defaults to `Doc Detective`. |
 | `uploadOnChange` | boolean | No | If `true`, tracks resource dependencies for change detection. |
 
 ## Using Heretto as an input source
@@ -67,7 +67,7 @@ Reference your Heretto content using the `heretto:<name>` syntax in your input p
 
 When Doc Detective encounters `heretto:my-docs`, it:
 
-1. Finds the publishing scenario named `doc-detective` (or your custom `scenarioName`)
+1. Finds the publishing scenario named `Doc Detective` (or your custom `scenarioName`)
 2. Triggers a publishing job in Heretto
 3. Polls the job status until completion
 4. Downloads and extracts the published DITA content
@@ -109,7 +109,7 @@ Your Heretto publishing scenario must have:
 - The `transtype` parameter set to `dita`
 - A file picker parameter configured to select the root DITA map
 
-Doc Detective looks for a scenario named `doc-detective` by default. Use the `scenarioName` option to specify a different scenario.
+Doc Detective looks for a scenario named `Doc Detective` by default. Use the `scenarioName` option to specify a different scenario.
 
 ## Example workflow
 
@@ -134,7 +134,7 @@ Doc Detective looks for a scenario named `doc-detective` by default. Use the `sc
            "organizationId": "${HERETTO_ORG_ID}",
            "username": "${HERETTO_USERNAME}",
            "apiToken": "${HERETTO_TOKEN}",
-           "scenarioName": "doc-detective"
+           "scenarioName": "Doc Detective"
          }
        ]
      }
