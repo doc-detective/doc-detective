@@ -1467,7 +1467,7 @@ export async function loadHerettoContent(
     const scenarioName = herettoConfig.scenarioName || DEFAULT_SCENARIO_NAME;
     const scenario = await findScenario(client, log, config, scenarioName);
     if (!scenario) {
-      log(config, "warning", `Skipping Heretto "${herettoConfig.name}" - could not find or create publishing scenario`);
+      log(config, "warning", `Skipping Heretto "${herettoConfig.name}" - could not find publishing scenario`);
       return null;
     }
 
