@@ -13,7 +13,7 @@ import { validate } from "../common/src/validate.js";
 import { detectTests as parseContent, getLineNumber, getLineStarts } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
-import { loadHerettoContent, createRestApiClient, findScenario, getResourceDependencies } from "./integrations/heretto.js";
+import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 
 export { detectTests, parseTests };
 
@@ -269,9 +269,11 @@ async function qualifyFiles({ config }: { config: any }) {
         // Hydrate resourceDependencies for uploadOnChange on reuse runs
         if (herettoConfig.uploadOnChange && !herettoConfig.resourceDependencies) {
           try {
-            const restClient = createRestApiClient(herettoConfig);
-            const scenario = await findScenario(restClient, log, config, herettoConfig.scenario || herettoConfig.name);
+            const client = createApiClient(herettoConfig);
+            const scenarioName = herettoConfig.scenarioName || DEFAULT_SCENARIO_NAME;
+            const scenario = await findScenario(client, log, config, scenarioName);
             if (scenario) {
+              const restClient = createRestApiClient(herettoConfig);
               herettoConfig.resourceDependencies = await getResourceDependencies(restClient, scenario.fileId, log, config);
             }
           } catch (error: any) {
