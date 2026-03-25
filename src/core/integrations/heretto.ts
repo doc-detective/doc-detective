@@ -1154,7 +1154,9 @@ export async function getJobStatus(
 export async function getJobAssetDetails(
   client: AxiosInstance,
   fileId: string,
-  jobId: string
+  jobId: string,
+  log?: Function,
+  config?: any
 ): Promise<string[]> {
   const allAssets: string[] = [];
   let page = 0;
@@ -1180,6 +1182,10 @@ export async function getJobAssetDetails(
     const totalPages = data.totalPages || 1;
     page++;
     hasMorePages = page < totalPages;
+
+    if (page === maxPages && totalPages > maxPages && log) {
+      log(config, "warning", `Job ${jobId} asset pagination truncated at ${maxPages} pages (API reports ${totalPages} total). Asset list may be incomplete.`);
+    }
   }
 
   return allAssets;
@@ -1208,7 +1214,7 @@ export async function pollJobStatus(
         }
 
         try {
-          const assets = await getJobAssetDetails(client, fileId, jobId);
+          const assets = await getJobAssetDetails(client, fileId, jobId, log, config);
           log(config, "debug", `Job ${jobId} has ${assets.length} assets`);
 
           if (validateDitamapInAssets(assets)) {
