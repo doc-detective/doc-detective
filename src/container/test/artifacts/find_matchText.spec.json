@@ -8,10 +8,6 @@
           "url": "https://docs.doc-detective.com/docs/actions/type"
         },
         {
-          "action": "wait",
-          "duration": 3000
-        },
-        {
           "action": "find",
           "selector": "h2#special-keys",
           "matchText": "Special keys",
