@@ -32,7 +32,9 @@ jobs:
     strategy:
       matrix:
         os:
-          - windows-latest
+          # Pin Windows to 2022: Docker Desktop (needed for Windows containers)
+          # is not available on windows-2025/windows-latest.
+          - windows-2022
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
@@ -54,10 +56,19 @@ jobs:
           Write-Host "Switching Docker to Windows containers..."
           $dockerCli = "$Env:ProgramFiles\Docker\Docker\DockerCli.exe"
           if (-not (Test-Path $dockerCli)) {
-            throw "DockerCli.exe not found at $dockerCli"
+            throw "DockerCli.exe not found at $dockerCli. This step requires Docker Desktop (available on windows-2022 runners)."
           }
           & $dockerCli -SwitchWindowsEngine
-          Start-Sleep -Seconds 10
+          # Wait for the daemon to restart after switching
+          $retries = 0
+          while ($retries -lt 12) {
+            Start-Sleep -Seconds 5
+            $retries++
+            try {
+              $os = docker info --format '{{.OSType}}' 2>$null
+              if ($os -eq 'windows') { break }
+            } catch { }
+          }
           docker version
           docker info
 
