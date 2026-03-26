@@ -62,10 +62,21 @@ jobs:
           
           # Unregister and re-register the Docker service for Windows containers
           # This ensures Docker runs in Windows container mode
+          $attemptedDockerdPaths = @()
           $dockerd = (Get-Command dockerd -ErrorAction SilentlyContinue).Source
-          if (-not $dockerd) {
-            $dockerd = "$Env:ProgramFiles\Docker\dockerd.exe"
+          if ($dockerd) {
+            $attemptedDockerdPaths += $dockerd
+          } else {
+            $fallbackDockerd = "$Env:ProgramFiles\Docker\dockerd.exe"
+            $attemptedDockerdPaths += $fallbackDockerd
+            $dockerd = $fallbackDockerd
           }
+          
+          if (-not (Test-Path -LiteralPath $dockerd)) {
+            $pathsString = $attemptedDockerdPaths -join ', '
+            throw "Could not find 'dockerd'. Paths attempted: $pathsString"
+          }
+          
           Write-Host "Using dockerd at: $dockerd"
           
           # Unregister existing service (ignore errors if it doesn't exist)
