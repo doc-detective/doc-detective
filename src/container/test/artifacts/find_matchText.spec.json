@@ -5,7 +5,7 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://doc-detective.com/docs/get-started/actions/type"
+          "url": "https://docs.doc-detective.com/docs/actions/type"
         },
         {
           "action": "find",

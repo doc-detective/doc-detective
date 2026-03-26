@@ -5,7 +5,7 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://doc-detective.com/docs/get-started/actions/type"
+          "url": "https://docs.doc-detective.com/docs/actions/type"
         },
         {
           "description": "Set HEADING variable to the text of the element with id 'special-keys'.",
