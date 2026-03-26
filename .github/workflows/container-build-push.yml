@@ -32,8 +32,7 @@ jobs:
     strategy:
       matrix:
         os:
-          # Pin Windows to 2022: Docker Desktop (needed for Windows containers)
-          # is not available on windows-2025/windows-latest.
+          # Use windows-2022 for Windows container builds
           - windows-2022
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
@@ -54,12 +53,31 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Switching Docker to Windows containers..."
-          $dockerCli = "$Env:ProgramFiles\Docker\Docker\DockerCli.exe"
-          if (-not (Test-Path $dockerCli)) {
-            throw "DockerCli.exe not found at $dockerCli. This step requires Docker Desktop (available on windows-2022 runners)."
+          
+          # On GitHub Actions Windows runners, Docker Engine is installed (not Docker Desktop)
+          # We need to reconfigure the Docker daemon to use Windows containers
+          
+          # Stop the Docker service
+          Stop-Service docker -ErrorAction SilentlyContinue
+          
+          # Unregister and re-register the Docker service for Windows containers
+          # This ensures Docker runs in Windows container mode
+          $dockerd = (Get-Command dockerd -ErrorAction SilentlyContinue).Source
+          if (-not $dockerd) {
+            $dockerd = "$Env:ProgramFiles\Docker\dockerd.exe"
           }
-          & $dockerCli -SwitchWindowsEngine
-          # Wait for the daemon to restart after switching
+          Write-Host "Using dockerd at: $dockerd"
+          
+          # Unregister existing service (ignore errors if it doesn't exist)
+          & $dockerd --unregister-service 2>$null
+          
+          # Register the service fresh (Windows containers are the default on Windows Server)
+          & $dockerd --register-service
+          
+          # Start the service
+          Start-Service docker
+          
+          # Wait for Docker daemon to be ready
           $retries = 0
           $lastDockerInfoError = $null
           $os = $null
@@ -70,10 +88,12 @@ jobs:
             if ($LASTEXITCODE -eq 0) {
               # docker info may return multiple lines; use the last line for OSType
               $os = ($output | Select-Object -Last 1).ToString().Trim()
+              Write-Host "Docker OSType: $os (attempt $retries)"
               if ($os -eq 'windows') { break }
             } else {
               # Preserve full multi-line output for diagnostics
               $lastDockerInfoError = ($output | Out-String).Trim()
+              Write-Host "Docker not ready yet (attempt $retries): $lastDockerInfoError"
             }
           }
           if ($os -ne 'windows') {
