@@ -5,12 +5,15 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://docs.doc-detective.com/docs/actions/type"
+          "url": "https://docs.doc-detective.com/docs/actions/type",
+          "wait": {
+            "timeout": 30000
+          }
         },
         {
           "description": "Set HEADING variable to the text of the element with id 'special-keys'.",
           "action": "find",
-          "selector": "h2#special-keys",
+          "elementText": "Special keys",
           "timeout": 30000,
           "setVariables": [
             {

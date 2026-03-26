@@ -5,23 +5,26 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://docs.doc-detective.com/docs/actions/type"
+          "url": "https://docs.doc-detective.com/docs/actions/type",
+          "wait": {
+            "timeout": 30000
+          }
         },
         {
           "action": "find",
-          "selector": "h2#special-keys",
+          "elementText": "Special keys",
           "matchText": "Special keys",
           "timeout": 30000
         },
         {
           "action": "find",
-          "selector": "h2#special-keys",
+          "elementText": "Special keys",
           "matchText": "/^Special keys$/",
           "timeout": 30000
         },
         {
           "action": "find",
-          "selector": "h2#special-keys",
+          "elementText": "Special keys",
           "matchText": "/^S.*?s/",
           "timeout": 30000
         }
