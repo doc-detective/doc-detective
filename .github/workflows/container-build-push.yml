@@ -61,17 +61,22 @@ jobs:
           & $dockerCli -SwitchWindowsEngine
           # Wait for the daemon to restart after switching
           $retries = 0
+          $lastDockerInfoError = $null
           while ($retries -lt 12) {
             Start-Sleep -Seconds 5
             $retries++
-            try {
-              $os = docker info --format '{{.OSType}}' 2>$null
+            $output = docker info --format '{{.OSType}}' 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $os = "$output".Trim()
               if ($os -eq 'windows') { break }
-            } catch { }
+            } else {
+              $lastDockerInfoError = "$output".Trim()
+            }
           }
           if ($os -ne 'windows') {
             if (-not $os) { $os = 'unknown' }
-            throw "Docker did not switch to Windows mode after waiting; last observed OSType=$os"
+            $details = if ($lastDockerInfoError) { "; last docker info error=$lastDockerInfoError" } else { "" }
+            throw "Docker did not switch to Windows mode after waiting; last observed OSType=$os$details"
           }
           docker version
           docker info
