@@ -8,9 +8,14 @@
           "url": "https://docs.doc-detective.com/docs/actions/type"
         },
         {
+          "action": "wait",
+          "duration": 3000
+        },
+        {
           "description": "Set HEADING variable to the text of the element with id 'special-keys'.",
           "action": "find",
           "selector": "h2#special-keys",
+          "timeout": 30000,
           "setVariables": [
             {
               "name": "HEADING",

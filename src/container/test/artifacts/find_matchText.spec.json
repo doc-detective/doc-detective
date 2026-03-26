@@ -8,19 +8,26 @@
           "url": "https://docs.doc-detective.com/docs/actions/type"
         },
         {
-          "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "Special keys"
+          "action": "wait",
+          "duration": 3000
         },
         {
           "action": "find",
           "selector": "h2#special-keys",
-          "matchText": "/^Special keys$/"
+          "matchText": "Special keys",
+          "timeout": 30000
         },
         {
           "action": "find",
           "selector": "h2#special-keys",
-          "matchText": "/^S.*?s/"
+          "matchText": "/^Special keys$/",
+          "timeout": 30000
+        },
+        {
+          "action": "find",
+          "selector": "h2#special-keys",
+          "matchText": "/^S.*?s/",
+          "timeout": 30000
         }
       ]
     }
