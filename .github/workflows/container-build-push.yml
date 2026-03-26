@@ -69,6 +69,10 @@ jobs:
               if ($os -eq 'windows') { break }
             } catch { }
           }
+          if ($os -ne 'windows') {
+            if (-not $os) { $os = 'unknown' }
+            throw "Docker did not switch to Windows mode after waiting; last observed OSType=$os"
+          }
           docker version
           docker info
 
