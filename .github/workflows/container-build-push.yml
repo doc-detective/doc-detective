@@ -62,15 +62,18 @@ jobs:
           # Wait for the daemon to restart after switching
           $retries = 0
           $lastDockerInfoError = $null
+          $os = $null
           while ($retries -lt 12) {
             Start-Sleep -Seconds 5
             $retries++
             $output = docker info --format '{{.OSType}}' 2>&1
             if ($LASTEXITCODE -eq 0) {
-              $os = "$output".Trim()
+              # docker info may return multiple lines; use the last line for OSType
+              $os = ($output | Select-Object -Last 1).ToString().Trim()
               if ($os -eq 'windows') { break }
             } else {
-              $lastDockerInfoError = "$output".Trim()
+              # Preserve full multi-line output for diagnostics
+              $lastDockerInfoError = ($output | Out-String).Trim()
             }
           }
           if ($os -ne 'windows') {
