@@ -18,7 +18,9 @@ Each format has its own comment patterns for inline tests and markup patterns fo
 
 ## How input formats work
 
-Input formats are defined in your [configuration file](/reference/schemas/config) using the `fileTypes` array. Each file type definition includes:
+Doc Detective automatically detects the format of your files based on their extension and content. For standard formats (Markdown, DITA, AsciiDoc, HTML), you don't need any configuration—Doc Detective uses the built-in defaults.
+
+For custom formats or to override defaults, define file types in your [configuration file](/reference/schemas/config) using the `fileTypes` array. Each file type definition includes:
 
 - **name**: A descriptive name for the file type
 - **extensions**: File extensions that should be processed with this configuration
