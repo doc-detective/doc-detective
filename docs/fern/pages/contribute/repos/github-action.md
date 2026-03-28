@@ -14,7 +14,7 @@ The GitHub Action can automatically create GitHub issues when tests fail. Set `c
 
 - `create_issue_on_fail`: Creates a GitHub issue when any test fails.
 - `issue_title`: Title of the created issue. Default: `"Doc Detective Failure"`.
-- `issue_body`: Body of the issue. Supports these variables:
+- `issue_body`: Body of the issue. Default: `"A Doc Detective run ($RUN_URL) failed with the following results:$RESULTS"`. Supports these variables:
   - `$RUN_URL`: URL of the workflow run that created the issue.
   - `$RESULTS`: Test results as a JSON code block.
   - `$PROMPT`: The prompt text (see below).
@@ -27,7 +27,7 @@ Notify AI-powered integrations when issues are created to help investigate and f
 
 - `integrations`: Comma-separated list of integrations to notify. Supported values:
   - `doc-sentinel`: Mentions @reem-sab
-  - `promptless`: Mentions @Promptless with the prompt
+  - `promptless`: Mentions @promptless with the prompt
   - `dosu`: Mentions @dosu with the prompt
   - `claude`: Mentions @claude with the prompt
   - `cursor`: Mentions @cursor with the prompt
