@@ -8,5 +8,6 @@ This monorepo contains:
 
 - The main CLI tool
 - [`doc-detective-common`](doc-detective-common): JSON schema definitions, schema validation logic, and path resolution logic (located in `src/common/`)
+- [Docker image](docker-image) build infrastructure (located in `src/container/`)
 
 This repo depends on [`doc-detective-core`](doc-detective-core) for the primary testing logic.
