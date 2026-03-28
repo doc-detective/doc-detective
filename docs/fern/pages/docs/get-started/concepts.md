@@ -25,6 +25,7 @@ An action performs a task in a step. Doc Detective supports a variety of actions
 | [checkLink](/docs/actions/check-link)         | Check if a URL returns an acceptable status code from a GET request.                                                                                      |
 | [find](/docs/actions/find)                   | Locate and interact with an element on the page.                                                                                                          |
 | [click](/docs/actions/click)                 | Click an element.                                                                                                                                         |
+| [dragAndDrop](/docs/actions/drag-and-drop)   | Drag an element to a target location.                                                                                                                     |
 | [goTo](/docs/actions/go-to)                   | Navigate to a specified URL.                                                                                                                              |
 | [httpRequest](/docs/actions/http-request)     | Perform a generic HTTP request, for example to an API.                                                                                                    |
 | [runShell](/docs/actions/run-shell)           | Perform a native shell command.                                                                                                                           |
@@ -33,6 +34,7 @@ An action performs a task in a step. Doc Detective supports a variety of actions
 | [saveCookie](/docs/actions/save-cookie)       | Save a specific browser cookie to a file or environment variable for later reuse.                                                                         |
 | [loadCookie](/docs/actions/load-cookie)       | Load a specific cookie from a file or environment variable into the browser.                                                                              |
 | [record](/docs/actions/record)               | Capture a video of the test run.                                                                                                                              |
+| [runCode](/docs/actions/run-code)             | Execute code snippets in JavaScript, Python, or Bash.                                                                                                         |
 | [stopRecord](/docs/actions/stop-record)       | Stop capturing a video of the test run.                                                                                                                       |
 | [type](/docs/actions/type)                   | Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`. |
 | [wait](/docs/actions/wait)                   | Pause before performing the next action.                                                                                                                  |
