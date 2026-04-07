@@ -98,7 +98,11 @@ async function checkLink({ config, step }: { config: any; step: any }) {
         } else if (responseHeaders['cf-mitigated'] || responseHeaders['cf-ray']) {
           description += `. The server appears to be protected by Cloudflare. Automated HTTP clients may be rate-limited or challenged. Consider using a browser-based step or configuring bypass headers if available.`;
         } else if (responseHeaders['retry-after']) {
-          description += `. The server requested a retry after ${responseHeaders['retry-after']} seconds. This is a rate-limiting response.`;
+          const retryAfter = responseHeaders['retry-after'];
+          const retryMsg = /^\d+$/.test(retryAfter.trim())
+            ? `after ${retryAfter} seconds`
+            : `at ${retryAfter}`;
+          description += `. The server requested a retry ${retryMsg}. This is a rate-limiting response.`;
         } else {
           description += `. This may be caused by bot-protection or rate-limiting. If the URL works in a browser, the server may require JavaScript execution or specific headers. Check the step's 'headers' field to pass any required bypass tokens.`;
         }
