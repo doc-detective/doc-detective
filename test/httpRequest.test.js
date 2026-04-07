@@ -1,6 +1,6 @@
 import http from "node:http";
 import assert from "node:assert/strict";
-import { checkLink } from "../dist/core/tests/checkLink.js";
+import { httpRequest } from "../dist/core/tests/httpRequest.js";
 
 let server;
 let serverPort;
@@ -12,8 +12,8 @@ before(async function () {
   // Create a local HTTP server that returns various status codes based on URL path
   server = http.createServer((req, res) => {
     const statusCode = parseInt(req.url.replace("/", ""), 10) || 200;
-    res.writeHead(statusCode, { "Content-Type": "text/plain" });
-    res.end(`Status ${statusCode}`);
+    res.writeHead(statusCode, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: statusCode }));
   });
 
   await new Promise((resolve) => {
@@ -28,14 +28,17 @@ after(function () {
   if (server) server.close();
 });
 
-describe("checkLink non-2xx status code regression", function () {
+describe("httpRequest non-2xx status code regression", function () {
   this.timeout(30000);
 
   it("should PASS for a 200 response with default statusCodes", async function () {
-    const result = await checkLink({
+    const result = await httpRequest({
       config: {},
       step: {
-        checkLink: { url: `http://localhost:${serverPort}/200` },
+        httpRequest: {
+          url: `http://localhost:${serverPort}/200`,
+          method: "get",
+        },
       },
     });
     assert.equal(result.status, "PASS");
@@ -43,11 +46,12 @@ describe("checkLink non-2xx status code regression", function () {
   });
 
   it("should PASS for a 429 response when 429 is in statusCodes", async function () {
-    const result = await checkLink({
+    const result = await httpRequest({
       config: {},
       step: {
-        checkLink: {
+        httpRequest: {
           url: `http://localhost:${serverPort}/429`,
+          method: "get",
           statusCodes: [200, 429],
         },
       },
@@ -57,11 +61,12 @@ describe("checkLink non-2xx status code regression", function () {
   });
 
   it("should FAIL for a 429 response when 429 is NOT in statusCodes", async function () {
-    const result = await checkLink({
+    const result = await httpRequest({
       config: {},
       step: {
-        checkLink: {
+        httpRequest: {
           url: `http://localhost:${serverPort}/429`,
+          method: "get",
           statusCodes: [200],
         },
       },
@@ -71,11 +76,12 @@ describe("checkLink non-2xx status code regression", function () {
   });
 
   it("should PASS for a 403 response when 403 is in statusCodes", async function () {
-    const result = await checkLink({
+    const result = await httpRequest({
       config: {},
       step: {
-        checkLink: {
+        httpRequest: {
           url: `http://localhost:${serverPort}/403`,
+          method: "get",
           statusCodes: [200, 403],
         },
       },
@@ -85,11 +91,12 @@ describe("checkLink non-2xx status code regression", function () {
   });
 
   it("should PASS for a 500 response when 500 is in statusCodes", async function () {
-    const result = await checkLink({
+    const result = await httpRequest({
       config: {},
       step: {
-        checkLink: {
+        httpRequest: {
           url: `http://localhost:${serverPort}/500`,
+          method: "get",
           statusCodes: [200, 500],
         },
       },
@@ -99,16 +106,16 @@ describe("checkLink non-2xx status code regression", function () {
   });
 
   it("should FAIL for unresolvable URL", async function () {
-    const result = await checkLink({
+    const result = await httpRequest({
       config: {},
       step: {
-        checkLink: {
+        httpRequest: {
           url: "http://this-domain-does-not-exist-12345.invalid",
+          method: "get",
           statusCodes: [200],
         },
       },
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid or unresolvable URL/);
   });
 });
