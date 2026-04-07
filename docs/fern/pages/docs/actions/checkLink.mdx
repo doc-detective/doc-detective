@@ -10,7 +10,7 @@ You can specify the target URL directly as a string, or use an object for more o
 
 - `url`: (Required in object format) The URL to check. Can be a full URL or a path. If a path is provided, an `origin` must be specified either in the step or in the configuration file.
 - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. If omitted and `url` is a path, the global `origin` from the configuration file is used.
-- `statusCodes`: (Optional) A single integer or an array of integers representing acceptable HTTP status codes. If omitted, defaults to `[200, 301, 302, 307, 308]`.
+- `statusCodes`: (Optional) A single integer or an array of integers representing acceptable HTTP status codes, including non-2xx codes like `429` (rate limited), `403` (forbidden), or `500` (server error). If omitted, defaults to `[200, 301, 302, 307, 308]`.
 
 > For comprehensive options, see the [`checkLink`](/reference/schemas/checklink) reference.
 
@@ -86,6 +86,28 @@ Here are a few ways you might use the `checkLink` action:
           "checkLink": {
             "url": "https://www.google.com",
             "statusCodes": [200, 201, 202]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Accept non-2xx status codes
+
+Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail. This is useful for testing endpoints that return rate limiting (`429`), authentication errors (`403`), or other expected non-success responses.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Check API endpoint, accepting rate limit responses.",
+          "checkLink": {
+            "url": "https://api.example.com/endpoint",
+            "statusCodes": [200, 429]
           }
         }
       ]
