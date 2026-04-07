@@ -74,14 +74,14 @@ async function checkLink({ config, step }: { config: any; step: any }) {
 
   // If request returned an error
   if (req.error) {
-    result.status = "FAIL";
-    // If we have a response with a status code, include it
+    // If we have a response with a status code, check against accepted codes
     if (req.error.response && req.error.response.status) {
-      result.description = `Returned ${req.error.response.status}. Expected one of ${JSON.stringify(step.checkLink.statusCodes)}`;
+      req = { statusCode: req.error.response.status };
     } else {
+      result.status = "FAIL";
       result.description = `Invalid or unresolvable URL: ${step.checkLink.url}`;
+      return result;
     }
-    return result;
   }
 
   // Compare status codes
