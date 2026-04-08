@@ -11,6 +11,7 @@ You can specify the target URL directly as a string, or use an object for more o
 - `url`: (Required in object format) The URL to check. Can be a full URL or a path. If a path is provided, an `origin` must be specified either in the step or in the configuration file.
 - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. If omitted and `url` is a path, the global `origin` from the configuration file is used.
 - `statusCodes`: (Optional) A single integer or an array of integers representing acceptable HTTP status codes, including non-2xx codes like `429` (rate limited), `403` (forbidden), or `500` (server error). If omitted, defaults to `[200, 301, 302, 307, 308]`.
+- `headers`: (Optional) An object containing additional HTTP request headers to include. Useful for passing bypass tokens (such as Vercel protection bypass) or other authentication headers required by sites that block automated requests.
 
 > For comprehensive options, see the [`checkLink`](/reference/schemas/checklink) reference.
 
@@ -157,9 +158,34 @@ Assuming a global `origin` of `https://www.google.com` is set in the configurati
 }
 ```
 
+### Check a link with custom headers
+
+Some sites require custom headers for access. For example, Vercel-protected sites need a bypass token:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Check a Vercel-protected site with bypass token.",
+          "checkLink": {
+            "url": "https://portal.example.com",
+            "headers": {
+              "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Troubleshooting
 
 - [`checkLink` fails due to unrecognized certificates](#checklink-fails-due-to-unrecognized-certificates)
+- [`checkLink` fails with HTTP 429 (bot protection or rate limiting)](#checklink-fails-with-http-429-bot-protection-or-rate-limiting)
 
 ### `checkLink` fails due to unrecognized certificates
 
@@ -264,5 +290,62 @@ After applying these changes, the test should pass:
   "resultDescription": "Returned 200"
 }
 ```
+
+### `checkLink` fails with HTTP 429 (bot protection or rate limiting)
+
+Some websites block automated HTTP requests with bot protection or rate limiting. When `checkLink` receives a 429 response, it includes diagnostic information to help identify the cause.
+
+#### Common causes
+
+**Vercel bot protection**: Vercel-hosted sites may return a JavaScript challenge that automated HTTP clients can't solve. The error message includes `x-vercel-mitigated: challenge`.
+
+**Cloudflare protection**: Sites behind Cloudflare may block or challenge automated requests. The error message mentions `cf-mitigated` or `cf-ray`.
+
+**Rate limiting**: Some servers limit request frequency. The error message includes a `Retry-After` value indicating how long to wait.
+
+#### Solution for Vercel-protected sites
+
+For Vercel-hosted sites, bypass bot protection with a protection bypass token:
+
+1. Get your bypass secret from your Vercel project's environment variables or settings.
+
+2. Store the secret in a `.env` file:
+
+   ```text title="vercel-bypass.env"
+   VERCEL_BYPASS_SECRET=your-bypass-token-here
+   ```
+
+3. Use `loadVariables` to load the secret and pass it in the `headers` field:
+
+   ```json
+   {
+     "tests": [
+       {
+         "steps": [
+           {
+             "loadVariables": "vercel-bypass.env"
+           },
+           {
+             "description": "Check Vercel-protected site",
+             "checkLink": {
+               "url": "https://your-vercel-site.com",
+               "headers": {
+                 "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+               }
+             }
+           }
+         ]
+       }
+     ]
+   }
+   ```
+
+#### Solution for other protected sites
+
+For sites with other protection mechanisms:
+
+- If the site provides a bypass token or API key, pass it using the `headers` field.
+- Use browser-based actions like `goTo` and `find` instead. These can handle JavaScript challenges.
+- For rate limiting, add delays between requests or reduce test frequency.
 
 
