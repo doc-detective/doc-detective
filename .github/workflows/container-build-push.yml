@@ -32,7 +32,8 @@ jobs:
     strategy:
       matrix:
         os:
-          - windows-latest
+          # Use windows-2022 for Windows container builds
+          - windows-2022
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
@@ -52,12 +53,65 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Switching Docker to Windows containers..."
-          $dockerCli = "$Env:ProgramFiles\Docker\Docker\DockerCli.exe"
-          if (-not (Test-Path $dockerCli)) {
-            throw "DockerCli.exe not found at $dockerCli"
+          
+          # On GitHub Actions Windows runners, Docker Engine is installed (not Docker Desktop)
+          # We need to reconfigure the Docker daemon to use Windows containers
+          
+          # Stop the Docker service
+          Stop-Service docker -ErrorAction SilentlyContinue
+          
+          # Unregister and re-register the Docker service for Windows containers
+          # This ensures Docker runs in Windows container mode
+          $attemptedDockerdPaths = @()
+          $dockerd = (Get-Command dockerd -ErrorAction SilentlyContinue).Source
+          if ($dockerd) {
+            $attemptedDockerdPaths += $dockerd
+          } else {
+            $fallbackDockerd = "$Env:ProgramFiles\Docker\dockerd.exe"
+            $attemptedDockerdPaths += $fallbackDockerd
+            $dockerd = $fallbackDockerd
           }
-          & $dockerCli -SwitchWindowsEngine
-          Start-Sleep -Seconds 10
+          
+          if (-not (Test-Path -LiteralPath $dockerd)) {
+            $pathsString = $attemptedDockerdPaths -join ', '
+            throw "Could not find 'dockerd'. Paths attempted: $pathsString"
+          }
+          
+          Write-Host "Using dockerd at: $dockerd"
+          
+          # Unregister existing service (ignore errors if it doesn't exist)
+          & $dockerd --unregister-service 2>$null
+          
+          # Register the service fresh (Windows containers are the default on Windows Server)
+          & $dockerd --register-service
+          
+          # Start the service
+          Start-Service docker
+          
+          # Wait for Docker daemon to be ready
+          $retries = 0
+          $lastDockerInfoError = $null
+          $os = $null
+          while ($retries -lt 12) {
+            Start-Sleep -Seconds 5
+            $retries++
+            $output = docker info --format '{{.OSType}}' 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              # docker info may return multiple lines; use the last line for OSType
+              $os = ($output | Select-Object -Last 1).ToString().Trim()
+              Write-Host "Docker OSType: $os (attempt $retries)"
+              if ($os -eq 'windows') { break }
+            } else {
+              # Preserve full multi-line output for diagnostics
+              $lastDockerInfoError = ($output | Out-String).Trim()
+              Write-Host "Docker not ready yet (attempt $retries): $lastDockerInfoError"
+            }
+          }
+          if ($os -ne 'windows') {
+            if (-not $os) { $os = 'unknown' }
+            $details = if ($lastDockerInfoError) { "; last docker info error=$lastDockerInfoError" } else { "" }
+            throw "Docker did not switch to Windows mode after waiting; last observed OSType=$os$details"
+          }
           docker version
           docker info
 
