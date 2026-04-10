@@ -73,3 +73,5 @@ typeText
 useExample
 walkthrough
 webserver
+Qwen
+Vercel
