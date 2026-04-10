@@ -1,0 +1,57 @@
+---
+title: Gemini CLI
+sidebar-title: Gemini CLI
+description: Set up Doc Detective agent tools in Gemini CLI and use prompts or slash commands to bootstrap and generate tests.
+---
+
+Set up Doc Detective agent tools with Gemini CLI to test your documentation using natural language.
+
+## Prerequisites
+
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli) installed
+
+## Installation
+
+Install the extension and open Gemini CLI:
+
+```bash
+gemini extensions install https://github.com/doc-detective/agent-tools.git --auto-update
+gemini
+```
+
+The `--auto-update` flag keeps the extension current with new releases.
+
+## Bootstrap a project
+
+Set up Doc Detective in your repository using a slash command:
+
+```
+/doc-detective-init
+```
+
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
+
+1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
+2. Generates a `.doc-detective.json` configuration file
+3. Creates test specifications for procedures with step-by-step instructions
+4. Runs the tests and fixes failures
+
+## Generate tests for existing pages
+
+Convert a documentation file into a test specification using a slash command:
+
+```
+/doc-detective-generate docs/getting-started.md
+```
+
+Or ask in plain language:
+
+> Generate Doc Detective tests for the getting started guide. Save the output to a JSON file in the tests folder.
+
+You can also ask for more specific behavior:
+
+> Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.

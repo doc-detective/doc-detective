@@ -1,0 +1,61 @@
+---
+title: Copilot CLI
+sidebar-title: Copilot CLI
+description: Install and use Doc Detective agent tools with Copilot CLI to bootstrap projects and generate test specifications.
+---
+
+Set up Doc Detective agent tools with Copilot CLI to test your documentation using natural language.
+
+## Prerequisites
+
+- [GitHub Copilot CLI](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line) installed
+
+## Installation
+
+1. Open Copilot CLI:
+
+    ```bash
+    copilot
+    ```
+
+2. Install the Doc Detective plugin:
+
+    ```
+    /plugin marketplace add doc-detective/agent-tools
+    /plugin install doc-detective@doc-detective
+    ```
+
+## Bootstrap a project
+
+Set up Doc Detective in your repository using a slash command:
+
+```
+/doc-detective-init
+```
+
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
+
+1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
+2. Generates a `.doc-detective.json` configuration file
+3. Creates test specifications for procedures with step-by-step instructions
+4. Runs the tests and fixes failures
+
+## Generate tests for existing pages
+
+Convert a documentation file into a test specification using a slash command:
+
+```
+/doc-detective-generate docs/getting-started.md
+```
+
+Or ask in plain language:
+
+> Generate Doc Detective tests for the getting started guide. Save the output to a JSON file in the tests folder.
+
+You can also ask for more specific behavior:
+
+> Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.
