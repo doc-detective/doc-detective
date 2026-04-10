@@ -380,13 +380,37 @@ describe("Heretto Content Loader", function () {
       assert.equal(result, null);
     });
 
-    it("should return null when job completes with non-success result", async function () {
+    it("should return null when job completes with non-success result and no valid assets", async function () {
       mockClient.get.withArgs("/files/file-uuid/publishes/job-1").resolves({
         data: { status: { status: "completed", result: "failure" }, jobId: "job-1" },
+      });
+      // Assets endpoint returns empty or no ditamap
+      mockClient.get.withArgs("/files/file-uuid/publishes/job-1/assets", sinon.match.any).resolves({
+        data: {
+          content: [],
+          totalPages: 1,
+        },
       });
 
       const result = await pollJobStatus(mockClient, "file-uuid", "job-1", mockLog, mockConfig);
       assert.equal(result, null);
+    });
+
+    it("should return job when job completes with non-success result but has valid assets", async function () {
+      mockClient.get.withArgs("/files/file-uuid/publishes/job-1").resolves({
+        data: { status: { status: "completed", result: "FAIL" }, jobId: "job-1" },
+      });
+      // Assets endpoint returns valid ditamap in ot-output/dita/
+      mockClient.get.withArgs("/files/file-uuid/publishes/job-1/assets", sinon.match.any).resolves({
+        data: {
+          content: [{ filePath: "ot-output/dita/map.ditamap" }],
+          totalPages: 1,
+        },
+      });
+
+      const result = await pollJobStatus(mockClient, "file-uuid", "job-1", mockLog, mockConfig);
+      assert.ok(result);
+      assert.equal(result.jobId, "job-1");
     });
 
     it("should return null on network error during polling", async function () {
