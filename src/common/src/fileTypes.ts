@@ -43,10 +43,13 @@ const defaultFileTypesBase: Record<string, FileType> = {
             testStart: [
                 "<\\?doc-detective\\s+test([\\s\\S]*?)\\?>",
                 "<!--\\s*test([\\s\\S]+?)-->",
+                "<data\\s+name=[\"']doc-detective[\"']\\s+value='test\\s([^']*?)'\\s*\\/?>(?:\\s*<\\/data>)?",
+                '<data\\s+name=["\']doc-detective["\']\\s+value="test\\s([^"]*?)"\\s*\\/?>(?:\\s*<\\/data>)?',
             ],
             testEnd: [
                 "<\\?doc-detective\\s+test\\s+end\\s*\\?>",
                 "<!--\\s*test end([\\s\\S]+?)-->",
+                "<data\\s+name=[\"']doc-detective[\"']\\s+value=[\"']test end[\"']\\s*\\/?>(?:\\s*<\\/data>)?",
             ],
             ignoreStart: [
                 "<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>",
@@ -60,6 +63,8 @@ const defaultFileTypesBase: Record<string, FileType> = {
                 "<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>",
                 "<!--\\s*step([\\s\\S]+?)-->",
                 '<data\\s+name="step"\\s*>([\\s\\S]*?)<\\/data>',
+                "<data\\s+name=[\"']doc-detective[\"']\\s+value='step\\s([^']*?)'\\s*\\/?>(?:\\s*<\\/data>)?",
+                '<data\\s+name=["\']doc-detective["\']\\s+value="step\\s([^"]*?)"\\s*\\/?>(?:\\s*<\\/data>)?',
             ],
         },
         markup: [
