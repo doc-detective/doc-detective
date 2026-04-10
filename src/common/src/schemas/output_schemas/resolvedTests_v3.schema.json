@@ -1127,6 +1127,13 @@
                                                               307,
                                                               308
                                                             ]
+                                                          },
+                                                          "headers": {
+                                                            "type": "object",
+                                                            "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                                            "additionalProperties": {
+                                                              "type": "string"
+                                                            }
                                                           }
                                                         }
                                                       }
@@ -1190,6 +1197,13 @@
                                                                 307,
                                                                 308
                                                               ]
+                                                            },
+                                                            "headers": {
+                                                              "type": "object",
+                                                              "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                                              "additionalProperties": {
+                                                                "type": "string"
+                                                              }
                                                             }
                                                           }
                                                         }
@@ -1208,6 +1222,12 @@
                                                         "statusCodes": [
                                                           200
                                                         ]
+                                                      },
+                                                      {
+                                                        "url": "https://portal.prove.com",
+                                                        "headers": {
+                                                          "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+                                                        }
                                                       }
                                                     ]
                                                   }
@@ -9750,6 +9770,13 @@
                                                 307,
                                                 308
                                               ]
+                                            },
+                                            "headers": {
+                                              "type": "object",
+                                              "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              }
                                             }
                                           }
                                         }
@@ -9813,6 +9840,13 @@
                                                   307,
                                                   308
                                                 ]
+                                              },
+                                              "headers": {
+                                                "type": "object",
+                                                "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                }
                                               }
                                             }
                                           }
@@ -9831,6 +9865,12 @@
                                           "statusCodes": [
                                             200
                                           ]
+                                        },
+                                        {
+                                          "url": "https://portal.prove.com",
+                                          "headers": {
+                                            "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+                                          }
                                         }
                                       ]
                                     }
@@ -19062,6 +19102,13 @@
                                                   307,
                                                   308
                                                 ]
+                                              },
+                                              "headers": {
+                                                "type": "object",
+                                                "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                }
                                               }
                                             }
                                           }
@@ -19125,6 +19172,13 @@
                                                     307,
                                                     308
                                                   ]
+                                                },
+                                                "headers": {
+                                                  "type": "object",
+                                                  "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  }
                                                 }
                                               }
                                             }
@@ -19143,6 +19197,12 @@
                                             "statusCodes": [
                                               200
                                             ]
+                                          },
+                                          {
+                                            "url": "https://portal.prove.com",
+                                            "headers": {
+                                              "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+                                            }
                                           }
                                         ]
                                       }
@@ -27159,6 +27219,13 @@
                                                         307,
                                                         308
                                                       ]
+                                                    },
+                                                    "headers": {
+                                                      "type": "object",
+                                                      "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                                      "additionalProperties": {
+                                                        "type": "string"
+                                                      }
                                                     }
                                                   }
                                                 }
@@ -27222,6 +27289,13 @@
                                                           307,
                                                           308
                                                         ]
+                                                      },
+                                                      "headers": {
+                                                        "type": "object",
+                                                        "description": "Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.",
+                                                        "additionalProperties": {
+                                                          "type": "string"
+                                                        }
                                                       }
                                                     }
                                                   }
@@ -27240,6 +27314,12 @@
                                                   "statusCodes": [
                                                     200
                                                   ]
+                                                },
+                                                {
+                                                  "url": "https://portal.prove.com",
+                                                  "headers": {
+                                                    "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+                                                  }
                                                 }
                                               ]
                                             }

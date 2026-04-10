@@ -268,6 +268,12 @@ export interface CheckLinkDetailed1 {
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
    */
   statusCodes?: number | number[];
+  /**
+   * Additional HTTP request headers to include. Useful for passing bypass tokens (e.g., Vercel protection bypass) or other authentication headers required by sites that block automated requests.
+   */
+  headers?: {
+    [k: string]: string;
+  };
 }
 export interface Common1 {
   /**
