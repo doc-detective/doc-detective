@@ -1,0 +1,76 @@
+---
+title: Other AI coding assistants
+sidebar-title: Other assistants
+description: Use Doc Detective agent tools with Codex, Cursor, Qwen Code, and other assistants that support skills, plugins, or extensions.
+---
+
+Set up Doc Detective agent tools with any AI coding assistant that supports Agent Skills.
+
+Doc Detective agent tools work with Codex, Cursor, OpenCode, Qwen Code, and other assistants. If your assistant supports skills, extensions, or plugins, you can likely use these tools.
+
+## Installation options
+
+### Option 1: Install with `npx skills`
+
+The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools.
+
+```bash
+npx skills add doc-detective/agent-tools
+```
+
+Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
+
+### Option 2: Manual installation
+
+Clone the repository and copy the skills to your agent's configuration directory:
+
+```bash
+git clone https://github.com/doc-detective/agent-tools.git
+cp -r agent-tools/skills .{agent-dir}/skills
+```
+
+Replace `.{agent-dir}` with your agent's expected skill/plugin directory. Common directories include:
+
+| Agent | Directory |
+|-------|-----------|
+| Codex | `.agents` |
+| Cursor | `.cursor` |
+| OpenCode | `.opencode` |
+| Qwen Code | `.qwen` |
+
+Check your assistant's documentation for the correct directory if yours isn't listed.
+
+## Bootstrap a project
+
+Set up Doc Detective in your repository using a slash command (if your assistant supports them):
+
+```
+/doc-detective-init
+```
+
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
+
+1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
+2. Generates a `.doc-detective.json` configuration file
+3. Creates test specifications for procedures with step-by-step instructions
+4. Runs the tests and fixes failures
+
+## Generate tests for existing pages
+
+Convert a documentation file into a test specification using a slash command:
+
+```
+/doc-detective-generate docs/getting-started.md
+```
+
+Or ask in plain language:
+
+> Generate Doc Detective tests for the getting started guide. Save the output to a JSON file in the tests folder.
+
+You can also ask for more specific behavior:
+
+> Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.
