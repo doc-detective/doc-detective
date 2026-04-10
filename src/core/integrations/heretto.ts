@@ -1209,7 +1209,7 @@ export async function pollJobStatus(
         log(config, "debug", `Job ${jobId} completed with result: ${job.status.result}`);
 
         if (job.status.result !== "success") {
-          log(config, "debug", `Publishing job ${jobId} finished with non-success result: ${job.status.result}. Checking if output files are available...`);
+          log(config, "warning", `Publishing job ${jobId} finished with non-success result: ${job.status.result}. Checking if output files are available...`);
         }
 
         // Check for required output files regardless of job result status
