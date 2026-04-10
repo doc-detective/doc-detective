@@ -1209,16 +1209,19 @@ export async function pollJobStatus(
         log(config, "debug", `Job ${jobId} completed with result: ${job.status.result}`);
 
         if (job.status.result !== "success") {
-          log(config, "warning", `Publishing job ${jobId} finished with non-success result: ${job.status.result}`);
-          return null;
+          log(config, "warning", `Publishing job ${jobId} finished with non-success result: ${job.status.result}. Checking if output files are available...`);
         }
 
+        // Check for required output files regardless of job result status
         try {
           const assets = await getJobAssetDetails(client, fileId, jobId, log, config);
           log(config, "debug", `Job ${jobId} has ${assets.length} assets`);
 
           if (validateDitamapInAssets(assets)) {
             log(config, "debug", `Found .ditamap file in ot-output/dita/`);
+            if (job.status.result !== "success") {
+              log(config, "info", `Publishing job ${jobId} result was "${job.status.result}" but required output files are present. Proceeding.`);
+            }
             return job;
           }
 
