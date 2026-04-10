@@ -1,0 +1,160 @@
+---
+title: Heretto integration
+sidebar-title: Heretto
+description: Load DITA content directly from your Heretto CMS for testing.
+---
+
+Heretto is a component content management system (CCMS) for technical documentation. Doc Detective can load DITA content directly from your Heretto CMS, so you can test documentation without manually exporting files.
+
+## Prerequisites
+
+Before using the Heretto integration, you need:
+
+- A Heretto account with API access
+- Your Heretto organization ID
+- Heretto username and API token
+- A publishing scenario configured in Heretto with `transtype` set to `dita`
+
+## Configuration
+
+Add entries to the `integrations.heretto` array in your config file:
+
+```json
+{
+  "integrations": {
+    "heretto": [
+      {
+        "name": "my-docs",
+        "organizationId": "your-org-id",
+        "username": "your-username",
+        "apiToken": "your-api-token"
+      }
+    ]
+  }
+}
+```
+
+### Configuration options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `name` | string | Yes | Identifier for this integration. Use this name in the `heretto:<name>` input syntax. |
+| `organizationId` | string | Yes | Your Heretto organization ID. |
+| `username` | string | Yes | Your Heretto username. Can be set via `HERETTO_USERNAME` environment variable. |
+| `apiToken` | string | Yes | Your Heretto API token. Can be set via `HERETTO_TOKEN` environment variable. |
+| `scenarioName` | string | No | Publishing scenario name in Heretto. Defaults to `Doc Detective`. |
+| `uploadOnChange` | boolean | No | If `true`, tracks resource dependencies for change detection. |
+
+## Using Heretto as an input source
+
+Reference your Heretto content using the `heretto:<name>` syntax in your input paths:
+
+```json
+{
+  "input": ["heretto:my-docs", "./local-docs"],
+  "integrations": {
+    "heretto": [
+      {
+        "name": "my-docs",
+        "organizationId": "your-org-id",
+        "username": "your-username",
+        "apiToken": "your-api-token"
+      }
+    ]
+  }
+}
+```
+
+When Doc Detective encounters `heretto:my-docs`, it:
+
+1. Finds the publishing scenario named `Doc Detective` (or your custom `scenarioName`)
+2. Triggers a publishing job in Heretto
+3. Polls the job until the required output is available
+4. Downloads and extracts the published DITA content
+5. Processes the DITA files for test detection
+
+<Note>
+Doc Detective checks for the required DITA content files in the job output instead of relying on the job status code. Content loads successfully as long as the expected `.ditamap` files are generated, even if Heretto reports the job as incomplete.
+</Note>
+
+## Environment variables
+
+For security, store credentials as environment variables rather than in config files:
+
+| Environment variable | Description |
+|---------------------|-------------|
+| `HERETTO_ORG_ID` | Your Heretto organization ID |
+| `HERETTO_USERNAME` | Your Heretto username |
+| `HERETTO_TOKEN` | Your Heretto API token |
+
+Example using environment variables with `loadVariables`:
+
+```json
+{
+  "loadVariables": ".env",
+  "input": "heretto:my-docs",
+  "integrations": {
+    "heretto": [
+      {
+        "name": "my-docs",
+        "organizationId": "${HERETTO_ORG_ID}",
+        "username": "${HERETTO_USERNAME}",
+        "apiToken": "${HERETTO_TOKEN}"
+      }
+    ]
+  }
+}
+```
+
+## Publishing scenario requirements
+
+Your Heretto publishing scenario must have:
+
+- The `transtype` parameter set to `dita`
+- A file picker parameter configured to select the root DITA map
+
+Doc Detective looks for a scenario named `Doc Detective` by default. Use the `scenarioName` option to specify a different scenario.
+
+## Example workflow
+
+1. Create a `.env` file with your Heretto credentials:
+
+   ```
+   HERETTO_ORG_ID=your-org-id
+   HERETTO_USERNAME=your-username
+   HERETTO_TOKEN=your-api-token
+   ```
+
+2. Add Heretto to your `config.json`:
+
+   ```json
+   {
+     "loadVariables": ".env",
+     "input": "heretto:product-docs",
+     "integrations": {
+       "heretto": [
+         {
+           "name": "product-docs",
+           "organizationId": "${HERETTO_ORG_ID}",
+           "username": "${HERETTO_USERNAME}",
+           "apiToken": "${HERETTO_TOKEN}",
+           "scenarioName": "Doc Detective"
+         }
+       ]
+     }
+   }
+   ```
+
+3. Run Doc Detective to load and test your Heretto content:
+
+   ```bash
+   npx doc-detective runTests
+   ```
+
+Doc Detective fetches your DITA content from Heretto and processes it using the standard DITA file type patterns. Any inline or detected tests in your DITA files run automatically.
+
+## Next steps
+
+- Learn about [DITA input format](dita) for DITA-specific markup patterns
+- Learn about [inline tests](/docs/tests/inline) for defining tests in your documentation
+- Learn about [detected tests](/docs/tests/detected) for automatic test generation
