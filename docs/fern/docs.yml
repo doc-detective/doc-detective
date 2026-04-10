@@ -127,6 +127,20 @@ navigation:
           - page: Resources
             path: pages/docs/get-started/resources.mdx
 
+      - section: Agent tools
+        contents:
+          - page: Overview
+            path: pages/docs/agent-tools/overview.mdx
+          - page: Claude Code
+            path: pages/docs/agent-tools/claude-code.mdx
+          - page: Copilot CLI
+            path: pages/docs/agent-tools/copilot-cli.mdx
+          - page: Gemini CLI
+            path: pages/docs/agent-tools/gemini-cli.mdx
+          - page: Other assistants
+            path: pages/docs/agent-tools/other-assistants.mdx
+            slug: other-assistants
+
       - section: Configuration
         contents:
           - page: Contexts

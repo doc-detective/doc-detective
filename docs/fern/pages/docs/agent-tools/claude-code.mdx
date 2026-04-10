@@ -1,0 +1,165 @@
+---
+title: Claude Code
+sidebar-title: Claude Code
+---
+
+Set up Doc Detective agent tools with Claude Code to test your documentation using natural language commands.
+
+## Prerequisites
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
+
+## Installation
+
+1. Open Claude Code:
+
+    ```bash
+    claude
+    ```
+
+2. Add the Doc Detective marketplace and install the plugin:
+
+    ```
+    /plugin marketplace add doc-detective/agent-tools
+    /plugin install doc-detective@doc-detective
+    ```
+
+## Bootstrap a project
+
+Run the init command to set up Doc Detective in your repository:
+
+```
+/doc-detective-init
+```
+
+The init command:
+
+1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
+2. Generates a `.doc-detective.json` configuration file
+3. Creates test specifications for procedures with step-by-step instructions
+4. Runs the tests
+5. Fixes failures with confidence-based suggestions
+6. Offers to install a GitHub Actions workflow
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ci` | false | Non-interactive mode with defaults |
+| `--auto-fix` | false | Apply all fixes regardless of confidence |
+| `--fix-threshold <0-100>` | 80 | Confidence threshold for auto-applying fixes |
+| `--dry-run` | false | Preview changes without applying |
+| `--skip-tests` | false | Generate config and tests without running |
+| `--skip-fix-loop` | false | Run tests without fixing failures |
+
+## Generate tests for existing pages
+
+Convert a documentation file into a test specification:
+
+```
+/doc-detective-generate docs/getting-started.md
+```
+
+Save the output to a file:
+
+```
+/doc-detective-generate docs/getting-started.md --output tests/getting-started-spec.json
+```
+
+Merge new tests with an existing specification:
+
+```
+/doc-detective-generate docs/new-feature.md --merge tests/existing-spec.json
+```
+
+## Run tests
+
+Execute tests and see results:
+
+```
+/doc-detective-test docs/login.md
+```
+
+Enable the fix loop to automatically repair failures:
+
+```
+/doc-detective-test docs/login.md --fix
+```
+
+Apply fixes without confirmation when confidence is high:
+
+```
+/doc-detective-test docs/login.md --fix --auto-fix
+```
+
+Inject passing tests into the source file:
+
+```
+/doc-detective-test docs/login.md --fix --inject
+```
+
+## Validate specifications
+
+Check a test specification for errors:
+
+```
+/doc-detective-validate test-spec.json
+```
+
+Validate a configuration file:
+
+```
+/doc-detective-validate --config .doc-detective.json
+```
+
+## Inject inline tests
+
+Embed test steps into documentation as comments:
+
+```
+/doc-detective-inject tests/spec.yaml docs/procedure.md --apply
+```
+
+Before:
+
+```markdown
+1. Go to [Login Page](https://example.com/login).
+2. Click **Sign In**.
+```
+
+After:
+
+```markdown
+1. Go to [Login Page](https://example.com/login).
+<!-- step {"goTo":"https://example.com/login"} -->
+2. Click **Sign In**.
+<!-- step {"click":"Sign In"} -->
+```
+
+## Set up CI
+
+Install a GitHub Actions workflow:
+
+```
+/doc-detective-install-github-action
+```
+
+Options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--trigger <event>` | `pull_request` | Workflow trigger (`pull_request`, `push`, `schedule`) |
+| `--exit-on-fail` | false | Fail CI when tests fail |
+| `--create-pr-on-change` | false | Open a PR when files change during tests |
+| `--create-issue-on-fail` | false | Create an issue when tests fail |
+
+## Example workflow
+
+1. Install the plugin
+2. Navigate to your docs repository
+3. Run `/doc-detective-init` to bootstrap
+4. Review generated tests and fix any failures
+5. Commit the configuration and test files
+6. Set up CI with `/doc-detective-install-github-action`
+
+Your documentation is now continuously tested.

@@ -1,0 +1,73 @@
+---
+title: Agent tools overview
+sidebar-title: Overview
+---
+
+Agent tools let you set up Doc Detective tests using natural language. Instead of writing test specifications by hand, you describe what you want to test and your AI coding assistant generates the tests for you.
+
+## What are agent tools?
+
+Agent tools are plugins, extensions, and skills that integrate Doc Detective with AI coding assistants. They let you:
+
+- **Bootstrap projects**: Detect documentation files, generate configuration, and create tests automatically
+- **Generate tests**: Convert documentation procedures into executable test specifications
+- **Run and fix tests**: Execute tests and iterate on failures with AI assistance
+- **Inject inline tests**: Embed test steps directly in your documentation source files
+- **Set up CI**: Install GitHub Actions workflows for automated testing
+
+## Supported AI coding assistants
+
+Doc Detective agent tools work with:
+
+| Assistant | Installation method |
+|-----------|---------------------|
+| [Claude Code](/docs/agent-tools/claude-code) | Plugin marketplace |
+| [Copilot CLI](/docs/agent-tools/copilot-cli) | Plugin marketplace |
+| [Gemini CLI](/docs/agent-tools/gemini-cli) | Extension |
+| [Codex, Cursor, OpenCode](/docs/agent-tools/other-assistants) | Manual or `npx skills` |
+
+## Quick start
+
+Choose your AI coding assistant from the guides above and follow the installation steps. Once installed, run the init command to bootstrap Doc Detective in your project:
+
+```
+/doc-detective-init
+```
+
+This single command:
+
+1. Detects documentation files in your repository
+2. Generates a minimal configuration file
+3. Creates test specifications for identified procedures
+4. Runs the tests
+5. Iteratively fixes failures with confidence-based suggestions
+
+## Available commands
+
+After installation, you have access to these commands:
+
+| Command | Description |
+|---------|-------------|
+| `/doc-detective-init` | Bootstrap Doc Detective for a project |
+| `/doc-detective-test` | Generate tests, run them, and optionally fix failures |
+| `/doc-detective-generate` | Convert documentation to test specs without running |
+| `/doc-detective-validate` | Validate test specifications or config files |
+| `/doc-detective-inject` | Inject test specs into documentation as inline comments |
+| `/doc-detective-install-github-action` | Set up CI workflow for automated testing |
+
+## Hooks
+
+Agent tools include automated hooks that provide guardrails during your coding session:
+
+| Hook | Trigger | Behavior |
+|------|---------|----------|
+| Test spec validation | After editing a `.json` test spec | Validates structure and reports errors |
+| Action anti-pattern blocker | Before writing test spec content | Blocks incorrect `{"action": "goTo"}` format |
+| Documentation test reminder | After editing a doc file | Suggests running tests if Doc Detective is configured |
+| Installation check | Session start | Verifies CLI availability and provides setup instructions |
+
+## Learn more
+
+- [Test specification format](/docs/tests/overview)
+- [Actions reference](/docs/actions)
+- [CI integration](/docs/get-started/ci)
