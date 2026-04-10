@@ -65,6 +65,38 @@ You can also use HTML comment syntax as an alternative:
 
 HTML comments and processing instructions work identically. Use whichever fits your workflow better.
 
+### DITA data element syntax
+
+DITA `<data>` elements let you define inline tests using standard DITA markup:
+
+```xml
+<data name="doc-detective" value="test testId='my-test' detectSteps=false"/>
+<data name="doc-detective" value="step checkLink='https://example.com'"/>
+<data name="doc-detective" value="test end"/>
+```
+
+Set the `name` attribute to `doc-detective` and put the test or step declaration in the `value` attribute. You can use single or double quotes for either attribute:
+
+```xml
+<!-- Double quotes for attribute, single quotes for values -->
+<data name="doc-detective" value="test testId='my-test'"/>
+
+<!-- Single quotes for attribute, double quotes for values -->
+<data name='doc-detective' value='test testId="my-test"'/>
+```
+
+Both self-closing tags and explicit closing tags work:
+
+```xml
+<!-- Self-closing -->
+<data name="doc-detective" value="step goTo='https://example.com'"/>
+
+<!-- With closing tag -->
+<data name="doc-detective" value="step goTo='https://example.com'"></data>
+```
+
+Use `<data>` elements when you want tests that validate with DITA-aware tools, or when your publishing workflow filters out processing instructions.
+
 ## DITA semantic elements
 
 DITA task topics use semantic elements to structure procedural documentation. Doc Detective recognizes these elements and extracts the appropriate test actions:
