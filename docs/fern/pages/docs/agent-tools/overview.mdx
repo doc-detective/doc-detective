@@ -9,62 +9,41 @@ Agent tools let you set up Doc Detective tests using natural language. Instead o
 
 Agent tools are plugins, extensions, and skills that integrate Doc Detective with AI coding assistants. They let you:
 
-- **Bootstrap projects**: Detect documentation files, generate configuration, and create tests automatically
+- **Bootstrap projects**: Detect documentation files, generate configuration, and create initial tests
 - **Generate tests**: Convert documentation procedures into executable test specifications
-- **Run and fix tests**: Execute tests and iterate on failures with AI assistance
-- **Inject inline tests**: Embed test steps directly in your documentation source files
-- **Set up CI**: Install GitHub Actions workflows for automated testing
 
-## Supported AI coding assistants
+## Compatibility
 
-Doc Detective agent tools work with:
+Doc Detective agent tools work with any AI coding assistant that supports Agent Skills, including:
 
-| Assistant | Installation method |
-|-----------|---------------------|
-| [Claude Code](/docs/agent-tools/claude-code) | Plugin marketplace |
-| [Copilot CLI](/docs/agent-tools/copilot-cli) | Plugin marketplace |
-| [Gemini CLI](/docs/agent-tools/gemini-cli) | Extension |
-| [Codex, Cursor, OpenCode](/docs/agent-tools/other-assistants) | Manual or `npx skills` |
+- [Claude Code](/docs/agent-tools/claude-code)
+- [Copilot CLI](/docs/agent-tools/copilot-cli)
+- [Gemini CLI](/docs/agent-tools/gemini-cli)
+- [Codex, Cursor, OpenCode, and others](/docs/agent-tools/other-assistants)
+
+If your assistant supports skills, extensions, or plugins, you can likely use Doc Detective agent tools with it.
 
 ## Quick start
 
-Choose your AI coding assistant from the guides above and follow the installation steps. Once installed, run the init command to bootstrap Doc Detective in your project:
+Choose your AI coding assistant from the guides above and follow the installation steps. Once installed, you can bootstrap Doc Detective in your project.
+
+Using a slash command:
 
 ```
 /doc-detective-init
 ```
 
-This single command:
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
 
 1. Detects documentation files in your repository
 2. Generates a minimal configuration file
 3. Creates test specifications for identified procedures
 4. Runs the tests
 5. Iteratively fixes failures with confidence-based suggestions
-
-## Available commands
-
-After installation, you have access to these commands:
-
-| Command | Description |
-|---------|-------------|
-| `/doc-detective-init` | Bootstrap Doc Detective for a project |
-| `/doc-detective-test` | Generate tests, run them, and optionally fix failures |
-| `/doc-detective-generate` | Convert documentation to test specs without running |
-| `/doc-detective-validate` | Validate test specifications or config files |
-| `/doc-detective-inject` | Inject test specs into documentation as inline comments |
-| `/doc-detective-install-github-action` | Set up CI workflow for automated testing |
-
-## Hooks
-
-Agent tools include automated hooks that provide guardrails during your coding session:
-
-| Hook | Trigger | Behavior |
-|------|---------|----------|
-| Test spec validation | After editing a `.json` test spec | Validates structure and reports errors |
-| Action anti-pattern blocker | Before writing test spec content | Blocks incorrect `{"action": "goTo"}` format |
-| Documentation test reminder | After editing a doc file | Suggests running tests if Doc Detective is configured |
-| Installation check | Session start | Verifies CLI availability and provides setup instructions |
 
 ## Learn more
 
