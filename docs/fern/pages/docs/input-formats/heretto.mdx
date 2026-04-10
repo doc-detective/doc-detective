@@ -69,9 +69,13 @@ When Doc Detective encounters `heretto:my-docs`, it:
 
 1. Finds the publishing scenario named `Doc Detective` (or your custom `scenarioName`)
 2. Triggers a publishing job in Heretto
-3. Polls the job status until completion
+3. Polls the job until the required output is available
 4. Downloads and extracts the published DITA content
 5. Processes the DITA files for test detection
+
+<Note>
+Doc Detective checks for the required DITA content files in the job output instead of relying on the job status code. Content loads successfully as long as the expected `.ditamap` files are generated, even if Heretto reports the job as incomplete.
+</Note>
 
 ## Environment variables
 
