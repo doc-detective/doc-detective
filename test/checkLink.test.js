@@ -194,6 +194,22 @@ describe("checkLink retry, headers, and HEAD fallback", function () {
     assert.match(result.description, /Returned 200/);
   });
 
+  it("should retry up to three times (fail-fail-fail-pass sequence succeeds)", async function () {
+    const id = `retry3-${Date.now()}`;
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          // Fail three times with 429, then return 200. Must succeed on the 4th attempt.
+          url: `http://localhost:${serverPort}/flaky/${id}/3/429/200`,
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", `Expected PASS but got: ${result.description}`);
+    assert.match(result.description, /Returned 200/);
+    assert.equal(flakyCounters[id], 4, `Expected 4 attempts, got ${flakyCounters[id]}`);
+  });
+
   it("should retry on 503 and PASS when a subsequent attempt returns 200", async function () {
     const id = `retry5xx-${Date.now()}`;
     const result = await checkLink({

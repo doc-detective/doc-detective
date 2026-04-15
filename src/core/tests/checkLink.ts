@@ -21,7 +21,8 @@ const DEFAULT_HEADERS: Record<string, string> = {
   "Sec-Ch-Ua-Platform": '"Windows"',
 };
 
-const MAX_ATTEMPTS = 3;
+// Initial request plus up to 3 retries, producing sleeps of 1s, 2s, 4s.
+const MAX_ATTEMPTS = 4;
 const BASE_BACKOFF_MS = 1000;
 const MAX_RETRY_AFTER_MS = 10000;
 
