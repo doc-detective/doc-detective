@@ -135,3 +135,15 @@ webm
 webserver
 workingDirectory
 XPath
+Akamai
+Imperva
+Vercel
+PerimeterX
+Cloudflare
+CloudFront
+WAF
+WAFs
+allowlist
+allowlists
+allowlisted
+backoff

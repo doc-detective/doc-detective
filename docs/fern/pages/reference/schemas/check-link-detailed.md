@@ -46,28 +46,28 @@ headers | one of:<br/>- object<br/>- string | Optional. Additional HTTP headers 
 
 Each `checkLink` step:
 
-1. Issues a `GET` request with browser-mimicking default headers (`User-Agent`, `Accept`, `Accept-Language`, `Accept-Encoding`, `Upgrade-Insecure-Requests`, and the `Sec-Fetch-*` / `Sec-Ch-Ua*` Client Hints set) to reduce false 429/403 responses from bot-protection layers.
-2. Retries up to 3 attempts with exponential backoff (1s → 2s → 4s) on `429` or `5xx` responses. If the server sends a `Retry-After` header, Doc Detective waits that duration (capped at 10 seconds) instead.
-3. If the final response is still `429` or `403`, retries the URL once with a `HEAD` request — some WAFs rate-limit HTML `GET`s but allow `HEAD`s. If the `HEAD` returns an accepted status code, the step passes.
+1. Issues a `GET` request with browser-mimicking default headers (`User-Agent`, `Accept`, `Accept-Language`, `Accept-Encoding`, `Upgrade-Insecure-Requests`, and the `Sec-Fetch-*` and `Sec-Ch-Ua*` Client Hints set) to reduce false 429 or 403 responses from bot-protection layers.
+2. Retries up to three attempts with exponential backoff (1 second, then 2 seconds, then 4 seconds) on `429` or `5xx` responses. If the server sends a `Retry-After` header, Doc Detective waits that duration (capped at 10 seconds) instead.
+3. If the final response is still `429` or `403`, retries the URL once with a `HEAD` request. Some web application firewalls (WAFs) rate-limit HTML `GET` requests but allow `HEAD` requests. If the `HEAD` returns an accepted status code, the step passes.
 4. Compares the final status code against `statusCodes` and reports PASS or FAIL.
 
 ### Sites behind bot protection or WAFs
 
-Some sites (Cloudflare, Akamai, AWS WAF, Imperva, PerimeterX, Vercel deployment protection, etc.) return `403`/`429` to non-browser traffic even when the URL works in your browser. If you hit this, you have three escape hatches:
+Some sites (for example, Cloudflare, Akamai, Amazon Web Services (AWS) WAF, Imperva, PerimeterX, and Vercel deployment protection) return `403` or `429` to non-browser traffic even when the URL works in your browser. If you hit this, you have three escape hatches:
 
-- **Widen `statusCodes`** to accept the WAF's response code, e.g. `"statusCodes": [200, 301, 302, 307, 308, 403, 429]`. Pragmatic but loses signal — the check only confirms the URL exists.
-- **Pass allowlist or bypass headers** via the `headers` field. Common options when you control the site:
+- **Widen `statusCodes`** to accept the WAF response code, for example `"statusCodes": [200, 301, 302, 307, 308, 403, 429]`. This is pragmatic but loses signal, because the check only confirms that the URL exists.
+- **Pass allowlist or bypass headers** through the `headers` field. Common options when you control the site:
 
-  | Provider | Header(s) / cookie |
+  | Provider | Headers or cookies |
   | --- | --- |
   | Cloudflare Access | `CF-Access-Client-Id` + `CF-Access-Client-Secret` (service-token pair) |
   | Cloudflare Bot Management | `Cookie: cf_clearance=<value>; __cf_bm=<value>` (obtained from a browser session) |
-  | AWS CloudFront / ALB | Custom allowlist header, e.g. `X-Origin-Verify: <shared-secret>` |
+  | AWS CloudFront or Application Load Balancer | Custom allowlist header, for example `X-Origin-Verify: <shared-secret>` |
   | AWS API Gateway | `x-api-key: <key>` |
   | Vercel deployment protection | `x-vercel-protection-bypass: <token>` (optionally `x-vercel-set-bypass-cookie: true`) |
   | Vercel password protection | `Cookie: _vercel_jwt=<value>` |
-  | Generic WAF rule | Any custom header + shared secret you allowlist on the WAF |
+  | Generic WAF rule | Any custom header and shared secret you allowlist on the WAF |
 
 - **Use a browser-driven step** (`goTo`) instead of `checkLink` when the URL truly requires JavaScript or a full browser fingerprint.
 
-If you own the site, prefer adding a WAF rule that allowlists a custom header + shared secret (e.g. `X-Doc-Detective-Check`) over trying to mimic a browser.
+If you own the site, prefer adding a WAF rule that allowlists a custom header and shared secret (for example, `X-Doc-Detective-Check`) over trying to mimic a browser.
