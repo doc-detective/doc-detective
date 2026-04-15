@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-common",
-  "version": "4.0.2-dev.5",
+  "version": "4.0.2-dev.6",
   "description": "Shared components for Doc Detective projects.",
   "type": "module",
   "main": "dist/index.cjs",
