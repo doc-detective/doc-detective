@@ -302,6 +302,52 @@ describe("checkLink retry, headers, and HEAD fallback", function () {
     assert.equal(received["x-vercel-protection-bypass"], "tok456");
   });
 
+  it("should NOT retry when an accepted status code is returned on the first attempt", async function () {
+    const id = `accepted-${Date.now()}`;
+    const start = Date.now();
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          // Would return 429 three times then 200 — but since 429 is accepted,
+          // we should take the first response immediately without backoff.
+          url: `http://localhost:${serverPort}/flaky/${id}/3/429/200`,
+          statusCodes: [200, 429],
+        },
+      },
+    });
+    const elapsed = Date.now() - start;
+    assert.equal(result.status, "PASS", `Expected PASS but got: ${result.description}`);
+    assert.match(result.description, /Returned 429/);
+    // No retry means no 1s backoff. Allow generous slack for slow CI.
+    assert.ok(
+      elapsed < 800,
+      `Expected short-circuit (no retry) but took ${elapsed}ms`
+    );
+    // And only one request should have hit the server.
+    assert.equal(flakyCounters[id], 1, `Expected 1 request, got ${flakyCounters[id]}`);
+  });
+
+  it("should coerce non-string header values to strings", async function () {
+    delete requestLog["echo-headers"];
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: `http://localhost:${serverPort}/echo-headers`,
+          headers: {
+            "X-Numeric": 42,
+            "X-Bool": true,
+          },
+        },
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const received = requestLog["echo-headers"];
+    assert.equal(received["x-numeric"], "42");
+    assert.equal(received["x-bool"], "true");
+  });
+
   it("should let user headers override defaults (case-insensitive)", async function () {
     delete requestLog["echo-headers"];
     const result = await checkLink({
@@ -319,13 +365,16 @@ describe("checkLink retry, headers, and HEAD fallback", function () {
 });
 
 // Live network smoke test against portal.prove.com, which previously returned
-// 429 due to WAF-based bot protection. This test is non-blocking: it logs the
-// result rather than failing, so CI does not break when the network is
-// unavailable or the WAF behavior changes.
+// 429 due to WAF-based bot protection. Opt-in via RUN_LIVE_SMOKE=1 so CI is
+// not slowed or destabilized by external network traffic.
 describe("checkLink live smoke (portal.prove.com)", function () {
   this.timeout(60000);
 
-  it("reports the status observed from portal.prove.com (non-blocking)", async function () {
+  it("reports the status observed from portal.prove.com (opt-in)", async function () {
+    if (!process.env.RUN_LIVE_SMOKE) {
+      this.skip();
+      return;
+    }
     const result = await checkLink({
       config: {},
       step: {
@@ -335,7 +384,7 @@ describe("checkLink live smoke (portal.prove.com)", function () {
     console.log(
       `[portal.prove.com smoke] status=${result.status} description=${result.description}`
     );
-    // Always pass — this is a diagnostic, not a regression gate.
+    // Diagnostic, not a regression gate.
     assert.ok(result.status === "PASS" || result.status === "FAIL");
   });
 });

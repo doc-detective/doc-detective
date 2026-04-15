@@ -38,21 +38,24 @@ function parseHeaderString(raw: string): Record<string, string> {
 }
 
 function mergeHeaders(
-  userHeaders: Record<string, string> | string | undefined
+  userHeaders: Record<string, unknown> | string | undefined
 ): Record<string, string> {
   const merged: Record<string, string> = { ...DEFAULT_HEADERS };
   if (!userHeaders) return merged;
-  const parsed =
+  const parsed: Record<string, unknown> =
     typeof userHeaders === "string"
       ? parseHeaderString(userHeaders)
       : userHeaders;
   // Case-insensitive override: strip any default with the same name (any casing)
   for (const userKey of Object.keys(parsed)) {
+    const raw = parsed[userKey];
+    if (raw === null || raw === undefined) continue;
+    const value = typeof raw === "string" ? raw : String(raw);
     const lower = userKey.toLowerCase();
     for (const existingKey of Object.keys(merged)) {
       if (existingKey.toLowerCase() === lower) delete merged[existingKey];
     }
-    merged[userKey] = parsed[userKey];
+    merged[userKey] = value;
   }
   return merged;
 }
@@ -165,7 +168,12 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   const headers = mergeHeaders(step.checkLink.headers);
   const url = step.checkLink.url;
 
-  // Attempt GET with bounded retry on 429/5xx, honoring Retry-After
+  const acceptedCodes: number[] = step.checkLink.statusCodes;
+  const isAccepted = (code: number | null) =>
+    code !== null && acceptedCodes.indexOf(code) >= 0;
+
+  // Attempt GET with bounded retry on 429/5xx, honoring Retry-After.
+  // Short-circuit retries if the response is already an accepted status code.
   let last: { statusCode: number | null; retryAfter: number | null; networkError: boolean } = {
     statusCode: null,
     retryAfter: null,
@@ -173,6 +181,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   };
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     last = await attemptRequest("get", url, headers);
+    if (isAccepted(last.statusCode)) break;
     if (!shouldRetry(last.statusCode)) break;
     if (attempt < MAX_ATTEMPTS - 1) {
       const backoff =
@@ -181,13 +190,14 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     }
   }
 
-  // HEAD fallback on final 429/403 — some WAFs rate-limit HTML GETs but pass HEADs
-  if (last.statusCode === 429 || last.statusCode === 403) {
+  // HEAD fallback on final 429/403 when the result is not already accepted.
+  // Some WAFs rate-limit HTML GETs but allow HEADs.
+  if (
+    !isAccepted(last.statusCode) &&
+    (last.statusCode === 429 || last.statusCode === 403)
+  ) {
     const headResult = await attemptRequest("head", url, headers);
-    if (
-      headResult.statusCode !== null &&
-      step.checkLink.statusCodes.indexOf(headResult.statusCode) >= 0
-    ) {
+    if (isAccepted(headResult.statusCode)) {
       last = headResult;
     }
   }

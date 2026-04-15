@@ -10,7 +10,7 @@ export type CheckLink = CheckLinkDetailed | CheckLinkDetailed1;
  */
 export type CheckLinkDetailed = string;
 /**
- * Headers to include in the HTTP request, as return-separated values. For example, `X-Api-Key: abc123
+ * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
  * Authorization: Bearer token`.
  */
 export type RequestHeadersString = string;
@@ -37,8 +37,8 @@ export interface CheckLinkDetailed1 {
   headers?: RequestHeadersObject | RequestHeadersString;
 }
 /**
- * Headers to include in the HTTP request, in key/value format.
+ * Headers to include in the HTTP request, in key/value format. Values must be strings.
  */
 export interface RequestHeadersObject {
-  [k: string]: unknown;
+  [k: string]: string;
 }

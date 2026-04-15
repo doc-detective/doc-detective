@@ -1121,14 +1121,16 @@
                                                         "anyOf": [
                                                           {
                                                             "title": "Request headers (object)",
-                                                            "description": "Headers to include in the HTTP request, in key/value format.",
+                                                            "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                                             "type": "object",
-                                                            "additionalProperties": true,
+                                                            "additionalProperties": {
+                                                              "type": "string"
+                                                            },
                                                             "properties": {}
                                                           },
                                                           {
                                                             "title": "Request headers (string)",
-                                                            "description": "Headers to include in the HTTP request, as return-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                                            "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                                             "type": "string"
                                                           }
                                                         ]
@@ -1202,14 +1204,16 @@
                                                           "anyOf": [
                                                             {
                                                               "title": "Request headers (object)",
-                                                              "description": "Headers to include in the HTTP request, in key/value format.",
+                                                              "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                                               "type": "object",
-                                                              "additionalProperties": true,
+                                                              "additionalProperties": {
+                                                                "type": "string"
+                                                              },
                                                               "properties": {}
                                                             },
                                                             {
                                                               "title": "Request headers (string)",
-                                                              "description": "Headers to include in the HTTP request, as return-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                                              "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                                               "type": "string"
                                                             }
                                                           ]
@@ -9780,14 +9784,16 @@
                                           "anyOf": [
                                             {
                                               "title": "Request headers (object)",
-                                              "description": "Headers to include in the HTTP request, in key/value format.",
+                                              "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                               "type": "object",
-                                              "additionalProperties": true,
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              },
                                               "properties": {}
                                             },
                                             {
                                               "title": "Request headers (string)",
-                                              "description": "Headers to include in the HTTP request, as return-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                              "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                               "type": "string"
                                             }
                                           ]
@@ -9861,14 +9867,16 @@
                                             "anyOf": [
                                               {
                                                 "title": "Request headers (object)",
-                                                "description": "Headers to include in the HTTP request, in key/value format.",
+                                                "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                                 "type": "object",
-                                                "additionalProperties": true,
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                },
                                                 "properties": {}
                                               },
                                               {
                                                 "title": "Request headers (string)",
-                                                "description": "Headers to include in the HTTP request, as return-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                                "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                                 "type": "string"
                                               }
                                             ]
