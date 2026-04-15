@@ -62,8 +62,9 @@ function mergeHeaders(
 }
 
 function parseRetryAfter(value: unknown): number | null {
-  if (typeof value !== "string" && typeof value !== "number") return null;
-  const str = String(value).trim();
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (typeof candidate !== "string" && typeof candidate !== "number") return null;
+  const str = String(candidate).trim();
   if (!str) return null;
   const seconds = Number(str);
   if (Number.isFinite(seconds)) {
@@ -85,11 +86,13 @@ function shouldRetry(statusCode: number | null): boolean {
   return statusCode === 429 || statusCode >= 500;
 }
 
+type AttemptResult = { statusCode: number | null; retryAfter: number | null };
+
 async function attemptRequest(
   method: "get" | "head",
   url: string,
   headers: Record<string, string>
-): Promise<{ statusCode: number | null; retryAfter: number | null; networkError: boolean }> {
+): Promise<AttemptResult> {
   try {
     const res = await axios.request({
       method,
@@ -102,7 +105,7 @@ async function attemptRequest(
     const retryAfter = parseRetryAfter(
       res.headers?.["retry-after"] ?? res.headers?.["Retry-After"]
     );
-    return { statusCode: res.status, retryAfter, networkError: false };
+    return { statusCode: res.status, retryAfter };
   } catch (error: any) {
     if (error?.response?.status) {
       return {
@@ -111,10 +114,9 @@ async function attemptRequest(
           error.response.headers?.["retry-after"] ??
             error.response.headers?.["Retry-After"]
         ),
-        networkError: false,
       };
     }
-    return { statusCode: null, retryAfter: null, networkError: true };
+    return { statusCode: null, retryAfter: null };
   }
 }
 
@@ -175,11 +177,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
 
   // Attempt GET with bounded retry on 429/5xx, honoring Retry-After.
   // Short-circuit retries if the response is already an accepted status code.
-  let last: { statusCode: number | null; retryAfter: number | null; networkError: boolean } = {
-    statusCode: null,
-    retryAfter: null,
-    networkError: true,
-  };
+  let last: AttemptResult = { statusCode: null, retryAfter: null };
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     last = await attemptRequest("get", url, headers);
     if (isAccepted(last.statusCode)) break;
