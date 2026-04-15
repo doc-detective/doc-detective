@@ -215,6 +215,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install server dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Start local test server
+        run: |
+          npm run serve:test &
+          echo "Waiting for server on http://localhost:8092..."
+          curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://localhost:8092 > /dev/null
+          echo "Test server is ready."
+
       - name: Wait for npm propagation
         run: |
           echo "Waiting for npm registry to propagate..."
