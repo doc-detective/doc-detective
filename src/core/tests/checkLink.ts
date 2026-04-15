@@ -4,6 +4,116 @@ import axios from "axios";
 
 export { checkLink };
 
+const DEFAULT_HEADERS: Record<string, string> = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Upgrade-Insecure-Requests": "1",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-User": "?1",
+  "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+  "Sec-Ch-Ua-Mobile": "?0",
+  "Sec-Ch-Ua-Platform": '"Windows"',
+};
+
+const MAX_ATTEMPTS = 3;
+const BASE_BACKOFF_MS = 1000;
+const MAX_RETRY_AFTER_MS = 10000;
+
+function parseHeaderString(raw: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of raw.split(/\r?\n/)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    if (key) out[key] = value;
+  }
+  return out;
+}
+
+function mergeHeaders(
+  userHeaders: Record<string, string> | string | undefined
+): Record<string, string> {
+  const merged: Record<string, string> = { ...DEFAULT_HEADERS };
+  if (!userHeaders) return merged;
+  const parsed =
+    typeof userHeaders === "string"
+      ? parseHeaderString(userHeaders)
+      : userHeaders;
+  // Case-insensitive override: strip any default with the same name (any casing)
+  for (const userKey of Object.keys(parsed)) {
+    const lower = userKey.toLowerCase();
+    for (const existingKey of Object.keys(merged)) {
+      if (existingKey.toLowerCase() === lower) delete merged[existingKey];
+    }
+    merged[userKey] = parsed[userKey];
+  }
+  return merged;
+}
+
+function parseRetryAfter(value: unknown): number | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  const seconds = Number(str);
+  if (Number.isFinite(seconds)) {
+    return Math.max(0, Math.min(seconds * 1000, MAX_RETRY_AFTER_MS));
+  }
+  const date = Date.parse(str);
+  if (!Number.isNaN(date)) {
+    return Math.max(0, Math.min(date - Date.now(), MAX_RETRY_AFTER_MS));
+  }
+  return null;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shouldRetry(statusCode: number | null): boolean {
+  if (statusCode === null) return false;
+  return statusCode === 429 || statusCode >= 500;
+}
+
+async function attemptRequest(
+  method: "get" | "head",
+  url: string,
+  headers: Record<string, string>
+): Promise<{ statusCode: number | null; retryAfter: number | null; networkError: boolean }> {
+  try {
+    const res = await axios.request({
+      method,
+      url,
+      headers,
+      timeout: 10000,
+      maxRedirects: 5,
+      validateStatus: () => true,
+    });
+    const retryAfter = parseRetryAfter(
+      res.headers?.["retry-after"] ?? res.headers?.["Retry-After"]
+    );
+    return { statusCode: res.status, retryAfter, networkError: false };
+  } catch (error: any) {
+    if (error?.response?.status) {
+      return {
+        statusCode: error.response.status,
+        retryAfter: parseRetryAfter(
+          error.response.headers?.["retry-after"] ??
+            error.response.headers?.["Retry-After"]
+        ),
+        networkError: false,
+      };
+    }
+    return { statusCode: null, retryAfter: null, networkError: true };
+  }
+}
+
 async function checkLink({ config, step }: { config: any; step: any }) {
   let result = { status: "PASS", description: "Checked link." };
 
@@ -52,47 +162,51 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     step.checkLink.statusCodes = [step.checkLink.statusCodes];
   }
 
-  // Perform request with appropriate headers
-  const requestConfig = {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9'
-    },
-    timeout: 10000, // 10 second timeout
-    maxRedirects: 5
+  const headers = mergeHeaders(step.checkLink.headers);
+  const url = step.checkLink.url;
+
+  // Attempt GET with bounded retry on 429/5xx, honoring Retry-After
+  let last: { statusCode: number | null; retryAfter: number | null; networkError: boolean } = {
+    statusCode: null,
+    retryAfter: null,
+    networkError: true,
   };
-
-  let req: any = await axios
-    .get(step.checkLink.url, requestConfig)
-    .then((res: any) => {
-      return { statusCode: res.status };
-    })
-    .catch((error: any) => {
-      return { error };
-    });
-
-  // If request returned an error
-  if (req.error) {
-    // If we have a response with a status code, check against accepted codes
-    if (req.error.response && req.error.response.status) {
-      req = { statusCode: req.error.response.status };
-    } else {
-      result.status = "FAIL";
-      result.description = `Invalid or unresolvable URL: ${step.checkLink.url}`;
-      return result;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    last = await attemptRequest("get", url, headers);
+    if (!shouldRetry(last.statusCode)) break;
+    if (attempt < MAX_ATTEMPTS - 1) {
+      const backoff =
+        last.retryAfter ?? BASE_BACKOFF_MS * Math.pow(2, attempt);
+      await sleep(backoff);
     }
   }
 
+  // HEAD fallback on final 429/403 — some WAFs rate-limit HTML GETs but pass HEADs
+  if (last.statusCode === 429 || last.statusCode === 403) {
+    const headResult = await attemptRequest("head", url, headers);
+    if (
+      headResult.statusCode !== null &&
+      step.checkLink.statusCodes.indexOf(headResult.statusCode) >= 0
+    ) {
+      last = headResult;
+    }
+  }
+
+  if (last.statusCode === null) {
+    result.status = "FAIL";
+    result.description = `Invalid or unresolvable URL: ${url}`;
+    return result;
+  }
+
   // Compare status codes
-  if (step.checkLink.statusCodes.indexOf(req.statusCode) >= 0) {
+  if (step.checkLink.statusCodes.indexOf(last.statusCode) >= 0) {
     result.status = "PASS";
-    result.description = `Returned ${req.statusCode}`;
+    result.description = `Returned ${last.statusCode}`;
   } else {
     result.status = "FAIL";
-    result.description = `Returned ${
-      req.statusCode
-    }. Expected one of ${JSON.stringify(step.checkLink.statusCodes)}`;
+    result.description = `Returned ${last.statusCode}. Expected one of ${JSON.stringify(
+      step.checkLink.statusCodes
+    )}`;
   }
 
   return result;
