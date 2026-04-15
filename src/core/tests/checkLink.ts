@@ -53,11 +53,23 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   }
 
   // Perform request with appropriate headers
+  const defaultHeaders: Record<string, string> = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept":
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+  };
   const requestConfig = {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9'
+      ...defaultHeaders,
+      ...(step.checkLink.headers || {}),
     },
     timeout: 10000, // 10 second timeout
     maxRedirects: 5
@@ -76,7 +88,26 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   if (req.error) {
     // If we have a response with a status code, check against accepted codes
     if (req.error.response && req.error.response.status) {
-      req = { statusCode: req.error.response.status };
+      const statusCode = req.error.response.status;
+      const responseHeaders = req.error.response.headers || {};
+      let description = `Returned ${statusCode}. Expected one of ${JSON.stringify(step.checkLink.statusCodes)}`;
+      if (statusCode === 429) {
+        // Detect known bot-protection and rate-limiting systems from response headers
+        if (responseHeaders['x-vercel-mitigated'] === 'challenge') {
+          description += `. The server is hosted on Vercel and issued a bot-protection challenge. Automated HTTP clients cannot solve JavaScript challenges. To bypass Vercel protection, set a 'x-vercel-protection-bypass' header with your project's bypass secret in the step's 'headers' field.`;
+        } else if (responseHeaders['cf-mitigated'] || responseHeaders['cf-ray']) {
+          description += `. The server appears to be protected by Cloudflare. Automated HTTP clients may be rate-limited or challenged. Consider using a browser-based step or configuring bypass headers if available.`;
+        } else if (responseHeaders['retry-after']) {
+          const retryAfter = responseHeaders['retry-after'];
+          const retryMsg = /^\d+$/.test(retryAfter.trim())
+            ? `after ${retryAfter} seconds`
+            : `at ${retryAfter}`;
+          description += `. The server requested a retry ${retryMsg}. This is a rate-limiting response.`;
+        } else {
+          description += `. This may be caused by bot-protection or rate-limiting. If the URL works in a browser, the server may require JavaScript execution or specific headers. Check the step's 'headers' field to pass any required bypass tokens.`;
+        }
+      }
+      result.description = description;
     } else {
       result.status = "FAIL";
       result.description = `Invalid or unresolvable URL: ${step.checkLink.url}`;
