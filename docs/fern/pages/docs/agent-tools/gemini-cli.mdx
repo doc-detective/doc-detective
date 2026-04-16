@@ -12,10 +12,6 @@ Set up Doc Detective agent tools with Gemini CLI to test your documentation usin
 
 ## Installation
 
-Pick whichever installation method fits your workflow.
-
-### Option 1: `npx doc-detective install-agents` (Recommended)
-
 From any project directory, run:
 
 ```bash
@@ -32,9 +28,9 @@ Useful flags:
 
 Gemini CLI installs extensions user-globally — the `--scope` flag has no effect for this agent. If you pass `--scope project`, doc-detective will warn and install globally.
 
-### Option 2: `gemini extensions install`
+### Fallback: `gemini extensions install`
 
-Install the extension and open Gemini CLI:
+If `npx doc-detective install-agents` isn't an option, install the extension directly:
 
 ```bash
 gemini extensions install https://github.com/doc-detective/agent-tools.git --auto-update

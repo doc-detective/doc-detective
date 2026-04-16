@@ -12,10 +12,6 @@ Set up Doc Detective agent tools with Claude Code to test your documentation usi
 
 ## Installation
 
-Pick whichever installation method fits your workflow.
-
-### Option 1: `npx doc-detective install-agents` (Recommended)
-
 From any project directory, run:
 
 ```bash
@@ -33,7 +29,9 @@ Useful flags:
 
 If the `claude` binary is not on your PATH but `~/.claude/` exists, the command edits your settings file directly (adding `extraKnownMarketplaces` and `enabledPlugins`) and Claude Code will prompt to complete the install on its next launch.
 
-### Option 2: Inside Claude Code
+### Fallback: install from inside Claude Code
+
+If `npx doc-detective install-agents` isn't an option, install via Claude Code's own slash commands.
 
 1. Open Claude Code:
 

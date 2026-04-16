@@ -3,12 +3,16 @@ import { claudeCodeAdapter } from "./adapters/claude-code.js";
 import { copilotCliAdapter } from "./adapters/copilot-cli.js";
 import { geminiCliAdapter } from "./adapters/gemini-cli.js";
 import { codexAdapter } from "./adapters/codex.js";
+import { qwenCodeAdapter } from "./adapters/qwen-code.js";
+import { opencodeAdapter } from "./adapters/opencode.js";
 
 const adapters: AgentAdapter[] = [
   claudeCodeAdapter,
   copilotCliAdapter,
   geminiCliAdapter,
   codexAdapter,
+  qwenCodeAdapter,
+  opencodeAdapter,
 ];
 
 export function listAdapters(): AgentAdapter[] {
