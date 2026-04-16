@@ -1,10 +1,10 @@
 ---
 title: checkLink
-description: Check if a URL returns an acceptable status code from a GET request.
+description: Check if a URL returns an acceptable status code, primarily via a GET request with a HEAD fallback for some 429 or 403 responses.
 ---
 
 
-The `checkLink` action checks if a URL returns an acceptable status code from a GET request. This action is useful for verifying that a hyperlink or image URL is valid.
+The `checkLink` action checks if a URL returns an acceptable status code. It primarily issues a browser-mimicking `GET` request and, if the response is still `429` or `403` after retries, retries the URL once with a `HEAD` request as a fallback. This action is useful for verifying that a hyperlink or image URL is valid.
 
 You can specify the target URL directly as a string, or use an object for more options:
 
