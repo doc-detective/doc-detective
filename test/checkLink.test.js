@@ -301,6 +301,24 @@ describe("checkLink retry, headers, and HEAD fallback", function () {
     assert.equal(received["cf-access-client-id"], "test-client.access");
   });
 
+  it("should drop newline-string header entries with empty values", async function () {
+    delete requestLog["echo-headers"];
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: `http://localhost:${serverPort}/echo-headers`,
+          // "X-Empty:" has no value and should be ignored; "X-Kept" should pass through.
+          headers: "X-Empty:\nX-Kept: value",
+        },
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const received = requestLog["echo-headers"];
+    assert.equal(received["x-kept"], "value");
+    assert.equal(received["x-empty"], undefined, "empty-valued header should be dropped");
+  });
+
   it("should accept user-supplied headers via newline-separated string form", async function () {
     delete requestLog["echo-headers"];
     const result = await checkLink({

@@ -33,7 +33,10 @@ function parseHeaderString(raw: string): Record<string, string> {
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
     const value = line.slice(idx + 1).trim();
-    if (key) out[key] = value;
+    // Match httpRequest's behavior: require a non-empty key AND a non-empty
+    // value. Silently dropping a header with no value avoids sending
+    // "X-Example:" lines that are almost always formatting mistakes.
+    if (key && value) out[key] = value;
   }
   return out;
 }
