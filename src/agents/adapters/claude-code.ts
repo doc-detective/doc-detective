@@ -10,7 +10,7 @@ import type {
   InstallState,
   Scope,
 } from "../types.js";
-import { spawnCommand } from "../../utils.js";
+import { safeSpawn } from "../spawn-helper.js";
 
 export interface RunResult {
   stdout: string;
@@ -50,10 +50,7 @@ const LATEST_PLUGIN_JSON_URL =
 
 export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
   return {
-    run: async (cmd, args) => {
-      const { stdout, stderr, exitCode } = await spawnCommand(cmd, args);
-      return { stdout, stderr, exitCode: Number(exitCode ?? 0) };
-    },
+    run: (cmd, args) => safeSpawn(cmd, args),
     existsSync: fs.existsSync,
     readFileSync: (p, encoding = "utf8") => fs.readFileSync(p, encoding),
     readdirSync: (p) => fs.readdirSync(p),

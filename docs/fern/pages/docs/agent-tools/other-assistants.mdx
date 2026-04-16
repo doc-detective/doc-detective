@@ -10,7 +10,21 @@ Doc Detective agent tools work with Codex, Cursor, OpenCode, Qwen Code, and othe
 
 ## Installation options
 
-### Option 1: Install with `npx skills`
+### Option 1: `npx doc-detective install-agents --agent codex` (for Codex)
+
+The `install-agents` command handles Codex by fetching doc-detective's skills from GitHub and copying them into the user's (or project's) `.agents/skills/` directory. Codex auto-discovers skills on its next launch — no interactive step required.
+
+```bash
+# User-global (default)
+npx doc-detective install-agents --agent codex
+
+# Or per-project
+npx doc-detective install-agents --agent codex --scope project
+```
+
+Re-run at any time to update to the latest version. It compares the `metadata.version` in the installed SKILL.md against the latest on GitHub and prints "already up to date" when no change is needed. Use `--force` to reinstall regardless.
+
+### Option 2: Install with `npx skills`
 
 The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools.
 
@@ -20,7 +34,7 @@ npx skills add doc-detective/agent-tools
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
 
-### Option 2: Manual installation
+### Option 3: Manual installation
 
 Clone the repository and copy the skills to your agent's configuration directory:
 

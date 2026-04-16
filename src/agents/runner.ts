@@ -57,21 +57,53 @@ export async function runInstallAgents(
     prompts: deps.prompts,
   });
 
-  // Install each in order; collect reports.
+  // Install each in order; collect reports. When an adapter doesn't support
+  // the requested scope, degrade to its nearest supported scope and attach a
+  // note to the report so callers see the divergence.
   const reports: InstallReport[] = [];
   for (const adapter of targeted) {
-    logger(`\n→ ${adapter.displayName} (${adapter.id}) — scope: ${scope}`, "info");
+    const effective = effectiveScopeFor(adapter, scope);
+    if (effective.degraded) {
+      logger(
+        `⚠ ${adapter.displayName} does not support ${scope} scope — installing as ${effective.scope}.`,
+        "warn"
+      );
+    }
+    logger(`\n→ ${adapter.displayName} (${adapter.id}) — scope: ${effective.scope}`, "info");
     const report = await adapter.install({
-      scope,
+      scope: effective.scope,
       force: Boolean(argv.force),
       dryRun,
       cwd: cwd(),
       logger,
     });
-    reports.push(report);
-    logger(summarizeReport(report), "info");
+    const finalReport = effective.degraded
+      ? {
+          ...report,
+          notes: [
+            ...(report.notes ?? []),
+            `Requested scope '${scope}' is not supported by ${adapter.displayName}; installed as '${effective.scope}' instead.`,
+          ],
+        }
+      : report;
+    reports.push(finalReport);
+    logger(summarizeReport(finalReport), "info");
   }
   return reports;
+}
+
+/**
+ * Resolve the effective scope an adapter will actually receive. If the desired
+ * scope is supported, pass it through. Otherwise, degrade to the adapter's
+ * first supported scope and flag that we did.
+ */
+function effectiveScopeFor(
+  adapter: AgentAdapter,
+  desired: Scope
+): { scope: Scope; degraded: boolean } {
+  const supported = adapter.supportsScopes();
+  if (supported.includes(desired)) return { scope: desired, degraded: false };
+  return { scope: supported[0], degraded: true };
 }
 
 async function resolveTargetAgents(
