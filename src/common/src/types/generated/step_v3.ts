@@ -30,6 +30,11 @@ export type CheckLink1 = CheckLinkDetailed | CheckLinkDetailed1;
  */
 export type CheckLinkDetailed = string;
 /**
+ * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
+ * Authorization: Bearer token`.
+ */
+export type RequestHeadersString = string;
+/**
  * Click or tap an element.
  */
 export type Click1 = ClickElementSimple | ClickElementDetailed | boolean;
@@ -268,6 +273,16 @@ export interface CheckLinkDetailed1 {
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
    */
   statusCodes?: number | number[];
+  /**
+   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+   */
+  headers?: RequestHeadersObject | RequestHeadersString;
+}
+/**
+ * Headers to include in the HTTP request, in key/value format. Values must be strings.
+ */
+export interface RequestHeadersObject {
+  [k: string]: string;
 }
 export interface Common1 {
   /**
