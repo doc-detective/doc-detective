@@ -85,6 +85,23 @@ describe("fetchAgentToolsZip", function () {
       /ENOTFOUND|fetch|network|download/i
     );
   });
+
+  it("rejects zip entries that escape the extraction root (Zip Slip guard)", async function () {
+    // Construct a zip where an entry's path traverses outside the root.
+    // adm-zip normalizes traversal in addFile(), so we set entryName directly
+    // after the fact to simulate a malicious zip built by a lower-level tool.
+    const zip = new AdmZip();
+    zip.addFile("agent-tools-main/ok.txt", Buffer.from("ok"));
+    zip.addFile("placeholder.txt", Buffer.from("pwned"));
+    const entries = zip.getEntries();
+    entries[entries.length - 1].entryName = "../evil.txt";
+    const zipBuf = zip.toBuffer();
+
+    await assert.rejects(
+      fetchAgentToolsZip("main", { get: async () => ({ data: zipBuf }) }),
+      /outside|extraction|refus/i
+    );
+  });
 });
 
 describe("CodexAdapter — identity", function () {

@@ -18,17 +18,17 @@ From any project directory, run:
 npx doc-detective install-agents --agent gemini-cli
 ```
 
-This invokes `gemini extensions install ... --auto-update --consent --skip-settings` under the hood, which installs the extension non-interactively and keeps it current on future Gemini CLI launches. Re-run to update to the latest version; it's idempotent and prints "already up to date" when nothing has changed.
+This invokes `gemini extensions install ... --auto-update --consent --skip-settings` under the hood, which installs the extension non-interactively and keeps it current on future Gemini CLI launches. Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
 
-- `--yes` — non-interactive; skips all prompts.
-- `--force` — reinstall even if already up to date.
-- `--dry-run` — print the actions that would be taken without executing them.
+- `--yes`: non-interactive; skips all prompts.
+- `--force`: reinstall even if already up to date.
+- `--dry-run`: print planned actions without executing them.
 
-Gemini CLI installs extensions user-globally — the `--scope` flag has no effect for this agent. If you pass `--scope project`, doc-detective will warn and install globally.
+Gemini CLI installs extensions user-globally, so the `--scope` flag has no effect for this agent. If you pass `--scope project`, doc-detective warns and installs globally.
 
-### Fallback: `gemini extensions install`
+### Install with `gemini extensions install` (fallback)
 
 If `npx doc-detective install-agents` isn't an option, install the extension directly:
 

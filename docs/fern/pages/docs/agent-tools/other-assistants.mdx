@@ -30,7 +30,7 @@ The command fetches doc-detective's skills from GitHub and copies them into the 
 npx doc-detective install-agents --agent qwen-code
 ```
 
-The command invokes `qwen extensions install` non-interactively to add the doc-detective extension with auto-update enabled. Qwen Code installs extensions user-globally only — the `--scope` flag has no effect for this agent.
+The command invokes `qwen extensions install` non-interactively to add the doc-detective extension with auto-update enabled. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
 
 ### OpenCode
 
@@ -48,9 +48,9 @@ All three installs are idempotent: re-running prints "already up to date" when n
 
 ## Fallback procedures
 
-Use these if `npx doc-detective install-agents` is not an option for your workflow, or for agents that aren't supported directly (e.g., Cursor).
+Use these if `npx doc-detective install-agents` isn't an option for your workflow, or for agents that aren't supported directly (e.g., Cursor).
 
-### Fallback: install with `npx skills`
+### Install with `npx skills` (fallback)
 
 The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools:
 
@@ -60,7 +60,7 @@ npx skills add doc-detective/agent-tools
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
 
-### Fallback: manual installation
+### Manual installation (fallback)
 
 Clone the repository and copy the skills to your agent's configuration directory:
 

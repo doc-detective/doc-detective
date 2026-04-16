@@ -54,17 +54,32 @@ export async function fetchAgentToolsZip(
     // common prefix of every entry in a codeload zip.
     const prefix = commonTopLevelPrefix(entries.map((e) => e.entryName));
 
+    const resolvedBase = path.resolve(tempDir);
     for (const entry of entries) {
       const rel = entry.entryName.startsWith(prefix)
         ? entry.entryName.slice(prefix.length)
         : entry.entryName;
       if (!rel) continue; // skip the wrapper dir itself
+
+      // Zip Slip guard: reject any entry whose path escapes the extraction
+      // root. Absolute paths, path-traversal (`..`), and backslash-traversal
+      // on Windows all resolve outside `resolvedBase` and are rejected.
       const dest = path.join(tempDir, rel);
+      const resolvedDest = path.resolve(dest);
+      if (
+        resolvedDest !== resolvedBase &&
+        !resolvedDest.startsWith(resolvedBase + path.sep)
+      ) {
+        throw new Error(
+          `Refusing to extract zip entry outside extraction root: ${entry.entryName}`
+        );
+      }
+
       if (entry.isDirectory) {
-        fs.mkdirSync(dest, { recursive: true });
+        fs.mkdirSync(resolvedDest, { recursive: true });
       } else {
-        fs.mkdirSync(path.dirname(dest), { recursive: true });
-        fs.writeFileSync(dest, entry.getData());
+        fs.mkdirSync(path.dirname(resolvedDest), { recursive: true });
+        fs.writeFileSync(resolvedDest, entry.getData());
       }
     }
     return { tempDir, ref };

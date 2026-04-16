@@ -37,6 +37,27 @@ describe("agents registry", function () {
     const scopes = adapter.supportsScopes();
     assert.deepEqual(scopes.sort(), ["global", "project"]);
   });
+
+  it("registers copilot-cli, gemini-cli, codex, qwen-code, and opencode adapters", function () {
+    for (const id of ["copilot-cli", "gemini-cli", "codex", "qwen-code", "opencode"]) {
+      const adapter = registry.getAdapter(id);
+      assert.equal(adapter.id, id);
+      assert.ok(typeof adapter.detect === "function");
+      assert.ok(typeof adapter.install === "function");
+    }
+  });
+
+  it("listAdapters returns all six v1 adapters", function () {
+    const ids = registry.listAdapters().map((a) => a.id).sort();
+    assert.deepEqual(ids, [
+      "claude-code",
+      "codex",
+      "copilot-cli",
+      "gemini-cli",
+      "opencode",
+      "qwen-code",
+    ]);
+  });
 });
 
 describe("install-agents subcommand arg parsing", function () {
@@ -673,8 +694,11 @@ describe("ClaudeCodeAdapter.install() — Path B (settings.json fallback)", func
     await new Promise((r) => setTimeout(r, 25));
     const report = await adapter.install(baseOpts());
     const secondContent = fs.readFileSync(settingsPath, "utf8");
+    const secondMtime = fs.statSync(settingsPath).mtimeMs;
     // Semantic equality: parsed objects match regardless of formatting.
     assert.deepEqual(JSON.parse(secondContent), JSON.parse(firstContent));
+    // mtime unchanged proves the second call did not rewrite the file.
+    assert.equal(secondMtime, firstMtime);
     assert.equal(report.action, "already-up-to-date");
   });
 });
@@ -836,6 +860,82 @@ describe("runInstallAgents() orchestration", function () {
     );
     assert.equal(reports[0].action, "dry-run");
     assert.equal(cc.lastInstallOpts.dryRun, true);
+  });
+
+  it("degrades --scope project to global for adapters that don't support project scope", async function () {
+    const globalOnlyAgent = {
+      id: "global-only",
+      displayName: "Global Only",
+      calls: { install: 0 },
+      supportsScopes: () => ["global"],
+      async detect() { return { present: true, onPath: true, configPaths: {} }; },
+      async getInstallState() { return { installed: false }; },
+      async install(opts) {
+        this.calls.install++;
+        this.lastInstallOpts = opts;
+        return { adapterId: "global-only", scope: opts.scope, action: "installed" };
+      },
+    };
+    const logs = [];
+    const reports = await runInstallAgents(
+      { agent: ["global-only"], scope: "project", force: false, yes: true, "dry-run": false },
+      { adapters: [globalOnlyAgent], isTTY: () => false, logger: (m) => logs.push(m) }
+    );
+    // Install was called with scope=global even though user asked for project
+    assert.equal(globalOnlyAgent.lastInstallOpts.scope, "global");
+    // Warning was logged
+    assert.ok(
+      logs.some((l) => /project|degrad|global/i.test(l) && /global.only|global only/i.test(l)),
+      `expected a scope-degradation warning; got: ${JSON.stringify(logs)}`
+    );
+    // Report carries a note explaining the degradation
+    const report = reports[0];
+    assert.ok(
+      (report.notes || []).some((n) => /project|global/i.test(n)),
+      `expected notes to explain degradation; got: ${JSON.stringify(report.notes)}`
+    );
+  });
+
+  it("does not degrade when the adapter supports the requested scope", async function () {
+    const bothScopesAgent = {
+      id: "both",
+      displayName: "Both Scopes",
+      supportsScopes: () => ["global", "project"],
+      async detect() { return { present: true, onPath: true, configPaths: {} }; },
+      async getInstallState() { return { installed: false }; },
+      async install(opts) {
+        this.lastInstallOpts = opts;
+        return { adapterId: "both", scope: opts.scope, action: "installed" };
+      },
+    };
+    await runInstallAgents(
+      { agent: ["both"], scope: "project", force: false, yes: true, "dry-run": false },
+      { adapters: [bothScopesAgent], isTTY: () => false }
+    );
+    assert.equal(bothScopesAgent.lastInstallOpts.scope, "project");
+  });
+
+  it("mixed adapters with --scope project: each gets its effective scope", async function () {
+    const globalOnly = {
+      id: "global-only", displayName: "Global Only",
+      supportsScopes: () => ["global"],
+      async detect() { return { present: true, onPath: true, configPaths: {} }; },
+      async getInstallState() { return { installed: false }; },
+      async install(opts) { this.lastScope = opts.scope; return { adapterId: "global-only", scope: opts.scope, action: "installed" }; },
+    };
+    const both = {
+      id: "both", displayName: "Both",
+      supportsScopes: () => ["global", "project"],
+      async detect() { return { present: true, onPath: true, configPaths: {} }; },
+      async getInstallState() { return { installed: false }; },
+      async install(opts) { this.lastScope = opts.scope; return { adapterId: "both", scope: opts.scope, action: "installed" }; },
+    };
+    await runInstallAgents(
+      { agent: ["global-only", "both"], scope: "project", force: false, yes: true, "dry-run": false },
+      { adapters: [globalOnly, both], isTTY: () => false }
+    );
+    assert.equal(globalOnly.lastScope, "global");   // degraded
+    assert.equal(both.lastScope, "project");        // respected
   });
 
   it("reports 'no detected agents' cleanly (no throw, empty reports)", async function () {
