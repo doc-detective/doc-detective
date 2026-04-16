@@ -1,6 +1,6 @@
 import { runTests } from "./core/index.js";
 import {
-  setArgs,
+  buildYargs,
   setConfig,
   outputResults,
   setMeta,
@@ -9,23 +9,41 @@ import {
   getResolvedTestsFromEnv,
   reportResults,
 } from "./utils.js";
-import { argv } from "node:process";
+import { installAgentsCommand } from "./agents/command.js";
+import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
 
 // Run
 setMeta();
-main(argv);
+main(processArgv).catch((err) => {
+  // yargs' .fail handler prints usage + message; this catches anything that
+  // escapes (including our rethrown errors) so the process exits non-zero.
+  console.error(err?.message || err);
+  process.exit(1);
+});
 
-// Run
 async function main(argv: string[]) {
-  // Find index of `doc-detective` or `run` in argv
-  const index = argv.findIndex(
-    (arg) => arg.endsWith("doc-detective") || arg.endsWith("index.js")
-  );
-  // Set args
-  const args: any = setArgs(argv);
+  await buildYargs(argv)
+    .command({
+      command: "$0",
+      describe: "Run Doc Detective tests (default).",
+      handler: runTestsHandler,
+    })
+    .command(installAgentsCommand)
+    .strict()
+    .demandCommand(0)
+    // Suppress yargs' default help-dump on failure; surface the concrete error
+    // message instead. The top-level .catch() prints it and sets exit code.
+    .fail((msg: string, err: Error | undefined) => {
+      if (err) throw err;
+      throw new Error(msg);
+    })
+    .parseAsync();
+}
 
+// Legacy "run tests" flow — unchanged behavior when no subcommand is given.
+async function runTestsHandler(args: any) {
   // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");

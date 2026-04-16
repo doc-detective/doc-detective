@@ -12,6 +12,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 export {
+  buildYargs,
   setArgs,
   setConfig,
   outputResults,
@@ -42,10 +43,12 @@ function log(message: any, level: string = "info", config: any = {}) {
   }
 }
 
-// Define args
-function setArgs(args: any): any {
-  if (!args) return {};
-  const argv = yargs(hideBin(args))
+// Build a yargs instance with the global options shared across all subcommands.
+// Kept as its own export so src/cli.ts can attach .command(...) registrations
+// and route into subcommands, while setArgs() below preserves the legacy
+// no-subcommand parse signature used by test/utils.test.js.
+function buildYargs(args: any): any {
+  return yargs(hideBin(args))
     .option("config", {
       alias: "c",
       description: "Path to a `config.json` or `config.yaml` file.",
@@ -75,9 +78,13 @@ function setArgs(args: any): any {
     })
     .version(require("../package.json").version)
     .help()
-    .alias("help", "h").argv;
+    .alias("help", "h");
+}
 
-  return argv;
+// Define args
+function setArgs(args: any): any {
+  if (!args) return {};
+  return buildYargs(args).argv;
 }
 
 // Get resolved tests from environment variable, if set
