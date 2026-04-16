@@ -209,7 +209,7 @@ Assuming a global `origin` of `https://www.google.com` is set in the configurati
 
 ### `checkLink` fails with 429 or 403 even though the URL works in a browser
 
-Sites behind bot protection or a web application firewall (WAF), for example Cloudflare, Akamai, Amazon Web Services (AWS) WAF, Imperva, PerimeterX, and Vercel deployment protection, can return `403` or `429` to non-browser traffic even when the URL works in your browser. Doc Detective already sends a browser-like header set and retries transient failures, but some WAFs fingerprint deeper signals like TLS or source IP reputation that header spoofing can't influence.
+Sites behind bot protection or a web application firewall (WAF), for example Cloudflare, Akamai, Amazon Web Services (AWS) WAF, Imperva, PerimeterX, and Vercel deployment protection, can return `403` or `429` to non-browser traffic even when the URL works in your browser. Doc Detective already sends a browser-like header set and retries transient failures, but some WAFs fingerprint deeper signals like Transport Layer Security (TLS) client fingerprints or source IP reputation that header spoofing can't influence.
 
 If you hit this, you have three escape hatches:
 
