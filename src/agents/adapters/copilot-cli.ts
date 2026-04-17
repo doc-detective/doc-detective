@@ -199,7 +199,15 @@ export class CopilotCliAdapter implements AgentAdapter {
       }
     }
 
-    const installedVersion = enriched.latestVersion ?? enriched.installedVersion;
+    // Prefer the network-fetched latest (authoritative post-install); fall
+    // back to a fresh read of ~/.copilot/installed-plugins/…/plugin.json,
+    // then to the pre-install state. Same pattern as the Qwen adapter — keeps
+    // the install report accurate when `fetchLatestVersion()` failed.
+    const postInstall = await this.queryLocalInstallState();
+    const installedVersion =
+      enriched.latestVersion ??
+      postInstall.installedVersion ??
+      enriched.installedVersion;
 
     let action: InstallReport["action"];
     if (opts.force && isInstalled && isUpToDate) action = "forced";

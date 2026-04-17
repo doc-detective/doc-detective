@@ -966,24 +966,27 @@ describe("runInstallAgents() orchestration", function () {
 describe("install-agents end-to-end (compiled CLI, settings-file fallback)", function () {
   const cliPath = path.resolve("bin/doc-detective.js");
   let workDir;
+  let emptyBinDir;
 
   beforeEach(function () {
     workDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-e2e-"));
+    emptyBinDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-empty-path-"));
   });
 
   afterEach(function () {
-    try {
-      fs.rmSync(workDir, { recursive: true, force: true });
-    } catch {}
+    for (const d of [workDir, emptyBinDir]) {
+      try { fs.rmSync(d, { recursive: true, force: true }); } catch {}
+    }
   });
 
   function runCli(extraArgs) {
     return new Promise((resolve, reject) => {
-      // Strip `claude` from PATH so the adapter falls into Path B.
-      const sanitizedPath = (process.env.PATH || "")
-        .split(path.delimiter)
-        .filter((p) => !/[\\/](claude|AnthropicClaude)[\\/]?/i.test(p))
-        .join(path.delimiter);
+      // Minimal whitelist PATH: just the Node runtime dir and a scratch dir
+      // we control. Directory-name filtering would miss globally-installed
+      // `claude` binaries in /usr/local/bin or ~/.npm-global/bin, which are
+      // the common install layout. With this PATH the adapter always falls
+      // into Path B (settings-file fallback) — the branch this test asserts.
+      const sanitizedPath = [emptyBinDir, path.dirname(process.execPath)].join(path.delimiter);
 
       const env = {
         ...process.env,
