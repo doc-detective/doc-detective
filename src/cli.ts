@@ -65,6 +65,10 @@ async function main(argv: string[]) {
     await reportResults({ apiConfig, results });
   } else {
     // Output results
-    await outputResults(config, output, results, { command: "runTests" });
+    const options: any = { command: "runTests" };
+    if (args.reporters) {
+      options.reporters = args.reporters;
+    }
+    await outputResults(config, output, results, options);
   }
 }

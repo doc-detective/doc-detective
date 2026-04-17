@@ -8,6 +8,7 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 import axios from "axios";
 import { createRequire } from "node:module";
+import { htmlReporter } from "./reporters/htmlReporter.js";
 
 const require = createRequire(import.meta.url);
 
@@ -72,6 +73,12 @@ function setArgs(args: any): any {
     .option("allow-unsafe", {
       description: "Allow execution of potentially unsafe tests",
       type: "boolean",
+    })
+    .option("reporters", {
+      alias: "r",
+      description:
+        "Reporters to use for output. Accepted values: terminal, json, html. Specify multiple times for multiple reporters.",
+      type: "array",
     })
     .version(require("../package.json").version)
     .help()
@@ -280,6 +287,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 
 // Internal reporters
 const reporters: Record<string, (config: any, outputPath: any, results: any, options: any) => Promise<any>> = {
+  // HTML reporter: outputs results as a self-contained HTML file
+  htmlReporter: htmlReporter,
+
   // JSON reporter: outputs results to a JSON file
   jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     // Define supported output extensions
@@ -808,6 +818,8 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
         switch (reporter.toLowerCase()) {
           case "json":
             return "jsonReporter";
+          case "html":
+            return "htmlReporter";
           case "terminal":
             return "terminalReporter";
           default:
