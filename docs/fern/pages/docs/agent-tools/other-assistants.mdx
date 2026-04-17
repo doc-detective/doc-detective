@@ -10,9 +10,9 @@ Doc Detective agent tools work with Codex, Cursor, OpenCode, Qwen Code, and othe
 
 ## Installation
 
-Three of the agents on this page are supported directly by `npx doc-detective install-agents`. For anything else, a small set of fallback procedures is listed below.
+`npx doc-detective install-agents` supports three of the agents on this page directly. Fallback procedures for the rest appear further down.
 
-### Codex
+**Codex:**
 
 ```bash
 # User-global (default)
@@ -24,7 +24,7 @@ npx doc-detective install-agents --agent codex --scope project
 
 The command fetches doc-detective's skills from GitHub and copies them into the user's (or project's) `.agents/skills/` directory. Codex auto-discovers skills on its next launch.
 
-### Qwen Code
+**Qwen Code:**
 
 ```bash
 npx doc-detective install-agents --agent qwen-code
@@ -32,7 +32,7 @@ npx doc-detective install-agents --agent qwen-code
 
 The command invokes `qwen extensions install` non-interactively to add the doc-detective extension with auto-update enabled. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
 
-### OpenCode
+**OpenCode:**
 
 ```bash
 # User-global (default)
@@ -44,13 +44,13 @@ npx doc-detective install-agents --agent opencode --scope project
 
 The command fetches the agent-tools bundle and copies skills, the runtime plugin, hooks, and agents into the appropriate scope directory (`~/.config/opencode/` or `./.opencode/`). OpenCode auto-discovers them on next launch.
 
-All three installs are idempotent: re-running prints "already up to date" when no change is needed. Use `--force` to reinstall regardless. Use `--dry-run` to preview actions without executing them.
+All three installs are idempotent: re-running prints "already up to date" when nothing has changed. Use `--force` to reinstall regardless. Use `--dry-run` to preview actions without executing them.
 
 ## Fallback procedures
 
-Use these if `npx doc-detective install-agents` isn't an option for your workflow, or for agents that aren't supported directly (e.g., Cursor).
+Use these if `npx doc-detective install-agents` isn't an option for your workflow, or for agents that the command doesn't support directly (for example, Cursor).
 
-### Install with `npx skills` (fallback)
+### Install with `npx skills`
 
 The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools:
 
@@ -60,7 +60,7 @@ npx skills add doc-detective/agent-tools
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
 
-### Manual installation (fallback)
+### Manual installation
 
 Clone the repository and copy the skills to your agent's configuration directory:
 
