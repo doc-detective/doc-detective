@@ -256,9 +256,14 @@ export class CodexAdapter implements AgentAdapter {
   }
 
   /**
-   * Recursive directory copy using the injected fs deps. Files at `src` are
-   * read and rewritten under `dst`; directories are created on-demand. Buffers
-   * are preserved so non-UTF8 content in `assets/` survives intact.
+   * Recursive directory copy. Uses `this.deps.readdirSync` and
+   * `this.deps.writeFileSync` where the injected signatures match, but falls
+   * back to `fs.statSync` and buffer-returning `fs.readFileSync` directly —
+   * the `CodexDeps.readFileSync` signature returns a string (UTF-8), so we
+   * can't use it here without losing binary content (images, shell scripts
+   * with executable bits, etc.). Fully-injected recursion would require
+   * widening the deps interface with buffer/stat variants; for the narrow
+   * use case of copying extracted skills the direct fs calls are fine.
    */
   private copyDir(src: string, dst: string): void {
     this.mkdirp(dst);

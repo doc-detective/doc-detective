@@ -9,7 +9,6 @@ export interface RunnerDeps {
     pickScope: (supported: Scope[]) => Promise<Scope>;
   };
   logger?: (message: string, level?: LogLevel) => void;
-  cwd?: () => string;
   isTTY?: () => boolean;
 }
 
@@ -25,7 +24,6 @@ export async function runInstallAgents(
   const adapters = deps.adapters ?? listAdapters();
   const logger = deps.logger ?? defaultLogger;
   const isTTY = deps.isTTY ?? (() => Boolean(process.stdin.isTTY));
-  const cwd = deps.cwd ?? (() => process.cwd());
 
   const dryRun = argv["dry-run"] === true;
 
@@ -74,7 +72,6 @@ export async function runInstallAgents(
       scope: effective.scope,
       force: Boolean(argv.force),
       dryRun,
-      cwd: cwd(),
       logger,
     });
     const finalReport = effective.degraded

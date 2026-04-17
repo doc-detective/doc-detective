@@ -21,7 +21,6 @@ export interface InstallOptions {
   scope: Scope;
   force: boolean;
   dryRun: boolean;
-  cwd: string;
   logger: (message: string, level?: LogLevel) => void;
 }
 

@@ -289,6 +289,13 @@ export class OpenCodeAdapter implements AgentAdapter {
     else fs.mkdirSync(p, { recursive: true });
   }
 
+  /**
+   * Recursive directory copy. Uses `this.deps.readdirSync` and
+   * `this.deps.writeFileSync` where the injected signatures match, but falls
+   * back to `fs.statSync` and buffer-returning `fs.readFileSync` directly —
+   * the `OpenCodeDeps.readFileSync` signature returns a string, so we can't
+   * use it here without losing binary content.
+   */
   private copyDir(src: string, dst: string): void {
     this.mkdirp(dst);
     const entries = this.deps.readdirSync?.(src) ?? [];
