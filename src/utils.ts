@@ -8,7 +8,6 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 import axios from "axios";
 import { createRequire } from "node:module";
-import { htmlReporter } from "./reporters/htmlReporter.js";
 
 const require = createRequire(import.meta.url);
 
@@ -288,7 +287,11 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // Internal reporters
 const reporters: Record<string, (config: any, outputPath: any, results: any, options: any) => Promise<any>> = {
   // HTML reporter: outputs results as a self-contained HTML file
-  htmlReporter: htmlReporter,
+  // Lazy-loaded to avoid parsing the large inlined CSS/JS on every CLI invocation
+  htmlReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { htmlReporter } = await import("./reporters/htmlReporter.js");
+    return htmlReporter(config, outputPath, results, options);
+  },
 
   // JSON reporter: outputs results to a JSON file
   jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {

@@ -862,7 +862,29 @@ const JS_CONTENT = `
 "use strict";
 
 var report = window.REPORT_DATA;
-if (!report) { document.getElementById("root").textContent = "No report data found."; return; }
+function isValidReport(r) {
+  return r && r.summary && r.summary.specs && Array.isArray(r.specs);
+}
+if (!isValidReport(report)) {
+  var root = document.getElementById("root");
+  root.innerHTML = '';
+  var msg = document.createElement("div");
+  msg.style.cssText = "max-width:800px;margin:64px auto;padding:24px;font-family:system-ui,sans-serif;";
+  var h = document.createElement("h2");
+  h.textContent = "Unsupported report format";
+  h.style.cssText = "font-size:20px;margin:0 0 8px 0;";
+  msg.appendChild(h);
+  var p = document.createElement("p");
+  p.textContent = "The provided data does not match the expected Doc Detective report shape (summary.specs + specs[]). Raw data below:";
+  p.style.cssText = "color:#4A5058;margin:0 0 16px 0;";
+  msg.appendChild(p);
+  var pre = document.createElement("pre");
+  pre.textContent = JSON.stringify(report, null, 2);
+  pre.style.cssText = "background:#F1F3F6;border:1px solid #E2E5EA;border-radius:8px;padding:12px;overflow:auto;font-size:12px;line-height:1.5;max-height:70vh;";
+  msg.appendChild(pre);
+  root.appendChild(msg);
+  return;
+}
 
 var STATUS_ORDER = ["FAIL", "WARNING", "PASS", "SKIPPED"];
 var STATUS_META = {
@@ -882,8 +904,21 @@ function fmtDuration(ms) {
   return m + "m " + s + "s";
 }
 
-function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
-function escAttr(s) { return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+function escAttr(s) { return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function wireDisclosure(node, expanded, toggle) {
+  node.setAttribute("role", "button");
+  node.setAttribute("tabindex", "0");
+  node.setAttribute("aria-expanded", String(expanded));
+  node.onclick = toggle;
+  node.onkeydown = function(e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle(e);
+    }
+  };
+}
 
 function hlJson(json) {
   return esc(json).replace(
@@ -1147,14 +1182,15 @@ function buildSumTile(label, counts, levelLabel) {
     ? (counts.pass / total * 100) + "% " + (counts.fail / total * 100) + "% " + (counts.warning / total * 100) + "% " + (counts.skipped / total * 100) + "%"
     : "1fr";
 
+  var barSegments = total
+    ? '<span class="p"></span><span class="f"></span><span class="w"></span><span class="s"></span>'
+    : '';
+
   var tile = el("div", "sum " + kind);
   tile.innerHTML = '<div class="corner-stripe"></div><div><div class="lbl">' + esc(label) + '</div>' +
     '<div class="row"><div class="num">' + primaryN + '</div><div class="of">of ' + total + " " + esc(levelLabel) + '</div></div></div>' +
     '<div><div class="miniBar" style="grid-template-columns:' + cols + '">' +
-    (counts.pass ? '<span class="p"></span>' : '') +
-    (counts.fail ? '<span class="f"></span>' : '') +
-    (counts.warning ? '<span class="w"></span>' : '') +
-    (counts.skipped ? '<span class="s"></span>' : '') + '</div>' +
+    barSegments + '</div>' +
     '<div class="legend">' +
     '<span><i style="background:var(--dd-pass)"></i>' + counts.pass + ' pass</span>' +
     '<span><i style="background:var(--dd-fail)"></i>' + counts.fail + ' fail</span>' +
@@ -1212,10 +1248,10 @@ function stepKey(step, ctxId, idx) {
   return step.stepId || (ctxId + ":" + idx);
 }
 
-function buildStep(step, idx, ctxId) {
+function buildStep(step, idx, ctxId, keyIdx) {
   var slug = statusSlug(step.result);
   var ak = actionKey(step);
-  var sk = stepKey(step, ctxId, idx);
+  var sk = stepKey(step, ctxId, keyIdx == null ? idx : keyIdx);
   var primary = step.description
     || (step.goTo && "Go to " + step.goTo)
     || (step.httpRequest && (step.httpRequest.method || "GET") + " " + (step.httpRequest.url || ""))
@@ -1233,11 +1269,11 @@ function buildStep(step, idx, ctxId) {
     row.appendChild(buildStepDetail(step));
   }
 
-  row.onclick = function(e) {
-    if (e.target.closest && e.target.closest(".step-detail")) return;
+  wireDisclosure(row, isOpen, function(e) {
+    if (e && e.target && e.target.closest && e.target.closest(".step-detail")) return;
     state.openSteps[sk] = !state.openSteps[sk];
     render();
-  };
+  });
 
   return row;
 }
@@ -1259,18 +1295,23 @@ function buildContext(ctx) {
     badge(ctx.result);
   block.appendChild(head);
 
-  var visibleSteps = (ctx.steps || []).filter(function(s) {
-    if (state.statusFilters.size && !state.statusFilters.has(s.result)) return false;
-    if (state.query) return JSON.stringify(s).toLowerCase().indexOf(state.query.toLowerCase()) !== -1;
-    return true;
-  });
+  var visibleSteps = (ctx.steps || [])
+    .map(function(s, i) { return { step: s, origIdx: i }; })
+    .filter(function(item) {
+      var s = item.step;
+      if (state.statusFilters.size && !state.statusFilters.has(s.result)) return false;
+      if (state.query) return JSON.stringify(s).toLowerCase().indexOf(state.query.toLowerCase()) !== -1;
+      return true;
+    });
 
   if (visibleSteps.length === 0) {
     block.innerHTML += '<div class="empty" style="margin:8px 16px 10px;padding:16px">No steps match the current filter.</div>';
   } else {
     var stepsDiv = el("div", "steps");
     var cId = ctx.contextId || "";
-    visibleSteps.forEach(function(s, i) { stepsDiv.appendChild(buildStep(s, i, cId)); });
+    visibleSteps.forEach(function(item, i) {
+      stepsDiv.appendChild(buildStep(item.step, i, cId, item.origIdx));
+    });
     block.appendChild(stepsDiv);
   }
 
@@ -1303,10 +1344,10 @@ function buildTest(test) {
     metric("pass", stepAgg.pass, "pass") + metric("fail", stepAgg.fail, "fail") +
     metric("warn", stepAgg.warning, "warn") + metric("skip", stepAgg.skipped, "skip") + '</div>';
 
-  head.onclick = function() {
+  wireDisclosure(head, isOpen, function() {
     state.openTests[test.testId] = !isOpen;
     render();
-  };
+  });
   card.appendChild(head);
 
   if (isOpen) {
@@ -1341,10 +1382,10 @@ function buildSpec(spec) {
     metric("pass", counts.stepCounts.pass, "") + metric("fail", counts.stepCounts.fail, "") +
     metric("warn", counts.stepCounts.warning, "") + metric("skip", counts.stepCounts.skipped, "") + '</div>';
 
-  head.onclick = function() {
+  wireDisclosure(head, isOpen, function() {
     state.openSpecs[spec.specId] = !isOpen;
     render();
-  };
+  });
   card.appendChild(head);
 
   if (isOpen) {
@@ -1496,12 +1537,23 @@ function render() {
   if (state.lightbox) {
     var lb = el("div", "lightbox");
     var m = state.lightbox;
-    lb.innerHTML = '<button class="close">' + ICON.close + '</button>' +
+    lb.innerHTML = '<button class="close" aria-label="Close lightbox">' + ICON.close + '</button>' +
       (m.kind === "video"
         ? '<video src="' + escAttr(m.path) + '" controls autoplay></video>'
         : '<img src="' + escAttr(m.path) + '" alt="' + escAttr(m.path) + '"/>') +
       '<div class="cap">' + esc(m.path) + '</div>';
-    lb.onclick = function() { state.lightbox = null; render(); };
+    lb.onclick = function(e) {
+      // only close on backdrop clicks
+      if (e.target === lb) { state.lightbox = null; render(); }
+    };
+    var closeEl = lb.querySelector(".close");
+    if (closeEl) closeEl.onclick = function(e) {
+      e.stopPropagation();
+      state.lightbox = null;
+      render();
+    };
+    var mediaEl = lb.querySelector("img,video");
+    if (mediaEl) mediaEl.onclick = function(e) { e.stopPropagation(); };
     root.appendChild(lb);
   }
 
