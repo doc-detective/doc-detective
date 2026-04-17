@@ -197,9 +197,16 @@ export class ClaudeCodeAdapter implements AgentAdapter {
         "list",
         "--json",
       ]);
-      if (result.exitCode !== 0) return { binaryAvailable: false, installed: false };
+      // A non-zero exit here means the binary ran but the subcommand failed
+      // (auth, transient error, corrupt config, etc.). Don't conflate that
+      // with ENOENT/spawn failure — keep `binaryAvailable: true` so install()
+      // still takes Path A and surfaces the real error at install time
+      // instead of silently dropping into the settings.json fallback.
+      if (result.exitCode !== 0) return { binaryAvailable: true, installed: false };
       stdout = result.stdout;
     } catch {
+      // Spawn failure (e.g., ENOENT — `claude` not on PATH). Fall back to
+      // reading settings.json directly.
       return { binaryAvailable: false, installed: false };
     }
 

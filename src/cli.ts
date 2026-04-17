@@ -55,7 +55,11 @@ async function runTestsHandler(args: any) {
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
   const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-  const configPath = fs.existsSync(args.config)
+  // Guard `args.config` so the handler falls back to the defaults cleanly
+  // when --config is omitted (args.config is undefined in that case).
+  const hasExplicitConfig =
+    typeof args.config === "string" && args.config.length > 0 && fs.existsSync(args.config);
+  const configPath = hasExplicitConfig
     ? args.config
     : fs.existsSync(configPathJSON)
     ? configPathJSON
