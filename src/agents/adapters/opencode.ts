@@ -31,7 +31,7 @@ export interface OpenCodeDeps {
   homedir: () => string;
   cwd: () => string;
   fetchLatestVersion: () => Promise<string | undefined>;
-  fetchZip: (ref: string) => Promise<{ tempDir: string; ref: string }>;
+  fetchZip: (ref: string) => Promise<{ tempDir: string; ref: string; owned?: boolean }>;
 }
 
 const CANONICAL_SKILL = "doc-detective-init";
@@ -231,18 +231,25 @@ export class OpenCodeAdapter implements AgentAdapter {
         opts.logger("Copied plugin: opencode-plugin.mjs", "debug");
       }
 
-      // 3. Hooks dir
+      // 3. Hooks dir — wipe first so files removed/renamed upstream don't
+      //    leave stale artifacts that OpenCode would still load at startup.
       const hooksSrc = path.join(pluginSrc, "hooks");
       const hooksDst = path.join(root, "hooks");
       if (this.deps.existsSync(hooksSrc)) {
+        if (this.deps.existsSync(hooksDst)) {
+          this.deps.rmSync?.(hooksDst, { recursive: true, force: true });
+        }
         this.copyDir(hooksSrc, hooksDst);
         opts.logger("Copied hooks/", "debug");
       }
 
-      // 4. Agents dir
+      // 4. Agents dir — same wipe-then-copy pattern as hooks.
       const agentsSrc = path.join(pluginSrc, "agents");
       const agentsDst = path.join(root, "agents");
       if (this.deps.existsSync(agentsSrc)) {
+        if (this.deps.existsSync(agentsDst)) {
+          this.deps.rmSync?.(agentsDst, { recursive: true, force: true });
+        }
         this.copyDir(agentsSrc, agentsDst);
         opts.logger("Copied agents/", "debug");
       }
@@ -269,12 +276,9 @@ export class OpenCodeAdapter implements AgentAdapter {
       const reason = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to install OpenCode tools from GitHub: ${reason}`);
     } finally {
-      const tmpBase = os.tmpdir();
-      if (
-        fetched.tempDir.startsWith(tmpBase) &&
-        fetched.tempDir !== tmpBase &&
-        !fetched.tempDir.includes("dd-oc-src-")
-      ) {
+      // Only clean up the fetched tempDir when the fetcher reports ownership.
+      // Tests that inject a pre-populated source tree set `owned: false`.
+      if (fetched.owned) {
         try { this.deps.rmSync?.(fetched.tempDir, { recursive: true, force: true }); } catch {}
       }
     }

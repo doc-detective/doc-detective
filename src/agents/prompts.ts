@@ -50,9 +50,10 @@ export async function confirmForce(modifiedFiles: string[]): Promise<boolean> {
 }
 
 /**
- * Factory to hand into {@link runInstallAgents} as its `prompts` dep. Keeping
- * this as a function (not a pre-built object) avoids loading inquirer in
- * non-interactive runs where it is never needed.
+ * Factory to hand into {@link runInstallAgents} as its `prompts` dep. The
+ * `install-agents` command already imports this module lazily (dynamic
+ * `import("./prompts.js")` from the yargs handler) so other subcommands
+ * don't pay the inquirer load cost.
  */
 export function createPrompts() {
   return { pickAgents, pickScope };
@@ -69,12 +70,12 @@ function assertTTY(): void {
 function buildScopeChoices(supported: Scope[]): { name: string; value: Scope; description?: string }[] {
   const labels: Record<Scope, { name: string; description: string }> = {
     project: {
-      name: "Project (./.claude/…) — applies to this repo only",
-      description: "Writes settings to the current project's .claude/settings.json",
+      name: "Project — applies to this repo only",
+      description: "Installs into the current project directory.",
     },
     global: {
-      name: "User-global (~/.claude/…) — applies to every project for this user",
-      description: "Writes to ~/.claude/settings.json",
+      name: "User-global — applies to every project for this user",
+      description: "Installs into your user home directory.",
     },
   };
   return supported.map((s) => ({ name: labels[s].name, value: s, description: labels[s].description }));

@@ -9,6 +9,12 @@ export interface FetchResult {
   tempDir: string;
   /** Git ref that was fetched. */
   ref: string;
+  /**
+   * True if the caller owns the tempDir and should delete it after use. False
+   * when a test (or other caller) points at a pre-existing directory they'll
+   * clean up themselves. Defaults to true when the real fetcher ran.
+   */
+  owned: boolean;
 }
 
 export interface FetchDeps {
@@ -21,8 +27,13 @@ export interface FetchDeps {
 const REPO_SLUG = "doc-detective/agent-tools";
 const MAX_ZIP_BYTES = 50 * 1024 * 1024;
 
+/**
+ * Build the codeload archive URL for a given ref. GitHub's codeload endpoint
+ * accepts `<ref>` directly (branches, tags, and full commit SHAs all resolve),
+ * so we don't hard-code `refs/heads/…` and we support tags like `v1.3.0`.
+ */
 function codeloadUrl(ref: string): string {
-  return `https://codeload.github.com/${REPO_SLUG}/zip/refs/heads/${ref}`;
+  return `https://codeload.github.com/${REPO_SLUG}/zip/${ref}`;
 }
 
 /**
@@ -61,14 +72,26 @@ export async function fetchAgentToolsZip(
         : entry.entryName;
       if (!rel) continue; // skip the wrapper dir itself
 
-      // Zip Slip guard: reject any entry whose path escapes the extraction
-      // root. Absolute paths, path-traversal (`..`), and backslash-traversal
-      // on Windows all resolve outside `resolvedBase` and are rejected.
-      const dest = path.join(tempDir, rel);
-      const resolvedDest = path.resolve(dest);
+      // Belt-and-suspenders zip-slip guards. The first checks the *entry name*
+      // before any path computation, satisfying CodeQL's taint tracker that
+      // `rel` is sanitized before it reaches `path.resolve`. The second
+      // verifies (via `path.relative`) that the fully-resolved destination
+      // stays inside the extraction root — this catches anything the first
+      // guard misses (e.g., symlink-like canonicalization edge cases).
       if (
-        resolvedDest !== resolvedBase &&
-        !resolvedDest.startsWith(resolvedBase + path.sep)
+        path.isAbsolute(rel) ||
+        rel.split(/[\\/]/).some((seg) => seg === "..") ||
+        /^[a-zA-Z]:[\\/]/.test(rel)
+      ) {
+        throw new Error(
+          `Refusing to extract zip entry with traversal path: ${entry.entryName}`
+        );
+      }
+      const resolvedDest = path.resolve(resolvedBase, rel);
+      const relativeFromBase = path.relative(resolvedBase, resolvedDest);
+      if (
+        relativeFromBase.startsWith("..") ||
+        path.isAbsolute(relativeFromBase)
       ) {
         throw new Error(
           `Refusing to extract zip entry outside extraction root: ${entry.entryName}`
@@ -82,7 +105,7 @@ export async function fetchAgentToolsZip(
         fs.writeFileSync(resolvedDest, entry.getData());
       }
     }
-    return { tempDir, ref };
+    return { tempDir, ref, owned: true };
   } catch (err) {
     // Best-effort cleanup; propagate the original error.
     try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}

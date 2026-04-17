@@ -31,11 +31,16 @@ export function safeSpawn(cmd: string, args: string[] = []): Promise<SpawnResult
       child.on("error", (err) => finish(err));
       child.stdout?.on("data", (chunk) => { stdout += chunk.toString(); });
       child.stderr?.on("data", (chunk) => { stderr += chunk.toString(); });
-      child.on("close", (code) => {
+      child.on("close", (code, signal) => {
+        // `code === null` means the child was killed by a signal. Surface that
+        // as a non-zero exit code (and annotate stderr) so callers that only
+        // inspect exitCode still detect failure.
+        const exitCode = code !== null ? code : 1;
+        const signalNote = signal ? `\n[terminated by signal ${signal}]` : "";
         finish(null, {
           stdout: stdout.replace(/\n$/, ""),
-          stderr: stderr.replace(/\n$/, ""),
-          exitCode: Number(code ?? 0),
+          stderr: (stderr + signalNote).replace(/\n$/, ""),
+          exitCode,
         });
       });
     } catch (err) {

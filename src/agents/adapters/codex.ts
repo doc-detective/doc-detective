@@ -31,7 +31,7 @@ export interface CodexDeps {
   homedir: () => string;
   cwd: () => string;
   fetchLatestVersion: () => Promise<string | undefined>;
-  fetchZip: (ref: string) => Promise<{ tempDir: string; ref: string }>;
+  fetchZip: (ref: string) => Promise<{ tempDir: string; ref: string; owned?: boolean }>;
 }
 
 const CANONICAL_SKILL = "doc-detective-init";
@@ -238,16 +238,10 @@ export class CodexAdapter implements AgentAdapter {
       const reason = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to install Codex skills from GitHub: ${reason}`);
     } finally {
-      // Clean up the fetched temp dir if it was ours (tests may reuse sourceRoot;
-      // the default fetcher places the archive under os.tmpdir() so it's safe).
-      // We only delete when the path is under tmpdir to avoid surprising teardown
-      // in tests that pre-populated sourceRoot.
-      const tmpBase = os.tmpdir();
-      if (
-        fetched.tempDir.startsWith(tmpBase) &&
-        fetched.tempDir !== tmpBase &&
-        !fetched.tempDir.includes("dd-codex-src-")
-      ) {
+      // Only clean up the fetched tempDir when the fetcher reports ownership.
+      // Tests that point at a pre-populated source tree set `owned: false` so
+      // their fixtures aren't wiped out of from under them.
+      if (fetched.owned) {
         try { this.deps.rmSync?.(fetched.tempDir, { recursive: true, force: true }); } catch {}
       }
     }

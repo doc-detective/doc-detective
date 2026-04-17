@@ -163,6 +163,9 @@ async function resolveScope(
     (acc, a) => (acc.length === 0 ? a.supportsScopes() : acc.filter((s) => a.supportsScopes().includes(s))),
     []
   );
+  // If no scope is common to every chosen adapter, pick "global" as a
+  // sensible default and let each adapter degrade via effectiveScopeFor().
+  if (intersection.length === 0) return "global";
   if (intersection.length === 1) return intersection[0];
   if (!ctx.isTTY) {
     throw new Error(

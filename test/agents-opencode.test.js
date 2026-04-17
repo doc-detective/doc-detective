@@ -227,7 +227,7 @@ describe("OpenCodeAdapter.install() — fetch + copy skills/plugins/hooks/agents
       fetchLatestVersion,
       fetchZip: async (ref) => {
         fetchZipCalled++;
-        return { tempDir: sourceRoot, ref };
+        return { tempDir: sourceRoot, ref, owned: false };
       },
     };
     return { adapter: new OpenCodeAdapter(deps), counts: { fetchZip: () => fetchZipCalled } };

@@ -27,7 +27,7 @@ export const installAgentsCommand: CommandModule<{}, InstallAgentsArgv> = {
         type: "string",
         choices: ["project", "global"] as const,
         describe:
-          "Where to install: 'project' (./.claude/…) or 'global' (~/.claude/…). Prompted if omitted.",
+          "Where to install: 'project' (current repo) or 'global' (user home). Each adapter resolves the exact path. Prompted if omitted.",
       })
       .option("force", {
         alias: "f",

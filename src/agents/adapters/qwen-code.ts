@@ -101,9 +101,11 @@ export class QwenCodeAdapter implements AgentAdapter {
   }
 
   private canonicalSkillPath(): string {
-    // Read version from a well-known SKILL.md. The qwen-extension.json version
-    // is unreliable on single-plugin Claude marketplaces (bug #1737); SKILL.md
-    // frontmatter is the authoritative source doc-detective itself declares.
+    // Read version from doc-detective's canonical SKILL.md frontmatter, which
+    // is the authoritative source doc-detective itself declares. Avoiding
+    // qwen-extension.json sidesteps upstream bug QwenLM/qwen-code#1737 which
+    // leaves that manifest's `version` undefined on single-plugin Claude
+    // marketplace installs — the route Qwen takes for our repo.
     return path.join(
       this.deps.homedir(),
       ".qwen",
@@ -189,7 +191,14 @@ export class QwenCodeAdapter implements AgentAdapter {
       }
     }
 
-    const installedVersion = enriched.latestVersion ?? enriched.installedVersion;
+    // Prefer the network-fetched latest version (authoritative post-install);
+    // fall back to a fresh on-disk SKILL.md read, then to the pre-install
+    // state. This matters on a fresh install where `fetchLatestVersion()`
+    // failed — we still surface the installed version rather than undefined.
+    const installedVersion =
+      enriched.latestVersion ??
+      this.queryLocalInstallState().installedVersion ??
+      enriched.installedVersion;
 
     let action: InstallReport["action"];
     if (opts.force && isInstalled && isUpToDate) action = "forced";

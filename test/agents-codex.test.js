@@ -41,7 +41,7 @@ describe("fetchAgentToolsZip", function () {
       },
     });
     try {
-      assert.match(requestedUrl, /codeload\.github\.com\/doc-detective\/agent-tools\/zip\/refs\/heads\/main$/);
+      assert.match(requestedUrl, /codeload\.github\.com\/doc-detective\/agent-tools\/zip\/main$/);
       assert.equal(fs.existsSync(result.tempDir), true);
       // Top-level `agent-tools-main/` must have been stripped — skills/ at the root.
       assert.equal(
@@ -70,7 +70,7 @@ describe("fetchAgentToolsZip", function () {
       },
     });
     try {
-      assert.match(requestedUrl, /\/refs\/heads\/v2\.0\.0$/);
+      assert.match(requestedUrl, /\/zip\/v2\.0\.0$/);
       assert.equal(result.ref, "v2.0.0");
     } finally {
       try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
@@ -303,8 +303,9 @@ describe("CodexAdapter.install() — fetch + copy skills into .agents/skills/", 
       fetchLatestVersion,
       fetchZip: async (ref) => {
         fetchZipCalled++;
-        // Simulate a freshly-extracted zip by pointing at our pre-built sourceRoot.
-        return { tempDir: sourceRoot, ref };
+        // Point at our pre-built sourceRoot and mark it as NOT owned so the
+        // adapter doesn't wipe the test fixture on cleanup.
+        return { tempDir: sourceRoot, ref, owned: false };
       },
     };
     const adapter = new CodexAdapter(deps);

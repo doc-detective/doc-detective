@@ -46,7 +46,7 @@ export interface ClaudeCodeDeps {
 }
 
 const LATEST_PLUGIN_JSON_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/.claude-plugin/plugin.json";
+  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/plugins/doc-detective/.claude-plugin/plugin.json";
 
 export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
   return {
@@ -245,10 +245,11 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     }
     if (entries.length === 0) return undefined;
 
-    // Pick the lexicographically-largest entry as a best-effort "latest"
-    // sort — version dirs are semver-ish and sort OK in common cases. The
-    // authoritative value is the `version` field inside plugin.json.
-    const chosen = entries.sort().reverse()[0];
+    // Pick the highest semver-ish entry. Numeric component comparison avoids
+    // the "1.10.0" < "1.2.0" trap that a raw lexicographic sort would hit.
+    // Falls back to localeCompare for entries that don't parse as numeric
+    // tuples (pre-release tags, unexpected names).
+    const chosen = [...entries].sort(compareSemverish).reverse()[0];
     const pluginJson = path.join(cacheDir, chosen, ".claude-plugin", "plugin.json");
     try {
       const raw = this.deps.readFileSync(pluginJson, "utf8");
@@ -501,4 +502,25 @@ function toMarketplaceArray(parsed: unknown): Array<{
     }
   }
   return [];
+}
+
+/**
+ * Compare two version-ish directory names, component-wise by numeric segments.
+ * Falls back to localeCompare for any segment that isn't an integer (e.g.
+ * pre-release tags or unexpected names). Used to pick the "latest" entry in
+ * the Claude Code plugin cache without the "1.10.0" < "1.2.0" trap.
+ */
+function compareSemverish(a: string, b: string): number {
+  const pa = a.split(".");
+  const pb = b.split(".");
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const sa = pa[i] ?? "";
+    const sb = pb[i] ?? "";
+    const na = /^\d+$/.test(sa) ? parseInt(sa, 10) : NaN;
+    const nb = /^\d+$/.test(sb) ? parseInt(sb, 10) : NaN;
+    if (Number.isNaN(na) || Number.isNaN(nb)) return a.localeCompare(b);
+    if (na !== nb) return na - nb;
+  }
+  return 0;
 }

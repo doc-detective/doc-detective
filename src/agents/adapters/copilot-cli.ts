@@ -30,7 +30,7 @@ const MARKETPLACE_NAME = "doc-detective";
 const PLUGIN_NAME = "doc-detective";
 const PLUGIN_KEY = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
 const LATEST_PLUGIN_JSON_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/.claude-plugin/plugin.json";
+  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/plugins/doc-detective/.claude-plugin/plugin.json";
 
 export function defaultCopilotCliDeps(): CopilotCliDeps {
   return {

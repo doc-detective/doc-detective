@@ -30,6 +30,13 @@ async function main(argv: string[]) {
       describe: "Run Doc Detective tests (default).",
       handler: runTestsHandler,
     })
+    .command({
+      // Preserved for back-compat with the `runTests` npm script and any
+      // existing CI invocations. Runs the same handler as the default.
+      command: "runTests",
+      describe: false,
+      handler: runTestsHandler,
+    })
     .command(installAgentsCommand)
     .strict()
     .demandCommand(0)
