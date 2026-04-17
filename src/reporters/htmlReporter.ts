@@ -1407,7 +1407,7 @@ function render() {
     toolbar.appendChild(clearBtn);
   }
 
-  toolbar.innerHTML += '<span class="spacer"></span>';
+  toolbar.appendChild(el("span", "spacer"));
 
   var searchDiv = el("div", "search-input");
   searchDiv.innerHTML = ICON.search;
@@ -1418,7 +1418,7 @@ function render() {
   searchDiv.appendChild(searchInput);
   toolbar.appendChild(searchDiv);
 
-  toolbar.innerHTML += '<span class="spacer"></span>';
+  toolbar.appendChild(el("span", "spacer"));
   var expandBtn = el("button", "linkbtn", ICON.expand + ' Expand all');
   expandBtn.onclick = function() {
     (report.specs || []).forEach(function(sp) {
