@@ -55,7 +55,11 @@ export async function htmlReporter(
 }
 
 function buildHtml(results: any): string {
-  const reportJson = JSON.stringify(results, null, 2);
+  const reportJson = JSON.stringify(results, null, 2)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -69,8 +73,9 @@ ${CSS_CONTENT}
 </head>
 <body>
 <div id="root"></div>
+<script id="dd-report-data" type="application/json">${reportJson}</script>
 <script>
-window.REPORT_DATA = ${reportJson};
+window.REPORT_DATA = JSON.parse(document.getElementById("dd-report-data").textContent);
 </script>
 <script>
 ${JS_CONTENT}
@@ -80,7 +85,6 @@ ${JS_CONTENT}
 }
 
 const CSS_CONTENT = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 :root {
   --dd-green: #4B9A47;
@@ -879,6 +883,7 @@ function fmtDuration(ms) {
 }
 
 function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function escAttr(s) { return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 function hlJson(json) {
   return esc(json).replace(
@@ -1168,12 +1173,12 @@ function buildStepDetail(step) {
   if (media.length) {
     var mp = '<div class="media-panel"><div class="dp-head"><span>MEDIA \\u00B7 ' + media.length + ' item' + (media.length > 1 ? 's' : '') + '</span></div><div class="mp-body">';
     media.forEach(function(m) {
-      mp += '<div class="media-thumb" data-media-path="' + esc(m.path || '') + '" data-media-kind="' + m.kind + '">' +
+      mp += '<div class="media-thumb" data-media-path="' + escAttr(m.path || '') + '" data-media-kind="' + escAttr(m.kind) + '">' +
         '<span class="kind">' + (m.kind === "video" ? "MP4" : "PNG") + '</span>' +
         (m.changed ? '<span class="changed-flag">UPDATED</span>' : '') +
         (m.kind === "video"
-          ? '<video src="' + esc(m.path || '') + '" muted playsinline preload="metadata"></video>'
-          : '<img src="' + esc(m.path || '') + '" alt="' + esc(m.path || '') + '" onerror="this.style.display=\\'none\\'"/>') +
+          ? '<video src="' + escAttr(m.path || '') + '" muted playsinline preload="metadata"></video>'
+          : '<img src="' + escAttr(m.path || '') + '" alt="' + escAttr(m.path || '') + '" onerror="this.style.display=\\'none\\'"/>') +
         '<div class="cap">' + esc(m.path || '') + '</div></div>';
     });
     mp += '</div></div>';
@@ -1187,9 +1192,9 @@ function buildStepDetail(step) {
   var outputJson = step.outputs && Object.keys(step.outputs).length ? JSON.stringify(step.outputs, null, 2) : null;
 
   var grid = el("div", "detail-grid");
-  grid.innerHTML = '<div class="detail-panel"><div class="dp-head"><span>INPUT \\u00B7 ' + esc(ak) + '</span><button class="copy-btn" data-copy="' + esc(inputJson).replace(/"/g, '&quot;') + '">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(inputJson) + '</pre></div>';
+  grid.innerHTML = '<div class="detail-panel"><div class="dp-head"><span>INPUT \\u00B7 ' + esc(ak) + '</span><button class="copy-btn" data-copy="' + escAttr(inputJson) + '">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(inputJson) + '</pre></div>';
   if (outputJson) {
-    grid.innerHTML += '<div class="detail-panel"><div class="dp-head"><span>OUTPUTS</span><button class="copy-btn" data-copy="' + esc(outputJson).replace(/"/g, '&quot;') + '">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(outputJson) + '</pre></div>';
+    grid.innerHTML += '<div class="detail-panel"><div class="dp-head"><span>OUTPUTS</span><button class="copy-btn" data-copy="' + escAttr(outputJson) + '">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(outputJson) + '</pre></div>';
   }
   detail.appendChild(grid);
 
@@ -1210,7 +1215,7 @@ function buildStep(step, idx) {
   var row = el("div", "step " + slug + (isOpen ? " open" : ""));
   row.innerHTML = '<span class="chev">' + ICON.chevron + '</span>' +
     badge(step.result) + tag(ak) +
-    '<span class="desc" title="' + esc(primary) + '"><span style="color:var(--fg3);font-family:var(--font-mono);font-size:11px;margin-right:8px">' + String(idx + 1).padStart(2, "0") + '</span>' + esc(primary) + '</span>' +
+    '<span class="desc" title="' + escAttr(primary) + '"><span style="color:var(--fg3);font-family:var(--font-mono);font-size:11px;margin-right:8px">' + String(idx + 1).padStart(2, "0") + '</span>' + esc(primary) + '</span>' +
     '<span class="dur">' + fmtDuration(step.duration) + '</span>';
 
   if (isOpen) {
@@ -1314,7 +1319,7 @@ function buildSpec(spec) {
   head.innerHTML = '<span class="chev">' + ICON.chevron + '</span>' +
     badge(spec.result) +
     '<div class="title-col"><div class="title">' + esc(spec.description || spec.specId) +
-    (spec.specPath ? ' <span class="path" title="' + esc(spec.specPath) + '">' + ICON.file + ' ' + esc(spec.specPath) + '</span>' : '') +
+    (spec.specPath ? ' <span class="path" title="' + escAttr(spec.specPath) + '">' + ICON.file + ' ' + esc(spec.specPath) + '</span>' : '') +
     '</div>' +
     (spec.contentPath && spec.contentPath !== spec.specPath
       ? '<div class="desc">Source: <code style="font-family:var(--font-mono);font-size:12px">' + esc(spec.contentPath) + '</code></div>'
@@ -1468,7 +1473,7 @@ function render() {
     lb.innerHTML = '<button class="close">' + ICON.close + '</button>' +
       (m.kind === "video"
         ? '<video src="' + esc(m.path) + '" controls autoplay></video>'
-        : '<img src="' + esc(m.path) + '" alt="' + esc(m.path) + '"/>') +
+        : '<img src="' + escAttr(m.path) + '" alt="' + escAttr(m.path) + '"/>') +
       '<div class="cap">' + esc(m.path) + '</div>';
     lb.onclick = function() { state.lightbox = null; render(); };
     root.appendChild(lb);
