@@ -82,6 +82,60 @@ describe("Util tests", function () {
     });
   });
 
+  it("Yargs parses --reporters argument correctly", function () {
+    const single = setArgs([
+      "node", "runTests.js", "--reporters", "html",
+    ]);
+    expect(single.reporters).to.deep.equal(["html"]);
+    expect(single.r).to.deep.equal(["html"]);
+
+    const multiple = setArgs([
+      "node", "runTests.js", "--reporters", "terminal", "json", "html",
+    ]);
+    expect(multiple.reporters).to.deep.equal(["terminal", "json", "html"]);
+
+    const aliased = setArgs([
+      "node", "runTests.js", "-r", "html",
+    ]);
+    expect(aliased.reporters).to.deep.equal(["html"]);
+  });
+
+  it("outputResults respects reporters option for html", async function () {
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-cli-test-"));
+    try {
+      const sampleResults = {
+        reportId: "cli-test",
+        summary: {
+          specs: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          tests: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          contexts: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          steps: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+        },
+        specs: [{
+          result: "PASS", specId: "s1", description: "test",
+          tests: [{ result: "PASS", testId: "t1", description: "t",
+            contexts: [{ result: "PASS", contextId: "c1", platform: "linux",
+              steps: [{ result: "PASS", stepId: "st1", goTo: "https://example.com", duration: 10 }]
+            }]
+          }]
+        }],
+      };
+      const results = await outputResults({}, tmpDir, sampleResults, {
+        reporters: ["html"],
+        command: "runTests",
+      });
+      const htmlPath = results[0];
+      expect(htmlPath).to.match(/\.html$/);
+      expect(fs.existsSync(htmlPath)).to.be.true;
+      const content = fs.readFileSync(htmlPath, "utf-8");
+      expect(content).to.include("<!DOCTYPE html>");
+      expect(content).to.include("window.REPORT_DATA");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   // Test that config overrides are set correctly
   it("Config overrides are set correctly", async function () {
     // This test takes a bit longer
