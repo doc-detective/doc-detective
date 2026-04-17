@@ -77,7 +77,7 @@ function setArgs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Accepted values: terminal, json, html. Specify multiple times for multiple reporters.",
+        "Reporters to use for output. Accepted values: terminal, json, html. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "array",
     })
     .version(require("../package.json").version)

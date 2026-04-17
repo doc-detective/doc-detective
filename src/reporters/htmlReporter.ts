@@ -1096,7 +1096,7 @@ function buildHeader() {
   var fields = [
     ["tool", (meta.tool || "doc-detective") + "@" + (meta.version || "\\u2014")],
     ["runtime", (meta.platform || "\\u2014") + " \\u00B7 node " + (meta.node || "\\u2014")],
-    ["branch", (meta.branch || "\\u2014") + "@" + (meta.commit || "").slice(0, 7) || "\\u2014"],
+    ["branch", meta.branch || meta.commit ? (meta.branch || "\\u2014") + (meta.commit ? "@" + meta.commit.slice(0, 7) : "") : "\\u2014"],
     ["actor", meta.actor || "\\u2014"],
     ["duration", fmtDuration(meta.startedAt && meta.finishedAt ? new Date(meta.finishedAt) - new Date(meta.startedAt) : null)],
     ["cwd", meta.cwd || "\\u2014"]
@@ -1192,9 +1192,9 @@ function buildStepDetail(step) {
   var outputJson = step.outputs && Object.keys(step.outputs).length ? JSON.stringify(step.outputs, null, 2) : null;
 
   var grid = el("div", "detail-grid");
-  grid.innerHTML = '<div class="detail-panel"><div class="dp-head"><span>INPUT \\u00B7 ' + esc(ak) + '</span><button class="copy-btn" data-copy="' + escAttr(inputJson) + '">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(inputJson) + '</pre></div>';
+  grid.innerHTML = '<div class="detail-panel"><div class="dp-head"><span>INPUT \\u00B7 ' + esc(ak) + '</span><button class="copy-btn">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(inputJson) + '</pre></div>';
   if (outputJson) {
-    grid.innerHTML += '<div class="detail-panel"><div class="dp-head"><span>OUTPUTS</span><button class="copy-btn" data-copy="' + escAttr(outputJson) + '">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(outputJson) + '</pre></div>';
+    grid.innerHTML += '<div class="detail-panel"><div class="dp-head"><span>OUTPUTS</span><button class="copy-btn">' + ICON.copy + ' Copy</button></div><pre>' + hlJson(outputJson) + '</pre></div>';
   }
   detail.appendChild(grid);
 
@@ -1202,16 +1202,21 @@ function buildStepDetail(step) {
 }
 
 // Build step row
-function buildStep(step, idx) {
+function stepKey(step, ctxId, idx) {
+  return step.stepId || (ctxId + ":" + idx);
+}
+
+function buildStep(step, idx, ctxId) {
   var slug = statusSlug(step.result);
   var ak = actionKey(step);
+  var sk = stepKey(step, ctxId, idx);
   var primary = step.description
     || (step.goTo && "Go to " + step.goTo)
     || (step.httpRequest && (step.httpRequest.method || "GET") + " " + (step.httpRequest.url || ""))
     || (step.runShell && (step.runShell.command || "") + " " + (step.runShell.args || []).join(" "))
     || step.resultDescription || "(step)";
 
-  var isOpen = !!state.openSteps[step.stepId];
+  var isOpen = !!state.openSteps[sk];
   var row = el("div", "step " + slug + (isOpen ? " open" : ""));
   row.innerHTML = '<span class="chev">' + ICON.chevron + '</span>' +
     badge(step.result) + tag(ak) +
@@ -1224,7 +1229,7 @@ function buildStep(step, idx) {
 
   row.onclick = function(e) {
     if (e.target.closest && e.target.closest(".step-detail")) return;
-    state.openSteps[step.stepId] = !state.openSteps[step.stepId];
+    state.openSteps[sk] = !state.openSteps[sk];
     render();
   };
 
@@ -1258,7 +1263,8 @@ function buildContext(ctx) {
     block.innerHTML += '<div class="empty" style="margin:8px 16px 10px;padding:16px">No steps match the current filter.</div>';
   } else {
     var stepsDiv = el("div", "steps");
-    visibleSteps.forEach(function(s, i) { stepsDiv.appendChild(buildStep(s, i)); });
+    var cId = ctx.contextId || "";
+    visibleSteps.forEach(function(s, i) { stepsDiv.appendChild(buildStep(s, i, cId)); });
     block.appendChild(stepsDiv);
   }
 
@@ -1344,6 +1350,15 @@ function buildSpec(spec) {
   return card;
 }
 
+// Precompute lowercase search strings once per spec
+var specSearchCache = new WeakMap();
+function getSpecSearchStr(sp) {
+  if (specSearchCache.has(sp)) return specSearchCache.get(sp);
+  var s = JSON.stringify(sp).toLowerCase();
+  specSearchCache.set(sp, s);
+  return s;
+}
+
 // Filter specs
 function getVisibleSpecs() {
   return (report.specs || []).filter(function(sp) {
@@ -1356,7 +1371,7 @@ function getVisibleSpecs() {
       if (!hasMatching) return false;
     }
     if (state.query) {
-      if (JSON.stringify(sp).toLowerCase().indexOf(state.query.toLowerCase()) === -1) return false;
+      if (getSpecSearchStr(sp).indexOf(state.query.toLowerCase()) === -1) return false;
     }
     return true;
   });
@@ -1414,7 +1429,12 @@ function render() {
   var searchInput = document.createElement("input");
   searchInput.placeholder = "Search specs, tests, steps, paths\\u2026";
   searchInput.value = state.query;
-  searchInput.oninput = function() { state.query = searchInput.value; render(); };
+  var searchTimer = null;
+  searchInput.oninput = function() {
+    state.query = searchInput.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(render, 200);
+  };
   searchDiv.appendChild(searchInput);
   toolbar.appendChild(searchDiv);
 
@@ -1426,7 +1446,7 @@ function render() {
       (sp.tests || []).forEach(function(t) {
         state.openTests[t.testId] = true;
         (t.contexts || []).forEach(function(c) {
-          (c.steps || []).forEach(function(s) { state.openSteps[s.stepId] = true; });
+          (c.steps || []).forEach(function(s, i) { state.openSteps[stepKey(s, c.contextId || "", i)] = true; });
         });
       });
     });
@@ -1441,7 +1461,7 @@ function render() {
       (sp.tests || []).forEach(function(t) {
         state.openTests[t.testId] = false;
         (t.contexts || []).forEach(function(c) {
-          (c.steps || []).forEach(function(s) { state.openSteps[s.stepId] = false; });
+          (c.steps || []).forEach(function(s, i) { state.openSteps[stepKey(s, c.contextId || "", i)] = false; });
         });
       });
     });
@@ -1472,18 +1492,20 @@ function render() {
     var m = state.lightbox;
     lb.innerHTML = '<button class="close">' + ICON.close + '</button>' +
       (m.kind === "video"
-        ? '<video src="' + esc(m.path) + '" controls autoplay></video>'
+        ? '<video src="' + escAttr(m.path) + '" controls autoplay></video>'
         : '<img src="' + escAttr(m.path) + '" alt="' + escAttr(m.path) + '"/>') +
       '<div class="cap">' + esc(m.path) + '</div>';
     lb.onclick = function() { state.lightbox = null; render(); };
     root.appendChild(lb);
   }
 
-  // Attach copy button handlers
-  root.querySelectorAll(".copy-btn[data-copy]").forEach(function(btn) {
+  // Attach copy button handlers — read text from sibling <pre> element
+  root.querySelectorAll(".copy-btn").forEach(function(btn) {
     btn.onclick = function(e) {
       e.stopPropagation();
-      var text = btn.getAttribute("data-copy");
+      var panel = btn.closest(".detail-panel");
+      var pre = panel && panel.querySelector("pre");
+      var text = pre ? pre.textContent : "";
       if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function() {
           btn.innerHTML = ICON.check + " Copied";
