@@ -1115,19 +1115,25 @@ function buildVerdict() {
   var s = report.summary.specs;
   var total = s.pass + s.fail + s.warning + s.skipped;
   var slug = s.fail ? "fail" : s.warning ? "warn" : s.pass ? "pass" : "skip";
-  var headline = s.fail
-    ? s.fail + " spec" + (s.fail > 1 ? "s" : "") + " failing"
-    : s.warning
-    ? s.warning + " warning" + (s.warning > 1 ? "s" : "")
-    : s.pass
-    ? "All " + s.pass + " spec" + (s.pass > 1 ? "s" : "") + " passed"
-    : "No specs ran";
-  var parts = headline.split(" ");
+  var bigNum, note;
+  if (s.fail) {
+    bigNum = s.fail;
+    note = "spec" + (s.fail > 1 ? "s" : "") + " failing";
+  } else if (s.warning) {
+    bigNum = s.warning;
+    note = "warning" + (s.warning > 1 ? "s" : "");
+  } else if (s.pass) {
+    bigNum = s.pass;
+    note = "spec" + (s.pass > 1 ? "s" : "") + " passed";
+  } else {
+    bigNum = 0;
+    note = "specs ran";
+  }
   var pct = function(n) { return total ? n / total * 100 : 0; };
 
   var card = el("div", "verdict-card " + slug);
   card.innerHTML = '<div class="vk">Overall verdict</div>' +
-    '<div class="vv"><div class="big">' + esc(parts[0]) + '</div><div class="note">' + esc(parts.slice(1).join(" ")) + '</div></div>' +
+    '<div class="vv"><div class="big">' + esc(String(bigNum)) + '</div><div class="note">' + esc(note) + '</div></div>' +
     '<div class="vbar" style="grid-template-columns:' + pct(s.pass) + '% ' + pct(s.fail) + '% ' + pct(s.warning) + '% ' + pct(s.skipped) + '%">' +
     '<span class="pass"></span><span class="fail"></span><span class="warn"></span><span class="skip"></span></div>';
   return card;
