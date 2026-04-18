@@ -27,7 +27,15 @@ export function safeSpawn(cmd: string, args: string[] = []): Promise<SpawnResult
     };
 
     try {
-      const child = spawn(cmd, args, { env: process.env });
+      // Close the child's stdin with `ignore` so any interactive prompt in
+      // the target tool (e.g., `qwen extensions install` asking for consent
+      // despite `--consent`) fails fast with EOF instead of hanging
+      // indefinitely in CI / non-TTY contexts. We capture stdout/stderr via
+      // pipes so the caller can still surface output/errors.
+      const child = spawn(cmd, args, {
+        env: process.env,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
       child.on("error", (err) => finish(err));
       child.stdout?.on("data", (chunk) => { stdout += chunk.toString(); });
       child.stderr?.on("data", (chunk) => { stderr += chunk.toString(); });
