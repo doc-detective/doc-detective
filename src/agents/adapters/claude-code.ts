@@ -385,11 +385,22 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     const mkdir = this.deps.mkdirSync ?? ((d, o) => { fs.mkdirSync(d, o); });
     const write = this.deps.writeFileSync ?? ((f, d) => fs.writeFileSync(f, d, "utf8"));
     const rename = this.deps.renameSync ?? fs.renameSync;
+    const exists = this.deps.existsSync ?? fs.existsSync;
 
     mkdir(dir, { recursive: true });
     const tmp = `${p}.tmp.${process.pid}.${Date.now()}`;
     write(tmp, JSON.stringify(contents, null, 2) + "\n");
-    rename(tmp, p);
+    // On Windows, `fs.renameSync` fails when the destination already exists.
+    // Unlink the old settings.json first (if present), then rename the tmp
+    // copy into place. If rename throws for any reason, best-effort clean up
+    // the tmp file so we don't leave it around.
+    try {
+      if (exists(p)) fs.unlinkSync(p);
+      rename(tmp, p);
+    } catch (err) {
+      try { if (exists(tmp)) fs.unlinkSync(tmp); } catch {}
+      throw err;
+    }
   }
 
   /**

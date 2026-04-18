@@ -188,7 +188,20 @@ export class CopilotCliAdapter implements AgentAdapter {
 
     for (const [cmd, ...args] of commands) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
-      const result = await this.deps.run(cmd, args);
+      let result: RunResult;
+      try {
+        result = await this.deps.run(cmd, args);
+      } catch (err) {
+        // ENOENT from safeSpawn = binary missing. Surface an actionable
+        // install hint rather than the raw spawn error.
+        const code = (err as NodeJS.ErrnoException | undefined)?.code;
+        if (code === "ENOENT") {
+          throw new Error(
+            "GitHub Copilot CLI is not installed or not on PATH. Run `npm install -g @github/copilot` (then `copilot login`) and re-run install-agents."
+          );
+        }
+        throw err;
+      }
       if (result.stdout) opts.logger(result.stdout, "debug");
       if (result.exitCode !== 0) {
         const msg = result.stderr || `exit code ${result.exitCode}`;

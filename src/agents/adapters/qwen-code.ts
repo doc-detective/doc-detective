@@ -181,7 +181,18 @@ export class QwenCodeAdapter implements AgentAdapter {
 
     for (const [cmd, ...args] of commands) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
-      const result = await this.deps.run(cmd, args);
+      let result: RunResult;
+      try {
+        result = await this.deps.run(cmd, args);
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException | undefined)?.code;
+        if (code === "ENOENT") {
+          throw new Error(
+            "Qwen Code is not installed or not on PATH. Run `npm install -g @qwen-code/qwen-code` and re-run install-agents."
+          );
+        }
+        throw err;
+      }
       if (result.stdout) opts.logger(result.stdout, "debug");
       if (result.exitCode !== 0) {
         throw new Error(
