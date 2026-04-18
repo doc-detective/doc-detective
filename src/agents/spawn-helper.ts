@@ -46,8 +46,11 @@ export function safeSpawn(cmd: string, args: string[] = []): Promise<SpawnResult
         const exitCode = code !== null ? code : 1;
         const signalNote = signal ? `\n[terminated by signal ${signal}]` : "";
         finish(null, {
-          stdout: stdout.replace(/\n$/, ""),
-          stderr: (stderr + signalNote).replace(/\n$/, ""),
+          // Strip `\r?\n` so Windows CLIs that emit CRLF don't leave a
+          // stray `\r` in captured output (breaks log comparisons and
+          // produces mystery `^M` glyphs in terminal output).
+          stdout: stdout.replace(/\r?\n$/, ""),
+          stderr: (stderr + signalNote).replace(/\r?\n$/, ""),
           exitCode,
         });
       });
