@@ -421,4 +421,23 @@ describe("CodexAdapter.install() — fetch + copy skills into .agents/skills/", 
       /ENOTFOUND|network|fetch|github/i
     );
   });
+
+  it("treats latest-version probe failure as already-up-to-date when installed (avoids re-fetch on offline re-runs)", async function () {
+    // First: fresh install with a known latest version.
+    const { adapter, counts } = makeAdapter({ fetchLatestVersion: async () => "1.3.0" });
+    await adapter.install(baseOpts());
+    assert.equal(counts.fetchZip(), 1);
+
+    // Second run: simulate offline / GitHub unreachable. Without the
+    // "latestUnknown → up-to-date" short-circuit this would re-fetch.
+    adapter.depsRef.fetchLatestVersion = async () => { throw new Error("ENOTFOUND"); };
+    const logged = [];
+    const offline = await adapter.install(baseOpts({ logger: (m) => logged.push(m) }));
+    assert.equal(offline.action, "already-up-to-date");
+    assert.equal(counts.fetchZip(), 1, "must not re-fetch when latest version is unknown");
+    assert.ok(
+      logged.some((l) => /latest.*(?:version|codex)/i.test(l)),
+      `expected a log explaining the latest-version probe failure; got: ${JSON.stringify(logged)}`
+    );
+  });
 });

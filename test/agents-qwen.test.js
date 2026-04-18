@@ -242,4 +242,20 @@ describe("QwenCodeAdapter.install()", function () {
       `expected a planned-command log; got: ${JSON.stringify(logged)}`
     );
   });
+
+  it("--dry-run does not call fetchLatestVersion (stays offline-safe)", async function () {
+    // Dry-run is a side-effect-free preview; the network probe shouldn't
+    // run so offline / rate-limited environments can still preview.
+    let fetchCalls = 0;
+    const { QwenCodeAdapter } = await import("../dist/agents/adapters/qwen-code.js");
+    const adapter = new QwenCodeAdapter({
+      run: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+      existsSync: () => false,
+      readFileSync: () => { throw new Error("not stubbed"); },
+      homedir: () => "/home/test",
+      fetchLatestVersion: async () => { fetchCalls++; return "1.3.0"; },
+    });
+    await adapter.install(baseOpts({ dryRun: true }));
+    assert.equal(fetchCalls, 0, "dry-run must not call fetchLatestVersion");
+  });
 });

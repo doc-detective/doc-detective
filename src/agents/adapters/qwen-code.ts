@@ -174,6 +174,34 @@ export class QwenCodeAdapter implements AgentAdapter {
 
   async install(opts: InstallOptions): Promise<InstallReport> {
     const base = this.queryLocalInstallState();
+
+    // Fresh install uses the documented `<url>:<plugin>` colon syntax so
+    // Qwen's marketplace-adapter picks the plugin directly instead of
+    // showing an interactive "Select a plugin to install" prompt — a prompt
+    // that `--consent` doesn't suppress. With stdio closed in CI the prompt
+    // would EOF and exit 0 without installing anything.
+    const installArg = `${GIT_SOURCE}:${EXTENSION_NAME}`;
+    type Cmd = [string, ...string[]];
+    const commands: Cmd[] = base.installed
+      ? [["qwen", "extensions", "update", EXTENSION_NAME]]
+      : [["qwen", "extensions", "install", installArg, "--auto-update", "--consent"]];
+
+    // Short-circuit dry-run BEFORE touching the network: dry-run is a
+    // side-effect-free preview and shouldn't block on (or fail due to) a
+    // GitHub request. Pick the install-vs-update command from local state
+    // alone and skip the latest-version enrichment entirely.
+    if (opts.dryRun) {
+      for (const cmd of commands) {
+        opts.logger(`[dry-run] would run: ${cmd.join(" ")}`, "info");
+      }
+      return {
+        adapterId: this.id,
+        scope: opts.scope,
+        action: "dry-run",
+        installedVersion: base.installedVersion,
+      };
+    }
+
     // Always enrich — even on fresh install — so `latestVersion` is populated
     // for the post-install report. Qwen's local manifest often omits a
     // version (bug #1737), so the network-fetched latest is our best signal
@@ -188,29 +216,6 @@ export class QwenCodeAdapter implements AgentAdapter {
         adapterId: this.id,
         scope: opts.scope,
         action: "already-up-to-date",
-        installedVersion: enriched.installedVersion,
-      };
-    }
-
-    // Fresh install uses the documented `<url>:<plugin>` colon syntax so
-    // Qwen's marketplace-adapter picks the plugin directly instead of
-    // showing an interactive "Select a plugin to install" prompt — a prompt
-    // that `--consent` doesn't suppress. With stdio closed in CI the prompt
-    // would EOF and exit 0 without installing anything.
-    const installArg = `${GIT_SOURCE}:${EXTENSION_NAME}`;
-    type Cmd = [string, ...string[]];
-    const commands: Cmd[] = isInstalled
-      ? [["qwen", "extensions", "update", EXTENSION_NAME]]
-      : [["qwen", "extensions", "install", installArg, "--auto-update", "--consent"]];
-
-    if (opts.dryRun) {
-      for (const cmd of commands) {
-        opts.logger(`[dry-run] would run: ${cmd.join(" ")}`, "info");
-      }
-      return {
-        adapterId: this.id,
-        scope: opts.scope,
-        action: "dry-run",
         installedVersion: enriched.installedVersion,
       };
     }

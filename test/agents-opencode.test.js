@@ -346,4 +346,28 @@ describe("OpenCodeAdapter.install() — fetch + copy skills/plugins/hooks/agents
       /ENOTFOUND|network|fetch|github/i
     );
   });
+
+  it("treats latest-version probe failure as already-up-to-date when installed (avoids re-fetch on offline re-runs)", async function () {
+    // First: fresh install with a known latest version.
+    const { adapter: fresh, counts: freshCounts } = makeAdapter({
+      fetchLatestVersion: async () => "1.3.0",
+    });
+    await fresh.install(baseOpts());
+    assert.equal(freshCounts.fetchZip(), 1);
+
+    // Second run: new adapter pointing at the same on-disk state but with a
+    // failing fetchLatestVersion. Without the latest-unknown short-circuit
+    // this would re-fetch and re-copy the zip on every offline re-run.
+    const { adapter: offline, counts: offlineCounts } = makeAdapter({
+      fetchLatestVersion: async () => { throw new Error("ENOTFOUND"); },
+    });
+    const logged = [];
+    const report = await offline.install(baseOpts({ logger: (m) => logged.push(m) }));
+    assert.equal(report.action, "already-up-to-date");
+    assert.equal(offlineCounts.fetchZip(), 0, "must not re-fetch when latest version is unknown");
+    assert.ok(
+      logged.some((l) => /latest.*version|OpenCode.*install/i.test(l)),
+      `expected a log explaining the latest-version probe failure; got: ${JSON.stringify(logged)}`
+    );
+  });
 });

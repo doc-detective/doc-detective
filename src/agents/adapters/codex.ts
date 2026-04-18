@@ -164,8 +164,20 @@ export class CodexAdapter implements AgentAdapter {
 
     const isInstalled = enriched.installed;
     const isUpToDate = enriched.upToDate === true;
+    // `upToDate === undefined` means the network probe for the latest
+    // version failed (offline, DNS hiccup, GitHub rate limit). Treat that
+    // as "keep what's on disk" rather than forcing a re-fetch every run —
+    // otherwise every offline re-run downloads the zip and overwrites
+    // files. `--force` still works for explicit refresh.
+    const latestUnknown = isInstalled && enriched.upToDate === undefined;
 
-    if (isInstalled && isUpToDate && !opts.force) {
+    if (isInstalled && !opts.force && (isUpToDate || latestUnknown)) {
+      if (latestUnknown) {
+        opts.logger(
+          "Unable to determine the latest Codex skills version; keeping the existing installation. Re-run with --force to refresh explicitly.",
+          "info"
+        );
+      }
       return {
         adapterId: this.id,
         scope: opts.scope,

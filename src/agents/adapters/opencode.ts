@@ -167,8 +167,19 @@ export class OpenCodeAdapter implements AgentAdapter {
 
     const isInstalled = enriched.installed;
     const isUpToDate = enriched.upToDate === true;
+    // `upToDate === undefined` means the latest-version probe failed
+    // (offline, GitHub rate limit, etc.). Treat that as "keep what's on
+    // disk" instead of re-fetching and re-copying the entire zip every
+    // run. `--force` still works for explicit refresh.
+    const latestUnknown = isInstalled && enriched.upToDate === undefined;
 
-    if (isInstalled && isUpToDate && !opts.force) {
+    if (isInstalled && !opts.force && (isUpToDate || latestUnknown)) {
+      if (latestUnknown) {
+        opts.logger(
+          "OpenCode is already installed, but the latest-version check failed; skipping reinstall. Use --force to reinstall anyway.",
+          "info"
+        );
+      }
       return {
         adapterId: this.id,
         scope: opts.scope,
