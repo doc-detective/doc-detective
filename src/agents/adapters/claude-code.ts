@@ -299,9 +299,15 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     const current = this.readSettingsFile(settingsPath);
     const merged = this.mergeSettingsForDocDetective(current);
 
+    // Only treat settings as current when the marketplace entry actually
+    // points at our repo. A stale fork URL or malformed entry should still
+    // be repaired — otherwise we'd silently leave broken state in place.
+    const mp = current?.extraKnownMarketplaces?.[MARKETPLACE_NAME];
+    const hasExpectedMarketplace =
+      mp?.source?.source === "github" &&
+      mp?.source?.repo === "doc-detective/agent-tools";
     const alreadyRegistered =
-      current?.enabledPlugins?.[PLUGIN_KEY] === true &&
-      current?.extraKnownMarketplaces?.[MARKETPLACE_NAME];
+      current?.enabledPlugins?.[PLUGIN_KEY] === true && hasExpectedMarketplace;
 
     if (opts.dryRun) {
       opts.logger(

@@ -210,11 +210,23 @@ export class CodexAdapter implements AgentAdapter {
       for (const name of sourceNames) {
         const src = path.join(sourceSkills, name);
         const dst = path.join(target, name);
-        // Remove any existing copy of this specific skill (fresh overwrite).
+        // Atomic-ish overwrite: copy into a sibling tmp dir, then remove the
+        // old dst and rename tmp into place. If copyDir fails (bad archive
+        // entry, disk full, permissions), the existing skill is untouched.
+        const tmpDst = `${dst}.install.tmp.${process.pid}.${Date.now()}`;
+        if (this.deps.existsSync(tmpDst)) {
+          this.deps.rmSync?.(tmpDst, { recursive: true, force: true });
+        }
+        try {
+          this.copyDir(src, tmpDst);
+        } catch (err) {
+          try { this.deps.rmSync?.(tmpDst, { recursive: true, force: true }); } catch {}
+          throw err;
+        }
         if (this.deps.existsSync(dst)) {
           this.deps.rmSync?.(dst, { recursive: true, force: true });
         }
-        this.copyDir(src, dst);
+        fs.renameSync(tmpDst, dst);
         opts.logger(`Copied skill: ${name}`, "debug");
       }
 
@@ -281,6 +293,10 @@ export class CodexAdapter implements AgentAdapter {
         } else {
           fs.writeFileSync(to, buf);
         }
+        // Preserve executable bits (and other mode bits) from the source.
+        // Writing a Buffer doesn't carry these through — shell scripts in
+        // `hooks/scripts/` and similar need this or they won't execute.
+        try { fs.chmodSync(to, stat.mode); } catch {}
       }
     }
   }

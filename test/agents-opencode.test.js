@@ -212,8 +212,13 @@ describe("OpenCodeAdapter.install() — fetch + copy skills/plugins/hooks/agents
     homedir = targetHome,
     cwd = projectRoot,
     fetchLatestVersion = async () => undefined,
+    fetchZip,
   } = {}) {
     let fetchZipCalled = 0;
+    const defaultFetchZip = async (ref) => {
+      fetchZipCalled++;
+      return { tempDir: sourceRoot, ref, owned: false };
+    };
     const deps = {
       run: async () => { throw Object.assign(new Error("ENOENT"), { code: "ENOENT" }); },
       existsSync: fs.existsSync,
@@ -225,10 +230,7 @@ describe("OpenCodeAdapter.install() — fetch + copy skills/plugins/hooks/agents
       homedir: () => homedir,
       cwd: () => cwd,
       fetchLatestVersion,
-      fetchZip: async (ref) => {
-        fetchZipCalled++;
-        return { tempDir: sourceRoot, ref, owned: false };
-      },
+      fetchZip: fetchZip ?? defaultFetchZip,
     };
     return { adapter: new OpenCodeAdapter(deps), counts: { fetchZip: () => fetchZipCalled } };
   }
@@ -336,8 +338,7 @@ describe("OpenCodeAdapter.install() — fetch + copy skills/plugins/hooks/agents
   });
 
   it("surfaces a network-hint error when fetchZip fails", async function () {
-    const { adapter } = makeAdapter();
-    adapter.deps = Object.assign({}, adapter.deps, {
+    const { adapter } = makeAdapter({
       fetchZip: async () => { throw new Error("ENOTFOUND codeload.github.com"); },
     });
     await assert.rejects(

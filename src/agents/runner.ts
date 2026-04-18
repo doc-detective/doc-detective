@@ -155,10 +155,13 @@ async function resolveScope(
   if (argv.scope === "project" || argv.scope === "global") {
     return argv.scope;
   }
-  // Intersect the supported-scope sets across all chosen adapters.
-  const intersection = targeted.reduce<Scope[]>(
-    (acc, a) => (acc.length === 0 ? a.supportsScopes() : acc.filter((s) => a.supportsScopes().includes(s))),
-    []
+  // Intersect the supported-scope sets across all chosen adapters. Seed with
+  // the first adapter's supported scopes (not `[]`) so that an empty running
+  // intersection stays empty — otherwise the next adapter would re-seed it.
+  const [first, ...rest] = targeted;
+  const intersection = rest.reduce<Scope[]>(
+    (acc, a) => acc.filter((s) => a.supportsScopes().includes(s)),
+    first.supportsScopes()
   );
   // If no scope is common to every chosen adapter, pick "global" as a
   // sensible default and let each adapter degrade via effectiveScopeFor().

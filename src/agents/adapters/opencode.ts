@@ -231,24 +231,28 @@ export class OpenCodeAdapter implements AgentAdapter {
         opts.logger("Copied plugin: opencode-plugin.mjs", "debug");
       }
 
-      // 3. Hooks dir — wipe first so files removed/renamed upstream don't
-      //    leave stale artifacts that OpenCode would still load at startup.
+      // 3. Hooks dir — copy additively. We can't safely wipe the whole dir
+      //    because OpenCode users may keep their own hooks alongside ours.
+      //    We prune only doc-detective-owned files: anything whose basename
+      //    starts with "doc-detective" and lives under hooks/ gets removed
+      //    first, so files renamed/removed upstream don't linger. Unrelated
+      //    user content is preserved.
       const hooksSrc = path.join(pluginSrc, "hooks");
       const hooksDst = path.join(root, "hooks");
       if (this.deps.existsSync(hooksSrc)) {
         if (this.deps.existsSync(hooksDst)) {
-          this.deps.rmSync?.(hooksDst, { recursive: true, force: true });
+          this.pruneDocDetectiveFiles(hooksDst);
         }
         this.copyDir(hooksSrc, hooksDst);
         opts.logger("Copied hooks/", "debug");
       }
 
-      // 4. Agents dir — same wipe-then-copy pattern as hooks.
+      // 4. Agents dir — same additive-copy + targeted-prune pattern as hooks.
       const agentsSrc = path.join(pluginSrc, "agents");
       const agentsDst = path.join(root, "agents");
       if (this.deps.existsSync(agentsSrc)) {
         if (this.deps.existsSync(agentsDst)) {
-          this.deps.rmSync?.(agentsDst, { recursive: true, force: true });
+          this.pruneDocDetectiveFiles(agentsDst);
         }
         this.copyDir(agentsSrc, agentsDst);
         opts.logger("Copied agents/", "debug");
@@ -290,6 +294,29 @@ export class OpenCodeAdapter implements AgentAdapter {
   }
 
   /**
+   * Walk a directory tree and remove any file or directory whose basename
+   * starts with "doc-detective". Used before re-copying hooks/ or agents/ so
+   * we prune our own stale artifacts (files/dirs renamed or removed
+   * upstream) without touching unrelated user content living in the same
+   * directory.
+   */
+  private pruneDocDetectiveFiles(dir: string): void {
+    const entries = this.deps.readdirSync?.(dir) ?? [];
+    for (const name of entries) {
+      const full = path.join(dir, name);
+      if (name.startsWith("doc-detective")) {
+        this.deps.rmSync?.(full, { recursive: true, force: true });
+        continue;
+      }
+      // Recurse into subdirectories to catch nested doc-detective-* files
+      // (e.g., hooks/scripts/doc-detective-before.js).
+      let isDir = false;
+      try { isDir = fs.statSync(full).isDirectory(); } catch {}
+      if (isDir) this.pruneDocDetectiveFiles(full);
+    }
+  }
+
+  /**
    * Recursive directory copy. Uses `this.deps.readdirSync` and
    * `this.deps.writeFileSync` where the injected signatures match, but falls
    * back to `fs.statSync` and buffer-returning `fs.readFileSync` directly —
@@ -309,6 +336,9 @@ export class OpenCodeAdapter implements AgentAdapter {
         const buf = fs.readFileSync(from);
         if (this.deps.writeFileSync) this.deps.writeFileSync(to, buf);
         else fs.writeFileSync(to, buf);
+        // Preserve executable bits from the source so shell-script hooks
+        // keep working after install.
+        try { fs.chmodSync(to, stat.mode); } catch {}
       }
     }
   }

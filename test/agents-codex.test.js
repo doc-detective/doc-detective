@@ -288,8 +288,19 @@ describe("CodexAdapter.install() — fetch + copy skills into .agents/skills/", 
     }
   });
 
-  function makeAdapter({ homedir = targetHome, cwd = projectRoot, fetchLatestVersion = async () => undefined } = {}) {
+  function makeAdapter({
+    homedir = targetHome,
+    cwd = projectRoot,
+    fetchLatestVersion = async () => undefined,
+    fetchZip,
+  } = {}) {
     let fetchZipCalled = 0;
+    const defaultFetchZip = async (ref) => {
+      fetchZipCalled++;
+      // Point at our pre-built sourceRoot and mark it as NOT owned so the
+      // adapter doesn't wipe the test fixture on cleanup.
+      return { tempDir: sourceRoot, ref, owned: false };
+    };
     const deps = {
       run: async () => { throw Object.assign(new Error("ENOENT"), { code: "ENOENT" }); },
       existsSync: fs.existsSync,
@@ -301,12 +312,7 @@ describe("CodexAdapter.install() — fetch + copy skills into .agents/skills/", 
       homedir: () => homedir,
       cwd: () => cwd,
       fetchLatestVersion,
-      fetchZip: async (ref) => {
-        fetchZipCalled++;
-        // Point at our pre-built sourceRoot and mark it as NOT owned so the
-        // adapter doesn't wipe the test fixture on cleanup.
-        return { tempDir: sourceRoot, ref, owned: false };
-      },
+      fetchZip: fetchZip ?? defaultFetchZip,
     };
     const adapter = new CodexAdapter(deps);
     return { adapter, counts: { fetchZip: () => fetchZipCalled } };
@@ -407,9 +413,9 @@ describe("CodexAdapter.install() — fetch + copy skills into .agents/skills/", 
   });
 
   it("surfaces a network-hint error when fetchZip fails", async function () {
-    const { adapter } = makeAdapter();
-    // Override the fetchZip dep on the adapter directly
-    adapter.deps.fetchZip = async () => { throw new Error("ENOTFOUND codeload.github.com"); };
+    const { adapter } = makeAdapter({
+      fetchZip: async () => { throw new Error("ENOTFOUND codeload.github.com"); },
+    });
     await assert.rejects(
       adapter.install(baseOpts()),
       /ENOTFOUND|network|fetch|github/i
