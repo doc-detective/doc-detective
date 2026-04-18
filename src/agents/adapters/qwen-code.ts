@@ -192,10 +192,16 @@ export class QwenCodeAdapter implements AgentAdapter {
       };
     }
 
+    // Fresh install uses the documented `<url>:<plugin>` colon syntax so
+    // Qwen's marketplace-adapter picks the plugin directly instead of
+    // showing an interactive "Select a plugin to install" prompt — a prompt
+    // that `--consent` doesn't suppress. With stdio closed in CI the prompt
+    // would EOF and exit 0 without installing anything.
+    const installArg = `${GIT_SOURCE}:${EXTENSION_NAME}`;
     type Cmd = [string, ...string[]];
     const commands: Cmd[] = isInstalled
       ? [["qwen", "extensions", "update", EXTENSION_NAME]]
-      : [["qwen", "extensions", "install", GIT_SOURCE, "--auto-update", "--consent"]];
+      : [["qwen", "extensions", "install", installArg, "--auto-update", "--consent"]];
 
     if (opts.dryRun) {
       for (const cmd of commands) {

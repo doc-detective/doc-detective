@@ -191,7 +191,7 @@ describe("QwenCodeAdapter.install()", function () {
     assert.deepEqual(installs, [
       [
         "qwen", "extensions", "install",
-        "https://github.com/doc-detective/agent-tools",
+        "https://github.com/doc-detective/agent-tools:doc-detective",
         "--auto-update", "--consent",
       ],
     ]);
