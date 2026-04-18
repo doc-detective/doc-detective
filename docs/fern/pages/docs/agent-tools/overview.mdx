@@ -20,13 +20,33 @@ Doc Detective agent tools work with any AI coding assistant that supports Agent 
 - [Claude Code](/docs/agent-tools/claude-code)
 - [Copilot CLI](/docs/agent-tools/copilot-cli)
 - [Gemini CLI](/docs/agent-tools/gemini-cli)
-- [Codex, Cursor, OpenCode, and others](/docs/agent-tools/other-assistants)
+- [Codex, Qwen Code, OpenCode, Cursor, and others](/docs/agent-tools/other-assistants)
 
 If your assistant supports skills, extensions, or plugins, you can likely use Doc Detective agent tools with it.
 
+## Quick install
+
+The fastest way to install the agent tools is the Doc Detective CLI:
+
+```bash
+npx doc-detective install-agents
+```
+
+It detects every supported agent on your machine, prompts you to choose which to configure, and invokes each agent's native install mechanism. Re-run any time to update to the latest version.
+
+To target a specific agent non-interactively:
+
+```bash
+npx doc-detective install-agents --agent claude --scope project --yes
+```
+
+Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`.
+
+Head to the per-agent guide below if you prefer the native install flow or need to troubleshoot.
+
 ## Quick start
 
-Choose your AI coding assistant from the available guides and follow the installation steps. Once installed, you can bootstrap Doc Detective in your project.
+Once installed, you can bootstrap Doc Detective in your project.
 
 Using a slash command:
 
