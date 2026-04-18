@@ -691,9 +691,6 @@ export async function parseContent({
 }
 
 /**
- * Helper function to find which Heretto integration a file belongs to.
- */
-/**
  * Attaches a Heretto sourceIntegration descriptor to a screenshot step in place.
  * Normalizes non-object screenshot values (string paths, booleans, other primitives)
  * to an object shape before assigning sourceIntegration so downstream validation
@@ -721,6 +718,9 @@ function attachHerettoScreenshotSourceIntegration(
   };
 }
 
+/**
+ * Helper function to find which Heretto integration a file belongs to.
+ */
 function findHerettoIntegration(config: DetectTestsConfig, filePath: string): string | null {
   /* c8 ignore next - callers always check _herettoPathMapping before calling */
   if (!config._herettoPathMapping) return null;
