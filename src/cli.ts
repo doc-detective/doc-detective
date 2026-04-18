@@ -93,7 +93,8 @@ async function runTestsHandler(args: any) {
   if (apiConfig) {
     await reportResults({ apiConfig, results });
   } else {
-    // Output results
+    // Output results — config.reporters (populated from args.reporters by
+    // setConfig) is the source of truth for which reporters run.
     await outputResults(config, output, results, { command: "runTests" });
   }
 }

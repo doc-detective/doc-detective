@@ -76,6 +76,13 @@ function buildYargs(args: any): any {
       description: "Allow execution of potentially unsafe tests",
       type: "boolean",
     })
+    .option("reporters", {
+      alias: "r",
+      description:
+        "Reporters to use for output. Built-in reporters: terminal, json, html. Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+      type: "string",
+      array: true,
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -273,6 +280,14 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.allowUnsafe === "boolean") {
     config.allowUnsafeSteps = args.allowUnsafe;
   }
+  if (args.reporters != null) {
+    const reporterList = Array.isArray(args.reporters)
+      ? args.reporters
+      : [args.reporters];
+    if (reporterList.length > 0) {
+      config.reporters = reporterList.map((r: any) => String(r));
+    }
+  }
   // Resolve paths
   config = await resolvePaths({
     config: config,
@@ -287,6 +302,13 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 
 // Internal reporters
 const reporters: Record<string, (config: any, outputPath: any, results: any, options: any) => Promise<any>> = {
+  // HTML reporter: outputs results as a self-contained HTML file
+  // Lazy-loaded to avoid parsing the large inlined CSS/JS on every CLI invocation
+  htmlReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { htmlReporter } = await import("./reporters/htmlReporter.js");
+    return htmlReporter(config, outputPath, results, options);
+  },
+
   // JSON reporter: outputs results to a JSON file
   jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     // Define supported output extensions
@@ -801,10 +823,16 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
 }
 
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
-  // Default to using both built-in reporters if none specified
+  // Config is the source of truth. Fall back to options.reporters for
+  // programmatic callers that pass them directly, then to defaults.
   const defaultReporters = ["terminal", "json"];
 
-  let activeReporters = options.reporters || defaultReporters;
+  let activeReporters =
+    (config && Array.isArray(config.reporters) && config.reporters.length > 0
+      ? config.reporters
+      : null) ||
+    options.reporters ||
+    defaultReporters;
 
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {
@@ -815,6 +843,8 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
         switch (reporter.toLowerCase()) {
           case "json":
             return "jsonReporter";
+          case "html":
+            return "htmlReporter";
           case "terminal":
             return "terminalReporter";
           default:
