@@ -1529,6 +1529,26 @@
                                         307,
                                         308
                                       ]
+                                    },
+                                    "headers": {
+                                      "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                      "default": {},
+                                      "anyOf": [
+                                        {
+                                          "title": "Request headers (object)",
+                                          "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                          "type": "object",
+                                          "additionalProperties": {
+                                            "type": "string"
+                                          },
+                                          "properties": {}
+                                        },
+                                        {
+                                          "title": "Request headers (string)",
+                                          "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                          "type": "string"
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -1591,6 +1611,26 @@
                                           302,
                                           307,
                                           308
+                                        ]
+                                      },
+                                      "headers": {
+                                        "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                        "default": {},
+                                        "anyOf": [
+                                          {
+                                            "title": "Request headers (object)",
+                                            "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            },
+                                            "properties": {}
+                                          },
+                                          {
+                                            "title": "Request headers (string)",
+                                            "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                            "type": "string"
+                                          }
                                         ]
                                       }
                                     }
@@ -9626,6 +9666,26 @@
                                               307,
                                               308
                                             ]
+                                          },
+                                          "headers": {
+                                            "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                            "default": {},
+                                            "anyOf": [
+                                              {
+                                                "title": "Request headers (object)",
+                                                "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                                "type": "object",
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                },
+                                                "properties": {}
+                                              },
+                                              {
+                                                "title": "Request headers (string)",
+                                                "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                                "type": "string"
+                                              }
+                                            ]
                                           }
                                         }
                                       }
@@ -9688,6 +9748,26 @@
                                                 302,
                                                 307,
                                                 308
+                                              ]
+                                            },
+                                            "headers": {
+                                              "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                              "default": {},
+                                              "anyOf": [
+                                                {
+                                                  "title": "Request headers (object)",
+                                                  "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                                  "type": "object",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  },
+                                                  "properties": {}
+                                                },
+                                                {
+                                                  "title": "Request headers (string)",
+                                                  "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                                  "type": "string"
+                                                }
                                               ]
                                             }
                                           }

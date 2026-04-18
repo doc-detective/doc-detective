@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "4.0.2-dev.5",
+  "version": "4.0.2-dev.8",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -43,6 +43,7 @@
     "test:common": "cd src/common && npm test",
     "prerunTests": "node ./dist/checkDependencies.js",
     "runTests": "node ./bin/doc-detective.js runTests",
+    "installAgents": "node ./bin/doc-detective.js install-agents",
     "start": "node ./bin/doc-detective.js",
     "dev": "node ./dev",
     "container:build": "node src/container/scripts/build.cjs",
@@ -69,6 +70,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^15.3.1",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@inquirer/prompts": "^8.4.1",
     "@puppeteer/browsers": "^2.13.0",
     "adm-zip": "^0.5.16",
     "ajv": "^8.18.0",

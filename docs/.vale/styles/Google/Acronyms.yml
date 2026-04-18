@@ -24,6 +24,7 @@ exceptions:
   - GPU
   - GTK
   - GUI
+  - HEAD
   - HTML
   - HTTP
   - HTTPS
