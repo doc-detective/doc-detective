@@ -15,7 +15,42 @@ async function getPixelmatch() {
   return pixelmatch;
 }
 
-export { saveScreenshot };
+export { saveScreenshot, clampCropRect, aspectRatiosMatch };
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+// Shift the rect into image bounds without shrinking. When the rect fits
+// inside the image, output dimensions depend only on the requested rect,
+// not on where it sits — so two crops of the same element with the same
+// padding stay dimensionally stable even if the element's viewport
+// position drifts by a few pixels between calls.
+function clampCropRect(rect: Rect, imgW: number, imgH: number): Rect {
+  let { x, y, width, height } = rect;
+  if (width > imgW) {
+    x = 0;
+    width = imgW;
+  } else {
+    if (x < 0) x = 0;
+    if (x + width > imgW) x = imgW - width;
+  }
+  if (height > imgH) {
+    y = 0;
+    height = imgH;
+  } else {
+    if (y < 0) y = 0;
+    if (y + height > imgH) y = imgH - height;
+  }
+  return { x, y, width, height };
+}
+
+function aspectRatiosMatch(
+  a: { width: number; height: number },
+  b: { width: number; height: number },
+): boolean {
+  const ra = a.width / a.height;
+  const rb = b.width / b.height;
+  return Math.abs(ra - rb) / Math.max(ra, rb) <= 0.05;
+}
 
 async function saveScreenshot({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result: any = {
@@ -255,20 +290,11 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
 
     // Clamp values to stay within image bounds
     const imgMeta = await sharp(filePath).metadata();
-    if (rect.x < 0) {
-      rect.width += rect.x;
-      rect.x = 0;
-    }
-    if (rect.y < 0) {
-      rect.height += rect.y;
-      rect.y = 0;
-    }
-    if (rect.x + rect.width > imgMeta.width!) {
-      rect.width = imgMeta.width! - rect.x;
-    }
-    if (rect.y + rect.height > imgMeta.height!) {
-      rect.height = imgMeta.height! - rect.y;
-    }
+    const clamped = clampCropRect(rect, imgMeta.width!, imgMeta.height!);
+    rect.x = clamped.x;
+    rect.y = clamped.y;
+    rect.width = clamped.width;
+    rect.height = clamped.height;
 
     log(config, "debug", { padded_rect: rect });
 
@@ -320,10 +346,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       const img2 = PNG.sync.read(fs.readFileSync(filePath));
 
       // Compare aspect ratio of images
-      if (
-        Math.round((img1.width / img1.height) * 100) / 100 !==
-        Math.round((img2.width / img2.height) * 100) / 100
-      ) {
+      if (!aspectRatiosMatch(img1, img2)) {
         result.status = "FAIL";
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
         if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
