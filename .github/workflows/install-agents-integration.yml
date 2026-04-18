@@ -53,12 +53,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - agent: claude-code
+          - agent: claude
             scope: project
             agent_install: npm install -g @anthropic-ai/claude-code
             path_check: test -f .claude/settings.json
 
-          - agent: copilot-cli
+          - agent: copilot
             scope: global
             agent_install: npm install -g @github/copilot
             path_check: test -f ~/.copilot/installed-plugins/doc-detective/doc-detective/.claude-plugin/plugin.json
@@ -68,12 +68,12 @@ jobs:
             # here is a follow-up, not a blocker.
             allow_failure: true
 
-          - agent: gemini-cli
+          - agent: gemini
             scope: global
             agent_install: npm install -g @google/gemini-cli
             path_check: test -f ~/.gemini/extensions/doc-detective/gemini-extension.json
 
-          - agent: qwen-code
+          - agent: qwen
             scope: global
             agent_install: npm install -g @qwen-code/qwen-code
             # qwen-extension.json is the always-present manifest; Qwen's

@@ -75,7 +75,7 @@ const PLUGIN_NAME = "doc-detective";
 const PLUGIN_KEY = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
 
 export class ClaudeCodeAdapter implements AgentAdapter {
-  readonly id = "claude-code";
+  readonly id = "claude";
   readonly displayName = "Claude Code";
   private deps: ClaudeCodeDeps;
 

@@ -9,7 +9,7 @@ describe("CopilotCliAdapter — identity", function () {
 
   it("has expected id + displayName + scopes", function () {
     const a = new CopilotCliAdapter();
-    assert.equal(a.id, "copilot-cli");
+    assert.equal(a.id, "copilot");
     assert.equal(a.displayName, "GitHub Copilot CLI");
     assert.deepEqual(a.supportsScopes(), ["global"]);
   });
@@ -173,7 +173,7 @@ describe("CopilotCliAdapter.install()", function () {
       ["copilot", "plugin", "install", "doc-detective@doc-detective"],
     ]);
     assert.equal(report.action, "installed");
-    assert.equal(report.adapterId, "copilot-cli");
+    assert.equal(report.adapterId, "copilot");
   });
 
   it("runs `plugin update` when installed but out-of-date", async function () {

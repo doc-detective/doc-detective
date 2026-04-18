@@ -18,9 +18,9 @@ describe("agents registry", function () {
     assert.ok(adapters.length >= 1);
   });
 
-  it("exposes getAdapter('claude-code') returning the Claude Code adapter", function () {
-    const adapter = registry.getAdapter("claude-code");
-    assert.equal(adapter.id, "claude-code");
+  it("exposes getAdapter('claude') returning the Claude Code adapter", function () {
+    const adapter = registry.getAdapter("claude");
+    assert.equal(adapter.id, "claude");
     assert.equal(adapter.displayName, "Claude Code");
     assert.equal(typeof adapter.detect, "function");
     assert.equal(typeof adapter.getInstallState, "function");
@@ -32,14 +32,14 @@ describe("agents registry", function () {
     assert.throws(() => registry.getAdapter("does-not-exist"), /unknown/i);
   });
 
-  it("claude-code adapter supports global and project scopes", function () {
-    const adapter = registry.getAdapter("claude-code");
+  it("claude adapter supports global and project scopes", function () {
+    const adapter = registry.getAdapter("claude");
     const scopes = adapter.supportsScopes();
     assert.deepEqual(scopes.sort(), ["global", "project"]);
   });
 
-  it("registers copilot-cli, gemini-cli, codex, qwen-code, and opencode adapters", function () {
-    for (const id of ["copilot-cli", "gemini-cli", "codex", "qwen-code", "opencode"]) {
+  it("registers copilot, gemini, codex, qwen, and opencode adapters", function () {
+    for (const id of ["copilot", "gemini", "codex", "qwen", "opencode"]) {
       const adapter = registry.getAdapter(id);
       assert.equal(adapter.id, id);
       assert.ok(typeof adapter.detect === "function");
@@ -50,12 +50,12 @@ describe("agents registry", function () {
   it("listAdapters returns all six v1 adapters", function () {
     const ids = registry.listAdapters().map((a) => a.id).sort();
     assert.deepEqual(ids, [
-      "claude-code",
+      "claude",
       "codex",
-      "copilot-cli",
-      "gemini-cli",
+      "copilot",
+      "gemini",
       "opencode",
-      "qwen-code",
+      "qwen",
     ]);
   });
 });
@@ -100,9 +100,9 @@ describe("install-agents subcommand arg parsing", function () {
   });
 
   it("parses --agent, --scope, --yes correctly", async function () {
-    await parse(["install-agents", "--agent", "claude-code", "--scope", "project", "--yes"]);
+    await parse(["install-agents", "--agent", "claude", "--scope", "project", "--yes"]);
     assert.equal(handlerCalled, true);
-    assert.deepEqual(capturedArgv.agent, ["claude-code"]);
+    assert.deepEqual(capturedArgv.agent, ["claude"]);
     assert.equal(capturedArgv.scope, "project");
     assert.equal(capturedArgv.yes, true);
   });
@@ -110,12 +110,12 @@ describe("install-agents subcommand arg parsing", function () {
   it("allows repeated --agent flags", async function () {
     await parse([
       "install-agents",
-      "--agent", "claude-code",
+      "--agent", "claude",
       "--agent", "opencode",
       "--scope", "global",
       "--yes",
     ]);
-    assert.deepEqual(capturedArgv.agent, ["claude-code", "opencode"]);
+    assert.deepEqual(capturedArgv.agent, ["claude", "opencode"]);
     assert.equal(capturedArgv.scope, "global");
   });
 
@@ -127,7 +127,7 @@ describe("install-agents subcommand arg parsing", function () {
 
   it("rejects invalid --scope values", async function () {
     await assert.rejects(
-      async () => parse(["install-agents", "--scope", "bogus", "--yes", "--agent", "claude-code"]),
+      async () => parse(["install-agents", "--scope", "bogus", "--yes", "--agent", "claude"]),
       /scope/i
     );
   });
@@ -492,7 +492,7 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
     ]);
     assert.equal(report.action, "installed");
     assert.equal(report.scope, "project");
-    assert.equal(report.adapterId, "claude-code");
+    assert.equal(report.adapterId, "claude");
   });
 
   it("maps scope 'global' to claude's --scope user", async function () {
@@ -732,9 +732,9 @@ describe("runInstallAgents() orchestration", function () {
   }
 
   it("happy path: --yes with --agent and --scope installs the chosen agent", async function () {
-    const cc = makeStubAdapter("claude-code");
+    const cc = makeStubAdapter("claude");
     const reports = await runInstallAgents(
-      { agent: ["claude-code"], scope: "project", force: false, yes: true, "dry-run": false },
+      { agent: ["claude"], scope: "project", force: false, yes: true, "dry-run": false },
       { adapters: [cc], isTTY: () => false }
     );
     assert.equal(cc.calls.install, 1);
@@ -744,7 +744,7 @@ describe("runInstallAgents() orchestration", function () {
   });
 
   it("--yes without --agent throws a helpful error", async function () {
-    const cc = makeStubAdapter("claude-code");
+    const cc = makeStubAdapter("claude");
     await assert.rejects(
       runInstallAgents(
         { scope: "project", force: false, yes: true, "dry-run": false },
@@ -755,10 +755,10 @@ describe("runInstallAgents() orchestration", function () {
   });
 
   it("--yes without --scope throws a helpful error", async function () {
-    const cc = makeStubAdapter("claude-code");
+    const cc = makeStubAdapter("claude");
     await assert.rejects(
       runInstallAgents(
-        { agent: ["claude-code"], force: false, yes: true, "dry-run": false },
+        { agent: ["claude"], force: false, yes: true, "dry-run": false },
         { adapters: [cc], isTTY: () => false }
       ),
       /--scope/i
@@ -766,7 +766,7 @@ describe("runInstallAgents() orchestration", function () {
   });
 
   it("unknown --agent id throws", async function () {
-    const cc = makeStubAdapter("claude-code");
+    const cc = makeStubAdapter("claude");
     await assert.rejects(
       runInstallAgents(
         { agent: ["flurb"], scope: "project", force: false, yes: true, "dry-run": false },
@@ -777,7 +777,7 @@ describe("runInstallAgents() orchestration", function () {
   });
 
   it("non-TTY without --agent errors with hint", async function () {
-    const cc = makeStubAdapter("claude-code");
+    const cc = makeStubAdapter("claude");
     await assert.rejects(
       runInstallAgents(
         { scope: "project", force: false, yes: false, "dry-run": false },
@@ -788,7 +788,7 @@ describe("runInstallAgents() orchestration", function () {
   });
 
   it("TTY path: prompts for agents and scope when not specified", async function () {
-    const cc = makeStubAdapter("claude-code");
+    const cc = makeStubAdapter("claude");
     let agentPromptCalled = 0;
     let scopePromptCalled = 0;
     const reports = await runInstallAgents(
@@ -801,9 +801,9 @@ describe("runInstallAgents() orchestration", function () {
             agentPromptCalled++;
             assert.deepEqual(
               avail.map((a) => a.id),
-              ["claude-code"]
+              ["claude"]
             );
-            return ["claude-code"];
+            return ["claude"];
           },
           pickScope: async () => {
             scopePromptCalled++;
@@ -819,7 +819,7 @@ describe("runInstallAgents() orchestration", function () {
   });
 
   it("filters out undetected adapters from the interactive picker", async function () {
-    const cc = makeStubAdapter("claude-code", {
+    const cc = makeStubAdapter("claude", {
       detection: { present: true, onPath: true, configPaths: {} },
     });
     const other = makeStubAdapter("other", {
@@ -834,23 +834,23 @@ describe("runInstallAgents() orchestration", function () {
         prompts: {
           pickAgents: async (avail) => {
             offered = avail.map((a) => a.id);
-            return ["claude-code"];
+            return ["claude"];
           },
           pickScope: async () => "project",
         },
       }
     );
-    assert.deepEqual(offered, ["claude-code"]);
+    assert.deepEqual(offered, ["claude"]);
     assert.equal(cc.calls.install, 1);
     assert.equal(other.calls.install, 0);
   });
 
   it("'dry-run' summary surfaces in reports", async function () {
-    const cc = makeStubAdapter("claude-code", {
-      report: { adapterId: "claude-code", scope: "project", action: "dry-run" },
+    const cc = makeStubAdapter("claude", {
+      report: { adapterId: "claude", scope: "project", action: "dry-run" },
     });
     const reports = await runInstallAgents(
-      { agent: ["claude-code"], scope: "project", force: false, yes: true, "dry-run": true },
+      { agent: ["claude"], scope: "project", force: false, yes: true, "dry-run": true },
       { adapters: [cc], isTTY: () => false }
     );
     assert.equal(reports[0].action, "dry-run");
@@ -934,7 +934,7 @@ describe("runInstallAgents() orchestration", function () {
   });
 
   it("reports 'no detected agents' cleanly (no throw, empty reports)", async function () {
-    const cc = makeStubAdapter("claude-code", {
+    const cc = makeStubAdapter("claude", {
       detection: { present: false, onPath: false, configPaths: {} },
     });
     const logged = [];
@@ -1010,7 +1010,7 @@ describe("install-agents end-to-end (compiled CLI, settings-file fallback)", fun
   it("writes ./.claude/settings.json under --scope project --yes", async function () {
     this.timeout(15000);
     const { code, stdout, stderr } = await runCli([
-      "--agent", "claude-code",
+      "--agent", "claude",
       "--scope", "project",
       "--yes",
     ]);
@@ -1025,7 +1025,7 @@ describe("install-agents end-to-end (compiled CLI, settings-file fallback)", fun
   it("--dry-run does not create settings.json", async function () {
     this.timeout(15000);
     const { code } = await runCli([
-      "--agent", "claude-code",
+      "--agent", "claude",
       "--scope", "project",
       "--yes",
       "--dry-run",

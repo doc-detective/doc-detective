@@ -9,7 +9,7 @@ describe("GeminiCliAdapter — identity", function () {
 
   it("has expected id + displayName + scopes", function () {
     const a = new GeminiCliAdapter();
-    assert.equal(a.id, "gemini-cli");
+    assert.equal(a.id, "gemini");
     assert.equal(a.displayName, "Gemini CLI");
     assert.deepEqual(a.supportsScopes(), ["global"]);
   });

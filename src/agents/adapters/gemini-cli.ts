@@ -49,7 +49,7 @@ export function defaultGeminiCliDeps(): GeminiCliDeps {
 }
 
 export class GeminiCliAdapter implements AgentAdapter {
-  readonly id = "gemini-cli";
+  readonly id = "gemini";
   readonly displayName = "Gemini CLI";
   private deps: GeminiCliDeps;
 

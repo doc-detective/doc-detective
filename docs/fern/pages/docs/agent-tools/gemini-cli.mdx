@@ -15,7 +15,7 @@ Set up Doc Detective agent tools with Gemini CLI to test your documentation usin
 From any project directory, run:
 
 ```bash
-npx doc-detective install-agents --agent gemini-cli
+npx doc-detective install-agents --agent gemini
 ```
 
 This invokes `gemini extensions install ... --auto-update --consent --skip-settings` under the hood, which installs the extension non-interactively and keeps it current on future Gemini CLI launches. Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.

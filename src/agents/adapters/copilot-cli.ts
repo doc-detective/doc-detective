@@ -50,7 +50,7 @@ export function defaultCopilotCliDeps(): CopilotCliDeps {
 }
 
 export class CopilotCliAdapter implements AgentAdapter {
-  readonly id = "copilot-cli";
+  readonly id = "copilot";
   readonly displayName = "GitHub Copilot CLI";
   private deps: CopilotCliDeps;
 

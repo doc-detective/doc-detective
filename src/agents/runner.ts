@@ -31,7 +31,7 @@ export async function runInstallAgents(
   if (argv.yes) {
     if (!argv.agent || argv.agent.length === 0) {
       throw new Error(
-        "--yes requires at least one --agent (e.g., --agent claude-code)."
+        "--yes requires at least one --agent (for example, --agent claude)."
       );
     }
     if (!argv.scope) {

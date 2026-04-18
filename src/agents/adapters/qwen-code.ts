@@ -49,7 +49,7 @@ export function defaultQwenCodeDeps(): QwenCodeDeps {
 }
 
 export class QwenCodeAdapter implements AgentAdapter {
-  readonly id = "qwen-code";
+  readonly id = "qwen";
   readonly displayName = "Qwen Code";
   private deps: QwenCodeDeps;
 

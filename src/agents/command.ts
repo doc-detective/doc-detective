@@ -20,7 +20,7 @@ export const installAgentsCommand: CommandModule<{}, InstallAgentsArgv> = {
         type: "string",
         array: true,
         describe:
-          "Agent id to install into (repeatable). Skips the interactive picker. Example: --agent claude-code",
+          "Agent id to install into (repeatable). Skips the interactive picker. Example: --agent claude",
       })
       .option("scope", {
         alias: "s",

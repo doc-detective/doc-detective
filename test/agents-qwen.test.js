@@ -9,7 +9,7 @@ describe("QwenCodeAdapter — identity", function () {
 
   it("has expected id + displayName + scopes", function () {
     const a = new QwenCodeAdapter();
-    assert.equal(a.id, "qwen-code");
+    assert.equal(a.id, "qwen");
     assert.equal(a.displayName, "Qwen Code");
     assert.deepEqual(a.supportsScopes(), ["global"]);
   });

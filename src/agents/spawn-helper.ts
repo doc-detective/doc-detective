@@ -7,16 +7,30 @@ export interface SpawnResult {
 }
 
 /**
- * Build a single cmd.exe-safe command line from (cmd, args). We wrap each
- * piece in double quotes and escape embedded quotes with `\"` so cmd.exe
- * receives the arg verbatim. Chose this shape because Node 22+'s DEP0190
- * deprecates spawn(cmd, args[], {shell:true}) — joining args without
- * escaping — but `spawn(<single string>, [], {shell:true})` stays
- * supported. Only caret-escape cmd.exe metacharacters (`&|<>^`) when they
- * appear unquoted; inside double quotes cmd.exe treats them literally.
+ * Build a single cmd.exe-safe command line from (cmd, args). Follows the
+ * canonical `CommandLineToArgvW` escaping rules so the child process sees
+ * each arg verbatim:
+ *   1. Double any run of backslashes that directly precedes a `"` or the
+ *      end of the string (so the closing `"` we add below isn't escaped).
+ *   2. Escape each embedded `"` as `\"`.
+ *   3. Wrap the whole arg in `"..."`.
+ * Naive `s.replace(/"/g, '\\"')` is wrong for args like `a\"b` or `a\\`
+ * because the preceding backslashes turn the intended escape into a real
+ * backslash + unescaped quote, breaking out of the quoted context.
+ *
+ * Chose this shape because Node 22+'s DEP0190 deprecates
+ * `spawn(cmd, args[], {shell:true})` (joining args without escaping), but
+ * `spawn(<single string>, [], {shell:true})` stays supported. Inside
+ * double quotes cmd.exe treats `&|<>^` literally, so no caret escaping is
+ * needed for our hardcoded args.
  */
-function winCommandLine(cmd: string, args: string[]): string {
-  const quote = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
+export function winCommandLine(cmd: string, args: string[]): string {
+  const quote = (s: string) => {
+    const escaped = s.replace(/(\\*)("|$)/g, (_, slashes: string, end: string) =>
+      slashes + slashes + (end === '"' ? '\\"' : "")
+    );
+    return `"${escaped}"`;
+  };
   return [cmd, ...args].map(quote).join(" ");
 }
 

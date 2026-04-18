@@ -15,7 +15,7 @@ Set up Doc Detective agent tools with Claude Code to test your documentation usi
 From any project directory, run:
 
 ```bash
-npx doc-detective install-agents --agent claude-code
+npx doc-detective install-agents --agent claude
 ```
 
 The command auto-detects Claude Code, prompts for install scope (project or user-global) if you don't pass `--scope`, then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. Re-run the same command any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
