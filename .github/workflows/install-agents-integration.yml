@@ -76,7 +76,11 @@ jobs:
           - agent: qwen-code
             scope: global
             agent_install: npm install -g @qwen-code/qwen-code
-            path_check: test -f ~/.qwen/extensions/doc-detective/skills/doc-detective-init/SKILL.md
+            # qwen-extension.json is the always-present manifest; Qwen's
+            # Claude-plugin conversion doesn't reliably copy `skills/` into
+            # the extension dir (known issue QwenLM/qwen-code#1737), so we
+            # anchor the check on the manifest instead.
+            path_check: test -f ~/.qwen/extensions/doc-detective/qwen-extension.json
 
           - agent: opencode
             scope: project

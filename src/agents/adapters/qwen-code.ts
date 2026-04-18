@@ -101,11 +101,8 @@ export class QwenCodeAdapter implements AgentAdapter {
   }
 
   private canonicalSkillPath(): string {
-    // Read version from doc-detective's canonical SKILL.md frontmatter, which
-    // is the authoritative source doc-detective itself declares. Avoiding
-    // qwen-extension.json sidesteps upstream bug QwenLM/qwen-code#1737 which
-    // leaves that manifest's `version` undefined on single-plugin Claude
-    // marketplace installs — the route Qwen takes for our repo.
+    // Canonical skill file used as an authoritative version source when it's
+    // present. Not always copied on install — see manifestPath() fallback.
     return path.join(
       this.deps.homedir(),
       ".qwen",
@@ -117,16 +114,45 @@ export class QwenCodeAdapter implements AgentAdapter {
     );
   }
 
+  private manifestPath(): string {
+    // Qwen writes this manifest on every successful install, regardless of
+    // whether Claude-plugin conversion copied the skills/ subtree. Anchoring
+    // "is installed?" on manifest existence keeps detection robust even when
+    // QwenLM/qwen-code#1737 suppresses the skills copy.
+    return path.join(
+      this.deps.homedir(),
+      ".qwen",
+      "extensions",
+      EXTENSION_NAME,
+      "qwen-extension.json"
+    );
+  }
+
   private queryLocalInstallState(): InstallState {
+    // Prefer SKILL.md's metadata.version when available — it's authoritative.
     const canonical = this.canonicalSkillPath();
-    if (!this.deps.existsSync(canonical)) return { installed: false };
-    try {
-      const raw = this.deps.readFileSync(canonical, "utf8");
-      const version = parseMetadataVersion(raw);
-      return { installed: true, installedVersion: version };
-    } catch {
-      return { installed: false };
+    if (this.deps.existsSync(canonical)) {
+      try {
+        const raw = this.deps.readFileSync(canonical, "utf8");
+        const version = parseMetadataVersion(raw);
+        return { installed: true, installedVersion: version };
+      } catch {
+        // Fall through to the manifest-only detection.
+      }
     }
+    // Fall back to the manifest for the install marker. Its `version` may be
+    // undefined due to bug #1737 but presence still means "installed".
+    const manifest = this.manifestPath();
+    if (this.deps.existsSync(manifest)) {
+      try {
+        const parsed = JSON.parse(this.deps.readFileSync(manifest, "utf8"));
+        const version = typeof parsed?.version === "string" ? parsed.version : undefined;
+        return { installed: true, installedVersion: version };
+      } catch {
+        return { installed: true };
+      }
+    }
+    return { installed: false };
   }
 
   private async enrichWithLatest(state: InstallState): Promise<InstallState> {
@@ -148,7 +174,11 @@ export class QwenCodeAdapter implements AgentAdapter {
 
   async install(opts: InstallOptions): Promise<InstallReport> {
     const base = this.queryLocalInstallState();
-    const enriched = base.installed ? await this.enrichWithLatest(base) : base;
+    // Always enrich — even on fresh install — so `latestVersion` is populated
+    // for the post-install report. Qwen's local manifest often omits a
+    // version (bug #1737), so the network-fetched latest is our best signal
+    // for the installed version after a successful run.
+    const enriched = await this.enrichWithLatest(base);
 
     const isInstalled = enriched.installed;
     const isUpToDate = enriched.upToDate === true;
