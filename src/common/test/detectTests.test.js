@@ -260,6 +260,28 @@ function readFixture(filename) {
         const result = parseObject({ stringifiedObject: "- item1\n- item2" });
         expect(result).to.be.null;
       });
+
+      it("should decode numeric XML entities", function () {
+        const result = parseObject({
+          stringifiedObject: "goTo=&#34;https://example.com&#34;",
+        });
+        expect(result).to.deep.equal({ goTo: "https://example.com" });
+      });
+
+      it("should decode named XML entities even without a numeric entity present", function () {
+        const result = parseObject({
+          stringifiedObject: 'key=&quot;a&amp;b&quot;',
+        });
+        expect(result).to.deep.equal({ key: "a&b" });
+      });
+
+      it("should decode &amp; last so &amp;lt; does not double-decode into <", function () {
+        const result = parseObject({
+          stringifiedObject: 'key="&amp;lt;literal&amp;gt;"',
+        });
+        expect(result).to.deep.equal({ key: "&lt;literal&gt;" });
+      });
+
     });
 
     // ========== replaceNumericVariables ==========
