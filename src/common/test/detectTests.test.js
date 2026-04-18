@@ -2194,6 +2194,84 @@ function readFixture(filename) {
         });
       });
 
+      describe("dita-data-inline-tests.dita (DITA <data> element inline tests)", function () {
+        it("should detect test with <data name='doc-detective' value='test ...'/> testStart", async function () {
+          const content = readFixture("dita-data-inline-tests.dita");
+          const result = await parseContent({
+            config: { detectSteps: true },
+            content,
+            filePath: "dita-data-inline-tests.dita",
+            fileType: defaultFileTypes.dita,
+          });
+          expect(result).to.have.lengthOf(1);
+          expect(result[0].testId).to.equal("login-test");
+          expect(result[0].detectSteps).to.be.false;
+        });
+
+        it("should detect <data> inline steps with both quote styles and paired closing tag", async function () {
+          const content = readFixture("dita-data-inline-tests.dita");
+          const result = await parseContent({
+            config: { detectSteps: true },
+            content,
+            filePath: "dita-data-inline-tests.dita",
+            fileType: defaultFileTypes.dita,
+          });
+          const steps = result[0].steps;
+
+          const goToSteps = steps.filter((s) => s.goTo);
+          expect(goToSteps.length).to.equal(1);
+          expect(goToSteps[0].goTo).to.equal("https://app.example.com/login");
+
+          const clickSteps = steps.filter((s) => s.click);
+          expect(clickSteps.length).to.equal(1);
+          expect(clickSteps[0].click).to.equal("Sign In");
+        });
+
+        it("should detect <data> step with reversed attribute order (value before name)", async function () {
+          const content = readFixture("dita-data-inline-tests.dita");
+          const result = await parseContent({
+            config: { detectSteps: true },
+            content,
+            filePath: "dita-data-inline-tests.dita",
+            fileType: defaultFileTypes.dita,
+          });
+          const findSteps = result[0].steps.filter((s) => s.find);
+          expect(findSteps.length).to.equal(1);
+          expect(findSteps[0].find).to.equal("Welcome");
+        });
+
+        it("should NOT detect <data> with empty value (e.g. value='test ')", async function () {
+          const content =
+            `<?xml version="1.0"?><task>` +
+            `<data name="doc-detective" value="test "/>` +
+            `<data name="doc-detective" value="step "/>` +
+            `</task>`;
+          const result = await parseContent({
+            config: { detectSteps: true },
+            content,
+            filePath: "empty-value.dita",
+            fileType: defaultFileTypes.dita,
+          });
+          // An empty-value testStart/step should not match, so no tests are produced.
+          expect(result).to.have.lengthOf(0);
+        });
+
+        it("should NOT detect bare <data> tag without self-close or closing </data>", async function () {
+          const content =
+            `<?xml version="1.0"?><task>` +
+            `<data name="doc-detective" value="test testId='bare-tag-test'">` +
+            `<child>content</child>` +
+            `</task>`;
+          const result = await parseContent({
+            config: { detectSteps: true },
+            content,
+            filePath: "bare-tag.dita",
+            fileType: defaultFileTypes.dita,
+          });
+          expect(result).to.have.lengthOf(0);
+        });
+      });
+
       describe("dita-mixed.dita (DITA markup + inline test)", function () {
         it("should detect test with testId and markup-detected steps", async function () {
           const content = readFixture("dita-mixed.dita");

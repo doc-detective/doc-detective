@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="login-test">
+  <title>Login to the Application</title>
+  <data name="doc-detective" value="test testId='login-test' detectSteps=false"/>
+  <taskbody>
+    <steps>
+      <step>
+        <cmd>Navigate to the login page.</cmd>
+        <data name="doc-detective" value='step goTo="https://app.example.com/login"'/>
+      </step>
+      <step>
+        <cmd>Click the Sign In button.</cmd>
+        <data name="doc-detective" value='step click="Sign In"'></data>
+      </step>
+      <step>
+        <cmd>Reversed attribute order is also supported.</cmd>
+        <data value="step find='Welcome'" name="doc-detective"/>
+      </step>
+    </steps>
+  </taskbody>
+  <data name="doc-detective" value="test end"/>
+</task>
