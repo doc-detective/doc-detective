@@ -104,12 +104,16 @@ export class CopilotCliAdapter implements AgentAdapter {
   }
 
   private pluginJsonPath(): string {
+    // Copilot CLI nests the plugin manifest under `.claude-plugin/` inside
+    // the installed plugin directory (verified on disk; the Claude-plugin
+    // format requires a `.claude-plugin/plugin.json` manifest).
     return path.join(
       this.deps.homedir(),
       ".copilot",
       "installed-plugins",
       MARKETPLACE_NAME,
       PLUGIN_NAME,
+      ".claude-plugin",
       "plugin.json"
     );
   }

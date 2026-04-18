@@ -132,7 +132,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
 
   private async queryLocalInstallState(scope: Scope): Promise<InstallState> {
     // Path A: talk to the `claude` CLI if we can.
-    const listed = await this.queryMarketplaceList();
+    const listed = await this.queryMarketplaceList(scope);
     if (listed.binaryAvailable) {
       if (listed.installed) {
         const version =
@@ -180,20 +180,26 @@ export class ClaudeCodeAdapter implements AgentAdapter {
   }
 
   /**
-   * Invoke `claude plugin marketplace list --json` and normalize the result.
-   * Returns binaryAvailable=false if the CLI can't be invoked, so callers can
-   * fall back to the settings-file path.
+   * Invoke `claude plugin list --json` and find our plugin at the requested
+   * scope. Returns binaryAvailable=false on spawn failure so callers can fall
+   * back to the settings-file path; binaryAvailable=true otherwise, with
+   * `installed` reflecting whether doc-detective@doc-detective is present at
+   * the mapped Claude scope (`user` for our `global`, `project` for `project`).
+   *
+   * Note: `claude plugin marketplace list --json` returns the *marketplaces*,
+   * not the installed plugins — a separate command (`plugin list`) is the
+   * authoritative source for install state.
    */
-  private async queryMarketplaceList(): Promise<{
+  private async queryMarketplaceList(scope: Scope): Promise<{
     binaryAvailable: boolean;
     installed: boolean;
     installedVersion?: string;
   }> {
+    const mappedScope = scope === "global" ? "user" : "project";
     let stdout: string;
     try {
       const result = await this.deps.run("claude", [
         "plugin",
-        "marketplace",
         "list",
         "--json",
       ]);
@@ -218,20 +224,18 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       return { binaryAvailable: true, installed: false };
     }
 
-    const marketplaces = toMarketplaceArray(parsed);
-    const mp = marketplaces.find((m) => m?.name === MARKETPLACE_NAME);
-    if (!mp) return { binaryAvailable: true, installed: false };
-
-    const plugins = Array.isArray(mp.plugins) ? mp.plugins : [];
-    const plugin = plugins.find((p) => p?.name === PLUGIN_NAME);
+    const plugins = toPluginListArray(parsed);
+    const plugin = plugins.find(
+      (p) => p?.id === PLUGIN_KEY && p?.scope === mappedScope
+    );
     if (!plugin) return { binaryAvailable: true, installed: false };
 
-    // `installed` boolean is the preferred signal; presence in the list is a
-    // fallback since some Claude Code versions list installed plugins only.
-    const installed = plugin.installed !== false;
+    // `enabled` flag distinguishes installed-and-on from installed-but-disabled.
+    // Treat disabled-but-installed as installed — the user made a choice to
+    // keep it disabled, so we shouldn't clobber their state by reinstalling.
     const installedVersion =
       typeof plugin.version === "string" ? plugin.version : undefined;
-    return { binaryAvailable: true, installed, installedVersion };
+    return { binaryAvailable: true, installed: true, installedVersion };
   }
 
   private findInstalledVersionFromCache(): string | undefined {
@@ -465,9 +469,9 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     }
 
     // Report the version we expect after the install. Prefer the freshly-
-    // fetched latest; fall back to re-querying the marketplace list; last
-    // resort is the cache-dir snoop.
-    const after = await this.queryMarketplaceList();
+    // fetched latest; fall back to re-querying the plugin list; last resort
+    // is the cache-dir snoop.
+    const after = await this.queryMarketplaceList(opts.scope);
     const installedVersion =
       enriched.latestVersion ??
       after.installedVersion ??
@@ -499,18 +503,29 @@ export class ClaudeCodeAdapter implements AgentAdapter {
 export const claudeCodeAdapter: AgentAdapter = new ClaudeCodeAdapter();
 
 /**
- * The marketplace-list JSON schema from `claude plugin marketplace list --json`
- * is not publicly documented. Accept either a bare array of marketplaces or
- * an object wrapping one under a common key.
+ * `claude plugin list --json` returns an array of installed plugin entries:
+ *
+ *   [{ "id": "doc-detective@doc-detective",
+ *      "version": "1.3.0",
+ *      "scope": "user" | "project",
+ *      "enabled": true,
+ *      "installPath": "...",
+ *      ...
+ *   }]
+ *
+ * Accept either that shape or an object wrapping the array under a common
+ * key so we stay compatible with small future schema tweaks.
  */
-function toMarketplaceArray(parsed: unknown): Array<{
-  name?: string;
-  plugins?: Array<{ name?: string; version?: string; installed?: boolean }>;
+function toPluginListArray(parsed: unknown): Array<{
+  id?: string;
+  version?: string;
+  scope?: string;
+  enabled?: boolean;
 }> {
   if (Array.isArray(parsed)) return parsed as any;
   if (parsed && typeof parsed === "object") {
     const obj = parsed as Record<string, unknown>;
-    for (const key of ["marketplaces", "knownMarketplaces", "items"]) {
+    for (const key of ["plugins", "installedPlugins", "items"]) {
       if (Array.isArray(obj[key])) return obj[key] as any;
     }
   }

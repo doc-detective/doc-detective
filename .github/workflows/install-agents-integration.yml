@@ -61,7 +61,7 @@ jobs:
           - agent: copilot-cli
             scope: global
             agent_install: npm install -g @github/copilot
-            path_check: test -f ~/.copilot/installed-plugins/doc-detective/doc-detective/plugin.json
+            path_check: test -f ~/.copilot/installed-plugins/doc-detective/doc-detective/.claude-plugin/plugin.json
             # Copilot CLI plugin install may require a richer GitHub token
             # scope than the default GITHUB_TOKEN provides. Flag as allowed
             # to fail so the other adapters still report results; a red cell

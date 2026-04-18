@@ -209,7 +209,15 @@ export class GeminiCliAdapter implements AgentAdapter {
       }
     }
 
-    const installedVersion = enriched.latestVersion ?? enriched.installedVersion;
+    // Re-read on-disk state post-install so the report reflects reality even
+    // when the network probe failed or this was a fresh install (where
+    // `enriched` was never enriched with latestVersion). Same pattern used by
+    // the Qwen and Copilot adapters.
+    const postInstall = await this.queryLocalInstallState();
+    const installedVersion =
+      enriched.latestVersion ??
+      postInstall.installedVersion ??
+      enriched.installedVersion;
 
     let action: InstallReport["action"];
     if (opts.force && isInstalled && isUpToDate) action = "forced";

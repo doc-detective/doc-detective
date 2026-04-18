@@ -244,10 +244,10 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
   }
 
   describe("when `claude` is on PATH", function () {
-    it("reports not-installed when marketplace list has no doc-detective", async function () {
+    it("reports not-installed when `claude plugin list --json` returns empty", async function () {
       const adapter = makeAdapter({
         run: async (cmd, args) => {
-          assert.deepEqual([cmd, ...args], ["claude", "plugin", "marketplace", "list", "--json"]);
+          assert.deepEqual([cmd, ...args], ["claude", "plugin", "list", "--json"]);
           return { stdout: JSON.stringify([]), stderr: "", exitCode: 0 };
         },
       });
@@ -256,11 +256,12 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
       assert.equal(state.installedVersion, undefined);
     });
 
-    it("reports not-installed when the marketplace is added but plugin is not", async function () {
+    it("reports not-installed when the plugin exists but at a different scope", async function () {
+      // Plugin installed at project scope; we're asking about global (user).
       const adapter = makeAdapter({
         run: async () => ({
           stdout: JSON.stringify([
-            { name: "doc-detective", plugins: [] },
+            { id: "doc-detective@doc-detective", version: "1.2.3", scope: "project", enabled: true },
           ]),
           stderr: "",
           exitCode: 0,
@@ -270,14 +271,11 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
       assert.equal(state.installed, false);
     });
 
-    it("reports installed + version when the plugin is present in the marketplace list", async function () {
+    it("reports installed + version when the plugin is in the list at the requested scope", async function () {
       const adapter = makeAdapter({
         run: async () => ({
           stdout: JSON.stringify([
-            {
-              name: "doc-detective",
-              plugins: [{ name: "doc-detective", version: "1.2.3", installed: true }],
-            },
+            { id: "doc-detective@doc-detective", version: "1.2.3", scope: "user", enabled: true },
           ]),
           stderr: "",
           exitCode: 0,
@@ -288,7 +286,7 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
       assert.equal(state.installedVersion, "1.2.3");
     });
 
-    it("falls back to reading plugin.json from the cache when marketplace list lacks a version", async function () {
+    it("falls back to reading plugin.json from the cache when the plugin list entry lacks a version", async function () {
       const cacheDir = path.join("/home/test", ".claude", "plugins", "cache", "doc-detective", "doc-detective");
       const versionDir = path.join(cacheDir, "1.4.0");
       const pluginJson = path.join(versionDir, ".claude-plugin", "plugin.json");
@@ -296,7 +294,7 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
         run: async () => ({
           // Plugin listed as installed, but no explicit version field.
           stdout: JSON.stringify([
-            { name: "doc-detective", plugins: [{ name: "doc-detective", installed: true }] },
+            { id: "doc-detective@doc-detective", scope: "user", enabled: true },
           ]),
           stderr: "",
           exitCode: 0,
@@ -365,10 +363,9 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
     it("marks upToDate=true when installed version equals remote version", async function () {
       const adapter = makeAdapter({
         run: async () => ({
-          stdout: JSON.stringify([{
-            name: "doc-detective",
-            plugins: [{ name: "doc-detective", version: "2.0.0", installed: true }],
-          }]),
+          stdout: JSON.stringify([
+            { id: "doc-detective@doc-detective", version: "2.0.0", scope: "user", enabled: true },
+          ]),
           stderr: "",
           exitCode: 0,
         }),
@@ -384,10 +381,9 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
     it("marks upToDate=false when versions differ", async function () {
       const adapter = makeAdapter({
         run: async () => ({
-          stdout: JSON.stringify([{
-            name: "doc-detective",
-            plugins: [{ name: "doc-detective", version: "1.0.0", installed: true }],
-          }]),
+          stdout: JSON.stringify([
+            { id: "doc-detective@doc-detective", version: "1.0.0", scope: "user", enabled: true },
+          ]),
           stderr: "",
           exitCode: 0,
         }),
@@ -401,10 +397,9 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
     it("leaves upToDate unset when the probe fails (offline)", async function () {
       const adapter = makeAdapter({
         run: async () => ({
-          stdout: JSON.stringify([{
-            name: "doc-detective",
-            plugins: [{ name: "doc-detective", version: "1.0.0", installed: true }],
-          }]),
+          stdout: JSON.stringify([
+            { id: "doc-detective@doc-detective", version: "1.0.0", scope: "user", enabled: true },
+          ]),
           stderr: "",
           exitCode: 0,
         }),
@@ -449,7 +444,8 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
     const deps = {
       run: async (cmd, args) => {
         calls.push([cmd, ...args]);
-        if (args[0] === "plugin" && args[1] === "marketplace" && args[2] === "list") {
+        // `plugin list --json` — the new install-state probe shape
+        if (args[0] === "plugin" && args[1] === "list") {
           return { stdout: marketplaceList, stderr: "", exitCode: 0 };
         }
         return { stdout: "", stderr: "", exitCode: 0 };
@@ -508,10 +504,9 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
   });
 
   it("runs `marketplace update` + `plugin update` when an update is available", async function () {
-    const installedList = JSON.stringify([{
-      name: "doc-detective",
-      plugins: [{ name: "doc-detective", version: "1.0.0", installed: true }],
-    }]);
+    const installedList = JSON.stringify([
+      { id: "doc-detective@doc-detective", version: "1.0.0", scope: "project", enabled: true },
+    ]);
     const { adapter, calls } = makeSpyAdapter({
       marketplaceList: installedList,
       fetchLatestVersion: async () => "1.1.0",
@@ -534,10 +529,9 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
   });
 
   it("returns already-up-to-date with no install commands when installed and current", async function () {
-    const installedList = JSON.stringify([{
-      name: "doc-detective",
-      plugins: [{ name: "doc-detective", version: "2.0.0", installed: true }],
-    }]);
+    const installedList = JSON.stringify([
+      { id: "doc-detective@doc-detective", version: "2.0.0", scope: "user", enabled: true },
+    ]);
     const { adapter, calls } = makeSpyAdapter({
       marketplaceList: installedList,
       fetchLatestVersion: async () => "2.0.0",
@@ -550,10 +544,9 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
   });
 
   it("--force triggers update flow even when already up to date", async function () {
-    const installedList = JSON.stringify([{
-      name: "doc-detective",
-      plugins: [{ name: "doc-detective", version: "2.0.0", installed: true }],
-    }]);
+    const installedList = JSON.stringify([
+      { id: "doc-detective@doc-detective", version: "2.0.0", scope: "user", enabled: true },
+    ]);
     const { adapter, calls } = makeSpyAdapter({
       marketplaceList: installedList,
       fetchLatestVersion: async () => "2.0.0",

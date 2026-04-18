@@ -74,7 +74,7 @@ describe("CopilotCliAdapter.getInstallState()", function () {
   });
 
   const PLUGIN_JSON_PATH = path.join(
-    "/home/test", ".copilot", "installed-plugins", "doc-detective", "doc-detective", "plugin.json"
+    "/home/test", ".copilot", "installed-plugins", "doc-detective", "doc-detective", ".claude-plugin", "plugin.json"
   );
 
   function makeAdapter(overrides) {
@@ -136,7 +136,7 @@ describe("CopilotCliAdapter.install()", function () {
   });
 
   const PLUGIN_JSON_PATH = path.join(
-    "/home/test", ".copilot", "installed-plugins", "doc-detective", "doc-detective", "plugin.json"
+    "/home/test", ".copilot", "installed-plugins", "doc-detective", "doc-detective", ".claude-plugin", "plugin.json"
   );
 
   function makeSpyAdapter({ installed = false, version = "1.0.0", latest = undefined } = {}) {
