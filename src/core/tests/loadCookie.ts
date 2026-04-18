@@ -167,11 +167,19 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
     // Handle sameSite and secure relationship: if sameSite is "None", secure must be true
     const isHttps = currentUrl.startsWith("https://");
 
-    let sameSite = targetCookie.sameSite || "Lax";   // When migrating to BiDi, this needs to be lowercased ("lax")
+    let sameSite = targetCookie.sameSite || "Lax";
     let secure = targetCookie.secure || false;
 
+    // Normalize sameSite to Pascal case - WebDriver expects "None", "Lax", or "Strict"
+    if (typeof sameSite === "string") {
+      const lower = sameSite.toLowerCase();
+      if (lower === "none") sameSite = "None";
+      else if (lower === "strict") sameSite = "Strict";
+      else sameSite = "Lax";
+    }
+
     // If sameSite is "None", secure must be true, but only if we're on HTTPS
-    if (sameSite === "None") {    // When migrating to BiDi, this needs to be lowercased ("none")
+    if (sameSite === "None") {
       if (isHttps) {
         secure = true;
       } else {

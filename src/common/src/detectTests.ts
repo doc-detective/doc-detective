@@ -213,6 +213,20 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
  */
 export function parseObject({ stringifiedObject }: { stringifiedObject: string }): Record<string, any> | null {
   if (typeof stringifiedObject === "string") {
+    // Decode XML/HTML entities (e.g., &#34; → " and &#39; → ') that may be
+    // introduced by DITA OT or other XML processors when normalizing attribute
+    // values. &amp; must be decoded last so author-escaped sequences like
+    // "&amp;lt;" (meant to render as the literal text "&lt;") aren't double-decoded
+    // into "<".
+    if (/&(?:#\d+|#x[0-9a-fA-F]+|amp|lt|gt|quot|apos);/.test(stringifiedObject)) {
+      stringifiedObject = stringifiedObject
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&#34;|&quot;/g, '"')
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&");
+    }
+
     // First, try to parse as XML attributes
     const xmlAttrs = parseXmlAttributes({ stringifiedObject });
     if (xmlAttrs !== null) {
@@ -540,17 +554,7 @@ export async function parseContent({
               if (step.screenshot && config._herettoPathMapping) {
                 const herettoIntegration = findHerettoIntegration(config, filePath);
                 if (herettoIntegration) {
-                  if (typeof step.screenshot === "string") {
-                    step.screenshot = { path: step.screenshot };
-                  } else if (typeof step.screenshot === "boolean") {
-                    step.screenshot = {};
-                  }
-                  step.screenshot.sourceIntegration = {
-                    type: "heretto",
-                    integrationName: herettoIntegration,
-                    filePath: step.screenshot.path || "",
-                    contentPath: filePath,
-                  };
+                  attachHerettoScreenshotSourceIntegration(step, herettoIntegration, filePath);
                 }
               }
             }
@@ -631,6 +635,14 @@ export async function parseContent({
           };
         }
 
+        // Attach sourceIntegration for Heretto on screenshot steps
+        if (step.screenshot && config._herettoPathMapping) {
+          const herettoIntegration = findHerettoIntegration(config, filePath);
+          if (herettoIntegration) {
+            attachHerettoScreenshotSourceIntegration(step, herettoIntegration, filePath);
+          }
+        }
+
         const validation = validate({
           schemaKey: "step_v3" as SchemaKey,
           object: step,
@@ -676,6 +688,34 @@ export async function parseContent({
   });
 
   return validatedTests;
+}
+
+/**
+ * Attaches a Heretto sourceIntegration descriptor to a screenshot step in place.
+ * Normalizes non-object screenshot values (string paths, booleans, other primitives)
+ * to an object shape before assigning sourceIntegration so downstream validation
+ * has a predictable structure to reject or accept.
+ */
+function attachHerettoScreenshotSourceIntegration(
+  step: Record<string, any>,
+  integrationName: string,
+  contentPath: string
+): void {
+  if (typeof step.screenshot === "string") {
+    step.screenshot = { path: step.screenshot };
+  } else if (
+    step.screenshot === null ||
+    typeof step.screenshot !== "object" ||
+    Array.isArray(step.screenshot)
+  ) {
+    step.screenshot = {};
+  }
+  step.screenshot.sourceIntegration = {
+    type: "heretto",
+    integrationName,
+    filePath: step.screenshot.path || "",
+    contentPath,
+  };
 }
 
 /**
