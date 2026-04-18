@@ -213,6 +213,17 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
  */
 export function parseObject({ stringifiedObject }: { stringifiedObject: string }): Record<string, any> | null {
   if (typeof stringifiedObject === "string") {
+    // Decode XML/HTML entities (e.g., &#34; → " and &#39; → ') that may be
+    // introduced by DITA OT or other XML processors when normalizing attribute values
+    if (stringifiedObject.includes("&#")) {
+      stringifiedObject = stringifiedObject
+        .replace(/&#34;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">");
+    }
+
     // First, try to parse as XML attributes
     const xmlAttrs = parseXmlAttributes({ stringifiedObject });
     if (xmlAttrs !== null) {
@@ -629,6 +640,24 @@ export async function parseContent({
             startIndex: statement._startIndex,
             endIndex: statement._endIndex,
           };
+        }
+
+        // Attach sourceIntegration for Heretto on screenshot steps
+        if (step.screenshot && config._herettoPathMapping) {
+          const herettoIntegration = findHerettoIntegration(config, filePath);
+          if (herettoIntegration) {
+            if (typeof step.screenshot === "string") {
+              step.screenshot = { path: step.screenshot };
+            } else if (typeof step.screenshot === "boolean") {
+              step.screenshot = {};
+            }
+            step.screenshot.sourceIntegration = {
+              type: "heretto",
+              integrationName: herettoIntegration,
+              filePath: step.screenshot.path || "",
+              contentPath: filePath,
+            };
+          }
         }
 
         const validation = validate({

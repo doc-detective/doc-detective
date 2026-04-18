@@ -1488,7 +1488,12 @@ export async function loadHerettoContent(
         log,
         config
       );
-      herettoConfig.resourceDependencies = resourceDependencies;
+      // Merge fetched dependencies with any pre-existing manually-configured ones.
+      // Pre-existing entries win when keys collide.
+      herettoConfig.resourceDependencies = {
+        ...resourceDependencies,
+        ...(herettoConfig.resourceDependencies || {}),
+      };
     }
 
     log(config, "debug", `Triggering publishing job for file ${scenario.fileId}...`);
