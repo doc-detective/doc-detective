@@ -76,8 +76,9 @@ function setArgs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Accepted values: terminal, json, html. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
-      type: "array",
+        "Reporters to use for output. Built-in reporters: terminal, json, html. Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+      type: "string",
+      array: true,
     })
     .version(require("../package.json").version)
     .help()
@@ -272,8 +273,13 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.allowUnsafe === "boolean") {
     config.allowUnsafeSteps = args.allowUnsafe;
   }
-  if (args.reporters && args.reporters.length > 0) {
-    config.reporters = args.reporters.map((r: any) => String(r));
+  if (args.reporters != null) {
+    const reporterList = Array.isArray(args.reporters)
+      ? args.reporters
+      : [args.reporters];
+    if (reporterList.length > 0) {
+      config.reporters = reporterList.map((r: any) => String(r));
+    }
   }
   // Resolve paths
   config = await resolvePaths({

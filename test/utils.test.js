@@ -143,12 +143,14 @@ describe("Util tests", function () {
     expect(config.reporters).to.deep.equal(["html", "terminal"]);
   });
 
-  it("setConfig does not set reporters when arg is absent", async function () {
+  it("setConfig applies schema default reporters when arg is absent", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--input", "."]);
-    await setConfig({ configPath: null, args });
-    // Should not set reporters on config unless explicitly passed
     expect(args.reporters).to.be.undefined;
+    const config = await setConfig({ configPath: null, args });
+    // Schema default is ["terminal", "json"] — AJV useDefaults applies it
+    // during validation when the --reporters arg is not provided.
+    expect(config.reporters).to.deep.equal(["terminal", "json"]);
   });
 
   it("outputResults uses config.reporters as source of truth", async function () {
