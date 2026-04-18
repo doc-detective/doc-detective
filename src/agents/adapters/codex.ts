@@ -261,7 +261,13 @@ export class CodexAdapter implements AgentAdapter {
       // Tests that point at a pre-populated source tree set `owned: false` so
       // their fixtures aren't wiped out of from under them.
       if (fetched.owned) {
-        try { this.deps.rmSync?.(fetched.tempDir, { recursive: true, force: true }); } catch {}
+        // Fall back to the real `fs.rmSync` when deps didn't inject one.
+        // Without this, an undefined `deps.rmSync` would silently leak the
+        // fetched temp archive — the `?.` would short-circuit and drop it.
+        const rm =
+          this.deps.rmSync ??
+          ((p: string, opts?: fs.RmOptions) => fs.rmSync(p, opts));
+        try { rm(fetched.tempDir, { recursive: true, force: true }); } catch {}
       }
     }
   }

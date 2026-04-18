@@ -204,7 +204,12 @@ export class CopilotCliAdapter implements AgentAdapter {
       }
       if (result.stdout) opts.logger(result.stdout, "debug");
       if (result.exitCode !== 0) {
-        const msg = result.stderr || `exit code ${result.exitCode}`;
+        // Copilot sometimes prints auth/login hints to stdout with empty
+        // stderr, so classify on the combined output — otherwise the
+        // actionable `copilot login` hint gets swallowed and the user sees
+        // a generic "exited with code 1" instead.
+        const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
+        const msg = output || `exit code ${result.exitCode}`;
         if (/auth|login|token|unauthori[sz]ed/i.test(msg)) {
           throw new Error(
             `GitHub Copilot CLI is not authenticated. Run \`copilot login\` and re-run install-agents. (copilot said: ${msg})`

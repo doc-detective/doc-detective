@@ -390,12 +390,13 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     mkdir(dir, { recursive: true });
     const tmp = `${p}.tmp.${process.pid}.${Date.now()}`;
     write(tmp, JSON.stringify(contents, null, 2) + "\n");
-    // On Windows, `fs.renameSync` fails when the destination already exists.
-    // Unlink the old settings.json first (if present), then rename the tmp
-    // copy into place. If rename throws for any reason, best-effort clean up
-    // the tmp file so we don't leave it around.
+    // Node's fs.renameSync uses MoveFileEx with MOVEFILE_REPLACE_EXISTING on
+    // Windows, which atomically replaces an existing destination. Letting
+    // rename do the replace avoids the data-loss window that a prior
+    // unlink-then-rename pattern opened — if the rename had failed after the
+    // unlink, the user's settings.json would have been gone. Best-effort
+    // clean up the tmp file if rename throws so we don't leave stragglers.
     try {
-      if (exists(p)) fs.unlinkSync(p);
       rename(tmp, p);
     } catch (err) {
       try { if (exists(tmp)) fs.unlinkSync(tmp); } catch {}
