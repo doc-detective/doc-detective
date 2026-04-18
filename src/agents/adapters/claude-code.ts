@@ -107,11 +107,11 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     if (this.deps.existsSync(homeClaude)) configPaths.global = homeClaude;
     if (this.deps.existsSync(projectClaude)) configPaths.project = projectClaude;
 
-    const present = onPath || !!configPaths.global;
+    const present = onPath || !!configPaths.global || !!configPaths.project;
     const notes: string[] = [];
-    if (!onPath && configPaths.global) {
+    if (!onPath && (configPaths.global || configPaths.project)) {
       notes.push(
-        "`claude` not on PATH but ~/.claude exists; install will use settings-file fallback."
+        "`claude` not on PATH but Claude Code settings exist; install will use settings-file fallback."
       );
     }
 

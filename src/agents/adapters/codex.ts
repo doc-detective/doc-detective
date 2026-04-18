@@ -94,7 +94,7 @@ export class CodexAdapter implements AgentAdapter {
     if (this.deps.existsSync(codexHome)) configPaths.global = codexHome;
     if (this.deps.existsSync(projectAgents)) configPaths.project = projectAgents;
 
-    const present = onPath || !!configPaths.global;
+    const present = onPath || !!configPaths.global || !!configPaths.project;
     const notes: string[] = [];
     if (!onPath && (configPaths.global || configPaths.project)) {
       notes.push("`codex` not on PATH; skills will be written to .agents/skills/ and auto-discovered on next Codex launch.");
@@ -206,6 +206,13 @@ export class CodexAdapter implements AgentAdapter {
         );
       }
 
+      // Fall back to the module-level `fs.rmSync` when no rmSync is injected
+      // — required, not optional, because `fs.renameSync` below fails with
+      // EEXIST if the old `dst` is still in place on cross-platform systems.
+      const rmSync =
+        this.deps.rmSync ??
+        ((p: string, opts?: fs.RmOptions) => fs.rmSync(p, opts));
+
       this.mkdirp(target);
       for (const name of sourceNames) {
         const src = path.join(sourceSkills, name);
@@ -215,16 +222,16 @@ export class CodexAdapter implements AgentAdapter {
         // entry, disk full, permissions), the existing skill is untouched.
         const tmpDst = `${dst}.install.tmp.${process.pid}.${Date.now()}`;
         if (this.deps.existsSync(tmpDst)) {
-          this.deps.rmSync?.(tmpDst, { recursive: true, force: true });
+          rmSync(tmpDst, { recursive: true, force: true });
         }
         try {
           this.copyDir(src, tmpDst);
         } catch (err) {
-          try { this.deps.rmSync?.(tmpDst, { recursive: true, force: true }); } catch {}
+          try { rmSync(tmpDst, { recursive: true, force: true }); } catch {}
           throw err;
         }
         if (this.deps.existsSync(dst)) {
-          this.deps.rmSync?.(dst, { recursive: true, force: true });
+          rmSync(dst, { recursive: true, force: true });
         }
         fs.renameSync(tmpDst, dst);
         opts.logger(`Copied skill: ${name}`, "debug");

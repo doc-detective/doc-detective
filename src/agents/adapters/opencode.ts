@@ -96,9 +96,9 @@ export class OpenCodeAdapter implements AgentAdapter {
     else if (this.deps.existsSync(installDir)) configPaths.global = installDir;
     if (this.deps.existsSync(projectDir)) configPaths.project = projectDir;
 
-    const present = onPath || !!configPaths.global;
+    const present = onPath || !!configPaths.global || !!configPaths.project;
     const notes: string[] = [];
-    if (!onPath && configPaths.global) {
+    if (!onPath && (configPaths.global || configPaths.project)) {
       notes.push(
         "`opencode` not on PATH; skills will be written to <scope>/skills/ and auto-discovered on next OpenCode launch."
       );
@@ -202,34 +202,63 @@ export class OpenCodeAdapter implements AgentAdapter {
         );
       }
 
-      // 1. Skills (doc-detective-* only)
+      // Fall back to module-level fs.rmSync when no rmSync is injected —
+      // required for the atomic rename below to succeed when `dst` exists.
+      const rmSync =
+        this.deps.rmSync ??
+        ((p: string, opts?: fs.RmOptions) => fs.rmSync(p, opts));
+
+      // 1. Skills (doc-detective-* only) — fail loudly if missing, then
+      //    atomic-overwrite each skill (copy to a tmp sibling, swap in).
       const skillsSrc = path.join(pluginSrc, "skills");
       const skillsDst = path.join(root, "skills");
-      if (this.deps.existsSync(skillsSrc)) {
-        const names = (this.deps.readdirSync?.(skillsSrc) ?? []).filter((n) =>
-          n.startsWith("doc-detective-")
+      if (!this.deps.existsSync(skillsSrc)) {
+        throw new Error(
+          `Fetched agent-tools archive has no plugins/doc-detective/skills/ directory at ${skillsSrc}.`
         );
-        for (const name of names) {
-          const src = path.join(skillsSrc, name);
-          const dst = path.join(skillsDst, name);
-          if (this.deps.existsSync(dst)) {
-            this.deps.rmSync?.(dst, { recursive: true, force: true });
-          }
-          this.copyDir(src, dst);
-          opts.logger(`Copied skill: ${name}`, "debug");
+      }
+      const names = (this.deps.readdirSync?.(skillsSrc) ?? []).filter((n) =>
+        n.startsWith("doc-detective-")
+      );
+      if (names.length === 0) {
+        throw new Error(
+          "Fetched agent-tools archive has no OpenCode doc-detective-* skills to install."
+        );
+      }
+      this.mkdirp(skillsDst);
+      for (const name of names) {
+        const src = path.join(skillsSrc, name);
+        const dst = path.join(skillsDst, name);
+        const tmpDst = `${dst}.install.tmp.${process.pid}.${Date.now()}`;
+        if (this.deps.existsSync(tmpDst)) {
+          rmSync(tmpDst, { recursive: true, force: true });
         }
+        try {
+          this.copyDir(src, tmpDst);
+        } catch (err) {
+          try { rmSync(tmpDst, { recursive: true, force: true }); } catch {}
+          throw err;
+        }
+        if (this.deps.existsSync(dst)) {
+          rmSync(dst, { recursive: true, force: true });
+        }
+        fs.renameSync(tmpDst, dst);
+        opts.logger(`Copied skill: ${name}`, "debug");
       }
 
-      // 2. Plugin file
+      // 2. Plugin file — also required for OpenCode integration to work.
       const pluginFileSrc = path.join(pluginSrc, "opencode-plugin.mjs");
-      if (this.deps.existsSync(pluginFileSrc)) {
-        const pluginFileDst = path.join(root, "plugins", "opencode-plugin.mjs");
-        this.mkdirp(path.dirname(pluginFileDst));
-        const buf = fs.readFileSync(pluginFileSrc);
-        if (this.deps.writeFileSync) this.deps.writeFileSync(pluginFileDst, buf);
-        else fs.writeFileSync(pluginFileDst, buf);
-        opts.logger("Copied plugin: opencode-plugin.mjs", "debug");
+      if (!this.deps.existsSync(pluginFileSrc)) {
+        throw new Error(
+          `Fetched agent-tools archive has no OpenCode plugin file at ${pluginFileSrc}.`
+        );
       }
+      const pluginFileDst = path.join(root, "plugins", "opencode-plugin.mjs");
+      this.mkdirp(path.dirname(pluginFileDst));
+      const buf = fs.readFileSync(pluginFileSrc);
+      if (this.deps.writeFileSync) this.deps.writeFileSync(pluginFileDst, buf);
+      else fs.writeFileSync(pluginFileDst, buf);
+      opts.logger("Copied plugin: opencode-plugin.mjs", "debug");
 
       // 3. Hooks dir — copy additively. We can't safely wipe the whole dir
       //    because OpenCode users may keep their own hooks alongside ours.
@@ -301,11 +330,14 @@ export class OpenCodeAdapter implements AgentAdapter {
    * directory.
    */
   private pruneDocDetectiveFiles(dir: string): void {
+    const rmSync =
+      this.deps.rmSync ??
+      ((p: string, opts?: fs.RmOptions) => fs.rmSync(p, opts));
     const entries = this.deps.readdirSync?.(dir) ?? [];
     for (const name of entries) {
       const full = path.join(dir, name);
       if (name.startsWith("doc-detective")) {
-        this.deps.rmSync?.(full, { recursive: true, force: true });
+        rmSync(full, { recursive: true, force: true });
         continue;
       }
       // Recurse into subdirectories to catch nested doc-detective-* files

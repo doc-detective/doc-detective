@@ -197,8 +197,10 @@ describe("ClaudeCodeAdapter.detect()", function () {
     });
     const result = await adapter.detect();
     assert.equal(result.configPaths.project, projectClaudePath);
-    // Project-only detection doesn't imply Claude Code is installed.
-    assert.equal(result.present, false);
+    // A project-only .claude/ directory is enough to treat the adapter as
+    // present — the user clearly wants it configured here, and install()
+    // can write to ./.claude/settings.json via the fallback path.
+    assert.equal(result.present, true);
   });
 
   it("reports present=false when nothing is detectable", async function () {

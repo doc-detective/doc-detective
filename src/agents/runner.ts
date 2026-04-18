@@ -110,7 +110,12 @@ async function resolveTargetAgents(
 ): Promise<AgentAdapter[]> {
   if (argv.agent && argv.agent.length > 0) {
     const chosen: AgentAdapter[] = [];
+    const seen = new Set<string>();
     for (const id of argv.agent) {
+      // Preserve first-seen order but drop duplicates — `--agent codex --agent codex`
+      // should run one install, not two.
+      if (seen.has(id)) continue;
+      seen.add(id);
       const match = adapters.find((a) => a.id === id);
       if (!match) {
         const known = adapters.map((a) => a.id).join(", ");

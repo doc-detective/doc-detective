@@ -135,10 +135,17 @@ jobs:
       - name: Verify version surfaced in report
         working-directory: /tmp/dd-e2e
         run: |
-          # Our runner appends " @ <semver>" to the install summary line when
-          # an installed version is known. Missing version means either the
-          # upstream manifest probe failed or the adapter couldn't read it
-          # back — both are worth a red build.
+          # The Claude Code adapter's settings-file fallback doesn't carry a
+          # version — Claude Code completes the install itself on next
+          # launch. Accept the fallback outcome without requiring "@ <ver>".
+          if grep -qE "^  wrote settings\.json fallback" fresh.log; then
+            echo "Settings-file fallback accepted; version isn't expected yet."
+            exit 0
+          fi
+          # Otherwise our runner appends " @ <semver>" to the install summary
+          # line when an installed version is known. Missing it means either
+          # the upstream manifest probe failed or the adapter couldn't read
+          # the version back — both are worth a red build.
           grep -qE "@ [0-9]+\.[0-9]+\.[0-9]+" fresh.log || {
             echo "No semver tag found in fresh.log — upstream probe or post-install version read failed."
             exit 1

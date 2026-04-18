@@ -103,6 +103,15 @@ export async function fetchAgentToolsZip(
       } else {
         fs.mkdirSync(path.dirname(resolvedDest), { recursive: true });
         fs.writeFileSync(resolvedDest, entry.getData());
+        // Preserve the unix permission bits the zip carries. GitHub codeload
+        // zips store file modes in the high 16 bits of the external-attributes
+        // field (adm-zip exposes this as `entry.attr`). Without this, shell
+        // scripts committed as 0755 in the source repo land on disk with
+        // default permissions and refuse to execute at runtime.
+        const unixMode = (entry.attr >>> 16) & 0o777;
+        if (unixMode !== 0) {
+          try { fs.chmodSync(resolvedDest, unixMode); } catch {}
+        }
       }
     }
     return { tempDir, ref, owned: true };
