@@ -1,0 +1,182 @@
+# Real-agent integration tests for `npx doc-detective install-agents`.
+#
+# This workflow complements the unit suite (test/agents*.test.js) which uses
+# dependency-injected stubs. Here we install each agent's real CLI binary and
+# run `install-agents` against it end-to-end, so we catch:
+#   * upstream CLI contract changes (new flags, renamed subcommands);
+#   * packaging regressions in the compiled bin/doc-detective.js;
+#   * network-fetch failures (codeload URLs, manifest paths);
+#   * platform-path quirks.
+#
+# Each matrix cell: installs one agent, runs `install-agents` for that agent,
+# asserts expected paths and versions land on disk, re-runs to verify
+# idempotency, then force-reinstalls.
+
+name: install-agents integration
+
+on:
+  pull_request:
+    paths:
+      - 'src/agents/**'
+      - 'src/cli.ts'
+      - 'src/utils.ts'
+      - 'bin/**'
+      - '.github/workflows/install-agents-integration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/agents/**'
+      - 'src/cli.ts'
+      - 'src/utils.ts'
+      - 'bin/**'
+      - '.github/workflows/install-agents-integration.yml'
+  workflow_dispatch:
+  schedule:
+    # Monday 09:00 UTC — weekly sweep so upstream CLI regressions surface
+    # even when this repo is quiet.
+    - cron: '0 9 * * 1'
+
+concurrency:
+  group: install-agents-integration-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  install-agents:
+    name: ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: ${{ matrix.allow_failure == true }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - agent: claude-code
+            scope: project
+            agent_install: npm install -g @anthropic-ai/claude-code
+            path_check: test -f .claude/settings.json
+
+          - agent: copilot-cli
+            scope: global
+            agent_install: npm install -g @github/copilot
+            path_check: test -f ~/.copilot/installed-plugins/doc-detective/doc-detective/plugin.json
+            # Copilot CLI plugin install may require a richer GitHub token
+            # scope than the default GITHUB_TOKEN provides. Flag as allowed
+            # to fail so the other adapters still report results; a red cell
+            # here is a follow-up, not a blocker.
+            allow_failure: true
+
+          - agent: gemini-cli
+            scope: global
+            agent_install: npm install -g @google/gemini-cli
+            path_check: test -f ~/.gemini/extensions/doc-detective/gemini-extension.json
+
+          - agent: qwen-code
+            scope: global
+            agent_install: npm install -g @qwen-code/qwen-code
+            path_check: test -f ~/.qwen/extensions/doc-detective/skills/doc-detective-init/SKILL.md
+
+          - agent: opencode
+            scope: project
+            agent_install: npm install -g opencode-ai
+            path_check: test -f .opencode/skills/doc-detective-init/SKILL.md
+
+          - agent: codex
+            scope: project
+            agent_install: npm install -g @openai/codex
+            path_check: test -f .agents/skills/doc-detective-init/SKILL.md
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install doc-detective deps + build
+        run: |
+          npm install
+          npm run build
+
+      - name: Install ${{ matrix.agent }} CLI
+        run: ${{ matrix.agent_install }}
+
+      - name: Prepare scratch project dir
+        run: mkdir -p /tmp/dd-e2e
+
+      - name: Fresh install via install-agents
+        id: fresh
+        working-directory: /tmp/dd-e2e
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install-agents \
+            --agent ${{ matrix.agent }} \
+            --scope ${{ matrix.scope }} \
+            --yes 2>&1 | tee fresh.log
+          echo "--- fresh.log tail ---"
+          tail -10 fresh.log
+          # The runner's summarizeReport() prints "installed @ <ver>" (or
+          # updated/forced) for a successful install; "fallback" for Claude
+          # Code's settings.json path. All acceptable outcomes.
+          grep -qE "^  (installed|updated|forced reinstall|wrote settings\.json fallback)" fresh.log
+
+      - name: Verify expected paths
+        working-directory: /tmp/dd-e2e
+        run: |
+          echo "Checking: ${{ matrix.path_check }}"
+          ${{ matrix.path_check }}
+
+      - name: Verify version surfaced in report
+        working-directory: /tmp/dd-e2e
+        run: |
+          # Our runner appends " @ <semver>" to the install summary line when
+          # an installed version is known. Missing version means either the
+          # upstream manifest probe failed or the adapter couldn't read it
+          # back — both are worth a red build.
+          grep -qE "@ [0-9]+\.[0-9]+\.[0-9]+" fresh.log || {
+            echo "No semver tag found in fresh.log — upstream probe or post-install version read failed."
+            exit 1
+          }
+
+      - name: Idempotency check
+        working-directory: /tmp/dd-e2e
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install-agents \
+            --agent ${{ matrix.agent }} \
+            --scope ${{ matrix.scope }} \
+            --yes 2>&1 | tee idem.log
+          grep -q "already up to date" idem.log
+
+      - name: Force re-install
+        working-directory: /tmp/dd-e2e
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install-agents \
+            --agent ${{ matrix.agent }} \
+            --scope ${{ matrix.scope }} \
+            --yes --force 2>&1 | tee force.log
+          # --force on a current install runs the update path, so we may see
+          # "updated" or "forced reinstall" depending on the adapter.
+          grep -qE "^  (forced reinstall|updated|installed)" force.log
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-agents-logs-${{ matrix.agent }}
+          path: |
+            /tmp/dd-e2e/fresh.log
+            /tmp/dd-e2e/idem.log
+            /tmp/dd-e2e/force.log
+          if-no-files-found: ignore
