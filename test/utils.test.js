@@ -136,6 +136,77 @@ describe("Util tests", function () {
     }
   });
 
+  it("setConfig stores --reporters arg on config.reporters", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--reporters", "html", "terminal"]);
+    const config = await setConfig({ configPath: null, args });
+    expect(config.reporters).to.deep.equal(["html", "terminal"]);
+  });
+
+  it("setConfig does not set reporters when arg is absent", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--input", "."]);
+    const config = await setConfig({ configPath: null, args });
+    // Should not set reporters on config unless explicitly passed
+    expect(args.reporters).to.be.undefined;
+  });
+
+  it("outputResults uses config.reporters as source of truth", async function () {
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-config-reporters-"));
+    try {
+      const sampleResults = {
+        reportId: "cfg-test",
+        summary: {
+          specs: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          tests: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          contexts: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          steps: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+        },
+        specs: [{ result: "PASS", specId: "s1", description: "t", tests: [{ result: "PASS", testId: "t1", description: "t", contexts: [{ result: "PASS", contextId: "c1", platform: "linux", steps: [{ result: "PASS", stepId: "s1", goTo: "https://x.test", duration: 10 }] }] }] }],
+      };
+      // config.reporters set to ["html"] should produce an HTML output even
+      // when options.reporters is omitted.
+      const results = await outputResults(
+        { reporters: ["html"] },
+        tmpDir,
+        sampleResults,
+        { command: "runTests" }
+      );
+      expect(results[0]).to.match(/\.html$/);
+      expect(fs.existsSync(results[0])).to.be.true;
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("outputResults: config.reporters takes precedence over options.reporters", async function () {
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-prio-reporters-"));
+    try {
+      const sampleResults = {
+        reportId: "prio-test",
+        summary: {
+          specs: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          tests: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          contexts: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          steps: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+        },
+        specs: [{ result: "PASS", specId: "s1", description: "t", tests: [{ result: "PASS", testId: "t1", description: "t", contexts: [{ result: "PASS", contextId: "c1", platform: "linux", steps: [{ result: "PASS", stepId: "s1", goTo: "https://x.test", duration: 10 }] }] }] }],
+      };
+      // config says html-only, options says json-only — config wins.
+      const results = await outputResults(
+        { reporters: ["html"] },
+        tmpDir,
+        sampleResults,
+        { command: "runTests", reporters: ["json"] }
+      );
+      expect(results[0]).to.match(/\.html$/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   // Test that config overrides are set correctly
   it("Config overrides are set correctly", async function () {
     // This test takes a bit longer

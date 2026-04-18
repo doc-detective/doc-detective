@@ -60,6 +60,10 @@ export interface Config {
    */
   output?: string;
   /**
+   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`. Custom reporters registered via `registerReporter()` can also be referenced by name.
+   */
+  reporters?: string[];
+  /**
    * If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.
    */
   recursive?: boolean;

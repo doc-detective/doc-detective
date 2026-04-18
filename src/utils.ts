@@ -272,6 +272,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.allowUnsafe === "boolean") {
     config.allowUnsafeSteps = args.allowUnsafe;
   }
+  if (args.reporters && args.reporters.length > 0) {
+    config.reporters = args.reporters.map((r: any) => String(r));
+  }
   // Resolve paths
   config = await resolvePaths({
     config: config,
@@ -807,10 +810,16 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
 }
 
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
-  // Default to using both built-in reporters if none specified
+  // Config is the source of truth. Fall back to options.reporters for
+  // programmatic callers that pass them directly, then to defaults.
   const defaultReporters = ["terminal", "json"];
 
-  let activeReporters = options.reporters || defaultReporters;
+  let activeReporters =
+    (config && Array.isArray(config.reporters) && config.reporters.length > 0
+      ? config.reporters
+      : null) ||
+    options.reporters ||
+    defaultReporters;
 
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {

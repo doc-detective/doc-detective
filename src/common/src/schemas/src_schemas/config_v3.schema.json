@@ -38,6 +38,15 @@
       "type": "string",
       "default": "."
     },
+    "reporters": {
+      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`. Custom reporters registered via `registerReporter()` can also be referenced by name.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": ["terminal", "json"]
+    },
     "recursive": {
       "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.",
       "type": "boolean",
@@ -523,7 +532,8 @@
       "output": ".",
       "recursive": true,
       "loadVariables": ".env",
-      "fileTypes": ["markdown"]
+      "fileTypes": ["markdown"],
+      "reporters": ["terminal", "json", "html"]
     },
     {
       "fileTypes": [

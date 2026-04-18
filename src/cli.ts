@@ -64,11 +64,8 @@ async function main(argv: string[]) {
   if (apiConfig) {
     await reportResults({ apiConfig, results });
   } else {
-    // Output results
-    const options: any = { command: "runTests" };
-    if (args.reporters) {
-      options.reporters = args.reporters;
-    }
-    await outputResults(config, output, results, options);
+    // Output results — config.reporters (populated from args.reporters by
+    // setConfig) is the source of truth for which reporters run.
+    await outputResults(config, output, results, { command: "runTests" });
   }
 }
