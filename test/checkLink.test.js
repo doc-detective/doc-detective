@@ -1,6 +1,7 @@
 import http from "node:http";
 import assert from "node:assert/strict";
 import { checkLink } from "../dist/core/tests/checkLink.js";
+import { replaceEnvs } from "../dist/core/utils.js";
 
 let server;
 let serverPort;
@@ -22,8 +23,9 @@ before(async function () {
   server = http.createServer((req, res) => {
     const url = req.url;
 
-    if (url === "/echo-headers") {
+    if (url.split("?")[0] === "/echo-headers") {
       requestLog["echo-headers"] = { ...req.headers };
+      requestLog["echo-headers-url"] = req.url;
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end("ok");
       return;
@@ -395,6 +397,123 @@ describe("checkLink retry, headers, and HEAD fallback", function () {
     });
     assert.equal(result.status, "PASS");
     assert.equal(requestLog["echo-headers"]["user-agent"], "custom-ua/1.0");
+  });
+});
+
+describe("checkLink originParams / params", function () {
+  this.timeout(30000);
+
+  it("appends config.originParams to URL resolved against origin", async function () {
+    delete requestLog["echo-headers-url"];
+    const result = await checkLink({
+      config: {
+        origin: `http://localhost:${serverPort}`,
+        originParams: { token: "abc", version: "v2" },
+      },
+      step: { checkLink: { url: "/echo-headers" } },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const received = requestLog["echo-headers-url"];
+    assert.ok(received.startsWith("/echo-headers?"), `got ${received}`);
+    const qs = new URLSearchParams(received.split("?")[1]);
+    assert.equal(qs.get("token"), "abc");
+    assert.equal(qs.get("version"), "v2");
+  });
+
+  it("merges step-level params with config.originParams; step wins on collision", async function () {
+    delete requestLog["echo-headers-url"];
+    const result = await checkLink({
+      config: {
+        origin: `http://localhost:${serverPort}`,
+        originParams: { token: "from-config", keep: "k" },
+      },
+      step: {
+        checkLink: {
+          url: "/echo-headers",
+          params: { token: "from-step", extra: "e" },
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const qs = new URLSearchParams(
+      requestLog["echo-headers-url"].split("?")[1]
+    );
+    assert.equal(qs.get("token"), "from-step");
+    assert.equal(qs.get("keep"), "k");
+    assert.equal(qs.get("extra"), "e");
+  });
+
+  it("replaces an existing query-string key rather than duplicating", async function () {
+    delete requestLog["echo-headers-url"];
+    const result = await checkLink({
+      config: {
+        origin: `http://localhost:${serverPort}`,
+        originParams: { token: "new" },
+      },
+      step: { checkLink: { url: "/echo-headers?token=old&keep=y" } },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const qs = new URLSearchParams(
+      requestLog["echo-headers-url"].split("?")[1]
+    );
+    assert.deepEqual(qs.getAll("token"), ["new"]);
+    assert.equal(qs.get("keep"), "y");
+  });
+
+  it("does NOT append params when the step URL is absolute", async function () {
+    delete requestLog["echo-headers-url"];
+    const result = await checkLink({
+      config: {
+        origin: `http://localhost:${serverPort}`,
+        originParams: { token: "should-not-appear" },
+      },
+      step: {
+        checkLink: { url: `http://localhost:${serverPort}/echo-headers` },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(requestLog["echo-headers-url"], "/echo-headers");
+  });
+
+  it("substitutes $VAR references in params via replaceEnvs upstream", async function () {
+    // Mirror the real runTests flow: `$VAR` lives in params as a literal
+    // string, and replaceEnvs substitutes it on the step object before the
+    // step executor runs.
+    process.env.TEST_DD_TOKEN = "env-token-xyz";
+    delete requestLog["echo-headers-url"];
+    try {
+      const step = {
+        checkLink: {
+          url: "/echo-headers",
+          params: { token: "$TEST_DD_TOKEN" },
+        },
+      };
+      const substituted = replaceEnvs(step);
+      const result = await checkLink({
+        config: { origin: `http://localhost:${serverPort}` },
+        step: substituted,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      const qs = new URLSearchParams(
+        requestLog["echo-headers-url"].split("?")[1]
+      );
+      assert.equal(qs.get("token"), "env-token-xyz");
+    } finally {
+      delete process.env.TEST_DD_TOKEN;
+    }
+  });
+
+  it("leaves URL unchanged when params is empty", async function () {
+    delete requestLog["echo-headers-url"];
+    const result = await checkLink({
+      config: {
+        origin: `http://localhost:${serverPort}`,
+        originParams: {},
+      },
+      step: { checkLink: { url: "/echo-headers" } },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(requestLog["echo-headers-url"], "/echo-headers");
   });
 });
 

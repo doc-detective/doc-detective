@@ -35,6 +35,14 @@
             "trim"
           ]
         },
+        "params": {
+          "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
         "statusCodes": {
           "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
           "anyOf": [
@@ -118,6 +126,14 @@
               "trim"
             ]
           },
+          "params": {
+            "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {}
+          },
           "statusCodes": {
             "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
             "anyOf": [
@@ -180,6 +196,13 @@
       "statusCodes": [
         200
       ]
+    },
+    {
+      "url": "/health",
+      "origin": "https://my-app.com",
+      "params": {
+        "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+      }
     }
   ]
 }

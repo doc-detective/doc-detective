@@ -20,6 +20,7 @@ export {
   calculateFractionalDifference,
   fetchFile,
   isRelativeUrl,
+  appendQueryParams,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
@@ -34,6 +35,56 @@ function isRelativeUrl(url: string) {
     // If URL constructor throws an error, it's a relative URL
     return true;
   }
+}
+
+function appendQueryParams(
+  url: string,
+  params: Record<string, unknown> | undefined | null
+): string {
+  if (!params || typeof params !== "object" || Array.isArray(params)) return url;
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null
+  );
+  if (entries.length === 0) return url;
+
+  // Split off the fragment so new params land before it, not inside.
+  const hashIdx = url.indexOf("#");
+  const fragment = hashIdx >= 0 ? url.slice(hashIdx) : "";
+  const base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+
+  const queryIdx = base.indexOf("?");
+  const pathAndAuthority = queryIdx >= 0 ? base.slice(0, queryIdx) : base;
+  const existingQuery = queryIdx >= 0 ? base.slice(queryIdx + 1) : "";
+
+  // Walk the existing query and drop only the segments whose key collides
+  // with a new entry; everything else is preserved byte-for-byte. Then
+  // append the new pairs (encoded fresh). This avoids re-encoding any
+  // non-colliding pair — `URLSearchParams.toString()` would otherwise
+  // normalize `+` for spaces and percent-encode `:` / `,` etc., which
+  // breaks signed URLs and strict backends. New params always go through
+  // encodeURIComponent so callers can pass arbitrary strings.
+  const newKeys = new Set(entries.map(([k]) => k));
+  const preservedSegments = existingQuery
+    ? existingQuery.split("&").filter((segment) => {
+        if (!segment) return false;
+        const eqIdx = segment.indexOf("=");
+        const rawKey = eqIdx >= 0 ? segment.slice(0, eqIdx) : segment;
+        let decodedKey: string;
+        try {
+          decodedKey = decodeURIComponent(rawKey);
+        } catch {
+          decodedKey = rawKey;
+        }
+        return !newKeys.has(decodedKey);
+      })
+    : [];
+  const newPairs = entries.map(
+    ([k, v]) =>
+      `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`
+  );
+
+  const query = [...preservedSegments, ...newPairs].join("&");
+  return pathAndAuthority + (query ? "?" + query : "") + fragment;
 }
 
 // Delete all contents of doc-detective temp directory
