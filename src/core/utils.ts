@@ -236,35 +236,54 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   // (npx, npm, etc.) resolve correctly without shell interpretation.
   // When the caller explicitly opts into a shell, fall back to node's
   // built-in spawn since the shell itself handles resolution.
+  //
+  // CodeQL `js/command-line-injection`: the shell-true branch is the
+  // explicit user-facing shell-execution sink (used by `runShell`); the
+  // trust boundary is at the spec author. The shell-false branch passes
+  // `cmd` and `args` directly to the OS without any shell interpretation,
+  // so each `args[i]` is a literal argv entry — no metacharacter expansion.
   const runCommand = useShell
     ? spawn(cmd, args, spawnOptions)
     : crossSpawn(cmd, args, spawnOptions);
-  runCommand.on("error", (error) => {});
 
-  // Set up exit code promise BEFORE consuming streams to avoid race condition
-  const exitCodePromise = new Promise((resolve) => {
-    runCommand.on("close", resolve);
+  // Track spawn errors (e.g. ENOENT when cmd isn't on PATH) so we can
+  // surface them in stderr instead of crashing or hanging.
+  let spawnError: NodeJS.ErrnoException | null = null;
+  runCommand.on("error", (err: NodeJS.ErrnoException) => {
+    spawnError = err;
   });
 
-  // Capture stdout and stderr concurrently to avoid deadlock.
-  // The streams are non-null because we don't pass stdio: "ignore".
-  // (cross-spawn's return type is wider than node's spawn so TS needs a hint.)
-  const childStdout = runCommand.stdout!;
-  const childStderr = runCommand.stderr!;
+  // Resolve the exit-code promise on either `close` (normal exit) or
+  // `error` (spawn never actually started). With `shell: false` the
+  // `error` event is much more likely (missing executable surfaces as
+  // ENOENT) and may fire without a subsequent `close`, so we must not
+  // wait on `close` alone.
+  const exitCodePromise = new Promise<number | null>((resolve) => {
+    runCommand.on("close", (code) => resolve(code));
+    runCommand.on("error", () => resolve(null));
+  });
+
+  // Capture stdout and stderr concurrently to avoid deadlock. When spawn
+  // fails before the child is created, these streams can be null —
+  // iterating them would TypeError.
   let stdout = "";
   let stderr = "";
-  const stdoutPromise = (async () => {
-    for await (const chunk of childStdout) {
-      stdout += chunk;
-      if (options.debug) console.log(chunk.toString());
-    }
-  })();
-  const stderrPromise = (async () => {
-    for await (const chunk of childStderr) {
-      stderr += chunk;
-      if (options.debug) console.log(chunk.toString());
-    }
-  })();
+  const stdoutPromise = runCommand.stdout
+    ? (async () => {
+        for await (const chunk of runCommand.stdout!) {
+          stdout += chunk;
+          if (options.debug) console.log(chunk.toString());
+        }
+      })()
+    : Promise.resolve();
+  const stderrPromise = runCommand.stderr
+    ? (async () => {
+        for await (const chunk of runCommand.stderr!) {
+          stderr += chunk;
+          if (options.debug) console.log(chunk.toString());
+        }
+      })()
+    : Promise.resolve();
   await Promise.all([stdoutPromise, stderrPromise]);
   // Remove trailing newlines
   stdout = stdout.replace(/\n$/, "");
@@ -272,6 +291,13 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
 
   // Capture exit code
   const exitCode = await exitCodePromise;
+
+  // If spawn itself failed (ENOENT, EACCES, ...), surface the error
+  // message in stderr so callers (DITA detection, runCode, runShell)
+  // can detect missing tools without crashing.
+  if (spawnError && !stderr) {
+    stderr = (spawnError as NodeJS.ErrnoException).message ?? String(spawnError);
+  }
 
   return { stdout, stderr, exitCode };
 }
