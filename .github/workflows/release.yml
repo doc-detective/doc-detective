@@ -6,6 +6,8 @@ on:
       - main
       - next
       - 'feat/**'
+    paths-ignore:
+      - 'docs/**'
   workflow_dispatch:
 
 concurrency:
