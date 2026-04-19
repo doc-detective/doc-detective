@@ -16,7 +16,8 @@ output | string | Optional. Path of the directory in which to store the output o
 recursive | boolean | Optional. If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files. | `true`
 relativePathBase | string | Optional. Whether paths should be interpreted as relative to the current working directory (`cwd`) or to the file in which they're specified (`file`).<br/><br/>Accepted values: `cwd`, `file` | `file`
 loadVariables | string | Optional. Load environment variables from the specified `.env` file. | 
-origin | string | Optional. Default protocol and domain to use for relative URLs. | 
+origin | string | Optional. Default protocol and domain to use for relative URLs. |
+originParams | object | Optional. Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. | `{}`
 beforeAny | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments. | 
 afterAll | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments. | 
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on defined markup. | `true`
@@ -173,5 +174,22 @@ debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `t
 ```json
 {
   "crawl": true
+}
+```
+
+### Example: Default query parameters with `originParams`
+
+Use `originParams` to append query parameters to all URLs resolved against `origin`. This is useful for authentication tokens like Clerk's testing token.
+
+<Warning>
+Values in `originParams` are embedded directly in request URLs and appear in test results, logs, and reports. Avoid storing long-lived secrets in these fields. Use short-lived tokens or testing-only credentials instead.
+</Warning>
+
+```json
+{
+  "origin": "https://my-app.com",
+  "originParams": {
+    "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+  }
 }
 ```
