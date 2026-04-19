@@ -112,6 +112,31 @@ describe("fetchFile binary mode", function () {
     );
   });
 
+  it("replaces Windows-invalid filename characters in URL-derived names", async function () {
+    const bytes = Buffer.from([0x01]);
+    sinon.stub(axios, "get").resolves({ data: bytes });
+    // URL path segment containing `:` — legal in URLs, invalid in Windows
+    // filenames. The on-disk name must not contain any of `<>:"/\|?*` or
+    // control chars after sanitization.
+    const result = await fetchFile(
+      "https://example.com/artwork/render:v2.png",
+      { binary: true }
+    );
+    assert.equal(result.result, "success");
+    const base = path.basename(result.path);
+    const invalidChars = /[\x00-\x1f<>:"|?*]/;
+    assert.ok(
+      !invalidChars.test(base),
+      `on-disk basename must not contain Windows-invalid chars, got ${base}`
+    );
+    assert.ok(
+      base.endsWith("render_v2.png") ||
+        base.endsWith("render_v2_png") ||
+        /render_v2\.png$/.test(base),
+      `expected sanitized suffix like render_v2.png, got ${base}`
+    );
+  });
+
   it("neutralizes path-traversal segments in URL-derived filenames", async function () {
     const bytes = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
     sinon.stub(axios, "get").resolves({ data: bytes });

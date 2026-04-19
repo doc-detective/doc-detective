@@ -5,6 +5,7 @@ import {
   fetchFile,
   getOrInitRunTimestamp,
   redactUrlForOutput,
+  sanitizeFilesystemName,
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -147,10 +148,11 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     const rawBase = path.basename(
       urlPathname.split("?")[0].split("#")[0].replace(/\\/g, "/")
     );
-    const safeBase =
-      !rawBase || rawBase === "." || rawBase === ".." || rawBase.includes("\0")
-        ? `${step.stepId}.png`
-        : rawBase;
+    // Also strip characters that are invalid in filenames on Windows
+    // (`< > : " | ? *` and control chars). Without this, a URL segment like
+    // `img:v2.png` would build a path the Windows file system refuses to
+    // create. Shared helper so the rule stays consistent with fetchFile.
+    const safeBase = sanitizeFilesystemName(rawBase, `${step.stepId}.png`);
 
     dir = path.join(
       process.cwd(),

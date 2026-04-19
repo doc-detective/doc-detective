@@ -22,6 +22,7 @@ export {
   isRelativeUrl,
   redactUrlForOutput,
   assertUrlHostIsPublic,
+  sanitizeFilesystemName,
 };
 
 function isRelativeUrl(url: string) {
@@ -66,10 +67,24 @@ const FETCH_BINARY_DEFAULTS = {
   maxRedirects: 5,
 };
 
+// Replace characters that are invalid in filenames on Windows (and often
+// problematic on other platforms) with `_`. Keeps dots, hyphens, and
+// alphanumerics untouched so names stay recognizable. Also rejects leading
+// dots that could turn the file into a traversal segment.
+function sanitizeFilesystemName(name: string, fallback: string): string {
+  if (!name || name === "." || name === "..") return fallback;
+  // Control chars 0x00-0x1f + Windows reserved: < > : " / \ | ? *
+  const cleaned = name.replace(/[\x00-\x1f<>:"/\\|?*]/g, "_");
+  // After replacement, guard against all-dots or empty results.
+  if (!cleaned || /^\.+$/.test(cleaned)) return fallback;
+  return cleaned;
+}
+
 // Derive a safe on-disk filename from a URL. URL-derived strings can contain
-// path separators (`/`, `\`) or traversal segments (`..`); `path.basename`
-// strips directory components, and we reject any residual traversal so a
-// crafted URL can't escape its intended directory.
+// path separators (`/`, `\`), traversal segments (`..`), or characters that
+// are invalid in filenames on Windows (`:<>"|?*`). `path.basename` strips
+// directory components; `sanitizeFilesystemName` then neutralizes remaining
+// unsafe characters so `fetchFile` works on every platform.
 function safeFilenameFromUrl(fileURL: string, fallback: string): string {
   let raw: string;
   try {
@@ -79,10 +94,7 @@ function safeFilenameFromUrl(fileURL: string, fallback: string): string {
   }
   raw = raw.split("?")[0].split("#")[0];
   const base = path.basename(raw.replace(/\\/g, "/"));
-  if (!base || base === "." || base === ".." || base.includes("\0")) {
-    return fallback;
-  }
-  return base;
+  return sanitizeFilesystemName(base, fallback);
 }
 
 // Strip query string and fragment from a URL for display/logging. S3
