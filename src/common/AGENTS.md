@@ -199,7 +199,7 @@ Still runs the full matrix (Ubuntu/Windows/macOS × Node 20/22/24) on every push
 #### Commit message enforcement
 
 Required format (conventional commits):
-```
+```text
 <type>(<optional scope>): <subject>
 ```
 Enforced in three places:

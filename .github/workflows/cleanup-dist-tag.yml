@@ -19,17 +19,34 @@ jobs:
 
       - name: Compute slug
         id: slug
+        env:
+          DELETED_REF: ${{ github.event.ref }}
         run: |
-          slug=$(echo "${{ github.event.ref }}" | sed 's|^feat/||' | sed 's|[^a-zA-Z0-9-]|-|g')
+          set -euo pipefail
+          slug=$(printf '%s' "$DELETED_REF" | sed 's|^feat/||' | sed 's|[^a-zA-Z0-9-]|-|g')
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
           echo "Computed slug: $slug"
 
       - name: Remove dist-tag for doc-detective
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm dist-tag rm doc-detective "${{ steps.slug.outputs.slug }}" || echo "Tag not present; nothing to remove."
+          TAG: ${{ steps.slug.outputs.slug }}
+        run: |
+          set -euo pipefail
+          if npm dist-tag ls doc-detective | grep -q "^${TAG}:"; then
+            npm dist-tag rm doc-detective "$TAG"
+          else
+            echo "Tag $TAG not present on doc-detective; nothing to remove."
+          fi
 
       - name: Remove dist-tag for doc-detective-common
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm dist-tag rm doc-detective-common "${{ steps.slug.outputs.slug }}" || echo "Tag not present; nothing to remove."
+          TAG: ${{ steps.slug.outputs.slug }}
+        run: |
+          set -euo pipefail
+          if npm dist-tag ls doc-detective-common | grep -q "^${TAG}:"; then
+            npm dist-tag rm doc-detective-common "$TAG"
+          else
+            echo "Tag $TAG not present on doc-detective-common; nothing to remove."
+          fi

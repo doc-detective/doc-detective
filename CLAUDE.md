@@ -7,7 +7,7 @@ Repo-wide guidance for AI agents. Package-specific rules for `doc-detective-comm
 All commits must follow [Conventional Commits](https://www.conventionalcommits.org/). This is enforced locally by a husky `commit-msg` hook and on PRs by [.github/workflows/commitlint.yml](.github/workflows/commitlint.yml). Non-conforming commits are rejected.
 
 **Format:**
-```
+```text
 <type>(<optional scope>): <subject>
 
 <optional body>
