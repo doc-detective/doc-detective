@@ -2,6 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import dns from "node:dns/promises";
+import net from "node:net";
 import axios from "axios";
 import { spawn } from "node:child_process";
 
@@ -18,6 +20,8 @@ export {
   calculateFractionalDifference,
   fetchFile,
   isRelativeUrl,
+  redactUrlForOutput,
+  assertUrlHostIsPublic,
 };
 
 function isRelativeUrl(url: string) {
@@ -81,11 +85,124 @@ function safeFilenameFromUrl(fileURL: string, fallback: string): string {
   return base;
 }
 
+// Strip query string and fragment from a URL for display/logging. S3
+// pre-signed URLs carry tokens/signatures in the query; leaking them into
+// step descriptions, debug logs, or result outputs exposes credentials.
+// The full URL with query is still used for the fetch itself — only the
+// *reported* form is redacted.
+function redactUrlForOutput(value: string): string {
+  try {
+    const url = new URL(value);
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return value.split("?")[0].split("#")[0];
+  }
+}
+
+// Private/loopback/link-local IP ranges that binary URL fetches refuse to
+// reach by default. Covers IPv4 RFC1918, loopback, link-local (169.254/16),
+// carrier-grade NAT (100.64/10), and the cloud-metadata special cases
+// (169.254.169.254 is inside link-local and thus covered).
+function isPrivateOrLoopbackAddress(ip: string): boolean {
+  if (!ip) return false;
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split(".").map(Number);
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    return false;
+  }
+  if (net.isIPv6(ip)) {
+    const normalized = ip.toLowerCase();
+    if (normalized === "::1") return true;
+    if (normalized === "::") return true;
+    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
+    if (normalized.startsWith("fe80:")) return true; // link-local
+    if (normalized.startsWith("::ffff:")) {
+      // IPv4-mapped: recurse on the embedded v4
+      return isPrivateOrLoopbackAddress(normalized.replace("::ffff:", ""));
+    }
+    return false;
+  }
+  return false;
+}
+
+// Reject URLs whose host resolves to a loopback/private IP, unless the
+// caller explicitly opts in (DOC_DETECTIVE_ALLOW_LOCAL_URLS=true). Tests
+// and trusted internal integrations set the env var; normal doc-spec input
+// does not, so an untrusted spec can't pivot through doc-detective to hit
+// cloud metadata or intranet services.
+//
+// Note: this is a best-effort check. DNS rebinding and TOCTOU races are
+// possible between resolution and connect; for true SSRF-grade isolation,
+// wire in an agent that validates the actual remote address at connect
+// time. This guard covers the common misuse cases.
+async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
+  if (process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS === "true") return;
+  let parsed: URL;
+  try {
+    parsed = new URL(fileURL);
+  } catch {
+    throw new Error(`Invalid URL: ${redactUrlForOutput(fileURL)}`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(
+      `Unsupported URL scheme (${parsed.protocol}) for ${redactUrlForOutput(
+        fileURL
+      )}`
+    );
+  }
+  const host = parsed.hostname.replace(/^\[|\]$/g, "");
+  // Direct IP literals: check immediately.
+  if (net.isIP(host)) {
+    if (isPrivateOrLoopbackAddress(host)) {
+      throw new Error(
+        `Refusing to fetch private/loopback address (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+      );
+    }
+    return;
+  }
+  // Hostnames: resolve and check every answer (A + AAAA).
+  const lower = host.toLowerCase();
+  if (lower === "localhost" || lower.endsWith(".localhost")) {
+    throw new Error(
+      `Refusing to fetch localhost (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+    );
+  }
+  let addresses: { address: string }[];
+  try {
+    addresses = await dns.lookup(host, { all: true });
+  } catch (error) {
+    throw new Error(
+      `Couldn't resolve host ${host} for SSRF check: ${(error as Error).message}`
+    );
+  }
+  for (const { address } of addresses) {
+    if (isPrivateOrLoopbackAddress(address)) {
+      throw new Error(
+        `Host ${host} resolves to a private/loopback address (${address}); refusing to fetch. Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+      );
+    }
+  }
+}
+
 async function fetchFile(
   fileURL: string,
   opts: { binary?: boolean } = {}
 ) {
   try {
+    if (opts.binary) {
+      // Only gate binary fetches for now — the text path is an internal
+      // loader used by the test-detection pipeline and pre-dates this
+      // change; expanding SSRF coverage there belongs in its own PR.
+      await assertUrlHostIsPublic(fileURL);
+    }
     const response = await axios.get(
       fileURL,
       opts.binary ? FETCH_BINARY_DEFAULTS : undefined

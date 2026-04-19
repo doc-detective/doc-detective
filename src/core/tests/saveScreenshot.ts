@@ -1,6 +1,11 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
-import { log, fetchFile, getOrInitRunTimestamp } from "../utils.js";
+import {
+  log,
+  fetchFile,
+  getOrInitRunTimestamp,
+  redactUrlForOutput,
+} from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { PNG } from "pngjs";
@@ -116,12 +121,15 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // to a local run-specific folder (URLs can't be written back to).
   const isUrlPath = /^https?:\/\//i.test(filePath);
   const originalUrlPath = isUrlPath ? filePath : undefined;
+  // Safe form for logs/descriptions/outputs: strips query + fragment so
+  // presigned-URL signatures/tokens don't leak into the report.
+  const redactedUrl = isUrlPath ? redactUrlForOutput(filePath) : undefined;
 
   if (isUrlPath) {
     const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
     if (fetched.result !== "success") {
       result.status = "FAIL";
-      result.description = `Couldn't fetch remote reference image (${originalUrlPath}): ${fetched.message}`;
+      result.description = `Couldn't fetch remote reference image (${redactedUrl}): ${fetched.message}`;
       return result;
     }
     existFilePath = fetched.path;
@@ -152,7 +160,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    filePath = path.join(dir, `${step.stepId}_${safeBase}`);
+    // Append a per-capture suffix so URL refs that share a basename (or a
+    // future code path that reuses `stepId`) can't clobber each other.
+    const captureId = `${step.stepId || "screenshot"}_${Date.now()}`;
+    filePath = path.join(dir, `${captureId}_${safeBase}`);
 
     // Defense in depth: the resolved capture path must stay inside `dir`.
     const resolvedDir = path.resolve(dir);
@@ -171,7 +182,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       log(
         config,
         "debug",
-        `Screenshot path is a URL (${originalUrlPath}); overwrite is ignored, running comparison only.`
+        `Screenshot path is a URL (${redactedUrl}); overwrite is ignored, running comparison only.`
       );
     }
   } else {
@@ -419,7 +430,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       } catch (error) {
         result.status = "FAIL";
         result.description = isUrlPath
-          ? `Couldn't decode PNG for comparison. The URL reference (${originalUrlPath}) may not be a valid PNG. ${error}`
+          ? `Couldn't decode PNG for comparison. The URL reference (${redactedUrl}) may not be a valid PNG. ${error}`
           : `Couldn't decode PNG for comparison. ${error}`;
         if (
           !isUrlPath &&
@@ -509,7 +520,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
           // drift signal lives in `result.status === "WARNING"` + the local
           // capture path + referenceUrl.
           result.outputs.screenshotPath = filePath;
-          result.outputs.referenceUrl = originalUrlPath;
+          result.outputs.referenceUrl = redactedUrl;
         } else {
           result.outputs.changed = true;
           result.outputs.screenshotPath = existFilePath;
@@ -524,7 +535,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         )}.`;
         if (isUrlPath) {
           result.outputs.screenshotPath = filePath;
-          result.outputs.referenceUrl = originalUrlPath;
+          result.outputs.referenceUrl = redactedUrl;
         } else {
           result.outputs.screenshotPath = existFilePath;
           if (step.screenshot.sourceIntegration) {

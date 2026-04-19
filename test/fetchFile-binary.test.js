@@ -7,9 +7,24 @@ import axios from "axios";
 
 describe("fetchFile binary mode", function () {
   let fetchFile;
+  const savedAllowLocal = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
 
   before(async function () {
+    // These tests stub axios at the module level; we don't want the real
+    // DNS resolution path in assertUrlHostIsPublic to run for every test
+    // (and flake on CI without network). Opt into the local-URL bypass so
+    // the SSRF gate is a no-op; it's covered separately in the integration
+    // suite against an actual localhost server.
+    process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
     ({ fetchFile } = await import("../dist/core/utils.js"));
+  });
+
+  after(function () {
+    if (savedAllowLocal === undefined) {
+      delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+    } else {
+      process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = savedAllowLocal;
+    }
   });
 
   afterEach(function () {

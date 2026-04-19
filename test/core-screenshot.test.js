@@ -286,11 +286,26 @@ describe("Screenshot with URL `path` (remote reference)", function () {
   const runsDir = path.resolve("./doc-detective-runs");
   const url = "http://localhost:8092/url-reference-fixture.png";
 
+  let runsDirExistedBefore = false;
+  let runsDirEntriesBefore = [];
+  const originalAllowLocalUrls = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+
   // Seed the fixture by taking a real screenshot of the test page, then copy
   // it into the static-served dir so the URL and a subsequent local capture
   // share dimensions / aspect ratio.
   before(async function () {
     this.timeout(300000);
+    // These tests drive URL fetches against http://localhost:8092, which the
+    // production SSRF guard blocks by default. Opt in for the duration of
+    // this suite and restore the prior value in `after`.
+    process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
+    // Snapshot the current contents of doc-detective-runs so teardown only
+    // removes run folders this suite created, not pre-existing artifacts or
+    // folders created by unrelated tests or developer work.
+    runsDirExistedBefore = fs.existsSync(runsDir);
+    runsDirEntriesBefore = runsDirExistedBefore
+      ? new Set(fs.readdirSync(runsDir))
+      : new Set();
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
     const seedShot = path.join(tempDir, "seed-screenshot.png");
     const seedSpecPath = path.join(tempDir, "seed-spec.json");
@@ -316,15 +331,31 @@ describe("Screenshot with URL `path` (remote reference)", function () {
   });
 
   after(function () {
+    if (originalAllowLocalUrls === undefined) {
+      delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+    } else {
+      process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = originalAllowLocalUrls;
+    }
     if (fs.existsSync(referenceFixture)) fs.unlinkSync(referenceFixture);
     if (fs.existsSync(notAPngFixture)) fs.unlinkSync(notAPngFixture);
     if (fs.existsSync(tempDir)) {
       for (const f of fs.readdirSync(tempDir)) fs.unlinkSync(path.join(tempDir, f));
       fs.rmdirSync(tempDir);
     }
-    // Best-effort cleanup of the run-specific folder the feature creates.
+    // Only remove run folders this suite created, not pre-existing ones.
     if (fs.existsSync(runsDir)) {
-      fs.rmSync(runsDir, { recursive: true, force: true });
+      for (const f of fs.readdirSync(runsDir)) {
+        if (!runsDirEntriesBefore.has(f)) {
+          fs.rmSync(path.join(runsDir, f), { recursive: true, force: true });
+        }
+      }
+      if (!runsDirExistedBefore) {
+        try {
+          fs.rmdirSync(runsDir);
+        } catch {
+          // Another test may have added entries; leave the dir in place.
+        }
+      }
     }
   });
 
@@ -518,6 +549,80 @@ describe("Screenshot with URL `path` (remote reference)", function () {
       );
     } finally {
       if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("redacts query-string credentials from outputs.referenceUrl", async function () {
+    // Simulate an S3-style presigned URL; the query string carries what
+    // would be a signature in production. It must be stripped from the
+    // reported reference URL.
+    const specPath = path.join(tempDir, "url-redact-spec.json");
+    const presignedUrl =
+      url + "?X-Amz-Signature=SECRET_TOKEN&X-Amz-Expires=60";
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              screenshot: {
+                path: presignedUrl,
+                maxVariation: 0.95,
+                overwrite: "aboveVariation",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+      assert.ok(
+        step.result === "PASS" || step.result === "WARNING",
+        `expected PASS or WARNING, got ${step.result}: ${step.resultDescription}`
+      );
+      assert.ok(step.outputs.referenceUrl, "referenceUrl must be set");
+      assert.ok(
+        !step.outputs.referenceUrl.includes("SECRET_TOKEN"),
+        `referenceUrl must not carry the signature token; got ${step.outputs.referenceUrl}`
+      );
+      assert.ok(
+        !step.outputs.referenceUrl.includes("?"),
+        `referenceUrl must have no query string; got ${step.outputs.referenceUrl}`
+      );
+      assert.equal(step.outputs.referenceUrl, url);
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("rejects private/loopback URLs unless DOC_DETECTIVE_ALLOW_LOCAL_URLS is set", async function () {
+    // Temporarily un-opt-in so the default SSRF guard fires.
+    const saved = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+    const specPath = path.join(tempDir, "url-ssrf-spec.json");
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { screenshot: { path: url, maxVariation: 0.05 } },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /Couldn't fetch remote reference image/);
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+      process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = saved;
     }
   });
 
