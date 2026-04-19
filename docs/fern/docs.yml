@@ -172,6 +172,9 @@ navigation:
             path: pages/docs/input-formats/html.mdx
           - page: Custom
             path: pages/docs/input-formats/custom.mdx
+          - page: Heretto
+            path: pages/docs/input-formats/heretto.mdx
+            slug: heretto
 
       - folder: pages/docs/actions
         title: Actions
