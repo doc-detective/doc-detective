@@ -214,13 +214,17 @@ function timestamp() {
  * Pass `options.shell: true` to opt in to a shell (e.g. for `runShell`,
  * which intentionally executes user-authored shell commands).
  *
+ * On spawn failure (ENOENT, EACCES, etc.) `exitCode` is `1` and the OS
+ * error message is surfaced in `stderr` — `exitCode` is always a number
+ * so callers can use simple comparisons (`exitCode === 0`).
+ *
  * @param {string} cmd - The command to execute.
  * @param {string[]} args - The arguments to pass to the command.
  * @param {object} options - The options for the command execution.
  * @param {string} options.cwd - Directory in which to execute the command.
  * @param {boolean} options.shell - If true, run via shell. Default: false.
  * @param {boolean} options.debug - Whether to enable debug mode.
- * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
+ * @returns {Promise<{stdout: string, stderr: string, exitCode: number}>}
  */
 async function spawnCommand(cmd: string, args: string[] = [], options: any = {}) {
   const useShell = options.shell === true;
@@ -258,9 +262,14 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   // `error` event is much more likely (missing executable surfaces as
   // ENOENT) and may fire without a subsequent `close`, so we must not
   // wait on `close` alone.
-  const exitCodePromise = new Promise<number | null>((resolve) => {
-    runCommand.on("close", (code) => resolve(code));
-    runCommand.on("error", () => resolve(null));
+  //
+  // Normalize a non-numeric (null) close to `1` so callers can rely on
+  // `exitCode` always being a number. The diagnostic detail is preserved
+  // in `stderr` (set below from the spawn error). This matches the
+  // convention in `src/agents/spawn-helper.ts:safeSpawn`.
+  const exitCodePromise = new Promise<number>((resolve) => {
+    runCommand.on("close", (code) => resolve(typeof code === "number" ? code : 1));
+    runCommand.on("error", () => resolve(1));
   });
 
   // Capture stdout and stderr concurrently to avoid deadlock. When spawn

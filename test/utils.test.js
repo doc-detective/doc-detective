@@ -732,15 +732,14 @@ describe("spawnCommand", function () {
 
   it("does not hang when the command does not exist (ENOENT)", async function () {
     // Without the error-event handling, this would await forever waiting
-    // for `close` that never fires when spawn itself fails.
+    // for `close` that never fires when spawn itself fails. exitCode is
+    // normalized to 1 (always a number) so callers can use plain
+    // numeric comparisons; the actual error surfaces in stderr.
     const result = await spawnCommand(
       "this-command-definitely-does-not-exist-1234567890"
     );
-    // exitCode should resolve (null) rather than hang.
-    expect(result.exitCode).to.satisfy(
-      (c) => c === null || typeof c === "number"
-    );
-    // Spawn error message should surface in stderr.
+    expect(result.exitCode).to.equal(1);
+    expect(typeof result.exitCode).to.equal("number");
     expect(result.stderr.length).to.be.greaterThan(0);
   });
 
