@@ -33,12 +33,18 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
 
   // config.originParams only apply to URLs resolved against an origin;
   // step.goTo.params applies regardless so per-step params on absolute URLs
-  // aren't silently dropped. Step keys win on collision.
-  const params = {
-    ...(relative ? config.originParams : undefined),
-    ...step.goTo.params,
-  };
-  step.goTo.url = appendQueryParams(step.goTo.url, params);
+  // aren't silently dropped.
+  //
+  // Apply each source in a separate pass instead of pre-merging via
+  // object spread. Spreading would convert an accidentally-array-shaped
+  // input (e.g. `originParams: ["x"]`) into `{0: "x"}`, sneaking past
+  // appendQueryParams's `Array.isArray` guard. Two passes route each
+  // source through the guard independently. Step wins on collision
+  // because the second pass dedupes against the first.
+  if (relative) {
+    step.goTo.url = appendQueryParams(step.goTo.url, config.originParams);
+  }
+  step.goTo.url = appendQueryParams(step.goTo.url, step.goTo.params);
 
   // Make sure there's a protocol
   if (step.goTo.url && !step.goTo.url.includes("://"))

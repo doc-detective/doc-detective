@@ -154,12 +154,24 @@ async function checkLink({ config, step }: { config: any; step: any }) {
 
   // config.originParams only apply to URLs resolved against an origin;
   // step.checkLink.params applies regardless so per-step params on absolute
-  // URLs aren't silently dropped. Step keys win on collision.
-  const params = {
-    ...(relative ? config.originParams : undefined),
-    ...step.checkLink.params,
-  };
-  step.checkLink.url = appendQueryParams(step.checkLink.url, params);
+  // URLs aren't silently dropped.
+  //
+  // Apply each source in a separate pass instead of pre-merging via
+  // object spread. Spreading would convert an accidentally-array-shaped
+  // input (e.g. `originParams: ["x"]`) into `{0: "x"}`, sneaking past
+  // appendQueryParams's `Array.isArray` guard. Two passes route each
+  // source through the guard independently. Step wins on collision
+  // because the second pass dedupes against the first.
+  if (relative) {
+    step.checkLink.url = appendQueryParams(
+      step.checkLink.url,
+      config.originParams
+    );
+  }
+  step.checkLink.url = appendQueryParams(
+    step.checkLink.url,
+    step.checkLink.params
+  );
 
   // Make sure there's a protocol
   if (step.checkLink.url && !step.checkLink.url.includes("://"))

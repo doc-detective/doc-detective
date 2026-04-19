@@ -148,4 +148,25 @@ describe("goTo originParams / params", function () {
     });
     assert.equal(calls.url, "https://my-app.com/p");
   });
+
+  it("ignores array-shaped config.originParams (no sneak-past via spread)", async function () {
+    // If originParams was pre-merged via object spread, an accidentally
+    // array-shaped value (`["x", "y"]`) would become `{0: "x", 1: "y"}`
+    // and bypass appendQueryParams's Array.isArray guard. Two-pass apply
+    // routes each source through the guard independently. (config isn't
+    // re-validated at the goTo runtime layer, so this is the realistic
+    // sneak-past path.)
+    const { driver, calls } = stubDriver();
+    const step = { goTo: { url: "/p" } };
+    await goTo({
+      config: {
+        origin: "https://my-app.com",
+        originParams: ["bad-config-array"],
+      },
+      step,
+      driver,
+    });
+    assert.notEqual(calls.url, undefined);
+    assert.equal(calls.url, "https://my-app.com/p");
+  });
 });
