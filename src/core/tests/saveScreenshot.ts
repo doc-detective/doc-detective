@@ -163,7 +163,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       return result;
     }
 
-    // Overwrite semantics can't apply to a URL. Force comparison-only.
+    // Overwrite semantics can't apply to a URL. The comparison block below
+    // gates every mutating branch on `!isUrlPath`, so we log the user's
+    // original value and leave `step.screenshot.overwrite` untouched — the
+    // reported step object continues to reflect what they actually specified.
     if (step.screenshot.overwrite !== "false") {
       log(
         config,
@@ -171,7 +174,6 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         `Screenshot path is a URL (${originalUrlPath}); overwrite is ignored, running comparison only.`
       );
     }
-    step.screenshot.overwrite = "aboveVariation";
   } else {
     // Set path directory
     dir = path.dirname(step.screenshot.path);
@@ -390,7 +392,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // If overwrite is true, replace old file with new file
   // If overwrite is aboveVariation, compare files and replace if variance is greater than threshold
   if (existFilePath) {
-    if (step.screenshot.overwrite == "true") {
+    // URL paths never take the "overwrite=true" fast path: existFilePath is a
+    // temp download, not a user-owned reference, and the local capture is
+    // kept in the run folder for inspection.
+    if (step.screenshot.overwrite == "true" && !isUrlPath) {
       // Replace old file with new file
       result.description += ` Overwrote existing file.`;
       fs.renameSync(filePath, existFilePath);
@@ -496,30 +501,38 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         )}) is greater than the max accepted variation (${
           step.screenshot.maxVariation
         }).`;
-        result.outputs.changed = true;
-        result.outputs.screenshotPath = isUrlPath ? filePath : existFilePath;
         if (isUrlPath) {
+          // URL references are read-only: we can't write back to the remote.
+          // Leave `outputs.changed` at its default (false) so upload pipelines
+          // like collectChangedFiles()/Heretto don't treat this as something
+          // to push, and omit sourceIntegration for the same reason. The
+          // drift signal lives in `result.status === "WARNING"` + the local
+          // capture path + referenceUrl.
+          result.outputs.screenshotPath = filePath;
           result.outputs.referenceUrl = originalUrlPath;
-        }
-        // Preserve sourceIntegration metadata for upload processing
-        if (step.screenshot.sourceIntegration) {
-          result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+        } else {
+          result.outputs.changed = true;
+          result.outputs.screenshotPath = existFilePath;
+          if (step.screenshot.sourceIntegration) {
+            result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+          }
         }
         return result;
       } else {
         result.description += ` Screenshots are within maximum accepted variation: ${fractionalDiff.toFixed(
           2
         )}.`;
-        result.outputs.screenshotPath = isUrlPath ? filePath : existFilePath;
         if (isUrlPath) {
+          result.outputs.screenshotPath = filePath;
           result.outputs.referenceUrl = originalUrlPath;
-        }
-        // Preserve sourceIntegration metadata
-        if (step.screenshot.sourceIntegration) {
-          result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
-        }
-        if (step.screenshot.overwrite != "true" && !isUrlPath) {
-          fs.unlinkSync(filePath);
+        } else {
+          result.outputs.screenshotPath = existFilePath;
+          if (step.screenshot.sourceIntegration) {
+            result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+          }
+          if (step.screenshot.overwrite != "true") {
+            fs.unlinkSync(filePath);
+          }
         }
       }
     }

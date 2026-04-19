@@ -371,11 +371,100 @@ describe("Screenshot with URL `path` (remote reference)", function () {
         fs.existsSync(step.outputs.screenshotPath),
         "new capture should exist on disk for inspection"
       );
+      // URL references are read-only references, not files we can upload
+      // back to. `outputs.changed` must stay false so upload pipelines
+      // (collectChangedFiles, Heretto, etc.) don't try to push anywhere.
+      assert.equal(
+        step.outputs.changed,
+        false,
+        "outputs.changed must be false for URL references to prevent upload flows"
+      );
       // Remote fixture must not have been overwritten.
       assert.equal(
         fs.statSync(referenceFixture).mtimeMs,
         mtimeBefore,
         "served reference file should be untouched"
+      );
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("does not leak sourceIntegration onto outputs for URL paths", async function () {
+    // URL references can't be written back to; if the user (or the resolver)
+    // attaches a sourceIntegration whose filePath is URL-derived, passing it
+    // through would cause downstream uploaders (e.g. Heretto's posix path
+    // normalization) to misbehave. Omit it entirely.
+    const specPath = path.join(tempDir, "url-sourceintegration-spec.json");
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              screenshot: {
+                path: url,
+                maxVariation: 0.95,
+                overwrite: "aboveVariation",
+                sourceIntegration: {
+                  type: "heretto",
+                  integrationName: "url-test",
+                  filePath: url,
+                  contentPath: "/content/url-topic.dita",
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+      assert.ok(
+        step.result === "PASS" || step.result === "WARNING",
+        `expected PASS or WARNING, got ${step.result}: ${step.resultDescription}`
+      );
+      assert.equal(
+        step.outputs.sourceIntegration,
+        undefined,
+        "sourceIntegration must not be set on outputs for URL paths"
+      );
+      assert.equal(step.outputs.changed, false);
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("leaves `step.screenshot.overwrite` unchanged in the reported spec (no mutation)", async function () {
+    // If the user wrote overwrite: "true", the report should show that value
+    // regardless of how we internally chose to treat URL paths.
+    const specPath = path.join(tempDir, "url-no-mutate-spec.json");
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              screenshot: {
+                path: url,
+                maxVariation: 0.95,
+                overwrite: "true",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+      assert.equal(
+        step.screenshot.overwrite,
+        "true",
+        "step.screenshot.overwrite must reflect what the user wrote, not be mutated to aboveVariation"
       );
     } finally {
       if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
