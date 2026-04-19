@@ -164,83 +164,56 @@ npm run test:coverage:html
 
 ### Version Management & CI/CD Workflows
 
-#### Auto Dev Release (`.github/workflows/auto-dev-release.yml`)
+Releases are driven end-to-end by **semantic-release** from conventional-commit history. `doc-detective-common` and the root `doc-detective` package are always published together at the **same version** — this package is never versioned or released independently. Config lives at the repo root: [.releaserc.json](../../.releaserc.json).
 
-**Triggers:** Every push to `main` branch (+ manual via `workflow_dispatch`)
+#### Release channels
 
-**Smart skip logic:**
-- Skip if commit message contains `[skip ci]` or `Release`
-- Skip if only documentation files changed (`.md`, `.txt`, `.yml`, `.yaml`, `.github/`)
-- Always runs on manual trigger
+Each branch maps to an npm dist-tag:
 
-**Version generation:**
-1. Extract base version from `package.json` (e.g., `3.1.0`)
-2. Query npm for latest dev version: `npm view doc-detective-common@dev version`
-3. If exists and matches base: increment dev number (`.dev.2` → `.dev.3`)
-4. If none exists: start with `.dev.1`
-5. Update `package.json` with new version
+| Branch | Version shape | npm dist-tag | Install |
+|---|---|---|---|
+| `main` | `X.Y.Z` | `latest` | `npm i doc-detective-common` |
+| `next` | `X.Y.Z-next.N` | `next` | `npm i doc-detective-common@next` |
+| `feat/**` (any depth) | `X.Y.Z-<slug>.N` | `<slug>` | `npm i doc-detective-common@<slug>` |
 
-**Pipeline steps:**
-1. Validate `package.json` (existence, valid JSON, required fields)
-2. Install dependencies with `npm ci`
-3. Run `npm test` (must pass)
-4. Run `npm run build` (builds schemas + post-build tests)
-5. Update version in `package.json`
-6. Commit with `[skip ci]` to prevent infinite loop
-7. Create and push git tag (e.g., `v3.1.0-dev.2`)
-8. Publish to npm with `dev` tag
+Dist-tags for `feat/**` branches are **automatically removed** when the branch is deleted, via [.github/workflows/cleanup-dist-tag.yml](../../.github/workflows/cleanup-dist-tag.yml). The pattern matches any depth (e.g., `feat/foo`, `feat/team/foo-bar`); slug normalization lowercases the name and replaces any non-`[a-z0-9-]` character with `-` so the resulting dist-tag is npm-safe.
 
-**Key details:**
-- Uses `DD_DEP_UPDATE_TOKEN` secret for git push permissions
-- Uses `NPM_TOKEN` secret for npm publish
-- Timeout: 5 minutes
-- Runs on: `ubuntu-latest`, Node 18
+#### Release pipeline (`.github/workflows/release.yml`)
 
-**Install dev releases:** `npm install doc-detective-common@dev`
+Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
+1. `npm ci` → `npm run build` → `npm test`
+2. `npx semantic-release` analyzes commits since the last tag, then:
+   - Computes the next semver from commit types (`fix` → patch, `feat` → minor, `!` or `BREAKING CHANGE` → major)
+   - Updates `CHANGELOG.md` (root)
+   - Runs [scripts/sync-common-version.js](../../scripts/sync-common-version.js) to mirror the new version into this package's `package.json`
+   - Publishes both `doc-detective` (root) and `doc-detective-common` (this package) to the channel's dist-tag
+   - Commits the version bump + changelog back to the branch with `chore(release): X.Y.Z [skip ci]`
+   - Creates the git tag `vX.Y.Z` and a GitHub Release
 
-#### Test & Publish (`.github/workflows/npm-test.yml`)
+**No human ever edits `version` in either `package.json`.** The sync script overwrites `src/common/package.json` during release.
 
-**Triggers:** Push to main, PRs, GitHub releases, manual dispatch
+#### Downstream (`.github/workflows/npm-test.yaml`)
 
-**Multi-platform matrix testing:**
-- OS: `ubuntu-latest`, `windows-latest`, `macos-latest`
-- Node: `18`, `20`, `22`, `24`
-- Total: 12 test combinations
-- Runs `npm run build` which triggers `postbuild` → `npm test`
+Still runs the full matrix (Ubuntu/Windows/macOS × Node 20/22/24) on every push and PR. The post-release jobs — `test-github-action`, `build-docker-image`, `update-downstream-common` — now fire on `release.published && !prerelease`, so Docker Hub and `doc-detective.github.io` only update on stable `main` releases, not `next`/`feat/**` prereleases.
 
-**Release pipeline (on GitHub release published):**
+#### Commit message enforcement
 
-1. **Test job:** Run full matrix tests
-2. **Threat assessment:** ReversingLabs security scan
-   - Creates npm pack tarball
-   - Uploads to RL Portal (`Trial/OSS-MannySilva`)
-   - Generates security report artifact
-   - Must pass before publish
-3. **Publish to npm:** 
-   - Publishes to npm (stable, no tag)
-   - Uses `npm_token` secret
-4. **Update downstream:**
-   - Triggers `doc-detective/resolver` repository dispatch
-   - Triggers `doc-detective.github.io` repository dispatch
-   - Passes new version in payload
-
-**Repository dispatch pattern:**
-```bash
-curl -X POST https://api.github.com/repos/doc-detective/resolver/dispatches \
-  -d '{"event_type": "update-common-package-event", "client_payload": {"version": "3.1.0"}}'
+Required format (conventional commits):
+```text
+<type>(<optional scope>): <subject>
 ```
+Enforced in three places:
+- **Locally** via husky `commit-msg` hook → `commitlint` (auto-installed on `npm install`)
+- **On PRs** via [.github/workflows/commitlint.yml](../../.github/workflows/commitlint.yml)
+- **At release time** — non-conforming commits are silently ignored by semantic-release and won't trigger a bump
 
-**Required secrets:**
-- `RLPORTAL_ACCESS_TOKEN`: ReversingLabs security scanning
-- `npm_token`: NPM publishing
-- `DD_DEP_UPDATE_TOKEN`: Cross-repo dispatches
+Allowed types default to `@commitlint/config-conventional`: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 
-#### Release Strategy Summary
+#### Secrets used by release workflows
 
-- **Dev releases** (`3.1.0-dev.X`): Automatic on every code commit to main
-- **Stable releases** (`3.1.0`): Manual via GitHub releases UI
-- **Cross-repo updates**: Automatic dispatch to dependent packages on stable release
-- **Security scanning**: Required for all stable releases (threat assessment)
+- `NPM_TOKEN` — npm publish for both packages
+- `DD_DEP_UPDATE_TOKEN` — fed to semantic-release as `GITHUB_TOKEN`; has push rights for the release commit and tag
+- `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` — Docker image push (stable releases only)
 
 ## Important Patterns
 
@@ -288,21 +261,23 @@ Use `escapeRegExp()` helper when converting user strings to regex patterns (see 
 - Error format: `${instancePath} ${message} (${JSON.stringify(params)})`
 - Common issues: Missing required properties, incorrect types, additional properties when not allowed
 
-**Trigger dev release:**
-- Just push to main branch (automatic)
-- Or add `[skip ci]` to commit message to prevent release
-- Manual trigger: GitHub Actions → Auto Dev Release → Run workflow
+**Cut a stable release:**
+- Merge a PR into `main` whose commits include at least one `fix:`, `feat:`, or breaking change (`!`/`BREAKING CHANGE`).
+- `release.yml` runs semantic-release, which bumps both packages, publishes to `@latest`, tags, and cuts a GitHub Release.
+- Triggers Docker build and `doc-detective.github.io` dispatch downstream.
 
-**Create stable release:**
-1. Go to GitHub repository → Releases
-2. Click "Draft a new release"
-3. Create new tag (e.g., `v3.2.0`)
-4. Publish release
-5. Workflow automatically:
-   - Runs full test matrix
-   - Performs security scan
-   - Publishes to npm
-   - Updates downstream packages
+**Cut a prerelease from `next`:**
+- Merge to `next` (or push to `next` directly). Same flow, but publishes to the `next` dist-tag as `X.Y.Z-next.N`.
+
+**Cut a per-feature prerelease:**
+- Push to a branch matching `feat/**` (any depth, e.g., `feat/new-api` or `feat/team/new-api`). The dist-tag is the slugified + lowercased branch suffix (e.g., `feat/new-api` → `@new-api`, `feat/team/New-API` → `@team-new-api`).
+- When the branch is deleted, the dist-tag is cleaned up automatically.
+
+**Preview the next release locally (no publish):**
+```bash
+GITHUB_TOKEN=... npx semantic-release --dry-run --no-ci
+```
+Prints the computed version and release notes diff.
 
 ## External Dependencies
 
@@ -326,7 +301,8 @@ Use `escapeRegExp()` helper when converting user strings to regex patterns (see 
 - ❌ Don't add schemas without updating `files` array in `dereferenceSchemas.js`
 - ❌ Don't assume validation mutates objects (it returns new validated object)
 - ❌ Don't forget to clone objects before validation if original needs preservation
-- ❌ Don't publish manually to npm (use GitHub releases for stable, auto-dev-release for dev)
-- ❌ Don't commit version bumps manually (workflows handle this automatically)
-- ❌ Don't modify `package.json` version in PRs (causes conflicts with auto-dev-release)
-- ❌ Don't skip security scanning for releases (threat-assessment job required)
+- ❌ Don't publish manually to npm (semantic-release owns publishing for both packages)
+- ❌ Don't edit `version` in `package.json` (root or common) — semantic-release overwrites it during release
+- ❌ Don't bump `doc-detective-common` independently — it is always released in lockstep with the root package
+- ❌ Don't use non-conventional commit messages — they're blocked locally by husky and on PRs by commitlint
+- ❌ Don't create git tags manually — semantic-release cuts `vX.Y.Z` tags
