@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl } from "../utils.js";
+import { isRelativeUrl, appendQueryParams } from "../utils.js";
 import axios from "axios";
 
 export { checkLink };
@@ -131,8 +131,10 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     step.checkLink = { url: step.checkLink };
   }
 
+  const relative = isRelativeUrl(step.checkLink.url);
+
   // Set origin for relative URLs
-  if (isRelativeUrl(step.checkLink.url)) {
+  if (relative) {
     if (!step.checkLink.origin && !config.origin) {
       result.status = "FAIL";
       result.description =
@@ -149,6 +151,27 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     }
     step.checkLink.url = step.checkLink.origin + step.checkLink.url;
   }
+
+  // config.originParams only apply to URLs resolved against an origin;
+  // step.checkLink.params applies regardless so per-step params on absolute
+  // URLs aren't silently dropped.
+  //
+  // Apply each source in a separate pass instead of pre-merging via
+  // object spread. Spreading would convert an accidentally-array-shaped
+  // input (e.g. `originParams: ["x"]`) into `{0: "x"}`, sneaking past
+  // appendQueryParams's `Array.isArray` guard. Two passes route each
+  // source through the guard independently. Step wins on collision
+  // because the second pass dedupes against the first.
+  if (relative) {
+    step.checkLink.url = appendQueryParams(
+      step.checkLink.url,
+      config.originParams
+    );
+  }
+  step.checkLink.url = appendQueryParams(
+    step.checkLink.url,
+    step.checkLink.params
+  );
 
   // Make sure there's a protocol
   if (step.checkLink.url && !step.checkLink.url.includes("://"))

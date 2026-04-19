@@ -114,6 +114,12 @@ export interface Config {
    */
   origin?: string;
   /**
+   * Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. WARNING: values are embedded in request URLs and appear verbatim in test results, logs, and reports — avoid putting long-lived secrets here.
+   */
+  originParams?: {
+    [k: string]: string;
+  };
+  /**
    * Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.
    */
   beforeAny?: string | string[];
