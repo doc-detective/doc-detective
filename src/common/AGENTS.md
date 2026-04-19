@@ -174,7 +174,7 @@ Each branch maps to an npm dist-tag:
 |---|---|---|---|
 | `main` | `X.Y.Z` | `latest` | `npm i doc-detective-common` |
 | `next` | `X.Y.Z-next.N` | `next` | `npm i doc-detective-common@next` |
-| `feat/<slug>` | `X.Y.Z-<slug>.N` | `<slug>` | `npm i doc-detective-common@<slug>` |
+| `feat/**` (any depth) | `X.Y.Z-<slug>.N` | `<slug>` | `npm i doc-detective-common@<slug>` |
 
 Dist-tags for `feat/**` branches are **automatically removed** when the branch is deleted, via [.github/workflows/cleanup-dist-tag.yml](../../.github/workflows/cleanup-dist-tag.yml). The pattern matches any depth (e.g., `feat/foo`, `feat/team/foo-bar`); slug normalization lowercases the name and replaces any non-`[a-z0-9-]` character with `-` so the resulting dist-tag is npm-safe.
 
@@ -194,7 +194,7 @@ Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
 
 #### Downstream (`.github/workflows/npm-test.yaml`)
 
-Still runs the full matrix (Ubuntu/Windows/macOS × Node 20/22/24) on every push and PR. The post-release jobs — `test-github-action`, `build-docker-image`, `update-downstream-common` — now fire on `release.published && !prerelease`, so Docker Hub and `doc-detective.github.io` only update on stable `main` releases, not `next`/`feat/*` prereleases.
+Still runs the full matrix (Ubuntu/Windows/macOS × Node 20/22/24) on every push and PR. The post-release jobs — `test-github-action`, `build-docker-image`, `update-downstream-common` — now fire on `release.published && !prerelease`, so Docker Hub and `doc-detective.github.io` only update on stable `main` releases, not `next`/`feat/**` prereleases.
 
 #### Commit message enforcement
 

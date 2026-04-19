@@ -1,7 +1,7 @@
 # Matrix tests on every push/PR. Post-release jobs (Docker build, GitHub Action
 # smoke test, downstream dispatch) run on `release.published` events, which are
 # fired by semantic-release (see .github/workflows/release.yml) when a stable
-# release is cut on main. Prereleases from `next` and `feat/*` are skipped.
+# release is cut on main. Prereleases from `next` and `feat/**` are skipped.
 
 name: Test (& Publish)
 
@@ -73,21 +73,24 @@ jobs:
         shell: bash
         run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for npm propagation
+      # The github-action below installs doc-detective via the @latest
+      # dist-tag, so we must wait for @latest to *point to* the just-published
+      # version (not just for the version to exist on npm).
+      - name: Wait for @latest dist-tag to update
         shell: bash
         run: |
           EXPECTED="${{ steps.get_version.outputs.version }}"
           for i in $(seq 1 12); do
-            PUBLISHED=$(npm view "doc-detective@$EXPECTED" version 2>/dev/null || echo "")
+            PUBLISHED=$(npm view "doc-detective@latest" version 2>/dev/null || echo "")
             if [ "$PUBLISHED" = "$EXPECTED" ]; then
-              echo "Version $PUBLISHED available on npm"
+              echo "doc-detective@latest now resolves to $PUBLISHED"
               break
             fi
-            echo "Attempt $i: expected $EXPECTED, got '$PUBLISHED'. Waiting 10s..."
+            echo "Attempt $i: @latest is '$PUBLISHED', expected '$EXPECTED'. Waiting 10s..."
             sleep 10
           done
           if [ "$PUBLISHED" != "$EXPECTED" ]; then
-            echo "ERROR: Timed out waiting for doc-detective@$EXPECTED on npm"
+            echo "ERROR: Timed out waiting for doc-detective@latest to become $EXPECTED"
             exit 1
           fi
 
