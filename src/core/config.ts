@@ -602,7 +602,11 @@ async function getAvailableApps({ config }: any) {
     const installedBrowsers = await browsers.getInstalledBrowsers({
       cacheDir: path.resolve("browser-snapshots"),
     });
-    const installedAppiumDrivers = await spawnCommand("npx appium driver list");
+    const installedAppiumDrivers = await spawnCommand("npx", [
+      "appium",
+      "driver",
+      "list",
+    ]);
 
     // Note: Edge/Microsoft Edge detection is intentionally excluded
     // Only Chrome, Firefox, and Safari are supported browsers
@@ -646,9 +650,11 @@ async function getAvailableApps({ config }: any) {
 
     // Detect Safari
     if (config.environment.platform === "mac") {
-      const safariVersion = await spawnCommand(
-        "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
-      );
+      const safariVersion = await spawnCommand("defaults", [
+        "read",
+        "/Applications/Safari.app/Contents/Info.plist",
+        "CFBundleShortVersionString",
+      ]);
       const appiumSafari = installedAppiumDrivers.stderr.match(
         /\n.*safari.*installed \(npm\).*\n/
       );

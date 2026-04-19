@@ -1,4 +1,5 @@
 import { setArgs, setConfig, outputResults } from "../dist/utils.js";
+import { spawnCommand } from "../dist/core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -716,6 +717,37 @@ describe("Util tests", function () {
         delete process.env.DOC_DETECTIVE_CONFIG;
       }
     }
+  });
+});
+
+describe("spawnCommand", function () {
+  this.timeout(10000);
+
+  it("returns successfully for an executable that exists", async function () {
+    // `node --version` works on every supported platform without a shell.
+    const result = await spawnCommand(process.execPath, ["--version"]);
+    expect(result.exitCode).to.equal(0);
+    expect(result.stdout).to.match(/^v\d+\./);
+  });
+
+  it("does not hang when the command does not exist (ENOENT)", async function () {
+    // Without the error-event handling, this would await forever waiting
+    // for `close` that never fires when spawn itself fails. exitCode is
+    // normalized to 1 (always a number) so callers can use plain
+    // numeric comparisons; the actual error surfaces in stderr.
+    const result = await spawnCommand(
+      "this-command-definitely-does-not-exist-1234567890"
+    );
+    expect(result.exitCode).to.equal(1);
+    expect(typeof result.exitCode).to.equal("number");
+    expect(result.stderr.length).to.be.greaterThan(0);
+  });
+
+  it("supports shell:true opt-in (used by runShell)", async function () {
+    // With shell:true, `echo` resolves via the shell on every platform.
+    const result = await spawnCommand("echo", ["hello"], { shell: true });
+    expect(result.exitCode).to.equal(0);
+    expect(result.stdout).to.match(/hello/);
   });
 });
 

@@ -4,6 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import axios from "axios";
 import { spawn } from "node:child_process";
+import crossSpawn from "cross-spawn";
 
 export {
   outputResults,
@@ -203,49 +204,95 @@ function timestamp() {
 
 // Perform a native command in the current working directory.
 /**
- * Executes a command in a child process using the `spawn` function from the `child_process` module.
+ * Executes a command in a child process.
+ *
+ * Defaults to `shell: false` to avoid command-injection risk: callers must
+ * pass `cmd` as the executable name and `args` as a separate array.
+ * `cross-spawn` handles Windows .cmd/.bat shim resolution so callers don't
+ * need to enable a shell just to launch `npx`/`npm` etc.
+ *
+ * Pass `options.shell: true` to opt in to a shell (e.g. for `runShell`,
+ * which intentionally executes user-authored shell commands).
+ *
+ * On spawn failure (ENOENT, EACCES, etc.) `exitCode` is `1` and the OS
+ * error message is surfaced in `stderr` — `exitCode` is always a number
+ * so callers can use simple comparisons (`exitCode === 0`).
+ *
  * @param {string} cmd - The command to execute.
  * @param {string[]} args - The arguments to pass to the command.
  * @param {object} options - The options for the command execution.
- * @param {boolean} options.workingDirectory - Directory in which to execute the command.
+ * @param {string} options.cwd - Directory in which to execute the command.
+ * @param {boolean} options.shell - If true, run via shell. Default: false.
  * @param {boolean} options.debug - Whether to enable debug mode.
- * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
+ * @returns {Promise<{stdout: string, stderr: string, exitCode: number}>}
  */
 async function spawnCommand(cmd: string, args: string[] = [], options: any = {}) {
-  // Set spawnOptions based on OS
+  const useShell = options.shell === true;
   const spawnOptions: any = {
-    shell: true,
+    shell: useShell,
+    windowsHide: process.platform === "win32",
   };
-  if (process.platform === "win32") {
-    spawnOptions.windowsHide = true;
-  }
   if (options.cwd) {
     spawnOptions.cwd = options.cwd;
   }
 
-  const runCommand = spawn(cmd, args, spawnOptions);
-  runCommand.on("error", (error) => {});
+  // Use cross-spawn when not using a shell so Windows .cmd/.bat shims
+  // (npx, npm, etc.) resolve correctly without shell interpretation.
+  // When the caller explicitly opts into a shell, fall back to node's
+  // built-in spawn since the shell itself handles resolution.
+  //
+  // CodeQL `js/command-line-injection`: the shell-true branch is the
+  // explicit user-facing shell-execution sink (used by `runShell`); the
+  // trust boundary is at the spec author. The shell-false branch passes
+  // `cmd` and `args` directly to the OS without any shell interpretation,
+  // so each `args[i]` is a literal argv entry — no metacharacter expansion.
+  const runCommand = useShell
+    ? spawn(cmd, args, spawnOptions)
+    : crossSpawn(cmd, args, spawnOptions);
 
-  // Set up exit code promise BEFORE consuming streams to avoid race condition
-  const exitCodePromise = new Promise((resolve) => {
-    runCommand.on("close", resolve);
+  // Track spawn errors (e.g. ENOENT when cmd isn't on PATH) so we can
+  // surface them in stderr instead of crashing or hanging.
+  let spawnError: NodeJS.ErrnoException | null = null;
+  runCommand.on("error", (err: NodeJS.ErrnoException) => {
+    spawnError = err;
   });
 
-  // Capture stdout and stderr concurrently to avoid deadlock
+  // Resolve the exit-code promise on either `close` (normal exit) or
+  // `error` (spawn never actually started). With `shell: false` the
+  // `error` event is much more likely (missing executable surfaces as
+  // ENOENT) and may fire without a subsequent `close`, so we must not
+  // wait on `close` alone.
+  //
+  // Normalize a non-numeric (null) close to `1` so callers can rely on
+  // `exitCode` always being a number. The diagnostic detail is preserved
+  // in `stderr` (set below from the spawn error). This matches the
+  // convention in `src/agents/spawn-helper.ts:safeSpawn`.
+  const exitCodePromise = new Promise<number>((resolve) => {
+    runCommand.on("close", (code) => resolve(typeof code === "number" ? code : 1));
+    runCommand.on("error", () => resolve(1));
+  });
+
+  // Capture stdout and stderr concurrently to avoid deadlock. When spawn
+  // fails before the child is created, these streams can be null —
+  // iterating them would TypeError.
   let stdout = "";
   let stderr = "";
-  const stdoutPromise = (async () => {
-    for await (const chunk of runCommand.stdout) {
-      stdout += chunk;
-      if (options.debug) console.log(chunk.toString());
-    }
-  })();
-  const stderrPromise = (async () => {
-    for await (const chunk of runCommand.stderr) {
-      stderr += chunk;
-      if (options.debug) console.log(chunk.toString());
-    }
-  })();
+  const stdoutPromise = runCommand.stdout
+    ? (async () => {
+        for await (const chunk of runCommand.stdout!) {
+          stdout += chunk;
+          if (options.debug) console.log(chunk.toString());
+        }
+      })()
+    : Promise.resolve();
+  const stderrPromise = runCommand.stderr
+    ? (async () => {
+        for await (const chunk of runCommand.stderr!) {
+          stderr += chunk;
+          if (options.debug) console.log(chunk.toString());
+        }
+      })()
+    : Promise.resolve();
   await Promise.all([stdoutPromise, stderrPromise]);
   // Remove trailing newlines
   stdout = stdout.replace(/\n$/, "");
@@ -254,15 +301,27 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   // Capture exit code
   const exitCode = await exitCodePromise;
 
+  // If spawn itself failed (ENOENT, EACCES, ...), surface the error
+  // message in stderr so callers (DITA detection, runCode, runShell)
+  // can detect missing tools without crashing.
+  if (spawnError && !stderr) {
+    stderr = (spawnError as NodeJS.ErrnoException).message ?? String(spawnError);
+  }
+
   return { stdout, stderr, exitCode };
 }
 
 async function inContainer() {
   if (process.env.IN_CONTAINER === "true") return true;
   if (process.platform === "linux") {
-    const result = await spawnCommand(
-      `grep -sq "docker\|lxc\|kubepods" /proc/1/cgroup`
-    );
+    // -E enables ERE so `|` is alternation. The previous template-literal
+    // form (`"docker\|lxc\|kubepods"`) silently lost the backslashes in JS,
+    // so `grep` was searching for the literal pipe char and never matched.
+    const result = await spawnCommand("grep", [
+      "-sqE",
+      "docker|lxc|kubepods",
+      "/proc/1/cgroup",
+    ]);
     if (result.exitCode === 0) return true;
   }
   return false;
