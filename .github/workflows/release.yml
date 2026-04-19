@@ -20,7 +20,40 @@ permissions:
   pull-requests: write
 
 jobs:
+  test:
+    name: Test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        node:
+          - 20
+          - 22
+          - 24
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm install
+      - run: npm run build
+      - run: npm test
+        env:
+          HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
+          HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
+          HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -38,7 +71,6 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-      - run: npm test
 
       - name: Release
         env:
