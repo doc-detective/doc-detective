@@ -9,11 +9,11 @@
  */
 export type Screenshot = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple1 = string;
 /**
