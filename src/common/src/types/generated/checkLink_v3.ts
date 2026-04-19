@@ -28,6 +28,12 @@ export interface CheckLinkDetailed1 {
    */
   origin?: string;
   /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
    */
   statusCodes?: number | number[];

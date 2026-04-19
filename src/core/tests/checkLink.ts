@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl } from "../utils.js";
+import { isRelativeUrl, appendQueryParams } from "../utils.js";
 import axios from "axios";
 
 export { checkLink };
@@ -148,6 +148,11 @@ async function checkLink({ config, step }: { config: any; step: any }) {
       step.checkLink.origin += "/";
     }
     step.checkLink.url = step.checkLink.origin + step.checkLink.url;
+    // Merge config.originParams with step.checkLink.params; step keys win on
+    // collision. Merge (rather than replace) means adding a per-step param
+    // won't silently drop a config-level token.
+    const params = { ...config.originParams, ...step.checkLink.params };
+    step.checkLink.url = appendQueryParams(step.checkLink.url, params);
   }
 
   // Make sure there's a protocol

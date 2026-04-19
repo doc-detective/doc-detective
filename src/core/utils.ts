@@ -17,6 +17,7 @@ export {
   calculateFractionalDifference,
   fetchFile,
   isRelativeUrl,
+  appendQueryParams,
 };
 
 function isRelativeUrl(url: string) {
@@ -28,6 +29,33 @@ function isRelativeUrl(url: string) {
     // If URL constructor throws an error, it's a relative URL
     return true;
   }
+}
+
+function appendQueryParams(
+  url: string,
+  params: Record<string, unknown> | undefined | null
+): string {
+  if (!params || typeof params !== "object") return url;
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null
+  );
+  if (entries.length === 0) return url;
+
+  // Split off the fragment so new params land before it, not inside.
+  const hashIdx = url.indexOf("#");
+  const fragment = hashIdx >= 0 ? url.slice(hashIdx) : "";
+  const base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+
+  // Parse any existing query string so duplicate keys get replaced rather
+  // than doubled up.
+  const queryIdx = base.indexOf("?");
+  const pathAndAuthority = queryIdx >= 0 ? base.slice(0, queryIdx) : base;
+  const existingQuery = queryIdx >= 0 ? base.slice(queryIdx + 1) : "";
+  const searchParams = new URLSearchParams(existingQuery);
+  for (const [k, v] of entries) searchParams.set(k, String(v));
+
+  const query = searchParams.toString();
+  return pathAndAuthority + (query ? "?" + query : "") + fragment;
 }
 
 // Delete all contents of doc-detective temp directory

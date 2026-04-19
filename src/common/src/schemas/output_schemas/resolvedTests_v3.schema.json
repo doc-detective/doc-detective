@@ -101,6 +101,14 @@
           "description": "Default protocol and domain to use for relative URLs.",
           "type": "string"
         },
+        "originParams": {
+          "description": "Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. WARNING: values are embedded in request URLs and appear verbatim in test results, logs, and reports — avoid putting long-lived secrets here.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
         "beforeAny": {
           "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
           "anyOf": [
@@ -1115,6 +1123,14 @@
                                                               "trim"
                                                             ]
                                                           },
+                                                          "params": {
+                                                            "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                            "type": "object",
+                                                            "additionalProperties": {
+                                                              "type": "string"
+                                                            },
+                                                            "default": {}
+                                                          },
                                                           "statusCodes": {
                                                             "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                                             "anyOf": [
@@ -1198,6 +1214,14 @@
                                                                 "trim"
                                                               ]
                                                             },
+                                                            "params": {
+                                                              "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                              "type": "object",
+                                                              "additionalProperties": {
+                                                                "type": "string"
+                                                              },
+                                                              "default": {}
+                                                            },
                                                             "statusCodes": {
                                                               "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                                               "anyOf": [
@@ -1260,6 +1284,13 @@
                                                         "statusCodes": [
                                                           200
                                                         ]
+                                                      },
+                                                      {
+                                                        "url": "/health",
+                                                        "origin": "https://my-app.com",
+                                                        "params": {
+                                                          "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                                        }
                                                       }
                                                     ]
                                                   }
@@ -3200,6 +3231,14 @@
                                                               "trim"
                                                             ]
                                                           },
+                                                          "params": {
+                                                            "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                            "type": "object",
+                                                            "additionalProperties": {
+                                                              "type": "string"
+                                                            },
+                                                            "default": {}
+                                                          },
                                                           "timeout": {
                                                             "type": "integer",
                                                             "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -3372,6 +3411,14 @@
                                                                 "trim"
                                                               ]
                                                             },
+                                                            "params": {
+                                                              "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                              "type": "object",
+                                                              "additionalProperties": {
+                                                                "type": "string"
+                                                              },
+                                                              "default": {}
+                                                            },
                                                             "timeout": {
                                                               "type": "integer",
                                                               "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -3520,6 +3567,13 @@
                                                       {
                                                         "url": "/search",
                                                         "origin": "https://www.google.com"
+                                                      },
+                                                      {
+                                                        "url": "/dashboard",
+                                                        "origin": "https://my-app.com",
+                                                        "params": {
+                                                          "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                                        }
                                                       },
                                                       {
                                                         "url": "https://www.example.com",
@@ -9778,6 +9832,14 @@
                                                 "trim"
                                               ]
                                             },
+                                            "params": {
+                                              "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                              "type": "object",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              },
+                                              "default": {}
+                                            },
                                             "statusCodes": {
                                               "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                               "anyOf": [
@@ -9861,6 +9923,14 @@
                                                   "trim"
                                                 ]
                                               },
+                                              "params": {
+                                                "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                "type": "object",
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                },
+                                                "default": {}
+                                              },
                                               "statusCodes": {
                                                 "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                                 "anyOf": [
@@ -9923,6 +9993,13 @@
                                           "statusCodes": [
                                             200
                                           ]
+                                        },
+                                        {
+                                          "url": "/health",
+                                          "origin": "https://my-app.com",
+                                          "params": {
+                                            "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                          }
                                         }
                                       ]
                                     }
@@ -11863,6 +11940,14 @@
                                                 "trim"
                                               ]
                                             },
+                                            "params": {
+                                              "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                              "type": "object",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              },
+                                              "default": {}
+                                            },
                                             "timeout": {
                                               "type": "integer",
                                               "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -12035,6 +12120,14 @@
                                                   "trim"
                                                 ]
                                               },
+                                              "params": {
+                                                "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                "type": "object",
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                },
+                                                "default": {}
+                                              },
                                               "timeout": {
                                                 "type": "integer",
                                                 "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -12183,6 +12276,13 @@
                                         {
                                           "url": "/search",
                                           "origin": "https://www.google.com"
+                                        },
+                                        {
+                                          "url": "/dashboard",
+                                          "origin": "https://my-app.com",
+                                          "params": {
+                                            "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                          }
                                         },
                                         {
                                           "url": "https://www.example.com",
@@ -19135,6 +19235,14 @@
                                                   "trim"
                                                 ]
                                               },
+                                              "params": {
+                                                "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                "type": "object",
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                },
+                                                "default": {}
+                                              },
                                               "statusCodes": {
                                                 "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                                 "anyOf": [
@@ -19218,6 +19326,14 @@
                                                     "trim"
                                                   ]
                                                 },
+                                                "params": {
+                                                  "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                  "type": "object",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  },
+                                                  "default": {}
+                                                },
                                                 "statusCodes": {
                                                   "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                                   "anyOf": [
@@ -19280,6 +19396,13 @@
                                             "statusCodes": [
                                               200
                                             ]
+                                          },
+                                          {
+                                            "url": "/health",
+                                            "origin": "https://my-app.com",
+                                            "params": {
+                                              "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                            }
                                           }
                                         ]
                                       }
@@ -21220,6 +21343,14 @@
                                                   "trim"
                                                 ]
                                               },
+                                              "params": {
+                                                "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                "type": "object",
+                                                "additionalProperties": {
+                                                  "type": "string"
+                                                },
+                                                "default": {}
+                                              },
                                               "timeout": {
                                                 "type": "integer",
                                                 "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -21392,6 +21523,14 @@
                                                     "trim"
                                                   ]
                                                 },
+                                                "params": {
+                                                  "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                  "type": "object",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  },
+                                                  "default": {}
+                                                },
                                                 "timeout": {
                                                   "type": "integer",
                                                   "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -21540,6 +21679,13 @@
                                           {
                                             "url": "/search",
                                             "origin": "https://www.google.com"
+                                          },
+                                          {
+                                            "url": "/dashboard",
+                                            "origin": "https://my-app.com",
+                                            "params": {
+                                              "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                            }
                                           },
                                           {
                                             "url": "https://www.example.com",
@@ -27272,6 +27418,14 @@
                                                         "trim"
                                                       ]
                                                     },
+                                                    "params": {
+                                                      "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                      "type": "object",
+                                                      "additionalProperties": {
+                                                        "type": "string"
+                                                      },
+                                                      "default": {}
+                                                    },
                                                     "statusCodes": {
                                                       "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                                       "anyOf": [
@@ -27355,6 +27509,14 @@
                                                           "trim"
                                                         ]
                                                       },
+                                                      "params": {
+                                                        "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                        "type": "object",
+                                                        "additionalProperties": {
+                                                          "type": "string"
+                                                        },
+                                                        "default": {}
+                                                      },
                                                       "statusCodes": {
                                                         "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                                         "anyOf": [
@@ -27417,6 +27579,13 @@
                                                   "statusCodes": [
                                                     200
                                                   ]
+                                                },
+                                                {
+                                                  "url": "/health",
+                                                  "origin": "https://my-app.com",
+                                                  "params": {
+                                                    "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                                  }
                                                 }
                                               ]
                                             }
@@ -29357,6 +29526,14 @@
                                                         "trim"
                                                       ]
                                                     },
+                                                    "params": {
+                                                      "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                      "type": "object",
+                                                      "additionalProperties": {
+                                                        "type": "string"
+                                                      },
+                                                      "default": {}
+                                                    },
                                                     "timeout": {
                                                       "type": "integer",
                                                       "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -29529,6 +29706,14 @@
                                                           "trim"
                                                         ]
                                                       },
+                                                      "params": {
+                                                        "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                                        "type": "object",
+                                                        "additionalProperties": {
+                                                          "type": "string"
+                                                        },
+                                                        "default": {}
+                                                      },
                                                       "timeout": {
                                                         "type": "integer",
                                                         "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -29677,6 +29862,13 @@
                                                 {
                                                   "url": "/search",
                                                   "origin": "https://www.google.com"
+                                                },
+                                                {
+                                                  "url": "/dashboard",
+                                                  "origin": "https://my-app.com",
+                                                  "params": {
+                                                    "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                                                  }
                                                 },
                                                 {
                                                   "url": "https://www.example.com",

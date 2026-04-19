@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl } from "../utils.js";
+import { isRelativeUrl, appendQueryParams } from "../utils.js";
 import { findElement } from "./findElement.js";
 
 export { goTo };
@@ -27,6 +27,11 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       step.goTo.origin += "/";
     }
     step.goTo.url = step.goTo.origin + step.goTo.url;
+    // Merge config.originParams with step.goTo.params; step keys win on
+    // collision. Merge (rather than replace) means adding a per-step param
+    // won't silently drop a config-level token.
+    const params = { ...config.originParams, ...step.goTo.params };
+    step.goTo.url = appendQueryParams(step.goTo.url, params);
   }
 
   // Make sure there's a protocol
