@@ -418,7 +418,6 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
           : `Couldn't decode PNG for comparison. ${error}`;
         if (
           !isUrlPath &&
-          existFilePath &&
           filePath !== existFilePath &&
           fs.existsSync(filePath)
         ) {
@@ -433,7 +432,6 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
         if (
           !isUrlPath &&
-          existFilePath &&
           filePath !== existFilePath &&
           fs.existsSync(filePath)
         ) {
