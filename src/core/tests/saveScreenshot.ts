@@ -1,6 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
-import { log } from "../utils.js";
+import { log, fetchFile, getOrInitRunTimestamp } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { PNG } from "pngjs";
@@ -108,26 +108,90 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   }
 
   let filePath = step.screenshot.path;
-
-  // Set path directory
-  const dir = path.dirname(step.screenshot.path);
-  // If `dir` doesn't exist, create it
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  // Check if file already exists
   let existFilePath;
-  if (fs.existsSync(filePath)) {
-    if (step.screenshot.overwrite == "false") {
-      // File already exists
-      result.status = "SKIPPED";
-      result.description = `File already exists: ${filePath}`;
+  let dir: string;
+
+  // Detect URL paths. A URL `path` is treated as a read-only reference:
+  // we download it to a temp file for comparison, and write the new capture
+  // to a local run-specific folder (URLs can't be written back to).
+  const isUrlPath = /^https?:\/\//i.test(filePath);
+  const originalUrlPath = isUrlPath ? filePath : undefined;
+
+  if (isUrlPath) {
+    const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
+    if (fetched.result !== "success") {
+      result.status = "FAIL";
+      result.description = `Couldn't fetch remote reference image (${originalUrlPath}): ${fetched.message}`;
       return result;
-    } else {
-      // Set temp file path
-      existFilePath = filePath;
-      filePath = path.join(dir, `${step.stepId}_${Date.now()}.png`);
+    }
+    existFilePath = fetched.path;
+
+    // URL-derived names can contain path separators (`/`, `\`) or `..`
+    // segments. `path.basename` on a slash-normalized string strips directory
+    // components; we also sanitize any residual traversal and prepend stepId
+    // so two URL screenshots with the same basename don't clobber each other.
+    let urlPathname: string;
+    try {
+      urlPathname = new URL(originalUrlPath!).pathname;
+    } catch {
+      urlPathname = originalUrlPath!;
+    }
+    const rawBase = path.basename(
+      urlPathname.split("?")[0].split("#")[0].replace(/\\/g, "/")
+    );
+    const safeBase =
+      !rawBase || rawBase === "." || rawBase === ".." || rawBase.includes("\0")
+        ? `${step.stepId}.png`
+        : rawBase;
+
+    dir = path.join(
+      process.cwd(),
+      "doc-detective-runs",
+      getOrInitRunTimestamp(config)
+    );
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    filePath = path.join(dir, `${step.stepId}_${safeBase}`);
+
+    // Defense in depth: the resolved capture path must stay inside `dir`.
+    const resolvedDir = path.resolve(dir);
+    const resolvedFile = path.resolve(filePath);
+    if (!resolvedFile.startsWith(resolvedDir + path.sep)) {
+      result.status = "FAIL";
+      result.description = `Refusing to write screenshot outside run folder: ${resolvedFile}`;
+      return result;
+    }
+
+    // Overwrite semantics can't apply to a URL. Force comparison-only.
+    if (step.screenshot.overwrite !== "false") {
+      log(
+        config,
+        "debug",
+        `Screenshot path is a URL (${originalUrlPath}); overwrite is ignored, running comparison only.`
+      );
+    }
+    step.screenshot.overwrite = "aboveVariation";
+  } else {
+    // Set path directory
+    dir = path.dirname(step.screenshot.path);
+    // If `dir` doesn't exist, create it
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Check if file already exists
+    if (fs.existsSync(filePath)) {
+      if (step.screenshot.overwrite == "false") {
+        // File already exists
+        result.status = "SKIPPED";
+        result.description = `File already exists: ${filePath}`;
+        return result;
+      } else {
+        // Set temp file path
+        existFilePath = filePath;
+        filePath = path.join(dir, `${step.stepId}_${Date.now()}.png`);
+      }
     }
   }
 
@@ -342,14 +406,37 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
 
     // Perform numerical pixel diff with pixelmatch
     if (step.screenshot.maxVariation != null) {
-      const img1 = PNG.sync.read(fs.readFileSync(existFilePath));
-      const img2 = PNG.sync.read(fs.readFileSync(filePath));
+      let img1: any;
+      let img2: any;
+      try {
+        img1 = PNG.sync.read(fs.readFileSync(existFilePath));
+        img2 = PNG.sync.read(fs.readFileSync(filePath));
+      } catch (error) {
+        result.status = "FAIL";
+        result.description = isUrlPath
+          ? `Couldn't decode PNG for comparison. The URL reference (${originalUrlPath}) may not be a valid PNG. ${error}`
+          : `Couldn't decode PNG for comparison. ${error}`;
+        if (
+          !isUrlPath &&
+          existFilePath &&
+          filePath !== existFilePath &&
+          fs.existsSync(filePath)
+        ) {
+          fs.unlinkSync(filePath);
+        }
+        return result;
+      }
 
       // Compare aspect ratio of images
       if (!aspectRatiosMatch(img1, img2)) {
         result.status = "FAIL";
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
-        if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
+        if (
+          !isUrlPath &&
+          existFilePath &&
+          filePath !== existFilePath &&
+          fs.existsSync(filePath)
+        ) {
           fs.unlinkSync(filePath);
         }
         return result;
@@ -401,7 +488,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       });
 
       if (fractionalDiff > step.screenshot.maxVariation) {
-        if (step.screenshot.overwrite == "aboveVariation") {
+        if (step.screenshot.overwrite == "aboveVariation" && !isUrlPath) {
           // Replace old file with new file
           fs.renameSync(filePath, existFilePath);
         }
@@ -412,7 +499,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
           step.screenshot.maxVariation
         }).`;
         result.outputs.changed = true;
-        result.outputs.screenshotPath = existFilePath;
+        result.outputs.screenshotPath = isUrlPath ? filePath : existFilePath;
+        if (isUrlPath) {
+          result.outputs.referenceUrl = originalUrlPath;
+        }
         // Preserve sourceIntegration metadata for upload processing
         if (step.screenshot.sourceIntegration) {
           result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
@@ -422,12 +512,15 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         result.description += ` Screenshots are within maximum accepted variation: ${fractionalDiff.toFixed(
           2
         )}.`;
-        result.outputs.screenshotPath = existFilePath;
+        result.outputs.screenshotPath = isUrlPath ? filePath : existFilePath;
+        if (isUrlPath) {
+          result.outputs.referenceUrl = originalUrlPath;
+        }
         // Preserve sourceIntegration metadata
         if (step.screenshot.sourceIntegration) {
           result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
         }
-        if (step.screenshot.overwrite != "true") {
+        if (step.screenshot.overwrite != "true" && !isUrlPath) {
           fs.unlinkSync(filePath);
         }
       }

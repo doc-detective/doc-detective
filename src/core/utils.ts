@@ -10,6 +10,7 @@ export {
   loadEnvs,
   log,
   timestamp,
+  getOrInitRunTimestamp,
   replaceEnvs,
   spawnCommand,
   inContainer,
@@ -46,28 +47,77 @@ function cleanTemp() {
   }
 }
 
-// Fetch a file from a URL and save to a temp directory
-// If the file is not JSON, return the contents as a string
-// If the file is not found, return an error
-async function fetchFile(fileURL: string) {
+// Fetch a file from a URL and save to a temp directory.
+// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
+// required for images and other non-text payloads. Binary fetches also apply
+// hard limits (timeout, max body size, max redirects) so a misbehaving server
+// can't stall or OOM the run.
+// Otherwise, non-JSON responses are stringified (text pass-through).
+// Returns `{ result: "error", message }` on failure.
+const FETCH_BINARY_DEFAULTS = {
+  responseType: "arraybuffer" as const,
+  timeout: 30_000,
+  maxContentLength: 50 * 1024 * 1024,
+  maxBodyLength: 50 * 1024 * 1024,
+  maxRedirects: 5,
+};
+
+// Derive a safe on-disk filename from a URL. URL-derived strings can contain
+// path separators (`/`, `\`) or traversal segments (`..`); `path.basename`
+// strips directory components, and we reject any residual traversal so a
+// crafted URL can't escape its intended directory.
+function safeFilenameFromUrl(fileURL: string, fallback: string): string {
+  let raw: string;
   try {
-    const response = await axios.get(fileURL);
-    if (typeof response.data === "object") {
-      response.data = JSON.stringify(response.data, null, 2);
+    raw = new URL(fileURL).pathname;
+  } catch {
+    raw = fileURL;
+  }
+  raw = raw.split("?")[0].split("#")[0];
+  const base = path.basename(raw.replace(/\\/g, "/"));
+  if (!base || base === "." || base === ".." || base.includes("\0")) {
+    return fallback;
+  }
+  return base;
+}
+
+async function fetchFile(
+  fileURL: string,
+  opts: { binary?: boolean } = {}
+) {
+  try {
+    const response = await axios.get(
+      fileURL,
+      opts.binary ? FETCH_BINARY_DEFAULTS : undefined
+    );
+    let data: Buffer | string;
+    if (opts.binary) {
+      data = Buffer.from(response.data);
+    } else if (typeof response.data === "object") {
+      data = JSON.stringify(response.data, null, 2);
     } else {
-      response.data = response.data.toString();
+      data = response.data.toString();
     }
-    const fileName = fileURL.split("/").pop() || "fetched_file";
-    const hash = crypto.createHash("md5").update(response.data).digest("hex");
+    const fileName = safeFilenameFromUrl(fileURL, "fetched_file");
+    const hash = crypto.createHash("md5").update(data).digest("hex");
     const ddTempDir = path.join(os.tmpdir(), "doc-detective");
     const filePath = path.join(ddTempDir, `${hash}_${fileName}`);
-    // If doc-detective temp directory doesn't exist, create it
+    // Defense in depth: ensure the resolved path is still inside ddTempDir.
+    const resolvedDir = path.resolve(ddTempDir);
+    const resolvedFile = path.resolve(filePath);
+    if (!resolvedFile.startsWith(resolvedDir + path.sep)) {
+      return {
+        result: "error",
+        message: new Error(
+          `Refusing to write outside temp dir: ${resolvedFile}`
+        ),
+      };
+    }
     if (!fs.existsSync(ddTempDir)) {
       fs.mkdirSync(ddTempDir, { recursive: true });
     }
-    // If file doesn't exist, write it
     if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, response.data);
+      fs.writeFileSync(filePath, data);
     }
     return { result: "success", path: filePath };
   } catch (error) {
@@ -199,6 +249,16 @@ function timestamp() {
   ).slice(-2)}${("0" + timestamp.getMinutes()).slice(-2)}${(
     "0" + timestamp.getSeconds()
   ).slice(-2)}`;
+}
+
+// Memoize one timestamp per run on the config object so every URL-referenced
+// screenshot in a single run lands in the same folder.
+function getOrInitRunTimestamp(config: any): string {
+  if (!config) return timestamp();
+  if (!config.__runTimestamp) {
+    config.__runTimestamp = timestamp();
+  }
+  return config.__runTimestamp;
 }
 
 // Perform a native command in the current working directory.

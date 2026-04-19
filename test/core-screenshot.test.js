@@ -275,3 +275,260 @@ describe("Screenshot sourceIntegration preservation", function () {
     }
   });
 });
+
+describe("Screenshot with URL `path` (remote reference)", function () {
+  this.timeout(300000);
+
+  const tempDir = path.resolve("./test/temp-screenshot-url-tests");
+  const publicDir = path.resolve("./test/server/public");
+  const referenceFixture = path.join(publicDir, "url-reference-fixture.png");
+  const notAPngFixture = path.join(publicDir, "not-a-real.png");
+  const runsDir = path.resolve("./doc-detective-runs");
+  const url = "http://localhost:8092/url-reference-fixture.png";
+
+  // Seed the fixture by taking a real screenshot of the test page, then copy
+  // it into the static-served dir so the URL and a subsequent local capture
+  // share dimensions / aspect ratio.
+  before(async function () {
+    this.timeout(300000);
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+    const seedShot = path.join(tempDir, "seed-screenshot.png");
+    const seedSpecPath = path.join(tempDir, "seed-spec.json");
+    fs.writeFileSync(
+      seedSpecPath,
+      JSON.stringify({
+        tests: [
+          {
+            steps: [
+              { goTo: "http://localhost:8092" },
+              { screenshot: { path: seedShot, overwrite: "true" } },
+            ],
+          },
+        ],
+      })
+    );
+    await runTests({ input: seedSpecPath, logLevel: "silent" });
+    assert.ok(fs.existsSync(seedShot), "seed screenshot must have been captured");
+    fs.copyFileSync(seedShot, referenceFixture);
+    // A fixture served under a .png URL but whose bytes are clearly not a PNG,
+    // used to verify PNG.sync.read failures turn into a clean step FAIL.
+    fs.writeFileSync(notAPngFixture, "<!DOCTYPE html><p>not a png</p>");
+  });
+
+  after(function () {
+    if (fs.existsSync(referenceFixture)) fs.unlinkSync(referenceFixture);
+    if (fs.existsSync(notAPngFixture)) fs.unlinkSync(notAPngFixture);
+    if (fs.existsSync(tempDir)) {
+      for (const f of fs.readdirSync(tempDir)) fs.unlinkSync(path.join(tempDir, f));
+      fs.rmdirSync(tempDir);
+    }
+    // Best-effort cleanup of the run-specific folder the feature creates.
+    if (fs.existsSync(runsDir)) {
+      fs.rmSync(runsDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fetches the URL reference, writes the new capture to a run-specific local folder, and leaves the remote fixture on disk untouched", async function () {
+    const specPath = path.join(tempDir, "url-spec.json");
+    const mtimeBefore = fs.statSync(referenceFixture).mtimeMs;
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              screenshot: {
+                path: url,
+                maxVariation: 0.95,
+                overwrite: "aboveVariation",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+
+      // The step may PASS (within tolerance) or WARNING (exceeded tolerance)
+      // depending on page rendering — but it must NEVER FAIL on this path,
+      // and the output must point at the local run folder, not the URL.
+      assert.ok(
+        step.result === "PASS" || step.result === "WARNING",
+        `expected PASS or WARNING, got ${step.result}: ${step.resultDescription}`
+      );
+      assert.equal(step.outputs.referenceUrl, url);
+      assert.ok(
+        step.outputs.screenshotPath &&
+          step.outputs.screenshotPath.includes("doc-detective-runs"),
+        `screenshotPath should live under doc-detective-runs/, got ${step.outputs.screenshotPath}`
+      );
+      assert.ok(
+        fs.existsSync(step.outputs.screenshotPath),
+        "new capture should exist on disk for inspection"
+      );
+      // Remote fixture must not have been overwritten.
+      assert.equal(
+        fs.statSync(referenceFixture).mtimeMs,
+        mtimeBefore,
+        "served reference file should be untouched"
+      );
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("ignores overwrite=true for URL paths (never writes back to the remote reference)", async function () {
+    const specPath = path.join(tempDir, "url-overwrite-spec.json");
+    const bytesBefore = fs.readFileSync(referenceFixture);
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              screenshot: {
+                path: url,
+                maxVariation: 0.95,
+                overwrite: "true", // would normally replace the reference
+              },
+            },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+
+      // Strong assertions — without these, a regression that FAILs the step
+      // before the overwrite branch would still leave the bytes untouched
+      // and silently "pass" this test.
+      assert.ok(
+        step.result === "PASS" || step.result === "WARNING",
+        `expected PASS or WARNING, got ${step.result}: ${step.resultDescription}`
+      );
+      assert.equal(step.outputs.referenceUrl, url);
+      assert.ok(
+        step.outputs.screenshotPath &&
+          step.outputs.screenshotPath.includes("doc-detective-runs"),
+        `screenshotPath should live under doc-detective-runs/, got ${step.outputs.screenshotPath}`
+      );
+
+      const bytesAfter = fs.readFileSync(referenceFixture);
+      assert.ok(
+        bytesBefore.equals(bytesAfter),
+        "overwrite=true with URL path must not mutate the remote reference file"
+      );
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("FAILs gracefully when the URL body is not a valid PNG", async function () {
+    const specPath = path.join(tempDir, "url-notpng-spec.json");
+    const notPngUrl = "http://localhost:8092/not-a-real.png";
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { screenshot: { path: notPngUrl, maxVariation: 0.05 } },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /Couldn't decode PNG/);
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("contains the new capture inside the run folder even when the URL path tries to traverse out", async function () {
+    const specPath = path.join(tempDir, "url-traversal-spec.json");
+    // URL-encoded `..%2f` decodes to `../` after URL.pathname → a raw
+    // `split("/").pop()` would surface it; our sanitization must neutralize it.
+    const traversalUrl =
+      "http://localhost:8092/foo/..%2Furl-reference-fixture.png";
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              screenshot: {
+                path: traversalUrl,
+                maxVariation: 0.95,
+                overwrite: "aboveVariation",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+
+      if (step.result === "FAIL") {
+        // Acceptable: sanitization rejected the traversal outright.
+        return;
+      }
+      assert.ok(
+        step.outputs.screenshotPath,
+        "screenshotPath should be set on non-FAIL outcomes"
+      );
+      const resolvedOut = path.resolve(step.outputs.screenshotPath);
+      const resolvedRunsDir = path.resolve(runsDir);
+      assert.ok(
+        resolvedOut.startsWith(resolvedRunsDir + path.sep),
+        `screenshot must live under ${resolvedRunsDir}; got ${resolvedOut}`
+      );
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+
+  it("FAILs the step with a clear message when the URL can't be fetched", async function () {
+    const specPath = path.join(tempDir, "url-404-spec.json");
+    const missingUrl = "http://localhost:8092/does-not-exist.png";
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { screenshot: { path: missingUrl, maxVariation: 0.05 } },
+          ],
+        },
+      ],
+    };
+    fs.writeFileSync(specPath, JSON.stringify(spec));
+
+    try {
+      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /Couldn't fetch remote reference image/);
+    } finally {
+      if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
+    }
+  });
+});
