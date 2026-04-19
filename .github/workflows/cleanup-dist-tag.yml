@@ -23,7 +23,7 @@ jobs:
           DELETED_REF: ${{ github.event.ref }}
         run: |
           set -euo pipefail
-          slug=$(printf '%s' "$DELETED_REF" | sed 's|^feat/||' | sed 's|[^a-zA-Z0-9-]|-|g')
+          slug=$(printf '%s' "$DELETED_REF" | sed 's|^feat/||' | sed 's|[^a-zA-Z0-9-]|-|g' | tr '[:upper:]' '[:lower:]')
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
           echo "Computed slug: $slug"
 

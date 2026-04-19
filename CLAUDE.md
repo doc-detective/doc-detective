@@ -44,7 +44,7 @@ Pick the commit type deliberately — it is the **only** signal that decides whe
 |---|---|---|
 | `main` | `latest` | `npm i doc-detective` |
 | `next` | `next` | `npm i doc-detective@next` |
-| `feat/<slug>` | `<slug>` | `npm i doc-detective@<slug>` |
+| `feat/**` (any depth) | `<slug>` (lowercased branch suffix, non-alphanumeric → `-`) | `npm i doc-detective@<slug>` |
 
 Both `doc-detective` and `doc-detective-common` are **always published in lockstep** at the same version. Never edit a `version` field in either `package.json` — [scripts/sync-common-version.js](scripts/sync-common-version.js) and semantic-release manage it.
 
@@ -73,5 +73,5 @@ npx commitlint --from HEAD~1 --to HEAD --verbose
 - [.husky/commit-msg](.husky/commit-msg) — local hook
 - [.github/workflows/release.yml](.github/workflows/release.yml) — release pipeline
 - [.github/workflows/commitlint.yml](.github/workflows/commitlint.yml) — PR enforcement
-- [.github/workflows/cleanup-dist-tag.yml](.github/workflows/cleanup-dist-tag.yml) — auto-remove `feat/*` dist-tags on branch delete
+- [.github/workflows/cleanup-dist-tag.yml](.github/workflows/cleanup-dist-tag.yml) — auto-remove `feat/**` dist-tags on branch delete
 - [.github/workflows/npm-test.yaml](.github/workflows/npm-test.yaml) — matrix tests + post-release Docker/downstream jobs

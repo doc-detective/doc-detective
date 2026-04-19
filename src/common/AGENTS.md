@@ -176,11 +176,11 @@ Each branch maps to an npm dist-tag:
 | `next` | `X.Y.Z-next.N` | `next` | `npm i doc-detective-common@next` |
 | `feat/<slug>` | `X.Y.Z-<slug>.N` | `<slug>` | `npm i doc-detective-common@<slug>` |
 
-Dist-tags for `feat/*` branches are **automatically removed** when the branch is deleted, via [.github/workflows/cleanup-dist-tag.yml](../../.github/workflows/cleanup-dist-tag.yml).
+Dist-tags for `feat/**` branches are **automatically removed** when the branch is deleted, via [.github/workflows/cleanup-dist-tag.yml](../../.github/workflows/cleanup-dist-tag.yml). The pattern matches any depth (e.g., `feat/foo`, `feat/team/foo-bar`); slug normalization lowercases the name and replaces any non-`[a-z0-9-]` character with `-` so the resulting dist-tag is npm-safe.
 
 #### Release pipeline (`.github/workflows/release.yml`)
 
-Triggered by push to `main`, `next`, or `feat/*`. Steps:
+Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
 1. `npm ci` → `npm run build` → `npm test`
 2. `npx semantic-release` analyzes commits since the last tag, then:
    - Computes the next semver from commit types (`fix` → patch, `feat` → minor, `!` or `BREAKING CHANGE` → major)
@@ -270,7 +270,7 @@ Use `escapeRegExp()` helper when converting user strings to regex patterns (see 
 - Merge to `next` (or push to `next` directly). Same flow, but publishes to the `next` dist-tag as `X.Y.Z-next.N`.
 
 **Cut a per-feature prerelease:**
-- Push to a branch matching `feat/*`. The dist-tag is the branch slug (e.g., `feat/new-api` → `@new-api`).
+- Push to a branch matching `feat/**` (any depth, e.g., `feat/new-api` or `feat/team/new-api`). The dist-tag is the slugified + lowercased branch suffix (e.g., `feat/new-api` → `@new-api`, `feat/team/New-API` → `@team-new-api`).
 - When the branch is deleted, the dist-tag is cleaned up automatically.
 
 **Preview the next release locally (no publish):**

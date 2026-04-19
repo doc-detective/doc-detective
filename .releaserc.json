@@ -4,8 +4,8 @@
     { "name": "next", "channel": "next", "prerelease": "next" },
     {
       "name": "feat/**",
-      "channel": "${name.replace(/^feat\\//, '').replace(/[^a-zA-Z0-9-]/g, '-')}",
-      "prerelease": "${name.replace(/^feat\\//, '').replace(/[^a-zA-Z0-9-]/g, '-')}"
+      "channel": "${name.replace(/^feat\\//, '').replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}",
+      "prerelease": "${name.replace(/^feat\\//, '').replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}"
     }
   ],
   "plugins": [
@@ -42,7 +42,8 @@
           "CHANGELOG.md",
           "package.json",
           "package-lock.json",
-          "src/common/package.json"
+          "src/common/package.json",
+          "src/common/package-lock.json"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }

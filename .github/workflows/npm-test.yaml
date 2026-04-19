@@ -62,6 +62,7 @@ jobs:
 
   test-github-action:
     name: Test GitHub Action
+    needs: test
     if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
     runs-on: ubuntu-latest
     steps:
@@ -70,7 +71,7 @@ jobs:
       - name: Get package version
         id: get_version
         shell: bash
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
 
       - name: Wait for npm propagation
         shell: bash
@@ -99,6 +100,7 @@ jobs:
 
   build-docker-image:
     name: Build & Push Docker Image (${{ matrix.os }})
+    needs: test
     if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
     timeout-minutes: 60
     strategy:
@@ -119,7 +121,7 @@ jobs:
       - name: Get package version
         id: get_version
         shell: bash
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: npm ci
@@ -185,6 +187,7 @@ jobs:
 
   update-downstream-common:
     name: Update downstream common packages
+    needs: test
     if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
     runs-on: ubuntu-latest
     steps:
