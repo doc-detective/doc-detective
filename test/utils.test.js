@@ -771,6 +771,19 @@ describe("appendQueryParams", function () {
     );
   });
 
+  it("on collision, replaces only the colliding key and keeps non-colliding pairs verbatim", function () {
+    // Same signed-URL shape as the no-collision test, but now there's
+    // also a colliding `token=old`. Only that segment should be dropped;
+    // `sig=abc:123,xyz` and `q=hello+world` must come through untouched.
+    const out = appendQueryParams(
+      "https://example.com/p?sig=abc:123,xyz&token=old&q=hello+world",
+      { token: "new" }
+    );
+    expect(out).to.equal(
+      "https://example.com/p?sig=abc:123,xyz&q=hello+world&token=new"
+    );
+  });
+
   it("inserts params before a URL fragment (not inside it)", function () {
     const out = appendQueryParams("https://example.com/p#section", {
       token: "t",
