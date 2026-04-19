@@ -2,6 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import dns from "node:dns/promises";
+import net from "node:net";
 import axios from "axios";
 import { spawn } from "node:child_process";
 
@@ -10,6 +12,7 @@ export {
   loadEnvs,
   log,
   timestamp,
+  getOrInitRunTimestamp,
   replaceEnvs,
   spawnCommand,
   inContainer,
@@ -18,6 +21,9 @@ export {
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
+  redactUrlForOutput,
+  assertUrlHostIsPublic,
+  sanitizeFilesystemName,
 };
 
 function isRelativeUrl(url: string) {
@@ -74,28 +80,201 @@ function cleanTemp() {
   }
 }
 
-// Fetch a file from a URL and save to a temp directory
-// If the file is not JSON, return the contents as a string
-// If the file is not found, return an error
-async function fetchFile(fileURL: string) {
+// Fetch a file from a URL and save to a temp directory.
+// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
+// required for images and other non-text payloads. Binary fetches also apply
+// hard limits (timeout, max body size, max redirects) so a misbehaving server
+// can't stall or OOM the run.
+// Otherwise, non-JSON responses are stringified (text pass-through).
+// Returns `{ result: "error", message }` on failure.
+const FETCH_BINARY_DEFAULTS = {
+  responseType: "arraybuffer" as const,
+  timeout: 30_000,
+  maxContentLength: 50 * 1024 * 1024,
+  maxBodyLength: 50 * 1024 * 1024,
+  maxRedirects: 5,
+};
+
+// Replace characters that are invalid in filenames on Windows (and often
+// problematic on other platforms) with `_`. Keeps dots, hyphens, and
+// alphanumerics untouched so names stay recognizable. Also rejects leading
+// dots that could turn the file into a traversal segment.
+function sanitizeFilesystemName(name: string, fallback: string): string {
+  if (!name || name === "." || name === "..") return fallback;
+  // Control chars 0x00-0x1f + Windows reserved: < > : " / \ | ? *
+  const cleaned = name.replace(/[\x00-\x1f<>:"/\\|?*]/g, "_");
+  // After replacement, guard against all-dots or empty results.
+  if (!cleaned || /^\.+$/.test(cleaned)) return fallback;
+  return cleaned;
+}
+
+// Derive a safe on-disk filename from a URL. URL-derived strings can contain
+// path separators (`/`, `\`), traversal segments (`..`), or characters that
+// are invalid in filenames on Windows (`:<>"|?*`). `path.basename` strips
+// directory components; `sanitizeFilesystemName` then neutralizes remaining
+// unsafe characters so `fetchFile` works on every platform.
+function safeFilenameFromUrl(fileURL: string, fallback: string): string {
+  let raw: string;
   try {
-    const response = await axios.get(fileURL);
-    if (typeof response.data === "object") {
-      response.data = JSON.stringify(response.data, null, 2);
-    } else {
-      response.data = response.data.toString();
+    raw = new URL(fileURL).pathname;
+  } catch {
+    raw = fileURL;
+  }
+  raw = raw.split("?")[0].split("#")[0];
+  const base = path.basename(raw.replace(/\\/g, "/"));
+  return sanitizeFilesystemName(base, fallback);
+}
+
+// Strip query string and fragment from a URL for display/logging. S3
+// pre-signed URLs carry tokens/signatures in the query; leaking them into
+// step descriptions, debug logs, or result outputs exposes credentials.
+// The full URL with query is still used for the fetch itself — only the
+// *reported* form is redacted.
+function redactUrlForOutput(value: string): string {
+  try {
+    const url = new URL(value);
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return value.split("?")[0].split("#")[0];
+  }
+}
+
+// Private/loopback/link-local IP ranges that binary URL fetches refuse to
+// reach by default. Covers IPv4 RFC1918, loopback, link-local (169.254/16),
+// carrier-grade NAT (100.64/10), and the cloud-metadata special cases
+// (169.254.169.254 is inside link-local and thus covered).
+function isPrivateOrLoopbackAddress(ip: string): boolean {
+  if (!ip) return false;
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split(".").map(Number);
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    return false;
+  }
+  if (net.isIPv6(ip)) {
+    const normalized = ip.toLowerCase();
+    if (normalized === "::1") return true;
+    if (normalized === "::") return true;
+    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
+    if (normalized.startsWith("fe80:")) return true; // link-local
+    if (normalized.startsWith("::ffff:")) {
+      // IPv4-mapped: recurse on the embedded v4
+      return isPrivateOrLoopbackAddress(normalized.replace("::ffff:", ""));
     }
-    const fileName = fileURL.split("/").pop() || "fetched_file";
-    const hash = crypto.createHash("md5").update(response.data).digest("hex");
+    return false;
+  }
+  return false;
+}
+
+// Reject URLs whose host resolves to a loopback/private IP, unless the
+// caller explicitly opts in (DOC_DETECTIVE_ALLOW_LOCAL_URLS=true). Tests
+// and trusted internal integrations set the env var; normal doc-spec input
+// does not, so an untrusted spec can't pivot through doc-detective to hit
+// cloud metadata or intranet services.
+//
+// Note: this is a best-effort check. DNS rebinding and TOCTOU races are
+// possible between resolution and connect; for true SSRF-grade isolation,
+// wire in an agent that validates the actual remote address at connect
+// time. This guard covers the common misuse cases.
+async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
+  if (process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS === "true") return;
+  let parsed: URL;
+  try {
+    parsed = new URL(fileURL);
+  } catch {
+    throw new Error(`Invalid URL: ${redactUrlForOutput(fileURL)}`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(
+      `Unsupported URL scheme (${parsed.protocol}) for ${redactUrlForOutput(
+        fileURL
+      )}`
+    );
+  }
+  const host = parsed.hostname.replace(/^\[|\]$/g, "");
+  // Direct IP literals: check immediately.
+  if (net.isIP(host)) {
+    if (isPrivateOrLoopbackAddress(host)) {
+      throw new Error(
+        `Refusing to fetch private/loopback address (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+      );
+    }
+    return;
+  }
+  // Hostnames: resolve and check every answer (A + AAAA).
+  const lower = host.toLowerCase();
+  if (lower === "localhost" || lower.endsWith(".localhost")) {
+    throw new Error(
+      `Refusing to fetch localhost (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+    );
+  }
+  let addresses: { address: string }[];
+  try {
+    addresses = await dns.lookup(host, { all: true });
+  } catch (error) {
+    throw new Error(
+      `Couldn't resolve host ${host} for SSRF check: ${(error as Error).message}`
+    );
+  }
+  for (const { address } of addresses) {
+    if (isPrivateOrLoopbackAddress(address)) {
+      throw new Error(
+        `Host ${host} resolves to a private/loopback address (${address}); refusing to fetch. Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+      );
+    }
+  }
+}
+
+async function fetchFile(
+  fileURL: string,
+  opts: { binary?: boolean } = {}
+) {
+  try {
+    if (opts.binary) {
+      // Only gate binary fetches for now — the text path is an internal
+      // loader used by the test-detection pipeline and pre-dates this
+      // change; expanding SSRF coverage there belongs in its own PR.
+      await assertUrlHostIsPublic(fileURL);
+    }
+    const response = await axios.get(
+      fileURL,
+      opts.binary ? FETCH_BINARY_DEFAULTS : undefined
+    );
+    let data: Buffer | string;
+    if (opts.binary) {
+      data = Buffer.from(response.data);
+    } else if (typeof response.data === "object") {
+      data = JSON.stringify(response.data, null, 2);
+    } else {
+      data = response.data.toString();
+    }
+    const fileName = safeFilenameFromUrl(fileURL, "fetched_file");
+    const hash = crypto.createHash("md5").update(data).digest("hex");
     const ddTempDir = path.join(os.tmpdir(), "doc-detective");
     const filePath = path.join(ddTempDir, `${hash}_${fileName}`);
-    // If doc-detective temp directory doesn't exist, create it
+    // Defense in depth: ensure the resolved path is still inside ddTempDir.
+    const resolvedDir = path.resolve(ddTempDir);
+    const resolvedFile = path.resolve(filePath);
+    if (!resolvedFile.startsWith(resolvedDir + path.sep)) {
+      return {
+        result: "error",
+        message: new Error(
+          `Refusing to write outside temp dir: ${resolvedFile}`
+        ),
+      };
+    }
     if (!fs.existsSync(ddTempDir)) {
       fs.mkdirSync(ddTempDir, { recursive: true });
     }
-    // If file doesn't exist, write it
     if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, response.data);
+      fs.writeFileSync(filePath, data);
     }
     return { result: "success", path: filePath };
   } catch (error) {
@@ -227,6 +406,16 @@ function timestamp() {
   ).slice(-2)}${("0" + timestamp.getMinutes()).slice(-2)}${(
     "0" + timestamp.getSeconds()
   ).slice(-2)}`;
+}
+
+// Memoize one timestamp per run on the config object so every URL-referenced
+// screenshot in a single run lands in the same folder.
+function getOrInitRunTimestamp(config: any): string {
+  if (!config) return timestamp();
+  if (!config.__runTimestamp) {
+    config.__runTimestamp = timestamp();
+  }
+  return config.__runTimestamp;
 }
 
 // Perform a native command in the current working directory.

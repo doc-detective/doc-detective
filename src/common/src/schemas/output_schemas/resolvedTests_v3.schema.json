@@ -5840,9 +5840,9 @@
                                                     "anyOf": [
                                                       {
                                                         "title": "Screenshot (simple)",
-                                                        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                         "type": "string",
-                                                        "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                        "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                         "transform": [
                                                           "trim"
                                                         ]
@@ -5853,9 +5853,9 @@
                                                         "properties": {
                                                           "path": {
                                                             "title": "Screenshot (simple)",
-                                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                             "type": "string",
-                                                            "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                            "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                             "transform": [
                                                               "trim"
                                                             ]
@@ -6086,9 +6086,9 @@
                                                       "schemas": {
                                                         "path": {
                                                           "title": "Screenshot (simple)",
-                                                          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                           "type": "string",
-                                                          "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                          "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                           "transform": [
                                                             "trim"
                                                           ]
@@ -6099,9 +6099,9 @@
                                                           "properties": {
                                                             "path": {
                                                               "title": "Screenshot (simple)",
-                                                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                               "type": "string",
-                                                              "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                              "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                               "transform": [
                                                                 "trim"
                                                               ]
@@ -6483,6 +6483,12 @@
                                                       "image.png",
                                                       "static/images/image.png",
                                                       "/User/manny/projects/doc-detective/static/images/image.png",
+                                                      "https://example.com/static/images/image.png",
+                                                      {
+                                                        "path": "https://promptless-customer-doc-assets.s3.amazonaws.com/docs-images/request-changes-button-0c851bb3.png",
+                                                        "maxVariation": 0.05,
+                                                        "overwrite": "aboveVariation"
+                                                      },
                                                       {
                                                         "path": "image.png",
                                                         "directory": "static/images",
@@ -14549,9 +14555,9 @@
                                       "anyOf": [
                                         {
                                           "title": "Screenshot (simple)",
-                                          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                           "type": "string",
-                                          "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                          "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                           "transform": [
                                             "trim"
                                           ]
@@ -14562,9 +14568,9 @@
                                           "properties": {
                                             "path": {
                                               "title": "Screenshot (simple)",
-                                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                               "type": "string",
-                                              "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -14795,9 +14801,9 @@
                                         "schemas": {
                                           "path": {
                                             "title": "Screenshot (simple)",
-                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                             "type": "string",
-                                            "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                             "transform": [
                                               "trim"
                                             ]
@@ -14808,9 +14814,9 @@
                                             "properties": {
                                               "path": {
                                                 "title": "Screenshot (simple)",
-                                                "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                 "type": "string",
-                                                "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                 "transform": [
                                                   "trim"
                                                 ]
@@ -15192,6 +15198,12 @@
                                         "image.png",
                                         "static/images/image.png",
                                         "/User/manny/projects/doc-detective/static/images/image.png",
+                                        "https://example.com/static/images/image.png",
+                                        {
+                                          "path": "https://promptless-customer-doc-assets.s3.amazonaws.com/docs-images/request-changes-button-0c851bb3.png",
+                                          "maxVariation": 0.05,
+                                          "overwrite": "aboveVariation"
+                                        },
                                         {
                                           "path": "image.png",
                                           "directory": "static/images",
@@ -23958,9 +23970,9 @@
                                         "anyOf": [
                                           {
                                             "title": "Screenshot (simple)",
-                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                             "type": "string",
-                                            "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                             "transform": [
                                               "trim"
                                             ]
@@ -23971,9 +23983,9 @@
                                             "properties": {
                                               "path": {
                                                 "title": "Screenshot (simple)",
-                                                "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                 "type": "string",
-                                                "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                 "transform": [
                                                   "trim"
                                                 ]
@@ -24204,9 +24216,9 @@
                                           "schemas": {
                                             "path": {
                                               "title": "Screenshot (simple)",
-                                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                               "type": "string",
-                                              "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -24217,9 +24229,9 @@
                                               "properties": {
                                                 "path": {
                                                   "title": "Screenshot (simple)",
-                                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                   "type": "string",
-                                                  "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -24601,6 +24613,12 @@
                                           "image.png",
                                           "static/images/image.png",
                                           "/User/manny/projects/doc-detective/static/images/image.png",
+                                          "https://example.com/static/images/image.png",
+                                          {
+                                            "path": "https://promptless-customer-doc-assets.s3.amazonaws.com/docs-images/request-changes-button-0c851bb3.png",
+                                            "maxVariation": 0.05,
+                                            "overwrite": "aboveVariation"
+                                          },
                                           {
                                             "path": "image.png",
                                             "directory": "static/images",
@@ -32141,9 +32159,9 @@
                                               "anyOf": [
                                                 {
                                                   "title": "Screenshot (simple)",
-                                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                   "type": "string",
-                                                  "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -32154,9 +32172,9 @@
                                                   "properties": {
                                                     "path": {
                                                       "title": "Screenshot (simple)",
-                                                      "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                      "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                       "type": "string",
-                                                      "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                      "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                       "transform": [
                                                         "trim"
                                                       ]
@@ -32387,9 +32405,9 @@
                                                 "schemas": {
                                                   "path": {
                                                     "title": "Screenshot (simple)",
-                                                    "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                    "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                     "type": "string",
-                                                    "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                    "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                     "transform": [
                                                       "trim"
                                                     ]
@@ -32400,9 +32418,9 @@
                                                     "properties": {
                                                       "path": {
                                                         "title": "Screenshot (simple)",
-                                                        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                                        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                                         "type": "string",
-                                                        "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                                        "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                         "transform": [
                                                           "trim"
                                                         ]
@@ -32784,6 +32802,12 @@
                                                 "image.png",
                                                 "static/images/image.png",
                                                 "/User/manny/projects/doc-detective/static/images/image.png",
+                                                "https://example.com/static/images/image.png",
+                                                {
+                                                  "path": "https://promptless-customer-doc-assets.s3.amazonaws.com/docs-images/request-changes-button-0c851bb3.png",
+                                                  "maxVariation": 0.05,
+                                                  "overwrite": "aboveVariation"
+                                                },
                                                 {
                                                   "path": "image.png",
                                                   "directory": "static/images",
