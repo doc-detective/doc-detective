@@ -13,8 +13,10 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     step.goTo = { url: step.goTo };
   }
 
+  const relative = isRelativeUrl(step.goTo.url);
+
   // Set origin for relative URLs
-  if (isRelativeUrl(step.goTo.url)) {
+  if (relative) {
     if (!step.goTo.origin && !config.origin) {
       result.status = "FAIL";
       result.description =
@@ -27,12 +29,16 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       step.goTo.origin += "/";
     }
     step.goTo.url = step.goTo.origin + step.goTo.url;
-    // Merge config.originParams with step.goTo.params; step keys win on
-    // collision. Merge (rather than replace) means adding a per-step param
-    // won't silently drop a config-level token.
-    const params = { ...config.originParams, ...step.goTo.params };
-    step.goTo.url = appendQueryParams(step.goTo.url, params);
   }
+
+  // config.originParams only apply to URLs resolved against an origin;
+  // step.goTo.params applies regardless so per-step params on absolute URLs
+  // aren't silently dropped. Step keys win on collision.
+  const params = {
+    ...(relative ? config.originParams : undefined),
+    ...step.goTo.params,
+  };
+  step.goTo.url = appendQueryParams(step.goTo.url, params);
 
   // Make sure there's a protocol
   if (step.goTo.url && !step.goTo.url.includes("://"))

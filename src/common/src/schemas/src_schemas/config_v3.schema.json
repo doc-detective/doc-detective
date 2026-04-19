@@ -544,6 +544,12 @@
       "reporters": ["terminal", "json", "html"]
     },
     {
+      "origin": "https://my-app.com",
+      "originParams": {
+        "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+      }
+    },
+    {
       "fileTypes": [
         {
           "extends": "markdown",

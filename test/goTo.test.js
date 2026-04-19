@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { goTo } from "../dist/core/tests/goTo.js";
+import { replaceEnvs } from "../dist/core/utils.js";
 
 // Minimal driver stub: captures the URL passed to `driver.url()` and then
 // throws so goTo short-circuits its wait-loop. We only care about the URL
@@ -54,7 +55,7 @@ describe("goTo originParams / params", function () {
     assert.equal(qs.get("keep"), "k");
   });
 
-  it("does NOT append params when the step URL is absolute", async function () {
+  it("does NOT apply config.originParams to an absolute step URL", async function () {
     const { driver, calls } = stubDriver();
     const step = { goTo: { url: "https://my-app.com/dashboard" } };
     await goTo({
@@ -65,7 +66,46 @@ describe("goTo originParams / params", function () {
       step,
       driver,
     });
+    assert.notEqual(calls.url, undefined, "driver.url was never invoked");
     assert.equal(calls.url, "https://my-app.com/dashboard");
+  });
+
+  it("still applies step.params to an absolute step URL", async function () {
+    const { driver, calls } = stubDriver();
+    const step = {
+      goTo: {
+        url: "https://other.com/x",
+        params: { from_step: "yes" },
+      },
+    };
+    await goTo({
+      config: { originParams: { not_mine: "n" } },
+      step,
+      driver,
+    });
+    assert.notEqual(calls.url, undefined, "driver.url was never invoked");
+    const qs = new URLSearchParams(calls.url.split("?")[1]);
+    assert.equal(qs.get("from_step"), "yes");
+    assert.equal(qs.get("not_mine"), null, "config params must not leak onto absolute URLs");
+  });
+
+  it("substitutes $VAR in originParams via replaceEnvs", async function () {
+    process.env.TEST_DD_GOTO_TOKEN = "goto-env-xyz";
+    try {
+      const { driver, calls } = stubDriver();
+      const step = { goTo: { url: "/dashboard" } };
+      const config = {
+        origin: "https://my-app.com",
+        originParams: { token: "$TEST_DD_GOTO_TOKEN" },
+      };
+      const resolvedConfig = replaceEnvs(config);
+      await goTo({ config: resolvedConfig, step, driver });
+      assert.notEqual(calls.url, undefined, "driver.url was never invoked");
+      const qs = new URLSearchParams(calls.url.split("?")[1]);
+      assert.equal(qs.get("token"), "goto-env-xyz");
+    } finally {
+      delete process.env.TEST_DD_GOTO_TOKEN;
+    }
   });
 
   it("preserves a URL fragment when merging params", async function () {

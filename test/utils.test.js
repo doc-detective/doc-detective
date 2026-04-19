@@ -728,6 +728,11 @@ describe("appendQueryParams", function () {
     expect(appendQueryParams(url, {})).to.equal(url);
   });
 
+  it("returns URL unchanged when params is an array (defensive)", function () {
+    const url = "https://example.com/foo";
+    expect(appendQueryParams(url, ["a", "b"])).to.equal(url);
+  });
+
   it("appends params with ? when URL has no existing query string", function () {
     const out = appendQueryParams("https://example.com/foo", {
       a: "1",

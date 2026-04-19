@@ -131,8 +131,10 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     step.checkLink = { url: step.checkLink };
   }
 
+  const relative = isRelativeUrl(step.checkLink.url);
+
   // Set origin for relative URLs
-  if (isRelativeUrl(step.checkLink.url)) {
+  if (relative) {
     if (!step.checkLink.origin && !config.origin) {
       result.status = "FAIL";
       result.description =
@@ -148,12 +150,16 @@ async function checkLink({ config, step }: { config: any; step: any }) {
       step.checkLink.origin += "/";
     }
     step.checkLink.url = step.checkLink.origin + step.checkLink.url;
-    // Merge config.originParams with step.checkLink.params; step keys win on
-    // collision. Merge (rather than replace) means adding a per-step param
-    // won't silently drop a config-level token.
-    const params = { ...config.originParams, ...step.checkLink.params };
-    step.checkLink.url = appendQueryParams(step.checkLink.url, params);
   }
+
+  // config.originParams only apply to URLs resolved against an origin;
+  // step.checkLink.params applies regardless so per-step params on absolute
+  // URLs aren't silently dropped. Step keys win on collision.
+  const params = {
+    ...(relative ? config.originParams : undefined),
+    ...step.checkLink.params,
+  };
+  step.checkLink.url = appendQueryParams(step.checkLink.url, params);
 
   // Make sure there's a protocol
   if (step.checkLink.url && !step.checkLink.url.includes("://"))

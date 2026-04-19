@@ -1,6 +1,7 @@
 import http from "node:http";
 import assert from "node:assert/strict";
 import { checkLink } from "../dist/core/tests/checkLink.js";
+import { replaceEnvs } from "../dist/core/utils.js";
 
 let server;
 let serverPort;
@@ -475,25 +476,31 @@ describe("checkLink originParams / params", function () {
   });
 
   it("substitutes $VAR references in params via replaceEnvs upstream", async function () {
-    // Note: replaceEnvs runs over the step object inside runTests.ts, not checkLink()
-    // directly. For this test we pre-substitute to mimic that step.
+    // Mirror the real runTests flow: `$VAR` lives in params as a literal
+    // string, and replaceEnvs substitutes it on the step object before the
+    // step executor runs.
     process.env.TEST_DD_TOKEN = "env-token-xyz";
     delete requestLog["echo-headers-url"];
-    const result = await checkLink({
-      config: { origin: `http://localhost:${serverPort}` },
-      step: {
+    try {
+      const step = {
         checkLink: {
           url: "/echo-headers",
-          params: { token: process.env.TEST_DD_TOKEN },
+          params: { token: "$TEST_DD_TOKEN" },
         },
-      },
-    });
-    assert.equal(result.status, "PASS", result.description);
-    const qs = new URLSearchParams(
-      requestLog["echo-headers-url"].split("?")[1]
-    );
-    assert.equal(qs.get("token"), "env-token-xyz");
-    delete process.env.TEST_DD_TOKEN;
+      };
+      const substituted = replaceEnvs(step);
+      const result = await checkLink({
+        config: { origin: `http://localhost:${serverPort}` },
+        step: substituted,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      const qs = new URLSearchParams(
+        requestLog["echo-headers-url"].split("?")[1]
+      );
+      assert.equal(qs.get("token"), "env-token-xyz");
+    } finally {
+      delete process.env.TEST_DD_TOKEN;
+    }
   });
 
   it("leaves URL unchanged when params is empty", async function () {

@@ -35,7 +35,7 @@ function appendQueryParams(
   url: string,
   params: Record<string, unknown> | undefined | null
 ): string {
-  if (!params || typeof params !== "object") return url;
+  if (!params || typeof params !== "object" || Array.isArray(params)) return url;
   const entries = Object.entries(params).filter(
     ([, v]) => v !== undefined && v !== null
   );
