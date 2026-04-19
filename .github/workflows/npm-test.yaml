@@ -1,5 +1,7 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
+# Matrix tests on every push/PR. Post-release jobs (Docker build, GitHub Action
+# smoke test, downstream dispatch) run on `release.published` events, which are
+# fired by semantic-release (see .github/workflows/release.yml) when a stable
+# release is cut on main. Prereleases from `next` and `feat/*` are skipped.
 
 name: Test (& Publish)
 
@@ -37,7 +39,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
-        node: 
+        node:
           - 20
           - 22
           - 24
@@ -49,7 +51,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      
+
       - run: npm install
       - run: npm run build
       - run: npm test
@@ -58,33 +60,36 @@ jobs:
           HERETTO_USERNAME: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_USERNAME || '' }}
           HERETTO_TOKEN: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_TOKEN || '' }}
 
-  publish-npm:
-    if: github.event_name == 'release' && github.event.action == 'published'
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-          registry-url: https://registry.npmjs.org/
-
-      - run: npm install
-      - run: npm run build
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-
   test-github-action:
     name: Test GitHub Action
-    needs: publish-npm
+    if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get package version
+        id: get_version
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Wait for npm propagation
+        shell: bash
+        run: |
+          EXPECTED="${{ steps.get_version.outputs.version }}"
+          for i in $(seq 1 12); do
+            PUBLISHED=$(npm view "doc-detective@$EXPECTED" version 2>/dev/null || echo "")
+            if [ "$PUBLISHED" = "$EXPECTED" ]; then
+              echo "Version $PUBLISHED available on npm"
+              break
+            fi
+            echo "Attempt $i: expected $EXPECTED, got '$PUBLISHED'. Waiting 10s..."
+            sleep 10
+          done
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "ERROR: Timed out waiting for doc-detective@$EXPECTED on npm"
+            exit 1
+          fi
+
       - uses: doc-detective/github-action@latest
         id: dd
         with:
@@ -94,8 +99,7 @@ jobs:
 
   build-docker-image:
     name: Build & Push Docker Image (${{ matrix.os }})
-    needs: publish-npm
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
     timeout-minutes: 60
     strategy:
       matrix:
@@ -179,39 +183,9 @@ jobs:
       - name: Push Docker image
         run: docker push --all-tags docdetective/docdetective
 
-  publish-npm-common:
-    if: github.event_name == 'release' && github.event.action == 'published'
-    name: Publish common to NPM
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-          registry-url: https://registry.npmjs.org/
-
-      - run: npm install
-      - run: npm run build
-
-      - name: Sync common version to root
-        run: |
-          ROOT_VERSION=$(node -p "require('./package.json').version")
-          COMMON_VERSION=$(node -p "require('./src/common/package.json').version")
-          if [ "$ROOT_VERSION" != "$COMMON_VERSION" ]; then
-            echo "Syncing common to root: $ROOT_VERSION"
-            npm version $ROOT_VERSION --no-git-tag-version -w src/common
-          fi
-
-      - run: npm publish --workspace src/common
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-
   update-downstream-common:
     name: Update downstream common packages
-    needs: publish-npm-common
+    if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

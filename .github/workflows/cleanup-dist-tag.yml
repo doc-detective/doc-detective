@@ -1,0 +1,35 @@
+name: Cleanup dist-tag
+
+on:
+  delete:
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    if: github.event.ref_type == 'branch' && startsWith(github.event.ref, 'feat/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Compute slug
+        id: slug
+        run: |
+          slug=$(echo "${{ github.event.ref }}" | sed 's|^feat/||' | sed 's|[^a-zA-Z0-9-]|-|g')
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          echo "Computed slug: $slug"
+
+      - name: Remove dist-tag for doc-detective
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm dist-tag rm doc-detective "${{ steps.slug.outputs.slug }}" || echo "Tag not present; nothing to remove."
+
+      - name: Remove dist-tag for doc-detective-common
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm dist-tag rm doc-detective-common "${{ steps.slug.outputs.slug }}" || echo "Tag not present; nothing to remove."
