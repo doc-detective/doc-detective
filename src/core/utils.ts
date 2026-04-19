@@ -52,15 +52,33 @@ function appendQueryParams(
   const fragment = hashIdx >= 0 ? url.slice(hashIdx) : "";
   const base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
 
-  // Parse any existing query string so duplicate keys get replaced rather
-  // than doubled up.
   const queryIdx = base.indexOf("?");
   const pathAndAuthority = queryIdx >= 0 ? base.slice(0, queryIdx) : base;
   const existingQuery = queryIdx >= 0 ? base.slice(queryIdx + 1) : "";
-  const searchParams = new URLSearchParams(existingQuery);
-  for (const [k, v] of entries) searchParams.set(k, String(v));
 
-  const query = searchParams.toString();
+  // Check whether any new key collides with one already in the URL. If
+  // not, we can append `&k=v` raw and preserve the existing query
+  // verbatim — `URLSearchParams` would otherwise re-encode it (`+` for
+  // spaces, percent-encoding of `:` / `,` etc.), which can break signed
+  // URLs and strict backends. Only fall back to parse-set-serialize
+  // when we actually need dedupe.
+  const existingKeys = new Set(new URLSearchParams(existingQuery).keys());
+  const hasCollision = entries.some(([k]) => existingKeys.has(k));
+
+  let query: string;
+  if (hasCollision) {
+    const searchParams = new URLSearchParams(existingQuery);
+    for (const [k, v] of entries) searchParams.set(k, String(v));
+    query = searchParams.toString();
+  } else {
+    const newPairs = entries
+      .map(
+        ([k, v]) =>
+          `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`
+      )
+      .join("&");
+    query = existingQuery ? `${existingQuery}&${newPairs}` : newPairs;
+  }
   return pathAndAuthority + (query ? "?" + query : "") + fragment;
 }
 

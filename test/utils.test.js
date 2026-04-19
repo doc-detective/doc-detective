@@ -758,6 +758,19 @@ describe("appendQueryParams", function () {
     expect(qs.get("keep")).to.equal("yes");
   });
 
+  it("preserves the existing query-string verbatim when there is no key collision", function () {
+    // URLSearchParams round-tripping would normalize `+` for spaces and
+    // percent-encode `:` / `,` — that breaks signed URLs and strict
+    // backends. When no key collides, we append raw to the existing query.
+    const out = appendQueryParams(
+      "https://example.com/p?sig=abc:123,xyz&q=hello+world",
+      { token: "new" }
+    );
+    expect(out).to.equal(
+      "https://example.com/p?sig=abc:123,xyz&q=hello+world&token=new"
+    );
+  });
+
   it("inserts params before a URL fragment (not inside it)", function () {
     const out = appendQueryParams("https://example.com/p#section", {
       token: "t",
