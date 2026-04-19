@@ -4,6 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import axios from "axios";
 import { spawn } from "node:child_process";
+import crossSpawn from "cross-spawn";
 
 export {
   outputResults,
@@ -203,27 +204,41 @@ function timestamp() {
 
 // Perform a native command in the current working directory.
 /**
- * Executes a command in a child process using the `spawn` function from the `child_process` module.
+ * Executes a command in a child process.
+ *
+ * Defaults to `shell: false` to avoid command-injection risk: callers must
+ * pass `cmd` as the executable name and `args` as a separate array.
+ * `cross-spawn` handles Windows .cmd/.bat shim resolution so callers don't
+ * need to enable a shell just to launch `npx`/`npm` etc.
+ *
+ * Pass `options.shell: true` to opt in to a shell (e.g. for `runShell`,
+ * which intentionally executes user-authored shell commands).
+ *
  * @param {string} cmd - The command to execute.
  * @param {string[]} args - The arguments to pass to the command.
  * @param {object} options - The options for the command execution.
- * @param {boolean} options.workingDirectory - Directory in which to execute the command.
+ * @param {string} options.cwd - Directory in which to execute the command.
+ * @param {boolean} options.shell - If true, run via shell. Default: false.
  * @param {boolean} options.debug - Whether to enable debug mode.
  * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
  */
 async function spawnCommand(cmd: string, args: string[] = [], options: any = {}) {
-  // Set spawnOptions based on OS
+  const useShell = options.shell === true;
   const spawnOptions: any = {
-    shell: true,
+    shell: useShell,
+    windowsHide: process.platform === "win32",
   };
-  if (process.platform === "win32") {
-    spawnOptions.windowsHide = true;
-  }
   if (options.cwd) {
     spawnOptions.cwd = options.cwd;
   }
 
-  const runCommand = spawn(cmd, args, spawnOptions);
+  // Use cross-spawn when not using a shell so Windows .cmd/.bat shims
+  // (npx, npm, etc.) resolve correctly without shell interpretation.
+  // When the caller explicitly opts into a shell, fall back to node's
+  // built-in spawn since the shell itself handles resolution.
+  const runCommand = useShell
+    ? spawn(cmd, args, spawnOptions)
+    : crossSpawn(cmd, args, spawnOptions);
   runCommand.on("error", (error) => {});
 
   // Set up exit code promise BEFORE consuming streams to avoid race condition
@@ -231,17 +246,21 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
     runCommand.on("close", resolve);
   });
 
-  // Capture stdout and stderr concurrently to avoid deadlock
+  // Capture stdout and stderr concurrently to avoid deadlock.
+  // The streams are non-null because we don't pass stdio: "ignore".
+  // (cross-spawn's return type is wider than node's spawn so TS needs a hint.)
+  const childStdout = runCommand.stdout!;
+  const childStderr = runCommand.stderr!;
   let stdout = "";
   let stderr = "";
   const stdoutPromise = (async () => {
-    for await (const chunk of runCommand.stdout) {
+    for await (const chunk of childStdout) {
       stdout += chunk;
       if (options.debug) console.log(chunk.toString());
     }
   })();
   const stderrPromise = (async () => {
-    for await (const chunk of runCommand.stderr) {
+    for await (const chunk of childStderr) {
       stderr += chunk;
       if (options.debug) console.log(chunk.toString());
     }
@@ -260,9 +279,14 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
 async function inContainer() {
   if (process.env.IN_CONTAINER === "true") return true;
   if (process.platform === "linux") {
-    const result = await spawnCommand(
-      `grep -sq "docker\|lxc\|kubepods" /proc/1/cgroup`
-    );
+    // -E enables ERE so `|` is alternation. The previous template-literal
+    // form (`"docker\|lxc\|kubepods"`) silently lost the backslashes in JS,
+    // so `grep` was searching for the literal pipe char and never matched.
+    const result = await spawnCommand("grep", [
+      "-sqE",
+      "docker|lxc|kubepods",
+      "/proc/1/cgroup",
+    ]);
     if (result.exitCode === 0) return true;
   }
   return false;

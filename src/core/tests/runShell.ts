@@ -48,9 +48,12 @@ async function runShell({ config, step }: { config: any; step: any }) {
     timeout: step.runShell.timeout || 60000,
   };
 
-  // Execute command
+  // Execute command. runShell is the explicit user-facing shell-execution
+  // step type, so opt in to `shell: true` here. The command + args are
+  // authored by the test author as part of writing the test spec; the
+  // trust boundary is at the spec author, not at runShell.
   const timeout = step.runShell.timeout;
-  const options: any = {};
+  const options: any = { shell: true };
   if (step.runShell.workingDirectory)
     options.cwd = step.runShell.workingDirectory;
   const commandPromise = spawnCommand(
