@@ -2,8 +2,14 @@
   "id": "Make sure Firefox is working",
   "contexts": [
     {
-      "app": { "name": "firefox" },
-      "platforms": ["windows", "mac", "linux"]
+      "app": {
+        "name": "firefox"
+      },
+      "platforms": [
+        "windows",
+        "mac",
+        "linux"
+      ]
     }
   ],
   "tests": [
@@ -11,7 +17,7 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://www.google.com"
+          "url": "http://localhost:8092"
         }
       ]
     }

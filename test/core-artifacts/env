@@ -2,4 +2,4 @@ USER="John Doe"
 JOB="Software Engineer"
 SECRET="YOUR_SECRET_KEY"
 WAIT=1
-URL=https://www.google.com
+URL=http://localhost:8092
