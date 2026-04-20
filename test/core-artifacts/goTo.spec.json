@@ -6,12 +6,12 @@
           "loadVariables": "env"
         },
         {
-          "goTo": "https://www.google.com"
+          "goTo": "http://localhost:8092"
         },
         {
           "goTo": {
-            "url": "/images",
-            "origin": "https://www.google.com"
+            "url": "/enhanced-elements.html",
+            "origin": "http://localhost:8092"
           }
         },
         {
@@ -19,7 +19,7 @@
         },
         {
           "goTo": {
-            "url": "/images",
+            "url": "/enhanced-elements.html",
             "origin": "$URL"
           }
         }
