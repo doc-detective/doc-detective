@@ -35,12 +35,13 @@ permissions:
 jobs:
   test:
     uses: ./.github/workflows/test.yml
-    with:
-      include_heretto_secrets: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
     secrets:
-      HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
-      HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
-      HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
+      # Only forward HERETTO_* on trusted refs. On next/feat/** the called
+      # workflow receives empty strings and never has access to the real
+      # values, so the trust boundary is enforced here at the caller.
+      HERETTO_ORG_ID: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_ORG_ID || '' }}
+      HERETTO_USERNAME: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_USERNAME || '' }}
+      HERETTO_TOKEN: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_TOKEN || '' }}
 
   release:
     needs: test

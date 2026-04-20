@@ -26,9 +26,10 @@ permissions:
 jobs:
   test:
     uses: ./.github/workflows/test.yml
-    with:
-      include_heretto_secrets: ${{ github.event_name == 'workflow_dispatch' }}
     secrets:
-      HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
-      HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
-      HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
+      # Only forward HERETTO_* on trusted contexts (manual dispatch). PR
+      # runs — especially from forks — receive empty strings, so the
+      # called workflow never has access to the real values.
+      HERETTO_ORG_ID: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_ORG_ID || '' }}
+      HERETTO_USERNAME: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_USERNAME || '' }}
+      HERETTO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_TOKEN || '' }}
