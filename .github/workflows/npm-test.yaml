@@ -1,14 +1,12 @@
-# Matrix tests on every push/PR. Post-release jobs (Docker build, GitHub Action
-# smoke test, downstream dispatch) run on `release.published` events, which are
-# fired by semantic-release (see .github/workflows/release.yml) when a stable
-# release is cut on main. Prereleases from `next` and `feat/**` are skipped.
+# PR gate: runs the reusable test matrix on pull requests so reviewers see
+# matrix failures before merge. All release-side work (publish, smoke-test
+# staged build, promote to @latest, Docker build) lives in
+# .github/workflows/release.yml, which has a linear needs-chain that only
+# advances @latest after the smoke test passes.
 
-name: Test (& Publish)
+name: Test
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     types:
       - opened
@@ -16,9 +14,6 @@ on:
       - synchronize
     paths-ignore:
       - 'docs/**'
-  release:
-    types:
-      - published
   workflow_dispatch:
 
 concurrency:
@@ -30,180 +25,11 @@ permissions:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-        node:
-          - 20
-          - 22
-          - 24
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - run: npm install
-      - run: npm run build
-      - run: npm test
-        env:
-          HERETTO_ORG_ID: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_ORG_ID || '' }}
-          HERETTO_USERNAME: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_USERNAME || '' }}
-          HERETTO_TOKEN: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_TOKEN || '' }}
-
-  test-github-action:
-    name: Test GitHub Action
-    needs: test
-    if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get package version
-        id: get_version
-        shell: bash
-        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
-
-      # The github-action below installs doc-detective via the @latest
-      # dist-tag, so we must wait for @latest to *point to* the just-published
-      # version (not just for the version to exist on npm).
-      - name: Wait for @latest dist-tag to update
-        shell: bash
-        run: |
-          EXPECTED="${{ steps.get_version.outputs.version }}"
-          for i in $(seq 1 12); do
-            PUBLISHED=$(npm view "doc-detective@latest" version 2>/dev/null || echo "")
-            if [ "$PUBLISHED" = "$EXPECTED" ]; then
-              echo "doc-detective@latest now resolves to $PUBLISHED"
-              break
-            fi
-            echo "Attempt $i: @latest is '$PUBLISHED', expected '$EXPECTED'. Waiting 10s..."
-            sleep 10
-          done
-          if [ "$PUBLISHED" != "$EXPECTED" ]; then
-            echo "ERROR: Timed out waiting for doc-detective@latest to become $EXPECTED"
-            exit 1
-          fi
-
-      - uses: doc-detective/github-action@latest
-        id: dd
-        with:
-          config: ./test/artifacts/config.json
-          input: ./test/artifacts/doc-content.md
-          exit_on_fail: "true"
-
-  build-docker-image:
-    name: Build & Push Docker Image (${{ matrix.os }})
-    needs: test
-    if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        os:
-          - windows-latest
-          - ubuntu-latest
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Get package version
-        id: get_version
-        shell: bash
-        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Switch Docker to Windows containers
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Write-Host "Switching Docker to Windows containers..."
-          $dockerCli = "$Env:ProgramFiles\Docker\Docker\DockerCli.exe"
-          if (-not (Test-Path $dockerCli)) {
-            throw "DockerCli.exe not found at $dockerCli"
-          }
-          & $dockerCli -SwitchWindowsEngine
-          Start-Sleep -Seconds 10
-          docker version
-          docker info
-
-      - name: Verify Windows container mode
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $os = docker info --format '{{.OSType}}'
-          if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
-          Write-Host "Docker OSType=$os"
-
-      - name: Wait for npm propagation
-        shell: bash
-        run: |
-          EXPECTED="${{ steps.get_version.outputs.version }}"
-          for i in $(seq 1 12); do
-            PUBLISHED=$(npm view "doc-detective@$EXPECTED" version 2>/dev/null || echo "")
-            if [ "$PUBLISHED" = "$EXPECTED" ]; then
-              echo "Version $PUBLISHED available on npm"
-              break
-            fi
-            echo "Attempt $i: expected $EXPECTED, got '$PUBLISHED'. Waiting 10s..."
-            sleep 10
-          done
-          if [ "$PUBLISHED" != "$EXPECTED" ]; then
-            echo "ERROR: Timed out waiting for doc-detective@$EXPECTED on npm"
-            exit 1
-          fi
-
-      - name: Build Docker Image
-        shell: bash
-        run: npm run container:build -- --version="${{ steps.get_version.outputs.version }}"
-
-      - name: Post-build Test
-        shell: bash
-        env:
-          VERSION: ${{ steps.get_version.outputs.version }}
-        run: npm run container:test
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push Docker image
-        run: docker push --all-tags docdetective/docdetective
-
-  update-downstream-common:
-    name: Update downstream common packages
-    needs: test
-    if: github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get common package version
-        id: get_version
-        run: |
-          echo "version=$(jq -r '.version' src/common/package.json)" >> $GITHUB_OUTPUT
-
-      - name: Update docs
-        run: |
-          curl --fail-with-body --silent --show-error -X POST -H "Authorization: token ${{ secrets.DD_DEP_UPDATE_TOKEN }}" \
-               -H "Accept: application/vnd.github.everest-preview+json" \
-               "https://api.github.com/repos/doc-detective/doc-detective.github.io/dispatches" \
-               -d '{"event_type": "update-common-package-event", "client_payload": {"version": "${{ steps.get_version.outputs.version }}"} }'
+    uses: ./.github/workflows/test.yml
+    secrets:
+      # Only forward HERETTO_* on trusted contexts (manual dispatch). PR
+      # runs — especially from forks — receive empty strings, so the
+      # called workflow never has access to the real values.
+      HERETTO_ORG_ID: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_ORG_ID || '' }}
+      HERETTO_USERNAME: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_USERNAME || '' }}
+      HERETTO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_TOKEN || '' }}
