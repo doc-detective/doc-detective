@@ -2,12 +2,10 @@
 # end-to-end smoke test of the newly-published artifact:
 #
 #   test → release (publishes to a unique `staging-<version>` dist-tag for main)
-#        → smoke-test (doc-detective/github-action pointed at the staging tag)
-#        → promote (moves @latest to the new version, guarded by a semver
-#                   regression check so a stale/older release can't clobber a
-#                   newer @latest)
-#        → build-docker-image (fires only after @latest is stable;
-#                               delegates to docker-build.yml)
+#        → promote (reusable promote.yml: smoke-test → @latest promote →
+#                   docker-build; can also be workflow_dispatch'd manually
+#                   with `version: X.Y.Z` to recover a release whose
+#                   smoke test failed)
 #
 # Prerelease branches (`next`, `feat/**`) publish to their own dist-tag and
 # skip smoke/promote/docker — those channels don't feed @latest.
@@ -87,168 +85,17 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
 
-  smoke-test:
-    name: Smoke-test staged release
+  # Tail of the chain (smoke-test → promote → docker) lives in the
+  # reusable promote.yml so it can also be invoked manually to recover a
+  # release whose smoke test failed partway through.
+  promote:
+    name: Smoke-test → promote → Docker
     needs: release
     if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Wait for staging dist-tag to propagate
-        shell: bash
-        env:
-          STAGING_TAG: staging-${{ needs.release.outputs.version }}
-          EXPECTED: ${{ needs.release.outputs.version }}
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 12); do
-            PUBLISHED=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
-            if [ "$PUBLISHED" = "$EXPECTED" ]; then
-              echo "doc-detective@$STAGING_TAG resolves to $PUBLISHED"
-              break
-            fi
-            echo "Attempt $i: doc-detective@$STAGING_TAG is '$PUBLISHED', expected '$EXPECTED'. Waiting 10s..."
-            sleep 10
-          done
-          if [ "$PUBLISHED" != "$EXPECTED" ]; then
-            echo "ERROR: Timed out waiting for doc-detective@$STAGING_TAG on npm"
-            exit 1
-          fi
-
-      - name: Start local test server
-        # test/artifacts/doc-content.md references http://localhost:8092.
-        # The existing Mocha hooks start a server on that port for the unit
-        # tests, but this job doesn't invoke Mocha — so serve the static
-        # fixtures directly. Pattern copied from PR #252.
-        working-directory: ./test/server/public
-        run: |
-          python3 -m http.server --bind 127.0.0.1 8092 &
-          curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:8092 > /dev/null
-          echo "Test server is ready."
-
-      - name: Run github-action against staging
-        # Pinned to the v1.4.1 commit. Update in lockstep when the action
-        # cuts a new release; `@latest` is a moving target and expands
-        # the supply-chain surface area.
-        uses: doc-detective/github-action@a2a4f5ceb1abfa55d567e4f6766223082ece2c18 # v1.4.1
-        with:
-          version: staging-${{ needs.release.outputs.version }}
-          config: ./test/artifacts/config.json
-          input: ./test/artifacts/doc-content.md
-          exit_on_fail: "true"
-
-  promote:
-    name: Promote staging → @latest
-    needs: [release, smoke-test]
-    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-          registry-url: 'https://registry.npmjs.org'
-
-      - run: npm ci --ignore-scripts
-        env:
-          HUSKY: '0'
-
-      - name: Wait for both packages to propagate
-        shell: bash
-        env:
-          NEXT: ${{ needs.release.outputs.version }}
-        run: |
-          set -euo pipefail
-          for pkg in doc-detective doc-detective-common; do
-            PUBLISHED=""
-            for i in $(seq 1 12); do
-              PUBLISHED=$(npm view "$pkg@$NEXT" version 2>/dev/null || echo "")
-              if [ "$PUBLISHED" = "$NEXT" ]; then
-                echo "$pkg@$NEXT is resolvable on npm"
-                break
-              fi
-              echo "Attempt $i: $pkg@$NEXT not yet resolvable ('$PUBLISHED'). Waiting 10s..."
-              sleep 10
-            done
-            if [ "$PUBLISHED" != "$NEXT" ]; then
-              echo "ERROR: timed out waiting for $pkg@$NEXT to propagate on npm"
-              exit 1
-            fi
-          done
-
-      - name: Verify new version strictly advances @latest
-        id: guard
-        shell: bash
-        env:
-          NEXT: ${{ needs.release.outputs.version }}
-        run: |
-          set -euo pipefail
-          # `npm view` exits non-zero if the package has never been published.
-          CURRENT=$(npm view doc-detective@latest version 2>/dev/null || echo "")
-          if [ -z "$CURRENT" ]; then
-            echo "No @latest published yet; $NEXT will be the first."
-          else
-            echo "Current doc-detective@latest is $CURRENT; candidate is $NEXT."
-            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$CURRENT') ? 'yes' : 'no'")
-            if [ "$IS_NEWER" != "yes" ]; then
-              echo "ERROR: refusing to promote $NEXT over existing @latest $CURRENT."
-              echo "This usually means a newer release already landed; re-run only"
-              echo "if you've verified nothing newer was published by another run."
-              exit 1
-            fi
-          fi
-
-          COMMON_CURRENT=$(npm view doc-detective-common@latest version 2>/dev/null || echo "")
-          if [ -n "$COMMON_CURRENT" ]; then
-            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$COMMON_CURRENT') ? 'yes' : 'no'")
-            if [ "$IS_NEWER" != "yes" ]; then
-              echo "ERROR: refusing to promote doc-detective-common $NEXT over existing @latest $COMMON_CURRENT."
-              exit 1
-            fi
-          fi
-
-      - name: Promote to @latest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NEXT: ${{ needs.release.outputs.version }}
-        run: |
-          set -euo pipefail
-          npm dist-tag add doc-detective@$NEXT latest
-          npm dist-tag add doc-detective-common@$NEXT latest
-
-      - name: Retire staging dist-tag (best-effort)
-        if: always()
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          STAGING_TAG: staging-${{ needs.release.outputs.version }}
-        run: |
-          npm dist-tag rm doc-detective "$STAGING_TAG" || echo "staging tag already gone on doc-detective"
-          npm dist-tag rm doc-detective-common "$STAGING_TAG" || echo "staging tag already gone on doc-detective-common"
-
-  build-docker-image:
-    name: Build & push Docker image
-    needs: [release, promote]
-    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/docker-build.yml
+    uses: ./.github/workflows/promote.yml
     with:
       version: ${{ needs.release.outputs.version }}
-      # This runs only after `promote` moved the npm `@latest` tag to
-      # this version, so it's the correct image to sit behind the
-      # Docker Hub `latest*` tags too.
-      publish_latest_tags: true
     secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

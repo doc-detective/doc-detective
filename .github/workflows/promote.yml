@@ -1,0 +1,198 @@
+# Finish a staged release: smoke-test the `staging-<version>` dist-tag
+# via the github-action, promote `@latest` (with semver regression guard),
+# retire the staging tag, then build + push the Docker image.
+#
+# Two callers:
+#   - workflow_call     → release.yml chains this after semantic-release
+#                         publishes to `staging-<version>`.
+#   - workflow_dispatch → manual recovery. If a run fails after
+#                         publish-to-staging (e.g. a flaky smoke test),
+#                         dispatch this workflow with `version: X.Y.Z`
+#                         to finish the chain without having to land a
+#                         new release-worthy commit.
+
+name: Promote staged release
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version already published to `staging-<version>` on npm.
+        required: true
+        type: string
+    secrets:
+      NPM_TOKEN:
+        required: true
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to promote (must exist as `staging-<version>` on npm, or as `<version>` if staging was already retired).
+        required: true
+        type: string
+
+concurrency:
+  group: promote-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: Smoke-test staged release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Wait for staging dist-tag to propagate
+        shell: bash
+        env:
+          STAGING_TAG: staging-${{ inputs.version }}
+          EXPECTED: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            PUBLISHED=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
+            if [ "$PUBLISHED" = "$EXPECTED" ]; then
+              echo "doc-detective@$STAGING_TAG resolves to $PUBLISHED"
+              break
+            fi
+            echo "Attempt $i: doc-detective@$STAGING_TAG is '$PUBLISHED', expected '$EXPECTED'. Waiting 10s..."
+            sleep 10
+          done
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "ERROR: Timed out waiting for doc-detective@$STAGING_TAG on npm"
+            exit 1
+          fi
+
+      - name: Start local test server
+        # test/artifacts/doc-content.md references http://localhost:8092.
+        # Mocha's beforeAll would normally start this, but this job doesn't
+        # run Mocha — so serve the static fixtures directly.
+        working-directory: ./test/server/public
+        run: |
+          python3 -m http.server --bind 127.0.0.1 8092 &
+          curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:8092 > /dev/null
+          echo "Test server is ready."
+
+      - name: Run github-action against staging
+        # Pinned to the v1.4.1 commit; @latest is a moving target.
+        uses: doc-detective/github-action@a2a4f5ceb1abfa55d567e4f6766223082ece2c18 # v1.4.1
+        with:
+          version: staging-${{ inputs.version }}
+          config: ./test/artifacts/config.json
+          input: ./test/artifacts/doc-content.md
+          exit_on_fail: "true"
+
+  promote:
+    name: Promote staging → @latest
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci --ignore-scripts
+        env:
+          HUSKY: '0'
+
+      - name: Wait for both packages to propagate
+        shell: bash
+        env:
+          NEXT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          for pkg in doc-detective doc-detective-common; do
+            PUBLISHED=""
+            for i in $(seq 1 12); do
+              PUBLISHED=$(npm view "$pkg@$NEXT" version 2>/dev/null || echo "")
+              if [ "$PUBLISHED" = "$NEXT" ]; then
+                echo "$pkg@$NEXT is resolvable on npm"
+                break
+              fi
+              echo "Attempt $i: $pkg@$NEXT not yet resolvable ('$PUBLISHED'). Waiting 10s..."
+              sleep 10
+            done
+            if [ "$PUBLISHED" != "$NEXT" ]; then
+              echo "ERROR: timed out waiting for $pkg@$NEXT to propagate on npm"
+              exit 1
+            fi
+          done
+
+      - name: Verify new version strictly advances @latest
+        shell: bash
+        env:
+          NEXT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # `npm view` exits non-zero if the package has never been published.
+          CURRENT=$(npm view doc-detective@latest version 2>/dev/null || echo "")
+          if [ -z "$CURRENT" ]; then
+            echo "No @latest published yet; $NEXT will be the first."
+          else
+            echo "Current doc-detective@latest is $CURRENT; candidate is $NEXT."
+            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$CURRENT') ? 'yes' : 'no'")
+            if [ "$IS_NEWER" != "yes" ]; then
+              echo "ERROR: refusing to promote $NEXT over existing @latest $CURRENT."
+              echo "This usually means a newer release already landed; re-run only"
+              echo "if you've verified nothing newer was published by another run."
+              exit 1
+            fi
+          fi
+
+          COMMON_CURRENT=$(npm view doc-detective-common@latest version 2>/dev/null || echo "")
+          if [ -n "$COMMON_CURRENT" ]; then
+            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$COMMON_CURRENT') ? 'yes' : 'no'")
+            if [ "$IS_NEWER" != "yes" ]; then
+              echo "ERROR: refusing to promote doc-detective-common $NEXT over existing @latest $COMMON_CURRENT."
+              exit 1
+            fi
+          fi
+
+      - name: Promote to @latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NEXT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          npm dist-tag add doc-detective@$NEXT latest
+          npm dist-tag add doc-detective-common@$NEXT latest
+
+      - name: Retire staging dist-tag (best-effort)
+        if: always()
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          STAGING_TAG: staging-${{ inputs.version }}
+        run: |
+          npm dist-tag rm doc-detective "$STAGING_TAG" || echo "staging tag already gone on doc-detective"
+          npm dist-tag rm doc-detective-common "$STAGING_TAG" || echo "staging tag already gone on doc-detective-common"
+
+  build-docker-image:
+    name: Build & push Docker image
+    needs: promote
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      version: ${{ inputs.version }}
+      # This runs after promote advanced npm's @latest to this version,
+      # so Docker Hub's floating tags should follow.
+      publish_latest_tags: true
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
