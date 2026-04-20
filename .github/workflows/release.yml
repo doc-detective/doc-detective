@@ -130,8 +130,8 @@ jobs:
         # fixtures directly. Pattern copied from PR #252.
         working-directory: ./test/server/public
         run: |
-          python3 -m http.server 8092 &
-          curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://localhost:8092 > /dev/null
+          python3 -m http.server --bind 127.0.0.1 8092 &
+          curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:8092 > /dev/null
           echo "Test server is ready."
 
       - name: Run github-action against staging
