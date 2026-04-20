@@ -95,10 +95,10 @@ jobs:
     uses: ./.github/workflows/promote.yml
     with:
       version: ${{ needs.release.outputs.version }}
-      # This runs only after `promote` moved the npm `@latest` tag to
-      # this version, so it's the correct image to sit behind the
-      # Docker Hub `latest*` tags too.
-      publish_latest_tags: true
+      # promote.yml internally passes `publish_latest_tags: true` to
+      # docker-build.yml because this invocation runs after @latest has
+      # advanced. The automated path always publishes Docker; only
+      # manual workflow_dispatch recovery runs toggle `publish_docker`.
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
