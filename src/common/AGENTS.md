@@ -194,7 +194,7 @@ Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
 
 #### Downstream (`.github/workflows/npm-test.yaml`)
 
-Still runs the full matrix (Ubuntu/Windows/macOS × Node 20/22/24) on every push and PR. The post-release jobs — `test-github-action`, `build-docker-image`, `update-downstream-common` — now fire on `release.published && !prerelease`, so Docker Hub and `doc-detective.github.io` only update on stable `main` releases, not `next`/`feat/**` prereleases.
+Runs the reusable test matrix (Ubuntu/Windows/macOS × Node 20/22/24) on pull requests as the PR gate. All release-side jobs (pre-publish matrix, publish, smoke test, promote to `@latest`, Docker build) live in `release.yml`.
 
 #### Commit message enforcement
 
@@ -264,7 +264,7 @@ Use `escapeRegExp()` helper when converting user strings to regex patterns (see 
 **Cut a stable release:**
 - Merge a PR into `main` whose commits include at least one `fix:`, `feat:`, or breaking change (`!`/`BREAKING CHANGE`).
 - `release.yml` runs semantic-release, which bumps both packages, publishes to `@latest`, tags, and cuts a GitHub Release.
-- Triggers Docker build and `doc-detective.github.io` dispatch downstream.
+- Triggers the Docker build downstream once `@latest` has been promoted.
 
 **Cut a prerelease from `next`:**
 - Merge to `next` (or push to `next` directly). Same flow, but publishes to the `next` dist-tag as `X.Y.Z-next.N`.
