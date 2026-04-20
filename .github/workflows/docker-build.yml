@@ -177,15 +177,18 @@ jobs:
 
       # Login + push only for real rebuilds, never for PRs and never for
       # the placeholder `latest` (which signals "no version input provided").
+      # Login + push when this is a real rebuild — not a PR, and either
+      # the version is not the placeholder `latest` or the operator
+      # explicitly asked to push latest tags (intentional latest rebuild).
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Push Docker image
-        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
         shell: bash
         env:
           PUBLISH_LATEST_TAGS: ${{ inputs.publish_latest_tags }}
@@ -201,9 +204,20 @@ jobs:
             # tags (`$VER`, `$VER-linux`, `$VER-windows`). Pushing the
             # floating `latest*` tags here would point Docker Hub at an
             # older image.
+            pushed_any=false
             for tag in "$IMAGE_VERSION" "$IMAGE_VERSION-linux" "$IMAGE_VERSION-windows"; do
               if docker image inspect "docdetective/docdetective:$tag" >/dev/null 2>&1; then
                 docker push "docdetective/docdetective:$tag"
+                pushed_any=true
               fi
             done
+
+            if [ "$pushed_any" != "true" ]; then
+              echo "ERROR: none of the expected version-scoped tags exist locally:" >&2
+              echo "  docdetective/docdetective:$IMAGE_VERSION" >&2
+              echo "  docdetective/docdetective:$IMAGE_VERSION-linux" >&2
+              echo "  docdetective/docdetective:$IMAGE_VERSION-windows" >&2
+              echo "Either the build step didn't run or its tag scheme drifted from this workflow." >&2
+              exit 1
+            fi
           fi
