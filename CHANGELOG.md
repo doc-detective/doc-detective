@@ -1,3 +1,10 @@
+## [4.1.2](https://github.com/doc-detective/doc-detective/compare/v4.1.1...v4.1.2) (2026-04-20)
+
+
+### Bug Fixes
+
+* **ci:** scope Docker push on rebuilds; reword stale comment ([#271](https://github.com/doc-detective/doc-detective/issues/271)) ([08461f3](https://github.com/doc-detective/doc-detective/commit/08461f3a930ec3e590d727bec6a45ef7a78a0ad4))
+
 ## [4.1.1](https://github.com/doc-detective/doc-detective/compare/v4.1.0...v4.1.1) (2026-04-20)
 
 
