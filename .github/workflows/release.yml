@@ -245,6 +245,10 @@ jobs:
     uses: ./.github/workflows/docker-build.yml
     with:
       version: ${{ needs.release.outputs.version }}
+      # This runs only after `promote` moved the npm `@latest` tag to
+      # this version, so it's the correct image to sit behind the
+      # Docker Hub `latest*` tags too.
+      publish_latest_tags: true
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

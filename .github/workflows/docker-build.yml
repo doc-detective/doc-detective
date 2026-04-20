@@ -24,6 +24,15 @@ on:
         required: false
         type: boolean
         default: false
+      publish_latest_tags:
+        description: >
+          Also push the floating `latest`, `latest-linux`, `latest-windows`,
+          `linux`, and `windows` tags. Set true only when building the
+          version that is now `@latest` on npm. Manual rebuilds of older
+          versions leave this false to avoid clobbering Docker Hub pointers.
+        required: false
+        type: boolean
+        default: false
     secrets:
       DOCKERHUB_USERNAME:
         required: false
@@ -38,6 +47,15 @@ on:
         type: string
       no_cache:
         description: Build without cache.
+        required: false
+        type: boolean
+        default: false
+      publish_latest_tags:
+        description: >
+          Also push the floating `latest*`, `linux`, and `windows` tags.
+          Only enable this for a rebuild of the current npm `@latest`
+          version — otherwise you'll point Docker Hub's `latest` at an
+          older image.
         required: false
         type: boolean
         default: false
@@ -62,7 +80,8 @@ jobs:
         os:
           # windows-2022 pinned — windows-latest ships Docker Engine
           # instead of Docker Desktop, which breaks the Windows container
-          # switch. Matches how this file was set up pre-consolidation.
+          # switch. Matches the pin that container-build-push.yml (this
+          # workflow's predecessor) was moving to.
           - windows-2022
           - ubuntu-latest
     runs-on: ${{ matrix.os }}
@@ -158,13 +177,47 @@ jobs:
 
       # Login + push only for real rebuilds, never for PRs and never for
       # the placeholder `latest` (which signals "no version input provided").
+      # Login + push when this is a real rebuild — not a PR, and either
+      # the version is not the placeholder `latest` or the operator
+      # explicitly asked to push latest tags (intentional latest rebuild).
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Push Docker image
-        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
-        run: docker push --all-tags docdetective/docdetective
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
+        shell: bash
+        env:
+          PUBLISH_LATEST_TAGS: ${{ inputs.publish_latest_tags }}
+        run: |
+          set -euo pipefail
+          if [ "$PUBLISH_LATEST_TAGS" = "true" ]; then
+            # Caller is promoting this version to @latest; move all the
+            # floating tags (`latest`, `latest-linux`, `latest-windows`,
+            # `linux`, `windows`) along with the version-scoped ones.
+            docker push --all-tags docdetective/docdetective
+          else
+            # Rebuild of a specific version: only push the version-scoped
+            # tags (`$VER`, `$VER-linux`, `$VER-windows`). Pushing the
+            # floating `latest*` tags here would point Docker Hub at an
+            # older image.
+            pushed_any=false
+            for tag in "$IMAGE_VERSION" "$IMAGE_VERSION-linux" "$IMAGE_VERSION-windows"; do
+              if docker image inspect "docdetective/docdetective:$tag" >/dev/null 2>&1; then
+                docker push "docdetective/docdetective:$tag"
+                pushed_any=true
+              fi
+            done
+
+            if [ "$pushed_any" != "true" ]; then
+              echo "ERROR: none of the expected version-scoped tags exist locally:" >&2
+              echo "  docdetective/docdetective:$IMAGE_VERSION" >&2
+              echo "  docdetective/docdetective:$IMAGE_VERSION-linux" >&2
+              echo "  docdetective/docdetective:$IMAGE_VERSION-windows" >&2
+              echo "Either the build step didn't run or its tag scheme drifted from this workflow." >&2
+              exit 1
+            fi
+          fi
