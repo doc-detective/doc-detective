@@ -43,13 +43,47 @@ async function maybePromptInstallAgents() {
   // consented by then and we invoke node with an absolute path.
   const targetCwd = process.env.INIT_CWD || process.cwd();
 
+  // npm prepends `node_modules/.bin` (and every ancestor's .bin) onto PATH for
+  // lifecycle scripts, so a malicious transitive dep declaring `bin: { claude }`
+  // could ship a fake `claude` binary that an adapter's bare-command spawn
+  // would pick up. Sanitize PATH for the detection phase only. Restore before
+  // we invoke anything else (notably the child CLI spawn, which legitimately
+  // needs the full PATH so the user's real agent tooling works).
+  const originalPath = process.env.PATH;
+  const pathSep = process.platform === "win32" ? ";" : ":";
+  const initCwdAbs = process.env.INIT_CWD
+    ? path.resolve(process.env.INIT_CWD)
+    : null;
+  const sanitizedPath = (originalPath || "")
+    .split(pathSep)
+    .filter((entry) => {
+      if (!entry || entry === ".") return false;
+      const normalized = entry.split(path.sep).join("/");
+      if (normalized.includes("/node_modules/.bin")) return false;
+      if (initCwdAbs) {
+        const resolved = path.resolve(entry);
+        if (
+          resolved === initCwdAbs ||
+          resolved.startsWith(initCwdAbs + path.sep)
+        )
+          return false;
+      }
+      return true;
+    })
+    .join(pathSep);
+  process.env.PATH = sanitizedPath;
+
   // Hard ceiling on the whole detection phase. Some adapters shell out to
-  // external CLIs that could hang on auth prompts, proxy stalls, etc., and a
-  // hung postinstall would freeze `npm install`. On timeout we treat the
-  // answer as "don't know" and skip prompting.
+  // external CLIs that could hang on auth prompts, proxy stalls, etc. On
+  // timeout we return — but because Promise.race doesn't cancel the detection
+  // promise, any spawned adapter child processes keep the event loop alive
+  // and `npm install` would still hang. Force-exit on timeout to tear them
+  // down. This is safe here: maybePromptInstallAgents is the last step in
+  // main(), the browser installs have already completed, and we're exiting
+  // cleanly with code 0.
   const DETECTION_TIMEOUT_MS = 10_000;
 
-  let needsInstall;
+  let adaptersNeedingInstall;
   try {
     const adapters = listAdapters();
     const detection = Promise.all(
@@ -74,13 +108,20 @@ async function maybePromptInstallAgents() {
       setTimeout(() => resolve("__timeout__"), DETECTION_TIMEOUT_MS).unref()
     );
     const result = await Promise.race([detection, timeout]);
-    if (result === "__timeout__") return;
-    needsInstall = result.filter(Boolean);
+    if (result === "__timeout__") {
+      process.env.PATH = originalPath;
+      // Orphaned adapter children would otherwise keep the event loop alive
+      // and freeze `npm install`. See comment above.
+      process.exit(0);
+    }
+    adaptersNeedingInstall = result.filter(Boolean);
   } catch {
+    process.env.PATH = originalPath;
     return;
   }
+  process.env.PATH = originalPath;
 
-  if (needsInstall.length === 0) return;
+  if (adaptersNeedingInstall.length === 0) return;
 
   let confirm;
   try {
@@ -89,7 +130,7 @@ async function maybePromptInstallAgents() {
     return;
   }
 
-  const names = needsInstall.map((a) => a.displayName).join(", ");
+  const names = adaptersNeedingInstall.map((a) => a.displayName).join(", ");
   console.log(
     `\nDetected coding agents that may be missing doc-detective tools: ${names}.`
   );
@@ -114,20 +155,24 @@ async function maybePromptInstallAgents() {
   // interactive on purpose — project vs global is a per-user decision.
   const cliPath = path.join(__dirname, "..", "bin", "doc-detective.js");
   const cliArgs = ["install-agents"];
-  for (const a of needsInstall) {
+  for (const a of adaptersNeedingInstall) {
     cliArgs.push("--agent", a.id);
   }
-  const exitCode = await new Promise((resolve) => {
+  const { code, signal } = await new Promise((resolve) => {
     const child = spawn(process.execPath, [cliPath, ...cliArgs], {
       stdio: "inherit",
       cwd: targetCwd,
     });
-    child.on("exit", (code) => resolve(code ?? 0));
-    child.on("error", () => resolve(1));
+    // Use `close` (fires after all stdio is flushed) and capture signal so a
+    // signal-terminated child (code === null) is treated as failure rather
+    // than silently succeeding.
+    child.on("close", (c, s) => resolve({ code: c, signal: s }));
+    child.on("error", () => resolve({ code: 1, signal: null }));
   });
-  if (exitCode !== 0) {
+  if (signal || (code !== null && code !== 0)) {
+    const reason = signal ? `due to signal ${signal}` : `with code ${code}`;
     console.log(
-      `\ndoc-detective install-agents exited with code ${exitCode}. ` +
+      `\ndoc-detective install-agents exited ${reason}. ` +
         "You can retry with `npx doc-detective install-agents`."
     );
   }
