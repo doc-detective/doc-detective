@@ -1,3 +1,16 @@
+# Release pipeline. Linear needs-chain so @latest is only advanced after an
+# end-to-end smoke test of the newly-published artifact:
+#
+#   test → release (publishes to a unique `staging-<version>` dist-tag for main)
+#        → smoke-test (doc-detective/github-action pointed at the staging tag)
+#        → promote (moves @latest to the new version, guarded by a semver
+#                   regression check so a stale/older release can't clobber a
+#                   newer @latest)
+#        → docker + update-downstream-common (fire only after @latest is stable)
+#
+# Prerelease branches (`next`, `feat/**`) publish to their own dist-tag and
+# skip smoke/promote/docker — those channels don't feed @latest.
+
 name: Release
 
 on:
@@ -23,10 +36,6 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
     with:
-      # Trust main + manual runs with Heretto credentials. Push to
-      # next/feat/** is still a trusted ref (only maintainers can push),
-      # but the Heretto tests aren't needed there and we prefer to keep
-      # the blast radius minimal.
       include_heretto_secrets: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
     secrets:
       HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
@@ -37,6 +46,10 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      version: ${{ steps.sr.outputs.version }}
+      channel: ${{ steps.sr.outputs.channel }}
+      published: ${{ steps.sr.outputs.published }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,7 +67,198 @@ jobs:
       - run: npm run build
 
       - name: Release
+        id: sr
         env:
           GITHUB_TOKEN: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
+
+  smoke-test:
+    name: Smoke-test staged release
+    needs: release
+    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Wait for staging dist-tag to propagate
+        shell: bash
+        env:
+          STAGING_TAG: staging-${{ needs.release.outputs.version }}
+          EXPECTED: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            PUBLISHED=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
+            if [ "$PUBLISHED" = "$EXPECTED" ]; then
+              echo "doc-detective@$STAGING_TAG resolves to $PUBLISHED"
+              break
+            fi
+            echo "Attempt $i: doc-detective@$STAGING_TAG is '$PUBLISHED', expected '$EXPECTED'. Waiting 10s..."
+            sleep 10
+          done
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "ERROR: Timed out waiting for doc-detective@$STAGING_TAG on npm"
+            exit 1
+          fi
+
+      - name: Run github-action against staging
+        uses: doc-detective/github-action@latest
+        with:
+          version: staging-${{ needs.release.outputs.version }}
+          config: ./test/artifacts/config.json
+          input: ./test/artifacts/doc-content.md
+          exit_on_fail: "true"
+
+  promote:
+    name: Promote staging → @latest
+    needs: [release, smoke-test]
+    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci --ignore-scripts
+        env:
+          HUSKY: '0'
+
+      - name: Verify new version strictly advances @latest
+        id: guard
+        shell: bash
+        env:
+          NEXT: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          # `npm view` exits non-zero if the package has never been published.
+          CURRENT=$(npm view doc-detective@latest version 2>/dev/null || echo "")
+          if [ -z "$CURRENT" ]; then
+            echo "No @latest published yet; $NEXT will be the first."
+          else
+            echo "Current doc-detective@latest is $CURRENT; candidate is $NEXT."
+            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$CURRENT') ? 'yes' : 'no'")
+            if [ "$IS_NEWER" != "yes" ]; then
+              echo "ERROR: refusing to promote $NEXT over existing @latest $CURRENT."
+              echo "This usually means a newer release already landed; re-run only"
+              echo "if you've verified nothing newer was published by another run."
+              exit 1
+            fi
+          fi
+
+          COMMON_CURRENT=$(npm view doc-detective-common@latest version 2>/dev/null || echo "")
+          if [ -n "$COMMON_CURRENT" ]; then
+            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$COMMON_CURRENT') ? 'yes' : 'no'")
+            if [ "$IS_NEWER" != "yes" ]; then
+              echo "ERROR: refusing to promote doc-detective-common $NEXT over existing @latest $COMMON_CURRENT."
+              exit 1
+            fi
+          fi
+
+      - name: Promote to @latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NEXT: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          npm dist-tag add doc-detective@$NEXT latest
+          npm dist-tag add doc-detective-common@$NEXT latest
+
+      - name: Retire staging dist-tag (best-effort)
+        if: always()
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          STAGING_TAG: staging-${{ needs.release.outputs.version }}
+        run: |
+          npm dist-tag rm doc-detective "$STAGING_TAG" || echo "staging tag already gone on doc-detective"
+          npm dist-tag rm doc-detective-common "$STAGING_TAG" || echo "staging tag already gone on doc-detective-common"
+
+  build-docker-image:
+    name: Build & Push Docker Image (${{ matrix.os }})
+    needs: [release, promote]
+    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Switch Docker to Windows containers
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Switching Docker to Windows containers..."
+          $dockerCli = "$Env:ProgramFiles\Docker\Docker\DockerCli.exe"
+          if (-not (Test-Path $dockerCli)) {
+            throw "DockerCli.exe not found at $dockerCli"
+          }
+          & $dockerCli -SwitchWindowsEngine
+          Start-Sleep -Seconds 10
+          docker version
+          docker info
+
+      - name: Verify Windows container mode
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $os = docker info --format '{{.OSType}}'
+          if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
+          Write-Host "Docker OSType=$os"
+
+      - name: Build Docker Image
+        shell: bash
+        run: npm run container:build -- --version="${{ needs.release.outputs.version }}"
+
+      - name: Post-build Test
+        shell: bash
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: npm run container:test
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker image
+        run: docker push --all-tags docdetective/docdetective
+
+  update-downstream-common:
+    name: Update downstream common packages
+    needs: [release, promote]
+    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch update to docs repo
+        env:
+          DD_DEP_UPDATE_TOKEN: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
+          NEXT: ${{ needs.release.outputs.version }}
+        run: |
+          curl --fail-with-body --silent --show-error -X POST \
+               -H "Authorization: token $DD_DEP_UPDATE_TOKEN" \
+               -H "Accept: application/vnd.github.everest-preview+json" \
+               "https://api.github.com/repos/doc-detective/doc-detective.github.io/dispatches" \
+               -d "{\"event_type\": \"update-common-package-event\", \"client_payload\": {\"version\": \"$NEXT\"}}"
