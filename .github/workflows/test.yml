@@ -8,6 +8,14 @@ name: Test Matrix
 
 on:
   workflow_call:
+    inputs:
+      include_heretto_secrets:
+        description: >
+          Caller opts in to passing HERETTO_* env vars to `npm test`.
+          Must only be `true` for trusted contexts (main, workflow_dispatch)
+          — never for fork PRs.
+        type: boolean
+        default: false
     secrets:
       HERETTO_ORG_ID:
         required: false
@@ -48,6 +56,6 @@ jobs:
       - run: npm run build
       - run: npm test
         env:
-          HERETTO_ORG_ID: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_ORG_ID || '' }}
-          HERETTO_USERNAME: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_USERNAME || '' }}
-          HERETTO_TOKEN: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_TOKEN || '' }}
+          HERETTO_ORG_ID: ${{ inputs.include_heretto_secrets && secrets.HERETTO_ORG_ID || '' }}
+          HERETTO_USERNAME: ${{ inputs.include_heretto_secrets && secrets.HERETTO_USERNAME || '' }}
+          HERETTO_TOKEN: ${{ inputs.include_heretto_secrets && secrets.HERETTO_TOKEN || '' }}

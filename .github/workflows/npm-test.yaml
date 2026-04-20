@@ -3,9 +3,11 @@
 # semantic-release (see .github/workflows/release.yml). Prereleases from `next`
 # and `feat/**` are skipped for the post-release jobs.
 #
-# Note: the matrix that GATES semantic-release on push to a release branch
-# lives in release.yml, not here. This workflow intentionally does NOT run on
-# push so we don't duplicate that matrix.
+# The matrix itself is defined once in the reusable .github/workflows/test.yml
+# (workflow_call). This workflow invokes it for PRs + release events; the
+# release pipeline in release.yml invokes it as the gate before publishing.
+# This workflow intentionally does NOT run on push-to-main so we don't
+# duplicate the gating matrix.
 
 name: Test (& Publish)
 
@@ -32,7 +34,15 @@ permissions:
 jobs:
   test:
     uses: ./.github/workflows/test.yml
-    secrets: inherit
+    with:
+      # Only release.published from main (not prereleases) and manual dispatch
+      # count as trusted contexts for Heretto credentials; PR runs (especially
+      # from forks) never get them.
+      include_heretto_secrets: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'release' && github.event.action == 'published' && !github.event.release.prerelease) }}
+    secrets:
+      HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
+      HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
+      HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
 
   test-github-action:
     name: Test GitHub Action

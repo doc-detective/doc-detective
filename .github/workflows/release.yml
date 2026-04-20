@@ -22,7 +22,16 @@ permissions:
 jobs:
   test:
     uses: ./.github/workflows/test.yml
-    secrets: inherit
+    with:
+      # Trust main + manual runs with Heretto credentials. Push to
+      # next/feat/** is still a trusted ref (only maintainers can push),
+      # but the Heretto tests aren't needed there and we prefer to keep
+      # the blast radius minimal.
+      include_heretto_secrets: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
+    secrets:
+      HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
+      HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
+      HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
 
   release:
     needs: test
