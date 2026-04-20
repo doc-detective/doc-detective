@@ -1,0 +1,170 @@
+# Single source of truth for the cross-platform Docker image build.
+#
+# Triggers:
+#   - workflow_call     → release.yml invokes this as the final step of the
+#                         stage → smoke → promote → docker chain, once
+#                         @latest has been advanced on npm.
+#   - workflow_dispatch → manual rebuild of an image for an arbitrary version,
+#                         with an optional --no-cache knob.
+#   - pull_request      → gate on changes under `src/container/**`. Builds
+#                         and tests the image locally but never pushes (no
+#                         Docker Hub login), so fork PRs are safe.
+
+name: Docker build
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version to build (must match an already-published doc-detective).
+        required: true
+        type: string
+      no_cache:
+        description: Build without cache.
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build.
+        required: true
+        default: latest
+        type: string
+      no_cache:
+        description: Build without cache.
+        required: false
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'src/container/**'
+
+concurrency:
+  group: docker-build-${{ github.head_ref || github.ref }}-${{ inputs.version || 'pr' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    timeout-minutes: 60
+    env:
+      IMAGE_VERSION: ${{ inputs.version || 'latest' }}
+    strategy:
+      matrix:
+        os:
+          # windows-2022 pinned — windows-latest ships Docker Engine
+          # instead of Docker Desktop, which breaks the Windows container
+          # switch. Matches how this file was set up pre-consolidation.
+          - windows-2022
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        # The container build scripts don't need browsers or drivers, so
+        # skip lifecycle scripts and husky to keep the job fast and stable.
+        run: npm ci --ignore-scripts
+        env:
+          HUSKY: '0'
+
+      - name: Switch Docker to Windows containers
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Switching Docker to Windows containers..."
+
+          # GitHub Actions Windows runners ship Docker Engine, not Docker
+          # Desktop, so DockerCli.exe -SwitchWindowsEngine doesn't exist.
+          # Reconfigure the dockerd service to run in Windows-container mode.
+          Stop-Service docker -ErrorAction SilentlyContinue
+
+          $attemptedDockerdPaths = @()
+          $dockerd = (Get-Command dockerd -ErrorAction SilentlyContinue).Source
+          if ($dockerd) {
+            $attemptedDockerdPaths += $dockerd
+          } else {
+            $fallbackDockerd = "$Env:ProgramFiles\Docker\dockerd.exe"
+            $attemptedDockerdPaths += $fallbackDockerd
+            $dockerd = $fallbackDockerd
+          }
+
+          if (-not (Test-Path -LiteralPath $dockerd)) {
+            $pathsString = $attemptedDockerdPaths -join ', '
+            throw "Could not find 'dockerd'. Paths attempted: $pathsString"
+          }
+
+          Write-Host "Using dockerd at: $dockerd"
+
+          & $dockerd --unregister-service 2>$null
+          & $dockerd --register-service
+          Start-Service docker
+
+          $retries = 0
+          $lastDockerInfoError = $null
+          $os = $null
+          while ($retries -lt 12) {
+            Start-Sleep -Seconds 5
+            $retries++
+            $output = docker info --format '{{.OSType}}' 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $os = ($output | Select-Object -Last 1).ToString().Trim()
+              Write-Host "Docker OSType: $os (attempt $retries)"
+              if ($os -eq 'windows') { break }
+            } else {
+              $lastDockerInfoError = ($output | Out-String).Trim()
+              Write-Host "Docker not ready yet (attempt $retries): $lastDockerInfoError"
+            }
+          }
+          if ($os -ne 'windows') {
+            if (-not $os) { $os = 'unknown' }
+            $details = if ($lastDockerInfoError) { "; last docker info error=$lastDockerInfoError" } else { "" }
+            throw "Docker did not switch to Windows mode after waiting; last observed OSType=$os$details"
+          }
+          docker version
+          docker info
+
+      - name: Verify Windows container mode
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $os = docker info --format '{{.OSType}}'
+          if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
+          Write-Host "Docker OSType=$os"
+
+      - name: Build Docker Image
+        shell: bash
+        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+
+      - name: Post-build Test
+        shell: bash
+        env:
+          VERSION: ${{ env.IMAGE_VERSION }}
+        run: npm run container:test
+
+      # Login + push only for real rebuilds, never for PRs and never for
+      # the placeholder `latest` (which signals "no version input provided").
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker image
+        if: github.event_name != 'pull_request' && env.IMAGE_VERSION != 'latest'
+        run: docker push --all-tags docdetective/docdetective
