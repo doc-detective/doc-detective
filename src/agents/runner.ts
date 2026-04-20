@@ -57,8 +57,12 @@ export async function runInstallAgents(
 
   // Install each in order; collect reports. When an adapter doesn't support
   // the requested scope, degrade to its nearest supported scope and attach a
-  // note to the report so callers see the divergence.
+  // note to the report so callers see the divergence. Each install() is
+  // isolated so one adapter's failure doesn't prevent the remaining adapters
+  // from getting a chance — otherwise the user who said "install into these
+  // three" would lose the last two when the first one errors.
   const reports: InstallReport[] = [];
+  const failures: { adapter: AgentAdapter; error: unknown }[] = [];
   for (const adapter of targeted) {
     const effective = effectiveScopeFor(adapter, scope);
     if (effective.degraded) {
@@ -68,23 +72,36 @@ export async function runInstallAgents(
       );
     }
     logger(`\n→ ${adapter.displayName} (${adapter.id}) — scope: ${effective.scope}`, "info");
-    const report = await adapter.install({
-      scope: effective.scope,
-      force: Boolean(argv.force),
-      dryRun,
-      logger,
-    });
-    const finalReport = effective.degraded
-      ? {
-          ...report,
-          notes: [
-            ...(report.notes ?? []),
-            `Requested scope '${scope}' is not supported by ${adapter.displayName}; installed as '${effective.scope}' instead.`,
-          ],
-        }
-      : report;
-    reports.push(finalReport);
-    logger(summarizeReport(finalReport), "info");
+    try {
+      const report = await adapter.install({
+        scope: effective.scope,
+        force: Boolean(argv.force),
+        dryRun,
+        logger,
+      });
+      const finalReport = effective.degraded
+        ? {
+            ...report,
+            notes: [
+              ...(report.notes ?? []),
+              `Requested scope '${scope}' is not supported by ${adapter.displayName}; installed as '${effective.scope}' instead.`,
+            ],
+          }
+        : report;
+      reports.push(finalReport);
+      logger(summarizeReport(finalReport), "info");
+    } catch (err) {
+      failures.push({ adapter, error: err });
+      const message = err instanceof Error ? err.message : String(err);
+      logger(`  failed: ${message}`, "error");
+    }
+  }
+  if (failures.length > 0) {
+    const names = failures.map((f) => f.adapter.displayName).join(", ");
+    // Throw so the CLI exits nonzero and the postinstall prompt's retry hint
+    // fires; earlier adapters that succeeded still completed their side
+    // effects, they just don't show up in the thrown error's message.
+    throw new Error(`Agent install failed for: ${names}.`);
   }
   return reports;
 }
