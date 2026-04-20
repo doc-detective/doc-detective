@@ -123,6 +123,17 @@ jobs:
             exit 1
           fi
 
+      - name: Start local test server
+        # test/artifacts/doc-content.md references http://localhost:8092.
+        # The existing Mocha hooks start a server on that port for the unit
+        # tests, but this job doesn't invoke Mocha — so serve the static
+        # fixtures directly. Pattern copied from PR #252.
+        working-directory: ./test/server/public
+        run: |
+          python3 -m http.server 8092 &
+          curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://localhost:8092 > /dev/null
+          echo "Test server is ready."
+
       - name: Run github-action against staging
         # Pinned to the v1.4.1 commit. Update in lockstep when the action
         # cuts a new release; `@latest` is a moving target and expands
