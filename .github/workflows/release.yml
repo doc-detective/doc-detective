@@ -51,6 +51,13 @@ jobs:
       version: ${{ steps.sr.outputs.version }}
       channel: ${{ steps.sr.outputs.channel }}
       published: ${{ steps.sr.outputs.published }}
+    # Husky installs a commit-msg hook that runs commitlint locally.
+    # @semantic-release/git creates a commit whose message includes the
+    # full release notes (PR links, compare URLs) — those lines routinely
+    # exceed commitlint's default `footer-max-line-length: 100`. The hook
+    # isn't useful in CI anyway, so disable it here.
+    env:
+      HUSKY: '0'
     steps:
       - uses: actions/checkout@v4
         with:
