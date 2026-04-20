@@ -28,11 +28,15 @@
         "prepareCmd": "node scripts/sync-common-version.js ${nextRelease.version}"
       }
     ],
-    "@semantic-release/npm",
+    [
+      "@semantic-release/npm",
+      { "npmPublish": false }
+    ],
     [
       "@semantic-release/exec",
       {
-        "publishCmd": "npm publish --workspace src/common --access public --tag ${nextRelease.channel || 'latest'}"
+        "publishCmd": "node scripts/publish-staged-release.js ${nextRelease.version} ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}",
+        "successCmd": "echo 'version=${nextRelease.version}' >> \"$GITHUB_OUTPUT\" && echo 'channel=${nextRelease.channel || \"\"}' >> \"$GITHUB_OUTPUT\" && echo 'published=true' >> \"$GITHUB_OUTPUT\""
       }
     ],
     [

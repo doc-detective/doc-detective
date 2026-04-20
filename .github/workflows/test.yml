@@ -1,0 +1,62 @@
+# Reusable test matrix. Single source of truth for the cross-platform
+# test grid.
+#
+# Callers:
+#   - npm-test.yaml (PR gate on `pull_request` + manual `workflow_dispatch`)
+#   - release.yml   (push to main/next/feat/** as the gate before
+#                    semantic-release publishes)
+#
+# HERETTO_* secrets are only valuable on trusted contexts. The trust
+# decision lives in the caller: callers pass the real secret values on
+# trusted events (main push, manual dispatch, etc.) and pass empty
+# strings everywhere else. This workflow just plumbs whatever the caller
+# hands it into the test env, so an untrusted run never sees real
+# credentials.
+
+name: Test Matrix
+
+on:
+  workflow_call:
+    secrets:
+      HERETTO_ORG_ID:
+        required: false
+      HERETTO_USERNAME:
+        required: false
+      HERETTO_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        node:
+          - 20
+          - 22
+          - 24
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+        env:
+          HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
+          HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
+          HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
