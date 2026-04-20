@@ -1,15 +1,19 @@
 # Finish a staged release: smoke-test the `staging-<version>` dist-tag
-# via the github-action, promote `@latest` (with semver regression guard),
+# (falling back to the plain `<version>` for recovery runs where staging
+# was already retired), promote `@latest` (with semver regression guard),
 # retire the staging tag, then build + push the Docker image.
 #
 # Two callers:
 #   - workflow_call     → release.yml chains this after semantic-release
 #                         publishes to `staging-<version>`.
-#   - workflow_dispatch → manual recovery. If a run fails after
-#                         publish-to-staging (e.g. a flaky smoke test),
-#                         dispatch this workflow with `version: X.Y.Z`
-#                         to finish the chain without having to land a
-#                         new release-worthy commit.
+#   - workflow_dispatch → manual recovery. If a release fails after
+#                         publish-to-staging (flaky smoke, registry
+#                         hiccup), dispatch this with `version: X.Y.Z`
+#                         to finish the chain without waiting for a new
+#                         release-worthy commit. If the earlier attempt
+#                         got past the promote step but failed during
+#                         docker, staging is already gone — this workflow
+#                         detects that and uses `<version>` directly.
 
 name: Promote staged release
 
@@ -17,9 +21,14 @@ on:
   workflow_call:
     inputs:
       version:
-        description: Version already published to `staging-<version>` on npm.
+        description: Version already published on npm (as `staging-<version>` or as `<version>` if staging was already retired).
         required: true
         type: string
+      publish_docker:
+        description: Build and push the Docker image after promote. Set false to skip when Docker credentials aren't configured or you only need the npm promote.
+        required: false
+        type: boolean
+        default: true
     secrets:
       NPM_TOKEN:
         required: true
@@ -30,9 +39,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to promote (must exist as `staging-<version>` on npm, or as `<version>` if staging was already retired).
+        description: Version to promote (must exist as `staging-<version>` or `<version>` on npm).
         required: true
         type: string
+      publish_docker:
+        description: Build and push the Docker image after promote.
+        required: false
+        type: boolean
+        default: true
 
 concurrency:
   group: promote-${{ inputs.version }}
@@ -46,6 +60,8 @@ jobs:
     name: Smoke-test staged release
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      action_version: ${{ steps.resolve.outputs.action_version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,26 +70,40 @@ jobs:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Wait for staging dist-tag to propagate
+      - name: Resolve npm tag (staging-<version> or <version>)
+        id: resolve
         shell: bash
         env:
-          STAGING_TAG: staging-${{ inputs.version }}
-          EXPECTED: ${{ inputs.version }}
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
+          STAGING_TAG="staging-$VERSION"
+          ACTION_VERSION=""
           for i in $(seq 1 12); do
-            PUBLISHED=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
-            if [ "$PUBLISHED" = "$EXPECTED" ]; then
-              echo "doc-detective@$STAGING_TAG resolves to $PUBLISHED"
+            # Prefer the staging tag (automated path or fresh recovery).
+            PUB=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
+            if [ "$PUB" = "$VERSION" ]; then
+              ACTION_VERSION="$STAGING_TAG"
+              echo "doc-detective@$STAGING_TAG resolves to $PUB — using staging tag."
               break
             fi
-            echo "Attempt $i: doc-detective@$STAGING_TAG is '$PUBLISHED', expected '$EXPECTED'. Waiting 10s..."
+            # Fall back to the plain version — covers the case where a
+            # previous run got past promote (which retires staging) but
+            # failed during docker-build.
+            PUB=$(npm view "doc-detective@$VERSION" version 2>/dev/null || echo "")
+            if [ "$PUB" = "$VERSION" ]; then
+              ACTION_VERSION="$VERSION"
+              echo "staging-$VERSION not present; $VERSION is published — using plain version."
+              break
+            fi
+            echo "Attempt $i: neither staging-$VERSION nor $VERSION resolves yet. Waiting 10s..."
             sleep 10
           done
-          if [ "$PUBLISHED" != "$EXPECTED" ]; then
-            echo "ERROR: Timed out waiting for doc-detective@$STAGING_TAG on npm"
+          if [ -z "$ACTION_VERSION" ]; then
+            echo "ERROR: Timed out waiting for doc-detective@$VERSION to resolve (staging or plain)." >&2
             exit 1
           fi
+          echo "action_version=$ACTION_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Start local test server
         # test/artifacts/doc-content.md references http://localhost:8092.
@@ -85,17 +115,17 @@ jobs:
           curl --fail --silent --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:8092 > /dev/null
           echo "Test server is ready."
 
-      - name: Run github-action against staging
+      - name: Run github-action
         # Pinned to the v1.4.1 commit; @latest is a moving target.
         uses: doc-detective/github-action@a2a4f5ceb1abfa55d567e4f6766223082ece2c18 # v1.4.1
         with:
-          version: staging-${{ inputs.version }}
+          version: ${{ steps.resolve.outputs.action_version }}
           config: ./test/artifacts/config.json
           input: ./test/artifacts/doc-content.md
           exit_on_fail: "true"
 
   promote:
-    name: Promote staging → @latest
+    name: Promote → @latest
     needs: smoke-test
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -131,40 +161,40 @@ jobs:
               sleep 10
             done
             if [ "$PUBLISHED" != "$NEXT" ]; then
-              echo "ERROR: timed out waiting for $pkg@$NEXT to propagate on npm"
+              echo "ERROR: timed out waiting for $pkg@$NEXT to propagate on npm" >&2
               exit 1
             fi
           done
 
-      - name: Verify new version strictly advances @latest
+      - name: Verify new version doesn't regress @latest
         shell: bash
         env:
           NEXT: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          # `npm view` exits non-zero if the package has never been published.
-          CURRENT=$(npm view doc-detective@latest version 2>/dev/null || echo "")
-          if [ -z "$CURRENT" ]; then
-            echo "No @latest published yet; $NEXT will be the first."
-          else
-            echo "Current doc-detective@latest is $CURRENT; candidate is $NEXT."
-            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$CURRENT') ? 'yes' : 'no'")
-            if [ "$IS_NEWER" != "yes" ]; then
-              echo "ERROR: refusing to promote $NEXT over existing @latest $CURRENT."
-              echo "This usually means a newer release already landed; re-run only"
-              echo "if you've verified nothing newer was published by another run."
-              exit 1
+          check_not_older() {
+            local pkg="$1"
+            local current
+            current=$(npm view "$pkg@latest" version 2>/dev/null || echo "")
+            if [ -z "$current" ]; then
+              echo "$pkg has no @latest yet; $NEXT will be the first."
+              return 0
             fi
-          fi
-
-          COMMON_CURRENT=$(npm view doc-detective-common@latest version 2>/dev/null || echo "")
-          if [ -n "$COMMON_CURRENT" ]; then
-            IS_NEWER=$(node -p "require('semver').gt('$NEXT','$COMMON_CURRENT') ? 'yes' : 'no'")
-            if [ "$IS_NEWER" != "yes" ]; then
-              echo "ERROR: refusing to promote doc-detective-common $NEXT over existing @latest $COMMON_CURRENT."
-              exit 1
+            if [ "$current" = "$NEXT" ]; then
+              echo "$pkg@latest is already $NEXT — promote will be a no-op."
+              return 0
             fi
-          fi
+            local is_newer
+            is_newer=$(node -p "require('semver').gt('$NEXT','$current') ? 'yes' : 'no'")
+            if [ "$is_newer" != "yes" ]; then
+              echo "ERROR: refusing to regress $pkg@latest from $current to $NEXT." >&2
+              echo "A newer release may already have landed; confirm nothing newer was published before re-running." >&2
+              return 1
+            fi
+            echo "$pkg@latest=$current, promoting to $NEXT."
+          }
+          check_not_older doc-detective
+          check_not_older doc-detective-common
 
       - name: Promote to @latest
         env:
@@ -172,6 +202,8 @@ jobs:
           NEXT: ${{ inputs.version }}
         run: |
           set -euo pipefail
+          # `npm dist-tag add` is idempotent — re-running on an already-set
+          # tag is a no-op, which is exactly what we want for recovery.
           npm dist-tag add doc-detective@$NEXT latest
           npm dist-tag add doc-detective-common@$NEXT latest
 
@@ -187,6 +219,11 @@ jobs:
   build-docker-image:
     name: Build & push Docker image
     needs: promote
+    # Skip for promote-only recovery runs. The operator sets
+    # `publish_docker: false` on a workflow_dispatch when they only need
+    # the npm @latest promote (e.g. Docker image was already rebuilt via
+    # a separate docker-build.yml dispatch).
+    if: inputs.publish_docker
     uses: ./.github/workflows/docker-build.yml
     with:
       version: ${{ inputs.version }}
