@@ -142,6 +142,29 @@ jobs:
         env:
           HUSKY: '0'
 
+      - name: Wait for both packages to propagate
+        shell: bash
+        env:
+          NEXT: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          for pkg in doc-detective doc-detective-common; do
+            PUBLISHED=""
+            for i in $(seq 1 12); do
+              PUBLISHED=$(npm view "$pkg@$NEXT" version 2>/dev/null || echo "")
+              if [ "$PUBLISHED" = "$NEXT" ]; then
+                echo "$pkg@$NEXT is resolvable on npm"
+                break
+              fi
+              echo "Attempt $i: $pkg@$NEXT not yet resolvable ('$PUBLISHED'). Waiting 10s..."
+              sleep 10
+            done
+            if [ "$PUBLISHED" != "$NEXT" ]; then
+              echo "ERROR: timed out waiting for $pkg@$NEXT to propagate on npm"
+              exit 1
+            fi
+          done
+
       - name: Verify new version strictly advances @latest
         id: guard
         shell: bash

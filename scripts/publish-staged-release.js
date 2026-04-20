@@ -17,6 +17,7 @@
 // Exits non-zero if either package fails to reach the desired end state.
 
 import { spawnSync } from 'node:child_process';
+import semver from 'semver';
 
 const version = process.argv[2];
 const tag = process.argv[3];
@@ -26,19 +27,25 @@ if (!version || !tag) {
   process.exit(1);
 }
 
-const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-// npm dist-tags must be valid npm identifiers and must not parse as semver.
-// Allow lowercase alphanumerics, hyphens, underscores, and dots (dots show up
-// in our `staging-<version>` tags). The leading-char constraint and the
-// strict character set together rule out shell metacharacters.
+// Shape check for the tag: lowercase alphanumerics, hyphens, underscores,
+// and dots (dots appear in our `staging-<version>` tags). The leading-char
+// constraint and strict character set rule out shell metacharacters —
+// important because we invoke npm via spawn with `shell: true` on Windows.
 const DIST_TAG = /^[a-z0-9][a-z0-9._-]{0,99}$/;
 
-if (!SEMVER.test(version)) {
+if (!semver.valid(version)) {
   console.error(`Refusing to run: ${JSON.stringify(version)} is not a valid semver version`);
   process.exit(1);
 }
 if (!DIST_TAG.test(tag)) {
   console.error(`Refusing to run: ${JSON.stringify(tag)} is not a valid npm dist-tag`);
+  process.exit(1);
+}
+// npm rejects dist-tags that parse as a valid semver range. Reject early with
+// a clear message instead of letting `npm publish` fail with its own cryptic
+// error later.
+if (semver.valid(tag) || semver.validRange(tag)) {
+  console.error(`Refusing to run: ${JSON.stringify(tag)} parses as a semver value; npm dist-tags must not`);
   process.exit(1);
 }
 
