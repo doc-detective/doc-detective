@@ -85,6 +85,8 @@ jobs:
     if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -115,7 +117,10 @@ jobs:
           fi
 
       - name: Run github-action against staging
-        uses: doc-detective/github-action@latest
+        # Pinned to the v1.4.1 commit. Update in lockstep when the action
+        # cuts a new release; `@latest` is a moving target and expands
+        # the supply-chain surface area.
+        uses: doc-detective/github-action@a2a4f5ceb1abfa55d567e4f6766223082ece2c18 # v1.4.1
         with:
           version: staging-${{ needs.release.outputs.version }}
           config: ./test/artifacts/config.json
@@ -232,7 +237,11 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        # The docker build scripts don't need browsers or drivers, so skip
+        # the postinstall and husky hooks to cut several minutes off the job.
+        run: npm ci --ignore-scripts
+        env:
+          HUSKY: '0'
 
       - name: Switch Docker to Windows containers
         if: runner.os == 'Windows'

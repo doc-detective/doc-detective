@@ -1,6 +1,6 @@
 # PR gate: runs the reusable test matrix on pull requests so reviewers see
 # matrix failures before merge. All release-side work (publish, smoke-test
-# staged build, promote to @latest, Docker, downstream dispatch) lives in
+# staged build, promote to @latest, Docker build) lives in
 # .github/workflows/release.yml, which has a linear needs-chain that only
 # advances @latest after the smoke test passes.
 
