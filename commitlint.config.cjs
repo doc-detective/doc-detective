@@ -5,6 +5,8 @@ module.exports = {
   // commit embeds the full changelog; dependabot may use long footers).
   ignores: [
     (message) => /^chore\(release\): /.test(message),
-    (message) => /^Signed-off-by: dependabot\[bot\]/.test(message),
+    // `Signed-off-by` is a footer line, not the first line, so don't anchor
+    // to `^`; match anywhere in the commit message.
+    (message) => /Signed-off-by: dependabot\[bot\]/.test(message),
   ],
 };
