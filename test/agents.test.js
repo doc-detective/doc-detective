@@ -933,6 +933,38 @@ describe("runInstallAgents() orchestration", function () {
     assert.equal(both.lastScope, "project");        // respected
   });
 
+  it("one adapter's install failure does not block the remaining adapters", async function () {
+    const failing = makeStubAdapter("failing");
+    failing.install = async function () {
+      this.calls.install++;
+      throw new Error("simulated install failure");
+    };
+    const ok1 = makeStubAdapter("ok-one");
+    const ok2 = makeStubAdapter("ok-two");
+    const logs = [];
+    await assert.rejects(
+      runInstallAgents(
+        {
+          agent: ["failing", "ok-one", "ok-two"],
+          scope: "project",
+          force: false,
+          yes: true,
+          "dry-run": false,
+        },
+        { adapters: [failing, ok1, ok2], isTTY: () => false, logger: (m) => logs.push(m) }
+      ),
+      /failing/i
+    );
+    // Every adapter got its turn — the first one's throw did not abort the loop.
+    assert.equal(failing.calls.install, 1);
+    assert.equal(ok1.calls.install, 1);
+    assert.equal(ok2.calls.install, 1);
+    assert.ok(
+      logs.some((l) => /failed:.*simulated install failure/i.test(l)),
+      `expected a 'failed: ...' log entry; got: ${JSON.stringify(logs)}`
+    );
+  });
+
   it("reports 'no detected agents' cleanly (no throw, empty reports)", async function () {
     const cc = makeStubAdapter("claude", {
       detection: { present: false, onPath: false, configPaths: {} },
