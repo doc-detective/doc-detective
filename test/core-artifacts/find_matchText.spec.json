@@ -5,22 +5,22 @@
       "steps": [
         {
           "action": "goTo",
-          "url": "https://doc-detective.com/docs/get-started/actions/type"
+          "url": "http://localhost:8092"
         },
         {
           "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "Special keys"
+          "selector": "#text-elements > h2",
+          "matchText": "Text Elements"
         },
         {
           "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "/^Special keys$/"
+          "selector": "#text-elements > h2",
+          "matchText": "/^Text Elements$/"
         },
         {
           "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "/^S.*?s/"
+          "selector": "#text-elements > h2",
+          "matchText": "/^T.*?s/"
         }
       ]
     }

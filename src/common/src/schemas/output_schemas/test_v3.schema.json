@@ -904,6 +904,14 @@
                               "trim"
                             ]
                           },
+                          "params": {
+                            "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            },
+                            "default": {}
+                          },
                           "statusCodes": {
                             "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                             "anyOf": [
@@ -927,6 +935,26 @@
                               302,
                               307,
                               308
+                            ]
+                          },
+                          "headers": {
+                            "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                            "default": {},
+                            "anyOf": [
+                              {
+                                "title": "Request headers (object)",
+                                "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                },
+                                "properties": {}
+                              },
+                              {
+                                "title": "Request headers (string)",
+                                "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                "type": "string"
+                              }
                             ]
                           }
                         }
@@ -967,6 +995,14 @@
                                 "trim"
                               ]
                             },
+                            "params": {
+                              "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "default": {}
+                            },
                             "statusCodes": {
                               "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                               "anyOf": [
@@ -991,6 +1027,26 @@
                                 307,
                                 308
                               ]
+                            },
+                            "headers": {
+                              "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                              "default": {},
+                              "anyOf": [
+                                {
+                                  "title": "Request headers (object)",
+                                  "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  },
+                                  "properties": {}
+                                },
+                                {
+                                  "title": "Request headers (string)",
+                                  "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                  "type": "string"
+                                }
+                              ]
                             }
                           }
                         }
@@ -1009,6 +1065,13 @@
                         "statusCodes": [
                           200
                         ]
+                      },
+                      {
+                        "url": "/health",
+                        "origin": "https://my-app.com",
+                        "params": {
+                          "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                        }
                       }
                     ]
                   }
@@ -2949,6 +3012,14 @@
                               "trim"
                             ]
                           },
+                          "params": {
+                            "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            },
+                            "default": {}
+                          },
                           "timeout": {
                             "type": "integer",
                             "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -3121,6 +3192,14 @@
                                 "trim"
                               ]
                             },
+                            "params": {
+                              "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "default": {}
+                            },
                             "timeout": {
                               "type": "integer",
                               "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -3269,6 +3348,13 @@
                       {
                         "url": "/search",
                         "origin": "https://www.google.com"
+                      },
+                      {
+                        "url": "/dashboard",
+                        "origin": "https://my-app.com",
+                        "params": {
+                          "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                        }
                       },
                       {
                         "url": "https://www.example.com",
@@ -5535,9 +5621,9 @@
                     "anyOf": [
                       {
                         "title": "Screenshot (simple)",
-                        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                         "type": "string",
-                        "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                        "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                         "transform": [
                           "trim"
                         ]
@@ -5548,9 +5634,9 @@
                         "properties": {
                           "path": {
                             "title": "Screenshot (simple)",
-                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                             "type": "string",
-                            "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                            "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                             "transform": [
                               "trim"
                             ]
@@ -5781,9 +5867,9 @@
                       "schemas": {
                         "path": {
                           "title": "Screenshot (simple)",
-                          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                           "type": "string",
-                          "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                          "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                           "transform": [
                             "trim"
                           ]
@@ -5794,9 +5880,9 @@
                           "properties": {
                             "path": {
                               "title": "Screenshot (simple)",
-                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                               "type": "string",
-                              "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                               "transform": [
                                 "trim"
                               ]
@@ -6178,6 +6264,12 @@
                       "image.png",
                       "static/images/image.png",
                       "/User/manny/projects/doc-detective/static/images/image.png",
+                      "https://example.com/static/images/image.png",
+                      {
+                        "path": "https://promptless-customer-doc-assets.s3.amazonaws.com/docs-images/request-changes-button-0c851bb3.png",
+                        "maxVariation": 0.05,
+                        "overwrite": "aboveVariation"
+                      },
                       {
                         "path": "image.png",
                         "directory": "static/images",
@@ -9001,6 +9093,14 @@
                                     "trim"
                                   ]
                                 },
+                                "params": {
+                                  "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  },
+                                  "default": {}
+                                },
                                 "statusCodes": {
                                   "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                   "anyOf": [
@@ -9024,6 +9124,26 @@
                                     302,
                                     307,
                                     308
+                                  ]
+                                },
+                                "headers": {
+                                  "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                  "default": {},
+                                  "anyOf": [
+                                    {
+                                      "title": "Request headers (object)",
+                                      "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      },
+                                      "properties": {}
+                                    },
+                                    {
+                                      "title": "Request headers (string)",
+                                      "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                      "type": "string"
+                                    }
                                   ]
                                 }
                               }
@@ -9064,6 +9184,14 @@
                                       "trim"
                                     ]
                                   },
+                                  "params": {
+                                    "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    },
+                                    "default": {}
+                                  },
                                   "statusCodes": {
                                     "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
                                     "anyOf": [
@@ -9088,6 +9216,26 @@
                                       307,
                                       308
                                     ]
+                                  },
+                                  "headers": {
+                                    "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                    "default": {},
+                                    "anyOf": [
+                                      {
+                                        "title": "Request headers (object)",
+                                        "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        },
+                                        "properties": {}
+                                      },
+                                      {
+                                        "title": "Request headers (string)",
+                                        "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+                                        "type": "string"
+                                      }
+                                    ]
                                   }
                                 }
                               }
@@ -9106,6 +9254,13 @@
                               "statusCodes": [
                                 200
                               ]
+                            },
+                            {
+                              "url": "/health",
+                              "origin": "https://my-app.com",
+                              "params": {
+                                "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                              }
                             }
                           ]
                         }
@@ -11046,6 +11201,14 @@
                                     "trim"
                                   ]
                                 },
+                                "params": {
+                                  "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  },
+                                  "default": {}
+                                },
                                 "timeout": {
                                   "type": "integer",
                                   "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -11218,6 +11381,14 @@
                                       "trim"
                                     ]
                                   },
+                                  "params": {
+                                    "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    },
+                                    "default": {}
+                                  },
                                   "timeout": {
                                     "type": "integer",
                                     "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
@@ -11366,6 +11537,13 @@
                             {
                               "url": "/search",
                               "origin": "https://www.google.com"
+                            },
+                            {
+                              "url": "/dashboard",
+                              "origin": "https://my-app.com",
+                              "params": {
+                                "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+                              }
                             },
                             {
                               "url": "https://www.example.com",
@@ -13632,9 +13810,9 @@
                           "anyOf": [
                             {
                               "title": "Screenshot (simple)",
-                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                               "type": "string",
-                              "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                               "transform": [
                                 "trim"
                               ]
@@ -13645,9 +13823,9 @@
                               "properties": {
                                 "path": {
                                   "title": "Screenshot (simple)",
-                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                   "type": "string",
-                                  "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                   "transform": [
                                     "trim"
                                   ]
@@ -13878,9 +14056,9 @@
                             "schemas": {
                               "path": {
                                 "title": "Screenshot (simple)",
-                                "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                 "type": "string",
-                                "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                 "transform": [
                                   "trim"
                                 ]
@@ -13891,9 +14069,9 @@
                                 "properties": {
                                   "path": {
                                     "title": "Screenshot (simple)",
-                                    "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.",
+                                    "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
                                     "type": "string",
-                                    "pattern": "([A-Za-z0-9_-]*\\.(png|PNG)$|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|[A-Za-z]:[\\/\\\\].*\\.(?:png|PNG)|[\\/\\\\]?[A-Za-z0-9_.\\/\\\\-]*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                     "transform": [
                                       "trim"
                                     ]
@@ -14275,6 +14453,12 @@
                             "image.png",
                             "static/images/image.png",
                             "/User/manny/projects/doc-detective/static/images/image.png",
+                            "https://example.com/static/images/image.png",
+                            {
+                              "path": "https://promptless-customer-doc-assets.s3.amazonaws.com/docs-images/request-changes-button-0c851bb3.png",
+                              "maxVariation": 0.05,
+                              "overwrite": "aboveVariation"
+                            },
                             {
                               "path": "image.png",
                               "directory": "static/images",

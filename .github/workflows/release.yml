@@ -1,0 +1,105 @@
+# Release pipeline. Linear needs-chain so @latest is only advanced after an
+# end-to-end smoke test of the newly-published artifact:
+#
+#   test → release (publishes to a unique `staging-<version>` dist-tag for main)
+#        → promote (reusable promote.yml: smoke-test → @latest promote →
+#                   docker-build; can also be workflow_dispatch'd manually
+#                   with `version: X.Y.Z` to recover a release whose
+#                   smoke test failed)
+#
+# Prerelease branches (`next`, `feat/**`) publish to their own dist-tag and
+# skip smoke/promote/docker — those channels don't feed @latest.
+
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - next
+      - 'feat/**'
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets:
+      # Only forward HERETTO_* on trusted refs. On next/feat/** the called
+      # workflow receives empty strings and never has access to the real
+      # values, so the trust boundary is enforced here at the caller.
+      HERETTO_ORG_ID: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_ORG_ID || '' }}
+      HERETTO_USERNAME: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_USERNAME || '' }}
+      HERETTO_TOKEN: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_TOKEN || '' }}
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.sr.outputs.version }}
+      channel: ${{ steps.sr.outputs.channel }}
+      published: ${{ steps.sr.outputs.published }}
+    # Husky installs a commit-msg hook that runs commitlint locally.
+    # @semantic-release/git creates a commit whose message includes the
+    # full release notes (PR links, compare URLs) — those lines routinely
+    # exceed commitlint's default `footer-max-line-length: 100`. The hook
+    # isn't useful in CI anyway, so disable it here.
+    env:
+      HUSKY: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Release
+        id: sr
+        env:
+          GITHUB_TOKEN: ${{ secrets.DD_DEP_UPDATE_TOKEN }}
+          # NPM_TOKEN is consumed by @semantic-release/npm's verifyConditions
+          # (writes a temporary ~/.npmrc); NODE_AUTH_TOKEN is what the npm CLI
+          # reads when setup-node@v4 configured `registry-url`, which is what
+          # our @semantic-release/exec publishCmd relies on.
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
+
+  # Tail of the chain (smoke-test → promote → docker) lives in the
+  # reusable promote.yml so it can also be invoked manually to recover a
+  # release whose smoke test failed partway through.
+  promote:
+    name: Smoke-test → promote → Docker
+    needs: release
+    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/promote.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+      # promote.yml internally passes `publish_latest_tags: true` to
+      # docker-build.yml because this invocation runs after @latest has
+      # advanced. The automated path always publishes Docker; only
+      # manual workflow_dispatch recovery runs toggle `publish_docker`.
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

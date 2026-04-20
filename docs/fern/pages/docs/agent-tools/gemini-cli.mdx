@@ -1,0 +1,75 @@
+---
+title: Gemini CLI
+sidebar-title: Gemini CLI
+description: Set up Doc Detective agent tools in Gemini CLI and use prompts or slash commands to bootstrap and generate tests.
+---
+
+Set up Doc Detective agent tools with Gemini CLI to test your documentation using natural language.
+
+## Prerequisites
+
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli) installed
+
+## Installation
+
+From any project directory, run:
+
+```bash
+npx doc-detective install-agents --agent gemini
+```
+
+This invokes `gemini extensions install ... --auto-update --consent --skip-settings` under the hood, which installs the extension non-interactively and keeps it current on future Gemini CLI launches. Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+
+Useful flags:
+
+- `--yes`: non-interactive; skips all prompts.
+- `--force`: reinstall even if already up to date.
+- `--dry-run`: print planned actions without executing them.
+
+Gemini CLI installs extensions user-globally, so the `--scope` flag has no effect for this agent. If you pass `--scope project`, doc-detective warns and installs globally.
+
+### Fallback installation
+
+If `npx doc-detective install-agents` isn't an option, install the extension directly with `gemini extensions install`:
+
+```bash
+gemini extensions install https://github.com/doc-detective/agent-tools.git --auto-update
+gemini
+```
+
+The `--auto-update` flag keeps the extension current with new releases.
+
+## Bootstrap a project
+
+Set up Doc Detective in your repository using a slash command:
+
+```
+/doc-detective-init
+```
+
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
+
+1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
+2. Generates a `.doc-detective.json` configuration file
+3. Creates test specifications for procedures with step-by-step instructions
+4. Runs the tests and fixes failures
+
+## Generate tests for existing pages
+
+Convert a documentation file into a test specification using a slash command:
+
+```
+/doc-detective-generate docs/getting-started.md
+```
+
+Or ask in plain language:
+
+> Generate Doc Detective tests for the getting started guide. Save the output to a JSON file in the tests folder.
+
+You can also ask for more specific behavior:
+
+> Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.

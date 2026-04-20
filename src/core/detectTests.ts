@@ -13,6 +13,7 @@ import { validate } from "../common/src/validate.js";
 import { detectTests as parseContent, getLineNumber, getLineStarts } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
+import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 
 export { detectTests, parseTests };
 
@@ -227,16 +228,59 @@ async function qualifyFiles({ config }: { config: any }) {
     config._herettoPathMapping = {};
   }
 
-  for (let source of sequence) {
+  for (let i = 0; i < sequence.length; i++) {
+    let source = sequence[i];
     log(config, "debug", `source: ${source}`);
 
     // Check if source is a heretto:<name> reference
     if (source.startsWith("heretto:")) {
-      log(
-        config,
-        "warning",
-        `Heretto integration "${source}" is not supported in core. Use the resolver module for Heretto support.`
+      const herettoName = source.substring(8);
+      const herettoConfig = config?.integrations?.heretto?.find(
+        (h: any) => h.name === herettoName
       );
+
+      if (!herettoConfig) {
+        log(config, "warning", `Heretto integration "${herettoName}" not found in config. Skipping.`);
+        continue;
+      }
+
+      if (!herettoConfig.outputPath) {
+        try {
+          const outputPath = await loadHerettoContent(herettoConfig, log, config);
+          if (outputPath) {
+            herettoConfig.outputPath = outputPath;
+            config._herettoPathMapping[outputPath] = herettoName;
+            sequence.splice(i + 1, 0, outputPath);
+            ignoredDitaMaps.push(outputPath);
+          } else {
+            log(config, "warning", `Failed to load Heretto content for "${herettoName}". Skipping.`);
+          }
+        } catch (error: any) {
+          log(config, "warning", `Failed to load Heretto content from "${herettoName}": ${error.message}`);
+        }
+      } else {
+        config._herettoPathMapping[herettoConfig.outputPath] = herettoName;
+        if (!ignoredDitaMaps.includes(herettoConfig.outputPath)) {
+          ignoredDitaMaps.push(herettoConfig.outputPath);
+        }
+        if (!sequence.includes(herettoConfig.outputPath)) {
+          sequence.splice(i + 1, 0, herettoConfig.outputPath);
+        }
+        // Hydrate resourceDependencies for uploadOnChange on reuse runs
+        if (herettoConfig.uploadOnChange && !herettoConfig.resourceDependencies) {
+          try {
+            const client = createApiClient(herettoConfig);
+            const scenarioName = herettoConfig.scenarioName || DEFAULT_SCENARIO_NAME;
+            const scenario = await findScenario(client, log, config, scenarioName);
+            if (scenario) {
+              const restClient = createRestApiClient(herettoConfig);
+              herettoConfig.resourceDependencies = await getResourceDependencies(restClient, scenario.fileId, log, config);
+            }
+          } catch (error: any) {
+            log(config, "warning", `Failed to fetch resource dependencies for "${herettoName}": ${error.message}`);
+          }
+        }
+      }
       continue;
     }
 

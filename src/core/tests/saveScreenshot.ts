@@ -1,6 +1,12 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
-import { log } from "../utils.js";
+import {
+  log,
+  fetchFile,
+  getOrInitRunTimestamp,
+  redactUrlForOutput,
+  sanitizeFilesystemName,
+} from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { PNG } from "pngjs";
@@ -15,7 +21,42 @@ async function getPixelmatch() {
   return pixelmatch;
 }
 
-export { saveScreenshot };
+export { saveScreenshot, clampCropRect, aspectRatiosMatch };
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+// Shift the rect into image bounds without shrinking. When the rect fits
+// inside the image, output dimensions depend only on the requested rect,
+// not on where it sits — so two crops of the same element with the same
+// padding stay dimensionally stable even if the element's viewport
+// position drifts by a few pixels between calls.
+function clampCropRect(rect: Rect, imgW: number, imgH: number): Rect {
+  let { x, y, width, height } = rect;
+  if (width > imgW) {
+    x = 0;
+    width = imgW;
+  } else {
+    if (x < 0) x = 0;
+    if (x + width > imgW) x = imgW - width;
+  }
+  if (height > imgH) {
+    y = 0;
+    height = imgH;
+  } else {
+    if (y < 0) y = 0;
+    if (y + height > imgH) y = imgH - height;
+  }
+  return { x, y, width, height };
+}
+
+function aspectRatiosMatch(
+  a: { width: number; height: number },
+  b: { width: number; height: number },
+): boolean {
+  const ra = a.width / a.height;
+  const rb = b.width / b.height;
+  return Math.abs(ra - rb) / Math.max(ra, rb) <= 0.05;
+}
 
 async function saveScreenshot({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result: any = {
@@ -73,26 +114,99 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   }
 
   let filePath = step.screenshot.path;
-
-  // Set path directory
-  const dir = path.dirname(step.screenshot.path);
-  // If `dir` doesn't exist, create it
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  // Check if file already exists
   let existFilePath;
-  if (fs.existsSync(filePath)) {
-    if (step.screenshot.overwrite == "false") {
-      // File already exists
-      result.status = "SKIPPED";
-      result.description = `File already exists: ${filePath}`;
+  let dir: string;
+
+  // Detect URL paths. A URL `path` is treated as a read-only reference:
+  // we download it to a temp file for comparison, and write the new capture
+  // to a local run-specific folder (URLs can't be written back to).
+  const isUrlPath = /^https?:\/\//i.test(filePath);
+  const originalUrlPath = isUrlPath ? filePath : undefined;
+  // Safe form for logs/descriptions/outputs: strips query + fragment so
+  // presigned-URL signatures/tokens don't leak into the report.
+  const redactedUrl = isUrlPath ? redactUrlForOutput(filePath) : undefined;
+
+  if (isUrlPath) {
+    const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
+    if (fetched.result !== "success") {
+      result.status = "FAIL";
+      result.description = `Couldn't fetch remote reference image (${redactedUrl}): ${fetched.message}`;
       return result;
-    } else {
-      // Set temp file path
-      existFilePath = filePath;
-      filePath = path.join(dir, `${step.stepId}_${Date.now()}.png`);
+    }
+    existFilePath = fetched.path;
+
+    // URL-derived names can contain path separators (`/`, `\`) or `..`
+    // segments. `path.basename` on a slash-normalized string strips directory
+    // components; we also sanitize any residual traversal and prepend stepId
+    // so two URL screenshots with the same basename don't clobber each other.
+    let urlPathname: string;
+    try {
+      urlPathname = new URL(originalUrlPath!).pathname;
+    } catch {
+      urlPathname = originalUrlPath!;
+    }
+    const rawBase = path.basename(
+      urlPathname.split("?")[0].split("#")[0].replace(/\\/g, "/")
+    );
+    // Also strip characters that are invalid in filenames on Windows
+    // (`< > : " | ? *` and control chars). Without this, a URL segment like
+    // `img:v2.png` would build a path the Windows file system refuses to
+    // create. Shared helper so the rule stays consistent with fetchFile.
+    const safeBase = sanitizeFilesystemName(rawBase, `${step.stepId}.png`);
+
+    dir = path.join(
+      process.cwd(),
+      "doc-detective-runs",
+      getOrInitRunTimestamp(config)
+    );
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    // Append a per-capture suffix so URL refs that share a basename (or a
+    // future code path that reuses `stepId`) can't clobber each other.
+    const captureId = `${step.stepId || "screenshot"}_${Date.now()}`;
+    filePath = path.join(dir, `${captureId}_${safeBase}`);
+
+    // Defense in depth: the resolved capture path must stay inside `dir`.
+    const resolvedDir = path.resolve(dir);
+    const resolvedFile = path.resolve(filePath);
+    if (!resolvedFile.startsWith(resolvedDir + path.sep)) {
+      result.status = "FAIL";
+      result.description = `Refusing to write screenshot outside run folder: ${resolvedFile}`;
+      return result;
+    }
+
+    // Overwrite semantics can't apply to a URL. The comparison block below
+    // gates every mutating branch on `!isUrlPath`, so we log the user's
+    // original value and leave `step.screenshot.overwrite` untouched — the
+    // reported step object continues to reflect what they actually specified.
+    if (step.screenshot.overwrite !== "false") {
+      log(
+        config,
+        "debug",
+        `Screenshot path is a URL (${redactedUrl}); overwrite is ignored, running comparison only.`
+      );
+    }
+  } else {
+    // Set path directory
+    dir = path.dirname(step.screenshot.path);
+    // If `dir` doesn't exist, create it
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Check if file already exists
+    if (fs.existsSync(filePath)) {
+      if (step.screenshot.overwrite == "false") {
+        // File already exists
+        result.status = "SKIPPED";
+        result.description = `File already exists: ${filePath}`;
+        return result;
+      } else {
+        // Set temp file path
+        existFilePath = filePath;
+        filePath = path.join(dir, `${step.stepId}_${Date.now()}.png`);
+      }
     }
   }
 
@@ -255,20 +369,11 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
 
     // Clamp values to stay within image bounds
     const imgMeta = await sharp(filePath).metadata();
-    if (rect.x < 0) {
-      rect.width += rect.x;
-      rect.x = 0;
-    }
-    if (rect.y < 0) {
-      rect.height += rect.y;
-      rect.y = 0;
-    }
-    if (rect.x + rect.width > imgMeta.width!) {
-      rect.width = imgMeta.width! - rect.x;
-    }
-    if (rect.y + rect.height > imgMeta.height!) {
-      rect.height = imgMeta.height! - rect.y;
-    }
+    const clamped = clampCropRect(rect, imgMeta.width!, imgMeta.height!);
+    rect.x = clamped.x;
+    rect.y = clamped.y;
+    rect.width = clamped.width;
+    rect.height = clamped.height;
 
     log(config, "debug", { padded_rect: rect });
 
@@ -300,7 +405,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // If overwrite is true, replace old file with new file
   // If overwrite is aboveVariation, compare files and replace if variance is greater than threshold
   if (existFilePath) {
-    if (step.screenshot.overwrite == "true") {
+    // URL paths never take the "overwrite=true" fast path: existFilePath is a
+    // temp download, not a user-owned reference, and the local capture is
+    // kept in the run folder for inspection.
+    if (step.screenshot.overwrite == "true" && !isUrlPath) {
       // Replace old file with new file
       result.description += ` Overwrote existing file.`;
       fs.renameSync(filePath, existFilePath);
@@ -316,17 +424,35 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
 
     // Perform numerical pixel diff with pixelmatch
     if (step.screenshot.maxVariation != null) {
-      const img1 = PNG.sync.read(fs.readFileSync(existFilePath));
-      const img2 = PNG.sync.read(fs.readFileSync(filePath));
+      let img1: any;
+      let img2: any;
+      try {
+        img1 = PNG.sync.read(fs.readFileSync(existFilePath));
+        img2 = PNG.sync.read(fs.readFileSync(filePath));
+      } catch (error) {
+        result.status = "FAIL";
+        result.description = isUrlPath
+          ? `Couldn't decode PNG for comparison. The URL reference (${redactedUrl}) may not be a valid PNG. ${error}`
+          : `Couldn't decode PNG for comparison. ${error}`;
+        if (
+          !isUrlPath &&
+          filePath !== existFilePath &&
+          fs.existsSync(filePath)
+        ) {
+          fs.unlinkSync(filePath);
+        }
+        return result;
+      }
 
       // Compare aspect ratio of images
-      if (
-        Math.round((img1.width / img1.height) * 100) / 100 !==
-        Math.round((img2.width / img2.height) * 100) / 100
-      ) {
+      if (!aspectRatiosMatch(img1, img2)) {
         result.status = "FAIL";
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
-        if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
+        if (
+          !isUrlPath &&
+          filePath !== existFilePath &&
+          fs.existsSync(filePath)
+        ) {
           fs.unlinkSync(filePath);
         }
         return result;
@@ -378,7 +504,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       });
 
       if (fractionalDiff > step.screenshot.maxVariation) {
-        if (step.screenshot.overwrite == "aboveVariation") {
+        if (step.screenshot.overwrite == "aboveVariation" && !isUrlPath) {
           // Replace old file with new file
           fs.renameSync(filePath, existFilePath);
         }
@@ -388,24 +514,38 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         )}) is greater than the max accepted variation (${
           step.screenshot.maxVariation
         }).`;
-        result.outputs.changed = true;
-        result.outputs.screenshotPath = existFilePath;
-        // Preserve sourceIntegration metadata for upload processing
-        if (step.screenshot.sourceIntegration) {
-          result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+        if (isUrlPath) {
+          // URL references are read-only: we can't write back to the remote.
+          // Leave `outputs.changed` at its default (false) so upload pipelines
+          // like collectChangedFiles()/Heretto don't treat this as something
+          // to push, and omit sourceIntegration for the same reason. The
+          // drift signal lives in `result.status === "WARNING"` + the local
+          // capture path + referenceUrl.
+          result.outputs.screenshotPath = filePath;
+          result.outputs.referenceUrl = redactedUrl;
+        } else {
+          result.outputs.changed = true;
+          result.outputs.screenshotPath = existFilePath;
+          if (step.screenshot.sourceIntegration) {
+            result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+          }
         }
         return result;
       } else {
         result.description += ` Screenshots are within maximum accepted variation: ${fractionalDiff.toFixed(
           2
         )}.`;
-        result.outputs.screenshotPath = existFilePath;
-        // Preserve sourceIntegration metadata
-        if (step.screenshot.sourceIntegration) {
-          result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
-        }
-        if (step.screenshot.overwrite != "true") {
-          fs.unlinkSync(filePath);
+        if (isUrlPath) {
+          result.outputs.screenshotPath = filePath;
+          result.outputs.referenceUrl = redactedUrl;
+        } else {
+          result.outputs.screenshotPath = existFilePath;
+          if (step.screenshot.sourceIntegration) {
+            result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+          }
+          if (step.screenshot.overwrite != "true") {
+            fs.unlinkSync(filePath);
+          }
         }
       }
     }

@@ -1,0 +1,83 @@
+---
+title: Copilot CLI
+sidebar-title: Copilot CLI
+description: Install and use Doc Detective agent tools with Copilot CLI to bootstrap projects and generate test specifications.
+---
+
+Set up Doc Detective agent tools with Copilot CLI to test your documentation using natural language.
+
+## Prerequisites
+
+- [GitHub Copilot CLI](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line) installed
+
+## Installation
+
+From any project directory, run:
+
+```bash
+npx doc-detective install-agents --agent copilot
+```
+
+The command invokes the native Copilot CLI plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. Re-run at any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+
+Useful flags:
+
+- `--yes`: non-interactive; skips all prompts.
+- `--force`: reinstall even if already up to date.
+- `--dry-run`: print planned actions without executing them.
+
+Copilot CLI installs plugins user-globally, so the `--scope` flag has no effect for this agent. If you pass `--scope project`, doc-detective warns and installs globally.
+
+If the `copilot` binary isn't on your PATH, install it first with `npm install -g @github/copilot` (or see the [Copilot CLI install docs](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli)). Also run `copilot login` to authenticate.
+
+### Fallback installation
+
+If `npx doc-detective install-agents` isn't an option, install via the slash commands built into Copilot CLI.
+
+1. Open Copilot CLI:
+
+    ```bash
+    copilot
+    ```
+
+2. Install the Doc Detective plugin:
+
+    ```
+    /plugin marketplace add doc-detective/agent-tools
+    /plugin install doc-detective@doc-detective
+    ```
+
+## Bootstrap a project
+
+Set up Doc Detective in your repository using a slash command:
+
+```
+/doc-detective-init
+```
+
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
+
+1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
+2. Generates a `.doc-detective.json` configuration file
+3. Creates test specifications for procedures with step-by-step instructions
+4. Runs the tests and fixes failures
+
+## Generate tests for existing pages
+
+Convert a documentation file into a test specification using a slash command:
+
+```
+/doc-detective-generate docs/getting-started.md
+```
+
+Or ask in plain language:
+
+> Generate Doc Detective tests for the getting started guide. Save the output to a JSON file in the tests folder.
+
+You can also ask for more specific behavior:
+
+> Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.

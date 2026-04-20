@@ -1,0 +1,73 @@
+---
+title: Agent tools overview
+sidebar-title: Overview
+description: Learn what Doc Detective agent tools are, who can use them, and how to bootstrap tests with natural-language prompts.
+---
+
+Agent tools let you set up Doc Detective tests using natural language. Instead of writing test specifications by hand, you describe what you want to test and your AI coding assistant generates the tests for you.
+
+## What are agent tools?
+
+Agent tools are plugins, extensions, and skills that integrate Doc Detective with AI coding assistants. They let you:
+
+- **Bootstrap projects**: Detect documentation files, generate configuration, and create initial tests
+- **Generate tests**: Convert documentation procedures into executable test specifications
+
+## Compatibility
+
+Doc Detective agent tools work with any AI coding assistant that supports Agent Skills, including:
+
+- [Claude Code](/docs/agent-tools/claude-code)
+- [Copilot CLI](/docs/agent-tools/copilot-cli)
+- [Gemini CLI](/docs/agent-tools/gemini-cli)
+- [Codex, Qwen Code, OpenCode, Cursor, and others](/docs/agent-tools/other-assistants)
+
+If your assistant supports skills, extensions, or plugins, you can likely use Doc Detective agent tools with it.
+
+## Quick install
+
+The fastest way to install the agent tools is the Doc Detective CLI:
+
+```bash
+npx doc-detective install-agents
+```
+
+It detects every supported agent on your machine, prompts you to choose which to configure, and invokes each agent's native install mechanism. Re-run any time to update to the latest version.
+
+To target a specific agent non-interactively:
+
+```bash
+npx doc-detective install-agents --agent claude --scope project --yes
+```
+
+Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`.
+
+Head to the per-agent guide below if you prefer the native install flow or need to troubleshoot.
+
+## Quick start
+
+Once installed, you can bootstrap Doc Detective in your project.
+
+Using a slash command:
+
+```
+/doc-detective-init
+```
+
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
+
+1. Detects documentation files in your repository
+2. Generates a minimal configuration file
+3. Creates test specifications for identified procedures
+4. Runs the tests
+5. Iteratively fixes failures with confidence-based suggestions
+
+## Learn more
+
+- [Test specification format](/docs/tests/overview)
+- [Actions reference](/docs/actions)
+- [CI integration](/docs/get-started/ci)

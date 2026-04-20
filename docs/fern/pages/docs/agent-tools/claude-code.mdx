@@ -1,0 +1,82 @@
+---
+title: Claude Code
+sidebar-title: Claude Code
+description: Install Doc Detective agent tools in Claude Code, bootstrap a project, and generate tests from existing documentation.
+---
+
+Set up Doc Detective agent tools with Claude Code to test your documentation using natural language.
+
+## Prerequisites
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
+
+## Installation
+
+From any project directory, run:
+
+```bash
+npx doc-detective install-agents --agent claude
+```
+
+The command auto-detects Claude Code, prompts for install scope (project or user-global) if you don't pass `--scope`, then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. Re-run the same command any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+
+Useful flags:
+
+- `--scope project` or `--scope global`: skip the scope prompt.
+- `--yes`: non-interactive; requires `--agent` and `--scope`.
+- `--force`: reinstall even if already up to date.
+- `--dry-run`: print planned actions without executing them.
+
+If the `claude` binary isn't on your PATH but `~/.claude/` exists, the command edits your settings file directly (adding `extraKnownMarketplaces` and `enabledPlugins`). Claude Code then prompts to complete the install on its next launch.
+
+### Fallback installation
+
+If `npx doc-detective install-agents` isn't an option, install via Claude Code's own slash commands.
+
+1. Open Claude Code:
+
+    ```bash
+    claude
+    ```
+
+2. Add the Doc Detective marketplace and install the plugin:
+
+    ```
+    /plugin marketplace add doc-detective/agent-tools
+    /plugin install doc-detective@doc-detective
+    ```
+
+## Bootstrap a project
+
+Set up Doc Detective in your repository using a slash command:
+
+```
+/doc-detective-init
+```
+
+Or describe what you want in plain language:
+
+> Set up Doc Detective in this project. Scan for documentation files, create a config, and generate tests for any procedures you find.
+
+The bootstrapping process:
+
+1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
+2. Generates a `.doc-detective.json` configuration file
+3. Creates test specifications for procedures with step-by-step instructions
+4. Runs the tests and fixes failures
+
+## Generate tests for existing pages
+
+Convert a documentation file into a test specification using a slash command:
+
+```
+/doc-detective-generate docs/getting-started.md
+```
+
+Or ask in plain language:
+
+> Generate Doc Detective tests for the getting started guide. Save the output to a JSON file in the tests folder.
+
+You can also ask for more specific behavior:
+
+> Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.

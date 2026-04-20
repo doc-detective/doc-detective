@@ -60,6 +60,10 @@ export interface Config {
    */
   output?: string;
   /**
+   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`. Custom reporters registered via `registerReporter()` can also be referenced by name.
+   */
+  reporters?: string[];
+  /**
    * If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.
    */
   recursive?: boolean;
@@ -72,6 +76,12 @@ export interface Config {
    * Default protocol and domain to use for relative URLs.
    */
   origin?: string;
+  /**
+   * Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. WARNING: values are embedded in request URLs and appear verbatim in test results, logs, and reports — avoid putting long-lived secrets here.
+   */
+  originParams?: {
+    [k: string]: string;
+  };
   /**
    * Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.
    */

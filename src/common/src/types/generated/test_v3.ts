@@ -79,6 +79,11 @@ export type CheckLink1 = CheckLinkDetailed | CheckLinkDetailed1;
  */
 export type CheckLinkDetailed = string;
 /**
+ * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
+ * Authorization: Bearer token`.
+ */
+export type RequestHeadersString = string;
+/**
  * Click or tap an element.
  */
 export type Click1 = ClickElementSimple | ClickElementDetailed | boolean;
@@ -187,11 +192,11 @@ export type TypeKeysSimple1 = string | string[];
  */
 export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple1 = string;
 /**
@@ -368,6 +373,11 @@ export type CheckLink3 = CheckLinkDetailed2 | CheckLinkDetailed3;
  */
 export type CheckLinkDetailed2 = string;
 /**
+ * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
+ * Authorization: Bearer token`.
+ */
+export type RequestHeadersString1 = string;
+/**
  * Click or tap an element.
  */
 export type Click3 = ClickElementSimple1 | ClickElementDetailed1 | boolean;
@@ -476,11 +486,11 @@ export type TypeKeysSimple3 = string | string[];
  */
 export type Screenshot3 = ScreenshotSimple2 | CaptureScreenshotDetailed1 | CaptureScreenshot1;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple2 = string;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple3 = string;
 /**
@@ -823,9 +833,25 @@ export interface CheckLinkDetailed1 {
    */
   origin?: string;
   /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
    */
   statusCodes?: number | number[];
+  /**
+   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+   */
+  headers?: RequestHeadersObject | RequestHeadersString;
+}
+/**
+ * Headers to include in the HTTP request, in key/value format. Values must be strings.
+ */
+export interface RequestHeadersObject {
+  [k: string]: string;
 }
 export interface Common1 {
   /**
@@ -1052,6 +1078,12 @@ export interface GoToURLDetailed {
    * Protocol and domain to navigate to. Prepended to `url`.
    */
   origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
   /**
    * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
    */
@@ -2294,9 +2326,25 @@ export interface CheckLinkDetailed3 {
    */
   origin?: string;
   /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
    */
   statusCodes?: number | number[];
+  /**
+   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+   */
+  headers?: RequestHeadersObject1 | RequestHeadersString1;
+}
+/**
+ * Headers to include in the HTTP request, in key/value format. Values must be strings.
+ */
+export interface RequestHeadersObject1 {
+  [k: string]: string;
 }
 export interface Common17 {
   /**
@@ -2523,6 +2571,12 @@ export interface GoToURLDetailed1 {
    * Protocol and domain to navigate to. Prepended to `url`.
    */
   origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
   /**
    * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
    */

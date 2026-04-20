@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl } from "../utils.js";
+import { isRelativeUrl, appendQueryParams } from "../utils.js";
 import { findElement } from "./findElement.js";
 
 export { goTo };
@@ -13,8 +13,10 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     step.goTo = { url: step.goTo };
   }
 
+  const relative = isRelativeUrl(step.goTo.url);
+
   // Set origin for relative URLs
-  if (isRelativeUrl(step.goTo.url)) {
+  if (relative) {
     if (!step.goTo.origin && !config.origin) {
       result.status = "FAIL";
       result.description =
@@ -28,6 +30,21 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     }
     step.goTo.url = step.goTo.origin + step.goTo.url;
   }
+
+  // config.originParams only apply to URLs resolved against an origin;
+  // step.goTo.params applies regardless so per-step params on absolute URLs
+  // aren't silently dropped.
+  //
+  // Apply each source in a separate pass instead of pre-merging via
+  // object spread. Spreading would convert an accidentally-array-shaped
+  // input (e.g. `originParams: ["x"]`) into `{0: "x"}`, sneaking past
+  // appendQueryParams's `Array.isArray` guard. Two passes route each
+  // source through the guard independently. Step wins on collision
+  // because the second pass dedupes against the first.
+  if (relative) {
+    step.goTo.url = appendQueryParams(step.goTo.url, config.originParams);
+  }
+  step.goTo.url = appendQueryParams(step.goTo.url, step.goTo.params);
 
   // Make sure there's a protocol
   if (step.goTo.url && !step.goTo.url.includes("://"))

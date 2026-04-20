@@ -1,4 +1,5 @@
 import { setArgs, setConfig, outputResults } from "../dist/utils.js";
+import { appendQueryParams } from "../dist/core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -80,6 +81,133 @@ describe("Util tests", function () {
     argSets.forEach((argSet) => {
       expect(setArgs(argSet.args)).to.deep.include(argSet.expected);
     });
+  });
+
+  it("Yargs parses --reporters argument correctly", function () {
+    const single = setArgs([
+      "node", "runTests.js", "--reporters", "html",
+    ]);
+    expect(single.reporters).to.deep.equal(["html"]);
+    expect(single.r).to.deep.equal(["html"]);
+
+    const multiple = setArgs([
+      "node", "runTests.js", "--reporters", "terminal", "json", "html",
+    ]);
+    expect(multiple.reporters).to.deep.equal(["terminal", "json", "html"]);
+
+    const aliased = setArgs([
+      "node", "runTests.js", "-r", "html",
+    ]);
+    expect(aliased.reporters).to.deep.equal(["html"]);
+  });
+
+  it("outputResults respects reporters option for html", async function () {
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-cli-test-"));
+    try {
+      const sampleResults = {
+        reportId: "cli-test",
+        summary: {
+          specs: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          tests: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          contexts: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          steps: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+        },
+        specs: [{
+          result: "PASS", specId: "s1", description: "test",
+          tests: [{ result: "PASS", testId: "t1", description: "t",
+            contexts: [{ result: "PASS", contextId: "c1", platform: "linux",
+              steps: [{ result: "PASS", stepId: "st1", goTo: "https://example.com", duration: 10 }]
+            }]
+          }]
+        }],
+      };
+      const results = await outputResults({}, tmpDir, sampleResults, {
+        reporters: ["html"],
+        command: "runTests",
+      });
+      const htmlPath = results[0];
+      expect(htmlPath).to.match(/\.html$/);
+      expect(fs.existsSync(htmlPath)).to.be.true;
+      const content = fs.readFileSync(htmlPath, "utf-8");
+      expect(content).to.include("<!DOCTYPE html>");
+      expect(content).to.include("window.REPORT_DATA");
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("setConfig stores --reporters arg on config.reporters", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--reporters", "html", "terminal"]);
+    const config = await setConfig({ configPath: null, args });
+    expect(config.reporters).to.deep.equal(["html", "terminal"]);
+  });
+
+  it("setConfig applies schema default reporters when arg is absent", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(args.reporters).to.be.undefined;
+    const config = await setConfig({ configPath: null, args });
+    // Schema default is ["terminal", "json"] — AJV useDefaults applies it
+    // during validation when the --reporters arg is not provided.
+    expect(config.reporters).to.deep.equal(["terminal", "json"]);
+  });
+
+  it("outputResults uses config.reporters as source of truth", async function () {
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-config-reporters-"));
+    try {
+      const sampleResults = {
+        reportId: "cfg-test",
+        summary: {
+          specs: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          tests: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          contexts: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          steps: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+        },
+        specs: [{ result: "PASS", specId: "s1", description: "t", tests: [{ result: "PASS", testId: "t1", description: "t", contexts: [{ result: "PASS", contextId: "c1", platform: "linux", steps: [{ result: "PASS", stepId: "s1", goTo: "https://x.test", duration: 10 }] }] }] }],
+      };
+      // config.reporters set to ["html"] should produce an HTML output even
+      // when options.reporters is omitted.
+      const results = await outputResults(
+        { reporters: ["html"] },
+        tmpDir,
+        sampleResults,
+        { command: "runTests" }
+      );
+      expect(results[0]).to.match(/\.html$/);
+      expect(fs.existsSync(results[0])).to.be.true;
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("outputResults: config.reporters takes precedence over options.reporters", async function () {
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-prio-reporters-"));
+    try {
+      const sampleResults = {
+        reportId: "prio-test",
+        summary: {
+          specs: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          tests: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          contexts: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          steps: { pass: 1, fail: 0, warning: 0, skipped: 0 },
+        },
+        specs: [{ result: "PASS", specId: "s1", description: "t", tests: [{ result: "PASS", testId: "t1", description: "t", contexts: [{ result: "PASS", contextId: "c1", platform: "linux", steps: [{ result: "PASS", stepId: "s1", goTo: "https://x.test", duration: 10 }] }] }] }],
+      };
+      // config says html-only, options says json-only — config wins.
+      const results = await outputResults(
+        { reporters: ["html"] },
+        tmpDir,
+        sampleResults,
+        { command: "runTests", reporters: ["json"] }
+      );
+      expect(results[0]).to.match(/\.html$/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   // Test that config overrides are set correctly
@@ -589,6 +717,121 @@ describe("Util tests", function () {
         delete process.env.DOC_DETECTIVE_CONFIG;
       }
     }
+  });
+});
+
+describe("appendQueryParams", function () {
+  it("returns URL unchanged when params is undefined, null, or empty", function () {
+    const url = "https://example.com/foo";
+    expect(appendQueryParams(url, undefined)).to.equal(url);
+    expect(appendQueryParams(url, null)).to.equal(url);
+    expect(appendQueryParams(url, {})).to.equal(url);
+  });
+
+  it("returns URL unchanged when params is an array (defensive)", function () {
+    const url = "https://example.com/foo";
+    expect(appendQueryParams(url, ["a", "b"])).to.equal(url);
+  });
+
+  it("appends params with ? when URL has no existing query string", function () {
+    const out = appendQueryParams("https://example.com/foo", {
+      a: "1",
+      b: "two",
+    });
+    const qs = new URLSearchParams(out.split("?")[1]);
+    expect(out.startsWith("https://example.com/foo?")).to.equal(true);
+    expect(qs.get("a")).to.equal("1");
+    expect(qs.get("b")).to.equal("two");
+  });
+
+  it("appends params with & when URL already has a query string", function () {
+    const out = appendQueryParams("https://example.com/foo?x=0", { a: "1" });
+    expect(out).to.equal("https://example.com/foo?x=0&a=1");
+  });
+
+  it("replaces existing query-string keys rather than duplicating them", function () {
+    const out = appendQueryParams("https://example.com/p?token=old&keep=yes", {
+      token: "new",
+    });
+    const qs = new URLSearchParams(out.split("?")[1]);
+    expect(qs.getAll("token")).to.deep.equal(["new"]);
+    expect(qs.get("keep")).to.equal("yes");
+  });
+
+  it("preserves the existing query-string verbatim when there is no key collision", function () {
+    // URLSearchParams round-tripping would normalize `+` for spaces and
+    // percent-encode `:` / `,` — that breaks signed URLs and strict
+    // backends. When no key collides, we append raw to the existing query.
+    const out = appendQueryParams(
+      "https://example.com/p?sig=abc:123,xyz&q=hello+world",
+      { token: "new" }
+    );
+    expect(out).to.equal(
+      "https://example.com/p?sig=abc:123,xyz&q=hello+world&token=new"
+    );
+  });
+
+  it("on collision, replaces only the colliding key and keeps non-colliding pairs verbatim", function () {
+    // Same signed-URL shape as the no-collision test, but now there's
+    // also a colliding `token=old`. Only that segment should be dropped;
+    // `sig=abc:123,xyz` and `q=hello+world` must come through untouched.
+    const out = appendQueryParams(
+      "https://example.com/p?sig=abc:123,xyz&token=old&q=hello+world",
+      { token: "new" }
+    );
+    expect(out).to.equal(
+      "https://example.com/p?sig=abc:123,xyz&q=hello+world&token=new"
+    );
+  });
+
+  it("inserts params before a URL fragment (not inside it)", function () {
+    const out = appendQueryParams("https://example.com/p#section", {
+      token: "t",
+    });
+    expect(out).to.equal("https://example.com/p?token=t#section");
+  });
+
+  it("preserves existing query AND fragment when appending", function () {
+    const out = appendQueryParams("https://example.com/p?x=1#section", {
+      token: "t",
+    });
+    const [base, rest] = out.split("?");
+    const [qs, frag] = rest.split("#");
+    expect(base).to.equal("https://example.com/p");
+    const params = new URLSearchParams(qs);
+    expect(params.get("x")).to.equal("1");
+    expect(params.get("token")).to.equal("t");
+    expect(frag).to.equal("section");
+  });
+
+  it("URL-encodes special characters in values", function () {
+    const out = appendQueryParams("https://example.com/", {
+      q: "hello world&=?",
+    });
+    const qs = new URLSearchParams(out.split("?")[1]);
+    expect(qs.get("q")).to.equal("hello world&=?");
+  });
+
+  it("coerces non-string values to strings", function () {
+    const out = appendQueryParams("https://example.com/", {
+      n: 42,
+      b: true,
+    });
+    const qs = new URLSearchParams(out.split("?")[1]);
+    expect(qs.get("n")).to.equal("42");
+    expect(qs.get("b")).to.equal("true");
+  });
+
+  it("drops entries whose values are null or undefined", function () {
+    const out = appendQueryParams("https://example.com/", {
+      keep: "yes",
+      drop1: null,
+      drop2: undefined,
+    });
+    const qs = new URLSearchParams(out.split("?")[1]);
+    expect(qs.get("keep")).to.equal("yes");
+    expect(qs.has("drop1")).to.equal(false);
+    expect(qs.has("drop2")).to.equal(false);
   });
 });
 
