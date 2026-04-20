@@ -1,3 +1,11 @@
+# [4.2.0](https://github.com/doc-detective/doc-detective/compare/v4.1.2...v4.2.0) (2026-04-20)
+
+
+### Features
+
+* **ci:** reusable promote.yml for manual release recovery ([#275](https://github.com/doc-detective/doc-detective/issues/275)) ([a690f3f](https://github.com/doc-detective/doc-detective/commit/a690f3fa1889e46c889c609b67b1f72faa67afd1)), closes [#272](https://github.com/doc-detective/doc-detective/issues/272)
+* **postinstall:** offer to install agent tools for detected coding agents ([#273](https://github.com/doc-detective/doc-detective/issues/273)) ([88772fb](https://github.com/doc-detective/doc-detective/commit/88772fbc060dc42c3072705f1785c7a7d666c7f4))
+
 ## [4.1.2](https://github.com/doc-detective/doc-detective/compare/v4.1.1...v4.1.2) (2026-04-20)
 
 
