@@ -208,7 +208,11 @@ jobs:
           npm dist-tag add doc-detective-common@$NEXT latest
 
       - name: Retire staging dist-tag (best-effort)
-        if: always()
+        # Only retire staging after the promote path has succeeded. If
+        # propagation, the semver guard, or the `npm dist-tag add` step
+        # failed, leave staging in place so an operator can re-run
+        # promote.yml without having to re-publish the package.
+        if: success()
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           STAGING_TAG: staging-${{ inputs.version }}
