@@ -35,7 +35,7 @@
     [
       "@semantic-release/exec",
       {
-        "publishCmd": "npm publish --access public --tag ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version} && npm publish --workspace src/common --access public --tag ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}",
+        "publishCmd": "node scripts/publish-staged-release.js ${nextRelease.version} ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}",
         "successCmd": "echo 'version=${nextRelease.version}' >> \"$GITHUB_OUTPUT\" && echo 'channel=${nextRelease.channel || \"\"}' >> \"$GITHUB_OUTPUT\" && echo 'published=true' >> \"$GITHUB_OUTPUT\""
       }
     ],
