@@ -1,3 +1,10 @@
+## [4.1.1](https://github.com/doc-detective/doc-detective/compare/v4.1.0...v4.1.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* **ci:** host local test fixtures during release smoke test ([#269](https://github.com/doc-detective/doc-detective/issues/269)) ([adb0eb1](https://github.com/doc-detective/doc-detective/commit/adb0eb1ccab30d41f0ff572f9d3d82b88f1c8fbf))
+
 # [4.1.0](https://github.com/doc-detective/doc-detective/compare/v4.0.2...v4.1.0) (2026-04-20)
 
 
