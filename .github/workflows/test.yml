@@ -16,6 +16,9 @@ on:
       HERETTO_TOKEN:
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test (${{ matrix.os }}, node ${{ matrix.node }})
