@@ -63,20 +63,26 @@ async function maybePromptInstallAgents() {
       : "PATH";
   const originalPath = process.env[pathKey];
   const pathSep = process.platform === "win32" ? ";" : ":";
+  // Windows paths are case-insensitive, so normalize both sides of every
+  // comparison to lowercase on win32. Otherwise `C:\Proj\NODE_MODULES\.BIN`
+  // would slip past a literal `/node_modules/.bin` check.
+  const isWin = process.platform === "win32";
+  const caseFold = (s) => (isWin ? s.toLowerCase() : s);
   const initCwdAbs = process.env.INIT_CWD
     ? path.resolve(process.env.INIT_CWD)
     : null;
+  const initCwdMatch = initCwdAbs ? caseFold(initCwdAbs) : null;
   const sanitizedPath = (originalPath || "")
     .split(pathSep)
     .filter((entry) => {
       if (!entry || entry === ".") return false;
-      const normalized = entry.split(path.sep).join("/");
+      const normalized = caseFold(entry.split(path.sep).join("/"));
       if (normalized.includes("/node_modules/.bin")) return false;
-      if (initCwdAbs) {
-        const resolved = path.resolve(entry);
+      if (initCwdMatch) {
+        const resolved = caseFold(path.resolve(entry));
         if (
-          resolved === initCwdAbs ||
-          resolved.startsWith(initCwdAbs + path.sep)
+          resolved === initCwdMatch ||
+          resolved.startsWith(initCwdMatch + path.sep)
         )
           return false;
       }
@@ -84,6 +90,14 @@ async function maybePromptInstallAgents() {
     })
     .join(pathSep);
   process.env[pathKey] = sanitizedPath;
+  // Restoring via `process.env[k] = undefined` coerces to the literal string
+  // "undefined" (Node stringifies every env value), leaving the process with
+  // a broken PATH. Delete the key when the original was absent; only assign
+  // when we have a real string.
+  const restorePath = () => {
+    if (originalPath === undefined) delete process.env[pathKey];
+    else process.env[pathKey] = originalPath;
+  };
 
   // Hard ceiling on the whole detection phase. Some adapters shell out to
   // external CLIs that could hang on auth prompts, proxy stalls, etc. On
@@ -121,17 +135,17 @@ async function maybePromptInstallAgents() {
     );
     const result = await Promise.race([detection, timeout]);
     if (result === "__timeout__") {
-      process.env[pathKey] = originalPath;
+      restorePath();
       // Orphaned adapter children would otherwise keep the event loop alive
       // and freeze `npm install`. See comment above.
       process.exit(0);
     }
     adaptersNeedingInstall = result.filter(Boolean);
   } catch {
-    process.env[pathKey] = originalPath;
+    restorePath();
     return;
   }
-  process.env[pathKey] = originalPath;
+  restorePath();
 
   if (adaptersNeedingInstall.length === 0) return;
 
