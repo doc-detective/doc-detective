@@ -5,14 +5,14 @@
       "steps": [
         {
           "goTo": {
-            "url": "data:text/html,<!doctype html><html><body><h1>Find fixture</h1><h2>Special keys</h2></body></html>",
-            "timeout": 30000
+            "url": "https://example.com/",
+            "timeout": 60000
           }
         },
         {
-          "description": "Set HEADING variable to the text of the 'Special keys' element.",
+          "description": "Set HEADING variable to the text of the 'Example Domain' element.",
           "find": {
-            "elementText": "Special keys",
+            "elementText": "Example Domain",
             "timeout": 30000
           },
           "variables": {
@@ -23,7 +23,7 @@
           "description": "Print and validate the value of the HEADING variable.",
           "runShell": {
             "command": "echo $HEADING",
-            "stdio": "Special keys"
+            "stdio": "Example Domain"
           }
         }
       ]

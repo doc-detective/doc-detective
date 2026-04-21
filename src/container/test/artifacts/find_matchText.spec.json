@@ -5,25 +5,25 @@
       "steps": [
         {
           "goTo": {
-            "url": "data:text/html,<!doctype html><html><body><h1>Find fixture</h1><h2>Special keys</h2></body></html>",
+            "url": "https://example.com/",
+            "timeout": 60000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Example Domain",
             "timeout": 30000
           }
         },
         {
           "find": {
-            "elementText": "Special keys",
+            "elementText": "/^Example Domain$/",
             "timeout": 30000
           }
         },
         {
           "find": {
-            "elementText": "/^Special keys$/",
-            "timeout": 30000
-          }
-        },
-        {
-          "find": {
-            "elementText": "/^S.*?s/",
+            "elementText": "/^E.*?n$/",
             "timeout": 30000
           }
         }
