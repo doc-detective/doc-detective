@@ -59,9 +59,24 @@ on:
         required: false
         type: boolean
         default: false
+      build_base:
+        description: >
+          Build and push the Windows toolchain base image
+          (docdetective/docdetective-windows-base) instead of the app
+          image. Run this when windows-base.versions.json or
+          windows-base.Dockerfile changes.
+        required: false
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'src/container/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/container/windows-base.Dockerfile'
+      - 'src/container/windows-base.versions.json'
 
 concurrency:
   group: docker-build-${{ github.head_ref || github.ref }}-${{ inputs.version || 'pr' }}
@@ -72,6 +87,12 @@ permissions:
 
 jobs:
   build:
+    # Skip the app build when this workflow was triggered by a push that
+    # only touched the windows-base Dockerfile / versions.json, or when
+    # the operator explicitly asked for `build_base` via workflow_dispatch.
+    if: >-
+      github.event_name != 'push' &&
+      !(github.event_name == 'workflow_dispatch' && inputs.build_base)
     timeout-minutes: 60
     env:
       IMAGE_VERSION: ${{ inputs.version || 'latest' }}
@@ -221,3 +242,78 @@ jobs:
               exit 1
             fi
           fi
+
+  # Builds and pushes docdetective/docdetective-windows-base, the prebuilt
+  # Windows toolchain base image that windows.Dockerfile's FROM points at.
+  # Triggered automatically when the base Dockerfile or its version pin
+  # file change on main, or manually via workflow_dispatch with
+  # build_base=true. Never runs on PRs — it would push before review.
+  build-windows-base:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.build_base)
+    timeout-minutes: 90
+    runs-on: windows-2022
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          HUSKY: '0'
+
+      - name: Switch Docker to Windows containers
+        shell: pwsh
+        run: |
+          Write-Host "Switching Docker to Windows containers..."
+          Stop-Service docker -ErrorAction SilentlyContinue
+
+          $attemptedDockerdPaths = @()
+          $dockerd = (Get-Command dockerd -ErrorAction SilentlyContinue).Source
+          if ($dockerd) {
+            $attemptedDockerdPaths += $dockerd
+          } else {
+            $fallbackDockerd = "$Env:ProgramFiles\Docker\dockerd.exe"
+            $attemptedDockerdPaths += $fallbackDockerd
+            $dockerd = $fallbackDockerd
+          }
+
+          if (-not (Test-Path -LiteralPath $dockerd)) {
+            $pathsString = $attemptedDockerdPaths -join ', '
+            throw "Could not find 'dockerd'. Paths attempted: $pathsString"
+          }
+
+          & $dockerd --unregister-service 2>$null
+          & $dockerd --register-service
+          Start-Service docker
+
+          $retries = 0
+          $os = $null
+          while ($retries -lt 12) {
+            Start-Sleep -Seconds 5
+            $retries++
+            $output = docker info --format '{{.OSType}}' 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $os = ($output | Select-Object -Last 1).ToString().Trim()
+              if ($os -eq 'windows') { break }
+            }
+          }
+          if ($os -ne 'windows') {
+            throw "Docker did not switch to Windows mode; last observed OSType=$os"
+          }
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push base image
+        shell: bash
+        run: npm run container:build:base:push
