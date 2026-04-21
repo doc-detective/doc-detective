@@ -67,6 +67,40 @@ try {
 
 const os = dockerOSType === "windows" ? "windows" : "linux";
 
+// Reads and validates windows-base.versions.json, and composes the base
+// image's composite tag. Central so the base-build and app-build paths
+// cannot drift on the tag scheme. Exits non-zero on any missing/invalid
+// field rather than silently composing an "undefined-..." tag.
+function readBasePins() {
+  const versionsPath = path.join(containerDir, "windows-base.versions.json");
+  if (!fs.existsSync(versionsPath)) {
+    console.error(`Missing version pin file: ${versionsPath}`);
+    process.exit(1);
+  }
+  let pins;
+  try {
+    pins = JSON.parse(fs.readFileSync(versionsPath, "utf8"));
+  } catch (err) {
+    console.error(`Failed to parse ${versionsPath}: ${err.message}`);
+    process.exit(1);
+  }
+  const required = ["windowsServer", "node", "python", "java", "dita"];
+  const missing = required.filter(
+    (k) => typeof pins[k] !== "string" || pins[k].length === 0
+  );
+  if (missing.length) {
+    console.error(
+      `${versionsPath} is missing required field(s): ${missing.join(", ")}`
+    );
+    process.exit(1);
+  }
+  // Tag encodes every pin so bumping any one — including the OS base —
+  // produces a distinct tag; the thin windows.Dockerfile pins its FROM
+  // to this exact composite tag via BASE_TAG.
+  const baseTag = `${pins.windowsServer}-${pins.node}-${pins.python}-${pins.java}-${pins.dita}`;
+  return { pins, baseTag };
+}
+
 // ---------- base-image build path ----------
 function buildBaseImage() {
   if (os !== "windows") {
@@ -76,17 +110,7 @@ function buildBaseImage() {
     process.exit(1);
   }
 
-  const versionsPath = path.join(containerDir, "windows-base.versions.json");
-  if (!fs.existsSync(versionsPath)) {
-    console.error(`Missing version pin file: ${versionsPath}`);
-    process.exit(1);
-  }
-  const pins = JSON.parse(fs.readFileSync(versionsPath, "utf8"));
-  const windowsServerTag = pins.windowsServer || "ltsc2022";
-  // Tag encodes every pin so bumping any one — including the OS base —
-  // produces a distinct tag; the thin windows.Dockerfile pins its FROM
-  // to this exact composite tag via BASE_TAG.
-  const baseTag = `${windowsServerTag}-${pins.node}-${pins.python}-${pins.java}-${pins.dita}`;
+  const { pins, baseTag } = readBasePins();
   const repo = "docdetective/docdetective-windows-base";
   const tags = [baseTag, "latest"];
   const tagArgs = tags.flatMap((t) => ["-t", `${repo}:${t}`]);
@@ -98,7 +122,7 @@ function buildBaseImage() {
     path.join(containerDir, "windows-base.Dockerfile"),
     ...tagArgs,
     "--build-arg",
-    `WINDOWS_SERVER_TAG=${windowsServerTag}`,
+    `WINDOWS_SERVER_TAG=${pins.windowsServer}`,
     "--build-arg",
     `NODE_VERSION=${pins.node}`,
     "--build-arg",
@@ -158,22 +182,17 @@ function buildAppImage() {
   // FROM to the exact versioned tag from windows-base.versions.json.
   let extraBuildArgs = [];
   if (os === "windows" && !skipBasePrePull) {
-    const pinsPath = path.join(containerDir, "windows-base.versions.json");
-    if (fs.existsSync(pinsPath)) {
-      const pins = JSON.parse(fs.readFileSync(pinsPath, "utf8"));
-      const windowsServerTag = pins.windowsServer || "ltsc2022";
-      const baseTag = `${windowsServerTag}-${pins.node}-${pins.python}-${pins.java}-${pins.dita}`;
-      const baseRef = `docdetective/docdetective-windows-base:${baseTag}`;
-      extraBuildArgs = ["--build-arg", `BASE_TAG=${baseTag}`];
-      try {
-        console.log(`Pre-pulling base image: ${baseRef}`);
-        execFileSync("docker", ["pull", baseRef], { stdio: "inherit" });
-      } catch (err) {
-        console.warn(
-          `Warning: could not pre-pull ${baseRef} (${err.message}). ` +
-            `Continuing — docker build will attempt the pull itself.`
-        );
-      }
+    const { baseTag } = readBasePins();
+    const baseRef = `docdetective/docdetective-windows-base:${baseTag}`;
+    extraBuildArgs = ["--build-arg", `BASE_TAG=${baseTag}`];
+    try {
+      console.log(`Pre-pulling base image: ${baseRef}`);
+      execFileSync("docker", ["pull", baseRef], { stdio: "inherit" });
+    } catch (err) {
+      console.warn(
+        `Warning: could not pre-pull ${baseRef} (${err.message}). ` +
+          `Continuing — docker build will attempt the pull itself.`
+      );
     }
   }
 

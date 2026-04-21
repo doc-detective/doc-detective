@@ -5,11 +5,26 @@
 # layer in windows.Dockerfile so that cold local builds can skip the
 # multi-minute Windows installer steps and just `docker pull` this image.
 #
-# Tags: docdetective/docdetective-windows-base:<node>-<python>-<java>-<dita>
+# Tags: docdetective/docdetective-windows-base:<windowsServer>-<node>-<python>-<java>-<dita>
 #       docdetective/docdetective-windows-base:latest
 #
 # Tool versions are sourced from windows-base.versions.json; the ARG defaults
 # below must stay in sync with that file.
+#
+# Bumping a pinned version (bootstrap flow for contributors):
+# -----------------------------------------------------------
+# A PR that edits windows-base.versions.json or this file will:
+#   1. Trigger the `build-windows-base` CI job on PR (build-only, no push),
+#      so any install/syntax errors in the base are caught in review.
+#   2. Trigger the app `build` job, which sets FROM to the NEW composite
+#      tag — which isn't on Docker Hub yet, so that job will FAIL.
+#
+# To get the app build green before merge, a maintainer must publish the
+# new base tag first by dispatching the `Docker build` workflow manually
+# with `build_base=true`. Once the new tag exists on Docker Hub, re-run
+# the PR's failed checks and the app build will resolve its FROM.
+# After merge, the push-to-main trigger will rebuild and re-push the
+# base automatically, keeping it in sync with the merged pin file.
 
 ARG WINDOWS_SERVER_TAG=ltsc2022
 FROM mcr.microsoft.com/windows/server:${WINDOWS_SERVER_TAG}
