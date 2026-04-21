@@ -1,5 +1,5 @@
 {
-  "id": "matchTextRegex",
+  "specId": "matchTextRegex",
   "tests": [
     {
       "steps": [

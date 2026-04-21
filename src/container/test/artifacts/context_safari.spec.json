@@ -1,10 +1,10 @@
 {
-  "id": "Make sure Safari is working",
-  "contexts": [
+  "specId": "Make sure Safari is working",
+  "runOn": [
     {
-      "app": {
-        "name": "safari"
-      },
+      "browsers": [
+        "safari"
+      ],
       "platforms": [
         "mac"
       ]

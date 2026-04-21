@@ -1,7 +1,7 @@
 {
   "tests": [
     {
-      "id": "Set env variable from element text",
+      "testId": "Set env variable from element text",
       "steps": [
         {
           "loadVariables": "env"

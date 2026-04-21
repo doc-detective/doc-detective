@@ -1,10 +1,10 @@
 {
-  "id": "Make sure Firefox is working",
-  "contexts": [
+  "specId": "Make sure Firefox is working",
+  "runOn": [
     {
-      "app": {
-        "name": "firefox"
-      },
+      "browsers": [
+        "firefox"
+      ],
       "platforms": [
         "windows",
         "mac",

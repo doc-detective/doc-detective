@@ -1,13 +1,13 @@
 {
-  "id": "Make sure Chrome is working",
-  "contexts": [
+  "specId": "Make sure Chrome is working",
+  "runOn": [
     {
-      "app": {
-        "name": "chrome",
-        "options": {
+      "browsers": [
+        {
+          "name": "chrome",
           "headless": true
         }
-      },
+      ],
       "platforms": [
         "windows",
         "mac",

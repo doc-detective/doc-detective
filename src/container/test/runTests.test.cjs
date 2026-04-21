@@ -111,10 +111,55 @@ if (process.platform === "win32") {
   internalPath = path.join("/","app");
 }
 
+const FIREWALL_RULE_NAME = "dd-container-test-8092";
+
+function openWindowsFirewallFor8092() {
+  if (process.platform !== "win32") return;
+  // On GitHub Actions windows-2022 runners, the default firewall blocks
+  // incoming connections from the Docker NAT subnet to the host's
+  // test server on port 8092. Add a temporary allow-rule for the run
+  // and remove it after. `netsh` requires admin; the runner has it. If
+  // we can't add the rule we just press on — the request will still
+  // fail with the same symptom and the diagnostic is obvious.
+  try {
+    execFileSync(
+      "netsh",
+      [
+        "advfirewall", "firewall", "add", "rule",
+        `name=${FIREWALL_RULE_NAME}`,
+        "dir=in", "action=allow", "protocol=TCP", "localport=8092",
+      ],
+      { stdio: ["ignore", "ignore", "ignore"] }
+    );
+    console.log(`Added Windows Firewall rule ${FIREWALL_RULE_NAME} for port 8092.`);
+  } catch (e) {
+    console.log(
+      `Could not add Windows Firewall rule (${e.code || e.message}); continuing.`
+    );
+  }
+}
+
+function closeWindowsFirewallFor8092() {
+  if (process.platform !== "win32") return;
+  try {
+    execFileSync(
+      "netsh",
+      ["advfirewall", "firewall", "delete", "rule", `name=${FIREWALL_RULE_NAME}`],
+      { stdio: ["ignore", "ignore", "ignore"] }
+    );
+  } catch {
+    // Rule didn't exist or couldn't be removed; fine either way.
+  }
+}
+
 // Run tests in Docker container
 describe("Run tests successfully", function () {
   // Set indefinite timeout
   this.timeout(0);
+
+  before(openWindowsFirewallFor8092);
+  after(closeWindowsFirewallFor8092);
+
   it("All specs pass", async () => {
     // Remove any stale results files from a previous failed run.
     // Doc Detective writes `results.json`, falling back to `results-N.json`

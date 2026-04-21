@@ -1,5 +1,5 @@
 {
-  "id": "find_rightClick",
+  "specId": "find_rightClick",
   "tests": [
     {
       "steps": [
