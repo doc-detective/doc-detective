@@ -72,6 +72,14 @@ async function maybePromptInstallAgents() {
     ? path.resolve(process.env.INIT_CWD)
     : null;
   const initCwdMatch = initCwdAbs ? caseFold(initCwdAbs) : null;
+  // Guard against INIT_CWD resolving to a root ("/" on POSIX, "C:\" on
+  // Windows): blindly appending path.sep would produce "//" or "C:\\", and
+  // `startsWith` would miss every subpath. When the value already ends with
+  // a separator (root case), use it as-is; otherwise append.
+  const initCwdPrefix =
+    initCwdMatch && !initCwdMatch.endsWith(path.sep)
+      ? initCwdMatch + path.sep
+      : initCwdMatch;
   const sanitizedPath = (originalPath || "")
     .split(pathSep)
     .filter((entry) => {
@@ -80,10 +88,7 @@ async function maybePromptInstallAgents() {
       if (normalized.includes("/node_modules/.bin")) return false;
       if (initCwdMatch) {
         const resolved = caseFold(path.resolve(entry));
-        if (
-          resolved === initCwdMatch ||
-          resolved.startsWith(initCwdMatch + path.sep)
-        )
+        if (resolved === initCwdMatch || resolved.startsWith(initCwdPrefix))
           return false;
       }
       return true;
