@@ -1,21 +1,23 @@
 {
-    "id": "find_right click",
-    "tests": [
-      {
-        "steps": [
-          {
-            "action": "goTo",
-            "url": "https://www.google.com"
-          },
-          {
-            "action": "find",
-            "selector": "[title=Search]",
+  "specId": "find_rightClick",
+  "tests": [
+    {
+      "steps": [
+        {
+          "loadVariables": "env"
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "find": {
+            "selector": "#text-input",
             "click": {
               "button": "right"
             }
           }
-        ]
-      }
-    ]
-  }
-  
+        }
+      ]
+    }
+  ]
+}
