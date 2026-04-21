@@ -19,14 +19,46 @@ const apiServer = createServer({
 // the mocha process with exit 1 before the reporter flushes. Observed on
 // Windows + Node 24; microtask-scheduling differences make the other
 // matrix legs settle the rejection inside the suppressed try/catch.
-// Log the stack so a real bug stays visible but don't re-throw.
+//
+// Handlers below are narrowly scoped: only suppress rejections shaped
+// like a WebDriver/Appium teardown race. For every other unhandled
+// rejection or uncaught exception we still log the stack AND set
+// process.exitCode = 1, so mocha flushes its reporter but the run
+// still fails — nothing masked.
+function isWebDriverTeardownError(reason) {
+  if (!reason) return false;
+  const text = [reason.name, reason.message, reason.stack]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    /WebDriver(Error|RequestError)/.test(text) ||
+    (/webdriver/i.test(text) &&
+      /(ECONNREFUSED|ECONNRESET|socket hang up)/.test(text))
+  );
+}
+
 function onUnhandledRejection(reason) {
   const stack = reason && reason.stack ? reason.stack : String(reason);
-  console.error(`[test/hooks] unhandledRejection (non-fatal):\n${stack}`);
+  if (isWebDriverTeardownError(reason)) {
+    console.error(
+      `[test/hooks] WebDriver teardown rejection (non-fatal):\n${stack}`
+    );
+    return;
+  }
+  console.error(`[test/hooks] unhandledRejection (failing run):\n${stack}`);
+  process.exitCode = 1;
 }
+
 function onUncaughtException(err) {
   const stack = err && err.stack ? err.stack : String(err);
-  console.error(`[test/hooks] uncaughtException (non-fatal):\n${stack}`);
+  if (isWebDriverTeardownError(err)) {
+    console.error(
+      `[test/hooks] WebDriver teardown exception (non-fatal):\n${stack}`
+    );
+    return;
+  }
+  console.error(`[test/hooks] uncaughtException (failing run):\n${stack}`);
+  process.exitCode = 1;
 }
 
 export const mochaHooks = {
