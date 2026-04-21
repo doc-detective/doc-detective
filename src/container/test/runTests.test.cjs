@@ -51,40 +51,49 @@ function tryDocker(args) {
 // same network and reaches the sidecar by DNS name. Works identically on
 // every docker engine and sidesteps NAT routing and Windows Firewall.
 function startTestServerSidecar() {
-  // Linux containers: default `bridge` driver. Windows containers: `nat`
-  // (the `bridge` driver is Linux-only and `docker network create` fails
-  // on a Windows engine without this flag).
-  const driver = os === "windows" ? "nat" : "bridge";
-  console.log(`Creating docker network ${networkName} (driver=${driver})…`);
-  runDocker(["network", "create", "--driver", driver, networkName]);
+  try {
+    // Linux containers: default `bridge` driver. Windows containers: `nat`
+    // (the `bridge` driver is Linux-only and `docker network create` fails
+    // on a Windows engine without this flag).
+    const driver = os === "windows" ? "nat" : "bridge";
+    console.log(`Creating docker network ${networkName} (driver=${driver})…`);
+    runDocker(["network", "create", "--driver", driver, networkName]);
 
-  // Reuse the doc-detective image so we don't pay an extra image pull.
-  // It has python3 installed; the built-in http.server is enough.
-  const pythonCmd = os === "windows" ? "python" : "python3";
-  console.log(
-    `Starting test-server sidecar ${serverContainerName} on ${networkName}…`
-  );
-  runDocker([
-    "run",
-    "--rm",
-    "--detach",
-    "--name",
-    serverContainerName,
-    "--network",
-    networkName,
-    "--network-alias",
-    serverDnsName,
-    "-v",
-    `${publicDir}:${internalPublicDir}`,
-    "--entrypoint",
-    pythonCmd,
-    `docdetective/docdetective:${version}-${os}`,
-    "-m",
-    "http.server",
-    "8092",
-    "--directory",
-    internalPublicDir,
-  ]);
+    // Reuse the doc-detective image so we don't pay an extra image pull.
+    // It has python3 installed; the built-in http.server is enough.
+    const pythonCmd = os === "windows" ? "python" : "python3";
+    console.log(
+      `Starting test-server sidecar ${serverContainerName} on ${networkName}…`
+    );
+    runDocker([
+      "run",
+      "--rm",
+      "--detach",
+      "--name",
+      serverContainerName,
+      "--network",
+      networkName,
+      "--network-alias",
+      serverDnsName,
+      "-v",
+      `${publicDir}:${internalPublicDir}`,
+      "--entrypoint",
+      pythonCmd,
+      `docdetective/docdetective:${version}-${os}`,
+      "-m",
+      "http.server",
+      "8092",
+      "--directory",
+      internalPublicDir,
+    ]);
+  } catch (e) {
+    // If the container-run failed after the network was created, or
+    // `docker network create` left a half-created entry behind, roll back
+    // before rethrowing so Mocha's after hook isn't the only thing
+    // standing between us and a leaked network/container.
+    try { stopTestServerSidecar(); } catch (_) {}
+    throw e;
+  }
 }
 
 function stopTestServerSidecar() {
@@ -92,12 +101,54 @@ function stopTestServerSidecar() {
   tryDocker(["network", "rm", networkName]);
 }
 
+// Probe the sidecar from the sidecar itself — uses the Python interpreter
+// already installed in the image, so no extra image pull or cross-container
+// cold start per attempt.
+function probeTestServerReady() {
+  const pythonCmd = os === "windows" ? "python" : "python3";
+  try {
+    execFileSync(
+      "docker",
+      [
+        "exec",
+        serverContainerName,
+        pythonCmd,
+        "-c",
+        "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8092/', timeout=1).status == 200 else 1)",
+      ],
+      { stdio: ["ignore", "ignore", "ignore"] }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForTestServer(timeoutMs = 30_000, pollMs = 500) {
+  const deadline = Date.now() + timeoutMs;
+  let attempts = 0;
+  while (Date.now() < deadline) {
+    attempts++;
+    if (probeTestServerReady()) {
+      console.log(`Test server ready after ${attempts} probe(s).`);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+  throw new Error(
+    `Test server did not become ready within ${timeoutMs}ms after ${attempts} probes.`
+  );
+}
+
 // Run tests in Docker container
 describe("Run tests successfully", function () {
   // Set indefinite timeout
   this.timeout(0);
 
-  before(startTestServerSidecar);
+  before(async function () {
+    startTestServerSidecar();
+    await waitForTestServer();
+  });
   after(stopTestServerSidecar);
 
   it("All specs pass", async () => {
