@@ -429,6 +429,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
     });
+    appium.on("error", (err: any) => {
+      log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
+    });
     appium.stdout.on("data", (data: any) => {
       // console.log(`stdout: ${data}`);
     });
