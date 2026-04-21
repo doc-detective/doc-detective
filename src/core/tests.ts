@@ -429,6 +429,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
     });
+    appium.on("error", (err: any) => {
+      log(config, "warn", `Appium process error: ${err.message}`);
+    });
     appium.stdout.on("data", (data: any) => {
       // console.log(`stdout: ${data}`);
     });
@@ -809,6 +812,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     } catch {
       // Process may already be terminated
     }
+    // Let in-flight WebDriver HTTP response rejections hit the microtask
+    // queue while the test harness unhandledRejection handler is still
+    // attached. Without this, Node 24 on Windows can race and exit 1.
+    await new Promise((r) => setTimeout(r, 250));
   }
 
   // Upload changed files back to source integrations (best-effort)
