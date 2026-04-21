@@ -46,10 +46,15 @@ describe("Run tests successfully", function () {
       // (test/server/, port 8092 — started by test/hooks.js as a Mocha
       // root hook, shared with the main test suite). Reach it from the
       // container via `host.docker.internal`. Docker Desktop on
-      // Windows/Mac wires that DNS name automatically; Linux engines
-      // need `--add-host host.docker.internal:host-gateway`.
+      // Windows/Mac wires that DNS name automatically; only Linux
+      // engines need `--add-host host.docker.internal:host-gateway`.
+      //
+      // Gate on the host platform, not on `os` above — `os` is the
+      // image-tag selector and is "linux" for every non-win32 host
+      // (including macOS, where Docker Desktop has already wired the
+      // name and this flag would be redundant).
       const hostNetworkArgs =
-        os === "linux"
+        process.platform === "linux"
           ? ["--add-host", "host.docker.internal:host-gateway"]
           : [];
 

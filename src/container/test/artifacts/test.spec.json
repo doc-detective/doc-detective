@@ -17,7 +17,7 @@
           "goTo": "$URL"
         },
         {
-          "startRecording": {}
+          "record": true
         },
         {
           "find": {
@@ -34,7 +34,7 @@
           }
         },
         {
-          "stopRecording": {}
+          "stopRecord": true
         }
       ]
     }
