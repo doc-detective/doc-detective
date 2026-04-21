@@ -4,25 +4,27 @@
       "id": "Set env variable from element text",
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://doc-detective.com/docs/get-started/actions/type"
+          "goTo": {
+            "url": "https://example.com/",
+            "timeout": 60000
+          }
         },
         {
-          "description": "Set HEADING variable to the text of the element with id 'special-keys'.",
-          "action": "find",
-          "selector": "h2#special-keys",
-          "setVariables": [
-            {
-              "name": "HEADING",
-              "regex": ".*"
-            }
-          ]
+          "description": "Set HEADING variable to the text of the 'Example Domain' element.",
+          "find": {
+            "elementText": "Example Domain",
+            "timeout": 30000
+          },
+          "variables": {
+            "HEADING": "extract($$element.text, \".*\")"
+          }
         },
         {
           "description": "Print and validate the value of the HEADING variable.",
-          "action": "runShell",
-          "command": "echo $HEADING",
-          "output": "Special keys"
+          "runShell": {
+            "command": "echo $HEADING",
+            "stdio": "Example Domain"
+          }
         }
       ]
     }
