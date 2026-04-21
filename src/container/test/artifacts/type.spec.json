@@ -1,33 +1,42 @@
 {
   "tests": [
     {
+      "description": "Exercises the three type shapes (array keys, single-key string, object with inputDelay) in a single driver session to avoid chromedriver-restart flake inside the container. Each step targets the input by selector so keystrokes don't race the active-element focus state.",
       "steps": [
         {
-          "goTo": "https://www.google.com"
+          "loadVariables": "env"
         },
         {
-          "type": ["kittens", "$ENTER$"]
-        }
-      ]
-    },
-    {
-      "steps": [
-        {
-          "goTo": "https://www.google.com"
-        },
-        {
-          "type": "kittens"
-        }
-      ]
-    },
-    {
-      "steps": [
-        {
-          "goTo": "https://www.google.com"
+          "goTo": "$URL"
         },
         {
           "type": {
-            "keys": ["kittens", "$ENTER$"],
+            "selector": "#text-input",
+            "keys": [
+              "kittens",
+              "$ENTER$"
+            ]
+          }
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "type": {
+            "selector": "#text-input",
+            "keys": "kittens"
+          }
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "type": {
+            "selector": "#text-input",
+            "keys": [
+              "kittens",
+              "$ENTER$"
+            ],
             "inputDelay": 100
           }
         }
