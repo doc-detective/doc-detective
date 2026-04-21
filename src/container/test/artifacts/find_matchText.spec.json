@@ -4,23 +4,28 @@
     {
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://doc-detective.com/docs/get-started/actions/type"
+          "goTo": {
+            "url": "https://example.com/",
+            "timeout": 60000
+          }
         },
         {
-          "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "Special keys"
+          "find": {
+            "elementText": "Example Domain",
+            "timeout": 30000
+          }
         },
         {
-          "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "/^Special keys$/"
+          "find": {
+            "elementText": "/^Example Domain$/",
+            "timeout": 30000
+          }
         },
         {
-          "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "/^S.*?s/"
+          "find": {
+            "elementText": "/^E.*?n$/",
+            "timeout": 30000
+          }
         }
       ]
     }
