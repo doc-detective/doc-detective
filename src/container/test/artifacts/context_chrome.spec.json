@@ -1,17 +1,28 @@
 {
-  "id": "Make sure Chrome is working",
-  "contexts": [
+  "specId": "Make sure Chrome is working",
+  "runOn": [
     {
-      "app": { "name": "chrome", "options": { "headless": true } },
-      "platforms": ["windows", "mac", "linux"]
+      "browsers": [
+        {
+          "name": "chrome",
+          "headless": true
+        }
+      ],
+      "platforms": [
+        "windows",
+        "mac",
+        "linux"
+      ]
     }
   ],
   "tests": [
     {
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://www.google.com"
+          "loadVariables": "env"
+        },
+        {
+          "goTo": "$URL"
         }
       ]
     }
