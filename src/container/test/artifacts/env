@@ -1,5 +1,5 @@
 USER="John Doe"
 JOB="Software Engineer"
 SECRET="YOUR_SECRET_KEY"
-URL=http://host.docker.internal:8092
+URL=http://dd-test-server:8092
 WAIT="1"

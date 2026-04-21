@@ -1,155 +1,95 @@
 const path = require("path");
 const assert = require("assert").strict;
 const fs = require("fs");
-const { networkInterfaces } = require("os");
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(artifactPath, "results.json");
+const publicDir = path.resolve(__dirname, "../../../test/server/public");
 const { spawn, execFileSync } = require("child_process");
 
-// Figure out which Docker engine we're talking to so we can give the
-// container a working `host.docker.internal`:
-//   - Docker Desktop (Win/Mac): auto-wires the name, don't override.
-//   - Linux Docker Engine:      use `host-gateway` (the blessed path).
-//   - Native Windows Engine:    `host-gateway` isn't reliable (not how
-//                               GH's windows-2022 runner's engine
-//                               handles it), so fall back to an
-//                               explicit host IP.
-function detectDockerEngine() {
-  // Docker Desktop (Win/Mac) uses context names prefixed `desktop-`
-  // (e.g. `desktop-windows`, `desktop-linux`). Both native Windows
-  // Engine and Linux Docker Engine use different context names
-  // (typically `default`).
-  let context = "";
-  try {
-    context = execFileSync("docker", ["context", "show"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-  } catch {
-    context = "";
-  }
-  if (/^desktop-/i.test(context)) return "docker-desktop";
+const version = process.env.VERSION || "latest";
 
-  // Not Docker Desktop. Ask the engine which container OS it's running;
-  // the same Linux runner could conceivably run Windows containers, but
-  // in practice each runner is one or the other.
-  let osType = "";
-  try {
-    osType = execFileSync("docker", ["info", "--format", "{{.OSType}}"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-  } catch {
-    osType = "";
-  }
-  if (/windows/i.test(osType)) return "windows-native";
-  return "linux-native";
+let os;
+let internalPath;
+let internalPublicDir;
+if (process.platform === "win32") {
+  os = "windows";
+  internalPath = "C:\\app";
+  internalPublicDir = "C:\\srv";
+} else {
+  os = "linux";
+  internalPath = path.join("/", "app");
+  internalPublicDir = path.join("/", "srv");
 }
 
-function resolveNatGatewayIP() {
-  // Windows containers use the `nat` network by default; the Gateway in
-  // that network's IPAM config is the IP of the host's NAT virtual
-  // adapter — the only IP the container can route to reach the host.
-  // The host's LAN IP won't work here because the NAT subnet has no
-  // route to it.
+// Unique per-run names so parallel runs don't collide.
+const runId = `${process.pid}-${Date.now()}`;
+const networkName = `dd-test-net-${runId}`;
+const serverContainerName = `dd-test-server-${runId}`;
+// Stable name for containers on this network; fixtures reference it via $URL.
+const serverDnsName = "dd-test-server";
+
+function runDocker(args, opts = {}) {
+  return execFileSync("docker", args, {
+    encoding: "utf8",
+    stdio: opts.stdio || ["ignore", "pipe", "pipe"],
+  });
+}
+
+function tryDocker(args) {
   try {
-    const out = execFileSync(
-      "docker",
-      ["network", "inspect", "nat", "--format", "{{range .IPAM.Config}}{{.Gateway}} {{end}}"],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
-    ).trim();
-    const gw = out.split(/\s+/).filter(Boolean)[0];
-    return gw || null;
-  } catch {
+    return runDocker(args);
+  } catch (e) {
     return null;
   }
 }
 
-function resolveHostIPv4() {
-  for (const addresses of Object.values(networkInterfaces())) {
-    for (const a of addresses || []) {
-      if (a && a.family === "IPv4" && !a.internal) {
-        return a.address;
-      }
-    }
-  }
-  return null;
+// Spec fixtures reference a local test server (see test/server/public/).
+// Rather than relying on host↔container networking — which is a moving
+// target across Docker Desktop, Linux Docker Engine, and native Windows
+// Engine on GH's windows-2022 runner — run the server as a sidecar
+// container on a dedicated docker network. The test container joins the
+// same network and reaches the sidecar by DNS name. Works identically on
+// every docker engine and sidesteps NAT routing and Windows Firewall.
+function startTestServerSidecar() {
+  // Linux containers: default `bridge` driver. Windows containers: `nat`
+  // (the `bridge` driver is Linux-only and `docker network create` fails
+  // on a Windows engine without this flag).
+  const driver = os === "windows" ? "nat" : "bridge";
+  console.log(`Creating docker network ${networkName} (driver=${driver})…`);
+  runDocker(["network", "create", "--driver", driver, networkName]);
+
+  // Reuse the doc-detective image so we don't pay an extra image pull.
+  // It has python3 installed; the built-in http.server is enough.
+  const pythonCmd = os === "windows" ? "python" : "python3";
+  console.log(
+    `Starting test-server sidecar ${serverContainerName} on ${networkName}…`
+  );
+  runDocker([
+    "run",
+    "--rm",
+    "--detach",
+    "--name",
+    serverContainerName,
+    "--network",
+    networkName,
+    "--network-alias",
+    serverDnsName,
+    "-v",
+    `${publicDir}:${internalPublicDir}`,
+    "--entrypoint",
+    pythonCmd,
+    `docdetective/docdetective:${version}-${os}`,
+    "-m",
+    "http.server",
+    "8092",
+    "--directory",
+    internalPublicDir,
+  ]);
 }
 
-function buildHostNetworkArgs() {
-  const engine = detectDockerEngine();
-  if (engine === "docker-desktop") {
-    // Docker Desktop already wires host.docker.internal for both Linux
-    // and Windows container modes. Overriding with --add-host here can
-    // steer the container at the wrong interface IP.
-    return [];
-  }
-  if (engine === "linux-native") {
-    // Docker Engine 20.10+ resolves `host-gateway` to the bridge's
-    // host-side IP. This is the Docker-blessed way.
-    return ["--add-host", "host.docker.internal:host-gateway"];
-  }
-  // Native Windows engine (e.g. GitHub Actions windows-2022 runner). The
-  // container is on the `nat` network; use that network's gateway IP,
-  // which is how the container routes to the host. `resolveHostIPv4()`
-  // would pick the runner's LAN IP, which the NAT subnet can't reach.
-  const gw = resolveNatGatewayIP();
-  if (gw) return ["--add-host", `host.docker.internal:${gw}`];
-  const ip = resolveHostIPv4();
-  return ip ? ["--add-host", `host.docker.internal:${ip}`] : [];
-}
-
-const version = process.env.VERSION || 'latest';
-
-let os;
-let internalPath;
-if (process.platform === "win32") {
-  os = "windows";
-  internalPath = "C:\\app";
-} else {
-  os = "linux";
-  internalPath = path.join("/","app");
-}
-
-const FIREWALL_RULE_NAME = "dd-container-test-8092";
-
-function openWindowsFirewallFor8092() {
-  if (process.platform !== "win32") return;
-  // On GitHub Actions windows-2022 runners, the default firewall blocks
-  // incoming connections from the Docker NAT subnet to the host's
-  // test server on port 8092. Add a temporary allow-rule for the run
-  // and remove it after. `netsh` requires admin; the runner has it. If
-  // we can't add the rule we just press on — the request will still
-  // fail with the same symptom and the diagnostic is obvious.
-  try {
-    execFileSync(
-      "netsh",
-      [
-        "advfirewall", "firewall", "add", "rule",
-        `name=${FIREWALL_RULE_NAME}`,
-        "dir=in", "action=allow", "protocol=TCP", "localport=8092",
-      ],
-      { stdio: ["ignore", "ignore", "ignore"] }
-    );
-    console.log(`Added Windows Firewall rule ${FIREWALL_RULE_NAME} for port 8092.`);
-  } catch (e) {
-    console.log(
-      `Could not add Windows Firewall rule (${e.code || e.message}); continuing.`
-    );
-  }
-}
-
-function closeWindowsFirewallFor8092() {
-  if (process.platform !== "win32") return;
-  try {
-    execFileSync(
-      "netsh",
-      ["advfirewall", "firewall", "delete", "rule", `name=${FIREWALL_RULE_NAME}`],
-      { stdio: ["ignore", "ignore", "ignore"] }
-    );
-  } catch {
-    // Rule didn't exist or couldn't be removed; fine either way.
-  }
+function stopTestServerSidecar() {
+  tryDocker(["rm", "-f", serverContainerName]);
+  tryDocker(["network", "rm", networkName]);
 }
 
 // Run tests in Docker container
@@ -157,8 +97,8 @@ describe("Run tests successfully", function () {
   // Set indefinite timeout
   this.timeout(0);
 
-  before(openWindowsFirewallFor8092);
-  after(closeWindowsFirewallFor8092);
+  before(startTestServerSidecar);
+  after(stopTestServerSidecar);
 
   it("All specs pass", async () => {
     // Remove any stale results files from a previous failed run.
@@ -181,16 +121,6 @@ describe("Run tests successfully", function () {
         callback();
       };
 
-      // Spec fixtures reference the local test server on the host
-      // (test/server/, port 8092 — started by test/hooks.js as a Mocha
-      // root hook, shared with the main test suite). Reach it from the
-      // container via `host.docker.internal`; see `buildHostNetworkArgs`
-      // for per-engine handling.
-      const hostNetworkArgs = buildHostNetworkArgs();
-      if (hostNetworkArgs.length) {
-        console.log(`Using docker args for host networking: ${hostNetworkArgs.join(" ")}`);
-      }
-
       // Resource limits are generous enough to cover many serial Chrome
       // sessions (each spec + each `contexts:` block starts a fresh
       // chromedriver); under tighter caps a late spec intermittently
@@ -201,11 +131,21 @@ describe("Run tests successfully", function () {
       const runTests = spawn(
         "docker",
         [
-          "run", "--rm", "--memory=4g", "--cpus=4",
-          ...hostNetworkArgs,
-          "-v", `${artifactPath}:${internalPath}`,
+          "run",
+          "--rm",
+          "--memory=4g",
+          "--cpus=4",
+          "--network",
+          networkName,
+          "-v",
+          `${artifactPath}:${internalPath}`,
           `docdetective/docdetective:${version}-${os}`,
-          "-c", "./config.json", "-i", ".", "-o", "./results.json",
+          "-c",
+          "./config.json",
+          "-i",
+          ".",
+          "-o",
+          "./results.json",
         ],
         { stdio: ["ignore", "pipe", "pipe"] }
       );

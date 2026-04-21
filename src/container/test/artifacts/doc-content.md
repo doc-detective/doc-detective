@@ -5,19 +5,20 @@ testId: doc-detective-docs
 detectSteps: false
 -->
 
-The container test harness points Doc Detective at the same local
-Express server that the main test suite uses (`test/server/` on the
-host, reached from inside the container via `host.docker.internal:8092`).
+The container test harness serves the same `test/server/public/` fixtures
+the main test suite uses, but from a sidecar container on a shared
+docker network so the test container reaches it by docker DNS name
+(`dd-test-server`).
 
-<!-- step checkLink: "http://host.docker.internal:8092" -->
+<!-- step checkLink: "http://dd-test-server:8092" -->
 
 - The server's root (`index.html`) has common HTML elements we can
   navigate to and interact with.
 - The `#text-elements` section contains a **Text Elements** heading.
 
-  <!-- step checkLink: "http://host.docker.internal:8092/enhanced-elements.html" -->
+  <!-- step checkLink: "http://dd-test-server:8092/enhanced-elements.html" -->
 
-<!-- step goTo: "http://host.docker.internal:8092" -->
+<!-- step goTo: "http://dd-test-server:8092" -->
 <!-- step find: Text Elements -->
 
 ![Fixture screenshot.](reference.png){ .screenshot }
