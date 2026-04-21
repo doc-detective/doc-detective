@@ -5,7 +5,7 @@
       "steps": [
         {
           "goTo": {
-            "url": "https://docs.doc-detective.com/docs/actions/type",
+            "url": "data:text/html,<!doctype html><html><body><h1>Find fixture</h1><h2>Special keys</h2></body></html>",
             "timeout": 30000
           }
         },
