@@ -22,6 +22,17 @@ describe("Run tests successfully", function () {
   // Set indefinite timeout
   this.timeout(0);
   it("All specs pass", async () => {
+    // Remove any stale results files from a previous failed run.
+    // Doc Detective writes `results.json`, falling back to `results-N.json`
+    // when the target file already exists — so a leftover `results.json`
+    // from an earlier failure makes the next run write to `results-1.json`
+    // and this harness would then read outdated counts from `results.json`.
+    for (const f of fs.readdirSync(artifactPath)) {
+      if (/^results(-\d+)?\.json$/.test(f)) {
+        fs.unlinkSync(path.join(artifactPath, f));
+      }
+    }
+
     return new Promise((resolve, reject) => {
       let hasCompleted = false;
 
@@ -31,10 +42,29 @@ describe("Run tests successfully", function () {
         callback();
       };
 
+      // Spec fixtures reference the local test server on the host
+      // (test/server/, port 8092 — started by test/hooks.js as a Mocha
+      // root hook, shared with the main test suite). Reach it from the
+      // container via `host.docker.internal`. Docker Desktop on
+      // Windows/Mac wires that DNS name automatically; Linux engines
+      // need `--add-host host.docker.internal:host-gateway`.
+      const hostNetworkArgs =
+        os === "linux"
+          ? ["--add-host", "host.docker.internal:host-gateway"]
+          : [];
+
+      // Resource limits are generous enough to cover many serial Chrome
+      // sessions (each spec + each `contexts:` block starts a fresh
+      // chromedriver); under tighter caps a late spec intermittently
+      // loses a webdriver handshake (`UND_ERR_HEADERS_TIMEOUT`,
+      // `ECONNREFUSED 127.0.0.1:9515`). These limits are what the test
+      // harness needs locally and in CI; they don't model what the
+      // published image needs to run customer tests.
       const runTests = spawn(
         "docker",
         [
-          "run", "--rm", "--memory=2g", "--cpus=2",
+          "run", "--rm", "--memory=4g", "--cpus=4",
+          ...hostNetworkArgs,
           "-v", `${artifactPath}:${internalPath}`,
           `docdetective/docdetective:${version}-${os}`,
           "-c", "./config.json", "-i", ".", "-o", "./results.json",

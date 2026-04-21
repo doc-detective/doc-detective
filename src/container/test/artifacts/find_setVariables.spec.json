@@ -4,16 +4,16 @@
       "id": "Set env variable from element text",
       "steps": [
         {
-          "goTo": {
-            "url": "https://example.com/",
-            "timeout": 60000
-          }
+          "loadVariables": "env"
         },
         {
-          "description": "Set HEADING variable to the text of the 'Example Domain' element.",
+          "goTo": "$URL"
+        },
+        {
+          "description": "Set HEADING variable to the text of the 'Text Elements' section heading.",
           "find": {
-            "elementText": "Example Domain",
-            "timeout": 30000
+            "selector": "#text-elements > h2",
+            "elementText": "Text Elements"
           },
           "variables": {
             "HEADING": "extract($$element.text, \".*\")"
@@ -23,7 +23,7 @@
           "description": "Print and validate the value of the HEADING variable.",
           "runShell": {
             "command": "echo $HEADING",
-            "stdio": "Example Domain"
+            "stdio": "Text Elements"
           }
         }
       ]

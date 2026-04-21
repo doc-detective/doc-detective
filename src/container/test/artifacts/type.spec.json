@@ -1,33 +1,44 @@
 {
   "tests": [
     {
+      "description": "Exercises the three type shapes (array, string, object) in a single driver session to avoid chromedriver-restart flake inside the container.",
       "steps": [
         {
-          "goTo": "https://www.google.com"
+          "loadVariables": "env"
         },
         {
-          "type": ["kittens", "$ENTER$"]
-        }
-      ]
-    },
-    {
-      "steps": [
+          "goTo": "$URL"
+        },
         {
-          "goTo": "https://www.google.com"
+          "find": "#text-input"
+        },
+        {
+          "type": [
+            "kittens",
+            "$ENTER$"
+          ]
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "find": "#text-input"
         },
         {
           "type": "kittens"
-        }
-      ]
-    },
-    {
-      "steps": [
+        },
         {
-          "goTo": "https://www.google.com"
+          "goTo": "$URL"
+        },
+        {
+          "find": "#text-input"
         },
         {
           "type": {
-            "keys": ["kittens", "$ENTER$"],
+            "keys": [
+              "kittens",
+              "$ENTER$"
+            ],
             "inputDelay": 100
           }
         }

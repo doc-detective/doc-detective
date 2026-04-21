@@ -4,27 +4,27 @@
     {
       "steps": [
         {
-          "goTo": {
-            "url": "https://example.com/",
-            "timeout": 60000
+          "loadVariables": "env"
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "find": {
+            "selector": "#text-elements > h2",
+            "elementText": "Text Elements"
           }
         },
         {
           "find": {
-            "elementText": "Example Domain",
-            "timeout": 30000
+            "selector": "#text-elements > h2",
+            "elementText": "/^Text Elements$/"
           }
         },
         {
           "find": {
-            "elementText": "/^Example Domain$/",
-            "timeout": 30000
-          }
-        },
-        {
-          "find": {
-            "elementText": "/^E.*?n$/",
-            "timeout": 30000
+            "selector": "#text-elements > h2",
+            "elementText": "/^T.*?s/"
           }
         }
       ]

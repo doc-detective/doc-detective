@@ -1,23 +1,24 @@
-# Doc Detective documentation overview
+# Doc Detective container-test overview
 
 <!-- test
 testId: doc-detective-docs
 detectSteps: false
 -->
 
-[Doc Detective documentation](https://docs.doc-detective.com) is split into a few key sections:
+The container test harness points Doc Detective at the same local
+Express server that the main test suite uses (`test/server/` on the
+host, reached from inside the container via `host.docker.internal:8092`).
 
-<!-- step checkLink: "https://docs.doc-detective.com" -->
+<!-- step checkLink: "http://host.docker.internal:8092" -->
 
-- The landing page discusses what Doc Detective is, what it does, and who might find it useful.
-- [Get started](https://docs.doc-detective.com/docs/get-started/installation) covers how to quickly get up and running with Doc Detective.
+- The server's root (`index.html`) has common HTML elements we can
+  navigate to and interact with.
+- The `#text-elements` section contains a **Text Elements** heading.
 
-  <!-- step checkLink: "https://docs.doc-detective.com/docs/get-started/installation" -->
+  <!-- step checkLink: "http://host.docker.internal:8092/enhanced-elements.html" -->
 
-Some pages also have unique headings. If you open [type](https://docs.doc-detective.com/docs/actions/type) it has **Special keys**.
+<!-- step goTo: "http://host.docker.internal:8092" -->
+<!-- step find: Text Elements -->
 
-<!-- step goTo: "https://docs.doc-detective.com/docs/actions/type" -->
-<!-- step find: Special keys -->
-
-![Search results.](reference.png){ .screenshot }
+![Fixture screenshot.](reference.png){ .screenshot }
 <!-- step screenshot: reference.png -->
