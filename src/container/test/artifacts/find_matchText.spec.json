@@ -6,29 +6,24 @@
         {
           "goTo": {
             "url": "https://docs.doc-detective.com/docs/actions/type",
-            "wait": {
-              "timeout": 30000
-            }
-          }
-        },
-        {
-          "find": {
-            "elementText": "Special keys",
-            "matchText": "Special keys",
             "timeout": 30000
           }
         },
         {
           "find": {
             "elementText": "Special keys",
-            "matchText": "/^Special keys$/",
             "timeout": 30000
           }
         },
         {
           "find": {
-            "elementText": "Special keys",
-            "matchText": "/^S.*?s/",
+            "elementText": "/^Special keys$/",
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "/^S.*?s/",
             "timeout": 30000
           }
         }

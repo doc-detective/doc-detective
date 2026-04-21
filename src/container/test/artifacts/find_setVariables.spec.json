@@ -6,29 +6,24 @@
         {
           "goTo": {
             "url": "https://docs.doc-detective.com/docs/actions/type",
-            "wait": {
-              "timeout": 30000
-            }
+            "timeout": 30000
           }
         },
         {
           "description": "Set HEADING variable to the text of the 'Special keys' element.",
           "find": {
             "elementText": "Special keys",
-            "timeout": 30000,
-            "setVariables": [
-              {
-                "name": "HEADING",
-                "regex": ".*"
-              }
-            ]
+            "timeout": 30000
+          },
+          "variables": {
+            "HEADING": "extract($$element.text, \".*\")"
           }
         },
         {
           "description": "Print and validate the value of the HEADING variable.",
           "runShell": {
             "command": "echo $HEADING",
-            "output": "Special keys"
+            "stdio": "Special keys"
           }
         }
       ]
