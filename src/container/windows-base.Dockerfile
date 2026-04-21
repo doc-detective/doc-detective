@@ -89,10 +89,13 @@ RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tl
         Remove-Job $_ \
     }; \
     Write-Host 'Installing Node.js...'; \
-    Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i', 'C:\node-installer.msi', '/quiet', '/norestart' -Wait; \
+    $nodeInstall = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i', 'C:\node-installer.msi', '/quiet', '/norestart' -Wait -PassThru; \
+    # 3010 = success, reboot required. Normal for MSI silent installs and safe to ignore inside a container.
+    if ($nodeInstall.ExitCode -notin 0, 3010) { throw ('Node.js installer failed with exit code ' + $nodeInstall.ExitCode) }; \
     Remove-Item -Path 'C:\node-installer.msi' -Force; \
     Write-Host 'Installing Python...'; \
-    Start-Process -FilePath 'C:\python-installer.exe' -ArgumentList '/quiet', 'InstallAllUsers=1', 'PrependPath=0', 'Include_test=0' -Wait; \
+    $pythonInstall = Start-Process -FilePath 'C:\python-installer.exe' -ArgumentList '/quiet', 'InstallAllUsers=1', 'PrependPath=0', 'Include_test=0' -Wait -PassThru; \
+    if ($pythonInstall.ExitCode -notin 0, 3010) { throw ('Python installer failed with exit code ' + $pythonInstall.ExitCode) }; \
     Remove-Item -Path 'C:\python-installer.exe' -Force; \
     Write-Host 'Extracting OpenJDK...'; \
     Expand-Archive -Path 'C:\openjdk.zip' -DestinationPath 'C:\temp-jdk' -Force; \
@@ -114,10 +117,23 @@ RUN $PythonMajorMinor = ($env:PYTHON_VERSION -split '\.')[0..1] -join ''; \
     [Environment]::SetEnvironmentVariable('JAVA_HOME', 'C:\openjdk', [System.EnvironmentVariableTarget]::Machine)
 
 # Verify every tool installed correctly. Fails the build fast if any step
-# silently broke above.
-RUN node -v; \
-    npm -v; \
-    python --version; \
-    pip --version; \
-    java -version; \
-    dita --version
+# silently broke above. $ErrorActionPreference=Stop catches cmdlet
+# failures but NOT native-command non-zero exits, and a later successful
+# command would reset $LASTEXITCODE — so each invocation is checked
+# explicitly.
+RUN $checks = @( \
+        @('node',   '-v'), \
+        @('npm',    '-v'), \
+        @('python', '--version'), \
+        @('pip',    '--version'), \
+        @('java',   '-version'), \
+        @('dita',   '--version')  \
+    ); \
+    foreach ($c in $checks) { \
+        $exe = $c[0]; \
+        $cmdArgs = $c[1..($c.Length - 1)]; \
+        & $exe @cmdArgs; \
+        if ($LASTEXITCODE -ne 0) { \
+            throw ($exe + ' ' + ($cmdArgs -join ' ') + ' failed with exit code ' + $LASTEXITCODE) \
+        } \
+    }
