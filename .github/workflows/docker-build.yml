@@ -59,9 +59,24 @@ on:
         required: false
         type: boolean
         default: false
+      build_base:
+        description: >
+          Build and push the Windows toolchain base image
+          (docdetective/docdetective-windows-base) instead of the app
+          image. Run this when windows-base.versions.json or
+          windows-base.Dockerfile changes.
+        required: false
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'src/container/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/container/windows-base.Dockerfile'
+      - 'src/container/windows-base.versions.json'
 
 concurrency:
   group: docker-build-${{ github.head_ref || github.ref }}-${{ inputs.version || 'pr' }}
@@ -71,10 +86,48 @@ permissions:
   contents: read
 
 jobs:
+  # Lightweight ubuntu job that flags whether the current change touches
+  # the base-image files. Consumed by build-windows-base so that PR runs
+  # only spin up a windows-2022 runner when the base is actually in scope.
+  detect-base-change:
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.filter.outputs.base }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            base:
+              - 'src/container/windows-base.Dockerfile'
+              - 'src/container/windows-base.versions.json'
+
   build:
+    needs: [detect-base-change]
+    # Skip the app build when this workflow was triggered by a push that
+    # only touched the windows-base Dockerfile / versions.json, or when
+    # the operator explicitly asked for `build_base` via workflow_dispatch.
+    # The windows-2022 matrix leg is additionally short-circuited at
+    # step level on base-change PRs — see WINDOWS_APP_BUILD_SKIP below.
+    if: >-
+      github.event_name != 'push' &&
+      !(github.event_name == 'workflow_dispatch' && inputs.build_base)
     timeout-minutes: 60
     env:
       IMAGE_VERSION: ${{ inputs.version || 'latest' }}
+      # On base-change PRs the thin windows.Dockerfile's FROM points at
+      # a composite base tag that hasn't been published yet, so the
+      # windows-2022 leg of this matrix would fail to resolve. Short-
+      # circuit the expensive steps (Switch Docker, Build, Test) in that
+      # case — build-windows-base (PR build-only) already proves the base
+      # builds, and the ubuntu leg still provides Linux coverage.
+      # Evaluated per-step because `matrix.*` isn't available in the
+      # job-level `if:` context.
+      WINDOWS_APP_BUILD_SKIP: >-
+        ${{ github.event_name == 'pull_request' &&
+            matrix.os == 'windows-2022' &&
+            needs.detect-base-change.outputs.base == 'true' }}
     strategy:
       matrix:
         os:
@@ -102,7 +155,7 @@ jobs:
           HUSKY: '0'
 
       - name: Switch Docker to Windows containers
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: pwsh
         run: |
           Write-Host "Switching Docker to Windows containers..."
@@ -158,18 +211,24 @@ jobs:
           docker info
 
       - name: Verify Windows container mode
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: pwsh
         run: |
           $os = docker info --format '{{.OSType}}'
           if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
           Write-Host "Docker OSType=$os"
 
+      - name: Skip windows-2022 app build (base tag not yet published)
+        if: env.WINDOWS_APP_BUILD_SKIP == 'true'
+        run: echo "Base files changed in this PR; the composite base tag is not yet on Docker Hub. Skipping windows-2022 app build. build-windows-base covers the base; ubuntu leg covers Linux."
+
       - name: Build Docker Image
+        if: env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: bash
         run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
 
       - name: Post-build Test
+        if: env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: bash
         env:
           VERSION: ${{ env.IMAGE_VERSION }}
@@ -220,4 +279,118 @@ jobs:
               echo "Either the build step didn't run or its tag scheme drifted from this workflow." >&2
               exit 1
             fi
+          fi
+
+  # Builds docdetective/docdetective-windows-base, the prebuilt Windows
+  # toolchain base image that windows.Dockerfile's FROM points at.
+  #
+  # Triggers:
+  #   - push to main touching the base files      → build + push
+  #   - workflow_dispatch with build_base=true    → build + push
+  #   - pull_request touching the base files      → build only (no push,
+  #                                                  no Docker Hub login)
+  #     so that base-image breakages are caught pre-merge.
+  build-windows-base:
+    needs: [detect-base-change]
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.build_base) ||
+      (github.event_name == 'pull_request' && needs.detect-base-change.outputs.base == 'true')
+    timeout-minutes: 90
+    runs-on: windows-2022
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          HUSKY: '0'
+
+      # Body copied verbatim from the `build` job above so the two don't
+      # drift — any change to container-mode switching needs to land in
+      # both steps (or be factored into a composite action).
+      - name: Switch Docker to Windows containers
+        shell: pwsh
+        run: |
+          Write-Host "Switching Docker to Windows containers..."
+
+          # GitHub Actions Windows runners ship Docker Engine, not Docker
+          # Desktop, so DockerCli.exe -SwitchWindowsEngine doesn't exist.
+          # Reconfigure the dockerd service to run in Windows-container mode.
+          Stop-Service docker -ErrorAction SilentlyContinue
+
+          $attemptedDockerdPaths = @()
+          $dockerd = (Get-Command dockerd -ErrorAction SilentlyContinue).Source
+          if ($dockerd) {
+            $attemptedDockerdPaths += $dockerd
+          } else {
+            $fallbackDockerd = "$Env:ProgramFiles\Docker\dockerd.exe"
+            $attemptedDockerdPaths += $fallbackDockerd
+            $dockerd = $fallbackDockerd
+          }
+
+          if (-not (Test-Path -LiteralPath $dockerd)) {
+            $pathsString = $attemptedDockerdPaths -join ', '
+            throw "Could not find 'dockerd'. Paths attempted: $pathsString"
+          }
+
+          Write-Host "Using dockerd at: $dockerd"
+
+          & $dockerd --unregister-service 2>$null
+          & $dockerd --register-service
+          Start-Service docker
+
+          $retries = 0
+          $lastDockerInfoError = $null
+          $os = $null
+          while ($retries -lt 12) {
+            Start-Sleep -Seconds 5
+            $retries++
+            $output = docker info --format '{{.OSType}}' 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $os = ($output | Select-Object -Last 1).ToString().Trim()
+              Write-Host "Docker OSType: $os (attempt $retries)"
+              if ($os -eq 'windows') { break }
+            } else {
+              $lastDockerInfoError = ($output | Out-String).Trim()
+              Write-Host "Docker not ready yet (attempt $retries): $lastDockerInfoError"
+            }
+          }
+          if ($os -ne 'windows') {
+            if (-not $os) { $os = 'unknown' }
+            $details = if ($lastDockerInfoError) { "; last docker info error=$lastDockerInfoError" } else { "" }
+            throw "Docker did not switch to Windows mode after waiting; last observed OSType=$os$details"
+          }
+          docker version
+          docker info
+
+      - name: Verify Windows container mode
+        shell: pwsh
+        run: |
+          $os = docker info --format '{{.OSType}}'
+          if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
+          Write-Host "Docker OSType=$os"
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build base image (+ push when not a PR)
+        shell: bash
+        env:
+          GH_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$GH_EVENT_NAME" = "pull_request" ]; then
+            npm run container:build:base
+          else
+            npm run container:build:base:push
           fi
