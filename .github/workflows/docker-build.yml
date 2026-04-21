@@ -108,23 +108,26 @@ jobs:
     # Skip the app build when this workflow was triggered by a push that
     # only touched the windows-base Dockerfile / versions.json, or when
     # the operator explicitly asked for `build_base` via workflow_dispatch.
-    #
-    # Also skip the windows-2022 leg on PRs that touch the base files:
-    # those PRs haven't published the new composite base tag to Docker Hub
-    # yet, so the thin windows.Dockerfile's `FROM` would fail to resolve.
-    # build-windows-base (PR build-only) already proves the base builds in
-    # that case; the ubuntu leg still runs so Linux coverage is retained.
+    # The windows-2022 matrix leg is additionally short-circuited at
+    # step level on base-change PRs — see WINDOWS_APP_BUILD_SKIP below.
     if: >-
       github.event_name != 'push' &&
-      !(github.event_name == 'workflow_dispatch' && inputs.build_base) &&
-      !(
-        github.event_name == 'pull_request' &&
-        matrix.os == 'windows-2022' &&
-        needs.detect-base-change.outputs.base == 'true'
-      )
+      !(github.event_name == 'workflow_dispatch' && inputs.build_base)
     timeout-minutes: 60
     env:
       IMAGE_VERSION: ${{ inputs.version || 'latest' }}
+      # On base-change PRs the thin windows.Dockerfile's FROM points at
+      # a composite base tag that hasn't been published yet, so the
+      # windows-2022 leg of this matrix would fail to resolve. Short-
+      # circuit the expensive steps (Switch Docker, Build, Test) in that
+      # case — build-windows-base (PR build-only) already proves the base
+      # builds, and the ubuntu leg still provides Linux coverage.
+      # Evaluated per-step because `matrix.*` isn't available in the
+      # job-level `if:` context.
+      WINDOWS_APP_BUILD_SKIP: >-
+        ${{ github.event_name == 'pull_request' &&
+            matrix.os == 'windows-2022' &&
+            needs.detect-base-change.outputs.base == 'true' }}
     strategy:
       matrix:
         os:
@@ -152,7 +155,7 @@ jobs:
           HUSKY: '0'
 
       - name: Switch Docker to Windows containers
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: pwsh
         run: |
           Write-Host "Switching Docker to Windows containers..."
@@ -208,18 +211,24 @@ jobs:
           docker info
 
       - name: Verify Windows container mode
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: pwsh
         run: |
           $os = docker info --format '{{.OSType}}'
           if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
           Write-Host "Docker OSType=$os"
 
+      - name: Skip windows-2022 app build (base tag not yet published)
+        if: env.WINDOWS_APP_BUILD_SKIP == 'true'
+        run: echo "Base files changed in this PR; the composite base tag is not yet on Docker Hub. Skipping windows-2022 app build. build-windows-base covers the base; ubuntu leg covers Linux."
+
       - name: Build Docker Image
+        if: env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: bash
         run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
 
       - name: Post-build Test
+        if: env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: bash
         env:
           VERSION: ${{ env.IMAGE_VERSION }}
