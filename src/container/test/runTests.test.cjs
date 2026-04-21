@@ -46,6 +46,25 @@ function detectDockerEngine() {
   return "linux-native";
 }
 
+function resolveNatGatewayIP() {
+  // Windows containers use the `nat` network by default; the Gateway in
+  // that network's IPAM config is the IP of the host's NAT virtual
+  // adapter — the only IP the container can route to reach the host.
+  // The host's LAN IP won't work here because the NAT subnet has no
+  // route to it.
+  try {
+    const out = execFileSync(
+      "docker",
+      ["network", "inspect", "nat", "--format", "{{range .IPAM.Config}}{{.Gateway}} {{end}}"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+    ).trim();
+    const gw = out.split(/\s+/).filter(Boolean)[0];
+    return gw || null;
+  } catch {
+    return null;
+  }
+}
+
 function resolveHostIPv4() {
   for (const addresses of Object.values(networkInterfaces())) {
     for (const a of addresses || []) {
@@ -70,8 +89,12 @@ function buildHostNetworkArgs() {
     // host-side IP. This is the Docker-blessed way.
     return ["--add-host", "host.docker.internal:host-gateway"];
   }
-  // Native Windows engine (e.g. GitHub Actions windows-2022 runner) or
-  // an unknown engine — map explicitly.
+  // Native Windows engine (e.g. GitHub Actions windows-2022 runner). The
+  // container is on the `nat` network; use that network's gateway IP,
+  // which is how the container routes to the host. `resolveHostIPv4()`
+  // would pick the runner's LAN IP, which the NAT subnet can't reach.
+  const gw = resolveNatGatewayIP();
+  if (gw) return ["--add-host", `host.docker.internal:${gw}`];
   const ip = resolveHostIPv4();
   return ip ? ["--add-host", `host.docker.internal:${ip}`] : [];
 }
