@@ -11,7 +11,8 @@
 # Tool versions are sourced from windows-base.versions.json; the ARG defaults
 # below must stay in sync with that file.
 
-FROM mcr.microsoft.com/windows/server:ltsc2022
+ARG WINDOWS_SERVER_TAG=ltsc2022
+FROM mcr.microsoft.com/windows/server:${WINDOWS_SERVER_TAG}
 
 ARG NODE_VERSION=22.15.0
 ARG PYTHON_VERSION=3.13.1

@@ -82,7 +82,11 @@ function buildBaseImage() {
     process.exit(1);
   }
   const pins = JSON.parse(fs.readFileSync(versionsPath, "utf8"));
-  const baseTag = `${pins.node}-${pins.python}-${pins.java}-${pins.dita}`;
+  const windowsServerTag = pins.windowsServer || "ltsc2022";
+  // Tag encodes every pin so bumping any one — including the OS base —
+  // produces a distinct tag; the thin windows.Dockerfile pins its FROM
+  // to this exact composite tag via BASE_TAG.
+  const baseTag = `${windowsServerTag}-${pins.node}-${pins.python}-${pins.java}-${pins.dita}`;
   const repo = "docdetective/docdetective-windows-base";
   const tags = [baseTag, "latest"];
   const tagArgs = tags.flatMap((t) => ["-t", `${repo}:${t}`]);
@@ -93,6 +97,8 @@ function buildBaseImage() {
     "-f",
     path.join(containerDir, "windows-base.Dockerfile"),
     ...tagArgs,
+    "--build-arg",
+    `WINDOWS_SERVER_TAG=${windowsServerTag}`,
     "--build-arg",
     `NODE_VERSION=${pins.node}`,
     "--build-arg",
@@ -155,7 +161,8 @@ function buildAppImage() {
     const pinsPath = path.join(containerDir, "windows-base.versions.json");
     if (fs.existsSync(pinsPath)) {
       const pins = JSON.parse(fs.readFileSync(pinsPath, "utf8"));
-      const baseTag = `${pins.node}-${pins.python}-${pins.java}-${pins.dita}`;
+      const windowsServerTag = pins.windowsServer || "ltsc2022";
+      const baseTag = `${windowsServerTag}-${pins.node}-${pins.python}-${pins.java}-${pins.dita}`;
       const baseRef = `docdetective/docdetective-windows-base:${baseTag}`;
       extraBuildArgs = ["--build-arg", `BASE_TAG=${baseTag}`];
       try {
