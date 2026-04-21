@@ -1,3 +1,10 @@
+## [4.2.2](https://github.com/doc-detective/doc-detective/compare/v4.2.1...v4.2.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* **postinstall:** case-insensitive PATH filtering on Windows + safe undefined restore ([#276](https://github.com/doc-detective/doc-detective/issues/276)) ([050af3c](https://github.com/doc-detective/doc-detective/commit/050af3cc013e994b16c1546152463e6d48eeeb52))
+
 ## [4.2.1](https://github.com/doc-detective/doc-detective/compare/v4.2.0...v4.2.1) (2026-04-21)
 
 
