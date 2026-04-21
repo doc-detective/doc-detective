@@ -67,14 +67,17 @@ RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tl
     $JavaUrl   = 'https://aka.ms/download-jdk/microsoft-jdk-' + $env:JAVA_VERSION + '-windows-x64.zip'; \
     $DitaUrl   = 'https://github.com/dita-ot/dita-ot/releases/download/' + $env:DITA_VERSION + '/dita-ot-' + $env:DITA_VERSION + '.zip'; \
     $downloads = @( \
-        @{ Url = $NodeUrl;   Path = 'C:\node-installer.msi'   }, \
-        @{ Url = $PythonUrl; Path = 'C:\python-installer.exe' }, \
-        @{ Url = $JavaUrl;   Path = 'C:\openjdk.zip'          }, \
-        @{ Url = $DitaUrl;   Path = 'C:\dita-ot.zip'          }  \
+        @{ Name = 'node';   Url = $NodeUrl;   Path = 'C:\node-installer.msi'   }, \
+        @{ Name = 'python'; Url = $PythonUrl; Path = 'C:\python-installer.exe' }, \
+        @{ Name = 'java';   Url = $JavaUrl;   Path = 'C:\openjdk.zip'          }, \
+        @{ Name = 'dita';   Url = $DitaUrl;   Path = 'C:\dita-ot.zip'          }  \
     ); \
+    # -Name makes the tool identifiable in the "Download job failed" throw
+    # below; without it jobs get auto-names like Job1/Job2/... and the
+    # error can't say which tool URL bombed.
     $jobs = $downloads | ForEach-Object { \
         $dl = $_; \
-        Start-Job -ScriptBlock { \
+        Start-Job -Name $dl.Name -ScriptBlock { \
             param($url, $path) \
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
             (New-Object System.Net.WebClient).DownloadFile($url, $path) \
