@@ -1,0 +1,7 @@
+{
+  "node": "22.15.0",
+  "python": "3.13.1",
+  "java": "17.0.14",
+  "dita": "4.3.4",
+  "windowsServer": "ltsc2022"
+}
