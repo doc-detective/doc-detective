@@ -1,26 +1,31 @@
 {
-  "id": "matchTextRegex",
+  "specId": "matchTextRegex",
   "tests": [
     {
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://doc-detective.com/docs/get-started/actions/type"
+          "loadVariables": "env"
         },
         {
-          "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "Special keys"
+          "goTo": "$URL"
         },
         {
-          "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "/^Special keys$/"
+          "find": {
+            "selector": "#text-elements > h2",
+            "elementText": "Text Elements"
+          }
         },
         {
-          "action": "find",
-          "selector": "h2#special-keys",
-          "matchText": "/^S.*?s/"
+          "find": {
+            "selector": "#text-elements > h2",
+            "elementText": "/^Text Elements$/"
+          }
+        },
+        {
+          "find": {
+            "selector": "#text-elements > h2",
+            "elementText": "/^T.*?s/"
+          }
         }
       ]
     }
