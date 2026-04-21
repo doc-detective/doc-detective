@@ -104,12 +104,24 @@ jobs:
               - 'src/container/windows-base.versions.json'
 
   build:
+    needs: [detect-base-change]
     # Skip the app build when this workflow was triggered by a push that
     # only touched the windows-base Dockerfile / versions.json, or when
     # the operator explicitly asked for `build_base` via workflow_dispatch.
+    #
+    # Also skip the windows-2022 leg on PRs that touch the base files:
+    # those PRs haven't published the new composite base tag to Docker Hub
+    # yet, so the thin windows.Dockerfile's `FROM` would fail to resolve.
+    # build-windows-base (PR build-only) already proves the base builds in
+    # that case; the ubuntu leg still runs so Linux coverage is retained.
     if: >-
       github.event_name != 'push' &&
-      !(github.event_name == 'workflow_dispatch' && inputs.build_base)
+      !(github.event_name == 'workflow_dispatch' && inputs.build_base) &&
+      !(
+        github.event_name == 'pull_request' &&
+        matrix.os == 'windows-2022' &&
+        needs.detect-base-change.outputs.base == 'true'
+      )
     timeout-minutes: 60
     env:
       IMAGE_VERSION: ${{ inputs.version || 'latest' }}

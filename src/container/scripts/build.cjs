@@ -177,22 +177,27 @@ function buildAppImage() {
   console.log(`Building for OS: ${os}`);
   console.log(`Tags: ${tags}`);
 
-  // For Windows, pre-pull the base image so the developer sees a clean
-  // pull-progress bar instead of a silent fetch mid-build. Also pin the
-  // FROM to the exact versioned tag from windows-base.versions.json.
+  // For Windows, always pin the FROM to the exact versioned tag from
+  // windows-base.versions.json so builds stay deterministic — drifting to
+  // `:latest` would silently pull whatever base was last published.
+  // Optionally pre-pull the base image so the developer sees a clean
+  // pull-progress bar instead of a silent fetch mid-build; --no-pull-base
+  // only skips the pre-pull, not the pinning.
   let extraBuildArgs = [];
-  if (os === "windows" && !skipBasePrePull) {
+  if (os === "windows") {
     const { baseTag } = readBasePins();
     const baseRef = `docdetective/docdetective-windows-base:${baseTag}`;
     extraBuildArgs = ["--build-arg", `BASE_TAG=${baseTag}`];
-    try {
-      console.log(`Pre-pulling base image: ${baseRef}`);
-      execFileSync("docker", ["pull", baseRef], { stdio: "inherit" });
-    } catch (err) {
-      console.warn(
-        `Warning: could not pre-pull ${baseRef} (${err.message}). ` +
-          `Continuing — docker build will attempt the pull itself.`
-      );
+    if (!skipBasePrePull) {
+      try {
+        console.log(`Pre-pulling base image: ${baseRef}`);
+        execFileSync("docker", ["pull", baseRef], { stdio: "inherit" });
+      } catch (err) {
+        console.warn(
+          `Warning: could not pre-pull ${baseRef} (${err.message}). ` +
+            `Continuing — docker build will attempt the pull itself.`
+        );
+      }
     }
   }
 
