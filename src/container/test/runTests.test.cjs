@@ -1,9 +1,27 @@
 const path = require("path");
 const assert = require("assert").strict;
 const fs = require("fs");
+const { networkInterfaces } = require("os");
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(artifactPath, "results.json");
 const { spawn } = require("child_process");
+
+// Resolve the first non-loopback IPv4 address on the host. That's the
+// address that a Docker container can reach (the host shows up on the
+// container's LAN via Docker's bridge or NAT). Used to pin
+// `host.docker.internal` to a real IP on engines where the magic name
+// isn't auto-wired (Linux Docker Engine, native Windows containers on
+// windows-2022 CI runners, etc.).
+function resolveHostIPv4() {
+  for (const addresses of Object.values(networkInterfaces())) {
+    for (const a of addresses || []) {
+      if (a && a.family === "IPv4" && !a.internal) {
+        return a.address;
+      }
+    }
+  }
+  return null;
+}
 
 const version = process.env.VERSION || 'latest';
 
@@ -45,16 +63,18 @@ describe("Run tests successfully", function () {
       // Spec fixtures reference the local test server on the host
       // (test/server/, port 8092 — started by test/hooks.js as a Mocha
       // root hook, shared with the main test suite). Reach it from the
-      // container via `host.docker.internal`. Docker Desktop on
-      // Windows/Mac wires that DNS name automatically; only Linux
-      // engines need `--add-host host.docker.internal:host-gateway`.
+      // container via `host.docker.internal`.
       //
-      // Gate on the host platform, not on `os` above — `os` is the
-      // image-tag selector and is "linux" for every non-win32 host
-      // (including macOS, where Docker Desktop has already wired the
-      // name and this flag would be redundant).
-      const hostNetworkArgs =
-        process.platform === "linux"
+      // Docker Desktop for Windows/Mac auto-wires `host.docker.internal`.
+      // Everywhere else — Linux Docker Engine, native Windows containers
+      // on GitHub Actions' windows-2022 runner — it isn't, so map the
+      // name to a real host IP explicitly. Doing this unconditionally is
+      // safe: a user-provided `--add-host` always wins over the engine's
+      // built-in name resolution.
+      const hostIp = resolveHostIPv4();
+      const hostNetworkArgs = hostIp
+        ? ["--add-host", `host.docker.internal:${hostIp}`]
+        : process.platform === "linux"
           ? ["--add-host", "host.docker.internal:host-gateway"]
           : [];
 
