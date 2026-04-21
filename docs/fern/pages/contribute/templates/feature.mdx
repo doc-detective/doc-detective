@@ -197,9 +197,10 @@ Examples should be copy-pasteable and work as-is:
     {
       "steps": [
         {
-          "action": "screenshot",
-          "path": "screenshot.png",
-          "fullPage": true
+          "screenshot": {
+            "path": "screenshot.png",
+            "fullPage": true
+          }
         }
       ]
     }
@@ -278,7 +279,7 @@ When documenting specific features, you often want screenshots that focus on a p
 Capture just a specific button:
 
 ```json title="screenshot-button.spec.json"
-{ "tests": [ { "steps": [ { "action": "goTo", "url": "https://doc-detective.com" }, { "action": "screenshot", "path": "get-started-button.png", "cropTo": { "selector": "a[href='/docs/get-started']" } } ] } ] }
+{ "tests": [ { "steps": [ { "goTo": "https://doc-detective.com" }, { "screenshot": { "path": "get-started-button.png", "cropTo": { "selector": "a[href='/docs/get-started']" } } } ] } ] }
 ```
 
 This captures only the "Get Started" link, not the entire page.
@@ -288,7 +289,7 @@ This captures only the "Get Started" link, not the entire page.
 Crop to an element with padding:
 
 ```json title="screenshot-with-padding.spec.json"
-{ "tests": [ { "steps": [ { "action": "goTo", "url": "https://doc-detective.com" }, { "action": "screenshot", "path": "navigation-menu.png", "cropTo": { "selector": "nav.navbar", "padding": 20 } } ] } ] }
+{ "tests": [ { "steps": [ { "goTo": "https://doc-detective.com" }, { "screenshot": { "path": "navigation-menu.png", "cropTo": { "selector": "nav.navbar", "padding": 20 } } } ] } ] }
 ```
 
 Adds 20 pixels of padding around the navigation element for context.
@@ -308,7 +309,7 @@ Adds 20 pixels of padding around the navigation element for context.
 ### Example configuration
 
 ```json title=".doc-detective.json"
-{ "tests": [ { "steps": [ { "action": "screenshot", "path": "feature.png", "cropTo": { "selector": "#feature-section", "padding": 15 } } ] } ] }
+{ "tests": [ { "steps": [ { "screenshot": { "path": "feature.png", "cropTo": { "selector": "#feature-section", "padding": 15 } } } ] } ] }
 ```
 
 ## Migration guide
@@ -318,13 +319,13 @@ If you were using full-page screenshots and want to crop:
 ### From full-page screenshots
 
 ```json
-{ "action": "screenshot", "path": "page.png", "fullPage": true }
+{ "screenshot": { "path": "page.png", "fullPage": true } }
 ```
 
 ### To element-based cropping
 
 ```json
-{ "action": "screenshot", "path": "element.png", "cropTo": { "selector": "#target-element" } }
+{ "screenshot": { "path": "element.png", "cropTo": { "selector": "#target-element" } } }
 ```
 
 ### Breaking changes
