@@ -4,14 +4,48 @@ const fs = require("fs");
 const { networkInterfaces } = require("os");
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(artifactPath, "results.json");
-const { spawn } = require("child_process");
+const { spawn, execFileSync } = require("child_process");
 
-// Resolve the first non-loopback IPv4 address on the host. That's the
-// address that a Docker container can reach (the host shows up on the
-// container's LAN via Docker's bridge or NAT). Used to pin
-// `host.docker.internal` to a real IP on engines where the magic name
-// isn't auto-wired (Linux Docker Engine, native Windows containers on
-// windows-2022 CI runners, etc.).
+// Figure out which Docker engine we're talking to so we can give the
+// container a working `host.docker.internal`:
+//   - Docker Desktop (Win/Mac): auto-wires the name, don't override.
+//   - Linux Docker Engine:      use `host-gateway` (the blessed path).
+//   - Native Windows Engine:    `host-gateway` isn't reliable (not how
+//                               GH's windows-2022 runner's engine
+//                               handles it), so fall back to an
+//                               explicit host IP.
+function detectDockerEngine() {
+  // Docker Desktop (Win/Mac) uses context names prefixed `desktop-`
+  // (e.g. `desktop-windows`, `desktop-linux`). Both native Windows
+  // Engine and Linux Docker Engine use different context names
+  // (typically `default`).
+  let context = "";
+  try {
+    context = execFileSync("docker", ["context", "show"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    context = "";
+  }
+  if (/^desktop-/i.test(context)) return "docker-desktop";
+
+  // Not Docker Desktop. Ask the engine which container OS it's running;
+  // the same Linux runner could conceivably run Windows containers, but
+  // in practice each runner is one or the other.
+  let osType = "";
+  try {
+    osType = execFileSync("docker", ["info", "--format", "{{.OSType}}"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    osType = "";
+  }
+  if (/windows/i.test(osType)) return "windows-native";
+  return "linux-native";
+}
+
 function resolveHostIPv4() {
   for (const addresses of Object.values(networkInterfaces())) {
     for (const a of addresses || []) {
@@ -21,6 +55,25 @@ function resolveHostIPv4() {
     }
   }
   return null;
+}
+
+function buildHostNetworkArgs() {
+  const engine = detectDockerEngine();
+  if (engine === "docker-desktop") {
+    // Docker Desktop already wires host.docker.internal for both Linux
+    // and Windows container modes. Overriding with --add-host here can
+    // steer the container at the wrong interface IP.
+    return [];
+  }
+  if (engine === "linux-native") {
+    // Docker Engine 20.10+ resolves `host-gateway` to the bridge's
+    // host-side IP. This is the Docker-blessed way.
+    return ["--add-host", "host.docker.internal:host-gateway"];
+  }
+  // Native Windows engine (e.g. GitHub Actions windows-2022 runner) or
+  // an unknown engine — map explicitly.
+  const ip = resolveHostIPv4();
+  return ip ? ["--add-host", `host.docker.internal:${ip}`] : [];
 }
 
 const version = process.env.VERSION || 'latest';
@@ -63,20 +116,12 @@ describe("Run tests successfully", function () {
       // Spec fixtures reference the local test server on the host
       // (test/server/, port 8092 — started by test/hooks.js as a Mocha
       // root hook, shared with the main test suite). Reach it from the
-      // container via `host.docker.internal`.
-      //
-      // Docker Desktop for Windows/Mac auto-wires `host.docker.internal`.
-      // Everywhere else — Linux Docker Engine, native Windows containers
-      // on GitHub Actions' windows-2022 runner — it isn't, so map the
-      // name to a real host IP explicitly. Doing this unconditionally is
-      // safe: a user-provided `--add-host` always wins over the engine's
-      // built-in name resolution.
-      const hostIp = resolveHostIPv4();
-      const hostNetworkArgs = hostIp
-        ? ["--add-host", `host.docker.internal:${hostIp}`]
-        : process.platform === "linux"
-          ? ["--add-host", "host.docker.internal:host-gateway"]
-          : [];
+      // container via `host.docker.internal`; see `buildHostNetworkArgs`
+      // for per-engine handling.
+      const hostNetworkArgs = buildHostNetworkArgs();
+      if (hostNetworkArgs.length) {
+        console.log(`Using docker args for host networking: ${hostNetworkArgs.join(" ")}`);
+      }
 
       // Resource limits are generous enough to cover many serial Chrome
       // sessions (each spec + each `contexts:` block starts a fresh

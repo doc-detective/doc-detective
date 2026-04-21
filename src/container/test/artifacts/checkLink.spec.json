@@ -11,7 +11,9 @@
         {
           "checkLink": {
             "url": "$URL",
-            "statusCodes": "200"
+            "statusCodes": [
+              200
+            ]
           }
         },
         {
