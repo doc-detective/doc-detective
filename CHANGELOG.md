@@ -1,3 +1,10 @@
+## [4.2.1](https://github.com/doc-detective/doc-detective/compare/v4.2.0...v4.2.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **container-tests:** update fixtures for docs site move ([#277](https://github.com/doc-detective/doc-detective/issues/277)) ([afc0be3](https://github.com/doc-detective/doc-detective/commit/afc0be39da9016d2467bd282e8c06ca3f0a5e74d)), closes [#242](https://github.com/doc-detective/doc-detective/issues/242)
+
 # [4.2.0](https://github.com/doc-detective/doc-detective/compare/v4.1.2...v4.2.0) (2026-04-20)
 
 
