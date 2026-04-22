@@ -535,19 +535,50 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
           // Rotate Appium below the observed native-crash ceiling on
           // Win32 + Node 24 (see APPIUM_SESSION_CEILING comment above).
+          // Counter tracks session-creation attempts, not contexts --
+          // the headless-retry branch below bumps it a second time when
+          // it fires so the ceiling reflects actual WebDriver load on
+          // the Appium process, not how many times we entered this loop
+          // body.
           if (appium && driverContextCount >= APPIUM_SESSION_CEILING) {
             log(
               config,
               "debug",
-              `Rotating Appium after ${driverContextCount} driver-using contexts.`
+              `Rotating Appium after ${driverContextCount} session attempts.`
             );
             try {
               kill(appium.pid);
             } catch {
               // Already gone; carry on.
             }
-            appium = await startAppium({ config });
-            driverContextCount = 0;
+            appium = null;
+            // One retry on transient rotation hiccups (port still freeing,
+            // /status flaky). If both attempts fail we leave `appium` null
+            // and let the existing driverStart error path mark each
+            // remaining context FAIL individually, rather than aborting the
+            // whole run.
+            for (let rotateAttempt = 1; rotateAttempt <= 2; rotateAttempt++) {
+              try {
+                appium = await startAppium({ config });
+                driverContextCount = 0;
+                break;
+              } catch (rotateErr: any) {
+                const msg = rotateErr?.message ?? String(rotateErr);
+                if (rotateAttempt === 1) {
+                  log(
+                    config,
+                    "warning",
+                    `Appium rotation attempt 1 failed: ${msg}. Retrying once.`
+                  );
+                } else {
+                  log(
+                    config,
+                    "error",
+                    `Appium rotation failed twice: ${msg}. Remaining driver-using contexts will FAIL until runSpecs() returns.`
+                  );
+                }
+              }
+            }
           }
           driverContextCount++;
           log(config, "debug", "CAPABILITIES:");
@@ -574,6 +605,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                   headless: context.browser?.headless !== false,
                 },
               });
+              // The headless fallback is a second session on the same
+              // Appium process; count it toward the rotation ceiling.
+              driverContextCount++;
               driver = await driverStart(caps);
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
@@ -971,9 +1005,10 @@ async function runStep({
 // level crash after ~18-20 sequential Firefox sessions in a single Appium
 // process: the next POST /session dies before the driver even logs, with no
 // JS-level error that any process handler can catch. To stay well under that
-// ceiling, runSpecs() rotates Appium every APPIUM_SESSION_CEILING contexts
-// that actually instantiate a driver (see the restart block inside the
-// context loop). The ceiling applies on every platform -- the rotation is
+// ceiling, runSpecs() rotates Appium every APPIUM_SESSION_CEILING session
+// attempts (including the headless-retry second attempt; see the restart
+// block inside the context loop). The ceiling applies on every
+// platform -- the rotation is
 // cheap (a few seconds) and only takes effect on suites large enough to
 // trigger it, but it specifically prevents the silent-exit on Win32 Node 24.
 const APPIUM_SESSION_CEILING = 15;
