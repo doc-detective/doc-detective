@@ -44,6 +44,33 @@ Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `openco
 
 Head to the per-agent guide below if you prefer the native install flow or need to troubleshoot.
 
+## Automatic detection during installation
+
+When you run `npm install doc-detective`, the postinstall script detects supported AI coding assistants on your machine. If it finds agents without Doc Detective tools installed, you see a prompt:
+
+```
+Detected coding agents that may be missing doc-detective tools: Claude Code, Gemini CLI.
+Install doc-detective agent tools now? (y/N)
+```
+
+Press `y` to launch `install-agents` with those agents pre-selected. You still choose whether to install project-wide or globally. Press `n` or Enter to skip—you can always run `npx doc-detective install-agents` later.
+
+The prompt only appears when:
+
+- You're running in an interactive terminal (stdin and stdout are TTYs)
+- The `CI` environment variable is not set
+- At least one supported agent is detected without tools installed
+
+To skip the prompt in scripts or automation, set either environment variable:
+
+```bash
+CI=true npm install doc-detective
+```
+
+```bash
+DOC_DETECTIVE_SKIP_AGENT_PROMPT=1 npm install doc-detective
+```
+
 ## Quick start
 
 Once installed, you can bootstrap Doc Detective in your project.
