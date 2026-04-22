@@ -8,9 +8,11 @@ const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 
 describe("Run tests successfully", function () {
-  // 30 minutes budget across the chunked core test suite — each `it` runs a
-  // subset of specs via its own runTests() call (and therefore its own
-  // Appium lifecycle), but the timeout is shared across the whole describe.
+  // Mocha applies suite-level `this.timeout(...)` as the default per-test
+  // timeout for every nested `it`/hook, NOT as a single shared budget
+  // across the describe. Each chunked "Core test suite" test is a full
+  // runTests() + Appium lifecycle and legitimately needs the long cap;
+  // we just can't assume it bounds overall wall time.
   this.timeout(1800000);
   describe("Core test suite", function () {
     // The core-artifacts directory contains ~28 spec files that together

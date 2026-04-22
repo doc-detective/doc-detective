@@ -387,8 +387,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const availableApps = runnerDetails.availableApps;
   const metaValues: any = { specs: {} };
   let appium: any;
-  // Count of driver-instantiated contexts since the last Appium spawn/rotate.
-  let driverContextCount = 0;
+  // Count of driver session-creation attempts (primary + headless-retry)
+  // since the last Appium spawn/rotate. See APPIUM_SESSION_CEILING below.
+  let driverSessionAttemptCount = 0;
   const report: any = {
     summary: {
       specs: {
@@ -428,6 +429,49 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     setAppiumHome();
     appium = await startAppium({ config });
   }
+
+  // Rotate Appium if we've hit the per-process session ceiling (see the
+  // APPIUM_SESSION_CEILING block comment below for the Win32 + Node 24
+  // motivation). Retries startAppium() once on transient failures; if both
+  // attempts fail, leaves appium = null so the subsequent driverStart()
+  // throws and the existing error path marks each remaining driver-using
+  // context SKIPPED individually, rather than aborting the whole run.
+  const maybeRotateAppium = async () => {
+    if (!appium || driverSessionAttemptCount < APPIUM_SESSION_CEILING) return;
+    log(
+      config,
+      "debug",
+      `Rotating Appium after ${driverSessionAttemptCount} session attempts.`
+    );
+    try {
+      kill(appium.pid);
+    } catch {
+      // Already gone; carry on.
+    }
+    appium = null;
+    for (let rotateAttempt = 1; rotateAttempt <= 2; rotateAttempt++) {
+      try {
+        appium = await startAppium({ config });
+        driverSessionAttemptCount = 0;
+        return;
+      } catch (rotateErr: any) {
+        const msg = rotateErr?.message ?? String(rotateErr);
+        if (rotateAttempt === 1) {
+          log(
+            config,
+            "warning",
+            `Appium rotation attempt 1 failed: ${msg}. Retrying once.`
+          );
+        } else {
+          log(
+            config,
+            "error",
+            `Appium rotation failed twice: ${msg}. Remaining driver-using contexts will be SKIPPED until runSpecs() returns.`
+          );
+        }
+      }
+    }
+  };
 
   // Iterate specs
   log(config, "info", "Running test specs.");
@@ -533,54 +577,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
             },
           });
 
-          // Rotate Appium below the observed native-crash ceiling on
-          // Win32 + Node 24 (see APPIUM_SESSION_CEILING comment below).
-          // Counter tracks session-creation attempts, not contexts --
-          // the headless-retry branch below bumps it a second time when
-          // it fires so the ceiling reflects actual WebDriver load on
-          // the Appium process, not how many times we entered this loop
-          // body.
-          if (appium && driverContextCount >= APPIUM_SESSION_CEILING) {
-            log(
-              config,
-              "debug",
-              `Rotating Appium after ${driverContextCount} session attempts.`
-            );
-            try {
-              kill(appium.pid);
-            } catch {
-              // Already gone; carry on.
-            }
-            appium = null;
-            // One retry on transient rotation hiccups (port still freeing,
-            // /status flaky). If both attempts fail we leave `appium` null
-            // and let the existing driverStart error path mark each
-            // remaining context FAIL individually, rather than aborting the
-            // whole run.
-            for (let rotateAttempt = 1; rotateAttempt <= 2; rotateAttempt++) {
-              try {
-                appium = await startAppium({ config });
-                driverContextCount = 0;
-                break;
-              } catch (rotateErr: any) {
-                const msg = rotateErr?.message ?? String(rotateErr);
-                if (rotateAttempt === 1) {
-                  log(
-                    config,
-                    "warning",
-                    `Appium rotation attempt 1 failed: ${msg}. Retrying once.`
-                  );
-                } else {
-                  log(
-                    config,
-                    "error",
-                    `Appium rotation failed twice: ${msg}. Remaining driver-using contexts will FAIL until runSpecs() returns.`
-                  );
-                }
-              }
-            }
-          }
-          driverContextCount++;
+          await maybeRotateAppium();
+          driverSessionAttemptCount++;
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
 
@@ -606,8 +604,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                 },
               });
               // The headless fallback is a second session on the same
-              // Appium process; count it toward the rotation ceiling.
-              driverContextCount++;
+              // Appium process. Re-check the rotation ceiling BEFORE
+              // starting it (the primary attempt may have pushed us to
+              // the ceiling since the last check) so every actual
+              // session-creation attempt is bounded by the same rule.
+              await maybeRotateAppium();
+              driverSessionAttemptCount++;
               driver = await driverStart(caps);
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
