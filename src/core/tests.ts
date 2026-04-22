@@ -534,7 +534,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           });
 
           // Rotate Appium below the observed native-crash ceiling on
-          // Win32 + Node 24 (see APPIUM_SESSION_CEILING comment above).
+          // Win32 + Node 24 (see APPIUM_SESSION_CEILING comment below).
           // Counter tracks session-creation attempts, not contexts --
           // the headless-retry branch below bumps it a second time when
           // it fires so the ceiling reflects actual WebDriver load on

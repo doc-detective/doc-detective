@@ -8,7 +8,9 @@ const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 
 describe("Run tests successfully", function () {
-  // 30 minutes for the combined core test suite (runs all specs in one Appium session)
+  // 30 minutes budget across the chunked core test suite — each `it` runs a
+  // subset of specs via its own runTests() call (and therefore its own
+  // Appium lifecycle), but the timeout is shared across the whole describe.
   this.timeout(1800000);
   describe("Core test suite", function () {
     // The core-artifacts directory contains ~28 spec files that together
