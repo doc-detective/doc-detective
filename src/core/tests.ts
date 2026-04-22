@@ -28,6 +28,7 @@ import { resolveExpression } from "./expressions.js";
 import { getEnvironment, getAvailableApps } from "./config.js";
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
+import net from "node:net";
 import https from "node:https";
 import { fileURLToPath } from "node:url";
 
@@ -423,6 +424,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   if (appiumRequired) {
     // Set Appium home directory
     setAppiumHome();
+    // Ensure the Appium port is not still bound by a zombie from a prior
+    // runTests() call in this process before spawning a fresh one.
+    await waitForPortFree(4723);
     // Start Appium server
     appium = spawn("npx", ["appium"], {
       shell: true,
@@ -962,6 +966,38 @@ async function runStep({
   return actionResult;
 }
 
+// Wait until the given TCP port is not bound by anything on 127.0.0.1.
+// Between per-test runTests() calls, a prior Appium on port 4723 can still
+// be tearing down while the new one is about to spawn. On Windows + Node 24
+// the teardown window is wide enough for the new Appium's spawn to race the
+// old one's exit and confuse wdio's POST /session. Blocking until the port
+// is free makes the handoff deterministic.
+async function waitForPortFree(port: number, timeoutMs: number = 30000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const result = await new Promise<"free" | "busy" | Error>((resolve) => {
+      const server = net.createServer();
+      server.once("error", (err: NodeJS.ErrnoException) => {
+        // Only EADDRINUSE means "keep polling". Any other bind failure
+        // (EACCES, invalid host, etc.) is a real problem and must surface.
+        if (err && err.code === "EADDRINUSE") resolve("busy");
+        else resolve(err instanceof Error ? err : new Error(String(err)));
+      });
+      server.once("listening", () => {
+        server.close(() => resolve("free"));
+      });
+      server.listen(port, "127.0.0.1");
+    });
+    if (result === "free") return;
+    if (result instanceof Error) throw result;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(
+    `Timed out after ${timeoutMs}ms waiting for 127.0.0.1:${port} to become free. ` +
+      `A prior Appium instance is still bound to the port; the next session create ` +
+      `would race the teardown and fail with an opaque ECONNREFUSED.`
+  );
+}
 // Delay execution until Appium server is available.
 async function appiumIsReady(timeoutMs: number = 120000) {
   let isReady = false;
@@ -980,19 +1016,35 @@ async function appiumIsReady(timeoutMs: number = 120000) {
 }
 
 // Start the Appium driver specified in `capabilities`.
-async function driverStart(capabilities: any) {
-  const driver: any = await wdio.remote({
-    protocol: "http",
-    hostname: "127.0.0.1",
-    port: 4723,
-    path: "/",
-    logLevel: "error",
-    capabilities,
-    connectionRetryTimeout: 120000, // 2 minutes
-    waitforTimeout: 120000, // 2 minutes
-  });
-  driver.state = { url: "", x: null, y: null };
-  return driver;
+async function driverStart(capabilities: any, maxAttempts: number = 4) {
+  // POST /session can race a just-spawned-or-still-dying Appium on Windows:
+  // /status may already return 200 from the outgoing process while /session
+  // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
+  // any other error is a real session-creation failure and propagates.
+  let lastError: any;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const driver: any = await wdio.remote({
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: 4723,
+        path: "/",
+        logLevel: "error",
+        capabilities,
+        connectionRetryTimeout: 120000, // 2 minutes
+        waitforTimeout: 120000, // 2 minutes
+      });
+      driver.state = { url: "", x: null, y: null };
+      return driver;
+    } catch (err: any) {
+      lastError = err;
+      if (!/ECONNREFUSED/.test(String(err && err.message))) throw err;
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+      }
+    }
+  }
+  throw lastError;
 }
 
 /**
