@@ -11,7 +11,7 @@ You can specify the target URL directly as a string, or use an object for more o
 - `url`: (Required in object format) The URL to check. Can be a full URL or a path. If a path is provided, an `origin` must be specified either in the step or in the configuration file.
 - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. If omitted and `url` is a path, the global `origin` from the configuration file is used.
 - `statusCodes`: (Optional) A single integer or an array of integers representing acceptable HTTP status codes, including non-2xx codes like `429` (rate limited), `403` (forbidden), or `500` (server error). If omitted, defaults to `[200, 301, 302, 307, 308]`.
-- `headers`: (Optional) Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Accepts either a key/value object or a newline-separated string. Useful for sites that allowlist specific headers or bypass tokens. Defaults to `{}`.
+- `headers`: (Optional) Additional HTTP headers to include in the request, merged on top of Doc Detective's default browser-mimicking headers. Accepts either a key/value object or a newline-separated string (for example, `X-Api-Key: abc123\nAuthorization: Bearer token`). Useful for passing bypass tokens (such as Vercel protection bypass) or other authentication headers required by sites that block automated requests. Defaults to `{}`.
 
 > For comprehensive options, see the [`checkLink`](/reference/schemas/checklink) reference.
 
@@ -202,10 +202,35 @@ Assuming a global `origin` of `https://www.google.com` is set in the configurati
 }
 ```
 
+### Check a link with custom headers
+
+Some sites require custom headers for access. For example, Vercel-protected sites need a bypass token:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Check a Vercel-protected site with bypass token.",
+          "checkLink": {
+            "url": "https://portal.example.com",
+            "headers": {
+              "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Troubleshooting
 
 - [`checkLink` fails with 429 or 403 even though the URL works in a browser](#checklink-fails-with-429-or-403-even-though-the-url-works-in-a-browser)
 - [`checkLink` fails due to unrecognized certificates](#checklink-fails-due-to-unrecognized-certificates)
+- [`checkLink` fails with HTTP 429 (bot protection or rate limiting)](#checklink-fails-with-http-429-bot-protection-or-rate-limiting)
 
 ### `checkLink` fails with 429 or 403 even though the URL works in a browser
 
@@ -216,15 +241,15 @@ If you hit this, you have three escape hatches:
 - **Widen `statusCodes`** to accept the WAF response code, for example `"statusCodes": [200, 301, 302, 307, 308, 403, 429]`. This is pragmatic but loses signal, because the check only confirms that the URL exists.
 - **Pass allowlist or bypass headers** through the `headers` field. Common options when you control the site:
 
-  Provider | Headers or cookies
-  --- | ---
-  Cloudflare Access | `CF-Access-Client-Id` + `CF-Access-Client-Secret` (service-token pair)
-  Cloudflare Bot Management | `Cookie: cf_clearance=<value>; __cf_bm=<value>` (obtained from a browser session)
-  AWS CloudFront or Application Load Balancer | Custom allowlist header, for example `X-Origin-Verify: <shared-secret>`
-  AWS API Gateway | `x-api-key: <key>`
-  Vercel deployment protection | `x-vercel-protection-bypass: <token>` (optionally `x-vercel-set-bypass-cookie: true`)
-  Vercel password protection | `Cookie: _vercel_jwt=<value>`
-  Generic WAF rule | Any custom header and shared secret you allowlist on the WAF
+  | Provider | Headers or cookies |
+  | --- | --- |
+  | Cloudflare Access | `CF-Access-Client-Id` + `CF-Access-Client-Secret` (service-token pair) |
+  | Cloudflare Bot Management | `Cookie: cf_clearance=<value>; __cf_bm=<value>` (obtained from a browser session) |
+  | AWS CloudFront or Application Load Balancer | Custom allowlist header, for example `X-Origin-Verify: <shared-secret>` |
+  | AWS API Gateway | `x-api-key: <key>` |
+  | Vercel deployment protection | `x-vercel-protection-bypass: <token>` (optionally `x-vercel-set-bypass-cookie: true`) |
+  | Vercel password protection | `Cookie: _vercel_jwt=<value>` |
+  | Generic WAF rule | Any custom header and shared secret you allowlist on the WAF |
 
 - **Use a browser-driven step** (`goTo`) instead of `checkLink` when the URL truly requires JavaScript or a full browser fingerprint.
 
@@ -333,5 +358,73 @@ After applying these changes, the test should pass:
   "resultDescription": "Returned 200"
 }
 ```
+
+### `checkLink` fails with HTTP 429 (bot protection or rate limiting)
+
+Some websites block automated HTTP requests with bot protection or rate limiting. Doc Detective automatically retries failed requests up to three times with exponential backoff (1 second, then 2 seconds, then 4 seconds) and attempts a `HEAD` request as a fallback for `429` or `403` responses. If the request still fails after these automatic retries, `checkLink` reports diagnostic information to help identify the cause.
+
+#### Common causes
+
+**Vercel bot protection**: Vercel-hosted sites may return a JavaScript challenge that automated HTTP clients can't solve. The error message includes `x-vercel-mitigated: challenge`.
+
+**Cloudflare protection**: Sites behind Cloudflare may block or challenge automated requests. The error message mentions `cf-mitigated` or `cf-ray`.
+
+**Rate limiting**: Some servers limit request frequency. The error message includes a `Retry-After` value indicating how long to wait.
+
+#### Solution for Vercel-protected sites
+
+For Vercel-hosted sites, bypass bot protection with a protection bypass token:
+
+1. Get your bypass secret from your Vercel project's environment variables or settings.
+
+2. Store the secret in a `.env` file:
+
+   ```text title="vercel-bypass.env"
+   VERCEL_BYPASS_SECRET=your-bypass-token-here
+   ```
+
+3. Use `loadVariables` to load the secret and pass it in the `headers` field:
+
+   ```json
+   {
+     "tests": [
+       {
+         "steps": [
+           {
+             "loadVariables": "vercel-bypass.env"
+           },
+           {
+             "description": "Check Vercel-protected site",
+             "checkLink": {
+               "url": "https://your-vercel-site.com",
+               "headers": {
+                 "x-vercel-protection-bypass": "$VERCEL_BYPASS_SECRET"
+               }
+             }
+           }
+         ]
+       }
+     ]
+   }
+   ```
+
+#### Solution for other protected sites
+
+For sites with other protection mechanisms, you have several options:
+
+- **Pass allowlist or bypass headers** through the `headers` field. Common options when you control the site:
+
+  | Provider | Headers or cookies |
+  | --- | --- |
+  | Cloudflare Access | `CF-Access-Client-Id` + `CF-Access-Client-Secret` (service-token pair) |
+  | Cloudflare Bot Management | `Cookie: cf_clearance=<value>; __cf_bm=<value>` (obtained from a browser session) |
+  | AWS CloudFront or Application Load Balancer | Custom allowlist header, for example `X-Origin-Verify: <shared-secret>` |
+  | AWS API Gateway | `x-api-key: <key>` |
+  | Generic WAF rule | Any custom header and shared secret you allowlist on the WAF |
+
+- **Widen `statusCodes`** to accept the WAF response code, for example `"statusCodes": [200, 301, 302, 307, 308, 403, 429]`. This is pragmatic but loses signal, because the check only confirms that the URL exists.
+- **Use browser-based actions** like `goTo` and `find` instead. These can handle JavaScript challenges and pass full browser fingerprint checks.
+
+If you own the site, prefer adding a WAF rule that allowlists a custom header and shared secret (for example, `X-Doc-Detective-Check`) over trying to mimic a browser.
 
 
