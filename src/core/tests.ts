@@ -387,6 +387,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const availableApps = runnerDetails.availableApps;
   const metaValues: any = { specs: {} };
   let appium: any;
+  // Count of driver session-creation attempts (primary + headless-retry)
+  // since the last Appium spawn/rotate. See APPIUM_SESSION_CEILING below.
+  let driverSessionAttemptCount = 0;
   const report: any = {
     summary: {
       specs: {
@@ -424,27 +427,51 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   if (appiumRequired) {
     // Set Appium home directory
     setAppiumHome();
-    // Ensure the Appium port is not still bound by a zombie from a prior
-    // runTests() call in this process before spawning a fresh one.
-    await waitForPortFree(4723);
-    // Start Appium server
-    appium = spawn("npx", ["appium"], {
-      shell: true,
-      windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
-    });
-    appium.on("error", (err: any) => {
-      log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
-    });
-    appium.stdout.on("data", (data: any) => {
-      // console.log(`stdout: ${data}`);
-    });
-    appium.stderr.on("data", (data: any) => {
-      // console.error(`stderr: ${data}`);
-    });
-    await appiumIsReady();
-    log(config, "debug", "Appium is ready.");
+    appium = await startAppium({ config });
   }
+
+  // Rotate Appium if we've hit the per-process session ceiling (see the
+  // APPIUM_SESSION_CEILING block comment below for the Win32 + Node 24
+  // motivation). Retries startAppium() once on transient failures; if both
+  // attempts fail, leaves appium = null so the subsequent driverStart()
+  // throws and the existing error path marks each remaining driver-using
+  // context SKIPPED individually, rather than aborting the whole run.
+  const maybeRotateAppium = async () => {
+    if (!appium || driverSessionAttemptCount < APPIUM_SESSION_CEILING) return;
+    log(
+      config,
+      "debug",
+      `Rotating Appium after ${driverSessionAttemptCount} session attempts.`
+    );
+    try {
+      kill(appium.pid);
+    } catch {
+      // Already gone; carry on.
+    }
+    appium = null;
+    for (let rotateAttempt = 1; rotateAttempt <= 2; rotateAttempt++) {
+      try {
+        appium = await startAppium({ config });
+        driverSessionAttemptCount = 0;
+        return;
+      } catch (rotateErr: any) {
+        const msg = rotateErr?.message ?? String(rotateErr);
+        if (rotateAttempt === 1) {
+          log(
+            config,
+            "warning",
+            `Appium rotation attempt 1 failed: ${msg}. Retrying once.`
+          );
+        } else {
+          log(
+            config,
+            "error",
+            `Appium rotation failed twice: ${msg}. Remaining driver-using contexts will be SKIPPED until runSpecs() returns.`
+          );
+        }
+      }
+    }
+  };
 
   // Iterate specs
   log(config, "info", "Running test specs.");
@@ -549,6 +576,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
               headless: context.browser?.headless !== false,
             },
           });
+
+          await maybeRotateAppium();
+          driverSessionAttemptCount++;
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
 
@@ -573,6 +603,13 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                   headless: context.browser?.headless !== false,
                 },
               });
+              // The headless fallback is a second session on the same
+              // Appium process. Re-check the rotation ceiling BEFORE
+              // starting it (the primary attempt may have pushed us to
+              // the ceiling since the last check) so every actual
+              // session-creation attempt is bounded by the same rule.
+              await maybeRotateAppium();
+              driverSessionAttemptCount++;
               driver = await driverStart(caps);
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
@@ -964,6 +1001,42 @@ async function runStep({
     );
   }
   return actionResult;
+}
+
+// Windows + Node 24 + Firefox Nightly + geckodriver + Appium hits a native-
+// level crash after ~18-20 sequential Firefox sessions in a single Appium
+// process: the next POST /session dies before the driver even logs, with no
+// JS-level error that any process handler can catch. To stay well under that
+// ceiling, runSpecs() rotates Appium every APPIUM_SESSION_CEILING session
+// attempts (including the headless-retry second attempt; see the restart
+// block inside the context loop). The ceiling applies on every
+// platform -- the rotation is
+// cheap (a few seconds) and only takes effect on suites large enough to
+// trigger it, but it specifically prevents the silent-exit on Win32 Node 24.
+const APPIUM_SESSION_CEILING = 15;
+
+// Spawn Appium, wait for the port handoff, attach pipe/error listeners, and
+// block until /status reports ready. Extracted so both the initial startup
+// and the mid-run rotation share a single code path.
+async function startAppium({ config }: { config: any }) {
+  await waitForPortFree(4723);
+  const proc: any = spawn("npx", ["appium"], {
+    shell: true,
+    windowsHide: true,
+    cwd: path.join(__dirname, "../.."),
+  });
+  proc.on("error", (err: any) => {
+    log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
+  });
+  proc.stdout.on("data", (_data: any) => {
+    // intentionally drained but not emitted
+  });
+  proc.stderr.on("data", (_data: any) => {
+    // intentionally drained but not emitted
+  });
+  await appiumIsReady();
+  log(config, "debug", "Appium is ready.");
+  return proc;
 }
 
 // Wait until the given TCP port is not bound by anything on 127.0.0.1.

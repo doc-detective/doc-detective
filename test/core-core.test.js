@@ -8,22 +8,48 @@ const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 
 describe("Run tests successfully", function () {
-  // 30 minutes for the combined core test suite (runs all specs in one Appium session)
+  // Mocha applies suite-level `this.timeout(...)` as the default per-test
+  // timeout for every nested `it`/hook, NOT as a single shared budget
+  // across the describe. Each chunked "Core test suite" test is a full
+  // runTests() + Appium lifecycle and legitimately needs the long cap;
+  // we just can't assume it bounds overall wall time.
   this.timeout(1800000);
   describe("Core test suite", function () {
-    // Run all spec files in a single runTests() call to avoid repeated Appium restarts.
-    // This starts Appium once and runs all specs within that session.
-    it("All core spec files pass", async () => {
-      const config_tests = JSON.parse(JSON.stringify(config_base));
-      config_tests.runTests.input = artifactPath;
-      const result = await runTests(config_tests);
-      if (result === null) assert.fail("Expected result to be non-null");
-      const failedSpecs = result.specs.filter((s) => s.result === "FAIL");
-      assert.equal(
-        result.summary.specs.fail,
-        0,
-        `${failedSpecs.length} spec(s) failed: ${failedSpecs.map((s) => s.specId).join(", ")}`
-      );
+    // The core-artifacts directory contains ~28 spec files that together
+    // spin up ~40+ sequential Firefox sessions. On Windows + Node 24 a
+    // single runTests() call across the whole directory exceeds the Appium
+    // session-ceiling described in src/core/tests.ts; the library now
+    // rotates Appium mid-run, but we still split this test into chunks as
+    // regression insurance so an accidental ceiling change shows up here
+    // immediately rather than a week later in a release. Each chunk gets
+    // its own runTests() invocation = its own Appium lifecycle.
+    const allSpecFiles = fs
+      .readdirSync(artifactPath)
+      .filter((f) => f.endsWith(".spec.json") || f.endsWith(".spec.yaml"))
+      .map((f) => path.join(artifactPath, f))
+      .sort();
+    const CHUNK_SIZE = 10;
+    const chunks = [];
+    for (let i = 0; i < allSpecFiles.length; i += CHUNK_SIZE) {
+      chunks.push(allSpecFiles.slice(i, i + CHUNK_SIZE));
+    }
+    chunks.forEach((chunk, idx) => {
+      const chunkLabel = `${idx + 1}/${chunks.length}`;
+      it(`All core spec files pass (chunk ${chunkLabel})`, async () => {
+        const config_tests = JSON.parse(JSON.stringify(config_base));
+        // runTests accepts either a directory or an explicit array of files;
+        // passing the explicit list keeps each chunk's Appium session small
+        // and independent.
+        config_tests.runTests.input = chunk;
+        const result = await runTests(config_tests);
+        if (result === null) assert.fail("Expected result to be non-null");
+        const failedSpecs = result.specs.filter((s) => s.result === "FAIL");
+        assert.equal(
+          result.summary.specs.fail,
+          0,
+          `chunk ${chunkLabel}: ${failedSpecs.length} spec(s) failed: ${failedSpecs.map((s) => s.specId).join(", ")}`
+        );
+      });
     });
   });
 
