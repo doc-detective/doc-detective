@@ -387,6 +387,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const availableApps = runnerDetails.availableApps;
   const metaValues: any = { specs: {} };
   let appium: any;
+  // Count of driver-instantiated contexts since the last Appium spawn/rotate.
+  let driverContextCount = 0;
   const report: any = {
     summary: {
       specs: {
@@ -424,26 +426,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   if (appiumRequired) {
     // Set Appium home directory
     setAppiumHome();
-    // Ensure the Appium port is not still bound by a zombie from a prior
-    // runTests() call in this process before spawning a fresh one.
-    await waitForPortFree(4723);
-    // Start Appium server
-    appium = spawn("npx", ["appium"], {
-      shell: true,
-      windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
-    });
-    appium.on("error", (err: any) => {
-      log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
-    });
-    appium.stdout.on("data", (data: any) => {
-      // console.log(`stdout: ${data}`);
-    });
-    appium.stderr.on("data", (data: any) => {
-      // console.error(`stderr: ${data}`);
-    });
-    await appiumIsReady();
-    log(config, "debug", "Appium is ready.");
+    appium = await startAppium({ config });
   }
 
   // Iterate specs
@@ -549,6 +532,24 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
               headless: context.browser?.headless !== false,
             },
           });
+
+          // Rotate Appium below the observed native-crash ceiling on
+          // Win32 + Node 24 (see APPIUM_SESSION_CEILING comment above).
+          if (appium && driverContextCount >= APPIUM_SESSION_CEILING) {
+            log(
+              config,
+              "debug",
+              `Rotating Appium after ${driverContextCount} driver-using contexts.`
+            );
+            try {
+              kill(appium.pid);
+            } catch {
+              // Already gone; carry on.
+            }
+            appium = await startAppium({ config });
+            driverContextCount = 0;
+          }
+          driverContextCount++;
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
 
@@ -964,6 +965,41 @@ async function runStep({
     );
   }
   return actionResult;
+}
+
+// Windows + Node 24 + Firefox Nightly + geckodriver + Appium hits a native-
+// level crash after ~18-20 sequential Firefox sessions in a single Appium
+// process: the next POST /session dies before the driver even logs, with no
+// JS-level error that any process handler can catch. To stay well under that
+// ceiling, runSpecs() rotates Appium every APPIUM_SESSION_CEILING contexts
+// that actually instantiate a driver (see the restart block inside the
+// context loop). The ceiling applies on every platform -- the rotation is
+// cheap (a few seconds) and only takes effect on suites large enough to
+// trigger it, but it specifically prevents the silent-exit on Win32 Node 24.
+const APPIUM_SESSION_CEILING = 15;
+
+// Spawn Appium, wait for the port handoff, attach pipe/error listeners, and
+// block until /status reports ready. Extracted so both the initial startup
+// and the mid-run rotation share a single code path.
+async function startAppium({ config }: { config: any }) {
+  await waitForPortFree(4723);
+  const proc: any = spawn("npx", ["appium"], {
+    shell: true,
+    windowsHide: true,
+    cwd: path.join(__dirname, "../.."),
+  });
+  proc.on("error", (err: any) => {
+    log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
+  });
+  proc.stdout.on("data", (_data: any) => {
+    // intentionally drained but not emitted
+  });
+  proc.stderr.on("data", (_data: any) => {
+    // intentionally drained but not emitted
+  });
+  await appiumIsReady();
+  log(config, "debug", "Appium is ready.");
+  return proc;
 }
 
 // Wait until the given TCP port is not bound by anything on 127.0.0.1.
