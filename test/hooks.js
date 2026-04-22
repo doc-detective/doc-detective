@@ -30,11 +30,18 @@ function isWebDriverTeardownError(reason) {
   const text = [reason.name, reason.message, reason.stack]
     .filter(Boolean)
     .join(" ");
-  return (
-    /WebDriver(Error|RequestError)/.test(text) ||
-    (/webdriver/i.test(text) &&
-      /(ECONNREFUSED|ECONNRESET|socket hang up)/.test(text))
-  );
+  if (!/WebDriver(Error|RequestError)/.test(text)) return false;
+  if (!/(ECONNREFUSED|ECONNRESET|socket hang up)/.test(text)) return false;
+  // Session CREATION is NOT teardown — an ECONNREFUSED on POST /session means
+  // the new Appium isn't ready yet, and the test genuinely cannot proceed.
+  // Match both forms WebdriverIO uses in practice: the structured
+  // `method: "POST"` form and the bare `POST /session` form. Let those
+  // propagate as real failures rather than swallowing them silently and
+  // leaving the caller with a truncated result object.
+  const mentionsPost =
+    /method[:=\s"']+POST\b/i.test(text) || /\bPOST\b[^"\n]*\/session\b/i.test(text);
+  if (mentionsPost) return false;
+  return true;
 }
 
 function onUnhandledRejection(reason) {
