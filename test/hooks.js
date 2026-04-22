@@ -30,11 +30,14 @@ function isWebDriverTeardownError(reason) {
   const text = [reason.name, reason.message, reason.stack]
     .filter(Boolean)
     .join(" ");
-  return (
-    /WebDriver(Error|RequestError)/.test(text) ||
-    (/webdriver/i.test(text) &&
-      /(ECONNREFUSED|ECONNRESET|socket hang up)/.test(text))
-  );
+  if (!/WebDriver(Error|RequestError)/.test(text)) return false;
+  if (!/(ECONNREFUSED|ECONNRESET|socket hang up)/.test(text)) return false;
+  // Session CREATION (POST /session) is NOT teardown — a ECONNREFUSED here
+  // means the new Appium isn't ready yet, and the test genuinely cannot
+  // proceed. Let that propagate as a real failure rather than swallowing
+  // it silently and leaving the caller with a truncated result object.
+  if (/method[:\s"']+POST/i.test(text)) return false;
+  return true;
 }
 
 function onUnhandledRejection(reason) {
