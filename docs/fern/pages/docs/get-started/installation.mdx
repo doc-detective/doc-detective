@@ -18,9 +18,9 @@ Choose *NPX* if you have Node.js installed and want to install Doc Detective on 
 
 2. In a terminal, install Doc Detective globally:
 
-    <CodeBlock language="bash" title="Install Doc Detective">
+    <Code language="bash" title="Install Doc Detective">
       npm i -g doc-detective
-    </CodeBlock>
+    </Code>
     {/* step {"stepId":"install-npm","description":"Install Doc Detective globally via npm","runShell":{"command":"npm i -g doc-detective"}} */}
 
     <Note>
@@ -41,9 +41,9 @@ Choose *NPX* if you have Node.js installed and want to install Doc Detective on 
 
 4. Run a test, pointing to the file you just created:
 
-    <CodeBlock language="bash" title="Run test">
+    <Code language="bash" title="Run test">
       npx doc-detective --input sample.spec.json
-    </CodeBlock>
+    </Code>
     {/* step {"stepId":"run-npx-test","description":"Run Doc Detective test with NPX","runShell":{"command":"npx doc-detective --input sample.spec.json","workingDirectory":"."}} */}
 
   </Tab>
@@ -63,9 +63,9 @@ Choose *NPX* if you have Node.js installed and want to install Doc Detective on 
 
 3. Run a test, pointing to the file you just created:
 
-    <CodeBlock language="bash" title="Run test">
+    <Code language="bash" title="Run test">
       docker run -v .:/app docdetective/docdetective --input /app/sample.spec.json
-    </CodeBlock>
+    </Code>
     {/* step {"stepId":"run-docker-test","description":"Run Doc Detective test with Docker","runShell":{"command":"docker run -v .:/app docdetective/docdetective --input /app/sample.spec.json","workingDirectory":".","timeout":180000}} */}
 
     <Note>
