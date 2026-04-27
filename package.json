@@ -144,9 +144,9 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
     "@semantic-release/npm": "^12.0.1",
-    "@semantic-release/release-notes-generator": "^14.0.2",
+    "@semantic-release/release-notes-generator": "^14.1.0",
     "@types/adm-zip": "^0.5.8",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "@types/yargs": "^17.0.35",
     "body-parser": "^2.2.2",
     "chai": "^6.2.2",
@@ -159,7 +159,7 @@
     "nodemon": "^3.1.14",
     "semantic-release": "^24.2.0",
     "semver": "^7.7.4",
-    "sinon": "^21.0.3",
+    "sinon": "^21.1.2",
     "typescript": "^5.9.3"
   }
 }
