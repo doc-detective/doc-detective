@@ -1,3 +1,11 @@
+## [4.2.3](https://github.com/doc-detective/doc-detective/compare/v4.2.2...v4.2.3) (2026-04-28)
+
+
+### Bug Fixes
+
+* **ci:** close Appium port-bind race on Windows + Node 24 ([#282](https://github.com/doc-detective/doc-detective/issues/282)) ([cc1cc7b](https://github.com/doc-detective/doc-detective/commit/cc1cc7b59fb4e628cd929834eaac5cfa5656790e)), closes [#281](https://github.com/doc-detective/doc-detective/issues/281)
+* **ci:** prevent late webdriver rejection from killing mocha on win32+node24 ([#281](https://github.com/doc-detective/doc-detective/issues/281)) ([d6b05d7](https://github.com/doc-detective/doc-detective/commit/d6b05d7421d88c144821282586dc692393e643e6))
+
 ## [4.2.2](https://github.com/doc-detective/doc-detective/compare/v4.2.1...v4.2.2) (2026-04-21)
 
 
