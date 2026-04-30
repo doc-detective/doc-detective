@@ -66,6 +66,58 @@ GITHUB_TOKEN=... npx semantic-release --dry-run --no-ci
 npx commitlint --from HEAD~1 --to HEAD --verbose
 ```
 
+## CLI flags ↔ config (required pattern)
+
+Every user-facing knob flows through the merged `config` object. CLI flags do **not** bypass it — they override it. Runtime code (runner, reporters, integrations) reads from `config` only, never from `args`. This is what lets config files and `DOC_DETECTIVE_CONFIG` reach the same code paths the CLI does.
+
+The wiring lives in [src/utils.ts](src/utils.ts):
+
+- `buildYargs()` declares the flag.
+- `setConfig()` runs file config + env config through AJV (`config_v3`) **first**, then overlays CLI overrides on top of the validated object.
+
+### Adding a new flag
+
+1. **Schema first.** Add the field to [src/common/src/schemas/src_schemas/config_v3.schema.json](src/common/src/schemas/src_schemas/config_v3.schema.json) using the same camelCase name as the config key. Run `npm run build:common` to regenerate types and output schemas. Add a positive + negative case to [src/common/test/validate.test.js](src/common/test/validate.test.js).
+2. **Yargs flag.** Add `.option("flagName", { alias: "x", type: "string", description: "…" })` in `buildYargs()`.
+3. **Override block.** Add a single `if (typeof args.flagName === "string" && args.flagName.length > 0) { config.flagName = …; }` block in `setConfig()`, after the existing overrides. Don't add per-flag validation or `process.exit` calls inside your block — the existing `validate(config_v3)` earlier in `setConfig` already handles invalid file/env config and exits on failure.
+4. **Runtime helper.** Put any parsing / regex compilation / list-splitting in a small pure helper in [src/core/utils.ts](src/core/utils.ts) (e.g. `compileFilter`, `appendQueryParams`). Keeps `setConfig` boring and the logic unit-testable without the runner.
+5. **Read from `config.flagName`** at the consumption site. Never reach back into `args`.
+
+### Multi-value flags (`--test`, `--spec`)
+
+This is the convention for **new** strict-array fields. `--input` predates it and uses a permissive `stringOrArray` shape (string OR array, no item-level constraints) for backward compatibility — don't model new flags on `--input`.
+
+- **Schema**: `type: "array", items: { type: "string", minLength: 1, pattern: "\\S" }`. The `\\S` blocks whitespace-only entries that would otherwise compile into accidentally-matching regexes.
+- **Yargs**: `type: "string"` (a single comma-separated value). Not `type: "array"` — the comma split lives in `setConfig` so file/env users land on the same array shape.
+- **`setConfig` override**: split on `,`, trim each, **drop empties**, store as `string[]`. See the `--test` / `--spec` blocks for the canonical pattern. (`--input` splits and trims but does not drop empties — its laxer shape predates this convention.)
+- **Runtime helper**: defense-in-depth — also trim/drop empty entries inside the helper, since env/CLI paths could in theory bypass AJV.
+
+### Order of precedence (memorize)
+
+```
+file config + DOC_DETECTIVE_CONFIG  →  AJV validate (config_v3)  →  CLI override  →  runtime
+```
+
+### TDD cycle per flag
+
+Each step is its own red→green:
+
+1. Yargs parse test (`setArgs(["node","x","--flag","v"]).flag === "v"`).
+2. `setConfig` override test (`config.flagName` deep-equals the expected shape).
+3. Schema test (positive + a negative for malformed values).
+4. Runtime-helper unit test (pure, no driver / HTTP).
+5. Integration: wire the helper into the runner, with an empty-result short-circuit test.
+
+See [PR #286](https://github.com/doc-detective/doc-detective/pull/286) (`--test` / `--spec` filters) for a worked example covering all five.
+
+### Don't
+
+- ❌ Don't read `args.foo` from runner / reporter code — read `config.foo`.
+- ❌ Don't add per-flag validation or `process.exit` calls in your override block — the upstream `validate(config_v3)` step in `setConfig` already handles invalid config.
+- ❌ Don't compile regexes inside `setConfig` — defer to a runtime helper.
+- ❌ Don't use yargs `array: true` for comma-list flags — keep the split in `setConfig`.
+- ❌ Don't skip schema-side defenses (`pattern`, `minLength`) and rely on the runtime helper alone — the schema is the only contract config-file users see.
+
 ## Related files
 
 - [.releaserc.json](.releaserc.json) — semantic-release config (branches + plugins)
