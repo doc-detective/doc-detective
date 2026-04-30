@@ -939,6 +939,47 @@ describe("terminalReporter zero-tests-ran warning", function () {
     expect(joined).to.include("No tests were run");
     expect(joined).to.include("Check that the input paths contain testable content");
   });
+
+  it("does NOT print the success celebration on zero-test runs", async function () {
+    // Regression: the reporter previously printed both "No tests were run"
+    // and the green "🎉 All items passed!" banner for empty runs because the
+    // success branch only checked !hasFailures && !allSpecsSkipped. Both are
+    // true for an empty run, so it would fall through. Gate on totalTests>0.
+    const results = makeResults({ pass: 0, fail: 0, warning: 0, skipped: 0 });
+    const captured = await runReporter({}, results);
+    const joined = captured.join("\n");
+    expect(joined).to.include("No tests were run");
+    expect(joined).to.not.include("All items passed");
+  });
+});
+
+describe("runViaApi filter short-circuit", function () {
+  // Avoid spinning up axios. When the filter excludes every spec, runViaApi
+  // must NOT make an HTTP request — it must return the empty-summary shape
+  // so the rest of the pipeline (reporter, telemetry) treats it as a clean
+  // empty run. This test only exercises the short-circuit path; the cross-
+  // wire to selectSpecsForRun is covered by that helper's own tests.
+  let runViaApi;
+  before(async function () {
+    ({ runViaApi } = await import("../dist/core/tests.js"));
+  });
+
+  it("returns an empty summary without making any HTTP request when filters exclude every spec", async function () {
+    const resolvedTests = {
+      config: { testFilter: ["nope"] },
+      specs: [
+        {
+          specId: "s1",
+          tests: [{ testId: "t1" }],
+        },
+      ],
+    };
+    const result = await runViaApi({ resolvedTests, apiKey: "fake-key" });
+    expect(result).to.exist;
+    expect(result.specs).to.deep.equal([]);
+    expect(result.summary.tests.pass).to.equal(0);
+    expect(result.summary.tests.fail).to.equal(0);
+  });
 });
 
 describe("selectSpecsForRun", function () {

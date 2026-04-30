@@ -811,8 +811,10 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
             );
           });
         }
-      } else if (!hasFailures && !allSpecsSkipped) {
-        // Celebration when all tests pass
+      } else if (!hasFailures && !allSpecsSkipped && totalTests > 0) {
+        // Celebration when all tests pass. Gated on totalTests > 0 so an
+        // empty run (no input matched, all filtered out) doesn't print the
+        // success banner alongside the "No tests were run" warning above.
         console.log(`\n${colors.green}🎉 All items passed! 🎉${colors.reset}`);
       }
     } else {
