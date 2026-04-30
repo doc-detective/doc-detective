@@ -14,6 +14,7 @@ reviews:
   path_filters:
     - "!src/common/src/schemas/output_schemas/**"
     - "!src/common/src/schemas/schemas.json"
+    - "!docs/**"
   tools:
     github-checks:
       enabled: true
