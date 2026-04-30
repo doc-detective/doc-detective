@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/doc-detective/doc-detective/compare/v4.2.3...v4.3.0) (2026-04-30)
+
+
+### Features
+
+* **cli:** add --test and --spec filters for narrowing test runs ([#286](https://github.com/doc-detective/doc-detective/issues/286)) ([b19ac22](https://github.com/doc-detective/doc-detective/commit/b19ac2287487be6ebddf9a3fd24e3aecb5a1f470))
+
 ## [4.2.3](https://github.com/doc-detective/doc-detective/compare/v4.2.2...v4.2.3) (2026-04-28)
 
 
