@@ -1,7 +1,7 @@
 import kill from "tree-kill";
 import * as wdio from "webdriverio";
 import os from "node:os";
-import { log, replaceEnvs } from "./utils.js";
+import { log, replaceEnvs, selectSpecsForRun } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
@@ -246,6 +246,34 @@ async function allowUnsafeSteps({ config }: { config: any }) {
 
 // Run specifications via API.
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
+  // Apply specFilter / testFilter before sending. Without this the API run
+  // path silently ignores --test / --spec, since the orchestration server
+  // sees the full unfiltered payload.
+  const runConfig = resolvedTests?.config ?? config;
+  const filtersActive =
+    (Array.isArray(runConfig?.specFilter) && runConfig.specFilter.length > 0) ||
+    (Array.isArray(runConfig?.testFilter) && runConfig.testFilter.length > 0);
+  if (filtersActive) {
+    const filteredSpecs = selectSpecsForRun(resolvedTests?.specs ?? [], runConfig);
+    if (filteredSpecs.length === 0) {
+      log(
+        runConfig,
+        "warning",
+        "No specs or tests matched the configured filters. Nothing was sent to the Doc Detective API."
+      );
+      return {
+        summary: {
+          specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+          tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+          contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+          steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        },
+        specs: [],
+      };
+    }
+    resolvedTests = { ...resolvedTests, specs: filteredSpecs };
+  }
+
   const baseUrl =
     process.env.DOC_DETECTIVE_API_URL || "https://api.doc-detective.com";
   // Make an API request to create a test run
@@ -373,7 +401,34 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
  */
 async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const config: any = resolvedTests.config;
-  const specs = resolvedTests.specs;
+  // Narrow the spec set to what specFilter / testFilter allow before running.
+  // Filtered-out specs / tests do not appear in the report (true filter, not
+  // skip). Pass-through when neither filter is set.
+  const filtersActive =
+    (Array.isArray(config?.specFilter) && config.specFilter.length > 0) ||
+    (Array.isArray(config?.testFilter) && config.testFilter.length > 0);
+  const specs = selectSpecsForRun(resolvedTests.specs, config);
+  if (filtersActive && specs.length === 0) {
+    log(
+      config,
+      "warning",
+      "No specs or tests matched the configured filters. Nothing was run."
+    );
+    // Short-circuit: skip environment / app discovery and the spec-iteration
+    // loop entirely. Without this, a fully-filtered run still spins up
+    // getAvailableApps and friends — wasted work, plus an avoidable error
+    // path if discovery fails on the host. Mirrors the runViaApi early
+    // return so both run paths behave the same way.
+    return {
+      summary: {
+        specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+      },
+      specs: [],
+    };
+  }
 
   // Get runner details
   const runnerDetails = {

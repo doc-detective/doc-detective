@@ -83,6 +83,18 @@ function buildYargs(args: any): any {
       type: "string",
       array: true,
     })
+    .option("test", {
+      alias: "t",
+      description:
+        "Run only tests whose testId matches the given regex (case-insensitive). Comma-separate multiple patterns; a test passes if any pattern matches.",
+      type: "string",
+    })
+    .option("spec", {
+      alias: "s",
+      description:
+        "Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches.",
+      type: "string",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -288,6 +300,20 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
       config.reporters = reporterList.map((r: any) => String(r));
     }
   }
+  if (typeof args.test === "string" && args.test.length > 0) {
+    const list = args.test
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
+    if (list.length > 0) config.testFilter = list;
+  }
+  if (typeof args.spec === "string" && args.spec.length > 0) {
+    const list = args.spec
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
+    if (list.length > 0) config.specFilter = list;
+  }
   // Resolve paths
   config = await resolvePaths({
     config: config,
@@ -374,9 +400,38 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       bold: "\x1b[1m",
     };
 
+    // Single source of truth for the "No tests were run" warning so the
+    // null-results path and the totalTests===0 path can't drift apart.
+    const printNoTestsWarning = () => {
+      const specFilterActive =
+        Array.isArray(config?.specFilter) && config.specFilter.length > 0;
+      const testFilterActive =
+        Array.isArray(config?.testFilter) && config.testFilter.length > 0;
+      console.log(
+        `\n${colors.yellow}⚠️  No tests were run. ⚠️${colors.reset}`
+      );
+      if (specFilterActive || testFilterActive) {
+        console.log(
+          `${colors.yellow}This may be because the configured filters excluded every spec/test. Filters: specFilter=${JSON.stringify(
+            config?.specFilter ?? null
+          )}, testFilter=${JSON.stringify(
+            config?.testFilter ?? null
+          )}.${colors.reset}`
+        );
+      } else {
+        console.log(
+          `${colors.yellow}Check that the input paths contain testable content.${colors.reset}`
+        );
+      }
+    };
+
     // Check if we have the new results format with summary
     if (!results) {
-      console.log("No results available.");
+      // No results means the runner bailed before producing a report (e.g.
+      // no input matched, no tests detected upstream). Surface that as a
+      // warning rather than the prior bare "No results available." line —
+      // the run still exits 0, but it is empty, not a clean success.
+      printNoTestsWarning();
       return;
     }
 
@@ -515,6 +570,14 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         console.log(
           `\n${colors.yellow}⚠️  All items were skipped. No specs passed or failed. ⚠️${colors.reset}`
         );
+      }
+
+      // If zero tests ran for any reason (filters excluded everything, no
+      // input matched, no tests detected, etc.), surface that as a warning
+      // rather than letting the green "Passed: 0" line read like success.
+      // The run still exits 0 — this is an empty run, not a failure.
+      if (totalTests === 0) {
+        printNoTestsWarning();
       }
 
       // If we have specs with failures, display them
@@ -735,8 +798,10 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
             );
           });
         }
-      } else if (!hasFailures && !allSpecsSkipped) {
-        // Celebration when all tests pass
+      } else if (!hasFailures && !allSpecsSkipped && totalTests > 0) {
+        // Celebration when all tests pass. Gated on totalTests > 0 so an
+        // empty run (no input matched, all filtered out) doesn't print the
+        // success banner alongside the "No tests were run" warning above.
         console.log(`\n${colors.green}🎉 All items passed! 🎉${colors.reset}`);
       }
     } else {
