@@ -1115,6 +1115,24 @@ describe("filter helper", function () {
       expect(out[0].source).to.equal("foo");
       expect(out[1].source).to.equal("bar");
     });
+
+    it("trims surrounding whitespace from each pattern", function () {
+      // Config / env-var paths skip the CLI trim, so a value like " foo "
+      // would otherwise compile into a regex that requires literal spaces.
+      // Keep behavior consistent with the CLI's comma-split-and-trim.
+      const out = compileFilter(["  foo  ", "\tbar\n"]);
+      expect(out).to.have.length(2);
+      expect(out[0].source).to.equal("foo");
+      expect(out[1].source).to.equal("bar");
+    });
+
+    it("drops whitespace-only entries entirely", function () {
+      // A bare "   " would otherwise compile to /   /i and match almost
+      // anything containing whitespace — not a useful filter.
+      const out = compileFilter(["foo", "   ", "\t\n"]);
+      expect(out).to.have.length(1);
+      expect(out[0].source).to.equal("foo");
+    });
   });
 
   describe("matchesFilter", function () {

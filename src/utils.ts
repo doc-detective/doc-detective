@@ -400,12 +400,9 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       bold: "\x1b[1m",
     };
 
-    // Check if we have the new results format with summary
-    if (!results) {
-      // No results means the runner bailed before producing a report (e.g.
-      // no input matched, no tests detected upstream). Surface that as a
-      // warning rather than the prior bare "No results available." line —
-      // the run still exits 0, but it is empty, not a clean success.
+    // Single source of truth for the "No tests were run" warning so the
+    // null-results path and the totalTests===0 path can't drift apart.
+    const printNoTestsWarning = () => {
       const specFilterActive =
         Array.isArray(config?.specFilter) && config.specFilter.length > 0;
       const testFilterActive =
@@ -426,6 +423,15 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
           `${colors.yellow}Check that the input paths contain testable content.${colors.reset}`
         );
       }
+    };
+
+    // Check if we have the new results format with summary
+    if (!results) {
+      // No results means the runner bailed before producing a report (e.g.
+      // no input matched, no tests detected upstream). Surface that as a
+      // warning rather than the prior bare "No results available." line —
+      // the run still exits 0, but it is empty, not a clean success.
+      printNoTestsWarning();
       return;
     }
 
@@ -571,26 +577,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       // rather than letting the green "Passed: 0" line read like success.
       // The run still exits 0 — this is an empty run, not a failure.
       if (totalTests === 0) {
-        const specFilterActive =
-          Array.isArray(config?.specFilter) && config.specFilter.length > 0;
-        const testFilterActive =
-          Array.isArray(config?.testFilter) && config.testFilter.length > 0;
-        console.log(
-          `\n${colors.yellow}⚠️  No tests were run. ⚠️${colors.reset}`
-        );
-        if (specFilterActive || testFilterActive) {
-          console.log(
-            `${colors.yellow}This may be because the configured filters excluded every spec/test. Filters: specFilter=${JSON.stringify(
-              config?.specFilter ?? null
-            )}, testFilter=${JSON.stringify(
-              config?.testFilter ?? null
-            )}.${colors.reset}`
-          );
-        } else {
-          console.log(
-            `${colors.yellow}Check that the input paths contain testable content.${colors.reset}`
-          );
-        }
+        printNoTestsWarning();
       }
 
       // If we have specs with failures, display them

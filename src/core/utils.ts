@@ -31,8 +31,15 @@ export {
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
   if (!Array.isArray(patterns) || patterns.length === 0) return [];
+  // Trim each pattern before compiling so config / env / CLI inputs all
+  // produce the same regex (the CLI splits on `,` and trims; config files
+  // and DOC_DETECTIVE_CONFIG do not). Whitespace-only entries are dropped —
+  // a bare "   " would otherwise compile to /   /i and match anything that
+  // happens to contain whitespace, which is never the user's intent.
   return patterns
-    .filter((s): s is string => typeof s === "string" && s.length > 0)
+    .filter((s): s is string => typeof s === "string")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
     .map((s) => new RegExp(s, "i"));
 }
 
