@@ -24,7 +24,51 @@ export {
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
+  compileFilter,
+  matchesFilter,
+  selectSpecsForRun,
 };
+
+function compileFilter(patterns?: string[] | unknown): RegExp[] {
+  if (!Array.isArray(patterns) || patterns.length === 0) return [];
+  // Trim each pattern before compiling so config / env / CLI inputs all
+  // produce the same regex (the CLI splits on `,` and trims; config files
+  // and DOC_DETECTIVE_CONFIG do not). Whitespace-only entries are dropped —
+  // a bare "   " would otherwise compile to /   /i and match anything that
+  // happens to contain whitespace, which is never the user's intent.
+  return patterns
+    .filter((s): s is string => typeof s === "string")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map((s) => new RegExp(s, "i"));
+}
+
+function matchesFilter(id: string | undefined, filters: RegExp[]): boolean {
+  if (!Array.isArray(filters) || filters.length === 0) return true;
+  if (typeof id !== "string") return false;
+  return filters.some((re) => re.test(id));
+}
+
+// Apply config.specFilter / config.testFilter to a specs[] array. Returns a
+// new array with non-matching specs removed and each matching spec's tests
+// narrowed to those that pass the test filter. Specs with zero remaining
+// tests are dropped. Input is not mutated. If neither filter is configured,
+// the input is returned as-is for cheap pass-through.
+function selectSpecsForRun(specs: any[], config: any): any[] {
+  const specFilters = compileFilter(config?.specFilter);
+  const testFilters = compileFilter(config?.testFilter);
+  if (specFilters.length === 0 && testFilters.length === 0) return specs;
+  const out: any[] = [];
+  for (const spec of specs || []) {
+    if (!matchesFilter(spec?.specId, specFilters)) continue;
+    const filteredTests = (spec?.tests || []).filter((t: any) =>
+      matchesFilter(t?.testId, testFilters)
+    );
+    if (filteredTests.length === 0) continue;
+    out.push({ ...spec, tests: filteredTests });
+  }
+  return out;
+}
 
 function isRelativeUrl(url: string) {
   try {
