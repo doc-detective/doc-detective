@@ -101,6 +101,14 @@ export interface Config {
    */
   reporters?: string[];
   /**
+   * Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. Each entry must contain at least one non-whitespace character.
+   */
+  specFilter?: string[];
+  /**
+   * Regex patterns (case-insensitive) applied to each test's `testId`. If set, only tests whose `testId` matches at least one pattern are run. Equivalent to `--test` on the CLI. Each entry must contain at least one non-whitespace character.
+   */
+  testFilter?: string[];
+  /**
    * If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.
    */
   recursive?: boolean;
