@@ -104,6 +104,17 @@ describe("Util tests", function () {
     expect(aliasedSpec.spec).to.equal("xyz");
   });
 
+  it("Yargs parses --dry-run as a boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--dry-run"]);
+    expect(on.dryRun).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-dry-run"]);
+    expect(off.dryRun).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.dryRun).to.equal(undefined);
+  });
+
   it("Yargs parses --reporters argument correctly", function () {
     const single = setArgs([
       "node", "runTests.js", "--reporters", "html",
@@ -178,6 +189,23 @@ describe("Util tests", function () {
     const config4 = await setConfig({ configPath: null, args: args4 });
     expect(config4.testFilter).to.equal(undefined);
     expect(config4.specFilter).to.equal(undefined);
+  });
+
+  it("setConfig stores --dry-run on config.dryRun and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--dry-run"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.dryRun).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-dry-run"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.dryRun).to.equal(false);
+
+    // Schema default is false; absent flag yields false (AJV useDefaults).
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.dryRun).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.dryRun).to.equal(false);
   });
 
   it("setConfig stores --reporters arg on config.reporters", async function () {

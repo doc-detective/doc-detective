@@ -57,6 +57,18 @@ async function runTests(config: any, options: any = {}) {
     }
   }
 
+  // Use console.log (not log()) so dry-run output survives --logLevel silent —
+  // the whole point of --dry-run is the printed plan.
+  if (config.dryRun) {
+    console.log(JSON.stringify(resolvedTests, null, 2));
+    cleanTemp();
+    sendTelemetry(config, "runTests:dryRun", {
+      specs: resolvedTests.specs.length,
+    });
+    log(config, "info", supportMessage);
+    return resolvedTests;
+  }
+
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
   if (!process.env.DOC_DETECTIVE_API && config.integrations && config.integrations.docDetectiveApi && config.integrations.docDetectiveApi.apiKey) {
     // Run test specs via API

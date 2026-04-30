@@ -76,6 +76,11 @@ function buildYargs(args: any): any {
       description: "Allow execution of potentially unsafe tests",
       type: "boolean",
     })
+    .option("dry-run", {
+      description:
+        "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps.",
+      type: "boolean",
+    })
     .option("reporters", {
       alias: "r",
       description:
@@ -291,6 +296,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   }
   if (typeof args.allowUnsafe === "boolean") {
     config.allowUnsafeSteps = args.allowUnsafe;
+  }
+  if (typeof args.dryRun === "boolean") {
+    config.dryRun = args.dryRun;
   }
   if (args.reporters != null) {
     const reporterList = Array.isArray(args.reporters)

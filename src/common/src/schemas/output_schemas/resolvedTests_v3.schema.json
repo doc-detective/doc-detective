@@ -9432,6 +9432,11 @@
             }
           ],
           "default": false
+        },
+        "dryRun": {
+          "description": "If `true`, fully resolve tests (file/env config merge, schema validation, file detection, inline-test extraction) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI.",
+          "type": "boolean",
+          "default": false
         }
       },
       "components": {
