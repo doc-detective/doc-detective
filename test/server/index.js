@@ -29,6 +29,17 @@ function createServer(options = {}) {
     app.use(express.static(staticDir));
   }
 
+  // Status-code fixture: returns the requested numeric status with a tiny JSON
+  // body. Lets integration tests assert checkLink (and similar) behavior
+  // against deterministic HTTP responses without setting up a per-test server.
+  app.all("/status/:code", (req, res) => {
+    const code = parseInt(req.params.code, 10);
+    if (!Number.isInteger(code) || code < 100 || code > 599) {
+      return res.status(400).json({ error: "Invalid status code" });
+    }
+    res.status(code).json({ status: code });
+  });
+
   // Endpoint for testing DOC_DETECTIVE_API - returns resolved tests
   // IMPORTANT: Must be registered before the catch-all /api/:path route
   app.get("/api/resolved-tests", (req, res) => {
