@@ -79,15 +79,17 @@ The wiring lives in [src/utils.ts](src/utils.ts):
 
 1. **Schema first.** Add the field to [src/common/src/schemas/src_schemas/config_v3.schema.json](src/common/src/schemas/src_schemas/config_v3.schema.json) using the same camelCase name as the config key. Run `npm run build:common` to regenerate types and output schemas. Add a positive + negative case to [src/common/test/validate.test.js](src/common/test/validate.test.js).
 2. **Yargs flag.** Add `.option("flagName", { alias: "x", type: "string", description: "…" })` in `buildYargs()`.
-3. **Override block.** Add a single `if (typeof args.flagName === "string" && args.flagName.length > 0) { config.flagName = …; }` block in `setConfig()`, after the existing overrides. Don't `process.exit` from here and don't validate — schema validation runs upstream.
+3. **Override block.** Add a single `if (typeof args.flagName === "string" && args.flagName.length > 0) { config.flagName = …; }` block in `setConfig()`, after the existing overrides. Don't add per-flag validation or `process.exit` calls inside your block — the existing `validate(config_v3)` earlier in `setConfig` already handles invalid file/env config and exits on failure.
 4. **Runtime helper.** Put any parsing / regex compilation / list-splitting in a small pure helper in [src/core/utils.ts](src/core/utils.ts) (e.g. `compileFilter`, `appendQueryParams`). Keeps `setConfig` boring and the logic unit-testable without the runner.
 5. **Read from `config.flagName`** at the consumption site. Never reach back into `args`.
 
-### Multi-value flags (`--input`, `--test`, `--spec`)
+### Multi-value flags (`--test`, `--spec`)
+
+This is the convention for **new** strict-array fields. `--input` predates it and uses a permissive `stringOrArray` shape (string OR array, no item-level constraints) for backward compatibility — don't model new flags on `--input`.
 
 - **Schema**: `type: "array", items: { type: "string", minLength: 1, pattern: "\\S" }`. The `\\S` blocks whitespace-only entries that would otherwise compile into accidentally-matching regexes.
 - **Yargs**: `type: "string"` (a single comma-separated value). Not `type: "array"` — the comma split lives in `setConfig` so file/env users land on the same array shape.
-- **`setConfig` override**: split on `,`, trim each, drop empties, store as `string[]`. Mirror the `--input` block.
+- **`setConfig` override**: split on `,`, trim each, **drop empties**, store as `string[]`. See the `--test` / `--spec` blocks for the canonical pattern. (`--input` splits and trims but does not drop empties — its laxer shape predates this convention.)
 - **Runtime helper**: defense-in-depth — also trim/drop empty entries inside the helper, since env/CLI paths could in theory bypass AJV.
 
 ### Order of precedence (memorize)
@@ -111,7 +113,8 @@ See [PR #286](https://github.com/doc-detective/doc-detective/pull/286) (`--test`
 ### Don't
 
 - ❌ Don't read `args.foo` from runner / reporter code — read `config.foo`.
-- ❌ Don't validate or compile regexes inside `setConfig` — defer to a runtime helper.
+- ❌ Don't add per-flag validation or `process.exit` calls in your override block — the upstream `validate(config_v3)` step in `setConfig` already handles invalid config.
+- ❌ Don't compile regexes inside `setConfig` — defer to a runtime helper.
 - ❌ Don't use yargs `array: true` for comma-list flags — keep the split in `setConfig`.
 - ❌ Don't skip schema-side defenses (`pattern`, `minLength`) and rely on the runtime helper alone — the schema is the only contract config-file users see.
 
