@@ -953,6 +953,38 @@ describe("terminalReporter zero-tests-ran warning", function () {
   });
 });
 
+describe("runSpecs filter short-circuit", function () {
+  // When filters exclude every spec, runSpecs should return the empty-
+  // summary shape promptly, without entering the spec-iteration loop or
+  // doing any per-context driver work. Mirrors the runViaApi short-circuit
+  // — both run paths must behave the same way on a fully-filtered run.
+  let runSpecs;
+  before(async function () {
+    ({ runSpecs } = await import("../dist/core/tests.js"));
+  });
+
+  it("returns an empty summary when filters exclude every spec", async function () {
+    this.timeout(5000);
+    const resolvedTests = {
+      config: { testFilter: ["nope"], logLevel: "silent" },
+      specs: [
+        {
+          specId: "s1",
+          tests: [{ testId: "t1", contexts: [] }],
+        },
+      ],
+    };
+    const result = await runSpecs({ resolvedTests });
+    expect(result).to.exist;
+    expect(result.specs).to.deep.equal([]);
+    expect(result.summary.tests.pass).to.equal(0);
+    expect(result.summary.tests.fail).to.equal(0);
+    expect(result.summary.tests.warning).to.equal(0);
+    expect(result.summary.tests.skipped).to.equal(0);
+    expect(result.summary.specs.pass).to.equal(0);
+  });
+});
+
 describe("runViaApi filter short-circuit", function () {
   // Avoid spinning up axios. When the filter excludes every spec, runViaApi
   // must NOT make an HTTP request — it must return the empty-summary shape

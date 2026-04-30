@@ -414,6 +414,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       "warning",
       "No specs or tests matched the configured filters. Nothing was run."
     );
+    // Short-circuit: skip environment / app discovery and the spec-iteration
+    // loop entirely. Without this, a fully-filtered run still spins up
+    // getAvailableApps and friends — wasted work, plus an avoidable error
+    // path if discovery fails on the host. Mirrors the runViaApi early
+    // return so both run paths behave the same way.
+    return {
+      summary: {
+        specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+      },
+      specs: [],
+    };
   }
 
   // Get runner details
