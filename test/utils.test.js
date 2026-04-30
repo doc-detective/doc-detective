@@ -1,5 +1,10 @@
-import { setArgs, setConfig, outputResults } from "../dist/utils.js";
-import { appendQueryParams } from "../dist/core/utils.js";
+import { setArgs, setConfig, outputResults, reporters } from "../dist/utils.js";
+import {
+  appendQueryParams,
+  compileFilter,
+  matchesFilter,
+  selectSpecsForRun,
+} from "../dist/core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -83,6 +88,22 @@ describe("Util tests", function () {
     });
   });
 
+  it("Yargs parses --test and --spec arguments correctly", function () {
+    const test = setArgs(["node", "runTests.js", "--test", "foo,bar"]);
+    expect(test.test).to.equal("foo,bar");
+    expect(test.t).to.equal("foo,bar");
+
+    const spec = setArgs(["node", "runTests.js", "--spec", "baz"]);
+    expect(spec.spec).to.equal("baz");
+    expect(spec.s).to.equal("baz");
+
+    const aliasedTest = setArgs(["node", "runTests.js", "-t", "abc"]);
+    expect(aliasedTest.test).to.equal("abc");
+
+    const aliasedSpec = setArgs(["node", "runTests.js", "-s", "xyz"]);
+    expect(aliasedSpec.spec).to.equal("xyz");
+  });
+
   it("Yargs parses --reporters argument correctly", function () {
     const single = setArgs([
       "node", "runTests.js", "--reporters", "html",
@@ -135,6 +156,28 @@ describe("Util tests", function () {
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  it("setConfig stores --test and --spec args on config.testFilter / config.specFilter", async function () {
+    this.timeout(5000);
+    const args1 = setArgs(["node", "runTests.js", "--test", "foo"]);
+    const config1 = await setConfig({ configPath: null, args: args1 });
+    expect(config1.testFilter).to.deep.equal(["foo"]);
+    expect(config1.specFilter).to.equal(undefined);
+
+    const args2 = setArgs(["node", "runTests.js", "--spec", "x,y"]);
+    const config2 = await setConfig({ configPath: null, args: args2 });
+    expect(config2.specFilter).to.deep.equal(["x", "y"]);
+    expect(config2.testFilter).to.equal(undefined);
+
+    const args3 = setArgs(["node", "runTests.js", "--test", "foo, bar , baz"]);
+    const config3 = await setConfig({ configPath: null, args: args3 });
+    expect(config3.testFilter).to.deep.equal(["foo", "bar", "baz"]);
+
+    const args4 = setArgs(["node", "runTests.js", "--input", "."]);
+    const config4 = await setConfig({ configPath: null, args: args4 });
+    expect(config4.testFilter).to.equal(undefined);
+    expect(config4.specFilter).to.equal(undefined);
   });
 
   it("setConfig stores --reporters arg on config.reporters", async function () {
@@ -832,6 +875,290 @@ describe("appendQueryParams", function () {
     expect(qs.get("keep")).to.equal("yes");
     expect(qs.has("drop1")).to.equal(false);
     expect(qs.has("drop2")).to.equal(false);
+  });
+});
+
+describe("terminalReporter zero-tests-ran warning", function () {
+  // Capture console.log into a buffer for assertions.
+  async function runReporter(config, results) {
+    const captured = [];
+    const original = console.log;
+    console.log = (...args) => {
+      captured.push(args.map(String).join(" "));
+    };
+    try {
+      await reporters.terminalReporter(config, ".", results, {});
+    } finally {
+      console.log = original;
+    }
+    return captured;
+  }
+
+  function makeResults(testCounts, options = {}) {
+    return {
+      reportId: "no-tests-test",
+      summary: {
+        specs: options.specs ?? { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        tests: testCounts,
+        contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+        steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
+      },
+      specs: [],
+    };
+  }
+
+  it("prints a yellow 'No tests were run' warning when totalTests === 0", async function () {
+    const results = makeResults({ pass: 0, fail: 0, warning: 0, skipped: 0 });
+    const captured = await runReporter({}, results);
+    const joined = captured.join("\n");
+    expect(joined).to.include("No tests were run");
+    // The warning line carries the yellow ANSI escape.
+    const warningLine = captured.find((l) => l.includes("No tests were run"));
+    expect(warningLine).to.match(/\x1b\[33m/);
+  });
+
+  it("includes a filter hint when config has filters and totalTests === 0", async function () {
+    const results = makeResults({ pass: 0, fail: 0, warning: 0, skipped: 0 });
+    const captured = await runReporter({ testFilter: ["foo"] }, results);
+    const joined = captured.join("\n");
+    expect(joined).to.include("No tests were run");
+    expect(joined).to.include("filters");
+    expect(joined).to.include('"foo"');
+  });
+
+  it("does NOT print the no-tests warning when at least one test ran", async function () {
+    const results = makeResults({ pass: 1, fail: 0, warning: 0, skipped: 0 });
+    const captured = await runReporter({}, results);
+    const joined = captured.join("\n");
+    expect(joined).to.not.include("No tests were run");
+  });
+
+  it("prints the no-tests warning when results is null (early-bail path)", async function () {
+    const captured = await runReporter({}, null);
+    const joined = captured.join("\n");
+    expect(joined).to.include("No tests were run");
+    expect(joined).to.include("Check that the input paths contain testable content");
+  });
+
+  it("does NOT print the success celebration on zero-test runs", async function () {
+    // Regression: the reporter previously printed both "No tests were run"
+    // and the green "🎉 All items passed!" banner for empty runs because the
+    // success branch only checked !hasFailures && !allSpecsSkipped. Both are
+    // true for an empty run, so it would fall through. Gate on totalTests>0.
+    const results = makeResults({ pass: 0, fail: 0, warning: 0, skipped: 0 });
+    const captured = await runReporter({}, results);
+    const joined = captured.join("\n");
+    expect(joined).to.include("No tests were run");
+    expect(joined).to.not.include("All items passed");
+  });
+});
+
+describe("runSpecs filter short-circuit", function () {
+  // When filters exclude every spec, runSpecs should return the empty-
+  // summary shape promptly, without entering the spec-iteration loop or
+  // doing any per-context driver work. Mirrors the runViaApi short-circuit
+  // — both run paths must behave the same way on a fully-filtered run.
+  let runSpecs;
+  before(async function () {
+    ({ runSpecs } = await import("../dist/core/tests.js"));
+  });
+
+  it("returns an empty summary when filters exclude every spec", async function () {
+    this.timeout(5000);
+    const resolvedTests = {
+      config: { testFilter: ["nope"], logLevel: "silent" },
+      specs: [
+        {
+          specId: "s1",
+          tests: [{ testId: "t1", contexts: [] }],
+        },
+      ],
+    };
+    const result = await runSpecs({ resolvedTests });
+    expect(result).to.exist;
+    expect(result.specs).to.deep.equal([]);
+    expect(result.summary.tests.pass).to.equal(0);
+    expect(result.summary.tests.fail).to.equal(0);
+    expect(result.summary.tests.warning).to.equal(0);
+    expect(result.summary.tests.skipped).to.equal(0);
+    expect(result.summary.specs.pass).to.equal(0);
+  });
+});
+
+describe("runViaApi filter short-circuit", function () {
+  // Avoid spinning up axios. When the filter excludes every spec, runViaApi
+  // must NOT make an HTTP request — it must return the empty-summary shape
+  // so the rest of the pipeline (reporter, telemetry) treats it as a clean
+  // empty run. This test only exercises the short-circuit path; the cross-
+  // wire to selectSpecsForRun is covered by that helper's own tests.
+  let runViaApi;
+  before(async function () {
+    ({ runViaApi } = await import("../dist/core/tests.js"));
+  });
+
+  it("returns an empty summary without making any HTTP request when filters exclude every spec", async function () {
+    const resolvedTests = {
+      config: { testFilter: ["nope"] },
+      specs: [
+        {
+          specId: "s1",
+          tests: [{ testId: "t1" }],
+        },
+      ],
+    };
+    const result = await runViaApi({ resolvedTests, apiKey: "fake-key" });
+    expect(result).to.exist;
+    expect(result.specs).to.deep.equal([]);
+    expect(result.summary.tests.pass).to.equal(0);
+    expect(result.summary.tests.fail).to.equal(0);
+  });
+});
+
+describe("selectSpecsForRun", function () {
+  function fixture() {
+    return [
+      {
+        specId: "auth-spec",
+        description: "Auth flows",
+        tests: [
+          { testId: "login-smoke", description: "Login" },
+          { testId: "logout", description: "Logout" },
+        ],
+      },
+      {
+        specId: "billing-spec",
+        description: "Billing",
+        tests: [
+          { testId: "invoice-smoke", description: "Invoice" },
+          { testId: "refund", description: "Refund" },
+        ],
+      },
+    ];
+  }
+
+  it("returns the input unchanged when no filters are configured", function () {
+    const specs = fixture();
+    const out = selectSpecsForRun(specs, {});
+    expect(out).to.equal(specs);
+  });
+
+  it("keeps only specs whose specId matches specFilter", function () {
+    const out = selectSpecsForRun(fixture(), { specFilter: ["^auth"] });
+    expect(out).to.have.length(1);
+    expect(out[0].specId).to.equal("auth-spec");
+    // All tests of the matching spec are preserved.
+    expect(out[0].tests.map((t) => t.testId)).to.deep.equal(["login-smoke", "logout"]);
+  });
+
+  it("keeps only tests whose testId matches testFilter", function () {
+    const out = selectSpecsForRun(fixture(), { testFilter: ["smoke"] });
+    expect(out).to.have.length(2);
+    expect(out[0].tests.map((t) => t.testId)).to.deep.equal(["login-smoke"]);
+    expect(out[1].tests.map((t) => t.testId)).to.deep.equal(["invoice-smoke"]);
+  });
+
+  it("drops specs with zero matching tests", function () {
+    const out = selectSpecsForRun(fixture(), { testFilter: ["login"] });
+    expect(out).to.have.length(1);
+    expect(out[0].specId).to.equal("auth-spec");
+    expect(out[0].tests.map((t) => t.testId)).to.deep.equal(["login-smoke"]);
+  });
+
+  it("applies specFilter and testFilter together (AND)", function () {
+    const out = selectSpecsForRun(fixture(), {
+      specFilter: ["billing"],
+      testFilter: ["refund"],
+    });
+    expect(out).to.have.length(1);
+    expect(out[0].specId).to.equal("billing-spec");
+    expect(out[0].tests.map((t) => t.testId)).to.deep.equal(["refund"]);
+  });
+
+  it("returns an empty array when filters exclude everything", function () {
+    const out = selectSpecsForRun(fixture(), { testFilter: ["nope"] });
+    expect(out).to.deep.equal([]);
+  });
+
+  it("does not mutate the input specs", function () {
+    const specs = fixture();
+    const snapshot = JSON.parse(JSON.stringify(specs));
+    selectSpecsForRun(specs, { testFilter: ["login"] });
+    expect(specs).to.deep.equal(snapshot);
+  });
+});
+
+describe("filter helper", function () {
+  describe("compileFilter", function () {
+    it("returns [] for undefined", function () {
+      expect(compileFilter(undefined)).to.deep.equal([]);
+    });
+
+    it("returns [] for an empty array", function () {
+      expect(compileFilter([])).to.deep.equal([]);
+    });
+
+    it("returns [] for a non-array (defensive)", function () {
+      expect(compileFilter("foo")).to.deep.equal([]);
+    });
+
+    it("compiles a single pattern into a case-insensitive regex", function () {
+      const out = compileFilter(["foo"]);
+      expect(out).to.have.length(1);
+      expect(out[0]).to.be.instanceOf(RegExp);
+      expect(out[0].flags).to.include("i");
+      expect(out[0].source).to.equal("foo");
+    });
+
+    it("drops empty / non-string entries while keeping the rest", function () {
+      const out = compileFilter(["foo", "", "bar"]);
+      expect(out).to.have.length(2);
+      expect(out[0].source).to.equal("foo");
+      expect(out[1].source).to.equal("bar");
+    });
+
+    it("trims surrounding whitespace from each pattern", function () {
+      // Config / env-var paths skip the CLI trim, so a value like " foo "
+      // would otherwise compile into a regex that requires literal spaces.
+      // Keep behavior consistent with the CLI's comma-split-and-trim.
+      const out = compileFilter(["  foo  ", "\tbar\n"]);
+      expect(out).to.have.length(2);
+      expect(out[0].source).to.equal("foo");
+      expect(out[1].source).to.equal("bar");
+    });
+
+    it("drops whitespace-only entries entirely", function () {
+      // A bare "   " would otherwise compile to /   /i and match almost
+      // anything containing whitespace — not a useful filter.
+      const out = compileFilter(["foo", "   ", "\t\n"]);
+      expect(out).to.have.length(1);
+      expect(out[0].source).to.equal("foo");
+    });
+  });
+
+  describe("matchesFilter", function () {
+    it("returns true when no filters are configured", function () {
+      expect(matchesFilter("anything", [])).to.equal(true);
+    });
+
+    it("returns true on a literal id substring match", function () {
+      expect(matchesFilter("login-test", compileFilter(["login"]))).to.equal(true);
+    });
+
+    it("matches case-insensitively", function () {
+      expect(matchesFilter("LOGIN-test", compileFilter(["login"]))).to.equal(true);
+    });
+
+    it("returns false when no entry matches", function () {
+      expect(matchesFilter("xyz", compileFilter(["abc"]))).to.equal(false);
+    });
+
+    it("returns false when the id is undefined and a filter is active", function () {
+      expect(matchesFilter(undefined, compileFilter(["abc"]))).to.equal(false);
+    });
+
+    it("returns true when any entry of a multi-pattern filter matches", function () {
+      expect(matchesFilter("smoke-1", compileFilter(["nope", "smoke"]))).to.equal(true);
+    });
   });
 });
 
