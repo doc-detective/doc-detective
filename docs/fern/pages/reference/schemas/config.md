@@ -22,6 +22,8 @@ afterAll | one of:<br/>- string<br/>- array of string | Optional. Path(s) to tes
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on defined markup. | `true`
 allowUnsafeSteps | boolean | Optional. Whether or not to run potentially unsafe steps, such as those that might modify files or system state. | 
 crawl | boolean | Optional. If `true`, crawls sitemap.xml files specified by URL to find additional files to test. | `false`
+specFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. Each entry must contain at least one non-whitespace character. | 
+testFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each test's `testId`. If set, only tests whose `testId` matches at least one pattern are run. Equivalent to `--test` on the CLI. Each entry must contain at least one non-whitespace character. | 
 processDitaMaps | boolean | Optional. If `true`, processes DITA maps and includes generated files as inputs. | `true`
 logLevel | string | Optional. Amount of detail to output when performing an operation.<br/><br/>Accepted values: `silent`, `error`, `warning`, `info`, `debug` | `info`
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | 
@@ -173,5 +175,12 @@ debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `t
 ```json
 {
   "crawl": true
+}
+```
+
+```json
+{
+  "testFilter": ["smoke", "login"],
+  "specFilter": ["auth"]
 }
 ```

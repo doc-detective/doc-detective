@@ -115,6 +115,79 @@ docker run -v .:/app docdetective/docdetective --config /app/.doc-detective.json
   </Tab>
 </Tabs>
 
+### Run a subset of tests
+
+When you only want to run specific tests or specs (for example, while iterating on a single doc page or debugging one failure), use `--test` and `--spec` to filter by `testId` and `specId`. Each flag accepts one or more case-insensitive regex patterns, comma-separated.
+
+To run only tests whose `testId` matches a pattern, use `--test`:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --test smoke
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --test smoke
+```
+
+  </Tab>
+</Tabs>
+
+To run only specs whose `specId` matches a pattern, use `--spec`:
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --spec auth
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --spec auth
+```
+
+  </Tab>
+</Tabs>
+
+Comma-separate multiple patterns. A test or spec is included if it matches **any** pattern. The two flags can be combined: `--spec` narrows which specs are considered, then `--test` narrows which tests inside those specs run.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --spec billing --test "refund,invoice"
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --spec billing --test "refund,invoice"
+```
+
+  </Tab>
+</Tabs>
+
+You can also persist filters in your `.doc-detective.json` config as the `testFilter` and `specFilter` fields. Both expect an array of patterns. CLI flags override the config when both are set.
+
+```json
+{
+  "input": ".",
+  "testFilter": ["smoke", "login"],
+  "specFilter": ["auth"]
+}
+```
+
+If your filters exclude every test, Doc Detective prints a yellow `No tests were run` warning, lists the active filters, and exits with code `0` (an empty run, not a failure). Filtered-out specs and tests are excluded from the report entirely — they don't appear as skipped.
+
 ### Remotely hosted tests
 
 You can run tests hosted remotely by specifying the URL of the test file with the `--input` argument. For example, to run tests from a file hosted at `https://doc-detective.com/sample.spec.json`, run the following command:
