@@ -1,7 +1,7 @@
 import kill from "tree-kill";
 import * as wdio from "webdriverio";
 import os from "node:os";
-import { log, replaceEnvs } from "./utils.js";
+import { log, replaceEnvs, selectSpecsForRun } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
@@ -373,7 +373,20 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
  */
 async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const config: any = resolvedTests.config;
-  const specs = resolvedTests.specs;
+  // Narrow the spec set to what specFilter / testFilter allow before running.
+  // Filtered-out specs / tests do not appear in the report (true filter, not
+  // skip). Pass-through when neither filter is set.
+  const filtersActive =
+    (Array.isArray(config?.specFilter) && config.specFilter.length > 0) ||
+    (Array.isArray(config?.testFilter) && config.testFilter.length > 0);
+  const specs = selectSpecsForRun(resolvedTests.specs, config);
+  if (filtersActive && specs.length === 0) {
+    log(
+      config,
+      "warning",
+      "No specs or tests matched the configured filters. Nothing was run."
+    );
+  }
 
   // Get runner details
   const runnerDetails = {

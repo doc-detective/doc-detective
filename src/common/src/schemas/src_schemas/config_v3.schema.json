@@ -47,6 +47,22 @@
       },
       "default": ["terminal", "json"]
     },
+    "specFilter": {
+      "description": "Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "testFilter": {
+      "description": "Regex patterns (case-insensitive) applied to each test's `testId`. If set, only tests whose `testId` matches at least one pattern are run. Equivalent to `--test` on the CLI.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "recursive": {
       "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.",
       "type": "boolean",
@@ -652,6 +668,10 @@
           }
         ]
       }
+    },
+    {
+      "testFilter": ["smoke", "login"],
+      "specFilter": ["auth"]
     }
   ]
 }

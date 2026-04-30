@@ -69,6 +69,32 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
+      it("should validate a config_v3 object with testFilter and specFilter as arrays of strings", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            testFilter: ["smoke", "login"],
+            specFilter: ["auth"],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.testFilter).to.deep.equal(["smoke", "login"]);
+        expect(result.object.specFilter).to.deep.equal(["auth"]);
+      });
+
+      it("should reject a config_v3 object whose testFilter is a bare string", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { testFilter: "smoke" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("testFilter");
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",
