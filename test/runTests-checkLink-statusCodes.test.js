@@ -16,14 +16,19 @@ describe("checkLink with explicitly accepted status code (regression)", function
   this.timeout(120000);
   it("treats a 429 as PASS when 429 is in statusCodes", async () => {
     if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
-    await spawnCommand(
-      `node ./bin/doc-detective.js -c ${artifactPath}/config.json -i ${specFile} -o ${outputFile}`
-    );
-    let waitCount = 0;
-    while (!fs.existsSync(outputFile) && waitCount < 120) {
-      await new Promise((r) => setTimeout(r, 1000));
-      waitCount++;
-    }
+    // Pass argv as an array so paths containing spaces survive (otherwise
+    // spawnCommand splits a single string on spaces and breaks the args).
+    await spawnCommand("node", [
+      "./bin/doc-detective.js",
+      "-c",
+      path.join(artifactPath, "config.json"),
+      "-i",
+      specFile,
+      "-o",
+      outputFile,
+    ]);
+    // spawnCommand awaits the child's "close" event after draining stdout/stderr,
+    // so by here the output file is fully written -- no need to poll.
     assert.ok(fs.existsSync(outputFile), "Output file not written");
     const result = JSON.parse(fs.readFileSync(outputFile, "utf8"));
     fs.unlinkSync(outputFile);
