@@ -113,6 +113,11 @@ describe("Util tests", function () {
 
     const absent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(absent.dryRun).to.equal(undefined);
+
+    // -n alias
+    const aliased = setArgs(["node", "runTests.js", "-n"]);
+    expect(aliased.dryRun).to.equal(true);
+    expect(aliased.n).to.equal(true);
   });
 
   it("Yargs parses --reporters argument correctly", function () {

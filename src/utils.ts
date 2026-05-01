@@ -77,6 +77,7 @@ function buildYargs(args: any): any {
       type: "boolean",
     })
     .option("dry-run", {
+      alias: "n",
       description:
         "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps.",
       type: "boolean",

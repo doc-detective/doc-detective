@@ -93,4 +93,54 @@ describe("--dry-run short-circuits before execution", function () {
     expect(result).to.have.property("summary");
     expect(result).to.not.have.property("resolvedTestsId");
   });
+
+  it("honors caller dryRun even when options.resolvedTests carries a non-dry-run config", async function () {
+    // Regression for #292: when DOC_DETECTIVE_API supplies a pre-resolved
+    // tests payload, the embedded resolvedTests.config must NOT clobber
+    // CLI-level overrides like dryRun. Caller config wins.
+    const seed = await runTests({
+      input: [specPath],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    captured.length = 0; // discard the seed run's stdout dump
+
+    // Mutate the seed's embedded config so dryRun is FALSE there. If the
+    // merge regresses, runTests would proceed to execute tests.
+    const tampered = JSON.parse(JSON.stringify(seed));
+    tampered.config.dryRun = false;
+    tampered.config.logLevel = "silent";
+
+    const result = await runTests(
+      { dryRun: true, telemetry: { send: false }, logLevel: "silent" },
+      { resolvedTests: tampered }
+    );
+
+    expect(result).to.have.property("resolvedTestsId");
+    expect(result).to.not.have.property("summary");
+
+    // stdout received the JSON dump (one entry from this re-run).
+    const parsed = JSON.parse(captured.join("\n"));
+    expect(parsed).to.have.property("resolvedTestsId");
+  });
+
+  it("emits clean JSON to stdout at default logLevel (no telemetry/support pollution)", async function () {
+    // Regression for #292: telemetryNotice and the support-message log
+    // both wrote to stdout at the default info logLevel and broke
+    // `JSON.parse` of the output. Confirm nothing extra leaks.
+    await runTests({
+      input: [specPath],
+      output: tmpDir,
+      // logLevel intentionally omitted to exercise the default ("info")
+      dryRun: true,
+      telemetry: { send: false },
+    });
+
+    const stdoutDump = captured.join("\n").trim();
+    // The whole stdout must round-trip as a single JSON document.
+    const parsed = JSON.parse(stdoutDump);
+    expect(parsed).to.have.property("resolvedTestsId");
+  });
 });
