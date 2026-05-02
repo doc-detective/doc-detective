@@ -1,0 +1,34 @@
+{
+  "specId": "checkLink-statusCodes",
+  "tests": [
+    {
+      "testId": "checkLink accepts 429 when explicitly specified",
+      "description": "Regression: a user reported that checkLink failed against a 429 even when 429 was in statusCodes. Verify singleton array, singleton integer, and multi-value array forms.",
+      "steps": [
+        {
+          "checkLink": {
+            "url": "http://localhost:8092/status/429",
+            "statusCodes": [
+              429
+            ]
+          }
+        },
+        {
+          "checkLink": {
+            "url": "http://localhost:8092/status/429",
+            "statusCodes": 429
+          }
+        },
+        {
+          "checkLink": {
+            "url": "http://localhost:8092/status/429",
+            "statusCodes": [
+              200,
+              429
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
