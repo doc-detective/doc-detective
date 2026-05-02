@@ -103,6 +103,16 @@ You can also use HTML comment syntax as an alternative to processing instruction
 
 HTML comments and processing instructions work identically. You can use whichever fits your documentation workflow better, or mix them in the same file.
 
+**DITA data element syntax:**
+
+DITA `<data>` elements let you define inline tests using standard DITA markup:
+
+- Test comments: `<data name="doc-detective" value="test testId='my-test'"/>`
+- Step comments: `<data name="doc-detective" value="step checkLink='https://example.com'"/>`
+- Test end: `<data name="doc-detective" value="test end"/>`
+
+You can use single or double quotes for either attribute. Use `<data>` elements when you want tests that validate with DITA-aware tools, or when your publishing workflow filters out processing instructions.
+
 ## Examples
 
 Here's an example using **JSON syntax** in Markdown:
