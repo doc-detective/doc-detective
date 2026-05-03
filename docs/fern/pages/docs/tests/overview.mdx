@@ -294,7 +294,32 @@ If filters exclude all tests, Doc Detective displays a warning: "No tests were r
 
 ## Read the results
 
-Doc Detective outputs test results to a `testResults-<timestamp>.json` file in your `output` directory. You can also specify your output directory with the `--output` flag:
+Doc Detective supports multiple output reporters. By default, it uses `terminal` and `json`. Customize reporters with the `--reporters` (or `-r`) flag:
+
+- **terminal**: Displays a colored summary of test results in your terminal.
+- **json**: Saves results to a `testResults-<timestamp>.json` file for CI/CD integration.
+- **html**: Generates a self-contained HTML report with an interactive dashboard.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+npx doc-detective --reporters terminal html
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+docker run -v .:/app docdetective/docdetective --reporters terminal html
+```
+
+  </Tab>
+</Tabs>
+
+### Output directory
+
+Specify your output directory with the `--output` flag:
 
 <Tabs>
   <Tab title="NPX" language="npx">
