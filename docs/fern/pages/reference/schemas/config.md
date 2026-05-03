@@ -14,6 +14,8 @@ configPath | string | ReadOnly. Path to the configuration file. |
 input | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. | `.`
 output | string | Optional. Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters. | `.`
 recursive | boolean | Optional. If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files. | `true`
+specFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. |
+testFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each test's `testId`. If set, only tests whose `testId` matches at least one pattern are run. Equivalent to `--test` on the CLI. |
 relativePathBase | string | Optional. Whether paths should be interpreted as relative to the current working directory (`cwd`) or to the file in which they're specified (`file`).<br/><br/>Accepted values: `cwd`, `file` | `file`
 loadVariables | string | Optional. Load environment variables from the specified `.env` file. | 
 origin | string | Optional. Default protocol and domain to use for relative URLs. |
@@ -177,19 +179,18 @@ debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `t
 }
 ```
 
-### Example: Default query parameters with `originParams`
-
-Use `originParams` to append query parameters to all URLs resolved against `origin`. This is useful for authentication tokens like Clerk's testing token.
-
-<Warning>
-Values in `originParams` are embedded directly in request URLs and appear in test results, logs, and reports. Avoid storing long-lived secrets in these fields. Use short-lived tokens or testing-only credentials instead.
-</Warning>
-
 ```json
 {
   "origin": "https://my-app.com",
   "originParams": {
     "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
   }
+}
+```
+
+```json
+{
+  "testFilter": ["smoke", "login"],
+  "specFilter": ["auth"]
 }
 ```

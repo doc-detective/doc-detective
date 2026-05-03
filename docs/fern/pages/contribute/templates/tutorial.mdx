@@ -262,7 +262,7 @@ This is the basic structure. The `tests` array will contain your test definition
 {
   "tests": [
     {
-      "id": "homepage-check",
+      "testId": "homepage-check",
       "description": "Verify the Doc Detective homepage loads"
     }
   ]
@@ -275,14 +275,14 @@ Inside the `tests` array, add a test object:
 {
   "tests": [
     {
-      "id": "homepage-check",
+      "testId": "homepage-check",
       "description": "Verify the Doc Detective homepage loads"
     }
   ]
 }
 ```
 
-The `id` uniquely identifies this test, and `description` explains what it does.
+The `testId` uniquely identifies this test, and `description` explains what it does.
 
 <Tip>
 
@@ -298,7 +298,7 @@ Tests contain `steps`—actions that Doc Detective performs. Add a `steps` array
 {
   "tests": [
     {
-      "id": "homepage-check",
+      "testId": "homepage-check",
       "description": "Verify the Doc Detective homepage loads",
       "steps": []
     }
@@ -314,12 +314,11 @@ Add a `goTo` action to navigate to the homepage:
 {
   "tests": [
     {
-      "id": "homepage-check",
+      "testId": "homepage-check",
       "description": "Verify the Doc Detective homepage loads",
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://doc-detective.com"
+          "goTo": "https://doc-detective.com"
         }
       ]
     }
@@ -337,17 +336,17 @@ Add a `find` action to verify the page title exists:
 {
   "tests": [
     {
-      "id": "homepage-check",
+      "testId": "homepage-check",
       "description": "Verify the Doc Detective homepage loads",
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://doc-detective.com"
+          "goTo": "https://doc-detective.com"
         },
         {
-          "action": "find",
-          "selector": "h1",
-          "matchText": "Doc Detective"
+          "find": {
+            "selector": "h1",
+            "matchText": "Doc Detective"
+          }
         }
       ]
     }

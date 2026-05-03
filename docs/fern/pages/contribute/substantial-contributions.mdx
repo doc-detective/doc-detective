@@ -113,8 +113,7 @@ Show the simplest use case:
     {
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://doc-detective.com"
+          "goTo": "https://doc-detective.com"
         }
       ]
     }
@@ -130,34 +129,34 @@ Show real-world usage with more complexity:
 {
   "tests": [
     {
-      "id": "login-flow",
+      "testId": "login-flow",
       "description": "Verify user can log in and access dashboard",
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://example.com/login"
+          "goTo": "https://example.com/login"
         },
         {
-          "action": "find",
-          "selector": "#username"
+          "find": "#username"
         },
         {
-          "action": "type",
-          "keys": "$USERNAME"
+          "type": {
+            "keys": ["$USERNAME"]
+          }
         },
         {
-          "action": "type",
-          "selector": "#password",
-          "keys": "$PASSWORD"
+          "type": {
+            "selector": "#password",
+            "keys": ["$PASSWORD"]
+          }
         },
         {
-          "action": "click",
-          "selector": "button[type='submit']"
+          "click": "button[type='submit']"
         },
         {
-          "action": "find",
-          "selector": ".dashboard",
-          "matchText": "Welcome"
+          "find": {
+            "selector": ".dashboard",
+            "matchText": "Welcome"
+          }
         }
       ]
     }
@@ -228,7 +227,7 @@ If your documentation includes testable procedures, consider adding Doc Detectiv
 {
   "tests": [
     {
-      "id": "test-your-documentation",
+      "testId": "test-your-documentation",
       "description": "Verify the documented procedure works",
       "steps": [
         // Add steps that follow your documentation
