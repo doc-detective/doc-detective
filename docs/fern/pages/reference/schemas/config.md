@@ -14,9 +14,12 @@ configPath | string | ReadOnly. Path to the configuration file. |
 input | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. | `.`
 output | string | Optional. Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters. | `.`
 recursive | boolean | Optional. If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files. | `true`
+specFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. |
+testFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each test's `testId`. If set, only tests whose `testId` matches at least one pattern are run. Equivalent to `--test` on the CLI. |
 relativePathBase | string | Optional. Whether paths should be interpreted as relative to the current working directory (`cwd`) or to the file in which they're specified (`file`).<br/><br/>Accepted values: `cwd`, `file` | `file`
 loadVariables | string | Optional. Load environment variables from the specified `.env` file. | 
-origin | string | Optional. Default protocol and domain to use for relative URLs. | 
+origin | string | Optional. Default protocol and domain to use for relative URLs. |
+originParams | object | Optional. Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. | `{}`
 beforeAny | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments. | 
 afterAll | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments. | 
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on defined markup. | `true`
@@ -180,5 +183,21 @@ dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inl
 ```json
 {
   "dryRun": true
+}
+```
+
+```json
+{
+  "origin": "https://my-app.com",
+  "originParams": {
+    "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+  }
+}
+```
+
+```json
+{
+  "testFilter": ["smoke", "login"],
+  "specFilter": ["auth"]
 }
 ```

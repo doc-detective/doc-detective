@@ -61,17 +61,17 @@ Tests are defined in `.spec.json` files, typically placed alongside the document
 {
   "tests": [
     {
-      "id": "test-your-feature",
+      "testId": "test-your-feature",
       "description": "Verify the your-feature documentation is accurate",
       "steps": [
         {
-          "action": "goTo",
-          "url": "https://doc-detective.com/docs/your-feature"
+          "goTo": "https://doc-detective.com/docs/your-feature"
         },
         {
-          "action": "find",
-          "selector": "h1",
-          "matchText": "Your Feature"
+          "find": {
+            "selector": "h1",
+            "matchText": "Your Feature"
+          }
         }
       ]
     }
@@ -85,7 +85,7 @@ Tests are defined in `.spec.json` files, typically placed alongside the document
 
 ```json
 {
-  "id": "unique-test-identifier",
+  "testId": "unique-test-identifier",
   "description": "What this test verifies",
   "steps": []
 }
@@ -97,8 +97,7 @@ Each step is an action Doc Detective performs:
 
 ```json
 {
-  "action": "goTo",
-  "url": "https://doc-detective.com"
+  "goTo": "https://doc-detective.com"
 }
 ```
 
@@ -128,20 +127,17 @@ Let's say you documented this tutorial:
 {
   "tests": [
     {
-      "id": "verify-first-test-tutorial",
+      "testId": "verify-first-test-tutorial",
       "description": "Verify the first test tutorial instructions work",
       "steps": [
         {
-          "action": "runShell",
-          "command": "echo '{\"tests\":[{\"steps\":[{\"action\":\"goTo\",\"url\":\"https://doc-detective.com\"}]}]}' > test.spec.json"
+          "runShell": "echo '{\"tests\":[{\"steps\":[{\"goTo\":\"https://doc-detective.com\"}]}]}' > test.spec.json"
         },
         {
-          "action": "runShell",
-          "command": "npx doc-detective runTests --input test.spec.json"
+          "runShell": "npx doc-detective runTests --input test.spec.json"
         },
         {
-          "action": "runShell",
-          "command": "rm test.spec.json"
+          "runShell": "rm test.spec.json"
         }
       ]
     }
@@ -190,12 +186,12 @@ Test results are output to `testResults-<timestamp>.json` in the repository root
   "status": "pass",
   "tests": [
     {
-      "id": "test-your-feature",
+      "testId": "test-your-feature",
       "status": "pass",
       "steps": [
         {
           "status": "pass",
-          "action": "goTo"
+          "goTo": "https://doc-detective.com"
         }
       ]
     }
@@ -211,18 +207,19 @@ Test that documented content exists:
 
 ```json
 {
-  "action": "goTo",
-  "url": "https://doc-detective.com/docs/your-page"
+  "goTo": "https://doc-detective.com/docs/your-page"
 },
 {
-  "action": "find",
-  "selector": "h1",
-  "matchText": "Expected Heading"
+  "find": {
+    "selector": "h1",
+    "matchText": "Expected Heading"
+  }
 },
 {
-  "action": "find",
-  "selector": "code",
-  "matchText": "npm install"
+  "find": {
+    "selector": "code",
+    "matchText": "npm install"
+  }
 }
 ```
 
@@ -232,8 +229,7 @@ Verify command examples work:
 
 ```json
 {
-  "action": "runShell",
-  "command": "npx doc-detective --version"
+  "runShell": "npx doc-detective --version"
 }
 ```
 
@@ -243,17 +239,16 @@ Verify user can navigate as documented:
 
 ```json
 {
-  "action": "goTo",
-  "url": "https://doc-detective.com"
+  "goTo": "https://doc-detective.com"
 },
 {
-  "action": "click",
-  "selector": "a[href='/docs/get-started/intro']"
+  "click": "a[href='/docs/get-started/intro']"
 },
 {
-  "action": "find",
-  "selector": "h1",
-  "matchText": "Introduction"
+  "find": {
+    "selector": "h1",
+    "matchText": "Introduction"
+  }
 }
 ```
 
@@ -263,8 +258,7 @@ Test that documented links work:
 
 ```json
 {
-  "action": "checkLink",
-  "url": "https://doc-detective.com/reference"
+  "checkLink": "https://doc-detective.com/reference"
 }
 ```
 
@@ -274,12 +268,10 @@ Take screenshots for documentation:
 
 ```json
 {
-  "action": "goTo",
-  "url": "https://doc-detective.com/docs/get-started"
+  "goTo": "https://doc-detective.com/docs/get-started"
 },
 {
-  "action": "screenshot",
-  "path": "static/img/screenshots/get-started.png"
+  "screenshot": "static/img/screenshots/get-started.png"
 }
 ```
 
@@ -291,19 +283,15 @@ Define test contexts for different environments:
 
 ```json
 {
-  "contexts": [
+  "runOn": [
     {
-      "id": "default",
-      "app": {
-        "url": "https://doc-detective.com"
-      },
-      "platforms": ["linux", "mac", "windows"]
+      "platforms": ["linux", "mac", "windows"],
+      "browsers": ["chrome"]
     }
   ],
   "tests": [
     {
-      "id": "test-with-context",
-      "runOnContexts": ["default"],
+      "testId": "test-with-context",
       "steps": []
     }
   ]
@@ -343,12 +331,10 @@ BASE_URL=https://doc-detective.com
 **Example fix:**
 ```json
 {
-  "action": "wait",
-  "duration": 2000
+  "wait": 2000
 },
 {
-  "action": "find",
-  "selector": "#element-id"
+  "find": "#element-id"
 }
 ```
 
@@ -364,13 +350,13 @@ BASE_URL=https://doc-detective.com
 **Example fix:**
 ```json
 {
-  "action": "goTo",
-  "url": "https://doc-detective.com"
+  "goTo": "https://doc-detective.com"
 },
 {
-  "action": "find",
-  "selector": "body.loaded",
-  "timeout": 10000
+  "find": {
+    "selector": "body.loaded",
+    "timeout": 10000
+  }
 }
 ```
 
@@ -438,19 +424,18 @@ Account for common issues:
 
 ```json
 {
-  "action": "goTo",
-  "url": "https://doc-detective.com"
+  "goTo": "https://doc-detective.com"
 },
 {
-  "action": "wait",
-  "duration": 1000,
-  "comment": "Wait for page load"
+  "wait": 1000,
+  "description": "Wait for page load"
 },
 {
-  "action": "find",
-  "selector": "h1",
-  "timeout": 5000,
-  "comment": "Verify page loaded"
+  "find": {
+    "selector": "h1",
+    "timeout": 5000
+  },
+  "description": "Verify page loaded"
 }
 ```
 
