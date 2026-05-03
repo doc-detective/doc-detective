@@ -90,6 +90,13 @@ async function runTestsHandler(args: any) {
     ? await runTests(config, { resolvedTests })
     : await runTests(config);
 
+  // Dry-run already emitted the resolved-tests JSON inside runTests().
+  // Skip both reporters (which assume executed-result shape) and the
+  // orchestration-API report-back path.
+  if (config.dryRun) {
+    return;
+  }
+
   if (apiConfig) {
     await reportResults({ apiConfig, results });
   } else {

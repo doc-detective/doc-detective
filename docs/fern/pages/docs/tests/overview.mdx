@@ -249,7 +249,50 @@ docker run -v .:/app docdetective/docdetective --input /app/inline-tests.md,http
   </Tab>
 </Tabs>
 
-## Output and reporters
+### Filter tests by ID
+
+Use the `--test` and `--spec` CLI flags to run specific tests or specs. These flags accept case-insensitive regex patterns that match against `testId` and `specId` values.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+# Run only tests with "login" in their testId
+npx doc-detective --test login
+
+# Run only specs with "auth" in their specId
+npx doc-detective --spec auth
+
+# Combine multiple patterns (comma-separated)
+npx doc-detective --test "smoke,regression"
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+# Run only tests with "login" in their testId
+docker run -v .:/app docdetective/docdetective --test login
+
+# Run only specs with "auth" in their specId
+docker run -v .:/app docdetective/docdetective --spec auth
+```
+
+  </Tab>
+</Tabs>
+
+You can also set these filters in your configuration file using the `testFilter` and `specFilter` properties. CLI flags override config file values when both are specified.
+
+```json
+{
+  "testFilter": ["smoke", "login"],
+  "specFilter": ["auth"]
+}
+```
+
+If filters exclude all tests, Doc Detective displays a warning: "No tests were run." This indicates that your filter patterns are too restrictive or don't match any test IDs in your test suite.
+
+## Read the results
 
 Doc Detective supports multiple output reporters for displaying and storing test results. By default, Doc Detective uses the `terminal` and `json` reporters. Customize which reporters to use with the `--reporters` (or `-r`) flag.
 

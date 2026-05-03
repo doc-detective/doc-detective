@@ -119,6 +119,28 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate a config_v3 object with dryRun set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { dryRun: true },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.dryRun).to.equal(true);
+      });
+
+      it("should reject a config_v3 object whose dryRun is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { dryRun: "yes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("dryRun");
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",

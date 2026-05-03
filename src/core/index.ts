@@ -43,11 +43,25 @@ async function runTests(config: any, options: any = {}) {
 
   if (options.resolvedTests) {
     resolvedTests = options.resolvedTests;
-    config = resolvedTests.config;
+    // Caller-provided config wins over the embedded resolved-tests config
+    // so CLI overrides like --dry-run / --logLevel are preserved when tests
+    // come pre-resolved (DOC_DETECTIVE_API path). Without this merge, a
+    // user running `--dry-run` against an orchestration-supplied resolved
+    // payload would silently execute tests.
+    config = { ...(resolvedTests.config || {}), ...(config || {}) };
+    resolvedTests.config = config;
   }
 
-  // Telemetry notice
-  telemetryNotice(config);
+  // Dry-run requires clean stdout so the JSON dump can be piped through
+  // `jq` / `JSON.parse`. Force silent log level (which gates info logs from
+  // detectAndResolveTests below) and skip the telemetry notice — both would
+  // otherwise corrupt stdout at the default logLevel.
+  if (config.dryRun) {
+    config.logLevel = "silent";
+    if (resolvedTests) resolvedTests.config = config;
+  } else {
+    telemetryNotice(config);
+  }
 
   if (!resolvedTests) {
     resolvedTests = await detectAndResolveTests({ config });
@@ -55,6 +69,15 @@ async function runTests(config: any, options: any = {}) {
       log(config, "warn", "Couldn't resolve any tests.");
       return null;
     }
+  }
+
+  if (config.dryRun) {
+    console.log(JSON.stringify(resolvedTests, null, 2));
+    cleanTemp();
+    sendTelemetry(config, "runTests:dryRun", {
+      specs: resolvedTests.specs.length,
+    });
+    return resolvedTests;
   }
 
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
