@@ -1,3 +1,10 @@
+# [4.4.0](https://github.com/doc-detective/doc-detective/compare/v4.3.0...v4.4.0) (2026-05-03)
+
+
+### Features
+
+* **cli:** add --dry-run flag to resolve tests without executing ([#292](https://github.com/doc-detective/doc-detective/issues/292)) ([a0bdb19](https://github.com/doc-detective/doc-detective/commit/a0bdb193b9b39cdf3f0012625504c67aa21dcbd9))
+
 # [4.3.0](https://github.com/doc-detective/doc-detective/compare/v4.2.3...v4.3.0) (2026-04-30)
 
 
