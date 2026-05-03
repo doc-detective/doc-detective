@@ -294,110 +294,28 @@ If filters exclude all tests, Doc Detective displays a warning: "No tests were r
 
 ## Read the results
 
-Doc Detective supports multiple output reporters for displaying and storing test results. By default, Doc Detective uses the `terminal` and `json` reporters. Customize which reporters to use with the `--reporters` (or `-r`) flag.
+Doc Detective supports multiple output reporters. By default, it uses `terminal` and `json`. Customize reporters with the `--reporters` (or `-r`) flag:
 
-### Available reporters
-
-- **terminal**: Displays a colored summary of test results in your terminal with pass/fail/warning/skipped counts.
-- **json**: Saves results to a `testResults-<timestamp>.json` file in your output directory. This machine-readable format is useful for CI/CD integration and programmatic analysis.
-- **html**: Generates a self-contained HTML report with an interactive dashboard. The file includes all CSS and JavaScript inline, so it works offline without external dependencies.
-
-### Specify reporters
-
-Use the `--reporters` or `-r` flag to specify which reporters to use. List multiple reporters to use them together:
+- **terminal**: Displays a colored summary of test results in your terminal.
+- **json**: Saves results to a `testResults-<timestamp>.json` file for CI/CD integration.
+- **html**: Generates a self-contained HTML report with an interactive dashboard.
 
 <Tabs>
   <Tab title="NPX" language="npx">
 
 ```bash
-# Use terminal and HTML reporters
 npx doc-detective --reporters terminal html
-
-# Use only the HTML reporter
-npx doc-detective -r html
-
-# Use all three reporters
-npx doc-detective --reporters terminal json html
 ```
 
   </Tab>
   <Tab title="Docker" language="docker">
 
 ```bash
-# Use terminal and HTML reporters
 docker run -v .:/app docdetective/docdetective --reporters terminal html
-
-# Use only the HTML reporter
-docker run -v .:/app docdetective/docdetective -r html
-
-# Use all three reporters
-docker run -v .:/app docdetective/docdetective --reporters terminal json html
 ```
 
   </Tab>
 </Tabs>
-
-If you don't specify reporters, Doc Detective uses `terminal` and `json`.
-
-### HTML reporter
-
-The HTML reporter generates an interactive dashboard for exploring test results in your browser. The report is a single, self-contained HTML file with all styles and scripts embedded.
-
-The HTML report includes:
-
-- **Header ribbon**: Doc Detective logo, report timestamp, and action buttons for theme toggle, print, and JSON download.
-- **Verdict banner**: Overall pass/fail status with a visual progress bar.
-- **Summary tiles**: Counts for specs, tests, contexts, and steps with mini progress bars.
-- **Hierarchical navigation**: Browse results by spec, test, context, and step with collapsible sections. Failed and warning items are expanded by default.
-- **Status filtering**: Filter results by status (FAIL, WARNING, PASS, SKIPPED) using the toolbar.
-- **Search**: Find specific tests by name or content.
-- **Dark mode**: Toggle between light, dark, and system-preference themes.
-- **Media viewer**: View screenshots and recordings with a built-in lightbox.
-- **Print support**: Print the report with optimized formatting.
-
-To generate an HTML report:
-
-<Tabs>
-  <Tab title="NPX" language="npx">
-
-```bash
-npx doc-detective --input ./tests --output ./results -r html
-```
-
-  </Tab>
-  <Tab title="Docker" language="docker">
-
-```bash
-docker run -v .:/app docdetective/docdetective --input /app/tests --output /app/results -r html
-```
-
-  </Tab>
-</Tabs>
-
-This creates `testResults-<timestamp>.html` in your output directory. If you specify an output path ending in `.html`, Doc Detective writes directly to that file:
-
-<Tabs>
-  <Tab title="NPX" language="npx">
-
-```bash
-npx doc-detective --input ./tests --output ./results/report.html -r html
-```
-
-  </Tab>
-  <Tab title="Docker" language="docker">
-
-```bash
-docker run -v .:/app docdetective/docdetective --input /app/tests --output /app/results/report.html -r html
-```
-
-  </Tab>
-</Tabs>
-
-<Note>
-
-The HTML report references screenshots and recordings by their file paths. Keep the HTML file in or near your output directory so media paths resolve correctly. If you move the HTML file, media thumbnails may not display.
-
-</Note>
 
 ### Output directory
 
