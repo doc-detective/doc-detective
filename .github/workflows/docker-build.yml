@@ -211,8 +211,6 @@ jobs:
             echo "ERROR: build-push-action produced no digest output." >&2
             exit 1
           fi
-          # Strip the `sha256:` prefix so the filename is filesystem-safe.
-          touch "/tmp/digests/${digest#sha256:}"
           echo "$digest" > "/tmp/digests/${{ matrix.arch }}.digest"
 
       - name: Upload digest
@@ -277,8 +275,13 @@ jobs:
             tags+=("linux" "latest" "latest-linux")
           fi
 
+          # De-duplicate; a manual `version=latest` + publish_latest_tags=true
+          # dispatch would otherwise pass `-t latest` / `-t latest-linux` twice.
+          declare -A seen=()
           tag_args=()
           for tag in "${tags[@]}"; do
+            [ -n "${seen[$tag]+x}" ] && continue
+            seen[$tag]=1
             tag_args+=("-t" "docdetective/docdetective:$tag")
           done
 
