@@ -9,6 +9,12 @@
 #   - pull_request      → gate on changes under `src/container/**`. Builds
 #                         and tests the image locally but never pushes (no
 #                         Docker Hub login), so fork PRs are safe.
+#
+# Linux is built multi-arch (linux/amd64 + linux/arm64) via native matrix
+# runners. Each matrix leg pushes a digest-only image, then `merge-linux`
+# stitches the digests into manifest-list tags. Windows remains x64-only;
+# `windows-base.Dockerfile` hard-codes -amd64 / -x64 binary URLs that would
+# need a parallel arm64 base image to expand.
 
 name: Docker build
 
@@ -103,41 +109,33 @@ jobs:
               - 'src/container/windows-base.Dockerfile'
               - 'src/container/windows-base.versions.json'
 
-  build:
+  # Linux app image, fanned out across native amd64 + arm64 runners.
+  # Each leg builds a single-arch image locally for the test step (so
+  # tests exercise the runner's native arch end-to-end), then re-builds
+  # with buildx and pushes by digest. The companion `merge-linux` job
+  # stitches the two digests into manifest-list tags.
+  build-linux:
     needs: [detect-base-change]
-    # Skip the app build when this workflow was triggered by a push that
-    # only touched the windows-base Dockerfile / versions.json, or when
-    # the operator explicitly asked for `build_base` via workflow_dispatch.
-    # The windows-2022 matrix leg is additionally short-circuited at
-    # step level on base-change PRs — see WINDOWS_APP_BUILD_SKIP below.
+    # Skip when this workflow was triggered by a push that only touched
+    # the windows-base files, or when the operator explicitly asked for
+    # `build_base` via workflow_dispatch.
     if: >-
       github.event_name != 'push' &&
       !(github.event_name == 'workflow_dispatch' && inputs.build_base)
     timeout-minutes: 60
     env:
       IMAGE_VERSION: ${{ inputs.version || 'latest' }}
-      # On base-change PRs the thin windows.Dockerfile's FROM points at
-      # a composite base tag that hasn't been published yet, so the
-      # windows-2022 leg of this matrix would fail to resolve. Short-
-      # circuit the expensive steps (Switch Docker, Build, Test) in that
-      # case — build-windows-base (PR build-only) already proves the base
-      # builds, and the ubuntu leg still provides Linux coverage.
-      # Evaluated per-step because `matrix.*` isn't available in the
-      # job-level `if:` context.
-      WINDOWS_APP_BUILD_SKIP: >-
-        ${{ github.event_name == 'pull_request' &&
-            matrix.os == 'windows-2022' &&
-            needs.detect-base-change.outputs.base == 'true' }}
     strategy:
+      fail-fast: false
       matrix:
-        os:
-          # windows-2022 pinned — windows-latest ships Docker Engine
-          # instead of Docker Desktop, which breaks the Windows container
-          # switch. Matches the pin that container-build-push.yml (this
-          # workflow's predecessor) was moving to.
-          - windows-2022
-          - ubuntu-latest
-    runs-on: ${{ matrix.os }}
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -154,8 +152,185 @@ jobs:
         env:
           HUSKY: '0'
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        # Local single-arch build so the test step has a daemon-loaded
+        # image to run. build.cjs tags it with the existing scheme
+        # (`linux`, `latest`, `latest-linux`, `${VER}`, `${VER}-linux`).
+        # The digest push below is a separate buildx invocation; layer
+        # cache is not shared with this build, but the Linux Dockerfile
+        # is small enough that the duplicated work is acceptable.
+        shell: bash
+        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+
+      - name: Post-build Test
+        shell: bash
+        env:
+          VERSION: ${{ env.IMAGE_VERSION }}
+        run: npm run container:test
+
+      # Login + push only for real rebuilds — never for PRs and never
+      # for the placeholder `latest` (which signals "no version input
+      # provided") unless the operator explicitly asks to publish the
+      # latest tags.
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push by digest
+        # `push-by-digest=true` uploads the image to Docker Hub keyed
+        # only by its content digest — no tags are written here. The
+        # merge-linux job consumes the per-arch digests to compose the
+        # manifest-list tags. This avoids per-arch tag pollution
+        # (`:linux-amd64`, `:linux-arm64`) on Docker Hub.
+        id: digest_push
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
+        uses: docker/build-push-action@v6
+        with:
+          context: src/container
+          file: src/container/linux.Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            PACKAGE_VERSION=${{ env.IMAGE_VERSION }}
+          no-cache: ${{ inputs.no_cache || false }}
+          outputs: type=image,name=docdetective/docdetective,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/digests
+          digest="${{ steps.digest_push.outputs.digest }}"
+          if [ -z "$digest" ]; then
+            echo "ERROR: build-push-action produced no digest output." >&2
+            exit 1
+          fi
+          echo "$digest" > "/tmp/digests/${{ matrix.arch }}.digest"
+
+      - name: Upload digest
+        if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-digest-${{ matrix.arch }}
+          path: /tmp/digests/${{ matrix.arch }}.digest
+          if-no-files-found: error
+          retention-days: 1
+
+  # Stitches the per-arch digests pushed by `build-linux` into manifest-
+  # list tags. Runs once per workflow, not per arch.
+  merge-linux:
+    needs: [build-linux]
+    if: github.event_name != 'pull_request' && (inputs.version != 'latest' || inputs.publish_latest_tags)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      IMAGE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Download amd64 digest
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-digest-amd64
+          path: /tmp/digests
+
+      - name: Download arm64 digest
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-digest-arm64
+          path: /tmp/digests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create manifest lists
+        # When `publish_latest_tags` is true the caller is promoting
+        # this version to @latest, so the floating tags (`linux`,
+        # `latest`, `latest-linux`) follow along with the version-
+        # scoped ones. Otherwise (manual rebuild of an older version)
+        # only the version-scoped tags move, leaving Docker Hub's
+        # floating pointers on whatever image they currently target.
+        shell: bash
+        env:
+          PUBLISH_LATEST_TAGS: ${{ inputs.publish_latest_tags }}
+        run: |
+          set -euo pipefail
+          AMD64_DIGEST=$(cat /tmp/digests/amd64.digest)
+          ARM64_DIGEST=$(cat /tmp/digests/arm64.digest)
+          echo "amd64 digest: $AMD64_DIGEST"
+          echo "arm64 digest: $ARM64_DIGEST"
+
+          tags=("$IMAGE_VERSION" "$IMAGE_VERSION-linux")
+          if [ "$PUBLISH_LATEST_TAGS" = "true" ]; then
+            tags+=("linux" "latest" "latest-linux")
+          fi
+
+          # De-duplicate; a manual `version=latest` + publish_latest_tags=true
+          # dispatch would otherwise pass `-t latest` / `-t latest-linux` twice.
+          declare -A seen=()
+          tag_args=()
+          for tag in "${tags[@]}"; do
+            [ -n "${seen[$tag]+x}" ] && continue
+            seen[$tag]=1
+            tag_args+=("-t" "docdetective/docdetective:$tag")
+          done
+
+          docker buildx imagetools create \
+            "${tag_args[@]}" \
+            "docdetective/docdetective@$AMD64_DIGEST" \
+            "docdetective/docdetective@$ARM64_DIGEST"
+
+          # Sanity-check that the version-scoped manifest lists both
+          # arches before declaring victory.
+          docker buildx imagetools inspect "docdetective/docdetective:$IMAGE_VERSION-linux"
+
+  # Windows app image. Single-arch (x64) — `windows-base.Dockerfile`
+  # hard-codes -amd64/-x64 binary URLs for Python, JDK, and Node MSI,
+  # so arm64 would need a parallel base image and is out of scope here.
+  build-windows:
+    needs: [detect-base-change]
+    # Skip the windows app build when:
+    #   - this workflow was triggered by a push (windows-base path);
+    #   - the operator asked for `build_base` via workflow_dispatch;
+    #   - or, on a base-change PR, the thin windows.Dockerfile's FROM
+    #     would point at a composite base tag that hasn't been
+    #     published yet. build-windows-base (PR build-only) already
+    #     proves the base builds.
+    if: >-
+      github.event_name != 'push' &&
+      !(github.event_name == 'workflow_dispatch' && inputs.build_base) &&
+      !(github.event_name == 'pull_request' && needs.detect-base-change.outputs.base == 'true')
+    timeout-minutes: 60
+    env:
+      IMAGE_VERSION: ${{ inputs.version || 'latest' }}
+    # windows-2022 pinned — windows-latest ships Docker Engine instead
+    # of Docker Desktop, which breaks the Windows container switch.
+    runs-on: windows-2022
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          HUSKY: '0'
+
       - name: Switch Docker to Windows containers
-        if: runner.os == 'Windows' && env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: pwsh
         run: |
           Write-Host "Switching Docker to Windows containers..."
@@ -211,34 +386,22 @@ jobs:
           docker info
 
       - name: Verify Windows container mode
-        if: runner.os == 'Windows' && env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: pwsh
         run: |
           $os = docker info --format '{{.OSType}}'
           if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
           Write-Host "Docker OSType=$os"
 
-      - name: Skip windows-2022 app build (base tag not yet published)
-        if: env.WINDOWS_APP_BUILD_SKIP == 'true'
-        run: echo "Base files changed in this PR; the composite base tag is not yet on Docker Hub. Skipping windows-2022 app build. build-windows-base covers the base; ubuntu leg covers Linux."
-
       - name: Build Docker Image
-        if: env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: bash
         run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
 
       - name: Post-build Test
-        if: env.WINDOWS_APP_BUILD_SKIP != 'true'
         shell: bash
         env:
           VERSION: ${{ env.IMAGE_VERSION }}
         run: npm run container:test
 
-      # Login + push only for real rebuilds, never for PRs and never for
-      # the placeholder `latest` (which signals "no version input provided").
-      # Login + push when this is a real rebuild — not a PR, and either
-      # the version is not the placeholder `latest` or the operator
-      # explicitly asked to push latest tags (intentional latest rebuild).
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
         uses: docker/login-action@v3
@@ -255,16 +418,16 @@ jobs:
           set -euo pipefail
           if [ "$PUBLISH_LATEST_TAGS" = "true" ]; then
             # Caller is promoting this version to @latest; move all the
-            # floating tags (`latest`, `latest-linux`, `latest-windows`,
-            # `linux`, `windows`) along with the version-scoped ones.
+            # floating windows tags (`windows`, `latest-windows`) along
+            # with the version-scoped one. Linux's floating tags are
+            # handled by merge-linux.
             docker push --all-tags docdetective/docdetective
           else
-            # Rebuild of a specific version: only push the version-scoped
-            # tags (`$VER`, `$VER-linux`, `$VER-windows`). Pushing the
-            # floating `latest*` tags here would point Docker Hub at an
-            # older image.
+            # Rebuild of a specific version: only push the version-
+            # scoped windows tag. Pushing floating tags here would
+            # point Docker Hub at an older image.
             pushed_any=false
-            for tag in "$IMAGE_VERSION" "$IMAGE_VERSION-linux" "$IMAGE_VERSION-windows"; do
+            for tag in "$IMAGE_VERSION-windows"; do
               if docker image inspect "docdetective/docdetective:$tag" >/dev/null 2>&1; then
                 docker push "docdetective/docdetective:$tag"
                 pushed_any=true
@@ -272,9 +435,7 @@ jobs:
             done
 
             if [ "$pushed_any" != "true" ]; then
-              echo "ERROR: none of the expected version-scoped tags exist locally:" >&2
-              echo "  docdetective/docdetective:$IMAGE_VERSION" >&2
-              echo "  docdetective/docdetective:$IMAGE_VERSION-linux" >&2
+              echo "ERROR: expected version-scoped windows tag does not exist locally:" >&2
               echo "  docdetective/docdetective:$IMAGE_VERSION-windows" >&2
               echo "Either the build step didn't run or its tag scheme drifted from this workflow." >&2
               exit 1
@@ -312,9 +473,9 @@ jobs:
         env:
           HUSKY: '0'
 
-      # Body copied verbatim from the `build` job above so the two don't
-      # drift — any change to container-mode switching needs to land in
-      # both steps (or be factored into a composite action).
+      # Body copied verbatim from the `build-windows` job above so the two
+      # don't drift — any change to container-mode switching needs to land
+      # in both steps (or be factored into a composite action).
       - name: Switch Docker to Windows containers
         shell: pwsh
         run: |
