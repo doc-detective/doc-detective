@@ -1,0 +1,100 @@
+name: Claude PR Review - Auto
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened, synchronize]
+
+concurrency:
+  group: claude-auto-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: '!github.event.pull_request.draft'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create MCP config
+        run: |
+          cat > /tmp/mcp-config.json << 'EOF'
+          {
+            "mcpServers": {
+              "github": {
+                "type": "http",
+                "url": "https://api.githubcopilot.com/mcp/",
+                "headers": {
+                  "Authorization": "Bearer ${{ secrets.GITHUB_TOKEN }}"
+                }
+              },
+              "context7": {
+                "type": "http",
+                "url": "https://mcp.context7.com/mcp"
+              }
+            }
+          }
+          EOF
+
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: '*'
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            PR TITLE: ${{ github.event.pull_request.title }}
+            PR DESCRIPTION: ${{ github.event.pull_request.body }}
+
+            Perform a thorough code review of this pull request. Focus areas:
+
+            Correctness & completeness
+            - Obvious bugs, logic errors, or areas with complex logic needing extra scrutiny
+            - Unfinished work, incomplete implementations, or low-quality code
+            - Breaking changes to existing APIs or database schema
+            - Missing error handling at system boundaries
+
+            Code quality
+            - Consistency with existing codebase style, architecture, and patterns
+            - Readability and maintainability (naming, organization)
+            - DRY — flag duplicate/one-off code that should use existing utilities or components (or create reusable ones)
+            - TypeScript type safety and correct use of our type system
+
+            Security
+            - Auth patterns (checkSession, return_to preservation)
+            - Supabase RLS policies and implications
+            - Input validation, SQL injection, XSS
+
+            Testing & observability
+            - Test coverage for new logic — flag untested paths (unit or E2E)
+            - Missing logs/metrics/alerts for critical operations
+
+            Keep feedback concise. Use suggested fixes where possible.
+
+            You MUST submit a proper GitHub Pull Request Review (not loose line comments). Flow:
+            1. mcp__github__get_pull_request_diff — load exact changed lines before commenting.
+            2. mcp__github__create_pending_pull_request_review — start a pending review.
+            3. mcp__github__add_pull_request_review_comment_to_pending_review — one call per specific-line issue, targeting a line present in the diff.
+            4. mcp__github__submit_pending_pull_request_review — submit with event = APPROVE, REQUEST_CHANGES, or COMMENT.
+
+            The review body is your summary comment. Structure it as:
+              - One-line verdict with reasoning.
+              - Issues grouped by severity: **Blocking**, **Important**, **Nit**. Each entry: short description + file:line link.
+              - If no issues: confirm PR looks good.
+
+            Prefer the pending-review flow over create_issue_comment / inline_comment tools — we want a single cohesive review on the PR, not scattered comments.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 50
+            --mcp-config /tmp/mcp-config.json
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Read,Glob,mcp__github__get_pull_request_diff,mcp__github__create_pending_pull_request_review,mcp__github__add_pull_request_review_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_issue_comments,mcp__svelte__get-documentation,mcp__svelte__list-sections,mcp__context7__resolve-library-id,mcp__context7__query-docs"
