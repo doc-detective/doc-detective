@@ -1030,7 +1030,9 @@ async function appiumIsReady(port: number, timeoutMs: number = 120000) {
   const start = Date.now();
   while (!isReady) {
     if (Date.now() - start > timeoutMs) {
-      throw new Error(`Appium server failed to start within ${timeoutMs / 1000} seconds`);
+      throw new Error(
+        `Appium server on port ${port} failed to start within ${timeoutMs / 1000} seconds`
+      );
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     try {
@@ -1130,6 +1132,12 @@ async function getRunner(options: any = {}) {
     shell: true,
     windowsHide: true,
     cwd: path.join(__dirname, "../.."),
+  });
+  // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)
+  // would crash the process before appiumIsReady's timeout could surface
+  // a meaningful failure.
+  appium.on("error", (err: any) => {
+    log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
 
   // Wait for Appium to be ready

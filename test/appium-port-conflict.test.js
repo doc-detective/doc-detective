@@ -14,35 +14,36 @@ function makeConfig() {
   return config;
 }
 
+// Bind 127.0.0.1:4723 to satisfy the "port is held" precondition. If the
+// port is already held externally (e.g. a developer's local Appium), the
+// precondition is already satisfied and we return null so the after-hook
+// knows there is nothing to close. Any other bind error propagates.
+async function holdPort4723() {
+  const blocker = net.createServer();
+  try {
+    await new Promise((resolve, reject) => {
+      blocker.once("error", reject);
+      blocker.listen(4723, "127.0.0.1", resolve);
+    });
+    return blocker;
+  } catch (err) {
+    if (err && err.code === "EADDRINUSE") return null;
+    throw err;
+  }
+}
+
+async function releasePort(blocker) {
+  if (blocker) await new Promise((r) => blocker.close(r));
+}
+
 describe("Dynamic Appium port", function () {
   // Appium boot ~10s + driver session ~5s; allow generous headroom.
   this.timeout(600000);
 
   describe("port 4723 is held by another process", function () {
     let blocker;
-
-    before(async function () {
-      // If 4723 is already held (e.g. by a developer's Appium), the port-held
-      // condition is satisfied externally — proceed without our own blocker.
-      // Any error other than EADDRINUSE is a real bind failure and surfaces.
-      blocker = net.createServer();
-      try {
-        await new Promise((resolve, reject) => {
-          blocker.once("error", reject);
-          blocker.listen(4723, "127.0.0.1", resolve);
-        });
-      } catch (err) {
-        if (err && err.code === "EADDRINUSE") {
-          blocker = null;
-        } else {
-          throw err;
-        }
-      }
-    });
-
-    after(async function () {
-      if (blocker) await new Promise((r) => blocker.close(r));
-    });
+    before(async function () { blocker = await holdPort4723(); });
+    after(async function () { await releasePort(blocker); });
 
     it("runTests still succeeds for a driver-required spec", async function () {
       const result = await runTests(makeConfig());
@@ -57,29 +58,8 @@ describe("Dynamic Appium port", function () {
 
   describe("two parallel runTests with 4723 held by another process", function () {
     let blocker;
-
-    before(async function () {
-      // If 4723 is already held (e.g. by a developer's Appium), the port-held
-      // condition is satisfied externally — proceed without our own blocker.
-      // Any error other than EADDRINUSE is a real bind failure and surfaces.
-      blocker = net.createServer();
-      try {
-        await new Promise((resolve, reject) => {
-          blocker.once("error", reject);
-          blocker.listen(4723, "127.0.0.1", resolve);
-        });
-      } catch (err) {
-        if (err && err.code === "EADDRINUSE") {
-          blocker = null;
-        } else {
-          throw err;
-        }
-      }
-    });
-
-    after(async function () {
-      if (blocker) await new Promise((r) => blocker.close(r));
-    });
+    before(async function () { blocker = await holdPort4723(); });
+    after(async function () { await releasePort(blocker); });
 
     it("both succeed without port collision", async function () {
       const [a, b] = await Promise.all([
