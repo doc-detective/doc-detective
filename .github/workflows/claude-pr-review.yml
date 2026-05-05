@@ -97,4 +97,4 @@ jobs:
             --model claude-sonnet-4-6
             --max-turns 50
             --mcp-config /tmp/mcp-config.json
-            --allowedTools "Bash(git diff:*),Bash(git log:*),Read,Glob,mcp__github__get_pull_request_diff,mcp__github__create_pending_pull_request_review,mcp__github__add_pull_request_review_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_issue_comments,mcp__svelte__get-documentation,mcp__svelte__list-sections,mcp__context7__resolve-library-id,mcp__context7__query-docs"
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Read,Glob,mcp__github__get_pull_request_diff,mcp__github__create_pending_pull_request_review,mcp__github__add_pull_request_review_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,mcp__github__get_issue_comments,mcp__context7__resolve-library-id,mcp__context7__query-docs"
