@@ -480,7 +480,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     setAppiumHome();
     appiumPort = await findFreePort();
     log(config, "debug", `Starting Appium on port ${appiumPort}`);
-    appium = spawn("npx", ["appium", "-p", String(appiumPort)], {
+    appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
       shell: true,
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
@@ -1128,7 +1128,7 @@ async function getRunner(options: any = {}) {
 
   // Start Appium server on a free ephemeral port
   const appiumPort = await findFreePort();
-  const appium = spawn("npx", ["appium", "-p", String(appiumPort)], {
+  const appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
     shell: true,
     windowsHide: true,
     cwd: path.join(__dirname, "../.."),

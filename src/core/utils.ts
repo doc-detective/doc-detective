@@ -31,9 +31,9 @@ export {
 };
 
 // Bind a temp listener to port 0, capture the OS-assigned port, and release
-// it. There is a tiny TOCTOU window between close and the caller's bind, but
-// in practice the port stays in TIME_WAIT-free state and the caller is the
-// only thing racing for it. driverStart's ECONNREFUSED retry absorbs any race.
+// it. There is a small close-to-rebind window where another process could
+// grab the port before the caller binds it. driverStart's ECONNREFUSED retry
+// absorbs that race when the caller is Appium.
 async function findFreePort(): Promise<number> {
   return new Promise<number>((resolve, reject) => {
     const server = net.createServer();
