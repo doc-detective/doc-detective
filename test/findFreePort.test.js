@@ -3,7 +3,7 @@ import net from "node:net";
 import { findFreePort } from "../dist/core/utils.js";
 
 describe("findFreePort", () => {
-  it("returns a port in the IANA dynamic range", async () => {
+  it("returns a port in the non-privileged TCP range", async () => {
     const port = await findFreePort();
     assert.equal(typeof port, "number");
     assert.ok(port >= 1024 && port <= 65535, `out of range: ${port}`);

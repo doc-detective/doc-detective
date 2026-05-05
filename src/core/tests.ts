@@ -604,9 +604,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           log(config, "debug", "CAPABILITIES:");
           log(config, "debug", caps);
 
+          if (appiumPort === undefined) {
+            throw new Error(
+              "Driver requested but Appium was not started. " +
+                "isAppiumRequired(specs) and isDriverRequired(context) disagreed; this is a bug."
+            );
+          }
           // Instantiate driver
           try {
-            driver = await driverStart(caps, appiumPort!);
+            driver = await driverStart(caps, appiumPort);
           } catch (error: any) {
             try {
               // If driver fails to start, try again as headless
@@ -625,7 +631,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                   headless: context.browser?.headless !== false,
                 },
               });
-              driver = await driverStart(caps, appiumPort!);
+              driver = await driverStart(caps, appiumPort);
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
               if (context.browser?.name === "safari")

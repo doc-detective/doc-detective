@@ -22,11 +22,22 @@ describe("Dynamic Appium port", function () {
     let blocker;
 
     before(async function () {
+      // If 4723 is already held (e.g. by a developer's Appium), the port-held
+      // condition is satisfied externally — proceed without our own blocker.
+      // Any error other than EADDRINUSE is a real bind failure and surfaces.
       blocker = net.createServer();
-      await new Promise((resolve, reject) => {
-        blocker.once("error", reject);
-        blocker.listen(4723, "127.0.0.1", resolve);
-      });
+      try {
+        await new Promise((resolve, reject) => {
+          blocker.once("error", reject);
+          blocker.listen(4723, "127.0.0.1", resolve);
+        });
+      } catch (err) {
+        if (err && err.code === "EADDRINUSE") {
+          blocker = null;
+        } else {
+          throw err;
+        }
+      }
     });
 
     after(async function () {
@@ -48,11 +59,22 @@ describe("Dynamic Appium port", function () {
     let blocker;
 
     before(async function () {
+      // If 4723 is already held (e.g. by a developer's Appium), the port-held
+      // condition is satisfied externally — proceed without our own blocker.
+      // Any error other than EADDRINUSE is a real bind failure and surfaces.
       blocker = net.createServer();
-      await new Promise((resolve, reject) => {
-        blocker.once("error", reject);
-        blocker.listen(4723, "127.0.0.1", resolve);
-      });
+      try {
+        await new Promise((resolve, reject) => {
+          blocker.once("error", reject);
+          blocker.listen(4723, "127.0.0.1", resolve);
+        });
+      } catch (err) {
+        if (err && err.code === "EADDRINUSE") {
+          blocker = null;
+        } else {
+          throw err;
+        }
+      }
     });
 
     after(async function () {
