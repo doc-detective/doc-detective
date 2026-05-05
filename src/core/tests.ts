@@ -1,7 +1,7 @@
 import kill from "tree-kill";
 import * as wdio from "webdriverio";
 import os from "node:os";
-import { log, replaceEnvs, selectSpecsForRun } from "./utils.js";
+import { log, replaceEnvs, selectSpecsForRun, findFreePort } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
@@ -28,7 +28,6 @@ import { resolveExpression } from "./expressions.js";
 import { getEnvironment, getAvailableApps } from "./config.js";
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
-import net from "node:net";
 import https from "node:https";
 import { fileURLToPath } from "node:url";
 
@@ -476,14 +475,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const appiumRequired = isAppiumRequired(specs);
 
   // Warm up Appium
+  let appiumPort: number | undefined;
   if (appiumRequired) {
-    // Set Appium home directory
     setAppiumHome();
-    // Ensure the Appium port is not still bound by a zombie from a prior
-    // runTests() call in this process before spawning a fresh one.
-    await waitForPortFree(4723);
-    // Start Appium server
-    appium = spawn("npx", ["appium"], {
+    appiumPort = await findFreePort();
+    log(config, "debug", `Starting Appium on port ${appiumPort}`);
+    appium = spawn("npx", ["appium", "-p", String(appiumPort)], {
       shell: true,
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
@@ -497,7 +494,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     appium.stderr.on("data", (data: any) => {
       // console.error(`stderr: ${data}`);
     });
-    await appiumIsReady();
+    await appiumIsReady(appiumPort);
     log(config, "debug", "Appium is ready.");
   }
 
@@ -609,7 +606,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
           // Instantiate driver
           try {
-            driver = await driverStart(caps);
+            driver = await driverStart(caps, appiumPort!);
           } catch (error: any) {
             try {
               // If driver fails to start, try again as headless
@@ -628,7 +625,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                   headless: context.browser?.headless !== false,
                 },
               });
-              driver = await driverStart(caps);
+              driver = await driverStart(caps, appiumPort!);
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
               if (context.browser?.name === "safari")
@@ -1021,40 +1018,8 @@ async function runStep({
   return actionResult;
 }
 
-// Wait until the given TCP port is not bound by anything on 127.0.0.1.
-// Between per-test runTests() calls, a prior Appium on port 4723 can still
-// be tearing down while the new one is about to spawn. On Windows + Node 24
-// the teardown window is wide enough for the new Appium's spawn to race the
-// old one's exit and confuse wdio's POST /session. Blocking until the port
-// is free makes the handoff deterministic.
-async function waitForPortFree(port: number, timeoutMs: number = 30000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const result = await new Promise<"free" | "busy" | Error>((resolve) => {
-      const server = net.createServer();
-      server.once("error", (err: NodeJS.ErrnoException) => {
-        // Only EADDRINUSE means "keep polling". Any other bind failure
-        // (EACCES, invalid host, etc.) is a real problem and must surface.
-        if (err && err.code === "EADDRINUSE") resolve("busy");
-        else resolve(err instanceof Error ? err : new Error(String(err)));
-      });
-      server.once("listening", () => {
-        server.close(() => resolve("free"));
-      });
-      server.listen(port, "127.0.0.1");
-    });
-    if (result === "free") return;
-    if (result instanceof Error) throw result;
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  throw new Error(
-    `Timed out after ${timeoutMs}ms waiting for 127.0.0.1:${port} to become free. ` +
-      `A prior Appium instance is still bound to the port; the next session create ` +
-      `would race the teardown and fail with an opaque ECONNREFUSED.`
-  );
-}
 // Delay execution until Appium server is available.
-async function appiumIsReady(timeoutMs: number = 120000) {
+async function appiumIsReady(port: number, timeoutMs: number = 120000) {
   let isReady = false;
   const start = Date.now();
   while (!isReady) {
@@ -1063,7 +1028,7 @@ async function appiumIsReady(timeoutMs: number = 120000) {
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     try {
-      let resp = await axios.get("http://127.0.0.1:4723/status");
+      let resp = await axios.get(`http://127.0.0.1:${port}/status`);
       if (resp.status === 200) isReady = true;
     } catch {}
   }
@@ -1071,7 +1036,7 @@ async function appiumIsReady(timeoutMs: number = 120000) {
 }
 
 // Start the Appium driver specified in `capabilities`.
-async function driverStart(capabilities: any, maxAttempts: number = 4) {
+async function driverStart(capabilities: any, port: number, maxAttempts: number = 4) {
   // POST /session can race a just-spawned-or-still-dying Appium on Windows:
   // /status may already return 200 from the outgoing process while /session
   // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
@@ -1082,7 +1047,7 @@ async function driverStart(capabilities: any, maxAttempts: number = 4) {
       const driver: any = await wdio.remote({
         protocol: "http",
         hostname: "127.0.0.1",
-        port: 4723,
+        port,
         path: "/",
         logLevel: "error",
         capabilities,
@@ -1153,16 +1118,17 @@ async function getRunner(options: any = {}) {
   // Set Appium home directory
   setAppiumHome();
 
-  // Start Appium server
-  const appium = spawn("npx", ["appium"], {
+  // Start Appium server on a free ephemeral port
+  const appiumPort = await findFreePort();
+  const appium = spawn("npx", ["appium", "-p", String(appiumPort)], {
     shell: true,
     windowsHide: true,
     cwd: path.join(__dirname, "../.."),
   });
 
   // Wait for Appium to be ready
-  await appiumIsReady();
-  log(config, "debug", "Appium is ready for external driver.");
+  await appiumIsReady(appiumPort);
+  log(config, "debug", `Appium is ready for external driver on port ${appiumPort}.`);
 
   // Get Chrome driver capabilities
   const caps: any = getDriverCapabilities({
@@ -1178,7 +1144,7 @@ async function getRunner(options: any = {}) {
   // Start the runner
   let runner: any;
   try {
-    runner = await driverStart(caps);
+    runner = await driverStart(caps, appiumPort);
   } catch (error: any) {
     // If runner fails, attempt to set headless and retry
     try {
@@ -1188,7 +1154,7 @@ async function getRunner(options: any = {}) {
         "Failed to start Chrome runner. Retrying as headless."
       );
       caps["goog:chromeOptions"].args.push("--headless", "--disable-gpu");
-      runner = await driverStart(caps);
+      runner = await driverStart(caps, appiumPort);
     } catch (error: any) {
       // If runner fails, clean up Appium and rethrow
       kill(appium.pid!);
