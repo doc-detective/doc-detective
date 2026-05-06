@@ -760,6 +760,10 @@ describe("runner-entrypoint: main()", () => {
   beforeEach(async () => {
     if (isWindows) return;
     tmpDir = await mkdtemp(path.join(os.tmpdir(), "dd-main-"));
+    // Reset across tests so a stale path from an earlier test (which
+    // called writeRunnerFixture) can't leak into a later test that
+    // didn't. envForRun() picks up whatever's in this var.
+    runnerScriptPath = undefined;
   });
   afterEach(async () => {
     if (isWindows) return;
@@ -857,6 +861,28 @@ describe("runner-entrypoint: main()", () => {
     assert.equal(code, 1);
     assert.equal(observed.finalize.status, "failed");
     assert.equal(observed.finalize.summary.reason, "spawn_failed");
+  });
+
+  it("re-arms self-kill from spec.timeout_seconds when it differs from the env value", async function () {
+    if (isWindows) this.skip();
+    // Child runs to completion quickly so we don't actually wait for
+    // the self-kill — we just need to confirm the run still finalizes
+    // succeeded after main() processes the divergent spec timeout
+    // (regression-checks that the re-arm path doesn't throw or hang).
+    await writeRunnerFixture("process.exit(0);\n");
+    await setupSpec({
+      run_id: "run-main-1",
+      // Diverges from DD_TIMEOUT_SECONDS=60 set in envForRun() so the
+      // `specTimeout !== timeoutSeconds` branch fires.
+      timeout_seconds: 1234,
+      config_snapshot: {},
+      source_snapshot: { type: "inline", specs: [] },
+      secrets: {},
+    });
+    envForRun();
+    const code = await main();
+    assert.equal(code, 0);
+    assert.equal(observed.finalize.status, "succeeded");
   });
 
   it("posts failed finalize with workspace_provision_failed for unsupported source", async function () {
