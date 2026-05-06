@@ -346,8 +346,6 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 	// script (e.g. a runner-internal restart) would otherwise inherit
 	// stale clones.
 	await rm(workspaceDir, { recursive: true, force: true });
-	await mkdir(workspaceDir, { recursive: true });
-	await mkdir(path.join(workspaceDir, OUTPUT_SUBDIR), { recursive: true });
 
 	if (source.type === 'github') {
 		// Required-field guards so a regression in the platform's spec
@@ -383,11 +381,19 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 		// Shallow public clone. Auth-required GitHub repos are out of
 		// scope here — the platform UI requires the user to point at a
 		// public repo or commit secrets via the project secrets layer.
+		// The destination must NOT exist or must be empty for git clone
+		// to succeed; we only `rm` above and let git create the
+		// directory itself, then create the output subdir post-clone.
+		// Pre-creating workspaceDir + output/ would cause clone to
+		// fail with "destination path already exists and is not an
+		// empty directory."
+		const parent = path.dirname(workspaceDir);
+		await mkdir(parent, { recursive: true });
 		const repoUrl = `https://github.com/${source.repo}.git`;
 		const args = ['clone', '--depth=1', '--branch', source.ref, '--', repoUrl, workspaceDir];
 		const code = await new Promise((resolve, reject) => {
 			const child = spawn('git', args, {
-				cwd: '/',
+				cwd: parent,
 				env: process.env,
 				stdio: ['ignore', 'inherit', 'inherit']
 			});
@@ -397,10 +403,13 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 		if (code !== 0) {
 			throw new Error(`git clone failed (exit ${code}) for ${source.repo}@${source.ref}`);
 		}
+		await mkdir(path.join(workspaceDir, OUTPUT_SUBDIR), { recursive: true });
 		return cwd;
 	}
 
 	if (source.type === 'inline') {
+		await mkdir(workspaceDir, { recursive: true });
+		await mkdir(path.join(workspaceDir, OUTPUT_SUBDIR), { recursive: true });
 		const specsDir = path.join(workspaceDir, SPECS_SUBDIR);
 		await mkdir(specsDir, { recursive: true });
 		const specs = Array.isArray(source.specs) ? source.specs : [];
