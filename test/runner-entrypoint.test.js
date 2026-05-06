@@ -373,36 +373,47 @@ describe("runner-entrypoint: provisionWorkspace", () => {
 });
 
 describe("runner-entrypoint: resolvePathPrefix", () => {
+  // Use os.tmpdir() as the workspace base so paths are truly absolute
+  // on every platform — Windows treats `/workspace` as drive-relative
+  // and path.resolve normalizes it to `C:\workspace`, which would
+  // break exact-string assertions. We don't actually create anything
+  // in the tmpdir; the helper is pure.
+  const ws = os.tmpdir();
+
   it("returns workspaceDir unchanged when path_prefix is absent", () => {
-    assert.equal(resolvePathPrefix("/workspace"), "/workspace");
-    assert.equal(resolvePathPrefix("/workspace", ""), "/workspace");
-    assert.equal(resolvePathPrefix("/workspace", undefined), "/workspace");
+    assert.equal(resolvePathPrefix(ws), ws);
+    assert.equal(resolvePathPrefix(ws, ""), ws);
+    assert.equal(resolvePathPrefix(ws, undefined), ws);
   });
 
   it("joins a normal in-workspace prefix", () => {
-    assert.equal(resolvePathPrefix("/workspace", "docs"), "/workspace/docs");
+    assert.equal(resolvePathPrefix(ws, "docs"), path.join(ws, "docs"));
     assert.equal(
-      resolvePathPrefix("/workspace", "subdir/nested"),
-      "/workspace/subdir/nested"
+      resolvePathPrefix(ws, "subdir/nested"),
+      path.join(ws, "subdir", "nested")
     );
   });
 
   it("rejects a traversal that escapes the workspace via ..", () => {
     assert.throws(
-      () => resolvePathPrefix("/workspace", "../etc"),
+      () => resolvePathPrefix(ws, "../etc"),
       /escapes workspace/
     );
     assert.throws(
-      () => resolvePathPrefix("/workspace", "subdir/../../escape"),
+      () => resolvePathPrefix(ws, "subdir/../../escape"),
       /escapes workspace/
     );
   });
 
   it("rejects an absolute prefix that path.resolve would otherwise honor as an override", () => {
-    // path.resolve('/workspace', '/etc') === '/etc' — without the
-    // guard this would silently let the user point cwd at /etc.
+    // path.resolve(ws, '<absolute-other-path>') replaces ws entirely
+    // — without the guard this would silently let the user point cwd
+    // at an arbitrary path. Use a sibling tmpdir-rooted path so the
+    // assertion is platform-agnostic; on Linux this is `/etc/passwd`,
+    // on Windows it's `C:\some\other\absolute\path`.
+    const otherAbs = path.resolve(os.tmpdir(), "..", "definitely-not-the-workspace");
     assert.throws(
-      () => resolvePathPrefix("/workspace", "/etc/passwd"),
+      () => resolvePathPrefix(ws, otherAbs),
       /escapes workspace/
     );
   });
