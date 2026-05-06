@@ -7,10 +7,12 @@ import {
   apiCall,
   buildEffectiveConfig,
   fetchSpec,
+  filterSecrets,
   makeLogShipper,
   postFinalize,
   provisionWorkspace,
   readRequiredEnv,
+  SECRET_DENYLIST,
   sliceLogLine,
 } from "../bin/runner-entrypoint.js";
 
@@ -231,6 +233,40 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
   });
 });
 
+describe("runner-entrypoint: filterSecrets", () => {
+  it("passes through non-reserved keys unchanged", () => {
+    const out = filterSecrets({ STRIPE_KEY: "sk_xxx", AWS_REGION: "us-east-1" });
+    assert.deepEqual(out, { STRIPE_KEY: "sk_xxx", AWS_REGION: "us-east-1" });
+  });
+
+  it("drops every key in the denylist and reports each via onReject", () => {
+    const dropped = [];
+    const out = filterSecrets(
+      { PATH: "/evil", HOME: "/tmp/x", FOO: "ok", NODE_OPTIONS: "--inspect" },
+      (k) => dropped.push(k)
+    );
+    assert.deepEqual(out, { FOO: "ok" });
+    assert.deepEqual(dropped.sort(), ["HOME", "NODE_OPTIONS", "PATH"]);
+  });
+
+  it("includes every container-shadowing key the implementation cares about", () => {
+    // Lock the denylist contents so a future trim doesn't accidentally
+    // re-open a footgun.
+    const expected = [
+      "DOC_DETECTIVE_API",
+      "DOC_DETECTIVE_CONFIG",
+      "DOC_DETECTIVE_META",
+      "HOME",
+      "LD_LIBRARY_PATH",
+      "LD_PRELOAD",
+      "NODE_OPTIONS",
+      "NODE_PATH",
+      "PATH",
+    ];
+    assert.deepEqual([...SECRET_DENYLIST].sort(), expected);
+  });
+});
+
 describe("runner-entrypoint: provisionWorkspace", () => {
   let tmp;
   beforeEach(async () => {
@@ -284,6 +320,27 @@ describe("runner-entrypoint: provisionWorkspace", () => {
     await assert.rejects(
       provisionWorkspace({ type: "nope" }, path.join(tmp, "ws-bad")),
       /Unsupported source type/
+    );
+  });
+
+  it("rejects github sources missing repo or ref before invoking git", async () => {
+    // Up-front field guards make a server-side spec-shape regression
+    // surface as a clear error instead of an inscrutable
+    // `git clone --branch undefined ...` failure. We assert the error
+    // message names the missing field so logs are diagnostic.
+    await assert.rejects(
+      provisionWorkspace(
+        { type: "github", ref: "main" },
+        path.join(tmp, "ws-no-repo")
+      ),
+      /missing required field: repo/
+    );
+    await assert.rejects(
+      provisionWorkspace(
+        { type: "github", repo: "x/y" },
+        path.join(tmp, "ws-no-ref")
+      ),
+      /missing required field: ref/
     );
   });
 

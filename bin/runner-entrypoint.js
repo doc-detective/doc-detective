@@ -42,6 +42,30 @@ import process from 'node:process';
 const WORKSPACE_DIR = '/workspace';
 const SPECS_SUBDIR = 'specs';
 const OUTPUT_SUBDIR = 'output';
+
+/**
+ * Project-secret keys that would clobber container-level env or
+ * fundamentally alter how Node / the doc-detective CLI executes if
+ * the platform let them through. The platform's secret-key validator
+ * only constrains key shape (`/^[A-Za-z_][A-Za-z0-9_]*$/`), so a user
+ * could create a secret named `PATH` or `NODE_OPTIONS` and have it
+ * override the container's value once we spread `secrets` into
+ * `childEnv`. Defense in depth: filter here at injection time and log
+ * the rejection so the run's logs make the source of the discrepancy
+ * obvious. The platform should also reject these names server-side;
+ * this list is the runner-side backstop.
+ */
+const SECRET_DENYLIST = new Set([
+	'PATH',
+	'HOME',
+	'NODE_OPTIONS',
+	'NODE_PATH',
+	'LD_PRELOAD',
+	'LD_LIBRARY_PATH',
+	'DOC_DETECTIVE_CONFIG',
+	'DOC_DETECTIVE_API',
+	'DOC_DETECTIVE_META'
+]);
 const LOG_BATCH_SIZE = 100;
 const LOG_FLUSH_INTERVAL_MS = 1000;
 // Per-line UTF-8 byte cap aligned with the platform's 64 KB validator.
@@ -251,7 +275,14 @@ function makeLogShipper(apiBase, runId, token) {
 		if (timer) return;
 		timer = setTimeout(() => {
 			timer = null;
-			flushNow();
+			// Errors are swallowed inside fireBatch and flushNow uses
+			// allSettled, so no rejection should escape today; the
+			// .catch is a belt-and-suspenders against future changes
+			// that might let one through and silently terminate the
+			// process with an unhandledRejection.
+			flushNow().catch((e) =>
+				localLog('warn', 'scheduled flush rejected', { err: String(e) })
+			);
 		}, LOG_FLUSH_INTERVAL_MS);
 	}
 
@@ -291,9 +322,14 @@ function makeLogShipper(apiBase, runId, token) {
  */
 function buildEffectiveConfig(configSnapshot, source) {
 	const effective = { ...(configSnapshot ?? {}) };
-	effective.output = path.join(WORKSPACE_DIR, OUTPUT_SUBDIR);
+	// posix.join: these paths land inside DOC_DETECTIVE_CONFIG and are
+	// interpreted by the doc-detective CLI inside the Linux container.
+	// Plain path.join would emit backslashes on Windows test runners
+	// and break the equality assertions, even though no Windows
+	// runtime ever sees this string.
+	effective.output = path.posix.join(WORKSPACE_DIR, OUTPUT_SUBDIR);
 	if (source.type === 'inline') {
-		effective.input = path.join(WORKSPACE_DIR, SPECS_SUBDIR);
+		effective.input = path.posix.join(WORKSPACE_DIR, SPECS_SUBDIR);
 	}
 	return effective;
 }
@@ -314,6 +350,16 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 	await mkdir(path.join(workspaceDir, OUTPUT_SUBDIR), { recursive: true });
 
 	if (source.type === 'github') {
+		// Required-field guards so a regression in the platform's spec
+		// shape surfaces as a clear error in run logs instead of an
+		// inscrutable `git clone --branch undefined` failure.
+		if (typeof source.repo !== 'string' || source.repo.length === 0) {
+			throw new Error('github source missing required field: repo');
+		}
+		if (typeof source.ref !== 'string' || source.ref.length === 0) {
+			throw new Error('github source missing required field: ref');
+		}
+
 		// Validate path_prefix *before* the clone so a malformed value
 		// fails fast without burning a network round-trip. Defense in
 		// depth: the platform-side validator already constrains
@@ -369,6 +415,24 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 }
 
 /**
+ * Drop project secrets whose key collides with a container-controlled
+ * env var. `onReject` is invoked once per dropped key — callers use it
+ * to surface the rejection in the run logs so the user can correct
+ * their project secrets.
+ */
+function filterSecrets(secrets, onReject) {
+	const out = {};
+	for (const [k, v] of Object.entries(secrets)) {
+		if (SECRET_DENYLIST.has(k)) {
+			if (onReject) onReject(k);
+			continue;
+		}
+		out[k] = v;
+	}
+	return out;
+}
+
+/**
  * POST /finalize. Best-effort — the caller decides whether a failure
  * here propagates to the process exit code.
  */
@@ -404,10 +468,27 @@ async function main() {
 	selfKill.unref();
 
 	let canceledBySignal = false;
-	process.on('SIGTERM', () => {
+	let childRunning = false;
+	const onPreSpawnSigterm = async () => {
 		canceledBySignal = true;
-		localLog('info', 'SIGTERM received');
-	});
+		localLog('info', 'SIGTERM received before child spawn; posting advisory cancel');
+		// Best-effort early-cancel finalize. The platform watchdog +
+		// cancel handler are still source of truth — this just helps
+		// the row land at `canceled` faster when SIGTERM arrives
+		// during fetchSpec / provisionWorkspace, before the child has
+		// even started. Once the child is running, runChild's own
+		// SIGTERM handler takes over and the post-spawn cleanup path
+		// covers finalize.
+		if (!childRunning) {
+			await postFinalize(apiBase, runId, token, {
+				status: 'canceled',
+				exit_code: 143,
+				summary: { reason: 'sigterm_pre_spawn' }
+			});
+			process.exit(143);
+		}
+	};
+	process.on('SIGTERM', onPreSpawnSigterm);
 
 	// Step 1: fetch spec.
 	const { canceled, spec } = await fetchSpec(apiBase, runId, token);
@@ -439,14 +520,24 @@ async function main() {
 	}
 
 	// Step 2: spawn doc-detective.
+	const safeSecrets = filterSecrets(secrets, (key) =>
+		shipper.add('stderr', `runner: dropping reserved env var "${key}" from project secrets`)
+	);
 	const childEnv = {
 		...process.env,
-		...secrets,
+		...safeSecrets,
 		DOC_DETECTIVE_CONFIG: JSON.stringify(config)
 	};
 	// Don't leak our bearer token into the child's env — the runner
 	// owns the platform conversation, not the test job.
 	delete childEnv.DD_RUN_TOKEN;
+
+	// Hand off SIGTERM ownership to runChild — its forwarder kills the
+	// child process; the post-spawn finalize logic below handles the
+	// advisory POST. Without removing the pre-spawn handler, both
+	// would fire and we'd race two finalize POSTs.
+	process.off('SIGTERM', onPreSpawnSigterm);
+	childRunning = true;
 
 	let exitCode;
 	try {
@@ -510,10 +601,12 @@ export {
 	apiCall,
 	buildEffectiveConfig,
 	fetchSpec,
+	filterSecrets,
 	main,
 	makeLogShipper,
 	postFinalize,
 	provisionWorkspace,
 	readRequiredEnv,
+	SECRET_DENYLIST,
 	sliceLogLine
 };
