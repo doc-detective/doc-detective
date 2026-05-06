@@ -176,11 +176,13 @@ function sliceLogLine(payload) {
 	if (bytes.byteLength <= LOG_LINE_BYTE_LIMIT) return [payload];
 	const out = [];
 	for (let i = 0; i < bytes.byteLength; i += LOG_LINE_BYTE_LIMIT) {
-		// Slice on byte boundaries; mid-codepoint fragments are stitched
-		// back together at the next slice. TextDecoder's stream:false
-		// behavior replaces orphan bytes with U+FFFD — acceptable for
-		// log preservation since the platform already accepts the data
-		// as opaque text and the next slice will start clean.
+		// Slice on byte boundaries. TextDecoder's default `stream: false`
+		// replaces incomplete multi-byte sequences at the slice edge
+		// with U+FFFD — the fragment is *not* stitched back together
+		// from the next slice. Acceptable for log preservation: the
+		// platform accepts the data as opaque text, and rare
+		// multi-byte boundaries on a 60 KB cliff are noise compared
+		// to the value of preserving the rest of the line.
 		const slice = bytes.subarray(i, Math.min(i + LOG_LINE_BYTE_LIMIT, bytes.byteLength));
 		out.push(dec.decode(slice));
 	}
@@ -259,11 +261,18 @@ function makeLogShipper(apiBase, runId, token) {
 			for (const slice of sliceLogLine(payload)) {
 				buffer.push({ ts, stream, payload: slice });
 				if (buffer.length >= LOG_BATCH_SIZE) {
+					// Auto-flush — but keep iterating: an oversize line that
+					// produced N slices must still get its remaining N-1
+					// slices into the next batch. An earlier draft of this
+					// function `return`ed here and silently dropped the
+					// tail.
 					fireBatch(buffer.splice(0, buffer.length));
-					return;
 				}
 			}
-			schedule();
+			// Only schedule a timed flush if there's actually something
+			// to flush — guards against a wasted setTimeout cycle when
+			// the loop's last slice was the one that auto-flushed.
+			if (buffer.length > 0) schedule();
 		},
 		flush: flushNow
 	};
@@ -305,6 +314,26 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 	await mkdir(path.join(workspaceDir, OUTPUT_SUBDIR), { recursive: true });
 
 	if (source.type === 'github') {
+		// Validate path_prefix *before* the clone so a malformed value
+		// fails fast without burning a network round-trip. Defense in
+		// depth: the platform-side validator already constrains
+		// path_prefix at project-create time, but a `../etc` would
+		// still traverse out via path.join. path.resolve normalizes
+		// ".." segments and treats absolute path_prefix as an
+		// override; we reject anything that lands outside workspaceDir
+		// (or equals it, which is the no-prefix base case).
+		let cwd = workspaceDir;
+		if (source.path_prefix && source.path_prefix.length > 0) {
+			const resolved = path.resolve(workspaceDir, source.path_prefix);
+			const wsWithSep = workspaceDir.endsWith(path.sep)
+				? workspaceDir
+				: workspaceDir + path.sep;
+			if (resolved !== workspaceDir && !resolved.startsWith(wsWithSep)) {
+				throw new Error(`path_prefix escapes workspace: ${source.path_prefix}`);
+			}
+			cwd = resolved;
+		}
+
 		// Shallow public clone. Auth-required GitHub repos are out of
 		// scope here — the platform UI requires the user to point at a
 		// public repo or commit secrets via the project secrets layer.
@@ -322,10 +351,6 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 		if (code !== 0) {
 			throw new Error(`git clone failed (exit ${code}) for ${source.repo}@${source.ref}`);
 		}
-		const cwd =
-			source.path_prefix && source.path_prefix.length > 0
-				? path.join(workspaceDir, source.path_prefix)
-				: workspaceDir;
 		return cwd;
 	}
 
@@ -361,18 +386,20 @@ async function main() {
 	const apiBase = readRequiredEnv('DD_API_BASE').replace(/\/+$/, '');
 	const runId = readRequiredEnv('DD_RUN_ID');
 	const token = readRequiredEnv('DD_RUN_TOKEN');
-	const timeoutSeconds = Number(process.env.DD_TIMEOUT_SECONDS ?? '1800');
+	// Reject NaN / non-finite / non-positive values so a bad
+	// DD_TIMEOUT_SECONDS env (e.g. an unset-but-quoted-empty-string,
+	// or a typo) doesn't fire setTimeout(NaN) — which fires
+	// immediately and self-kills the runner before /spec lands.
+	const rawTimeout = Number(process.env.DD_TIMEOUT_SECONDS);
+	const timeoutSeconds = Number.isFinite(rawTimeout) && rawTimeout > 0 ? rawTimeout : 1800;
 
 	// Belt-and-suspenders self-kill. Authoritative timeout is the
 	// platform watchdog; this just guarantees a runner that has lost
 	// API connectivity stops burning compute eventually.
-	const selfKill = setTimeout(
-		() => {
-			localLog('warn', 'self-kill timeout exceeded', { timeoutSeconds });
-			process.exit(124);
-		},
-		Math.max(1, timeoutSeconds) * 1000
-	);
+	const selfKill = setTimeout(() => {
+		localLog('warn', 'self-kill timeout exceeded', { timeoutSeconds });
+		process.exit(124);
+	}, timeoutSeconds * 1000);
 	// .unref() — the timer alone shouldn't keep the event loop alive.
 	selfKill.unref();
 

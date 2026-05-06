@@ -74,16 +74,19 @@ describe("runner-entrypoint: sliceLogLine", () => {
     assert.deepEqual(out, ["hello"]);
   });
 
-  it("slices oversize lines so each chunk fits the platform's 64 KB cap", () => {
-    // 200 KB of ASCII → ~3 chunks at 60 KB each
+  it("slices oversize lines so each chunk fits the runner's 60 KB internal cap", () => {
+    // 200 KB of ASCII → ~4 chunks at 60 KB each. Implementation cap is
+    // 60 KB (4 KB headroom under the platform's 64 KB-per-line cap);
+    // we assert against the implementation cap, not the platform cap,
+    // so a regression that grew slices to 61 KB would surface here.
     const big = "a".repeat(200 * 1024);
     const slices = sliceLogLine(big);
     assert.ok(slices.length >= 3, `expected ≥3 slices, got ${slices.length}`);
     const enc = new TextEncoder();
     for (const s of slices) {
       assert.ok(
-        enc.encode(s).byteLength <= 64 * 1024,
-        `slice exceeded 64 KB byte cap`
+        enc.encode(s).byteLength <= 60 * 1024,
+        `slice exceeded 60 KB byte cap`
       );
     }
     // Reassembly preserves total content length (modulo lossy mid-codepoint
@@ -283,6 +286,39 @@ describe("runner-entrypoint: provisionWorkspace", () => {
       /Unsupported source type/
     );
   });
+
+  it("rejects path_prefix that escapes the workspace via traversal", async () => {
+    // Defense-in-depth: even though the platform's project validator
+    // already constrains path_prefix, a regression that admitted "../"
+    // would let a malicious project root the runner's cwd outside
+    // /workspace. The guard rejects up-front.
+    //
+    // We can't actually exercise the github branch (no real clone in
+    // unit tests), but the guard sits inside the github branch — so we
+    // verify it indirectly by feeding a github-shaped source. The
+    // guard fires before git is invoked.
+    await assert.rejects(
+      provisionWorkspace(
+        { type: "github", repo: "x/y", ref: "main", path_prefix: "../etc" },
+        path.join(tmp, "ws-traverse")
+      ),
+      /escapes workspace/
+    );
+  });
+
+  it("accepts an in-workspace path_prefix on github sources", async () => {
+    // Confirms the guard isn't over-eager: a normal subdirectory
+    // path_prefix should pass. We can't run git clone, so the guard
+    // resolves first, then the test fails at the actual `git` call.
+    // We assert the failure is the git-clone failure, not the guard.
+    await assert.rejects(
+      provisionWorkspace(
+        { type: "github", repo: "x/y", ref: "main", path_prefix: "docs" },
+        path.join(tmp, "ws-ok-prefix")
+      ),
+      /git clone failed/
+    );
+  });
 });
 
 describe("runner-entrypoint: makeLogShipper", () => {
@@ -338,6 +374,33 @@ describe("runner-entrypoint: makeLogShipper", () => {
       const shipper = makeLogShipper(api.base, "run", "tok");
       await shipper.flush();
       assert.equal(calls, 0);
+    } finally {
+      await closeServer(api.server);
+    }
+  });
+
+  it("preserves all slices of an oversize line that auto-flushes mid-iteration", async () => {
+    // Regression test for a bug where add() returned after the first
+    // slice triggered the auto-flush, silently dropping subsequent
+    // slices of the same oversize line.
+    const seen = [];
+    const api = await makeApiServer((req, res, body) => {
+      seen.push(JSON.parse(body));
+      res.writeHead(204);
+      res.end();
+    });
+    try {
+      const shipper = makeLogShipper(api.base, "run", "tok");
+      // Pre-fill buffer so the first slice of the oversize line
+      // immediately trips LOG_BATCH_SIZE.
+      for (let i = 0; i < 99; i++) shipper.add("stdout", `pad-${i}`);
+      // 180 KB → 3 slices at 60 KB each.
+      const oversize = "x".repeat(180 * 1024);
+      shipper.add("stdout", oversize);
+      await shipper.flush();
+      // Total expected line count: 99 padding + 3 slices = 102.
+      const total = seen.reduce((acc, batch) => acc + batch.lines.length, 0);
+      assert.equal(total, 102, `expected 102 lines across batches, got ${total}`);
     } finally {
       await closeServer(api.server);
     }
