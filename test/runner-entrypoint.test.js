@@ -233,6 +233,22 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
     assert.equal(cfg.input, "/workspace/specs");
     assert.equal(cfg.output, "/workspace/output");
   });
+
+  it("threads a custom workspaceDir through input/output so it stays in sync with provisionWorkspace", () => {
+    // Regression: an earlier draft hardcoded WORKSPACE_DIR here, so
+    // an operator pointing DD_WORKSPACE_DIR at /var/dd/ws would have
+    // gotten the workspace materialized at /var/dd/ws but the CLI
+    // told to read/write at /workspace/* — a silent mismatch that
+    // looked fine in unit tests because the fake-runner ignores
+    // DOC_DETECTIVE_CONFIG.
+    const cfg = buildEffectiveConfig(
+      {},
+      { type: "inline", specs: [] },
+      "/var/dd/ws"
+    );
+    assert.equal(cfg.output, "/var/dd/ws/output");
+    assert.equal(cfg.input, "/var/dd/ws/specs");
+  });
 });
 
 describe("runner-entrypoint: filterSecrets", () => {

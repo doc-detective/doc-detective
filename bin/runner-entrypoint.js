@@ -213,7 +213,15 @@ function runChild(cmd, args, opts, onLine) {
 			process.off('SIGTERM', forwardTerm);
 			reject(err);
 		});
-		child.on('exit', (code, signal) => {
+		// `'close'`, not `'exit'`: 'exit' fires as soon as the child
+		// process terminates, but stdout/stderr's 'end' events come
+		// later. The trailing-line flush in attach() runs from those
+		// 'end' handlers, so resolving on 'exit' could let runChild's
+		// caller proceed before onLine had been invoked for the
+		// residual buffer of a child that wrote a partial last line.
+		// 'close' fires only after both the process has exited AND
+		// the stdio streams have closed.
+		child.on('close', (code, signal) => {
 			process.off('SIGTERM', forwardTerm);
 			// Node's exit-code conventions: when terminated by signal, code
 			// is null and the canonical exit is 128 + signal-number. We
@@ -385,16 +393,21 @@ function makeLogShipper(apiBase, runId, token) {
  *     sources we leave the user's `input` alone so their committed
  *     paths resolve from the cloned repo cwd)
  */
-function buildEffectiveConfig(configSnapshot, source) {
+function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_DIR) {
 	const effective = { ...(configSnapshot ?? {}) };
 	// posix.join: these paths land inside DOC_DETECTIVE_CONFIG and are
 	// interpreted by the doc-detective CLI inside the Linux container.
 	// Plain path.join would emit backslashes on Windows test runners
 	// and break the equality assertions, even though no Windows
 	// runtime ever sees this string.
-	effective.output = path.posix.join(WORKSPACE_DIR, OUTPUT_SUBDIR);
+	//
+	// `workspaceDir` matches the path provisionWorkspace materialized
+	// to. main() resolves it once from DD_WORKSPACE_DIR and threads
+	// it through both functions so the CLI's view of the filesystem
+	// can't drift from where the runner actually wrote specs/output.
+	effective.output = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
 	if (source.type === 'inline') {
-		effective.input = path.posix.join(WORKSPACE_DIR, SPECS_SUBDIR);
+		effective.input = path.posix.join(workspaceDir, SPECS_SUBDIR);
 	}
 	return effective;
 }
@@ -584,8 +597,16 @@ async function main() {
 		return 0;
 	}
 
+	// `DD_WORKSPACE_DIR` is a test/ops seam — defaults to /workspace
+	// (the in-container path). Tests redirect this to a tmpdir so
+	// they don't touch the real /workspace; an operator could
+	// redirect to a per-machine spool dir. Resolved once and
+	// threaded through provisionWorkspace + buildEffectiveConfig so
+	// the CLI's view can't drift from where we materialized files.
+	const workspaceDir = process.env.DD_WORKSPACE_DIR || WORKSPACE_DIR;
+
 	const source = spec.source_snapshot ?? { type: 'inline', specs: [] };
-	const config = buildEffectiveConfig(spec.config_snapshot, source);
+	const config = buildEffectiveConfig(spec.config_snapshot, source, workspaceDir);
 	const secrets = spec.secrets ?? {};
 
 	// The spec is the source of truth for everything else (config,
@@ -606,16 +627,9 @@ async function main() {
 
 	const shipper = makeLogShipper(apiBase, runId, token);
 
-	// `DD_WORKSPACE_DIR` is a test/ops seam — defaults to /workspace
-	// (the in-container path). Tests redirect this to a tmpdir so
-	// they don't touch the real /workspace.
-	const workspaceDir = process.env.DD_WORKSPACE_DIR || undefined;
-
 	let cwd;
 	try {
-		cwd = workspaceDir
-			? await provisionWorkspace(source, workspaceDir)
-			: await provisionWorkspace(source);
+		cwd = await provisionWorkspace(source, workspaceDir);
 	} catch (e) {
 		localLog('error', 'workspace provision failed', { err: String(e) });
 		shipper.add('stderr', `workspace provision failed: ${String(e)}`);
