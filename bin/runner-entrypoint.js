@@ -419,6 +419,32 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
  * `workspaceDir` defaults to /workspace (the in-container path). Tests
  * pass a tmpdir so they don't touch the real /workspace.
  */
+/**
+ * Resolve `pathPrefix` against `workspaceDir` and reject values that
+ * traverse out of the workspace (e.g. "../etc"). Pure — no fs / spawn
+ * — so it's directly unit-testable without invoking git.
+ *
+ * Defense in depth: the platform-side validator already constrains
+ * path_prefix at project-create time, but a `../etc` would still
+ * traverse via path.join. path.resolve normalizes ".." segments and
+ * treats absolute path_prefix as an override; we reject anything
+ * that lands outside workspaceDir (or equals it, which is the
+ * no-prefix base case).
+ *
+ * Returns the resolved path on success; throws on traversal.
+ */
+function resolvePathPrefix(workspaceDir, pathPrefix) {
+	if (!pathPrefix || pathPrefix.length === 0) return workspaceDir;
+	const resolved = path.resolve(workspaceDir, pathPrefix);
+	const wsWithSep = workspaceDir.endsWith(path.sep)
+		? workspaceDir
+		: workspaceDir + path.sep;
+	if (resolved !== workspaceDir && !resolved.startsWith(wsWithSep)) {
+		throw new Error(`path_prefix escapes workspace: ${pathPrefix}`);
+	}
+	return resolved;
+}
+
 async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 	// Wipe any prior state — the machine is fresh, but a retry of this
 	// script (e.g. a runner-internal restart) would otherwise inherit
@@ -437,24 +463,8 @@ async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 		}
 
 		// Validate path_prefix *before* the clone so a malformed value
-		// fails fast without burning a network round-trip. Defense in
-		// depth: the platform-side validator already constrains
-		// path_prefix at project-create time, but a `../etc` would
-		// still traverse out via path.join. path.resolve normalizes
-		// ".." segments and treats absolute path_prefix as an
-		// override; we reject anything that lands outside workspaceDir
-		// (or equals it, which is the no-prefix base case).
-		let cwd = workspaceDir;
-		if (source.path_prefix && source.path_prefix.length > 0) {
-			const resolved = path.resolve(workspaceDir, source.path_prefix);
-			const wsWithSep = workspaceDir.endsWith(path.sep)
-				? workspaceDir
-				: workspaceDir + path.sep;
-			if (resolved !== workspaceDir && !resolved.startsWith(wsWithSep)) {
-				throw new Error(`path_prefix escapes workspace: ${source.path_prefix}`);
-			}
-			cwd = resolved;
-		}
+		// fails fast without burning a network round-trip.
+		const cwd = resolvePathPrefix(workspaceDir, source.path_prefix);
 
 		// Shallow public clone. Auth-required GitHub repos are out of
 		// scope here — the platform UI requires the user to point at a
@@ -740,6 +750,7 @@ export {
 	postFinalize,
 	provisionWorkspace,
 	readRequiredEnv,
+	resolvePathPrefix,
 	runChild,
 	SECRET_DENYLIST,
 	sliceLogLine

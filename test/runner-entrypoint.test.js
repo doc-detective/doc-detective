@@ -13,6 +13,7 @@ import {
   postFinalize,
   provisionWorkspace,
   readRequiredEnv,
+  resolvePathPrefix,
   runChild,
   SECRET_DENYLIST,
   sliceLogLine,
@@ -362,36 +363,47 @@ describe("runner-entrypoint: provisionWorkspace", () => {
     );
   });
 
-  it("rejects path_prefix that escapes the workspace via traversal", async () => {
-    // Defense-in-depth: even though the platform's project validator
-    // already constrains path_prefix, a regression that admitted "../"
-    // would let a malicious project root the runner's cwd outside
-    // /workspace. The guard rejects up-front.
-    //
-    // We can't actually exercise the github branch (no real clone in
-    // unit tests), but the guard sits inside the github branch — so we
-    // verify it indirectly by feeding a github-shaped source. The
-    // guard fires before git is invoked.
-    await assert.rejects(
-      provisionWorkspace(
-        { type: "github", repo: "x/y", ref: "main", path_prefix: "../etc" },
-        path.join(tmp, "ws-traverse")
-      ),
+  // Note: path_prefix validation is now covered by the
+  // `resolvePathPrefix` describe block below — pure-helper tests
+  // that don't have to invoke git. The previous version of this
+  // suite reached the guard via provisionWorkspace's github branch,
+  // which forced one test to make a live `git clone` call to assert
+  // the guard wasn't over-eager. The pure-helper extraction lets us
+  // assert traversal/no-traversal directly.
+});
+
+describe("runner-entrypoint: resolvePathPrefix", () => {
+  it("returns workspaceDir unchanged when path_prefix is absent", () => {
+    assert.equal(resolvePathPrefix("/workspace"), "/workspace");
+    assert.equal(resolvePathPrefix("/workspace", ""), "/workspace");
+    assert.equal(resolvePathPrefix("/workspace", undefined), "/workspace");
+  });
+
+  it("joins a normal in-workspace prefix", () => {
+    assert.equal(resolvePathPrefix("/workspace", "docs"), "/workspace/docs");
+    assert.equal(
+      resolvePathPrefix("/workspace", "subdir/nested"),
+      "/workspace/subdir/nested"
+    );
+  });
+
+  it("rejects a traversal that escapes the workspace via ..", () => {
+    assert.throws(
+      () => resolvePathPrefix("/workspace", "../etc"),
+      /escapes workspace/
+    );
+    assert.throws(
+      () => resolvePathPrefix("/workspace", "subdir/../../escape"),
       /escapes workspace/
     );
   });
 
-  it("accepts an in-workspace path_prefix on github sources", async () => {
-    // Confirms the guard isn't over-eager: a normal subdirectory
-    // path_prefix should pass. We can't run git clone, so the guard
-    // resolves first, then the test fails at the actual `git` call.
-    // We assert the failure is the git-clone failure, not the guard.
-    await assert.rejects(
-      provisionWorkspace(
-        { type: "github", repo: "x/y", ref: "main", path_prefix: "docs" },
-        path.join(tmp, "ws-ok-prefix")
-      ),
-      /git clone failed/
+  it("rejects an absolute prefix that path.resolve would otherwise honor as an override", () => {
+    // path.resolve('/workspace', '/etc') === '/etc' — without the
+    // guard this would silently let the user point cwd at /etc.
+    assert.throws(
+      () => resolvePathPrefix("/workspace", "/etc/passwd"),
+      /escapes workspace/
     );
   });
 });
