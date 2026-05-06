@@ -724,23 +724,6 @@ describe("runner-entrypoint: main()", () => {
   // doc-detective binary being installed.
   const NODE = process.execPath;
 
-  function makeFakeRunner(script) {
-    // Returns a value usable as DD_RUNNER_CMD: we point at node
-    // itself and pass the script via DD_RUNNER_SCRIPT_PATH? Simpler:
-    // write a tmp .mjs and point DD_RUNNER_CMD at a tiny shim. But
-    // DD_RUNNER_CMD is just argv[0] — we can't pass extra args via
-    // the env seam. So we write a shell-less tmp script that node
-    // can execute directly via shebang on POSIX.
-    //
-    // Actually simpler: spawn `node` with no args wouldn't run
-    // anything. The cleanest path is to keep it portable: use
-    // DD_RUNNER_CMD = path to a tmp .js file that node can run via
-    // its shebang on POSIX or that we explicitly invoke. Since CI
-    // is POSIX (linux/macos), and Windows skips this suite, a
-    // shebang-prefixed file with chmod +x works.
-    return script;
-  }
-
   // Skip on Windows: the fake-runner approach uses #!/usr/bin/env node
   // which Windows doesn't honor for spawn(). The intra-runner branches
   // are exercised on Linux/macOS coverage; Windows-specific runtime
