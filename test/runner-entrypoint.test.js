@@ -630,6 +630,14 @@ describe("runner-entrypoint: runChild", () => {
   });
 
   it("maps signal-terminated child to 143 when SIGTERM is forwarded", async function () {
+    // POSIX-only: Windows doesn't have real signals — child.kill('SIGTERM')
+    // there maps to TerminateProcess and Node reports (code: 1,
+    // signal: null) rather than (code: null, signal: 'SIGTERM'), so
+    // the 143 contract this test asserts only holds on Linux/macOS.
+    // The runner only ever runs in the Linux container in
+    // production; the Windows test runner is for cross-platform
+    // safety on the rest of the file.
+    if (process.platform === "win32") this.skip();
     // Child has no SIGTERM handler so Node's default kills it with
     // (code: null, signal: 'SIGTERM') — runChild's mapper resolves
     // that to 143. The setInterval keeps the event loop alive until
