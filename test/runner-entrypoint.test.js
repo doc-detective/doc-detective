@@ -8,10 +8,12 @@ import {
   buildEffectiveConfig,
   fetchSpec,
   filterSecrets,
+  main,
   makeLogShipper,
   postFinalize,
   provisionWorkspace,
   readRequiredEnv,
+  runChild,
   SECRET_DENYLIST,
   sliceLogLine,
 } from "../bin/runner-entrypoint.js";
@@ -520,5 +522,356 @@ describe("runner-entrypoint: postFinalize", () => {
       status: "failed",
     });
     assert.equal(ok, false);
+  });
+});
+
+describe("runner-entrypoint: apiCall timeout", () => {
+  it("aborts and throws TimeoutError-shaped message when the server stalls past the budget", async () => {
+    // Server accepts the connection but never writes a response, so
+    // only the AbortSignal.timeout can rescue the call. 50ms budget
+    // is well under any real server latency on CI.
+    const sockets = [];
+    const server = await new Promise((resolve) => {
+      const s = http.createServer((req) => {
+        // Hold the request open. We track the socket so afterEach can
+        // force-close it; otherwise server.close() blocks forever.
+        sockets.push(req.socket);
+      });
+      s.listen(0, "127.0.0.1", () => resolve(s));
+    });
+    const { port } = server.address();
+    try {
+      await assert.rejects(
+        apiCall("GET", `http://127.0.0.1:${port}/stall`, "tok", undefined, [], 50),
+        /timed out after 50ms/
+      );
+    } finally {
+      for (const sock of sockets) sock.destroy();
+      await new Promise((r) => server.close(r));
+    }
+  });
+});
+
+describe("runner-entrypoint: runChild", () => {
+  // Fixtures that exercise each behavior we care about. node -e is
+  // self-contained — no test file scaffolding to manage.
+  const NODE = process.execPath;
+  const echo = (script) => [NODE, ["-e", script]];
+
+  it("delivers each stdout/stderr line to onLine in order", async () => {
+    const lines = [];
+    const exit = await runChild(
+      ...echo(
+        "process.stdout.write('a\\nb\\n'); process.stderr.write('e1\\n'); process.exit(0);"
+      ),
+      { cwd: process.cwd(), env: process.env },
+      (stream, payload) => lines.push([stream, payload])
+    );
+    assert.equal(exit, 0);
+    assert.deepEqual(lines, [
+      ["stdout", "a"],
+      ["stdout", "b"],
+      ["stderr", "e1"],
+    ]);
+  });
+
+  it("re-assembles a line split across two write() chunks", async () => {
+    // Force a chunk boundary mid-line by writing two halves with a
+    // delay. The line buffer accumulates the partial chunk; only on
+    // the newline does onLine fire.
+    const lines = [];
+    const exit = await runChild(
+      ...echo(
+        "process.stdout.write('hel'); setTimeout(() => { process.stdout.write('lo\\n'); process.exit(0); }, 50);"
+      ),
+      { cwd: process.cwd(), env: process.env },
+      (stream, payload) => lines.push([stream, payload])
+    );
+    assert.equal(exit, 0);
+    assert.deepEqual(lines, [["stdout", "hello"]]);
+  });
+
+  it("flushes a trailing line that the child never terminated with \\n", async () => {
+    // The child writes 'tail' with no newline then exits. The 'end'
+    // handler must flush the residual buffer or the line is lost.
+    const lines = [];
+    const exit = await runChild(
+      ...echo("process.stdout.write('tail'); process.exit(0);"),
+      { cwd: process.cwd(), env: process.env },
+      (stream, payload) => lines.push([stream, payload])
+    );
+    assert.equal(exit, 0);
+    assert.deepEqual(lines, [["stdout", "tail"]]);
+  });
+
+  it("propagates the child's non-zero exit code", async () => {
+    const exit = await runChild(
+      ...echo("process.exit(7);"),
+      { cwd: process.cwd(), env: process.env },
+      () => undefined
+    );
+    assert.equal(exit, 7);
+  });
+
+  it("maps signal-terminated child to 143 when SIGTERM is forwarded", async function () {
+    // Child has no SIGTERM handler so Node's default kills it with
+    // (code: null, signal: 'SIGTERM') — runChild's mapper resolves
+    // that to 143. The setInterval keeps the event loop alive until
+    // the signal arrives.
+    this.timeout(5000);
+    const exitPromise = runChild(
+      ...echo("setInterval(() => {}, 1000);"),
+      { cwd: process.cwd(), env: process.env },
+      () => undefined
+    );
+    // Let the child reach setInterval, then drive the parent
+    // process's SIGTERM listener — which is exactly the
+    // `forwardTerm` handler installed by runChild. It SIGTERMs the
+    // child, which Node defaults to terminate.
+    await new Promise((r) => setTimeout(r, 200));
+    process.emit("SIGTERM");
+    const exit = await exitPromise;
+    assert.equal(exit, 143);
+  });
+
+  it("rejects if the child cannot be spawned (ENOENT)", async () => {
+    await assert.rejects(
+      runChild("definitely-not-a-real-binary-xyz", [], {
+        cwd: process.cwd(),
+        env: process.env,
+      }, () => undefined),
+      /ENOENT|spawn|not found/i
+    );
+  });
+
+  it("removes its SIGTERM listener on exit so successive runs don't accumulate handlers", async () => {
+    const before = process.listenerCount("SIGTERM");
+    await runChild(
+      ...echo("process.exit(0);"),
+      { cwd: process.cwd(), env: process.env },
+      () => undefined
+    );
+    const after = process.listenerCount("SIGTERM");
+    assert.equal(after, before, "runChild leaked a SIGTERM listener");
+  });
+});
+
+describe("runner-entrypoint: makeLogShipper backpressure", () => {
+  it("load-sheds new batches when pending hits the cap", async () => {
+    // Make the API server hold every POST open so pending grows.
+    // Tracking the held requests lets afterEach drain them.
+    const heldResponses = [];
+    const released = [];
+    const api = await makeApiServer((req, res, body) => {
+      heldResponses.push(res);
+      released.push(JSON.parse(body));
+      // intentionally never end — the test releases at teardown
+    });
+    try {
+      const shipper = makeLogShipper(api.base, "run", "tok");
+      // Saturate pending to LOG_MAX_PENDING_BATCHES (8). Each batch
+      // is LOG_BATCH_SIZE=100 lines. Need to push at least 8*100 lines
+      // so each fireBatch fires before pending fills, then push more
+      // to exercise the load-shed branch.
+      for (let i = 0; i < 100 * 9; i++) shipper.add("stdout", `l-${i}`);
+      // Yield to let the queued POSTs land on the server. We can't
+      // await flush() because that'd hang on the held responses; we
+      // assert on the server's seen-batch count instead.
+      await new Promise((r) => setTimeout(r, 50));
+      // 8 batches should have been accepted (cap = LOG_MAX_PENDING_BATCHES).
+      // The 9th batch was dropped on the floor.
+      assert.ok(
+        released.length === 8,
+        `expected exactly 8 in-flight batches, saw ${released.length}`
+      );
+    } finally {
+      for (const res of heldResponses) {
+        try { res.writeHead(204); res.end(); } catch {}
+      }
+      await closeServer(api.server);
+    }
+  });
+});
+
+describe("runner-entrypoint: main()", () => {
+  // End-to-end against a loopback server. Uses DD_RUNNER_CMD to
+  // override the spawn target with a node fixture so we can drive
+  // exit codes / stdout deterministically without depending on the
+  // doc-detective binary being installed.
+  const NODE = process.execPath;
+
+  function makeFakeRunner(script) {
+    // Returns a value usable as DD_RUNNER_CMD: we point at node
+    // itself and pass the script via DD_RUNNER_SCRIPT_PATH? Simpler:
+    // write a tmp .mjs and point DD_RUNNER_CMD at a tiny shim. But
+    // DD_RUNNER_CMD is just argv[0] — we can't pass extra args via
+    // the env seam. So we write a shell-less tmp script that node
+    // can execute directly via shebang on POSIX.
+    //
+    // Actually simpler: spawn `node` with no args wouldn't run
+    // anything. The cleanest path is to keep it portable: use
+    // DD_RUNNER_CMD = path to a tmp .js file that node can run via
+    // its shebang on POSIX or that we explicitly invoke. Since CI
+    // is POSIX (linux/macos), and Windows skips this suite, a
+    // shebang-prefixed file with chmod +x works.
+    return script;
+  }
+
+  // Skip on Windows: the fake-runner approach uses #!/usr/bin/env node
+  // which Windows doesn't honor for spawn(). The intra-runner branches
+  // are exercised on Linux/macOS coverage; Windows-specific runtime
+  // shape is not part of this PR's scope.
+  const isWindows = process.platform === "win32";
+
+  let tmpDir;
+  let api;
+  let observed;
+  let runnerScriptPath;
+
+  async function setupSpec(spec) {
+    observed = { logs: [], finalize: null, specReturned: false };
+    api = await makeApiServer((req, res, body) => {
+      const url = req.url;
+      if (req.method === "GET" && url.endsWith("/spec")) {
+        observed.specReturned = true;
+        if (spec === 410) {
+          res.writeHead(410);
+          res.end();
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(spec));
+        return;
+      }
+      if (req.method === "POST" && url.endsWith("/logs")) {
+        observed.logs.push(JSON.parse(body));
+        res.writeHead(204); res.end();
+        return;
+      }
+      if (req.method === "POST" && url.endsWith("/finalize")) {
+        observed.finalize = JSON.parse(body);
+        res.writeHead(204); res.end();
+        return;
+      }
+      res.writeHead(404); res.end();
+    });
+  }
+
+  beforeEach(async () => {
+    if (isWindows) return;
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), "dd-main-"));
+  });
+  afterEach(async () => {
+    if (isWindows) return;
+    if (api) await closeServer(api.server);
+    api = null;
+    if (tmpDir) await rm(tmpDir, { recursive: true, force: true });
+    delete process.env.DD_API_BASE;
+    delete process.env.DD_RUN_ID;
+    delete process.env.DD_RUN_TOKEN;
+    delete process.env.DD_RUNNER_CMD;
+    delete process.env.DD_TIMEOUT_SECONDS;
+    delete process.env.DD_WORKSPACE_DIR;
+  });
+
+  async function writeRunnerFixture(jsBody) {
+    runnerScriptPath = path.join(tmpDir, "fake-runner.mjs");
+    const { writeFile, chmod } = await import("node:fs/promises");
+    // Point the shebang at the absolute node path so PATH
+    // misconfiguration in CI doesn't bite us.
+    const shebang = `#!${NODE}\n`;
+    await writeFile(runnerScriptPath, shebang + jsBody, "utf8");
+    await chmod(runnerScriptPath, 0o755);
+  }
+
+  function envForRun() {
+    process.env.DD_API_BASE = api.base;
+    process.env.DD_RUN_ID = "run-main-1";
+    process.env.DD_RUN_TOKEN = "tok-main-1";
+    if (runnerScriptPath) process.env.DD_RUNNER_CMD = runnerScriptPath;
+    process.env.DD_TIMEOUT_SECONDS = "60";
+    process.env.DD_WORKSPACE_DIR = path.join(tmpDir, "workspace");
+  }
+
+  it("returns 0 without finalize when /spec returns 410 (canceled-before-spawn)", async function () {
+    if (isWindows) this.skip();
+    await setupSpec(410);
+    envForRun();
+    const code = await main();
+    assert.equal(code, 0);
+    assert.equal(observed.finalize, null, "no finalize POST expected on 410");
+  });
+
+  it("posts succeeded finalize when child exits 0", async function () {
+    if (isWindows) this.skip();
+    await writeRunnerFixture(
+      "process.stdout.write('hello\\n'); process.exit(0);\n"
+    );
+    await setupSpec({
+      run_id: "run-main-1",
+      timeout_seconds: 60,
+      config_snapshot: {},
+      source_snapshot: { type: "inline", specs: [] },
+      secrets: {},
+    });
+    envForRun();
+    const code = await main();
+    assert.equal(code, 0);
+    assert.equal(observed.finalize.status, "succeeded");
+    assert.equal(observed.finalize.exit_code, 0);
+    // At least one /logs POST should have carried the 'hello' line.
+    const allLines = observed.logs.flatMap((b) => b.lines);
+    assert.ok(allLines.some((l) => l.payload === "hello"));
+  });
+
+  it("posts failed finalize with nonzero_exit reason when child exits non-zero", async function () {
+    if (isWindows) this.skip();
+    await writeRunnerFixture("process.exit(7);\n");
+    await setupSpec({
+      run_id: "run-main-1",
+      timeout_seconds: 60,
+      config_snapshot: {},
+      source_snapshot: { type: "inline", specs: [] },
+      secrets: {},
+    });
+    envForRun();
+    const code = await main();
+    assert.equal(code, 7);
+    assert.equal(observed.finalize.status, "failed");
+    assert.equal(observed.finalize.exit_code, 7);
+    assert.equal(observed.finalize.summary.reason, "nonzero_exit");
+  });
+
+  it("posts failed finalize with spawn_failed reason when DD_RUNNER_CMD is bogus", async function () {
+    if (isWindows) this.skip();
+    await setupSpec({
+      run_id: "run-main-1",
+      timeout_seconds: 60,
+      config_snapshot: {},
+      source_snapshot: { type: "inline", specs: [] },
+      secrets: {},
+    });
+    envForRun();
+    process.env.DD_RUNNER_CMD = "/nonexistent/path/to/runner-xyz";
+    const code = await main();
+    assert.equal(code, 1);
+    assert.equal(observed.finalize.status, "failed");
+    assert.equal(observed.finalize.summary.reason, "spawn_failed");
+  });
+
+  it("posts failed finalize with workspace_provision_failed for unsupported source", async function () {
+    if (isWindows) this.skip();
+    await setupSpec({
+      run_id: "run-main-1",
+      timeout_seconds: 60,
+      config_snapshot: {},
+      source_snapshot: { type: "totally-bogus" },
+      secrets: {},
+    });
+    envForRun();
+    const code = await main();
+    assert.equal(code, 1);
+    assert.equal(observed.finalize.status, "failed");
+    assert.equal(observed.finalize.summary.reason, "workspace_provision_failed");
   });
 });

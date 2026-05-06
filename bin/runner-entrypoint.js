@@ -72,6 +72,16 @@ const LOG_FLUSH_INTERVAL_MS = 1000;
 // Anything longer is sliced into 60 KB chunks (4 KB headroom for
 // non-ASCII expansion when the slice falls mid-codepoint).
 const LOG_LINE_BYTE_LIMIT = 60 * 1024;
+// Cap on concurrently-pending /logs POSTs. With LOG_BATCH_SIZE=100 and
+// LOG_LINE_BYTE_LIMIT=60 KB, each pending batch retains ~6 MB. 8
+// pending = ~48 MB worst case — bounded enough to stay well under
+// any realistic Fly machine memory cap even when the platform API
+// stalls. Past the cap we load-shed: drop the new batch with a warn
+// log rather than backpressure (which would block the synchronous
+// `add()` callers — the child process's stdout/stderr `data`
+// handlers — and surface as a runaway memory accumulation in the
+// stream's internal buffer instead).
+const LOG_MAX_PENDING_BATCHES = 8;
 
 /**
  * Tiny structured logger — writes a JSON line to the *real* stderr so
@@ -91,19 +101,45 @@ function readRequiredEnv(name) {
 	return v;
 }
 
+/** Default per-call fetch budget. The platform watchdog is the
+ * authoritative timeout for the run as a whole; this just keeps a
+ * single hung request from holding everything else hostage. */
+const API_CALL_TIMEOUT_MS = 30_000;
+/** Slightly longer budget for /finalize so it has a chance to land
+ * even when the platform is under load — finalize is the
+ * acknowledgment that lets the row leave its terminal-but-stuck
+ * state on time, so it gets priority over /logs. */
+const API_FINALIZE_TIMEOUT_MS = 60_000;
+
 /**
  * Authenticated fetch against the platform API. Throws on non-2xx
  * (other than the explicitly-allowed status codes); returns the raw
  * Response so callers can choose to read JSON or treat as fire-and-forget.
+ *
+ * `timeoutMs` aborts the request if the platform blackholes (TCP
+ * accept, no response). Without it a hung POST holds the runner open
+ * until the global self-kill fires (default 30 minutes). Defaults to
+ * 30s; finalize callers pass a longer budget.
  */
-async function apiCall(method, url, token, body, allowedStatuses = []) {
+async function apiCall(method, url, token, body, allowedStatuses = [], timeoutMs = API_CALL_TIMEOUT_MS) {
 	const headers = { authorization: `Bearer ${token}` };
 	if (body !== undefined) headers['content-type'] = 'application/json';
-	const res = await fetch(url, {
-		method,
-		headers,
-		body: body === undefined ? undefined : JSON.stringify(body)
-	});
+	let res;
+	try {
+		res = await fetch(url, {
+			method,
+			headers,
+			body: body === undefined ? undefined : JSON.stringify(body),
+			signal: AbortSignal.timeout(timeoutMs)
+		});
+	} catch (e) {
+		// AbortSignal.timeout fires a TimeoutError; surface that with the
+		// URL + budget so logs make the cause obvious.
+		if (e && e.name === 'TimeoutError') {
+			throw new Error(`${method} ${url} timed out after ${timeoutMs}ms`);
+		}
+		throw e;
+	}
 	if (!res.ok && !allowedStatuses.includes(res.status)) {
 		const text = await res.text().catch(() => '');
 		throw new Error(`${method} ${url} failed: ${res.status} ${res.statusText} ${text}`);
@@ -228,9 +264,38 @@ function sliceLogLine(payload) {
 function makeLogShipper(apiBase, runId, token) {
 	const buffer = [];
 	const pending = new Set();
+	let dropped = 0;
 	let timer = null;
 
 	function fireBatch(lines) {
+		// Load-shed: if too many POSTs are already in flight (platform
+		// API blackholing, slow network), drop the new batch and bump
+		// a counter. Without this cap, `add()` continues to enqueue
+		// indefinitely and pending grows unbounded — each retained
+		// batch holds ~6 MB so a sustained outage OOM-kills the
+		// machine. The lost log lines are noted in localLog (Fly
+		// machine log) and a single summary stderr breadcrumb so the
+		// run's own log stream tells the user something went missing.
+		if (pending.size >= LOG_MAX_PENDING_BATCHES) {
+			if (dropped === 0) {
+				// First-drop breadcrumb. Subsequent drops are silent on
+				// stderr (lest we DOS the run's own log stream), but
+				// each one bumps the counter for finalize-time visibility.
+				try {
+					process.stderr.write(
+						`runner: /logs backlog at cap (${LOG_MAX_PENDING_BATCHES} pending); dropping batches until pressure clears\n`
+					);
+				} catch {
+					// stderr write can throw if the stream is gone; harmless.
+				}
+			}
+			dropped += lines.length;
+			localLog('warn', 'log batch shed under backpressure', {
+				pending: pending.size,
+				droppedSoFar: dropped
+			});
+			return Promise.resolve();
+		}
 		const p = (async () => {
 			try {
 				await apiCall(
@@ -447,7 +512,14 @@ function filterSecrets(secrets, onReject) {
  */
 async function postFinalize(apiBase, runId, token, body) {
 	try {
-		await apiCall('POST', `${apiBase}/api/runs/${encodeURIComponent(runId)}/finalize`, token, body);
+		await apiCall(
+			'POST',
+			`${apiBase}/api/runs/${encodeURIComponent(runId)}/finalize`,
+			token,
+			body,
+			[],
+			API_FINALIZE_TIMEOUT_MS
+		);
 		return true;
 	} catch (e) {
 		localLog('warn', 'finalize failed', { err: String(e) });
@@ -516,11 +588,34 @@ async function main() {
 	const config = buildEffectiveConfig(spec.config_snapshot, source);
 	const secrets = spec.secrets ?? {};
 
+	// The spec is the source of truth for everything else (config,
+	// source, secrets) — it should win for timeout too. Prefer the
+	// spec value, fall back to the env timeout we already set up
+	// (kept as a bootstrap so the pre-spec self-kill is non-NaN).
+	// Reset the self-kill timer to the spec's value so a project that
+	// asked for 60s isn't held open until the 1800s default fires.
+	const specTimeout = Number(spec.timeout_seconds);
+	if (Number.isFinite(specTimeout) && specTimeout > 0 && specTimeout !== timeoutSeconds) {
+		clearTimeout(selfKill);
+		const respec = setTimeout(() => {
+			localLog('warn', 'self-kill timeout exceeded', { timeoutSeconds: specTimeout });
+			process.exit(124);
+		}, specTimeout * 1000);
+		respec.unref();
+	}
+
 	const shipper = makeLogShipper(apiBase, runId, token);
+
+	// `DD_WORKSPACE_DIR` is a test/ops seam — defaults to /workspace
+	// (the in-container path). Tests redirect this to a tmpdir so
+	// they don't touch the real /workspace.
+	const workspaceDir = process.env.DD_WORKSPACE_DIR || undefined;
 
 	let cwd;
 	try {
-		cwd = await provisionWorkspace(source);
+		cwd = workspaceDir
+			? await provisionWorkspace(source, workspaceDir)
+			: await provisionWorkspace(source);
 	} catch (e) {
 		localLog('error', 'workspace provision failed', { err: String(e) });
 		shipper.add('stderr', `workspace provision failed: ${String(e)}`);
@@ -549,6 +644,13 @@ async function main() {
 	// may want them for diagnostics or reporter hooks.
 	delete childEnv.DD_RUN_TOKEN;
 
+	// `DD_RUNNER_CMD` is a test/ops seam — defaults to the canonical
+	// `doc-detective` binary, but tests override it to a fixture
+	// script and a future ops scenario could point it at a different
+	// CLI installation path. Not advertised; the runner's contract
+	// with users is `doc-detective`.
+	const runnerCmd = process.env.DD_RUNNER_CMD || 'doc-detective';
+
 	// Hand off SIGTERM ownership to runChild — its forwarder kills the
 	// child process; the post-spawn finalize logic below handles the
 	// advisory POST. Without removing the pre-spawn handler, both
@@ -558,7 +660,7 @@ async function main() {
 
 	let exitCode;
 	try {
-		exitCode = await runChild('doc-detective', [], { cwd, env: childEnv }, (stream, line) =>
+		exitCode = await runChild(runnerCmd, [], { cwd, env: childEnv }, (stream, line) =>
 			shipper.add(stream, line)
 		);
 	} catch (e) {
@@ -624,6 +726,7 @@ export {
 	postFinalize,
 	provisionWorkspace,
 	readRequiredEnv,
+	runChild,
 	SECRET_DENYLIST,
 	sliceLogLine
 };
