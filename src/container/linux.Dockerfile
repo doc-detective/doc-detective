@@ -56,7 +56,11 @@ RUN node -v \
 # Create app directory
 WORKDIR /app
 
-# Add entrypoint command base
+# Default entrypoint runs the doc-detective CLI directly so `docker run`
+# users get the existing behavior. The doc-detective.com platform
+# overrides this to `doc-detective-runner` (also installed by
+# `npm install -g doc-detective`, see package.json `bin`) via the Fly
+# Machine `init.entrypoint` field.
 ENTRYPOINT [ "npx", "doc-detective" ]
 
 # Set default command
