@@ -6,7 +6,8 @@
     "src/common"
   ],
   "bin": {
-    "doc-detective": "bin/doc-detective.js"
+    "doc-detective": "bin/doc-detective.js",
+    "doc-detective-runner": "bin/runner-entrypoint.js"
   },
   "type": "module",
   "files": [
