@@ -479,14 +479,19 @@ async function main() {
 		// even started. Once the child is running, runChild's own
 		// SIGTERM handler takes over and the post-spawn cleanup path
 		// covers finalize.
-		if (!childRunning) {
-			await postFinalize(apiBase, runId, token, {
-				status: 'canceled',
-				exit_code: 143,
-				summary: { reason: 'sigterm_pre_spawn' }
-			});
-			process.exit(143);
-		}
+		if (childRunning) return;
+		await postFinalize(apiBase, runId, token, {
+			status: 'canceled',
+			exit_code: 143,
+			summary: { reason: 'sigterm_pre_spawn' }
+		});
+		// Re-check after the await: main() may have raced past the
+		// process.off + childRunning=true sequence while we were on
+		// the network. Calling process.exit(143) at that point would
+		// orphan the just-spawned child. Yield to runChild's
+		// forwardTerm + post-spawn finalize instead.
+		if (childRunning) return;
+		process.exit(143);
 	};
 	process.on('SIGTERM', onPreSpawnSigterm);
 
@@ -529,7 +534,10 @@ async function main() {
 		DOC_DETECTIVE_CONFIG: JSON.stringify(config)
 	};
 	// Don't leak our bearer token into the child's env — the runner
-	// owns the platform conversation, not the test job.
+	// owns the platform conversation, not the test job. DD_RUN_ID and
+	// DD_API_BASE stay in the child's env intentionally: they're
+	// non-sensitive identifiers and a future doc-detective release
+	// may want them for diagnostics or reporter hooks.
 	delete childEnv.DD_RUN_TOKEN;
 
 	// Hand off SIGTERM ownership to runChild — its forwarder kills the
