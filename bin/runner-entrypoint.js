@@ -413,13 +413,6 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
 }
 
 /**
- * Provision the workspace dir based on source_snapshot. Returns the
- * cwd the doc-detective CLI should run from.
- *
- * `workspaceDir` defaults to /workspace (the in-container path). Tests
- * pass a tmpdir so they don't touch the real /workspace.
- */
-/**
  * Resolve `pathPrefix` against `workspaceDir` and reject values that
  * traverse out of the workspace (e.g. "../etc"). Pure — no fs / spawn
  * — so it's directly unit-testable without invoking git.
@@ -445,6 +438,13 @@ function resolvePathPrefix(workspaceDir, pathPrefix) {
 	return resolved;
 }
 
+/**
+ * Provision the workspace dir based on source_snapshot. Returns the
+ * cwd the doc-detective CLI should run from.
+ *
+ * `workspaceDir` defaults to /workspace (the in-container path). Tests
+ * pass a tmpdir so they don't touch the real /workspace.
+ */
 async function provisionWorkspace(source, workspaceDir = WORKSPACE_DIR) {
 	// Wipe any prior state — the machine is fresh, but a retry of this
 	// script (e.g. a runner-internal restart) would otherwise inherit
