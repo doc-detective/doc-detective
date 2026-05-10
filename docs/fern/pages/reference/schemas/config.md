@@ -31,6 +31,7 @@ runOn | array of object([context](/reference/schemas/context)) | Optional. Conte
 fileTypes | array of one of: string, object([File type (custom)](/reference/schemas/file-type-custom)), object([File type (executable)](/reference/schemas/file-type-executable)) | Optional. Configuration for file types and their markup detection. | ``["markdown","asciidoc","html","dita"]``
 integrations | object([Integrations options](/reference/schemas/integrations-options)) | Optional. Options for connecting to external services. | 
 telemetry | object([Telemetry options](/reference/schemas/telemetry-options)) | Optional. Options around sending telemetry for Doc Detective usage. | ``{"send":true}``
+hints | object([Hints options](/reference/schemas/hints-options)) | Optional. Options for the post-run hints feature. After a test run, Doc Detective may print one short, contextual hint. Hints are shown only on a TTY and only at the default `info` log level. | ``{"enabled":true}``
 concurrentRunners | integer,boolean | Optional. Number of concurrent test runners. Set to true to use CPU core count (capped at 4).<br/><br/>Minimum: 1 | `1`
 environment | object([Environment details](/reference/schemas/environment-details)) | ReadOnly. Environment information for the system running Doc Detective. | 
 debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging. | `false`
@@ -199,5 +200,13 @@ dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inl
 {
   "testFilter": ["smoke", "login"],
   "specFilter": ["auth"]
+}
+```
+
+```json
+{
+  "hints": {
+    "enabled": false
+  }
 }
 ```
