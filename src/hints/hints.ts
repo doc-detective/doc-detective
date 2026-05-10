@@ -1,0 +1,650 @@
+// Built-in hints registry.
+//
+// Hints live here as plain TypeScript so each predicate can be a real
+// function with full access to the `HintContext`. Adding a hint is a
+// one-file change: append a `{ id, markdown, when, priority? }` object.
+//
+// **Style guidelines** for hint authors are documented in `./AGENTS.md`.
+// Read that before adding a new entry. Quick rules:
+//   - Hint bodies are short — usually 2–6 lines.
+//   - Use fenced ```bash``` (or ```yaml```, etc.) blocks for commands.
+//   - Always link the docs with a Markdown link.
+//   - Ids are stable kebab-case; do not rename existing ids.
+//   - Priority bands: 10 (onboarding), 20 (current-run problems),
+//     30 (output/reporting), 40 (feature discovery), 50 (advanced).
+//   - Order entries alphabetically by id within this file.
+
+import type { Hint } from "./types.js";
+
+export const HINTS: Hint[] = [
+  // ------------------------------------------------------------------
+  // add-config-file (onboarding)
+  // ------------------------------------------------------------------
+  {
+    id: "add-config-file",
+    priority: 10,
+    markdown: [
+      "Save your runner settings instead of remembering CLI flags. Drop a",
+      "`.doc-detective.json` next to your tests:",
+      "",
+      "```json",
+      "{",
+      "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json\",",
+      "  \"input\": \"docs\",",
+      "  \"output\": \"doc-detective-output\",",
+      "  \"reporters\": [\"terminal\", \"json\", \"html\"]",
+      "}",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/configuration](https://doc-detective.com/docs/get-started/configuration)",
+    ].join("\n"),
+    when: (ctx) => ctx.configPath === null,
+  },
+
+  // ------------------------------------------------------------------
+  // add-npm-script (onboarding)
+  // ------------------------------------------------------------------
+  {
+    id: "add-npm-script",
+    priority: 10,
+    markdown: [
+      "Wire Doc Detective into your `package.json` so the team can run docs",
+      "tests with `npm run test:docs`:",
+      "",
+      "```json",
+      "{",
+      "  \"scripts\": {",
+      "    \"test:docs\": \"doc-detective\"",
+      "  }",
+      "}",
+      "```",
+    ].join("\n"),
+    when: (ctx) => ctx.hasDocDetectiveNpmScript === false,
+  },
+
+  // ------------------------------------------------------------------
+  // enable-debug-log (current-run problem) — shipped in v1
+  // ------------------------------------------------------------------
+  {
+    id: "enable-debug-log",
+    priority: 20,
+    markdown: [
+      "Tests failed. Re-run with `--logLevel debug` for a full trace of every",
+      "step:",
+      "",
+      "```bash",
+      "doc-detective --logLevel debug",
+      "```",
+    ].join("\n"),
+    when: (ctx) => ctx.failedCount > 0,
+  },
+
+  // ------------------------------------------------------------------
+  // enable-telemetry-user-id-for-team (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "enable-telemetry-user-id-for-team",
+    priority: 50,
+    markdown: [
+      "Attribute Doc Detective usage to your team by setting",
+      "`telemetry.userId` in `.doc-detective.json`. The id is opaque to us; it",
+      "only appears in your telemetry dashboard.",
+      "",
+      "```json",
+      "{",
+      "  \"telemetry\": { \"send\": true, \"userId\": \"my-team\" }",
+      "}",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.config?.telemetry?.send !== false &&
+      !ctx.config?.telemetry?.userId &&
+      ctx.isGitHubRepo,
+  },
+
+  // ------------------------------------------------------------------
+  // extract-afterAll-cleanup (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "extract-afterAll-cleanup",
+    priority: 50,
+    markdown: [
+      "If most specs finish by saving cookies or setting variables, pull the",
+      "cleanup into a single `afterAll` spec. Doc Detective runs it once after",
+      "the rest of the suite:",
+      "",
+      "```json",
+      "{ \"afterAll\": \"./cleanup.spec.json\" }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.totalSpecs >= 5 &&
+      !ctx.config?.afterAll &&
+      (ctx.usedStepTypes.has("saveCookie") ||
+        ctx.usedStepTypes.has("setVariables")),
+  },
+
+  // ------------------------------------------------------------------
+  // extract-beforeAny-shared-setup (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "extract-beforeAny-shared-setup",
+    priority: 50,
+    markdown: [
+      "Repeating the same setup across specs? Move it into a `beforeAny`",
+      "spec — it runs once before the rest of the input:",
+      "",
+      "```json",
+      "{ \"beforeAny\": \"./setup.spec.json\" }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.totalSpecs >= 5 &&
+      !ctx.config?.beforeAny &&
+      ctx.usedStepTypes.has("loadVariables"),
+  },
+
+  // ------------------------------------------------------------------
+  // gitignore-output-dir (onboarding)
+  // ------------------------------------------------------------------
+  {
+    id: "gitignore-output-dir",
+    priority: 10,
+    markdown: [
+      "Doc Detective writes results into `" /* output */,
+    ].join(""),
+    when: () => false, // overwritten below — the markdown depends on config
+  },
+
+  // ------------------------------------------------------------------
+  // install-agents (onboarding) — promoted aggressively
+  // ------------------------------------------------------------------
+  {
+    id: "install-agents",
+    priority: 10,
+    markdown: [
+      "Detected coding agents on this machine but no Doc Detective adapter",
+      "installed. Add the adapter so your AI assistant can author and debug",
+      "Doc Detective tests:",
+      "",
+      "```bash",
+      "npx doc-detective install-agents",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/agents](https://doc-detective.com/docs/integrations/ai-agents)",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.agentDetections.some((d) => d.present) &&
+      ctx.agentDetections.every((d) => !d.hasAdapterInstalled),
+  },
+
+  // ------------------------------------------------------------------
+  // install-github-action (onboarding) — shipped in v1
+  // ------------------------------------------------------------------
+  {
+    id: "install-github-action",
+    priority: 10,
+    markdown: [
+      "Add Doc Detective to your CI so docs are tested on every push. Save the",
+      "snippet below as `.github/workflows/doc-detective.yml`:",
+      "",
+      "```yaml",
+      "name: Doc Detective",
+      "on: [push, pull_request]",
+      "jobs:",
+      "  test:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - uses: actions/checkout@v4",
+      "      - uses: actions/setup-node@v4",
+      "        with: { node-version: 20 }",
+      "      - run: npx doc-detective",
+      "```",
+      "",
+      "More: [doc-detective.com/docs](https://doc-detective.com/docs/)",
+    ].join("\n"),
+    when: (ctx) => ctx.isGitHubRepo && !ctx.hasDocDetectiveWorkflow,
+  },
+
+  // ------------------------------------------------------------------
+  // output-dir-not-set (output & reporting)
+  // ------------------------------------------------------------------
+  {
+    id: "output-dir-not-set",
+    priority: 30,
+    markdown: [
+      "Result artifacts are landing next to your source files. Set `output`",
+      "in `.doc-detective.json` so they go somewhere predictable:",
+      "",
+      "```json",
+      "{ \"output\": \"doc-detective-output\" }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      (!ctx.config?.output || ctx.config.output === "." || ctx.config.output === "./") &&
+      ctx.totalSpecs > 0,
+  },
+
+  // ------------------------------------------------------------------
+  // recursive-might-be-too-broad (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "recursive-might-be-too-broad",
+    priority: 50,
+    markdown: [
+      "You're scanning 100+ specs. Scoping `input` to a directory or two is",
+      "usually faster than recursing the whole repo:",
+      "",
+      "```json",
+      "{ \"input\": [\"docs\", \"reference\"] }",
+      "```",
+    ].join("\n"),
+    when: (ctx) => ctx.config?.recursive !== false && ctx.totalSpecs > 100,
+  },
+
+  // ------------------------------------------------------------------
+  // reporters-include-json-for-ci (output & reporting)
+  // ------------------------------------------------------------------
+  {
+    id: "reporters-include-json-for-ci",
+    priority: 30,
+    markdown: [
+      "On GitHub? Add the JSON reporter so CI can upload structured results",
+      "as a workflow artifact:",
+      "",
+      "```bash",
+      "doc-detective --reporters terminal,json",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      Array.isArray(ctx.config?.reporters) &&
+      !ctx.config.reporters.includes("json") &&
+      ctx.isGitHubRepo,
+  },
+
+  // ------------------------------------------------------------------
+  // set-origin-for-relative-urls (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "set-origin-for-relative-urls",
+    priority: 50,
+    markdown: [
+      "Your tests use relative URLs. Set `origin` once and stop hardcoding",
+      "the host in every spec:",
+      "",
+      "```json",
+      "{ \"origin\": \"https://staging.example.com\" }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      !ctx.config?.origin &&
+      ctx.usedStepTypes.has("goTo") &&
+      ctx.hasRelativeUrls,
+  },
+
+  // ------------------------------------------------------------------
+  // try-html-reporter (output & reporting) — shipped in v1
+  // ------------------------------------------------------------------
+  {
+    id: "try-html-reporter",
+    priority: 30,
+    markdown: [
+      "Generate a shareable HTML report alongside the terminal summary:",
+      "",
+      "```bash",
+      "doc-detective --reporters terminal,json,html",
+      "```",
+    ].join("\n"),
+    when: (ctx) => {
+      const reporters = ctx.config?.reporters;
+      return Array.isArray(reporters) && !reporters.includes("html");
+    },
+  },
+
+  // ------------------------------------------------------------------
+  // upgrade-node-version (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "upgrade-node-version",
+    priority: 20,
+    markdown: [
+      "You're on Node 18 or older. Doc Detective targets Node 20+ — older",
+      "runtimes hit obscure bugs in the browser stack and the schema parser.",
+      "Upgrade and retry:",
+      "",
+      "More: [Node.js release schedule](https://nodejs.org/en/about/previous-releases)",
+    ].join("\n"),
+    when: (ctx) => ctx.nodeMajor > 0 && ctx.nodeMajor < 20,
+  },
+
+  // ------------------------------------------------------------------
+  // use-checkLink-step (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "use-checkLink-step",
+    priority: 40,
+    markdown: [
+      "Catch dead doc links before readers do. Add a `checkLink` step:",
+      "",
+      "```json",
+      "{ \"checkLink\": { \"url\": \"https://docs.example.com\", \"statusCodes\": [200] } }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      !ctx.usedStepTypes.has("checkLink") && ctx.usedStepTypes.has("goTo"),
+  },
+
+  // ------------------------------------------------------------------
+  // use-dry-run-to-debug-no-tests (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "use-dry-run-to-debug-no-tests",
+    priority: 20,
+    markdown: [
+      "Found specs but no tests ran. `--dry-run` prints the resolved test",
+      "plan as JSON so you can see what was filtered out:",
+      "",
+      "```bash",
+      "doc-detective --dry-run",
+      "```",
+    ].join("\n"),
+    when: (ctx) => ctx.totalTests === 0 && ctx.totalSpecs > 0,
+  },
+
+  // ------------------------------------------------------------------
+  // use-fileTypes-for-mdx-rst (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "use-fileTypes-for-mdx-rst",
+    priority: 50,
+    markdown: [
+      "Doc Detective ignores `.mdx`, `.rst`, and `.adoc` by default. Extend",
+      "`fileTypes` so its detector picks them up:",
+      "",
+      "```json",
+      "{",
+      "  \"fileTypes\": [",
+      "    \"markdown\", \"asciidoc\", \"html\", \"dita\",",
+      "    { \"extends\": \"markdown\", \"extensions\": [\".mdx\"] }",
+      "  ]",
+      "}",
+      "```",
+    ].join("\n"),
+    // Predicate is defined dynamically below so we can scan the cwd
+    // cheaply. For the registry entry, placeholder predicate; replaced
+    // when the hint registry is loaded.
+    when: () => false,
+  },
+
+  // ------------------------------------------------------------------
+  // use-httpRequest-step (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "use-httpRequest-step",
+    priority: 40,
+    markdown: [
+      "Replace shelled-out `curl` with the typed `httpRequest` step. You get",
+      "structured assertions on status codes, headers, and the JSON body:",
+      "",
+      "```json",
+      "{",
+      "  \"httpRequest\": {",
+      "    \"url\": \"https://api.example.com/health\",",
+      "    \"statusCodes\": [200],",
+      "    \"response\": { \"body\": { \"$.status\": \"ok\" } }",
+      "  }",
+      "}",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedStepTypes.has("runShell") &&
+      !ctx.usedStepTypes.has("httpRequest") &&
+      ctx.hasCurlInRunShell,
+  },
+
+  // ------------------------------------------------------------------
+  // use-loadCookie-saveCookie (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "use-loadCookie-saveCookie",
+    priority: 40,
+    markdown: [
+      "Tests that log in over and over slow your suite down. Capture the",
+      "session once with `saveCookie` and reuse it with `loadCookie`:",
+      "",
+      "```json",
+      "{ \"saveCookie\": { \"path\": \"./cookies.json\" } }",
+      "{ \"loadCookie\": { \"path\": \"./cookies.json\" } }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      !ctx.usedStepTypes.has("loadCookie") &&
+      ctx.usedStepTypes.has("type") &&
+      ctx.usedStepTypes.has("click"),
+  },
+
+  // ------------------------------------------------------------------
+  // use-openApi-validation (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "use-openApi-validation",
+    priority: 40,
+    markdown: [
+      "Have an OpenAPI schema? Wire it into `integrations.openApi` and every",
+      "`httpRequest` step gets validated against the spec automatically:",
+      "",
+      "```json",
+      "{",
+      "  \"integrations\": {",
+      "    \"openApi\": [{ \"name\": \"main\", \"descriptionPath\": \"./openapi.yaml\" }]",
+      "  }",
+      "}",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedStepTypes.has("httpRequest") &&
+      !ctx.config?.integrations?.openApi,
+  },
+
+  // ------------------------------------------------------------------
+  // use-record-step-on-failure (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "use-record-step-on-failure",
+    priority: 20,
+    markdown: [
+      "Add a `record`/`stopRecord` pair around tricky tests so the next",
+      "failure leaves a video behind:",
+      "",
+      "```json",
+      "{ \"record\": { \"path\": \"./failure.webm\" } }",
+      "// ...steps that might fail...",
+      "{ \"stopRecord\": true }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.failedCount > 0 &&
+      !ctx.producedRecordings &&
+      ctx.usedBrowserContexts.size > 0,
+  },
+
+  // ------------------------------------------------------------------
+  // use-runCode-step (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "use-runCode-step",
+    priority: 40,
+    markdown: [
+      "Running `node` or `python` in `runShell`? Switch to `runCode` for",
+      "inline snippets — no shell-quoting traps and you can assert on the",
+      "result directly:",
+      "",
+      "```json",
+      "{ \"runCode\": { \"language\": \"node\", \"code\": \"console.log(1+1)\" } }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedStepTypes.has("runShell") &&
+      !ctx.usedStepTypes.has("runCode") &&
+      ctx.hasNodeOrPythonInRunShell,
+  },
+
+  // ------------------------------------------------------------------
+  // use-screenshot-step (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "use-screenshot-step",
+    priority: 40,
+    markdown: [
+      "Catch silent UI regressions: add `screenshot: true` to a step and",
+      "Doc Detective compares against the baseline on every run.",
+      "",
+      "```json",
+      "{ \"goTo\": \"https://example.com\", \"screenshot\": { \"path\": \"./home.png\" } }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.totalTests >= 3 &&
+      ctx.usedBrowserContexts.size > 0 &&
+      !ctx.producedScreenshots,
+  },
+
+  // ------------------------------------------------------------------
+  // use-spec-filter-for-iteration (advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "use-spec-filter-for-iteration",
+    priority: 50,
+    markdown: [
+      "Iterating on one spec at a time? `--spec` and `--test` filter the run",
+      "with case-insensitive regexes:",
+      "",
+      "```bash",
+      "doc-detective --spec login",
+      "doc-detective --test smoke,checkout",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.totalSpecs >= 30 &&
+      !ctx.config?.specFilter &&
+      !ctx.config?.testFilter,
+  },
+
+  // ------------------------------------------------------------------
+  // use-stable-finding-patterns (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "use-stable-finding-patterns",
+    priority: 20,
+    markdown: [
+      "Selectors are the #1 source of flaky doc tests. Prefer stable",
+      "identifiers — accessible labels, ARIA roles, or `data-testid` — that",
+      "outlive a redesign:",
+      "",
+      "```diff",
+      "- find: { selector: \"#login button.primary\" }",
+      "+ find: { elementText: \"Sign in\", elementAria: \"button\" }",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/find](https://doc-detective.com/docs/references/schemas/find)",
+    ].join("\n"),
+    when: (ctx) => ctx.failedCount > 0 && ctx.usedSelectorOnlyFinds,
+  },
+];
+
+// ------------------------------------------------------------------
+// Predicates that need lazy evaluation against the cwd at hint-render
+// time live here. Patched in after registry construction so the
+// declarative table above stays scannable.
+// ------------------------------------------------------------------
+
+import fs from "node:fs";
+import path from "node:path";
+
+const MDX_RST_EXTENSIONS = [".mdx", ".rst", ".adoc"];
+const FILE_SCAN_LIMIT = 100;
+
+const fileTypesHint = HINTS.find((h) => h.id === "use-fileTypes-for-mdx-rst");
+if (fileTypesHint) {
+  fileTypesHint.when = (ctx) => {
+    const declared = ctx.config?.fileTypes;
+    const hasCustomExtensions = Array.isArray(declared)
+      ? declared.some((entry: any) => {
+          if (!entry || typeof entry !== "object") return false;
+          const exts = entry.extensions;
+          if (typeof exts === "string") {
+            return MDX_RST_EXTENSIONS.includes(exts.toLowerCase());
+          }
+          if (Array.isArray(exts)) {
+            return exts.some(
+              (e) =>
+                typeof e === "string" &&
+                MDX_RST_EXTENSIONS.includes(e.toLowerCase())
+            );
+          }
+          return false;
+        })
+      : false;
+    if (hasCustomExtensions) return false;
+    return cwdHasMdxRstFiles(process.cwd());
+  };
+}
+
+const gitignoreHint = HINTS.find((h) => h.id === "gitignore-output-dir");
+if (gitignoreHint) {
+  gitignoreHint.markdown = [
+    "Add your Doc Detective output directory to `.gitignore` so artifacts",
+    "stay out of commits:",
+    "",
+    "```bash",
+    "echo \"$(cat .doc-detective.json | jq -r .output)\" >> .gitignore",
+    "```",
+    "",
+    "Or just append the directory name (e.g. `doc-detective-output/`) to",
+    "your `.gitignore` directly.",
+  ].join("\n");
+  gitignoreHint.when = (ctx) =>
+    !ctx.outputDirGitignored &&
+    typeof ctx.config?.output === "string" &&
+    ctx.config.output !== "." &&
+    ctx.config.output !== "./";
+}
+
+function cwdHasMdxRstFiles(cwd: string): boolean {
+  let scanned = 0;
+  try {
+    return scanDir(cwd, MDX_RST_EXTENSIONS, () => {
+      scanned += 1;
+      return scanned >= FILE_SCAN_LIMIT;
+    });
+  } catch {
+    return false;
+  }
+}
+
+function scanDir(
+  dir: string,
+  extensions: string[],
+  isOverBudget: () => boolean
+): boolean {
+  if (isOverBudget()) return false;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isFile()) {
+      const lower = entry.name.toLowerCase();
+      if (extensions.some((ext) => lower.endsWith(ext))) return true;
+    } else if (entry.isDirectory()) {
+      if (scanDir(full, extensions, isOverBudget)) return true;
+      if (isOverBudget()) return false;
+    }
+  }
+  return false;
+}

@@ -1,6 +1,9 @@
 # Claude Code Configuration
 
-Repo-wide guidance for AI agents. Package-specific rules for `doc-detective-common` live in [src/common/AGENTS.md](src/common/AGENTS.md).
+Repo-wide guidance for AI agents. Package-specific rules live alongside the code:
+
+- [src/common/AGENTS.md](src/common/AGENTS.md) — schemas, validation, and the doc-detective-common subpackage.
+- [src/hints/AGENTS.md](src/hints/AGENTS.md) — authoring post-run hints when you add a user-facing feature.
 
 ## Commit messages (required)
 
