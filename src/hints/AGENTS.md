@@ -186,7 +186,9 @@ If you do need a new signal:
 3. **Bound the cost.** Cheap signals are: a single file read, a single
    linear walk over already-in-memory data, an `os.platform()` check.
    Expensive things require a budget:
-   - Filesystem walks: cap at 100 files (see `cwdHasMdxRstFiles`).
+   - Filesystem walks: cap at 100 files (see `detectMdxRstFiles` in
+     `context.ts` for the canonical pattern — `scanForExtensions` with
+     a budget callback).
    - Async probes (e.g. agent adapters): per-call timeout of 500ms
      (see `withTimeout` in `context.ts`).
    - Network calls: don't. Push the data through telemetry instead.

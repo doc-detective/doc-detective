@@ -50,7 +50,14 @@ export interface HintContext {
   hasDocDetectiveWorkflow: boolean;
   /** Result of `os.platform()`. */
   platform: NodeJS.Platform;
-  /** Number of tests in `results.summary` whose status is not pass-equivalent. */
+  /**
+   * Sum of failure counts across `results.summary.specs.fail`,
+   * `results.summary.tests.fail`, and `results.summary.steps.fail`. A
+   * single broken assertion typically increments all three layers, so
+   * this is "is anything wrong" rather than a precise failed-test
+   * count — predicates should treat any positive value as "failures
+   * occurred".
+   */
   failedCount: number;
 
   // ------------------------------------------------------------------
@@ -66,10 +73,11 @@ export interface HintContext {
   /** Total step count. */
   totalSteps: number;
   /**
-   * Set of action keys (`goTo`, `click`, `find`, `screenshot`, `runShell`,
-   * `runCode`, `checkLink`, `httpRequest`, `type`, `wait`, `loadCookie`,
-   * `saveCookie`, `dragAndDrop`, `record`, `stopRecord`, `loadVariables`,
-   * `setVariables`, `openApi`) seen at least once across the run.
+   * Set of v3 step-action keys seen at least once across the run.
+   * Mirrors the `step_v3` schema's action discriminators: `checkLink`,
+   * `click`, `dragAndDrop`, `find`, `goTo`, `httpRequest`,
+   * `loadCookie`, `loadVariables`, `record`, `runCode`, `runShell`,
+   * `saveCookie`, `screenshot`, `stopRecord`, `type`, `wait`.
    */
   usedStepTypes: Set<string>;
   /** Browser names seen across `results.specs[].tests[].contexts[]`. */
@@ -100,6 +108,12 @@ export interface HintContext {
   outputDirGitignored: boolean;
   /** Major Node.js version (e.g. 20 for Node 20.11.0). */
   nodeMajor: number;
+  /**
+   * True if the cwd contains at least one `.mdx`, `.rst`, or `.adoc`
+   * file (recursive scan, capped at 100 files to bound worst-case cost
+   * per `./AGENTS.md`). Powers `use-fileTypes-for-mdx-rst`.
+   */
+  hasMdxRstFiles: boolean;
   /**
    * True if any goTo/checkLink step in the run used a relative URL — i.e.
    * a value that did not begin with `http://`, `https://`, `file://`, or

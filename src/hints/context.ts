@@ -21,25 +21,27 @@ import type { AgentAdapter } from "../agents/types.js";
 import { listAdapters } from "../agents/registry.js";
 import type { AgentDetection, HintContext } from "./types.js";
 
+// Action keys recognized by the v3 `step` schema. Kept in sync with
+// `step_v3.schema.json`'s anyOf branches — extra entries here would
+// silently never match real results, so this list must mirror the
+// schema. Order doesn't matter; the consumer is `Set.has()`.
 const STEP_ACTION_KEYS = [
-  "goTo",
-  "click",
-  "find",
-  "screenshot",
-  "runShell",
-  "runCode",
   "checkLink",
+  "click",
+  "dragAndDrop",
+  "find",
+  "goTo",
   "httpRequest",
+  "loadCookie",
+  "loadVariables",
+  "record",
+  "runCode",
+  "runShell",
+  "saveCookie",
+  "screenshot",
+  "stopRecord",
   "type",
   "wait",
-  "loadCookie",
-  "saveCookie",
-  "dragAndDrop",
-  "record",
-  "stopRecord",
-  "loadVariables",
-  "setVariables",
-  "openApi",
 ] as const;
 
 const STABLE_FIND_KEYS = [
@@ -108,6 +110,7 @@ export async function buildHintContext(
   const hasDocDetectiveNpmScript = readNpmScripts(cwd);
   const outputDirGitignored = detectOutputDirGitignored(cwd, config.output);
   const nodeMajor = parseNodeMajor(process.versions.node);
+  const hasMdxRstFiles = detectMdxRstFiles(cwd);
 
   return {
     config,
@@ -134,6 +137,7 @@ export async function buildHintContext(
     hasDocDetectiveNpmScript,
     outputDirGitignored,
     nodeMajor,
+    hasMdxRstFiles,
   };
 }
 
@@ -589,4 +593,56 @@ export function parseNodeMajor(versionString: string): number {
   if (!m) return 0;
   const n = Number(m[1]);
   return Number.isFinite(n) ? n : 0;
+}
+
+// ---------------------------------------------------------------------
+// MDX / RST / AsciiDoc file presence (powers use-fileTypes-for-mdx-rst)
+// ---------------------------------------------------------------------
+
+const MDX_RST_EXTENSIONS = [".mdx", ".rst", ".adoc"];
+const MDX_RST_FILE_SCAN_LIMIT = 100;
+
+/**
+ * Returns true if any file under `cwd` (recursive, depth-first) ends
+ * with a non-default doc extension. Caps at 100 file inspections to
+ * bound the worst case on huge monorepos. Skips dotted entries and
+ * `node_modules`. Failures are caught and treated as "not found" so a
+ * permission error never breaks the post-run summary.
+ */
+export function detectMdxRstFiles(cwd: string): boolean {
+  let scanned = 0;
+  try {
+    return scanForExtensions(cwd, MDX_RST_EXTENSIONS, () => {
+      scanned += 1;
+      return scanned >= MDX_RST_FILE_SCAN_LIMIT;
+    });
+  } catch {
+    return false;
+  }
+}
+
+function scanForExtensions(
+  dir: string,
+  extensions: string[],
+  isOverBudget: () => boolean
+): boolean {
+  if (isOverBudget()) return false;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isFile()) {
+      const lower = entry.name.toLowerCase();
+      if (extensions.some((ext) => lower.endsWith(ext))) return true;
+    } else if (entry.isDirectory()) {
+      if (scanForExtensions(full, extensions, isOverBudget)) return true;
+      if (isOverBudget()) return false;
+    }
+  }
+  return false;
 }

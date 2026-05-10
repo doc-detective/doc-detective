@@ -16,6 +16,11 @@
 
 import type { Hint } from "./types.js";
 
+// Doc-extension probe used by `use-fileTypes-for-mdx-rst`. Mirrors the
+// list in `context.ts`'s `detectMdxRstFiles` so the predicate can
+// reason about the same extensions without re-scanning.
+const MDX_RST_EXTENSIONS = [".mdx", ".rst", ".adoc"];
+
 export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   // add-config-file (onboarding)
@@ -109,9 +114,9 @@ export const HINTS: Hint[] = [
     id: "extract-afterAll-cleanup",
     priority: 50,
     markdown: [
-      "If most specs finish by saving cookies or setting variables, pull the",
-      "cleanup into a single `afterAll` spec. Doc Detective runs it once after",
-      "the rest of the suite:",
+      "If most specs finish by saving cookies for reuse, pull that cleanup",
+      "into a single `afterAll` spec. Doc Detective runs it once after the",
+      "rest of the suite:",
       "",
       "```json",
       "{ \"afterAll\": \"./cleanup.spec.json\" }",
@@ -120,8 +125,7 @@ export const HINTS: Hint[] = [
     when: (ctx) =>
       ctx.totalSpecs >= 5 &&
       !ctx.config?.afterAll &&
-      (ctx.usedStepTypes.has("saveCookie") ||
-        ctx.usedStepTypes.has("setVariables")),
+      ctx.usedStepTypes.has("saveCookie"),
   },
 
   // ------------------------------------------------------------------
@@ -151,9 +155,19 @@ export const HINTS: Hint[] = [
     id: "gitignore-output-dir",
     priority: 10,
     markdown: [
-      "Doc Detective writes results into `" /* output */,
-    ].join(""),
-    when: () => false, // overwritten below — the markdown depends on config
+      "Add your Doc Detective output directory to `.gitignore` so artifacts",
+      "stay out of commits. Append your configured `output` (for example:",
+      "`doc-detective-output/`) on its own line:",
+      "",
+      "```bash",
+      "echo \"doc-detective-output/\" >> .gitignore",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      !ctx.outputDirGitignored &&
+      typeof ctx.config?.output === "string" &&
+      ctx.config.output !== "." &&
+      ctx.config.output !== "./",
   },
 
   // ------------------------------------------------------------------
@@ -370,10 +384,27 @@ export const HINTS: Hint[] = [
       "}",
       "```",
     ].join("\n"),
-    // Predicate is defined dynamically below so we can scan the cwd
-    // cheaply. For the registry entry, placeholder predicate; replaced
-    // when the hint registry is loaded.
-    when: () => false,
+    when: (ctx) => {
+      const declared = ctx.config?.fileTypes;
+      const hasCustomExtensions = Array.isArray(declared)
+        ? declared.some((entry: any) => {
+            if (!entry || typeof entry !== "object") return false;
+            const exts = entry.extensions;
+            if (typeof exts === "string") {
+              return MDX_RST_EXTENSIONS.includes(exts.toLowerCase());
+            }
+            if (Array.isArray(exts)) {
+              return exts.some(
+                (e: any) =>
+                  typeof e === "string" &&
+                  MDX_RST_EXTENSIONS.includes(e.toLowerCase())
+              );
+            }
+            return false;
+          })
+        : false;
+      return !hasCustomExtensions && ctx.hasMdxRstFiles;
+    },
   },
 
   // ------------------------------------------------------------------
@@ -553,98 +584,3 @@ export const HINTS: Hint[] = [
   },
 ];
 
-// ------------------------------------------------------------------
-// Predicates that need lazy evaluation against the cwd at hint-render
-// time live here. Patched in after registry construction so the
-// declarative table above stays scannable.
-// ------------------------------------------------------------------
-
-import fs from "node:fs";
-import path from "node:path";
-
-const MDX_RST_EXTENSIONS = [".mdx", ".rst", ".adoc"];
-const FILE_SCAN_LIMIT = 100;
-
-const fileTypesHint = HINTS.find((h) => h.id === "use-fileTypes-for-mdx-rst");
-if (fileTypesHint) {
-  fileTypesHint.when = (ctx) => {
-    const declared = ctx.config?.fileTypes;
-    const hasCustomExtensions = Array.isArray(declared)
-      ? declared.some((entry: any) => {
-          if (!entry || typeof entry !== "object") return false;
-          const exts = entry.extensions;
-          if (typeof exts === "string") {
-            return MDX_RST_EXTENSIONS.includes(exts.toLowerCase());
-          }
-          if (Array.isArray(exts)) {
-            return exts.some(
-              (e) =>
-                typeof e === "string" &&
-                MDX_RST_EXTENSIONS.includes(e.toLowerCase())
-            );
-          }
-          return false;
-        })
-      : false;
-    if (hasCustomExtensions) return false;
-    return cwdHasMdxRstFiles(process.cwd());
-  };
-}
-
-const gitignoreHint = HINTS.find((h) => h.id === "gitignore-output-dir");
-if (gitignoreHint) {
-  gitignoreHint.markdown = [
-    "Add your Doc Detective output directory to `.gitignore` so artifacts",
-    "stay out of commits:",
-    "",
-    "```bash",
-    "echo \"$(cat .doc-detective.json | jq -r .output)\" >> .gitignore",
-    "```",
-    "",
-    "Or just append the directory name (e.g. `doc-detective-output/`) to",
-    "your `.gitignore` directly.",
-  ].join("\n");
-  gitignoreHint.when = (ctx) =>
-    !ctx.outputDirGitignored &&
-    typeof ctx.config?.output === "string" &&
-    ctx.config.output !== "." &&
-    ctx.config.output !== "./";
-}
-
-function cwdHasMdxRstFiles(cwd: string): boolean {
-  let scanned = 0;
-  try {
-    return scanDir(cwd, MDX_RST_EXTENSIONS, () => {
-      scanned += 1;
-      return scanned >= FILE_SCAN_LIMIT;
-    });
-  } catch {
-    return false;
-  }
-}
-
-function scanDir(
-  dir: string,
-  extensions: string[],
-  isOverBudget: () => boolean
-): boolean {
-  if (isOverBudget()) return false;
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return false;
-  }
-  for (const entry of entries) {
-    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isFile()) {
-      const lower = entry.name.toLowerCase();
-      if (extensions.some((ext) => lower.endsWith(ext))) return true;
-    } else if (entry.isDirectory()) {
-      if (scanDir(full, extensions, isOverBudget)) return true;
-      if (isOverBudget()) return false;
-    }
-  }
-  return false;
-}

@@ -59,6 +59,15 @@ export async function maybeShowHint(
     const logLevel = config?.logLevel ?? "info";
     if (logLevel !== "info") return;
 
+    // Cheap TTY short-circuit BEFORE building the context. On non-TTY
+    // runs (CI logs, piped output), hints will be suppressed anyway —
+    // skipping the build avoids the agent-probe latency, the
+    // .git/config + .gitignore + package.json file reads, and the
+    // results walk. Tests that pass `contextOverride` set the TTY flag
+    // explicitly and bypass this check, so coverage of the non-TTY
+    // skip rule lives in the contextOverride-driven test below.
+    if (!options.contextOverride && process.stdout.isTTY === false) return;
+
     const ctx =
       options.contextOverride ??
       (await buildHintContext({ config, results }));

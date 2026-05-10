@@ -15,6 +15,7 @@ import {
   detectOutputDirGitignored,
   gitignoreCovers,
   parseNodeMajor,
+  detectMdxRstFiles,
 } from "../dist/hints/context.js";
 import { maybeShowHint, pickByPriority } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
@@ -528,6 +529,45 @@ describe("hints/context", function () {
     });
   });
 
+  describe("detectMdxRstFiles", function () {
+    it("returns false when no candidate extensions present", function () {
+      const root = makeTmpDir();
+      try {
+        fs.writeFileSync(path.join(root, "readme.md"), "# md");
+        expect(detectMdxRstFiles(root)).to.equal(false);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
+    it("returns true when an .mdx file exists in a nested directory", function () {
+      const root = makeTmpDir();
+      try {
+        const sub = path.join(root, "docs", "guides");
+        fs.mkdirSync(sub, { recursive: true });
+        fs.writeFileSync(path.join(sub, "intro.mdx"), "x");
+        expect(detectMdxRstFiles(root)).to.equal(true);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
+    it("ignores node_modules and dotfiles", function () {
+      const root = makeTmpDir();
+      try {
+        const nm = path.join(root, "node_modules", "pkg");
+        const dot = path.join(root, ".cache");
+        fs.mkdirSync(nm, { recursive: true });
+        fs.mkdirSync(dot, { recursive: true });
+        fs.writeFileSync(path.join(nm, "x.mdx"), "x");
+        fs.writeFileSync(path.join(dot, "y.rst"), "x");
+        expect(detectMdxRstFiles(root)).to.equal(false);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+  });
+
   describe("parseNodeMajor", function () {
     it("extracts the major version", function () {
       expect(parseNodeMajor("20.11.0")).to.equal(20);
@@ -886,6 +926,7 @@ function fakeCtx(partial = {}) {
     hasRelativeUrls: false,
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
+    hasMdxRstFiles: false,
     ...partial,
   };
 }
@@ -1283,7 +1324,7 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("extract-afterAll-cleanup: fires on ≥5 specs with state mutations and no afterAll", function () {
+  it("extract-afterAll-cleanup: fires on ≥5 specs that produced cookies but have no afterAll", function () {
     const h = findHint("extract-afterAll-cleanup");
     expect(
       h.when(
@@ -1298,6 +1339,10 @@ describe("hints/hints (registry)", function () {
           config: { afterAll: "./cleanup.spec.json" },
         })
       )
+    ).to.equal(false);
+    // No saveCookie usage => skip.
+    expect(
+      h.when(fakeCtx({ totalSpecs: 6, usedStepTypes: new Set() }))
     ).to.equal(false);
   });
 
@@ -1328,6 +1373,26 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+  });
+
+  it("use-fileTypes-for-mdx-rst: fires when MDX/RST files exist and fileTypes lacks them", function () {
+    const h = findHint("use-fileTypes-for-mdx-rst");
+    expect(h.when(fakeCtx({ hasMdxRstFiles: true, config: {} }))).to.equal(true);
+    // Already declared as a custom extension -> skip.
+    expect(
+      h.when(
+        fakeCtx({
+          hasMdxRstFiles: true,
+          config: {
+            fileTypes: [
+              { extends: "markdown", extensions: [".mdx"] },
+            ],
+          },
+        })
+      )
+    ).to.equal(false);
+    // No matching files -> skip.
+    expect(h.when(fakeCtx({ hasMdxRstFiles: false }))).to.equal(false);
   });
 
   it("enable-telemetry-user-id-for-team: fires for github repos with telemetry on but userId missing", function () {
