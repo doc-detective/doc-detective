@@ -1,9 +1,11 @@
 # Hints — AI Coding Agent Guide
 
 This package owns the post-run hint system: a small, opt-out feature that
-prints **one** contextual tip after a successful test run. Hints nudge
-users toward features they aren't yet using (CI workflow, HTML reporter,
-stable find patterns, etc.).
+prints **one** contextual tip after a test run completes (pass or fail —
+several built-in hints, like `enable-debug-log` and
+`use-record-step-on-failure`, intentionally fire on failures). Hints
+nudge users toward features they aren't yet using (CI workflow, HTML
+reporter, stable find patterns, etc.).
 
 When you add a feature anywhere in doc-detective, **consider adding a
 hint** that surfaces it to users who would benefit. This file is the

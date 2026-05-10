@@ -107,11 +107,13 @@ export async function buildHintContext(
       : AGENT_PROBE_TIMEOUT_MS
   );
 
-  const hasPackageJson = packageJsonExists(cwd);
-  const hasDocDetectiveNpmScript = hasPackageJson && readNpmScripts(cwd);
+  const packageJsonPath = findPackageJsonUpward(cwd);
+  const hasPackageJson = packageJsonPath !== null;
+  const hasDocDetectiveNpmScript =
+    hasPackageJson && hasDocDetectiveScriptInPackageJson(packageJsonPath);
   const outputDirGitignored = detectOutputDirGitignored(cwd, config.output);
   const nodeMajor = parseNodeMajor(process.versions.node);
-  const hasMdxRstFiles = detectMdxRstFiles(cwd);
+  const hasRstFiles = detectRstFiles(cwd);
 
   return {
     config,
@@ -139,8 +141,36 @@ export async function buildHintContext(
     hasDocDetectiveNpmScript,
     outputDirGitignored,
     nodeMajor,
-    hasMdxRstFiles,
+    hasRstFiles,
   };
+}
+
+// ---------------------------------------------------------------------
+// Walk-up helper — used by probes that need to find the nearest file
+// or directory looking up from `start` to the filesystem root.
+// ---------------------------------------------------------------------
+
+/**
+ * Walks up from `start` looking for the first ancestor directory that
+ * contains `relativePath` (which may itself span multiple segments,
+ * e.g. `.git/config` or `.github/workflows`). Returns the resolved
+ * full path of the match, or `null` if none is found before hitting
+ * the filesystem root. Bounded to 30 iterations as belt-and-suspenders.
+ */
+function findUpward(start: string, relativePath: string): string | null {
+  try {
+    let dir = path.resolve(start);
+    for (let i = 0; i < 30; i++) {
+      const candidate = path.join(dir, relativePath);
+      if (fs.existsSync(candidate)) return candidate;
+      const parent = path.dirname(dir);
+      if (parent === dir) return null;
+      dir = parent;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -200,8 +230,11 @@ export function parseOriginUrl(text: string): string | null {
 
 export function detectDocDetectiveWorkflow(cwd: string): boolean {
   try {
-    const dir = path.join(cwd, ".github", "workflows");
-    if (!fs.existsSync(dir)) return false;
+    // Walk up to find `.github/workflows` so running doc-detective from
+    // a subdirectory still detects a workflow defined at the repo root.
+    // Mirrors the walk-up done by `readGitOriginUrl` and `readGitignore`.
+    const dir = findUpward(cwd, path.join(".github", "workflows"));
+    if (dir === null) return false;
     const entries = fs.readdirSync(dir);
     for (const name of entries) {
       if (!/\.(ya?ml)$/i.test(name)) continue;
@@ -497,23 +530,26 @@ function withTimeout<T>(
 // ---------------------------------------------------------------------
 
 /**
- * True when `<cwd>/package.json` exists. Used to gate hints that
- * advise editing `package.json` (like `add-npm-script`) so non-Node
- * projects don't see them.
+ * Find the nearest `package.json` walking up from `cwd`. Returns the
+ * full path or `null`. Walking up matches `readGitOriginUrl` /
+ * `readGitignore` so probes stay consistent when doc-detective is run
+ * from a subdirectory.
  */
-export function packageJsonExists(cwd: string): boolean {
-  try {
-    return fs.existsSync(path.join(cwd, "package.json"));
-  } catch {
-    return false;
-  }
+export function findPackageJsonUpward(cwd: string): string | null {
+  return findUpward(cwd, "package.json");
 }
 
-export function readNpmScripts(cwd: string): boolean {
+/**
+ * True when ANY `scripts[*]` value in the given `package.json`
+ * contains the literal substring `doc-detective`. Pure file read +
+ * JSON parse; `null`/absent paths return false.
+ */
+export function hasDocDetectiveScriptInPackageJson(
+  packageJsonPath: string | null
+): boolean {
+  if (!packageJsonPath) return false;
   try {
-    const file = path.join(cwd, "package.json");
-    if (!fs.existsSync(file)) return false;
-    const raw = fs.readFileSync(file, "utf8");
+    const raw = fs.readFileSync(packageJsonPath, "utf8");
     const pkg = JSON.parse(raw);
     const scripts = pkg?.scripts;
     if (!scripts || typeof scripts !== "object") return false;
@@ -526,6 +562,15 @@ export function readNpmScripts(cwd: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Backwards-compatible wrapper kept for tests that exercise the
+ * scripts probe in isolation. Walks up from `cwd` and forwards to
+ * `hasDocDetectiveScriptInPackageJson`.
+ */
+export function readNpmScripts(cwd: string): boolean {
+  return hasDocDetectiveScriptInPackageJson(findPackageJsonUpward(cwd));
 }
 
 // ---------------------------------------------------------------------
@@ -637,25 +682,33 @@ export function parseNodeMajor(versionString: string): number {
 }
 
 // ---------------------------------------------------------------------
-// MDX / RST / AsciiDoc file presence (powers use-fileTypes-for-mdx-rst)
+// RST file presence (powers use-fileTypes-for-rst)
+//
+// `.mdx` and `.adoc` are intentionally NOT scanned here: both are
+// already covered by the default `markdown` and `asciidoc` file-type
+// templates in `src/core/config.ts` (extensions `mdx`, `adoc`,
+// `asciidoc`, `asc`). Suggesting users extend `fileTypes` for those
+// would be wrong. `.rst` is the only common documentation extension
+// that doesn't have a default template.
 // ---------------------------------------------------------------------
 
-const MDX_RST_EXTENSIONS = [".mdx", ".rst", ".adoc"];
-const MDX_RST_FILE_SCAN_LIMIT = 100;
+/** Single source of truth for the RST extension(s) we scan and refer to. */
+export const RST_EXTENSIONS = [".rst"];
+const RST_FILE_SCAN_LIMIT = 100;
 
 /**
  * Returns true if any file under `cwd` (recursive, depth-first) ends
- * with a non-default doc extension. Caps at 100 file inspections to
- * bound the worst case on huge monorepos. Skips dotted entries and
+ * with a `.rst` suffix. Caps at 100 file inspections to bound the
+ * worst case on huge monorepos. Skips dotted entries and
  * `node_modules`. Failures are caught and treated as "not found" so a
  * permission error never breaks the post-run summary.
  */
-export function detectMdxRstFiles(cwd: string): boolean {
+export function detectRstFiles(cwd: string): boolean {
   let scanned = 0;
   try {
-    return scanForExtensions(cwd, MDX_RST_EXTENSIONS, () => {
+    return scanForExtensions(cwd, RST_EXTENSIONS, () => {
       scanned += 1;
-      return scanned >= MDX_RST_FILE_SCAN_LIMIT;
+      return scanned >= RST_FILE_SCAN_LIMIT;
     });
   } catch {
     return false;

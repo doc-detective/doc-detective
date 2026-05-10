@@ -15,7 +15,7 @@ import {
   detectOutputDirGitignored,
   gitignoreCovers,
   parseNodeMajor,
-  detectMdxRstFiles,
+  detectRstFiles,
 } from "../dist/hints/context.js";
 import { maybeShowHint, pickByPriority } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
@@ -317,6 +317,25 @@ describe("hints/context", function () {
         rmTmpDir(root);
       }
     });
+
+    it("walks up to find .github/workflows defined at the repo root", function () {
+      // doc-detective run from a subdirectory should still detect a
+      // workflow that lives at the repo root.
+      const root = makeTmpDir();
+      try {
+        const wfDir = path.join(root, ".github", "workflows");
+        fs.mkdirSync(wfDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(wfDir, "docs.yml"),
+          ["jobs:", "  t:", "    steps:", "      - run: npx doc-detective"].join("\n")
+        );
+        const subdir = path.join(root, "packages", "docs-site");
+        fs.mkdirSync(subdir, { recursive: true });
+        expect(detectDocDetectiveWorkflow(subdir)).to.equal(true);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
   });
 
   describe("walkResults", function () {
@@ -492,6 +511,25 @@ describe("hints/context", function () {
         rmTmpDir(root);
       }
     });
+
+    it("walks up to find a doc-detective script in a parent package.json", function () {
+      // doc-detective run from a subdirectory should still see a
+      // doc-detective script in the repo's root package.json.
+      const root = makeTmpDir();
+      try {
+        fs.writeFileSync(
+          path.join(root, "package.json"),
+          JSON.stringify({
+            scripts: { "test:docs": "doc-detective --logLevel info" },
+          })
+        );
+        const subdir = path.join(root, "packages", "docs-site");
+        fs.mkdirSync(subdir, { recursive: true });
+        expect(readNpmScripts(subdir)).to.equal(true);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
   });
 
   describe("gitignoreCovers / detectOutputDirGitignored", function () {
@@ -556,24 +594,28 @@ describe("hints/context", function () {
     });
   });
 
-  describe("detectMdxRstFiles", function () {
-    it("returns false when no candidate extensions present", function () {
+  describe("detectRstFiles", function () {
+    it("returns false when no .rst files present", function () {
       const root = makeTmpDir();
       try {
         fs.writeFileSync(path.join(root, "readme.md"), "# md");
-        expect(detectMdxRstFiles(root)).to.equal(false);
+        fs.writeFileSync(path.join(root, "guide.mdx"), "# mdx");
+        // .mdx and .adoc are NOT scanned: they're already covered by
+        // the default markdown / asciidoc file types in core config.
+        fs.writeFileSync(path.join(root, "spec.adoc"), "= adoc");
+        expect(detectRstFiles(root)).to.equal(false);
       } finally {
         rmTmpDir(root);
       }
     });
 
-    it("returns true when an .mdx file exists in a nested directory", function () {
+    it("returns true when an .rst file exists in a nested directory", function () {
       const root = makeTmpDir();
       try {
         const sub = path.join(root, "docs", "guides");
         fs.mkdirSync(sub, { recursive: true });
-        fs.writeFileSync(path.join(sub, "intro.mdx"), "x");
-        expect(detectMdxRstFiles(root)).to.equal(true);
+        fs.writeFileSync(path.join(sub, "intro.rst"), "Title\n=====\n");
+        expect(detectRstFiles(root)).to.equal(true);
       } finally {
         rmTmpDir(root);
       }
@@ -586,9 +628,9 @@ describe("hints/context", function () {
         const dot = path.join(root, ".cache");
         fs.mkdirSync(nm, { recursive: true });
         fs.mkdirSync(dot, { recursive: true });
-        fs.writeFileSync(path.join(nm, "x.mdx"), "x");
+        fs.writeFileSync(path.join(nm, "x.rst"), "x");
         fs.writeFileSync(path.join(dot, "y.rst"), "x");
-        expect(detectMdxRstFiles(root)).to.equal(false);
+        expect(detectRstFiles(root)).to.equal(false);
       } finally {
         rmTmpDir(root);
       }
@@ -970,7 +1012,7 @@ function fakeCtx(partial = {}) {
     hasRelativeUrls: false,
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
-    hasMdxRstFiles: false,
+    hasRstFiles: false,
     ...partial,
   };
 }
@@ -1462,24 +1504,39 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-fileTypes-for-mdx-rst: fires when MDX/RST files exist and fileTypes lacks them", function () {
-    const h = findHint("use-fileTypes-for-mdx-rst");
-    expect(h.when(fakeCtx({ hasMdxRstFiles: true, config: {} }))).to.equal(true);
-    // Already declared as a custom extension -> skip.
+  it("use-fileTypes-for-rst: fires when .rst files exist and fileTypes lacks them", function () {
+    const h = findHint("use-fileTypes-for-rst");
+    expect(h.when(fakeCtx({ hasRstFiles: true, config: {} }))).to.equal(true);
+    // Already declared as a custom extension (no-dot form, matching the
+    // schema/runtime convention) -> skip.
     expect(
       h.when(
         fakeCtx({
-          hasMdxRstFiles: true,
+          hasRstFiles: true,
           config: {
             fileTypes: [
-              { extends: "markdown", extensions: [".mdx"] },
+              { extends: "markdown", extensions: ["rst"] },
+            ],
+          },
+        })
+      )
+    ).to.equal(false);
+    // Author wrote ".rst" with a leading dot — also recognized as a
+    // custom-extension declaration (defensive normalization).
+    expect(
+      h.when(
+        fakeCtx({
+          hasRstFiles: true,
+          config: {
+            fileTypes: [
+              { extends: "markdown", extensions: [".rst"] },
             ],
           },
         })
       )
     ).to.equal(false);
     // No matching files -> skip.
-    expect(h.when(fakeCtx({ hasMdxRstFiles: false }))).to.equal(false);
+    expect(h.when(fakeCtx({ hasRstFiles: false }))).to.equal(false);
   });
 
   it("enable-telemetry-user-id-for-team: fires for github repos with telemetry on but userId missing", function () {

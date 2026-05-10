@@ -15,11 +15,7 @@
 //   - Order entries alphabetically by id within this file.
 
 import type { Hint } from "./types.js";
-
-// Doc-extension probe used by `use-fileTypes-for-mdx-rst`. Mirrors the
-// list in `context.ts`'s `detectMdxRstFiles` so the predicate can
-// reason about the same extensions without re-scanning.
-const MDX_RST_EXTENSIONS = [".mdx", ".rst", ".adoc"];
+import { RST_EXTENSIONS } from "./context.js";
 
 export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
@@ -374,44 +370,58 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-fileTypes-for-mdx-rst (advanced)
+  // use-fileTypes-for-rst (advanced)
+  //
+  // Targets `.rst` only because `.mdx` and `.adoc` are already covered
+  // by the default `markdown` / `asciidoc` file-type templates in
+  // `src/core/config.ts`. `extensions` values use the no-dot form
+  // because file detection in `src/common/src/detectTests.ts` compares
+  // against `filePath.split('.').pop().toLowerCase()`.
   // ------------------------------------------------------------------
   {
-    id: "use-fileTypes-for-mdx-rst",
+    id: "use-fileTypes-for-rst",
     priority: 50,
     markdown: [
-      "Doc Detective ignores `.mdx`, `.rst`, and `.adoc` by default. Extend",
-      "`fileTypes` so its detector picks them up:",
+      "Doc Detective doesn't have a built-in `reStructuredText` (`.rst`) file",
+      "type. Extend `fileTypes` so its detector picks them up:",
       "",
       "```json",
       "{",
       "  \"fileTypes\": [",
       "    \"markdown\", \"asciidoc\", \"html\", \"dita\",",
-      "    { \"extends\": \"markdown\", \"extensions\": [\".mdx\"] }",
+      "    { \"extends\": \"markdown\", \"extensions\": [\"rst\"] }",
       "  ]",
       "}",
       "```",
     ].join("\n"),
     when: (ctx) => {
+      // Strip leading dots so "rst" (the schema/runtime form) and
+      // ".rst" (the dotted form some authors might still write) both
+      // count as a custom-extension declaration.
+      const targetExtensions = RST_EXTENSIONS.map((e) =>
+        e.startsWith(".") ? e.slice(1) : e
+      );
       const declared = ctx.config?.fileTypes;
       const hasCustomExtensions = Array.isArray(declared)
         ? declared.some((entry: any) => {
             if (!entry || typeof entry !== "object") return false;
             const exts = entry.extensions;
+            const normalize = (e: any): string =>
+              typeof e === "string"
+                ? (e.startsWith(".") ? e.slice(1) : e).toLowerCase()
+                : "";
             if (typeof exts === "string") {
-              return MDX_RST_EXTENSIONS.includes(exts.toLowerCase());
+              return targetExtensions.includes(normalize(exts));
             }
             if (Array.isArray(exts)) {
-              return exts.some(
-                (e: any) =>
-                  typeof e === "string" &&
-                  MDX_RST_EXTENSIONS.includes(e.toLowerCase())
+              return exts.some((e: any) =>
+                targetExtensions.includes(normalize(e))
               );
             }
             return false;
           })
         : false;
-      return !hasCustomExtensions && ctx.hasMdxRstFiles;
+      return !hasCustomExtensions && ctx.hasRstFiles;
     },
   },
 
@@ -464,7 +474,7 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-openApi-validation (advanced)
+  // use-openApi-validation (feature discovery)
   // ------------------------------------------------------------------
   {
     id: "use-openApi-validation",

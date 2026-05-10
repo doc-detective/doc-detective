@@ -1,10 +1,12 @@
 // Type definitions for the post-run hints system.
 //
 // A `Hint` is a single piece of advice that may be shown to the user after a
-// successful test run. Each hint is gated by a synchronous predicate (`when`)
-// that evaluates a `HintContext` describing the current machine, repo, and
-// run. Predicates must be cheap and side-effect-free — they may be invoked
-// for every hint on every run.
+// test run completes (pass or fail — some hints intentionally fire on
+// failures, like `enable-debug-log` and `use-record-step-on-failure`).
+// Each hint is gated by a synchronous predicate (`when`) that evaluates a
+// `HintContext` describing the current machine, repo, and run. Predicates
+// must be cheap and side-effect-free — they may be invoked for every hint
+// on every run.
 
 /**
  * Information about a single coding-agent adapter, gathered from
@@ -115,11 +117,15 @@ export interface HintContext {
   /** Major Node.js version (e.g. 20 for Node 20.11.0). */
   nodeMajor: number;
   /**
-   * True if the cwd contains at least one `.mdx`, `.rst`, or `.adoc`
-   * file (recursive scan, capped at 100 files to bound worst-case cost
-   * per `./AGENTS.md`). Powers `use-fileTypes-for-mdx-rst`.
+   * True if the cwd (or a parent up to the repo root) contains at
+   * least one `.rst` (reStructuredText) file. `.mdx` and `.adoc` are
+   * intentionally not part of this signal because they are already
+   * covered by the default `markdown` and `asciidoc` file-type
+   * templates in `src/core/config.ts`. Recursive scan capped at 100
+   * files to bound worst-case cost per `./AGENTS.md`. Powers
+   * `use-fileTypes-for-rst`.
    */
-  hasMdxRstFiles: boolean;
+  hasRstFiles: boolean;
   /**
    * True if any goTo/checkLink step in the run used a relative URL — i.e.
    * a value that did not begin with `http://`, `https://`, `file://`, or

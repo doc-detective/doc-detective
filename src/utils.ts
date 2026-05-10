@@ -103,7 +103,7 @@ function buildYargs(args: any): any {
     })
     .option("hints", {
       description:
-        "After a successful test run, show one applicable post-run hint with code samples and links. Disable with --no-hints.",
+        "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enable-debug-log). Disable with --no-hints.",
       type: "boolean",
     })
     .version(require("../package.json").version)
