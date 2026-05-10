@@ -267,7 +267,7 @@ export const HINTS: Hint[] = [
       "as a workflow artifact:",
       "",
       "```bash",
-      "doc-detective --reporters terminal,json",
+      "doc-detective --reporters terminal json",
       "```",
     ].join("\n"),
     when: (ctx) =>
@@ -306,7 +306,7 @@ export const HINTS: Hint[] = [
       "Generate a shareable HTML report alongside the terminal summary:",
       "",
       "```bash",
-      "doc-detective --reporters terminal,json,html",
+      "doc-detective --reporters terminal json html",
       "```",
     ].join("\n"),
     when: (ctx) => {

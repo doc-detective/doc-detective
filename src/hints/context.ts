@@ -522,20 +522,44 @@ export function detectOutputDirGitignored(
   try {
     if (typeof outputDir !== "string" || outputDir.length === 0) return false;
     if (outputDir === "." || outputDir === "./") return false;
-    const text = readGitignoreText(cwd);
-    if (text === null) return false;
-    return gitignoreCovers(text, outputDir);
+    const found = readGitignore(cwd);
+    if (found === null) return false;
+    // `setConfig()` resolves `args.output` to an absolute path, so the
+    // common case from the CLI is `outputDir` being absolute. The
+    // patterns in `.gitignore` are repo-relative, so relativize before
+    // matching. If the relativization escapes the repo root (".."),
+    // there's no way the .gitignore could cover it — short-circuit
+    // false.
+    let candidate = outputDir;
+    if (path.isAbsolute(outputDir)) {
+      candidate = path.relative(found.dir, outputDir);
+      if (candidate.startsWith("..")) return false;
+    }
+    // Normalize Windows path separators to forward slashes so the
+    // matcher (which expects gitignore-style patterns) works on
+    // Windows-resolved absolute paths too.
+    candidate = candidate.replace(/\\/g, "/");
+    return gitignoreCovers(found.text, candidate);
   } catch {
     return false;
   }
 }
 
-function readGitignoreText(start: string): string | null {
+interface GitignoreFile {
+  /** Directory containing the `.gitignore` file. */
+  dir: string;
+  /** Raw text contents of the `.gitignore` file. */
+  text: string;
+}
+
+function readGitignore(start: string): GitignoreFile | null {
   try {
     let dir = path.resolve(start);
     for (let i = 0; i < 30; i++) {
       const file = path.join(dir, ".gitignore");
-      if (fs.existsSync(file)) return fs.readFileSync(file, "utf8");
+      if (fs.existsSync(file)) {
+        return { dir, text: fs.readFileSync(file, "utf8") };
+      }
       const parent = path.dirname(dir);
       if (parent === dir) return null;
       dir = parent;

@@ -527,6 +527,33 @@ describe("hints/context", function () {
         rmTmpDir(root);
       }
     });
+
+    it("relativizes absolute output paths before matching .gitignore", function () {
+      // setConfig() resolves args.output to an absolute path; the matcher
+      // must convert back to repo-relative before comparing against
+      // .gitignore patterns or the hint never resolves to "ignored".
+      const root = makeTmpDir();
+      try {
+        fs.writeFileSync(path.join(root, ".gitignore"), "doc-detective-output/\n");
+        const absoluteOut = path.join(root, "doc-detective-output");
+        expect(detectOutputDirGitignored(root, absoluteOut)).to.equal(true);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
+    it("returns false when an absolute output is outside the gitignore root", function () {
+      const root = makeTmpDir();
+      const elsewhere = makeTmpDir();
+      try {
+        fs.writeFileSync(path.join(root, ".gitignore"), "build/\n");
+        const absoluteOut = path.join(elsewhere, "build");
+        expect(detectOutputDirGitignored(root, absoluteOut)).to.equal(false);
+      } finally {
+        rmTmpDir(root);
+        rmTmpDir(elsewhere);
+      }
+    });
   });
 
   describe("detectMdxRstFiles", function () {
@@ -628,21 +655,26 @@ describe("hints/context", function () {
     });
 
     it("counts failures and totals from results.summary", async function () {
-      const ctx = await buildHintContext({
-        cwd: makeTmpDir(),
-        adapters: [],
-        results: {
-          summary: {
-            specs: { pass: 5, fail: 1 },
-            tests: { pass: 10, fail: 2 },
-            steps: { pass: 30, fail: 3 },
+      const cwd = makeTmpDir();
+      try {
+        const ctx = await buildHintContext({
+          cwd,
+          adapters: [],
+          results: {
+            summary: {
+              specs: { pass: 5, fail: 1 },
+              tests: { pass: 10, fail: 2 },
+              steps: { pass: 30, fail: 3 },
+            },
           },
-        },
-      });
-      expect(ctx.failedCount).to.equal(6);
-      expect(ctx.totalSpecs).to.equal(6);
-      expect(ctx.totalTests).to.equal(12);
-      expect(ctx.totalSteps).to.equal(33);
+        });
+        expect(ctx.failedCount).to.equal(6);
+        expect(ctx.totalSpecs).to.equal(6);
+        expect(ctx.totalTests).to.equal(12);
+        expect(ctx.totalSteps).to.equal(33);
+      } finally {
+        rmTmpDir(cwd);
+      }
     });
 
     it("uses 0 for failedCount when results is missing or malformed", async function () {
@@ -664,6 +696,7 @@ describe("hints/context", function () {
     });
 
     it("populates agentDetections from injected adapters", async function () {
+      const cwd = makeTmpDir();
       const fakeAdapters = [
         {
           id: "alpha",
@@ -691,25 +724,30 @@ describe("hints/context", function () {
           install: async () => ({ adapterId: "gamma", scope: "project", action: "installed" }),
         },
       ];
-      const ctx = await buildHintContext({
-        cwd: makeTmpDir(),
-        adapters: fakeAdapters,
-        agentProbeTimeoutMs: 0,
-      });
-      expect(ctx.agentDetections.map((d) => d.adapterId)).to.deep.equal([
-        "alpha",
-        "beta",
-        "gamma",
-      ]);
-      expect(ctx.agentDetections.find((d) => d.adapterId === "alpha"))
-        .to.include({ present: true, hasAdapterInstalled: false });
-      expect(ctx.agentDetections.find((d) => d.adapterId === "beta"))
-        .to.include({ present: false, hasAdapterInstalled: false });
-      expect(ctx.agentDetections.find((d) => d.adapterId === "gamma"))
-        .to.include({ present: true, hasAdapterInstalled: true });
+      try {
+        const ctx = await buildHintContext({
+          cwd,
+          adapters: fakeAdapters,
+          agentProbeTimeoutMs: 0,
+        });
+        expect(ctx.agentDetections.map((d) => d.adapterId)).to.deep.equal([
+          "alpha",
+          "beta",
+          "gamma",
+        ]);
+        expect(ctx.agentDetections.find((d) => d.adapterId === "alpha"))
+          .to.include({ present: true, hasAdapterInstalled: false });
+        expect(ctx.agentDetections.find((d) => d.adapterId === "beta"))
+          .to.include({ present: false, hasAdapterInstalled: false });
+        expect(ctx.agentDetections.find((d) => d.adapterId === "gamma"))
+          .to.include({ present: true, hasAdapterInstalled: true });
+      } finally {
+        rmTmpDir(cwd);
+      }
     });
 
     it("a hung adapter does not stall the post-run summary", async function () {
+      const cwd = makeTmpDir();
       const hung = {
         id: "hung",
         displayName: "Hung",
@@ -718,16 +756,20 @@ describe("hints/context", function () {
         getInstallState: async () => ({ installed: false }),
         install: async () => ({ adapterId: "hung", scope: "project", action: "installed" }),
       };
-      const start = Date.now();
-      const ctx = await buildHintContext({
-        cwd: makeTmpDir(),
-        adapters: [hung],
-        agentProbeTimeoutMs: 50,
-      });
-      const elapsed = Date.now() - start;
-      expect(elapsed).to.be.below(500); // way under the test timeout
-      // Hung adapter is dropped (probeOneAdapter returned null).
-      expect(ctx.agentDetections).to.deep.equal([]);
+      try {
+        const start = Date.now();
+        const ctx = await buildHintContext({
+          cwd,
+          adapters: [hung],
+          agentProbeTimeoutMs: 50,
+        });
+        const elapsed = Date.now() - start;
+        expect(elapsed).to.be.below(500); // way under the test timeout
+        // Hung adapter is dropped (probeOneAdapter returned null).
+        expect(ctx.agentDetections).to.deep.equal([]);
+      } finally {
+        rmTmpDir(cwd);
+      }
     });
   });
 });
