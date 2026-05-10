@@ -107,7 +107,8 @@ export async function buildHintContext(
       : AGENT_PROBE_TIMEOUT_MS
   );
 
-  const hasDocDetectiveNpmScript = readNpmScripts(cwd);
+  const hasPackageJson = packageJsonExists(cwd);
+  const hasDocDetectiveNpmScript = hasPackageJson && readNpmScripts(cwd);
   const outputDirGitignored = detectOutputDirGitignored(cwd, config.output);
   const nodeMajor = parseNodeMajor(process.versions.node);
   const hasMdxRstFiles = detectMdxRstFiles(cwd);
@@ -134,6 +135,7 @@ export async function buildHintContext(
     hasCurlInRunShell: walkData.hasCurlInRunShell,
     hasNodeOrPythonInRunShell: walkData.hasNodeOrPythonInRunShell,
     agentDetections,
+    hasPackageJson,
     hasDocDetectiveNpmScript,
     outputDirGitignored,
     nodeMajor,
@@ -481,16 +483,31 @@ function withTimeout<T>(
   fallback: T
 ): Promise<T> {
   if (!Number.isFinite(ms) || ms <= 0) return p;
-  let timer: NodeJS.Timeout;
+  let timer: NodeJS.Timeout | undefined;
   const timeoutPromise = new Promise<T>((resolve) => {
     timer = setTimeout(() => resolve(fallback), ms);
   });
-  return Promise.race([p, timeoutPromise]).finally(() => clearTimeout(timer!));
+  return Promise.race([p, timeoutPromise]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
 }
 
 // ---------------------------------------------------------------------
 // package.json scripts probe
 // ---------------------------------------------------------------------
+
+/**
+ * True when `<cwd>/package.json` exists. Used to gate hints that
+ * advise editing `package.json` (like `add-npm-script`) so non-Node
+ * projects don't see them.
+ */
+export function packageJsonExists(cwd: string): boolean {
+  try {
+    return fs.existsSync(path.join(cwd, "package.json"));
+  } catch {
+    return false;
+  }
+}
 
 export function readNpmScripts(cwd: string): boolean {
   try {

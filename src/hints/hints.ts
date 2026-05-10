@@ -64,7 +64,10 @@ export const HINTS: Hint[] = [
       "}",
       "```",
     ].join("\n"),
-    when: (ctx) => ctx.hasDocDetectiveNpmScript === false,
+    // Only suggest the npm script when there's actually a package.json
+    // to add it to. Non-Node projects shouldn't see this hint.
+    when: (ctx) =>
+      ctx.hasPackageJson === true && ctx.hasDocDetectiveNpmScript === false,
   },
 
   // ------------------------------------------------------------------
@@ -187,9 +190,14 @@ export const HINTS: Hint[] = [
       "",
       "More: [doc-detective.com/docs/agents](https://doc-detective.com/docs/integrations/ai-agents)",
     ].join("\n"),
+    // Fire when at least one detected agent does NOT have the adapter
+    // installed. Earlier versions used `every(!hasAdapterInstalled)`,
+    // which silenced the hint as soon as a single agent had the
+    // adapter — even if the user also runs other agents that don't.
+    // The intent is to over-promote installation, so we hint as long
+    // as one of the user's agents is missing it.
     when: (ctx) =>
-      ctx.agentDetections.some((d) => d.present) &&
-      ctx.agentDetections.every((d) => !d.hasAdapterInstalled),
+      ctx.agentDetections.some((d) => d.present && !d.hasAdapterInstalled),
   },
 
   // ------------------------------------------------------------------
@@ -556,10 +564,14 @@ export const HINTS: Hint[] = [
       "doc-detective --test smoke,checkout",
       "```",
     ].join("\n"),
+    // `?.length` is the right defense: an empty array passes
+    // `!ctx.config?.specFilter`'s truthiness check (truthy: array is
+    // an object), which would silence the hint even when no filter is
+    // actually active.
     when: (ctx) =>
       ctx.totalSpecs >= 30 &&
-      !ctx.config?.specFilter &&
-      !ctx.config?.testFilter,
+      !ctx.config?.specFilter?.length &&
+      !ctx.config?.testFilter?.length,
   },
 
   // ------------------------------------------------------------------

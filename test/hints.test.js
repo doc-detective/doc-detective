@@ -626,6 +626,7 @@ describe("hints/context", function () {
         expect(ctx.totalSpecs).to.equal(0);
         expect(ctx.usedStepTypes).to.be.an.instanceof(Set);
         expect(ctx.agentDetections).to.deep.equal([]);
+        expect(ctx.hasPackageJson).to.equal(false);
         expect(ctx.hasDocDetectiveNpmScript).to.equal(false);
         expect(ctx.outputDirGitignored).to.equal(false);
         expect(ctx.nodeMajor).to.be.a("number").and.greaterThan(0);
@@ -962,6 +963,7 @@ function fakeCtx(partial = {}) {
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
     agentDetections: [],
+    hasPackageJson: true,
     hasDocDetectiveNpmScript: true,
     outputDirGitignored: true,
     nodeMajor: 22,
@@ -1047,11 +1049,27 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ configPath: ".doc-detective.json" }))).to.equal(false);
   });
 
-  it("add-npm-script: fires when no doc-detective npm script exists", function () {
+  it("add-npm-script: fires only when package.json exists and lacks a doc-detective script", function () {
     const h = findHint("add-npm-script");
     expect(h.priority).to.equal(10);
-    expect(h.when(fakeCtx({ hasDocDetectiveNpmScript: false }))).to.equal(true);
-    expect(h.when(fakeCtx({ hasDocDetectiveNpmScript: true }))).to.equal(false);
+    // package.json exists, no doc-detective script -> fire
+    expect(
+      h.when(
+        fakeCtx({ hasPackageJson: true, hasDocDetectiveNpmScript: false })
+      )
+    ).to.equal(true);
+    // package.json exists with a doc-detective script -> skip
+    expect(
+      h.when(
+        fakeCtx({ hasPackageJson: true, hasDocDetectiveNpmScript: true })
+      )
+    ).to.equal(false);
+    // No package.json -> non-Node project, never hint
+    expect(
+      h.when(
+        fakeCtx({ hasPackageJson: false, hasDocDetectiveNpmScript: false })
+      )
+    ).to.equal(false);
   });
 
   it("gitignore-output-dir: fires when output is set, non-cwd, and not ignored", function () {
@@ -1068,9 +1086,10 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("install-agents: fires when an agent is present and none has the adapter installed", function () {
+  it("install-agents: fires when ANY present agent lacks the adapter (over-promote)", function () {
     const h = findHint("install-agents");
     expect(h.priority).to.equal(10);
+    // One present agent, no adapter -> fire
     expect(
       h.when(
         fakeCtx({
@@ -1080,7 +1099,7 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(true);
-    // At least one agent already has the adapter -> skip.
+    // Mixed: A has adapter, B does not -> still fire (B is missing it)
     expect(
       h.when(
         fakeCtx({
@@ -1090,9 +1109,30 @@ describe("hints/hints (registry)", function () {
           ],
         })
       )
+    ).to.equal(true);
+    // Both present agents have the adapter -> skip
+    expect(
+      h.when(
+        fakeCtx({
+          agentDetections: [
+            { adapterId: "a", displayName: "A", present: true, hasAdapterInstalled: true },
+            { adapterId: "b", displayName: "B", present: true, hasAdapterInstalled: true },
+          ],
+        })
+      )
     ).to.equal(false);
-    // No agents present -> skip.
+    // No agents present -> skip
     expect(h.when(fakeCtx({ agentDetections: [] }))).to.equal(false);
+    // Agent recorded but not present (adapterId in registry but absent on machine) -> skip
+    expect(
+      h.when(
+        fakeCtx({
+          agentDetections: [
+            { adapterId: "a", displayName: "A", present: false, hasAdapterInstalled: false },
+          ],
+        })
+      )
+    ).to.equal(false);
   });
 
   // ----- current-run problems (priority 20) -----
@@ -1337,7 +1377,12 @@ describe("hints/hints (registry)", function () {
     expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ totalSpecs: 30 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 30, config: { specFilter: ["x"] } }))).to.equal(false);
+    expect(h.when(fakeCtx({ totalSpecs: 30, config: { testFilter: ["x"] } }))).to.equal(false);
     expect(h.when(fakeCtx({ totalSpecs: 5 }))).to.equal(false);
+    // Empty arrays are not active filters — must not silence the hint.
+    expect(
+      h.when(fakeCtx({ totalSpecs: 30, config: { specFilter: [], testFilter: [] } }))
+    ).to.equal(true);
   });
 
   it("recursive-might-be-too-broad: fires only when recursive (default) and 100+ specs", function () {

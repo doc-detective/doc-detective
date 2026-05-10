@@ -96,6 +96,12 @@ export interface HintContext {
   /** Per-adapter detection result. Empty array on probe failure. */
   agentDetections: AgentDetection[];
   /**
+   * True if `<cwd>/package.json` exists. Hints that suggest editing
+   * `package.json` (like `add-npm-script`) gate on this so non-Node
+   * projects don't see them.
+   */
+  hasPackageJson: boolean;
+  /**
    * True if `<cwd>/package.json` exists and any `scripts[*]` value contains
    * the literal substring `doc-detective`.
    */
