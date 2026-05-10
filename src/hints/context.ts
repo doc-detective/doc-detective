@@ -69,8 +69,6 @@ export interface BuildHintContextOptions {
   cwd?: string;
   /** Defaults to `!!process.stdout.isTTY`. Injectable for tests. */
   isTTY?: boolean;
-  /** Defaults to `process.env`. Injectable for tests. */
-  env?: NodeJS.ProcessEnv;
   /** Defaults to `os.platform()`. Injectable for tests. */
   platform?: NodeJS.Platform;
   /** Defaults to `listAdapters()`. Injectable for tests. */

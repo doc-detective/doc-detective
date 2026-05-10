@@ -11,8 +11,11 @@
 //                         otherwise `text (url)` with the URL in cyan
 //   - / * list items    → "  • item"
 //
-// No new dependencies. The `colors` palette mirrors the one used by
-// `terminalReporter` in `src/utils.ts`; both are intentionally tiny.
+// No new dependencies. The `colors` palette is a deliberate superset
+// of the small palette used by `terminalReporter` in `src/utils.ts`
+// (red/green/yellow/cyan/reset/bold) — `italic` and `dim` are added
+// here because hint markdown needs them. Both palettes are
+// intentionally tiny; they don't share a definition.
 
 export const colors = {
   red: "\x1b[31m",

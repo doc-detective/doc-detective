@@ -66,7 +66,11 @@ export async function maybeShowHint(
     // results walk. Tests that pass `contextOverride` set the TTY flag
     // explicitly and bypass this check, so coverage of the non-TTY
     // skip rule lives in the contextOverride-driven test below.
-    if (!options.contextOverride && process.stdout.isTTY === false) return;
+    //
+    // Falsy check (not strict `=== false`) because Node leaves
+    // `process.stdout.isTTY` as `undefined` when stdout is piped or
+    // redirected — the most common non-TTY case in CI.
+    if (!options.contextOverride && !process.stdout.isTTY) return;
 
     const ctx =
       options.contextOverride ??
