@@ -121,10 +121,27 @@ Better to be explicit.
    [`context.ts`](./context.ts), which builds a fully populated
    `HintContext` before any predicate runs.
 
-2. **Defensive.** Read every field with `?.` and tolerate missing data.
-   `ctx.config?.reporters?.includes("html")` — not
-   `ctx.config.reporters.includes("html")`. The hint registry must work
-   on a half-broken results shape from a failed run.
+2. **Defensive on untrusted data, direct on guaranteed fields.** There
+   are two kinds of reads in a predicate:
+   - **User- or runner-supplied data** under `ctx.config.*` and
+     `ctx.results.*`. Shapes are not guaranteed (config is typed as
+     `any`; results can be partial on failure). Read these with `?.`:
+     `ctx.config?.reporters?.includes("html")` — not
+     `ctx.config.reporters.includes("html")`.
+   - **Context-level fields** directly on `HintContext` (e.g.
+     `ctx.failedCount`, `ctx.usedStepTypes`, `ctx.nodeMajor`,
+     `ctx.configPath`). These are populated by `buildHintContext`
+     with defensive try/catch and concrete defaults (empty `Set`,
+     `0`, `false`, `null`). Their types in `types.ts` are
+     non-optional, and TypeScript will fail the build if a field
+     ever becomes nullable. **Read these directly** — adding `?.` to
+     a field the type system guarantees is non-null is noise at best
+     and masks real refactor bugs at worst (a silent `undefined ?? 0`
+     comparison instead of a loud type error).
+
+   Hint registry still must work on a half-broken **results shape**
+   from a failed run — that's why the `ctx.results.*` rule above is
+   important — but the context wrapping it is guaranteed.
 
 3. **Tight.** A hint should fire when the user would clearly benefit,
    not just when "feature X isn't enabled." The `tryHtmlReporter`
