@@ -18,7 +18,7 @@ import {
   detectRstFiles,
   runInvokesDocDetective,
 } from "../dist/hints/context.js";
-import { maybeShowHint, pickByPriority } from "../dist/hints/index.js";
+import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -975,7 +975,7 @@ describe("hints/index (maybeShowHint)", function () {
     },
   ];
 
-  it("prints the hint with prefix and footer when everything aligns", async function () {
+  it("prints the hint with prefix on the same line for a single-line body", async function () {
     const cap = captureLines();
     await maybeShowHint(
       { logLevel: "info" },
@@ -987,11 +987,57 @@ describe("hints/index (maybeShowHint)", function () {
         print: cap.print,
       }
     );
-    expect(cap.lines.length).to.equal(4); // blank, prefix, body, footer
+    // Single-line hint body collapses to two prints: a leading blank
+    // and a combined prefix + body line. No footer.
+    expect(cap.lines.length).to.equal(2);
     expect(cap.lines[0]).to.equal("");
     expect(cap.lines[1]).to.include("Hint:");
-    expect(cap.lines[2]).to.include("always");
-    expect(cap.lines[3]).to.include("Hide hints");
+    expect(cap.lines[1]).to.include("always");
+  });
+
+  it("emits multi-line body as a second print after the prefix line", async function () {
+    // Multi-line markdown should still keep its line shape — the
+    // renderer's output goes through one print call after the prefix.
+    const cap = captureLines();
+    const multiLineHint = [
+      {
+        id: "multi",
+        markdown: "first line\nsecond line\nthird line",
+        when: () => true,
+      },
+    ];
+    await maybeShowHint(
+      { logLevel: "info" },
+      null,
+      {
+        hints: multiLineHint,
+        contextOverride: ctxOverride(),
+        random: () => 0,
+        print: cap.print,
+      }
+    );
+    expect(cap.lines.length).to.equal(3); // blank, prefix+first, rest
+    expect(cap.lines[0]).to.equal("");
+    expect(cap.lines[1]).to.include("Hint:");
+    expect(cap.lines[1]).to.include("first line");
+    expect(cap.lines[2]).to.equal("second line\nthird line");
+  });
+
+  it("does not emit the 'Hide hints' footer", async function () {
+    const cap = captureLines();
+    await maybeShowHint(
+      { logLevel: "info" },
+      null,
+      {
+        hints: oneHint,
+        contextOverride: ctxOverride(),
+        random: () => 0,
+        print: cap.print,
+      }
+    );
+    for (const line of cap.lines) {
+      expect(line).to.not.include("Hide hints");
+    }
   });
 
   it("rule 1: skips when config.hints.enabled === false", async function () {
@@ -1090,7 +1136,8 @@ describe("hints/index (maybeShowHint)", function () {
       null,
       { hints: oneHint, contextOverride: ctxOverride(), print: cap.print }
     );
-    expect(cap.lines.length).to.equal(4);
+    // Single-line oneHint: blank + prefix+body
+    expect(cap.lines.length).to.equal(2);
   });
 
   it("rule 4: skips when no predicate matches", async function () {
@@ -1122,8 +1169,9 @@ describe("hints/index (maybeShowHint)", function () {
         print: cap.print,
       }
     );
-    expect(cap.lines.length).to.equal(4);
-    expect(cap.lines[2]).to.include("ok");
+    expect(cap.lines.length).to.equal(2);
+    // Prefix+body line carries the surviving hint's content.
+    expect(cap.lines[1]).to.include("ok");
   });
 
   it("does not throw if Math.random returns 1 (boundary)", async function () {
@@ -1139,7 +1187,7 @@ describe("hints/index (maybeShowHint)", function () {
         print: cap.print,
       }
     );
-    expect(cap.lines.length).to.equal(4);
+    expect(cap.lines.length).to.equal(2);
   });
 
   it("never throws even if a print call throws", async function () {
@@ -1201,27 +1249,62 @@ function findHint(id) {
   return hint;
 }
 
-describe("hints/index pickByPriority", function () {
+describe("hints/index pickByPriority + priorityWeight", function () {
   it("returns the only hint when there is exactly one eligible", function () {
     const h = { id: "x", markdown: "x", when: () => true, priority: 50 };
     expect(pickByPriority([h], () => 0).id).to.equal("x");
   });
 
-  it("filters to the lowest priority value before random-picking", function () {
-    const onboarding = { id: "a", markdown: "a", when: () => true, priority: 10 };
-    const advanced = { id: "b", markdown: "b", when: () => true, priority: 50 };
-    // No matter what random returns, only the priority-10 hint is a candidate.
-    for (const r of [0, 0.49, 0.99]) {
-      expect(pickByPriority([advanced, onboarding], () => r).id).to.equal("a");
-    }
+  it("priorityWeight maps tiers to the documented 5:4:3:2:1 ramp", function () {
+    expect(priorityWeight(10)).to.equal(5);
+    expect(priorityWeight(20)).to.equal(4);
+    expect(priorityWeight(30)).to.equal(3);
+    expect(priorityWeight(40)).to.equal(2);
+    expect(priorityWeight(50)).to.equal(1);
+    // Off-band values clamp.
+    expect(priorityWeight(0)).to.equal(5);
+    expect(priorityWeight(100)).to.equal(1);
+    // Undefined falls through to the default tier (50).
+    expect(priorityWeight(undefined)).to.equal(1);
   });
 
-  it("treats missing priority as 50 (default)", function () {
-    const advanced = { id: "a", markdown: "a", when: () => true };
+  it("biases toward lower-priority tiers without filtering them out", function () {
+    // The old algorithm filtered hard to the lowest tier — the
+    // priority-10 hint always won. The new weighted algorithm gives
+    // lower tiers a chance: at random=0.99 (drawing from the tail of
+    // the weighted distribution) a lower-tier hint can be picked.
+    const onboarding = { id: "a", markdown: "a", when: () => true, priority: 10 };
+    const advanced = { id: "b", markdown: "b", when: () => true, priority: 50 };
+    // Weights: onboarding=5, advanced=1, total=6. r=0 → pick first
+    // (onboarding, 5/6 of the range). r=0.99 → consumes 5.94 of the
+    // weight space, the last 0.06 lands in the advanced bucket.
+    expect(pickByPriority([onboarding, advanced], () => 0).id).to.equal("a");
+    expect(pickByPriority([onboarding, advanced], () => 0.99).id).to.equal("b");
+  });
+
+  it("respects total weight across many eligible hints", function () {
+    // Three tiers represented. Total weight = 5 + 3 + 1 = 9.
+    // r=0 → first eligible (tier-10, weight 5)
+    // r=5/9 (just past 5) → second eligible (tier-30, weight 3)
+    // r=8/9 (just past 8) → third eligible (tier-50, weight 1)
+    const tier10 = { id: "ten", markdown: "x", when: () => true, priority: 10 };
+    const tier30 = { id: "thirty", markdown: "x", when: () => true, priority: 30 };
+    const tier50 = { id: "fifty", markdown: "x", when: () => true, priority: 50 };
+    const eligible = [tier10, tier30, tier50];
+    expect(pickByPriority(eligible, () => 0).id).to.equal("ten");
+    expect(pickByPriority(eligible, () => 0.6).id).to.equal("thirty");
+    expect(pickByPriority(eligible, () => 0.95).id).to.equal("fifty");
+  });
+
+  it("treats missing priority as the default (weight 1)", function () {
+    const noPriority = { id: "a", markdown: "a", when: () => true };
     const fallback = { id: "b", markdown: "b", when: () => true, priority: 50 };
-    // Both default to 50 → tied → random pick across both.
+    // Both are weight 1 → 50/50 split.
     expect(["a", "b"]).to.include(
-      pickByPriority([advanced, fallback], () => 0).id
+      pickByPriority([noPriority, fallback], () => 0).id
+    );
+    expect(["a", "b"]).to.include(
+      pickByPriority([noPriority, fallback], () => 0.99).id
     );
   });
 });

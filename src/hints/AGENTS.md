@@ -96,10 +96,15 @@ The id-shape regex is enforced by `test/hints.test.js`:
 
 ## Priority bands
 
-Pick the **lowest band** that applies — lower = more important. The
-selection algorithm filters to the lowest priority among eligible hints
-before random-picking, so a tier-10 hint always wins over a tier-50 hint
-when both are eligible.
+Pick the **lowest band** that applies — lower = more important. All
+eligible hints stay in the selection pool; priority is mapped to a
+selection weight via `priorityWeight` in `./index.ts` (5:4:3:2:1
+across the five bands). So a tier-10 hint is roughly 5× more likely
+than a tier-50 hint when both are eligible, but neither is exclusive
+— users see a mix biased toward the most-important relevant tip.
+Earlier versions filtered hard to the single lowest tier and users
+reported "seeing almost nothing but the highest-priority hints"; the
+weighted scheme replaces that.
 
 | Band | When to use |
 |------|-------------|

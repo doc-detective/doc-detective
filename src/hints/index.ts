@@ -7,16 +7,16 @@
 //
 // Selection algorithm (see ./AGENTS.md for the rationale):
 //   1. Filter the registry to hints whose `when()` returns true.
-//   2. Find the lowest `priority` value among the eligible hints
-//      (default priority = 50 if omitted).
-//   3. Keep only hints tied at that lowest priority.
-//   4. Pick uniformly at random from those.
+//   2. Compute a weight for each eligible hint via `priorityWeight()`
+//      (priority 10 → 5, 20 → 4, 30 → 3, 40 → 2, 50 → 1).
+//   3. Pick one via a weighted random draw across the full eligible
+//      pool.
 //
-// This biases output toward the most-important relevant tip rather than
-// a uniform-random pick across all eligible hints. New users see
-// onboarding hints (priority 10) until those are no longer applicable;
-// veterans see optimization hints (priority 50) once the early tiers
-// stop firing.
+// This biases output toward higher-priority tiers without making them
+// exclusive — earlier versions filtered hard to the lowest tier and
+// users reported "almost nothing but the highest-priority hints". The
+// weighted scheme keeps lower tiers in rotation while still favouring
+// onboarding-tier hints for new users.
 
 import { log } from "../utils.js";
 import { buildHintContext } from "./context.js";
@@ -112,13 +112,21 @@ export async function maybeShowHint(
 
     const chosen = pickByPriority(eligible, options.random ?? Math.random);
 
+    // Render and pull the first markdown line onto the prefix line so
+    // short hints (single-line ones, ~half of the registry) fit in two
+    // terminal lines including the leading blank. Multi-line hint
+    // bodies still get the rest of their content emitted as a second
+    // print call to preserve the renderer's line shape.
+    const rendered = renderMarkdown(chosen.markdown);
+    const newlineIdx = rendered.indexOf("\n");
+    const firstLine =
+      newlineIdx === -1 ? rendered : rendered.slice(0, newlineIdx);
+    const restLines = newlineIdx === -1 ? "" : rendered.slice(newlineIdx + 1);
+
     const print = options.print ?? ((line: string) => console.log(line));
     print("");
-    print(`${colors.dim}💡 Hint:${colors.reset}`);
-    print(renderMarkdown(chosen.markdown));
-    print(
-      `${colors.dim}Hide hints: --no-hints or set hints.enabled: false in your config${colors.reset}`
-    );
+    print(`${colors.dim}💡 Hint:${colors.reset} ${firstLine}`);
+    if (restLines.length > 0) print(restLines);
   } catch (err) {
     log(
       `hints: maybeShowHint failed: ${(err as Error)?.message ?? err}`,
@@ -129,18 +137,43 @@ export async function maybeShowHint(
 }
 
 /**
- * Pick the most-important applicable hint. Exported so tests can drive
- * the algorithm directly without the surrounding I/O.
+ * Compute the selection weight for a hint's priority. Lower priority
+ * means higher weight, with a gentle ramp:
+ *
+ *   priority 10 → weight 5  (onboarding)
+ *   priority 20 → weight 4  (current-run problems)
+ *   priority 30 → weight 3  (output / reporting)
+ *   priority 40 → weight 2  (feature discovery)
+ *   priority 50 → weight 1  (advanced / optimization)
+ *
+ * Anything below 10 still maps to 5; anything above 50 clamps to 1.
+ * Missing priority defaults to weight 1.
+ */
+export function priorityWeight(priority: number | undefined): number {
+  const p = typeof priority === "number" ? priority : DEFAULT_PRIORITY;
+  return Math.max(1, Math.min(5, 6 - Math.floor(p / 10)));
+}
+
+/**
+ * Pick one applicable hint with a weighted random draw biased toward
+ * higher-priority (lower-numbered) tiers. Earlier versions filtered
+ * hard to the single lowest-priority tier, which meant users almost
+ * always saw the same onboarding hint and rarely discovered
+ * lower-tier ones. The new scheme keeps all eligible hints in the
+ * draw and uses `priorityWeight` to bias the outcome.
+ *
+ * Exported so tests can drive the algorithm directly without the
+ * surrounding I/O.
  */
 export function pickByPriority(eligible: Hint[], rand: () => number): Hint {
-  let lowest = Number.POSITIVE_INFINITY;
-  for (const h of eligible) {
-    const p = typeof h.priority === "number" ? h.priority : DEFAULT_PRIORITY;
-    if (p < lowest) lowest = p;
+  if (eligible.length === 1) return eligible[0];
+  const weights = eligible.map((h) => priorityWeight(h.priority));
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  let r = rand() * total;
+  for (let i = 0; i < eligible.length; i++) {
+    r -= weights[i];
+    if (r < 0) return eligible[i];
   }
-  const tied = eligible.filter(
-    (h) => (typeof h.priority === "number" ? h.priority : DEFAULT_PRIORITY) === lowest
-  );
-  const idx = Math.floor(rand() * tied.length);
-  return tied[Math.min(idx, tied.length - 1)];
+  // Defensive fallback for floating-point rounding at the very tail.
+  return eligible[eligible.length - 1];
 }

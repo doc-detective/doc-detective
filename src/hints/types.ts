@@ -166,10 +166,13 @@ export interface Hint {
   /** Predicate. Hint is eligible iff this returns true. */
   when: (ctx: HintContext) => boolean;
   /**
-   * Lower = more important. After eligibility filtering, only hints tied
-   * for the lowest priority are candidates for random selection. Defaults
-   * to 50 if omitted, so newly-added hints surface but don't drown out
-   * onboarding ones.
+   * Lower = more important. All eligible hints stay in the selection
+   * pool; priority is mapped to a selection weight (5:4:3:2:1 across
+   * the bands below — `priorityWeight` in `./index.ts` is the source
+   * of truth), so a priority-10 hint is roughly 5× more likely than
+   * a priority-50 one when both are eligible, but neither is
+   * exclusive. Defaults to 50 if omitted, so newly-added hints
+   * surface but don't drown out onboarding ones.
    *
    * Conventional bands:
    *   10 — onboarding (CI, config file, npm script, installAgents)
