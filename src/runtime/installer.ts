@@ -77,12 +77,16 @@ export async function installRuntime(
   const reports: InstallReport[] = [];
 
   if (dryRun) {
+    // `installedVersion` describes what is *on disk*; in a dry run nothing
+    // has changed on disk yet. Surface the declared package.json range in
+    // `notes` instead so consumers don't render a constraint string (e.g.
+    // `^7.0.0`) in a column that elsewhere shows a resolved version.
     for (const name of targets) {
       reports.push({
         assetId: name,
         kind: "npm",
         action: "dry-run",
-        installedVersion: getDeclaredVersion(name),
+        notes: [`would install ${name}@${getDeclaredVersion(name)}`],
       });
     }
     return reports;

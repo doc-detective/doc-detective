@@ -69,7 +69,14 @@ describe("runtime/installer", function () {
       for (const r of reports) {
         expect(r.action).to.equal("dry-run");
         expect(r.kind).to.equal("npm");
-        expect(r.installedVersion).to.be.a("string");
+        // dry-run reports must NOT set installedVersion — nothing has been
+        // installed yet. The would-be install target lives in `notes` so
+        // CLI output and API consumers don't render a constraint range
+        // (e.g. `^7.0.0`) in a column that elsewhere shows a resolved
+        // version.
+        expect(r.installedVersion).to.be.undefined;
+        expect(r.notes).to.be.an("array").with.lengthOf.at.least(1);
+        expect(r.notes[0]).to.match(/^would install /);
       }
     });
 
