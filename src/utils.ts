@@ -336,8 +336,16 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
   }
-  if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
-    config.cacheDir = args.cacheDir;
+  if (typeof args.cacheDir === "string") {
+    // Mirror the schema's `pattern: "\\S"` defense — the schema rejects
+    // whitespace-only cacheDir values from config files / env vars, and
+    // the CLI override path should follow the same contract so users
+    // can't sneak `--cache-dir "   "` past validation. Trim first and
+    // ignore the override if nothing meaningful is left.
+    const trimmed = args.cacheDir.trim();
+    if (trimmed.length > 0) {
+      config.cacheDir = trimmed;
+    }
   }
   // Resolve paths
   config = await resolvePaths({

@@ -2,6 +2,7 @@ import os from "node:os";
 import { validate } from "../common/src/validate.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
 import path from "node:path";
+import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep } from "../runtime/loader.js";
 import { getBrowsersDir, getRuntimeDir } from "../runtime/cacheDir.js";
 import { setAppiumHome } from "./appium.js";
@@ -617,23 +618,52 @@ async function getAvailableApps({ config }: any) {
     // posture even with APPIUM_HOME set, because APPIUM_HOME only
     // governs driver lookup, not binary resolution.
     //
-    // Pass args as an array to avoid `spawnCommand`'s single-string
-    // split-on-space behavior — a `runtimeDir` containing a space
-    // would otherwise break into multiple bogus args. This also keeps
-    // the `runtimeDir` value out of any shell-interpreted string,
-    // matching the CodeQL guidance applied to the Appium spawns in
-    // src/core/tests.ts.
+    // Use `spawn` directly (not the shared `spawnCommand`) because
+    // spawnCommand splits the command string on spaces internally —
+    // which CodeQL flags as a shell-construction pattern when any of
+    // those args derive from user input like `config.cacheDir`. By
+    // spawning npm directly with an arg array and no shell, the
+    // `runtimeDir` value goes to npm verbatim and never touches a
+    // shell-interpreted string.
     const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
     const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-    const installedAppiumDrivers = await spawnCommand(npmCmd, [
-      "exec",
-      "--prefix",
-      runtimeDir,
-      "--",
-      "appium",
-      "driver",
-      "list",
-    ]);
+    const installedAppiumDrivers = await new Promise<{
+      stdout: string;
+      stderr: string;
+      exitCode: number;
+    }>((resolve) => {
+      const child = spawnChild(
+        npmCmd,
+        ["exec", "--prefix", runtimeDir, "--", "appium", "driver", "list"],
+        { env: process.env }
+      );
+      let stdout = "";
+      let stderr = "";
+      child.stdout?.on("data", (c: Buffer | string) => {
+        stdout += typeof c === "string" ? c : c.toString("utf8");
+      });
+      child.stderr?.on("data", (c: Buffer | string) => {
+        stderr += typeof c === "string" ? c : c.toString("utf8");
+      });
+      // Treat a spawn error (ENOENT, EACCES) as exitCode 1 with the
+      // message in stderr so the downstream driver-presence regex
+      // checks degrade to "no drivers detected" rather than aborting
+      // the run.
+      child.on("error", (err) => {
+        resolve({
+          stdout: stdout.replace(/\n$/, ""),
+          stderr: (stderr + String(err)).replace(/\n$/, ""),
+          exitCode: 1,
+        });
+      });
+      child.on("close", (code: number | null) => {
+        resolve({
+          stdout: stdout.replace(/\n$/, ""),
+          stderr: stderr.replace(/\n$/, ""),
+          exitCode: code ?? 1,
+        });
+      });
+    });
 
     // Note: Edge/Microsoft Edge detection is intentionally excluded
     // Only Chrome, Firefox, and Safari are supported browsers

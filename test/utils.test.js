@@ -270,6 +270,22 @@ describe("Util tests", function () {
     expect(config.cacheDir).to.equal(undefined);
   });
 
+  it("setConfig ignores whitespace-only --cache-dir override", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--cache-dir", "   "]);
+    const config = await setConfig({ configPath: null, args });
+    // Mirrors the schema's `pattern: \\S` defense — a CLI override of
+    // whitespace-only must not slip past validation and reach runtime.
+    expect(config.cacheDir).to.equal(undefined);
+  });
+
+  it("setConfig trims --cache-dir override before applying", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--cache-dir", "  /tmp/dd  "]);
+    const config = await setConfig({ configPath: null, args });
+    expect(config.cacheDir).to.equal("/tmp/dd");
+  });
+
   it("setConfig stores --reporters arg on config.reporters", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--reporters", "html", "terminal"]);
