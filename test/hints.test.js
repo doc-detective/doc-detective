@@ -1415,6 +1415,11 @@ describe("hints/hints (registry)", function () {
     const h = findHint("upgradeNodeVersion");
     expect(h.priority).to.equal(20);
     expect(h.when(fakeCtx({ nodeMajor: 18 }))).to.equal(true);
+    // Node 19 is in the < 20 range too — included as a regression
+    // anchor so the hint body's "19 or older" stays in sync with the
+    // predicate. If the predicate ever narrows to < 19, this test
+    // should be updated alongside the hint markdown.
+    expect(h.when(fakeCtx({ nodeMajor: 19 }))).to.equal(true);
     expect(h.when(fakeCtx({ nodeMajor: 20 }))).to.equal(false);
     expect(h.when(fakeCtx({ nodeMajor: 22 }))).to.equal(false);
     expect(h.when(fakeCtx({ nodeMajor: 0 }))).to.equal(false);

@@ -309,7 +309,7 @@ export const HINTS: Hint[] = [
     id: "upgradeNodeVersion",
     priority: 20,
     markdown: [
-      "You're on Node 18 or older. Doc Detective targets Node 20+ — older runtimes hit obscure bugs in the browser stack and the schema parser. Upgrade and retry:",
+      "You're on Node 19 or older. Doc Detective targets Node 20+ — older runtimes hit obscure bugs in the browser stack and the schema parser. Upgrade and retry:",
       "",
       "More: [Node.js release schedule](https://nodejs.org/en/about/previous-releases)",
     ].join("\n"),
