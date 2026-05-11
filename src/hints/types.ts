@@ -45,9 +45,18 @@ export interface HintContext {
   isGitHubRepo: boolean;
   /**
    * True when `.github/workflows/*.{yml,yaml}` contains at least one job
-   * step that uses `doc-detective/...` (action) or runs a command starting
-   * with `doc-detective`. Parsed YAML — not a string match — to avoid
-   * false positives on commented-out steps.
+   * step that either:
+   *   - `uses:` an action with the `doc-detective/` owner, or
+   *   - has a `run:` script in which doc-detective appears as an actual
+   *     command invocation. "Command invocation" means at the start of
+   *     the script or after a shell separator (`&&`, `||`, `;`, `|`,
+   *     newline), optionally prefixed by a runner like `npx`, `yarn`,
+   *     `pnpm`, `pnpm dlx`, or `bunx` (with any dash-flags they take).
+   *
+   * Mentions of doc-detective in non-command positions (e.g.
+   * `echo doc-detective`, `grep doc-detective package.json`) do NOT
+   * match. YAML is parsed — not string-matched — so commented-out
+   * steps are also ignored.
    */
   hasDocDetectiveWorkflow: boolean;
   /** Result of `os.platform()`. */

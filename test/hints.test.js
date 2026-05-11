@@ -16,6 +16,7 @@ import {
   gitignoreCovers,
   parseNodeMajor,
   detectRstFiles,
+  runInvokesDocDetective,
 } from "../dist/hints/context.js";
 import { maybeShowHint, pickByPriority } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
@@ -318,6 +319,31 @@ describe("hints/context", function () {
       }
     });
 
+    it("does NOT match `run: echo doc-detective` or similar non-command mentions", function () {
+      // Regression for over-eager run-string matching that would
+      // suppress installGithubAction onboarding hints when a workflow
+      // merely *mentions* doc-detective (e.g. in echo, grep, comments).
+      const root = makeTmpDir();
+      try {
+        const dir = path.join(root, ".github", "workflows");
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(
+          path.join(dir, "noise.yml"),
+          [
+            "jobs:",
+            "  t:",
+            "    runs-on: ubuntu-latest",
+            "    steps:",
+            "      - run: echo doc-detective is a tool",
+            "      - run: grep doc-detective package.json",
+          ].join("\n")
+        );
+        expect(detectDocDetectiveWorkflow(root)).to.equal(false);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
     it("walks up to find .github/workflows defined at the repo root", function () {
       // doc-detective run from a subdirectory should still detect a
       // workflow that lives at the repo root.
@@ -335,6 +361,54 @@ describe("hints/context", function () {
       } finally {
         rmTmpDir(root);
       }
+    });
+  });
+
+  describe("runInvokesDocDetective", function () {
+    // Positive cases: doc-detective is an actual command invocation.
+    const matches = [
+      "doc-detective",
+      "doc-detective --logLevel info",
+      "npx doc-detective",
+      "npx -y doc-detective",
+      "npx --silent doc-detective --version",
+      "yarn doc-detective",
+      "pnpm doc-detective",
+      "pnpm dlx doc-detective",
+      "bunx doc-detective",
+      "cd docs && doc-detective",
+      "cd docs && npx doc-detective",
+      "echo starting; doc-detective",
+      "doc-detective || echo failed",
+      "cmd1 \n cmd2 \n doc-detective",
+    ];
+    for (const cmd of matches) {
+      it(`matches: ${cmd}`, function () {
+        expect(runInvokesDocDetective(cmd)).to.equal(true);
+      });
+    }
+
+    // Negative cases: doc-detective is mentioned but not invoked.
+    const nonMatches = [
+      "echo doc-detective",
+      "echo \"using doc-detective\"",
+      "grep doc-detective package.json",
+      "echo 'doc-detective is a tool'",
+      "doc-detective-helper --run", // word boundary
+      "my-doc-detective-fork",
+      "",
+      "cd packages",
+    ];
+    for (const cmd of nonMatches) {
+      it(`does NOT match: ${cmd || "(empty)"}`, function () {
+        expect(runInvokesDocDetective(cmd)).to.equal(false);
+      });
+    }
+
+    it("returns false on non-string input", function () {
+      expect(runInvokesDocDetective(undefined)).to.equal(false);
+      expect(runInvokesDocDetective(null)).to.equal(false);
+      expect(runInvokesDocDetective(42)).to.equal(false);
     });
   });
 

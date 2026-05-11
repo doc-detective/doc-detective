@@ -270,9 +270,42 @@ function workflowReferencesDocDetective(doc: any): boolean {
         if (/^doc-detective\//i.test(step.uses)) return true;
       }
       if (typeof step.run === "string") {
-        if (/(^|\s|;|&&|\|)doc-detective(\s|$)/.test(step.run)) return true;
+        if (runInvokesDocDetective(step.run)) return true;
       }
     }
+  }
+  return false;
+}
+
+/**
+ * True when at least one command in a workflow `run:` block is
+ * `doc-detective` (or a thin runner like `npx`/`yarn`/`pnpm`/`bunx`
+ * invoking it). Splits on common shell chaining/grouping operators
+ * (`&&`, `||`, `;`, `|`, newline) and inspects each command piece
+ * at its START — so arbitrary mentions like `echo doc-detective`,
+ * `grep doc-detective package.json`, or `# doc-detective todo`
+ * don't false-positive. Doesn't try to parse shell quoting; the
+ * common workflow invocations are simple enough that this catches
+ * the realistic cases without a full grammar.
+ */
+export function runInvokesDocDetective(run: string): boolean {
+  if (typeof run !== "string") return false;
+  const pieces = run.split(/&&|\|\||;|\n|\|/);
+  // Optional runner prefix: one of npx/yarn/pnpm/bunx, with any
+  // number of dash-flags before the actual command. Matches:
+  //   `doc-detective`            (bare)
+  //   `npx doc-detective`        (npx form)
+  //   `npx -y doc-detective`     (npx with flag)
+  //   `pnpm dlx doc-detective`   (pnpm dlx — `dlx` looks like a flagless arg, see below)
+  //   `yarn doc-detective`
+  const runnerPrefix = /^(?:(?:npx|yarn|pnpm|bunx)(?:\s+--?[\w-]+(?:=\S+)?)*\s+(?:dlx\s+)?)?/;
+  for (const piece of pieces) {
+    const trimmed = piece.trim();
+    if (!trimmed) continue;
+    const afterRunner = trimmed.replace(runnerPrefix, "");
+    // Anchor at start; require a word-boundary terminator (whitespace
+    // or end-of-string) so `doc-detective-helper` doesn't match.
+    if (/^doc-detective(\s|$)/.test(afterRunner)) return true;
   }
   return false;
 }
