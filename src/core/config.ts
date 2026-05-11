@@ -583,17 +583,37 @@ function getEnvironment() {
   return environment;
 }
 
-// Module-level cache for available apps detection.
-// Avoids redundant `npx appium driver list` calls (~17s each) and browser scanning.
-let cachedApps: any[] | null = null;
+// Module-level cache for available apps detection, keyed by the
+// resolved browsers-cache directory. The lookup is cache-dir-sensitive
+// (the same process might detect different browsers depending on
+// config.cacheDir or DOC_DETECTIVE_CACHE_DIR), and lazy-install can
+// materialize new browsers between calls — so a single process-global
+// slot would (a) cross-contaminate different cacheDir values and (b)
+// return stale "no browsers" results after a JIT pre-flight install.
+// Avoids redundant `appium driver list` calls (~17s each) and browser
+// scanning for repeat lookups against the same cache dir.
+const cachedAppsByDir: Map<string, any[]> = new Map();
 
-function clearAppCache() {
-  cachedApps = null;
+function cacheKeyFor(config: any): string {
+  // Reuse `getBrowsersDir` so the key respects every override the rest
+  // of the runtime honors (env var > config.cacheDir > tmpdir, with the
+  // legacy `./browser-snapshots/` fallback).
+  return getBrowsersDir({ cacheDir: config?.cacheDir });
+}
+
+function clearAppCache(config?: any) {
+  if (config === undefined) {
+    cachedAppsByDir.clear();
+    return;
+  }
+  cachedAppsByDir.delete(cacheKeyFor(config));
 }
 
 // Detect available apps.
 async function getAvailableApps({ config }: any) {
-  if (cachedApps) return cachedApps;
+  const key = cacheKeyFor(config);
+  const hit = cachedAppsByDir.get(key);
+  if (hit) return hit;
 
   setAppiumHome({ cacheDir: config?.cacheDir });
   const cwd = process.cwd();
@@ -733,6 +753,6 @@ async function getAvailableApps({ config }: any) {
   // Detect Android Studio
   // Detect iOS Simulator
 
-  cachedApps = apps;
+  cachedAppsByDir.set(key, apps);
   return apps;
 }

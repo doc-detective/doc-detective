@@ -516,7 +516,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     appium.stderr.on("data", (data: any) => {
       // console.error(`stderr: ${data}`);
     });
-    await appiumIsReady(appiumPort);
+    try {
+      await appiumIsReady(appiumPort);
+    } catch (error) {
+      // appiumIsReady threw or timed out — the spawned child is still
+      // alive and would leak (orphan process, port still bound). Tear
+      // it down before propagating so subsequent runs don't trip on
+      // the stale state.
+      try {
+        if (appium && appium.pid) kill(appium.pid);
+      } catch {
+        // best-effort cleanup; the parent error is what matters
+      }
+      throw error;
+    }
     log(config, "debug", "Appium is ready.");
   }
 
@@ -1181,8 +1194,19 @@ async function getRunner(options: any = {}) {
     log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
 
-  // Wait for Appium to be ready
-  await appiumIsReady(appiumPort);
+  // Wait for Appium to be ready. Same kill-on-throw guard as in
+  // runSpecs above — without it, a startup timeout would leave an
+  // orphan Appium child holding the ephemeral port.
+  try {
+    await appiumIsReady(appiumPort);
+  } catch (error) {
+    try {
+      if (appium && appium.pid) kill(appium.pid);
+    } catch {
+      // best-effort cleanup; the parent error is what matters
+    }
+    throw error;
+  }
   log(config, "debug", `Appium is ready for external driver on port ${appiumPort}.`);
 
   // Get Chrome driver capabilities
