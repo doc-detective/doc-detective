@@ -517,25 +517,52 @@ describe("hints/context", function () {
       expect(data.hasCurlInRunShell).to.equal(true);
     });
 
-    it("flags hasNodeOrPythonInRunShell on `node` or `python` commands", function () {
-      const data = walkResults({
-        specs: [
-          {
-            tests: [
-              {
-                contexts: [
-                  {
-                    steps: [
-                      { runShell: { command: "node ./script.js" } },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
+    // Each interpreter prefix the `/^python3?\s+/` and `/^node\s+/`
+    // regexes match. Iterating instead of duplicating three near-
+    // identical test bodies.
+    for (const cmd of [
+      "node ./script.js",
+      "python ./script.py",
+      "python3 ./script.py",
+      "  node ./script.js", // leading whitespace tolerated
+    ]) {
+      it(`flags hasNodeOrPythonInRunShell on \`${cmd.trim()}\``, function () {
+        const data = walkResults({
+          specs: [
+            {
+              tests: [
+                {
+                  contexts: [
+                    { steps: [{ runShell: { command: cmd } }] },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+        expect(data.hasNodeOrPythonInRunShell).to.equal(true);
       });
-      expect(data.hasNodeOrPythonInRunShell).to.equal(true);
+    }
+
+    it("does NOT flag hasNodeOrPythonInRunShell on python2 or unrelated commands", function () {
+      // The implementation only matches `python` and `python3`, not
+      // `python2` (EOL since 2020) and certainly not unrelated tools.
+      for (const cmd of ["python2 ./old.py", "deno run ./x.ts", "rm -rf /"]) {
+        const data = walkResults({
+          specs: [
+            {
+              tests: [
+                {
+                  contexts: [
+                    { steps: [{ runShell: { command: cmd } }] },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+        expect(data.hasNodeOrPythonInRunShell, cmd).to.equal(false);
+      }
     });
 
     it("returns empty data on null / malformed results", function () {
