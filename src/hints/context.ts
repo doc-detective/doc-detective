@@ -718,14 +718,18 @@ function scanForExtensions(
   extensions: string[],
   isOverBudget: () => boolean
 ): boolean {
-  if (isOverBudget()) return false;
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {
     return false;
   }
+  // Tick the budget per entry inspected, not per recursive call — that
+  // way a single flat directory of N files can never bypass the cap.
+  // The closure-held `scanned` counter (in `detectRstFiles`) increments
+  // exactly once per dirent considered here.
   for (const entry of entries) {
+    if (isOverBudget()) return false;
     if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
     const full = path.join(dir, entry.name);
     if (entry.isFile()) {
@@ -733,7 +737,6 @@ function scanForExtensions(
       if (extensions.some((ext) => lower.endsWith(ext))) return true;
     } else if (entry.isDirectory()) {
       if (scanForExtensions(full, extensions, isOverBudget)) return true;
-      if (isOverBudget()) return false;
     }
   }
   return false;

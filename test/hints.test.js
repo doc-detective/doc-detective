@@ -635,6 +635,25 @@ describe("hints/context", function () {
         rmTmpDir(root);
       }
     });
+
+    it("enforces the 100-file budget even on a flat directory", function () {
+      // Regression for the per-recursion vs per-entry budget bug. With
+      // the broken per-recursion counter, a flat dir of 200 files would
+      // be fully walked. With the per-entry counter, the scan must
+      // bail out before reaching a .rst file placed past entry 100.
+      const root = makeTmpDir();
+      try {
+        // 150 non-matching files, then a .rst at the end. With a
+        // working budget, the .rst is never reached.
+        for (let i = 0; i < 150; i++) {
+          fs.writeFileSync(path.join(root, `pad-${i}.md`), "");
+        }
+        fs.writeFileSync(path.join(root, "zzz-late.rst"), "");
+        expect(detectRstFiles(root)).to.equal(false);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
   });
 
   describe("parseNodeMajor", function () {
@@ -1251,8 +1270,8 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ config: { reporters: ["terminal", "html"] } }))).to.equal(false);
   });
 
-  it("reportersIncludeJsonForCi: fires on github when json is missing", function () {
-    const h = findHint("reportersIncludeJsonForCi");
+  it("addJsonReporterForCi: fires on github when json is missing", function () {
+    const h = findHint("addJsonReporterForCi");
     expect(h.priority).to.equal(30);
     expect(
       h.when(
@@ -1271,8 +1290,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("outputDirNotSet: fires when output is missing or '.' and specs ran", function () {
-    const h = findHint("outputDirNotSet");
+  it("setOutputDir: fires when output is missing or '.' and specs ran", function () {
+    const h = findHint("setOutputDir");
     expect(h.priority).to.equal(30);
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 1 }))).to.equal(true);
     expect(h.when(fakeCtx({ config: { output: "." }, totalSpecs: 1 }))).to.equal(true);
@@ -1428,8 +1447,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(true);
   });
 
-  it("recursiveMightBeTooBroad: fires only when recursive (default) and 100+ specs", function () {
-    const h = findHint("recursiveMightBeTooBroad");
+  it("setInputScope: fires only when recursive (default) and 100+ specs", function () {
+    const h = findHint("setInputScope");
     expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ totalSpecs: 101 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 101, config: { recursive: false } }))).to.equal(false);

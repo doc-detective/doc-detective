@@ -43,6 +43,26 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // addJsonReporterForCi (output & reporting)
+  // ------------------------------------------------------------------
+  {
+    id: "addJsonReporterForCi",
+    priority: 30,
+    markdown: [
+      "On GitHub? Add the JSON reporter so CI can upload structured results",
+      "as a workflow artifact:",
+      "",
+      "```bash",
+      "doc-detective --reporters terminal json",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      Array.isArray(ctx.config?.reporters) &&
+      !ctx.config.reporters.includes("json") &&
+      ctx.isGitHubRepo,
+  },
+
+  // ------------------------------------------------------------------
   // addNpmScript (onboarding)
   // ------------------------------------------------------------------
   {
@@ -225,29 +245,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // outputDirNotSet (output & reporting)
+  // setInputScope (advanced)
   // ------------------------------------------------------------------
   {
-    id: "outputDirNotSet",
-    priority: 30,
-    markdown: [
-      "Result artifacts are landing next to your source files. Set `output`",
-      "in `.doc-detective.json` so they go somewhere predictable:",
-      "",
-      "```json",
-      "{ \"output\": \"doc-detective-output\" }",
-      "```",
-    ].join("\n"),
-    when: (ctx) =>
-      (!ctx.config?.output || ctx.config.output === "." || ctx.config.output === "./") &&
-      ctx.totalSpecs > 0,
-  },
-
-  // ------------------------------------------------------------------
-  // recursiveMightBeTooBroad (advanced)
-  // ------------------------------------------------------------------
-  {
-    id: "recursiveMightBeTooBroad",
+    id: "setInputScope",
     priority: 50,
     markdown: [
       "You're scanning 100+ specs. Scoping `input` to a directory or two is",
@@ -258,26 +259,6 @@ export const HINTS: Hint[] = [
       "```",
     ].join("\n"),
     when: (ctx) => ctx.config?.recursive !== false && ctx.totalSpecs > 100,
-  },
-
-  // ------------------------------------------------------------------
-  // reportersIncludeJsonForCi (output & reporting)
-  // ------------------------------------------------------------------
-  {
-    id: "reportersIncludeJsonForCi",
-    priority: 30,
-    markdown: [
-      "On GitHub? Add the JSON reporter so CI can upload structured results",
-      "as a workflow artifact:",
-      "",
-      "```bash",
-      "doc-detective --reporters terminal json",
-      "```",
-    ].join("\n"),
-    when: (ctx) =>
-      Array.isArray(ctx.config?.reporters) &&
-      !ctx.config.reporters.includes("json") &&
-      ctx.isGitHubRepo,
   },
 
   // ------------------------------------------------------------------
@@ -298,6 +279,25 @@ export const HINTS: Hint[] = [
       !ctx.config?.origin &&
       ctx.usedStepTypes.has("goTo") &&
       ctx.hasRelativeUrls,
+  },
+
+  // ------------------------------------------------------------------
+  // setOutputDir (output & reporting)
+  // ------------------------------------------------------------------
+  {
+    id: "setOutputDir",
+    priority: 30,
+    markdown: [
+      "Result artifacts are landing next to your source files. Set `output`",
+      "in `.doc-detective.json` so they go somewhere predictable:",
+      "",
+      "```json",
+      "{ \"output\": \"doc-detective-output\" }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      (!ctx.config?.output || ctx.config.output === "." || ctx.config.output === "./") &&
+      ctx.totalSpecs > 0,
   },
 
   // ------------------------------------------------------------------
