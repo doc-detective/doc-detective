@@ -35,6 +35,46 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
    **Note:** If you're working in a cloned `doc-detective` repository, run `npm i` to install local dependencies or the `npx` command in the next step will fail.
 
+### Lazy-installed runtime
+
+`npm i doc-detective` installs the CLI and a small set of light dependencies. Heavy runtime assets — browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.) — are installed lazily into `<os.tmpdir()>/doc-detective/` the first time a test needs them.
+
+- **Pre-install everything up front:**
+
+  ```bash
+  doc-detective install all --yes
+  ```
+
+- **Install only what you need:**
+
+  ```bash
+  doc-detective install browsers chrome
+  doc-detective install runtime webdriverio appium
+  doc-detective install agents
+  ```
+
+- **Inspect what's installed vs. expected:**
+
+  ```bash
+  doc-detective install status
+  ```
+
+- **Override the cache location** (useful in containers and CI):
+
+  ```bash
+  DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
+  ```
+
+### Auto-update
+
+By default, `doc-detective` checks the npm registry on startup and self-updates if a newer release is available — global installs run `npm install -g`, `npx` invocations re-exec via `npx -y doc-detective@latest`, and local project installs print an "update available" hint instead of mutating your `package.json`. To opt out:
+
+- `--no-auto-update` on the CLI
+- `autoUpdate: false` in `.doc-detective.json`
+- `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` in the environment
+
+CI environments (where `process.env.CI` is set) skip the check automatically.
+
 ## Run tests
 
 To run your tests, use the following command:

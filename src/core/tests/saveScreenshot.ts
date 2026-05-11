@@ -9,16 +9,35 @@ import {
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
-import { PNG } from "pngjs";
-import sharp from "sharp";
+import type { PNG as PNGType } from "pngjs";
+import type { default as sharpType } from "sharp";
+import { loadHeavyDep } from "../../runtime/loader.js";
 
-// pixelmatch v7+ is ESM-only, so we need dynamic import
-let pixelmatch: any;
-async function getPixelmatch() {
-  if (!pixelmatch) {
-    pixelmatch = (await import("pixelmatch")).default;
+// pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
+// the first time a screenshot step needs it.
+let _pngjs: { PNG: typeof PNGType } | null = null;
+let _sharp: typeof sharpType | null = null;
+let _pixelmatch: any = null;
+
+async function getPng(): Promise<typeof PNGType> {
+  if (!_pngjs) _pngjs = await loadHeavyDep<{ PNG: typeof PNGType }>("pngjs");
+  return _pngjs.PNG;
+}
+
+async function getSharp(): Promise<typeof sharpType> {
+  if (!_sharp) {
+    const mod = await loadHeavyDep<any>("sharp");
+    _sharp = (mod && (mod.default ?? mod)) as typeof sharpType;
   }
-  return pixelmatch;
+  return _sharp;
+}
+
+async function getPixelmatch() {
+  if (!_pixelmatch) {
+    const mod = await loadHeavyDep<any>("pixelmatch");
+    _pixelmatch = mod.default ?? mod;
+  }
+  return _pixelmatch;
 }
 
 export { saveScreenshot, clampCropRect, aspectRatiosMatch };
@@ -67,6 +86,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     },
   };
   let element: any;
+  // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
+  // already materialized them ahead of step execution.
+  const sharp = await getSharp();
+  const PNG = await getPng();
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });

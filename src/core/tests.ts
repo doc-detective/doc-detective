@@ -1,5 +1,9 @@
 import kill from "tree-kill";
-import * as wdio from "webdriverio";
+// webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
+// site so the shim's CLI startup doesn't pay its ~50MB load cost when the
+// user is only running e.g. install-agents or install status.
+import type * as wdioTypes from "webdriverio";
+import { loadHeavyDep } from "../runtime/loader.js";
 import os from "node:os";
 import { log, replaceEnvs, selectSpecsForRun, findFreePort } from "./utils.js";
 import axios from "axios";
@@ -1049,6 +1053,7 @@ async function driverStart(capabilities: any, port: number, maxAttempts: number 
   // /status may already return 200 from the outgoing process while /session
   // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
   // any other error is a real session-creation failure and propagates.
+  const wdio = await loadHeavyDep<typeof wdioTypes>("webdriverio");
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {

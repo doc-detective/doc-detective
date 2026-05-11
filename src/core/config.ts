@@ -2,7 +2,8 @@ import os from "node:os";
 import { validate } from "../common/src/validate.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
 import path from "node:path";
-import * as browsers from "@puppeteer/browsers";
+import { loadHeavyDep } from "../runtime/loader.js";
+import { getBrowsersDir } from "../runtime/cacheDir.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
@@ -599,8 +600,11 @@ async function getAvailableApps({ config }: any) {
   const apps: any[] = [];
 
   try {
+    // Lazy-load @puppeteer/browsers; it's a heavy runtime dep that should
+    // only materialize when a runner that actually drives browsers boots up.
+    const browsers = await loadHeavyDep<any>("@puppeteer/browsers");
     const installedBrowsers = await browsers.getInstalledBrowsers({
-      cacheDir: path.resolve("browser-snapshots"),
+      cacheDir: getBrowsersDir({ cacheDir: config?.cacheDir }),
     });
     const installedAppiumDrivers = await spawnCommand("npx appium driver list");
 

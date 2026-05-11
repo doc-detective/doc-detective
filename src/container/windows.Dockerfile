@@ -21,12 +21,19 @@ LABEL authors="Doc Detective" \
     documentation="https://www.doc-detective.com" \
     vendor="Doc Detective"
 
-ENV DOC_DETECTIVE='{"container": "docdetective/docdetective:windows", "version": "'$PACKAGE_VERSION'"}'
+# DOC_DETECTIVE_CACHE_DIR is pinned to a fixed image path so the pre-warm
+# below isn't lost to a per-boot temp-dir wipe at runtime. SKIP_AUTO_UPDATE
+# stops the runtime from quietly bumping the version baked into the image —
+# image releases own that signal.
+ENV DOC_DETECTIVE='{"container": "docdetective/docdetective:windows", "version": "'$PACKAGE_VERSION'"}' \
+    DOC_DETECTIVE_CACHE_DIR=C:\\ProgramData\\doc-detective \
+    DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
-    npm install -g doc-detective@$env:PACKAGE_VERSION
+    npm install -g doc-detective@$env:PACKAGE_VERSION; \
+    doc-detective install all --yes
 
 WORKDIR /app
 

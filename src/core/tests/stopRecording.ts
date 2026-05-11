@@ -3,8 +3,18 @@ import { log } from "../utils.js";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
-import ffmpeg from "@ffmpeg-installer/ffmpeg";
-const ffmpegPath = ffmpeg.path;
+import { loadHeavyDep } from "../../runtime/loader.js";
+
+// Resolve the ffmpeg binary path lazily — @ffmpeg-installer/ffmpeg is a
+// heavy runtime dep that should only be loaded when a stopRecording step
+// actually runs.
+async function getFfmpegPath(): Promise<string> {
+  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg");
+  // The package's CJS entry exports an object with a .path field; in ESM
+  // dynamic import we get { default: { path }, path? } shape depending on
+  // bundler. Try both.
+  return (mod && (mod.path ?? mod.default?.path)) as string;
+}
 
 export { stopRecording };
 
@@ -93,6 +103,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       }
       ffmpegArgs.push(targetPath);
       // Await transcoding to complete before returning
+      const ffmpegPath = await getFfmpegPath();
       await new Promise<void>((resolve, reject) => {
         execFile(ffmpegPath, ffmpegArgs)
           .on("close", (code) => {

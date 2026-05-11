@@ -80,6 +80,57 @@ async function runTests(config: any, options: any = {}) {
     return resolvedTests;
   }
 
+  // Just-in-time install: inspect the resolved specs to learn which heavy
+  // npm packages and which browser binaries this run will actually use, then
+  // install them in one batched step before any test executes. The lazy
+  // resolver in src/runtime/loader.js is still defensive for any code path
+  // this inference might miss, but the steady-state expectation is that
+  // every loadHeavyDep() call below hits the warm-cache fast path.
+  //
+  // Browser installs are gated by `getAvailableApps()` — if the requested
+  // browser is already detectable (e.g., the legacy ./browser-snapshots/
+  // pre-warm is still in place), we skip the install entirely.
+  try {
+    const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
+    const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
+    const needs = inferRuntimeNeeds(resolvedTests);
+    const ctx = { cacheDir: config.cacheDir };
+    if (needs.npmPackages.size > 0) {
+      await ensureRuntimeInstalled([...needs.npmPackages], { ctx });
+    }
+    if (needs.browsers.size > 0) {
+      try {
+        const { getAvailableApps } = await import("./config.js");
+        const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+        const available = await getAvailableApps({ config });
+        const availableNames = new Set(available.map((a: any) => a.name));
+        for (const browser of needs.browsers) {
+          if (availableNames.has(browser)) continue;
+          if (browser === "chrome") {
+            await ensureBrowserInstalled("chrome", { ctx });
+            await ensureBrowserInstalled("chromedriver", { ctx });
+          } else if (browser === "firefox") {
+            await ensureBrowserInstalled("firefox", { ctx });
+            await ensureBrowserInstalled("geckodriver", { ctx });
+          }
+          // safari has no installable binary — it ships with the OS.
+        }
+      } catch (browserErr: any) {
+        log(
+          config,
+          "debug",
+          `Browser pre-flight check skipped: ${browserErr?.message ?? browserErr}`
+        );
+      }
+    }
+  } catch (err: any) {
+    log(
+      config,
+      "warn",
+      `Runtime pre-flight install hit an error: ${err?.message ?? err}. Falling back to on-demand resolution.`
+    );
+  }
+
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
   if (!process.env.DOC_DETECTIVE_API && config.integrations && config.integrations.docDetectiveApi && config.integrations.docDetectiveApi.apiKey) {
     // Run test specs via API
