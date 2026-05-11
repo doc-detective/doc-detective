@@ -102,7 +102,16 @@ export interface EnsureRuntimeInstalledOptions {
   deps?: LoaderDeps;
   /** Reinstall even when the package already resolves from the cache. */
   force?: boolean;
+  /**
+   * Wall-clock cap on the spawned `npm install` child. Stalls (hanging
+   * proxy, rate-limit, large dep tree on a flaky link) get terminated
+   * instead of freezing the first `doc-detective` run forever. Defaults
+   * to 5 minutes; pass `0` to disable the timeout entirely.
+   */
+  installTimeoutMs?: number;
 }
+
+const DEFAULT_INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
 
 const RUNTIME_PACKAGE_JSON_CONTENTS = JSON.stringify(
   {
@@ -152,7 +161,12 @@ export async function ensureRuntimeInstalled(
   packages: string[],
   options: EnsureRuntimeInstalledOptions = {}
 ): Promise<void> {
-  const { ctx = {}, deps = {}, force = false } = options;
+  const {
+    ctx = {},
+    deps = {},
+    force = false,
+    installTimeoutMs = DEFAULT_INSTALL_TIMEOUT_MS,
+  } = options;
   const logger = deps.logger ?? defaultLogger;
   const spawner = deps.spawn ?? (nodeSpawn as SpawnFn);
   if (packages.length === 0) return;
@@ -207,8 +221,35 @@ export async function ensureRuntimeInstalled(
     };
     if (child.stdout) child.stdout.on("data", (c) => onLine("stdout", c));
     if (child.stderr) child.stderr.on("data", (c) => onLine("stderr", c));
-    child.on("error", (err: Error) => reject(err));
+    // Wall-clock cap so a stalled npm never freezes the first run. 0 opts
+    // out (callers that explicitly want to wait forever, or unit tests
+    // with a synchronously-resolving fake spawner).
+    let timer: NodeJS.Timeout | null = null;
+    if (installTimeoutMs > 0) {
+      timer = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          // best-effort — the child may already have exited
+        }
+        reject(
+          new Error(
+            `npm install timed out after ${installTimeoutMs}ms while installing ${specs.join(", ")} into ${runtimeDir}`
+          )
+        );
+      }, installTimeoutMs);
+      // Don't keep the event loop alive solely for this timer.
+      if (typeof timer.unref === "function") timer.unref();
+    }
+    const clearTimer = () => {
+      if (timer) clearTimeout(timer);
+    };
+    child.on("error", (err: Error) => {
+      clearTimer();
+      reject(err);
+    });
     child.on("close", (code: number | null) => {
+      clearTimer();
       if (code === 0) resolve();
       else reject(new Error(`npm install exited with code ${code ?? "null"}`));
     });

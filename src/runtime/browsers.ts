@@ -322,9 +322,15 @@ async function ensureGeckodriver(
   };
 
   if (!ctxBag.force && existing && isStillFresh(existing.latestCheckedAt, ctxBag.now)) {
-    const cachedGecko = ctxBag.deps.geckodriverModule;
+    // Load the geckodriver module so the returned `path` is the actual
+    // binary path, not just the cache directory — matches the contract
+    // EnsureBrowserResult documents. Tests can inject `geckodriverModule`
+    // via deps to skip the real loader; in production we lazy-resolve.
+    const gecko =
+      ctxBag.deps.geckodriverModule ??
+      (await loadGeckodriver(ctxBag.deps, ctxBag.ctx));
     return {
-      path: cachedGecko ? resolveBinaryPath(cachedGecko) : cacheDir,
+      path: resolveBinaryPath(gecko),
       version: existing.installedVersion,
       outdated: existing.latestKnownVersion !== existing.installedVersion,
     };
