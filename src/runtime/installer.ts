@@ -40,7 +40,15 @@ export interface InstallerDeps {
   browserDeps?: BrowserDeps;
 }
 
+// Suppress `debug` by default (e.g., the npm install stdout/stderr that
+// ensureRuntimeInstalled emits) so API-style callers that don't inject a
+// logger don't get flooded. Mirrors the loader.ts pattern: opt back in
+// with DOC_DETECTIVE_RUNTIME_DEBUG=1 for diagnostics. The CLI flow wires
+// its own logger that respects config.logLevel, so this only governs
+// the bare programmatic path.
+const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
 const defaultLogger: Logger = (msg, level = "info") => {
+  if (level === "debug" && !RUNTIME_DEBUG) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };

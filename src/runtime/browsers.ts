@@ -46,7 +46,16 @@ export interface BrowserDeps {
   now?: () => Date;
 }
 
+// Suppress `debug` by default — ensureBrowserInstalled uses it for
+// recoverable situations (channel-resolve timeouts, prune failures, etc.)
+// that callers shouldn't see when they don't inject a logger. Mirrors
+// the loader.ts / installer.ts pattern: opt back in with
+// DOC_DETECTIVE_RUNTIME_DEBUG=1 for diagnostics. The CLI/test-runner
+// flow wires its own logger that respects config.logLevel, so this only
+// governs the bare programmatic path.
+const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
 const defaultLogger: Logger = (msg, level = "info") => {
+  if (level === "debug" && !RUNTIME_DEBUG) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };

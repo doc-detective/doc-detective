@@ -171,7 +171,7 @@ function cleanTemp() {
   if (!fs.existsSync(tempDir)) return;
   for (const entry of fs.readdirSync(tempDir)) {
     if (PRESERVED_TEMP_ENTRIES.has(entry)) continue;
-    const curPath = `${tempDir}/${entry}`;
+    const curPath = path.join(tempDir, entry);
     try {
       const stat = fs.statSync(curPath);
       if (stat.isDirectory()) {
