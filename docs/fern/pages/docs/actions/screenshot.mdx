@@ -4,17 +4,17 @@ description: Take a screenshot in PNG format and optionally perform visual regre
 ---
 
 
-The `screenshot` action captures a PNG image of the current browser viewport or a specific element. It can also perform visual regression testing by comparing the captured image against a previously saved reference image.
+The `screenshot` action captures a PNG image of the current browser viewport or a specific element. It can also perform visual regression testing by comparing the captured image against a previously saved reference image. Reference images can be local files or remote URLs, enabling teams to store reference images in cloud storage like S3.
 
 You can specify the screenshot action in several ways:
 
 - **Boolean Shorthand:** Set `screenshot: true` to capture the full viewport with default settings.
 - **String Shorthand:** Provide a file path directly as the value for the `screenshot` key (for example, `screenshot: "my_screenshot.png"`). This saves the full viewport screenshot to the specified path.
 - **Object Format:** Use an object for more control over the path, visual comparison, and cropping:
-  - `path`: (Optional) The file path where the screenshot will be saved. Can include directories. If omitted, a default path is generated.
+  - `path`: (Optional) The file path where the screenshot will be saved, or an `http(s)://` URL to a remote PNG image. Can include directories. If omitted, a default path is generated. When a URL is provided, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to `./doc-detective-runs/<run-timestamp>/` instead of overwriting the remote image.
   - `directory`: (Optional) The directory where the screenshot will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
   - `maxVariation`: (Optional) The maximum acceptable visual difference (0 to 1) when comparing against a reference image. If the variation exceeds this threshold, the step returns WARNING. If set, visual comparison is enabled.
-  - `overwrite`: (Optional) Controls when to overwrite the reference image. Options:
+  - `overwrite`: (Optional) Controls when to overwrite the reference image. Ignored when `path` is a URL (remote storage is never mutated). Options:
     - `never`: Never overwrite the reference image (default).
     - `always`: Always overwrite the reference image with the new capture.
     - `aboveVariation`: Overwrite only if the visual difference exceeds `maxVariation`.
@@ -24,6 +24,12 @@ You can specify the screenshot action in several ways:
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
 
 **Visual Regression Testing:** If `maxVariation` is set and a reference image exists at the target `path`, the action compares the new screenshot to the reference. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting.
+
+**URL Paths:** When `path` is an `http(s)://` URL pointing to a PNG image, Doc Detective downloads the remote image once per run and uses it as a read-only reference for comparison. The new screenshot is saved to `./doc-detective-runs/<run-timestamp>/<stepId>_<filename>.png` for inspection. The `overwrite` setting is ignored because remote storage is never mutated. The step result includes `outputs.referenceUrl` for traceability. This works well for teams that store reference images in cloud storage like S3 without managing local files.
+
+<Note>
+URL paths must end in `.png` (or `.PNG`) and can include query strings for signed URLs. The step fails if the URL is unreachable or returns invalid image data.
+</Note>
 
 > For comprehensive options, see the [`screenshot`](/reference/schemas/screenshot) reference.
 
@@ -83,6 +89,28 @@ Compares against `./output/reference_images/home_page.png`. Fails if difference 
             "directory": "./output/reference_images",
             "maxVariation": 0.05,
             "overwrite": "aboveVariation"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Visual comparison against a remote URL
+
+Compares against a reference image stored in S3 or other cloud storage. The new capture is saved locally under `./doc-detective-runs/<run-timestamp>/` for inspection.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Compare against reference image in S3.",
+          "screenshot": {
+            "path": "https://my-bucket.s3.amazonaws.com/reference-images/home_page.png",
+            "maxVariation": 0.05
           }
         }
       ]

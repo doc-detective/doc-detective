@@ -14,9 +14,12 @@ configPath | string | ReadOnly. Path to the configuration file. |
 input | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. | `.`
 output | string | Optional. Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters. | `.`
 recursive | boolean | Optional. If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files. | `true`
+specFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. |
+testFilter | array of string | Optional. Regex patterns (case-insensitive) applied to each test's `testId`. If set, only tests whose `testId` matches at least one pattern are run. Equivalent to `--test` on the CLI. |
 relativePathBase | string | Optional. Whether paths should be interpreted as relative to the current working directory (`cwd`) or to the file in which they're specified (`file`).<br/><br/>Accepted values: `cwd`, `file` | `file`
 loadVariables | string | Optional. Load environment variables from the specified `.env` file. | 
-origin | string | Optional. Default protocol and domain to use for relative URLs. | 
+origin | string | Optional. Default protocol and domain to use for relative URLs. |
+originParams | object | Optional. Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. | `{}`
 beforeAny | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments. | 
 afterAll | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments. | 
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on defined markup. | `true`
@@ -31,6 +34,7 @@ telemetry | object([Telemetry options](/reference/schemas/telemetry-options)) | 
 concurrentRunners | integer,boolean | Optional. Number of concurrent test runners. Set to true to use CPU core count (capped at 4).<br/><br/>Minimum: 1 | `1`
 environment | object([Environment details](/reference/schemas/environment-details)) | ReadOnly. Environment information for the system running Doc Detective. | 
 debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging. | `false`
+dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inline-test extraction, config merge, schema validation) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI. Useful for validating test configuration without running actual tests. | `false`
 
 ## Examples
 
@@ -173,5 +177,27 @@ debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `t
 ```json
 {
   "crawl": true
+}
+```
+
+```json
+{
+  "dryRun": true
+}
+```
+
+```json
+{
+  "origin": "https://my-app.com",
+  "originParams": {
+    "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+  }
+}
+```
+
+```json
+{
+  "testFilter": ["smoke", "login"],
+  "specFilter": ["auth"]
 }
 ```
