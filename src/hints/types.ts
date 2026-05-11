@@ -147,8 +147,9 @@ export interface HintContext {
    */
   hasCurlInRunShell: boolean;
   /**
-   * True if any runShell step's `command` starts with `node ` or `python `
-   * (after trim). Powers `useRunCodeStep`.
+   * True if any runShell step's `command` (after trim) starts with
+   * `node `, `python `, or `python3 ` — i.e. invokes Node or
+   * Python as a top-level interpreter. Powers `useRunCodeStep`.
    */
   hasNodeOrPythonInRunShell: boolean;
 }
