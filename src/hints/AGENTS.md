@@ -157,7 +157,16 @@ deliberate subset:
 
 Style:
 
-- **2-6 lines** of prose. If you need more, link to the docs.
+- **One line per prose paragraph in the source array.** The terminal
+  soft-wraps based on its width. Do not hand-wrap prose at ~70 columns
+  — that produces hard line breaks the terminal can't reflow, so a hint
+  designed to be 2 lines on a narrow terminal becomes 4 lines on a wide
+  one (or vice versa). Each entry in the `markdown` array is either a
+  full prose paragraph (one long string, however long), an empty string
+  for vertical spacing, a fenced-code delimiter line (`` ```bash ``),
+  or one line of code-block / bullet-list content (which DO want
+  individual lines).
+- **2-3 short prose paragraphs.** If you need more, link to the docs.
 - **One fenced code block.** More than one and the hint feels like a
   tutorial.
 - **Always link the docs.** A markdown link to
