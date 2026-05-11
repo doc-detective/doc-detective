@@ -124,6 +124,8 @@ navigation:
             path: pages/docs/get-started/ci.mdx
           - page: Integrations
             path: pages/docs/get-started/integrations.mdx
+          - page: Self-healing
+            path: pages/docs/get-started/self-healing.mdx
           - page: Resources
             path: pages/docs/get-started/resources.mdx
 

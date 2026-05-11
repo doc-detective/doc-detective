@@ -245,11 +245,9 @@ Add browser configuration to `.doc-detective.json`:
 
 ```json title=".doc-detective.json"
 {
-  "contexts": [
+  "runOn": [
     {
-      "app": {
-        "browser": "chrome"
-      }
+      "browsers": ["chrome"]
     }
   ]
 }
@@ -286,7 +284,7 @@ You should see:
 If one browser doesn't work, try another:
 
 ```json
-{ "contexts": [{ "app": { "browser": "firefox" } }] }
+{ "runOn": [{ "browsers": ["firefox"] }] }
 ```
 
 ### Option 2: Specify browser path manually
@@ -295,9 +293,9 @@ If the browser is installed in a non-standard location:
 
 ```json
 {
-  "contexts": [
+  "runOn": [
     {
-      "app": { "browser": "chrome", "executablePath": "/custom/path/to/chrome" }
+      "browsers": [{ "name": "chrome", "executablePath": "/custom/path/to/chrome" }]
     }
   ]
 }
@@ -308,27 +306,7 @@ If the browser is installed in a non-standard location:
 If browser UI isn't working but headless mode might:
 
 ```json
-{ "contexts": [{ "app": { "browser": "chrome", "headless": true } }] }
-```
-
-## Prevention
-
-```json
-{
-  "contexts": [
-    {
-      "app": { "browser": "chrome", "executablePath": "/custom/path/to/chrome" }
-    }
-  ]
-}
-```
-
-### Option 3: Run in headless mode
-
-If browser UI isn't working but headless mode might:
-
-```json
-{ "contexts": [{ "app": { "browser": "chrome", "headless": true } }] }
+{ "runOn": [{ "browsers": [{ "name": "chrome", "headless": true }] }] }
 ```
 
 ## Prevention
@@ -346,7 +324,7 @@ If you've tried these solutions and still have issues:
 
 1. **Check detailed error logs**: Run with `--logLevel debug` `bash npx doc-detective runTests --logLevel debug `
 
-2. **Try a minimal test**: Rule out test-specific issues `json { "tests": [{ "steps": [{ "action": "goTo", "url": "https://example.com" }] }] } `
+2. **Try a minimal test**: Rule out test-specific issues `json { "tests": [{ "steps": [{ "goTo": "https://example.com" }] }] } `
 
 3. **Report the issue**: [Open an issue](https://github.com/doc-detective/doc-detective/issues) with:
 

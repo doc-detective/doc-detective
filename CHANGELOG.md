@@ -1,3 +1,18 @@
+# [4.5.0](https://github.com/doc-detective/doc-detective/compare/v4.4.0...v4.5.0) (2026-05-06)
+
+
+### Features
+
+* **appium:** use dynamic port to avoid conflicts ([#301](https://github.com/doc-detective/doc-detective/issues/301)) ([ce3ab86](https://github.com/doc-detective/doc-detective/commit/ce3ab862aef46d58dc1d5323b32f6f1b3e73e323))
+* **platform:** add doc-detective.com runner entrypoint ([#302](https://github.com/doc-detective/doc-detective/issues/302)) ([44ded94](https://github.com/doc-detective/doc-detective/commit/44ded9423ebd6432a585a8cfca28c96110b50d3d))
+
+# [4.4.0](https://github.com/doc-detective/doc-detective/compare/v4.3.0...v4.4.0) (2026-05-03)
+
+
+### Features
+
+* **cli:** add --dry-run flag to resolve tests without executing ([#292](https://github.com/doc-detective/doc-detective/issues/292)) ([a0bdb19](https://github.com/doc-detective/doc-detective/commit/a0bdb193b9b39cdf3f0012625504c67aa21dcbd9))
+
 # [4.3.0](https://github.com/doc-detective/doc-detective/compare/v4.2.3...v4.3.0) (2026-04-30)
 
 

@@ -12,6 +12,7 @@ You can specify the target URL directly as a string, or use an object for more o
 - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. If omitted and `url` is a path, the global `origin` from the configuration file is used.
 - `statusCodes`: (Optional) A single integer or an array of integers representing acceptable HTTP status codes, including non-2xx codes like `429` (rate limited), `403` (forbidden), or `500` (server error). If omitted, defaults to `[200, 301, 302, 307, 308]`.
 - `headers`: (Optional) Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Accepts either a key/value object or a newline-separated string. Useful for sites that allowlist specific headers or bypass tokens. Defaults to `{}`.
+- `params`: (Optional) Query parameters to append to the resolved URL. Merged with config-level `originParams`. Values support environment variable substitution with `$VAR` syntax. Defaults to `{}`.
 
 > For comprehensive options, see the [`checkLink`](/reference/schemas/checklink) reference.
 
@@ -194,6 +195,42 @@ Assuming a global `origin` of `https://www.google.com` is set in the configurati
           "description": "Check if Google search path is valid using global origin.",
           "checkLink": {
             "url": "/search"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Query parameters
+
+You can append query parameters to a URL using the `params` option. This is useful for authentication tokens or tracking parameters.
+
+- **Step-level `params`:** An object specifying query parameters to append to the URL. Applies to all URLs, both relative and absolute. Values support environment variable substitution with `$VAR` syntax.
+- **Config-level `originParams`:** Default query parameters in your configuration file that apply to relative URLs resolved against `origin`. Step-level `params` merge on top, with step keys taking precedence on collision.
+
+If your URL contains a fragment (e.g., `/page#section`), query parameters are inserted before the fragment (e.g., `/page?token=value#section`).
+
+<Warning>
+Values in `params` and `originParams` are embedded directly in request URLs and appear in test results, logs, and reports. Avoid storing long-lived secrets in these fields.
+</Warning>
+
+### Check a link with query parameters
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Check API health with testing token.",
+          "checkLink": {
+            "url": "/api/health",
+            "origin": "https://my-app.com",
+            "params": {
+              "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+            }
           }
         }
       ]
