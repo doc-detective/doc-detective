@@ -2,7 +2,7 @@
 //
 // A `Hint` is a single piece of advice that may be shown to the user after a
 // test run completes (pass or fail — some hints intentionally fire on
-// failures, like `enable-debug-log` and `use-record-step-on-failure`).
+// failures, like `enableDebugLog` and `useRecordStepOnFailure`).
 // Each hint is gated by a synchronous predicate (`when`) that evaluates a
 // `HintContext` describing the current machine, repo, and run. Predicates
 // must be cheap and side-effect-free — they may be invoked for every hint
@@ -10,7 +10,7 @@
 
 /**
  * Information about a single coding-agent adapter, gathered from
- * `src/agents/registry.ts`. Used by the `install-agents` hint.
+ * `src/agents/registry.ts`. Used by the `installAgents` hint.
  */
 export interface AgentDetection {
   /** Adapter id (e.g. "claude-code"). */
@@ -23,7 +23,7 @@ export interface AgentDetection {
    * True when doc-detective's adapter is already registered with this agent
    * (in either project or global scope). Adapters whose install state probe
    * times out or errors are conservatively treated as `false` — we'd rather
-   * over-promote install-agents than miss an opportunity.
+   * over-promote `installAgents` than miss an opportunity.
    */
   hasAdapterInstalled: boolean;
 }
@@ -99,7 +99,7 @@ export interface HintContext {
   agentDetections: AgentDetection[];
   /**
    * True if `<cwd>/package.json` exists. Hints that suggest editing
-   * `package.json` (like `add-npm-script`) gate on this so non-Node
+   * `package.json` (like `addNpmScript`) gate on this so non-Node
    * projects don't see them.
    */
   hasPackageJson: boolean;
@@ -123,30 +123,30 @@ export interface HintContext {
    * covered by the default `markdown` and `asciidoc` file-type
    * templates in `src/core/config.ts`. Recursive scan capped at 100
    * files to bound worst-case cost per `./AGENTS.md`. Powers
-   * `use-fileTypes-for-rst`.
+   * `useFileTypesForRst`.
    */
   hasRstFiles: boolean;
   /**
    * True if any goTo/checkLink step in the run used a relative URL — i.e.
    * a value that did not begin with `http://`, `https://`, `file://`, or
-   * `data:`. Powers `set-origin-for-relative-urls`.
+   * `data:`. Powers `setOriginForRelativeUrls`.
    */
   hasRelativeUrls: boolean;
   /**
    * True if any runShell step's `command` contains the literal substring
-   * `curl`. Powers `use-httpRequest-step`.
+   * `curl`. Powers `useHttpRequestStep`.
    */
   hasCurlInRunShell: boolean;
   /**
    * True if any runShell step's `command` starts with `node ` or `python `
-   * (after trim). Powers `use-runCode-step`.
+   * (after trim). Powers `useRunCodeStep`.
    */
   hasNodeOrPythonInRunShell: boolean;
 }
 
 export interface Hint {
   /**
-   * Stable kebab-case identifier. Surfaced only in debug logs today; will
+   * Stable camelCase identifier. Surfaced only in debug logs today; will
    * become user-visible if a per-hint disable list is added later — so
    * existing ids should not change once shipped.
    */
@@ -162,7 +162,7 @@ export interface Hint {
    * onboarding ones.
    *
    * Conventional bands:
-   *   10 — onboarding (CI, config file, npm script, install-agents)
+   *   10 — onboarding (CI, config file, npm script, installAgents)
    *   20 — current-run problems (failures, env mismatches, no-tests-found)
    *   30 — output & reporting
    *   40 — feature discovery

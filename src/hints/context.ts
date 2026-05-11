@@ -488,7 +488,7 @@ async function probeOneAdapter(
     // Agent is present; check whether the doc-detective adapter is
     // installed in either scope. Probe both in parallel; treat any
     // timeout/error as "not installed" so we promote the install hint
-    // by default (matches the design intent of `install-agents`).
+    // by default (matches the design intent of `installAgents`).
     const scopes = adapter.supportsScopes();
     const stateProbes = scopes.map((scope) =>
       withTimeout(adapter.getInstallState(scope), timeoutMs, {
@@ -680,7 +680,7 @@ export function parseNodeMajor(versionString: string): number {
 }
 
 // ---------------------------------------------------------------------
-// RST file presence (powers use-fileTypes-for-rst)
+// RST file presence (powers useFileTypesForRst)
 //
 // `.mdx` and `.adoc` are intentionally NOT scanned here: both are
 // already covered by the default `markdown` and `asciidoc` file-type
