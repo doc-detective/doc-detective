@@ -618,7 +618,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           }
           // Instantiate driver
           try {
-            driver = await driverStart(caps, appiumPort);
+            driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
           } catch (error: any) {
             try {
               // If driver fails to start, try again as headless
@@ -637,7 +637,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                   headless: context.browser?.headless !== false,
                 },
               });
-              driver = await driverStart(caps, appiumPort);
+              driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
               if (context.browser?.name === "safari")
@@ -1050,12 +1050,20 @@ async function appiumIsReady(port: number, timeoutMs: number = 120000) {
 }
 
 // Start the Appium driver specified in `capabilities`.
-async function driverStart(capabilities: any, port: number, maxAttempts: number = 4) {
+async function driverStart(
+  capabilities: any,
+  port: number,
+  maxAttempts: number = 4,
+  ctx: { cacheDir?: string } = {}
+) {
   // POST /session can race a just-spawned-or-still-dying Appium on Windows:
   // /status may already return 200 from the outgoing process while /session
   // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
   // any other error is a real session-creation failure and propagates.
-  const wdio = await loadHeavyDep<typeof import("webdriverio")>("webdriverio");
+  const wdio = await loadHeavyDep<typeof import("webdriverio")>(
+    "webdriverio",
+    { ctx }
+  );
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -1165,7 +1173,7 @@ async function getRunner(options: any = {}) {
   // Start the runner
   let runner: any;
   try {
-    runner = await driverStart(caps, appiumPort);
+    runner = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
   } catch (error: any) {
     // If runner fails, attempt to set headless and retry
     try {
@@ -1175,7 +1183,7 @@ async function getRunner(options: any = {}) {
         "Failed to start Chrome runner. Retrying as headless."
       );
       caps["goog:chromeOptions"].args.push("--headless", "--disable-gpu");
-      runner = await driverStart(caps, appiumPort);
+      runner = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
     } catch (error: any) {
       // If runner fails, clean up Appium and rethrow
       kill(appium.pid!);

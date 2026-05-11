@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface InstalledNpmPackage {
   installedVersion: string;
@@ -61,14 +64,27 @@ export function getBrowsersDir(ctx: CacheDirContext = {}): string {
   if ((typeof fromEnv === "string" && fromEnv.length > 0) || (fromCfg && fromCfg.length > 0)) {
     return path.join(getCacheDir(ctx), "browsers");
   }
-  // No override — honor the legacy `./browser-snapshots/` directory if it
-  // exists alongside the project (postinstall's pre-warm path, or a user
-  // who's been running the previous version). Falling back to the tmpdir
-  // cache only when the legacy dir is absent keeps existing dev / test
-  // setups working through the transition.
-  const legacy = path.resolve("browser-snapshots");
-  if (fs.existsSync(legacy)) return legacy;
+  // No override — honor the legacy `./browser-snapshots/` directory if one
+  // exists from a prior install. The old postinstall ran the browser
+  // download from the package root (it `chdir`'d there before calling
+  // `path.resolve('browser-snapshots')`), so we have to look in BOTH
+  // places: the user's current cwd (covers same-project dev loops) and
+  // the shim's install root (covers global installs invoked from
+  // anywhere). First hit wins; the tmpdir cache is only used when neither
+  // legacy location exists.
+  for (const candidate of legacyBrowserSnapshotCandidates()) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
   return path.join(getCacheDir(ctx), "browsers");
+}
+
+function legacyBrowserSnapshotCandidates(): string[] {
+  const out = [path.resolve("browser-snapshots")];
+  // dist/runtime/cacheDir.js → ../.. → the shim's package root.
+  const shimRoot = path.resolve(__dirname, "..", "..");
+  const fromShim = path.join(shimRoot, "browser-snapshots");
+  if (fromShim !== out[0]) out.push(fromShim);
+  return out;
 }
 
 export function getInstalledRecordPath(ctx: CacheDirContext = {}): string {
@@ -129,5 +145,25 @@ export function writeInstalledRecord(
     `installed.json.${process.pid}.${Date.now()}.tmp`
   );
   fs.writeFileSync(tmp, JSON.stringify(record, null, 2), "utf8");
-  fs.renameSync(tmp, filePath);
+  try {
+    fs.renameSync(tmp, filePath);
+  } catch (err: any) {
+    // POSIX `rename` is overwrite-atomic, but on Windows a destination
+    // that's open in another process (or sometimes just exists) can
+    // throw EEXIST/EPERM. Fall back to remove-then-rename so repeated
+    // writes don't break `install …` and lazy installs. Still not as
+    // strong as the POSIX guarantee — a crash between the unlink and
+    // the rename leaves the cache without an installed.json — but the
+    // readers already degrade to an empty record in that case.
+    if (err && (err.code === "EEXIST" || err.code === "EPERM")) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch {
+        // best-effort
+      }
+      fs.renameSync(tmp, filePath);
+    } else {
+      throw err;
+    }
+  }
 }

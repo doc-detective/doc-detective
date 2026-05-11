@@ -602,7 +602,12 @@ async function getAvailableApps({ config }: any) {
   try {
     // Lazy-load @puppeteer/browsers; it's a heavy runtime dep that should
     // only materialize when a runner that actually drives browsers boots up.
-    const browsers = await loadHeavyDep<any>("@puppeteer/browsers");
+    // Thread the configured cache dir through so a non-default cacheDir is
+    // honored by the resolver (otherwise this lookup could diverge from the
+    // pre-flight install that already used config.cacheDir).
+    const browsers = await loadHeavyDep<any>("@puppeteer/browsers", {
+      ctx: { cacheDir: config?.cacheDir },
+    });
     const installedBrowsers = await browsers.getInstalledBrowsers({
       cacheDir: getBrowsersDir({ cacheDir: config?.cacheDir }),
     });

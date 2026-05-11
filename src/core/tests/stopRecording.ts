@@ -7,9 +7,10 @@ import { loadHeavyDep } from "../../runtime/loader.js";
 
 // Resolve the ffmpeg binary path lazily — @ffmpeg-installer/ffmpeg is a
 // heavy runtime dep that should only be loaded when a stopRecording step
-// actually runs.
-async function getFfmpegPath(): Promise<string> {
-  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg");
+// actually runs. The ctx is threaded through so a user-overridden
+// cacheDir is honored here just as it is by the JIT pre-flight installer.
+async function getFfmpegPath(ctx: { cacheDir?: string } = {}): Promise<string> {
+  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg", { ctx });
   // The package's CJS entry exports an object with a .path field; in ESM
   // dynamic import we get { default: { path }, path? } shape depending on
   // bundler. Try both, then guard before handing it to execFile so a
@@ -111,7 +112,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       }
       ffmpegArgs.push(targetPath);
       // Await transcoding to complete before returning
-      const ffmpegPath = await getFfmpegPath();
+      const ffmpegPath = await getFfmpegPath({ cacheDir: config?.cacheDir });
       await new Promise<void>((resolve, reject) => {
         execFile(ffmpegPath, ffmpegArgs)
           .on("close", (code) => {

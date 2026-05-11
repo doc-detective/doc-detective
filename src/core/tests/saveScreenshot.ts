@@ -25,22 +25,27 @@ let _pngjs: PngModule | null = null;
 let _sharp: any = null;
 let _pixelmatch: any = null;
 
-async function getPng(): Promise<PngModule["PNG"]> {
-  if (!_pngjs) _pngjs = await loadHeavyDep<PngModule>("pngjs");
+// Each getter accepts an optional ctx so a user-overridden cacheDir is
+// honored on the first call. Subsequent calls return the memoized module
+// regardless of ctx — the cache dir should be stable within a run, and
+// the JIT pre-flight in runTests() guarantees the install already
+// matched config.cacheDir before any step executes.
+async function getPng(ctx: { cacheDir?: string } = {}): Promise<PngModule["PNG"]> {
+  if (!_pngjs) _pngjs = await loadHeavyDep<PngModule>("pngjs", { ctx });
   return _pngjs.PNG;
 }
 
-async function getSharp(): Promise<any> {
+async function getSharp(ctx: { cacheDir?: string } = {}): Promise<any> {
   if (!_sharp) {
-    const mod = await loadHeavyDep<any>("sharp");
+    const mod = await loadHeavyDep<any>("sharp", { ctx });
     _sharp = mod && (mod.default ?? mod);
   }
   return _sharp;
 }
 
-async function getPixelmatch() {
+async function getPixelmatch(ctx: { cacheDir?: string } = {}) {
   if (!_pixelmatch) {
-    const mod = await loadHeavyDep<any>("pixelmatch");
+    const mod = await loadHeavyDep<any>("pixelmatch", { ctx });
     _pixelmatch = mod.default ?? mod;
   }
   return _pixelmatch;
@@ -93,9 +98,12 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   };
   let element: any;
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
-  // already materialized them ahead of step execution.
-  const sharp = await getSharp();
-  const PNG = await getPng();
+  // already materialized them ahead of step execution. The ctx threads
+  // through so a user-overridden cacheDir resolves from the same location
+  // the JIT pre-flight installer used.
+  const loadCtx = { cacheDir: config?.cacheDir };
+  const sharp = await getSharp(loadCtx);
+  const PNG = await getPng(loadCtx);
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
@@ -515,7 +523,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       }
 
       const { width, height } = img1;
-      const pixelmatchFn = await getPixelmatch();
+      const pixelmatchFn = await getPixelmatch(loadCtx);
       const numDiffPixels = pixelmatchFn(
         img1.data,
         img2.data,
