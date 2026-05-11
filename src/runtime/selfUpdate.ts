@@ -185,13 +185,25 @@ export async function selfUpdate(
 
   if (mode === "global") {
     logger(`Self-updating doc-detective to ${latestVersion} (global)`, "info");
-    await runChild(
+    const installExit = await runChild(
       spawner,
       npmExe,
       ["install", "-g", `doc-detective@${latestVersion}`],
       { env: childEnv, shell: process.platform === "win32", stdio: "inherit" },
       logger
     );
+    if (installExit !== 0) {
+      // The install failed (network blip, permission error, registry 5xx).
+      // Re-execing the same entrypoint now would silently run the OLD
+      // binary again with no actionable signal. Surface the failure
+      // and keep running the current version so the user at least sees
+      // their original command complete.
+      logger(
+        `npm install -g doc-detective@${latestVersion} exited with code ${installExit}; skipping re-exec and continuing with the current version.`,
+        "error"
+      );
+      return { updated: false, reexec: false };
+    }
     // Re-exec the same entry with the original argv tail.
     const exitCode = await runChild(
       spawner,

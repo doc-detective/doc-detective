@@ -6,6 +6,7 @@ import kill from "tree-kill";
 // so we don't carry a top-level `import type` whose `typeof` would refer
 // to a non-runtime identifier.
 import { loadHeavyDep } from "../runtime/loader.js";
+import { getRuntimeDir } from "../runtime/cacheDir.js";
 import os from "node:os";
 import { log, replaceEnvs, selectSpecsForRun, findFreePort } from "./utils.js";
 import axios from "axios";
@@ -486,11 +487,22 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     appiumPort = await findFreePort();
     log(config, "debug", `Starting Appium on port ${appiumPort}`);
-    appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
-      shell: true,
-      windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
-    });
+    // Resolve the appium CLI from the runtime cache via `npm exec
+    // --prefix <runtimeDir>` rather than plain `npx`. APPIUM_HOME only
+    // configures Appium's driver lookup, not the binary path — so when
+    // a user installs with `--omit=optional` the appium CLI lives ONLY
+    // in <cacheDir>/runtime/node_modules and a bare `npx appium` would
+    // fail to find it.
+    const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
+    appium = spawn(
+      process.platform === "win32" ? "npm.cmd" : "npm",
+      ["exec", "--prefix", runtimeDir, "--", "appium", "-a", "127.0.0.1", "-p", String(appiumPort)],
+      {
+        shell: true,
+        windowsHide: true,
+        cwd: path.join(__dirname, "../.."),
+      }
+    );
     appium.on("error", (err: any) => {
       log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
     });
@@ -1141,13 +1153,20 @@ async function getRunner(options: any = {}) {
   // Set Appium home directory
   setAppiumHome({ cacheDir: config?.cacheDir });
 
-  // Start Appium server on a free ephemeral port
+  // Start Appium server on a free ephemeral port. Resolve the appium
+  // CLI from the runtime cache (see comment in runSpecs above for why
+  // we don't use bare `npx appium`).
   const appiumPort = await findFreePort();
-  const appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
-    shell: true,
-    windowsHide: true,
-    cwd: path.join(__dirname, "../.."),
-  });
+  const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
+  const appium = spawn(
+    process.platform === "win32" ? "npm.cmd" : "npm",
+    ["exec", "--prefix", runtimeDir, "--", "appium", "-a", "127.0.0.1", "-p", String(appiumPort)],
+    {
+      shell: true,
+      windowsHide: true,
+      cwd: path.join(__dirname, "../.."),
+    }
+  );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)
   // would crash the process before appiumIsReady's timeout could surface
   // a meaningful failure.

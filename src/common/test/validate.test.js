@@ -208,6 +208,21 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("cacheDir");
       });
 
+      it("should reject a config_v3 object whose cacheDir is whitespace-only", function () {
+        // minLength alone accepts whitespace-only strings like "   ";
+        // the schema pairs it with a non-whitespace `pattern` so a
+        // config file / env var carrying a typo can't pass validation
+        // and then silently fail at runtime.
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: "   " },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("cacheDir");
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",

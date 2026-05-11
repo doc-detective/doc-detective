@@ -101,9 +101,22 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // already materialized them ahead of step execution. The ctx threads
   // through so a user-overridden cacheDir resolves from the same location
   // the JIT pre-flight installer used.
+  //
+  // Surface lazy-load failures as a step-level FAIL rather than letting
+  // them escape and abort the whole run. A broken runtime cache (the
+  // user wiped <cacheDir>/runtime by hand, or npm failed mid-install)
+  // should produce a clean failed screenshot report, not a fatal.
   const loadCtx = { cacheDir: config?.cacheDir };
-  const sharp = await getSharp(loadCtx);
-  const PNG = await getPng(loadCtx);
+  let sharp: any;
+  let PNG: any;
+  try {
+    sharp = await getSharp(loadCtx);
+    PNG = await getPng(loadCtx);
+  } catch (error: any) {
+    result.status = "FAIL";
+    result.description = `Couldn't load screenshot runtime dependencies. ${error?.message ?? error}`;
+    return result;
+  }
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
@@ -523,7 +536,20 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       }
 
       const { width, height } = img1;
-      const pixelmatchFn = await getPixelmatch(loadCtx);
+      let pixelmatchFn: any;
+      try {
+        pixelmatchFn = await getPixelmatch(loadCtx);
+      } catch (error: any) {
+        // Treat a broken pixelmatch install as a step-level failure rather
+        // than letting it abort the run. Mirrors the earlier sharp/PNG
+        // guard at saveScreenshot entry.
+        result.status = "FAIL";
+        result.description = `Couldn't load screenshot comparison dependency (pixelmatch). ${error?.message ?? error}`;
+        if (!isUrlPath && filePath !== existFilePath && fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        return result;
+      }
       const numDiffPixels = pixelmatchFn(
         img1.data,
         img2.data,

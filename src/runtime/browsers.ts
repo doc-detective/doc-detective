@@ -93,6 +93,10 @@ function withTimeout<T>(
       () => reject(new Error(`${label} timed out after ${ms}ms`)),
       ms
     );
+    // unref so a still-pending timer doesn't keep the event loop alive
+    // (e.g., if the wrapped promise rejects and the caller has nothing
+    // else holding the process open).
+    if (typeof t.unref === "function") t.unref();
     p.then(
       (v) => {
         clearTimeout(t);
@@ -144,6 +148,18 @@ export async function ensureBrowserInstalled(
   const platform: any = browsersModule.detectBrowserPlatform
     ? browsersModule.detectBrowserPlatform()
     : undefined;
+  // `@puppeteer/browsers` returns `undefined` from detectBrowserPlatform
+  // on unsupported OSes. Downstream APIs — resolveBuildId, install,
+  // computeExecutablePath — require a real BrowserPlatform value; if
+  // we pass undefined, computeExecutablePath in particular throws with
+  // a less actionable "No platform specified" deep inside the lib.
+  // Surface a clean error from the same call site that owns the rest
+  // of the install flow.
+  if (!platform) {
+    throw new Error(
+      `Unable to determine browser platform on ${process.platform}/${process.arch}. @puppeteer/browsers does not recognize this OS; ${name} cannot be installed automatically. Set DOC_DETECTIVE_CACHE_DIR to a pre-warmed cache or skip browser-driven steps.`
+    );
+  }
 
   // Fast path: present and the freshness check says we already know the
   // current channel buildId — no resolveBuildId network call needed.
@@ -342,17 +358,29 @@ async function ensureGeckodriver(
   try {
     logger(`Installing geckodriver into ${cacheDir}`, "info");
     const downloadResult: any = await gecko.download();
-    const installedVersion: string =
+    const resolvedVersion: string | undefined =
       (typeof gecko.GECKODRIVER_VERSION === "string"
         ? gecko.GECKODRIVER_VERSION
         : undefined) ||
       (downloadResult && typeof downloadResult.version === "string"
         ? downloadResult.version
-        : "latest");
+        : undefined);
+    // If neither the module nor the download result expose a version,
+    // the literal string "latest" used to land in installedVersion —
+    // which then broke later freshness comparisons against real
+    // numeric versions. Mark as "unknown" instead and warn so the user
+    // sees that future version checks will be unreliable.
+    if (!resolvedVersion) {
+      logger(
+        "Could not determine geckodriver version after install. Freshness checks for geckodriver will be unreliable until the next forced reinstall.",
+        "warn"
+      );
+    }
+    const installedVersion: string = resolvedVersion ?? "unknown";
     record.browsers.geckodriver = {
       installedVersion,
       installedAt: ctxBag.now.toISOString(),
-      latestKnownVersion: installedVersion,
+      latestKnownVersion: resolvedVersion,
       latestCheckedAt: ctxBag.now.toISOString(),
     };
     writeInstalledRecord(record, ctxBag.ctx);

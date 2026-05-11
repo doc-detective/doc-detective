@@ -92,7 +92,23 @@ async function runTests(config: any, options: any = {}) {
   // Browser installs are gated by `getAvailableApps()` — if the requested
   // browser is already detectable (e.g., the legacy ./browser-snapshots/
   // pre-warm is still in place), we skip the install entirely.
-  try {
+  //
+  // Skipped entirely for API-backed runs: the orchestration API executes
+  // tests remotely, so installing browsers/runtime locally would burn
+  // network and disk for nothing.
+  const willRunViaApi = Boolean(
+    !process.env.DOC_DETECTIVE_API &&
+      config.integrations &&
+      config.integrations.docDetectiveApi &&
+      config.integrations.docDetectiveApi.apiKey
+  );
+  if (willRunViaApi) {
+    log(
+      config,
+      "debug",
+      "Skipping runtime pre-flight install — run is dispatched via Doc Detective Orchestration API."
+    );
+  } else try {
     const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
     const needs = inferRuntimeNeeds(resolvedTests);

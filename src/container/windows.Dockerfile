@@ -36,15 +36,23 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 #
 # PowerShell's `try/catch` doesn't trap native-command non-zero exits
 # under the SHELL-level `$ErrorActionPreference = 'Stop'`; the exit code
-# is exposed via `$LASTEXITCODE`. Check it explicitly and reset to 0 so
-# the docker layer succeeds even when the installed CLI predates the
-# `install all` subcommand. Real npm-install failures still propagate
-# because they're checked in their own statement.
+# is exposed via `$LASTEXITCODE`. Use an explicit availability check
+# (`install --help` exit code) instead of blindly resetting after
+# `install all` — the latter would swallow real pre-warm failures
+# (transient npm errors during cache materialization), shipping an
+# image that boots fine but fails offline. The current shape only
+# suppresses the specific "subcommand unavailable" path.
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
     npm install -g doc-detective@$env:PACKAGE_VERSION; \
     if ($LASTEXITCODE -ne 0) { throw "npm install -g doc-detective failed with exit code $LASTEXITCODE" }; \
-    doc-detective install all --yes; \
-    if ($LASTEXITCODE -ne 0) { Write-Host "[postinstall] doc-detective install all unavailable in installed version; skipping cache pre-warm."; $global:LASTEXITCODE = 0 }
+    doc-detective install --help *> $null; \
+    if ($LASTEXITCODE -eq 0) { \
+      doc-detective install all --yes; \
+      if ($LASTEXITCODE -ne 0) { throw "doc-detective install all failed with exit code $LASTEXITCODE" } \
+    } else { \
+      Write-Host "[postinstall] doc-detective install all unavailable in installed version; skipping cache pre-warm."; \
+      $global:LASTEXITCODE = 0 \
+    }
 
 WORKDIR /app
 

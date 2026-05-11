@@ -43,15 +43,20 @@ RUN apt-get update \
 # initial install is small. The follow-up `doc-detective install all`
 # pre-warms the cache so the image is ready to run tests offline.
 #
-# The pre-warm is tolerant of older published versions that don't yet
-# support the `install all` subcommand — image releases built against
-# the published `doc-detective@$PACKAGE_VERSION` may temporarily lag
-# the in-repo CLI surface (e.g., during PR-time smoke builds where
-# PACKAGE_VERSION=latest). Once a release containing this CLI surface
-# is published, future image builds will pre-warm successfully.
+# Use an availability check (`doc-detective install --help`) instead of
+# `|| echo` to gate the pre-warm. The `|| echo` form would also swallow
+# real failures — a transient npm/network error during the pre-warm
+# would silently ship an image that boots fine but fails offline. With
+# the explicit check, we only skip when `install` is unavailable in the
+# installed CLI (older published versions during PR-time smoke builds
+# where PACKAGE_VERSION=latest predates this PR's CLI surface), and any
+# real `install all` failure fails the build.
 RUN npm install -g doc-detective@$PACKAGE_VERSION \
-    && (doc-detective install all --yes \
-        || echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm.")
+    && if doc-detective install --help >/dev/null 2>&1; then \
+         doc-detective install all --yes; \
+       else \
+         echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \
+       fi
 
 # Install DITA-OT
 ARG DITA_OT_VERSION=4.3.4

@@ -3,7 +3,7 @@ import { validate } from "../common/src/validate.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
 import path from "node:path";
 import { loadHeavyDep } from "../runtime/loader.js";
-import { getBrowsersDir } from "../runtime/cacheDir.js";
+import { getBrowsersDir, getRuntimeDir } from "../runtime/cacheDir.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
@@ -611,7 +611,16 @@ async function getAvailableApps({ config }: any) {
     const installedBrowsers = await browsers.getInstalledBrowsers({
       cacheDir: getBrowsersDir({ cacheDir: config?.cacheDir }),
     });
-    const installedAppiumDrivers = await spawnCommand("npx appium driver list");
+    // Resolve `appium` from <cacheDir>/runtime via `npm exec --prefix`
+    // so a `--omit=optional` install (where appium only lives in the
+    // cache) still finds the CLI. Bare `npx appium` would fail in that
+    // posture even with APPIUM_HOME set, because APPIUM_HOME only
+    // governs driver lookup, not binary resolution.
+    const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
+    const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+    const installedAppiumDrivers = await spawnCommand(
+      `${npmCmd} exec --prefix ${runtimeDir} -- appium driver list`
+    );
 
     // Note: Edge/Microsoft Edge detection is intentionally excluded
     // Only Chrome, Firefox, and Safari are supported browsers
