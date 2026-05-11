@@ -546,11 +546,12 @@ export const HINTS: Hint[] = [
     id: "useScreenshotStep",
     priority: 40,
     markdown: [
-      "Catch silent UI regressions: add `screenshot: true` to a step and",
-      "Doc Detective compares against the baseline on every run.",
+      "Catch silent UI regressions: add a dedicated `screenshot` step after",
+      "navigating. Doc Detective compares against the baseline on every run.",
       "",
       "```json",
-      "{ \"goTo\": \"https://example.com\", \"screenshot\": { \"path\": \"./home.png\" } }",
+      "{ \"goTo\": \"https://example.com\" },",
+      "{ \"screenshot\": { \"path\": \"./home.png\" } }",
       "```",
     ].join("\n"),
     when: (ctx) =>
