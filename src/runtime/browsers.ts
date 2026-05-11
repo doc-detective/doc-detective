@@ -348,7 +348,16 @@ async function ensureGeckodriver(
     return {
       path: resolveBinaryPath(gecko),
       version: existing.installedVersion,
-      outdated: existing.latestKnownVersion !== existing.installedVersion,
+      // Only mark outdated when we actually KNOW a different latest
+      // version exists. If `latestKnownVersion` is undefined (e.g., the
+      // installer couldn't determine a version and we recorded
+      // `installedVersion: "unknown"` with `latestKnownVersion: undefined`),
+      // a naive `!==` comparison would flag the entry as outdated on
+      // every run.
+      outdated:
+        typeof existing.latestKnownVersion === "string" &&
+        existing.latestKnownVersion.length > 0 &&
+        existing.latestKnownVersion !== existing.installedVersion,
     };
   }
   const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);

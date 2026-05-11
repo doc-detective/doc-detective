@@ -234,11 +234,15 @@ export async function ensureRuntimeInstalled(
   ];
 
   await new Promise<void>((resolve, reject) => {
-    // shell:true on Windows so npm.cmd resolves via PATHEXT.
+    // No shell. We explicitly choose `npm.cmd` on Windows so Node 18+
+    // can spawn it directly without invoking cmd.exe — and crucially,
+    // without exposing `runtimeDir` (a user-controlled path via
+    // DOC_DETECTIVE_CACHE_DIR / config.cacheDir) to shell parsing.
+    // Same shell-injection avoidance rationale as the Appium spawns
+    // in src/core/tests.ts.
     const child = spawner(npmExe, args, {
       cwd: runtimeDir,
       env: process.env,
-      shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
     });
     const onLine = (stream: "stdout" | "stderr", chunk: Buffer | string) => {

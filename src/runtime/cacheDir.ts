@@ -42,14 +42,24 @@ function defaultCacheRoot(): string {
  * across the codebase.
  */
 export function getCacheDir(ctx: CacheDirContext = {}): string {
-  const fromEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
-  const fromCfg = typeof ctx.cacheDir === "string" ? ctx.cacheDir : undefined;
+  // Trim env / ctx values so whitespace-only inputs ("   ") are
+  // ignored. The schema enforces `pattern: \\S` on `config.cacheDir`
+  // and the CLI override trims as well; doing the same here keeps
+  // the env-var path consistent (DOC_DETECTIVE_CACHE_DIR doesn't
+  // pass through schema validation) and prevents the surprise of
+  // creating a "   " directory relative to the cwd.
   const resolved =
-    (typeof fromEnv === "string" && fromEnv.length > 0 && fromEnv) ||
-    (fromCfg && fromCfg.length > 0 && fromCfg) ||
+    trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR) ??
+    trimOrUndefined(ctx.cacheDir) ??
     defaultCacheRoot();
   fs.mkdirSync(resolved, { recursive: true });
   return resolved;
+}
+
+function trimOrUndefined(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const trimmed = v.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function getRuntimeDir(ctx: CacheDirContext = {}): string {
@@ -58,10 +68,12 @@ export function getRuntimeDir(ctx: CacheDirContext = {}): string {
 
 export function getBrowsersDir(ctx: CacheDirContext = {}): string {
   // Respect explicit cacheDir / env-var overrides first — those callers know
-  // exactly where they want browsers to live.
-  const fromEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
-  const fromCfg = typeof ctx.cacheDir === "string" ? ctx.cacheDir : undefined;
-  if ((typeof fromEnv === "string" && fromEnv.length > 0) || (fromCfg && fromCfg.length > 0)) {
+  // exactly where they want browsers to live. Apply the same trim-and-
+  // ignore-whitespace rule as getCacheDir so a whitespace-only override
+  // doesn't bypass the legacy `./browser-snapshots/` probe.
+  const fromEnv = trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR);
+  const fromCfg = trimOrUndefined(ctx.cacheDir);
+  if (fromEnv || fromCfg) {
     return path.join(getCacheDir(ctx), "browsers");
   }
   // No override — honor the legacy `./browser-snapshots/` directory if one
