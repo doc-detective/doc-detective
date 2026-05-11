@@ -66,7 +66,9 @@ async function runTests(config: any, options: any = {}) {
   if (!resolvedTests) {
     resolvedTests = await detectAndResolveTests({ config });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
-      log(config, "warn", "Couldn't resolve any tests.");
+      // log() in src/core/utils.ts recognizes "warning", not "warn" —
+      // see the matching note in the JIT pre-flight catch below.
+      log(config, "warning", "Couldn't resolve any tests.");
       return null;
     }
   }
