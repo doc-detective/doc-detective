@@ -74,11 +74,13 @@ describe("runtime/installer", function () {
     });
 
     it("installs the requested package and reports an actionable state", async function () {
-      // pngjs is currently in the shim's `dependencies`, so without force the
-      // installer will skip it (and report "already-up-to-date"). force:true
-      // bypasses that skip and exercises the actual install path. Once the
-      // migration step that moves pngjs to optionalDependencies lands, this
-      // test can drop force:true and assert "installed" instead.
+      // pngjs lives in the shim's `optionalDependencies`, which npm
+      // installs by default — so it resolves from the shim's node_modules
+      // and the installer's skip-if-already-resolvable path would report
+      // "already-up-to-date". force:true bypasses that skip and exercises
+      // the actual install path. Users on `npm i --omit=optional` would
+      // hit the install path without force, but the test environment
+      // doesn't reliably have that posture.
       const spawner = fakeNpmSpawner({
         materialize: { pngjs: "7.0.0" },
       });

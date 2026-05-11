@@ -49,8 +49,43 @@ export function compareVersions(a: string, b: string): number {
   // A release version is "greater than" any prerelease of the same core.
   if (preA && !preB) return -1;
   if (!preA && preB) return 1;
-  if (preA < preB) return -1;
-  if (preA > preB) return 1;
+  return comparePrerelease(preA, preB);
+}
+
+/**
+ * Compare two prerelease tags using semver semantics (npm-compatible):
+ * dot-split each into identifiers, compare element-wise. Numeric
+ * identifiers compare numerically; alphanumerics compare lexically;
+ * numerics rank lower than alphanumerics; a shorter set wins when all
+ * shared identifiers match.
+ *
+ * Plain string ordering would mis-rank `next.10` vs `next.2`
+ * (lexical: "10" < "2") — that's the bug this replaces.
+ */
+function comparePrerelease(a: string, b: string): number {
+  if (a === b) return 0;
+  const partsA = a.split(".");
+  const partsB = b.split(".");
+  const len = Math.min(partsA.length, partsB.length);
+  for (let i = 0; i < len; i++) {
+    const cmp = comparePrereleaseId(partsA[i], partsB[i]);
+    if (cmp !== 0) return cmp;
+  }
+  // All shared identifiers match — the shorter prerelease ranks lower
+  // (e.g., `4.5.0-next` < `4.5.0-next.1`).
+  return partsA.length - partsB.length;
+}
+
+function comparePrereleaseId(a: string, b: string): number {
+  const numA = /^\d+$/.test(a) ? Number(a) : null;
+  const numB = /^\d+$/.test(b) ? Number(b) : null;
+  if (numA !== null && numB !== null) {
+    return numA - numB;
+  }
+  if (numA !== null) return -1; // numeric < alphanumeric per semver
+  if (numB !== null) return 1;
+  if (a < b) return -1;
+  if (a > b) return 1;
   return 0;
 }
 
@@ -166,6 +201,12 @@ export async function selfUpdate(
       logger
     );
     process.exit(exitCode);
+    // process.exit is `never`-typed in node's typings, but if it's stubbed
+    // (programmatic / test use), execution would otherwise fall through to
+    // the npx branch and double-spawn. Explicit return keeps the contract
+    // coherent. `as never` matches the declared `Promise<SelfUpdateResult>`
+    // without compromising the runtime no-op.
+    return { updated: true, reexec: true } as never;
   }
 
   // npx
@@ -178,6 +219,8 @@ export async function selfUpdate(
     logger
   );
   process.exit(exitCode);
+  // Same fallthrough-guard as the global branch above.
+  return { updated: true, reexec: true } as never;
 }
 
 function runChild(

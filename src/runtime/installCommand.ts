@@ -1,6 +1,7 @@
 import type { CommandModule } from "yargs";
 import { installAgentsCommand } from "../agents/command.js";
 import type { Logger, LogLevel } from "./loader.js";
+import { HEAVY_NPM_DEPS } from "./heavyDeps.js";
 
 // Re-register the agents command under the bare name `agents` for use inside
 // the `install <subcommand>` group. The original `install-agents` registration
@@ -102,7 +103,7 @@ function printReports(reports: any[], logger: Logger) {
 
 const runtimeSubcommand: CommandModule<any, InstallArgv & { _packages?: string[] }> = {
   command: "runtime [packages..]",
-  describe: "Install heavy npm packages into <cacheDir>/runtime.",
+  describe: `Install heavy npm packages into <cacheDir>/runtime. Supported: ${HEAVY_NPM_DEPS.join(", ")}.`,
   builder: (yargs) =>
     sharedInstallOptions(yargs).positional("packages", {
       describe:
@@ -112,9 +113,28 @@ const runtimeSubcommand: CommandModule<any, InstallArgv & { _packages?: string[]
     }) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
+    const requested: string[] | undefined = Array.isArray(argv.packages)
+      ? argv.packages
+      : undefined;
+    if (requested && requested.length > 0) {
+      // Validate up front so an unknown name yields a user-friendly error
+      // listing supported values, rather than the developer-facing
+      // `getDeclaredVersion()` "not declared in package.json" exception
+      // deep inside the installer.
+      const supported = new Set<string>(HEAVY_NPM_DEPS as readonly string[]);
+      const unknown = requested.filter((name) => !supported.has(name));
+      if (unknown.length > 0) {
+        logger(
+          `Unknown runtime package(s): ${unknown.join(", ")}. Supported names: ${HEAVY_NPM_DEPS.join(", ")}.`,
+          "error"
+        );
+        process.exitCode = 1;
+        return;
+      }
+    }
     const { installRuntime } = await import("./installer.js");
     const reports = await installRuntime({
-      packages: Array.isArray(argv.packages) ? argv.packages : undefined,
+      packages: requested,
       force: Boolean(argv.force),
       dryRun: Boolean(argv["dry-run"]),
       ctx: ctxFromArgv(argv),

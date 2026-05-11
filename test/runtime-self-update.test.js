@@ -49,6 +49,17 @@ describe("runtime/selfUpdate", function () {
       expect(compareVersions("4.5.0", "4.5.0-next.1")).to.be.greaterThan(0);
       expect(compareVersions("4.5.0-next.1", "4.5.0")).to.be.lessThan(0);
     });
+    it("orders prerelease numeric identifiers numerically, not lexically", function () {
+      // The pre-fix behavior compared "next.10" < "next.2" lexically and
+      // would have flipped this assertion. Semver semantics: numeric IDs
+      // compare numerically; numeric ranks lower than alphanumeric; a
+      // shorter set with all-equal shared IDs ranks lower.
+      expect(compareVersions("4.5.0-next.2", "4.5.0-next.10")).to.be.lessThan(0);
+      expect(compareVersions("4.5.0-next.10", "4.5.0-next.2")).to.be.greaterThan(0);
+      expect(compareVersions("4.5.0-next", "4.5.0-next.1")).to.be.lessThan(0);
+      // Numeric vs alphanumeric — numeric ranks lower.
+      expect(compareVersions("4.5.0-alpha.1", "4.5.0-1")).to.be.greaterThan(0);
+    });
   });
 
   describe("checkForUpdate", function () {
