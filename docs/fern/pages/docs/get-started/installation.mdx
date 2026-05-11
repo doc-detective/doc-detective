@@ -82,6 +82,64 @@ Congratulations! You've run your first test with Doc Detective. :tada:
 
 You should see output in the terminal indicating the progress and results of the test. Results are also saved in a `testResults-<timestamp>.json` file in the current directory (configurable with the `--output` option), and this test saves a screenshot to *example.png*.
 
+## Lazy-installed runtime
+
+When you run `npm i doc-detective`, you get only the CLI and a small set of light dependencies. Heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—install lazily into `<os.tmpdir()>/doc-detective/` the first time a test needs them.
+
+This keeps initial install times fast and disk usage low when you only need a subset of Doc Detective's capabilities.
+
+### Pre-install everything
+
+To avoid the first-run delay, pre-install all runtime assets up front:
+
+```bash
+doc-detective install all --yes
+```
+
+### Install specific components
+
+Install only what your tests need:
+
+```bash
+doc-detective install browsers chrome
+doc-detective install runtime webdriverio appium
+doc-detective install agents
+```
+
+### Check installation status
+
+See what's installed versus what the current version expects:
+
+```bash
+doc-detective install status
+```
+
+### Override the cache location
+
+The default cache location (`<os.tmpdir()>/doc-detective/`) may not persist across reboots on some systems. For containers, CI runners, or any environment where you want the cache to survive, set a custom location:
+
+```bash
+DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
+```
+
+You can also set `cacheDir` in your `.doc-detective.json` config file or use the `--cache-dir` CLI flag.
+
+## Auto-update
+
+By default, Doc Detective checks the npm registry on startup and updates itself when a newer version is available:
+
+- **Global installs** (`npm i -g doc-detective`): Runs `npm install -g doc-detective@<latest>` and re-executes.
+- **npx invocations**: Re-executes with `npx -y doc-detective@latest`.
+- **Local project installs**: Prints an "update available" message instead of modifying your `package.json`.
+
+To disable auto-update, use any of these methods:
+
+- Pass `--no-auto-update` on the CLI
+- Set `autoUpdate: false` in your `.doc-detective.json` config file
+- Set the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` environment variable
+
+CI environments (where `process.env.CI` is set) skip the update check automatically.
+
 ## Next steps
 
 Next up, take a look at some of the [concepts](/docs/get-started/concepts) native to Doc Detective, check out some of the guided [tutorials](/tutorials), or explore how to write [tests](/docs/tests) and [actions](/docs/actions) to automate your documentation testing.

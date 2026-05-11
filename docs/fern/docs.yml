@@ -244,6 +244,10 @@ navigation:
     layout:
       - page: Glossary
         path: pages/reference/glossary.mdx
+      - section: CLI
+        contents:
+          - page: install
+            path: pages/reference/cli/install.mdx
       - folder: pages/reference/schemas
         title: Schemas
 
