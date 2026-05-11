@@ -1,6 +1,7 @@
 import {
   HEAVY_NPM_DEPS,
   getDeclaredVersion,
+  satisfiesRange,
 } from "./heavyDeps.js";
 import {
   readInstalledRecord,
@@ -195,59 +196,11 @@ export interface StatusRow {
 /**
  * Diff what's recorded in <cacheDir>/installed.json against the shim's
  * declared expectations (`package.json#optionalDependencies` for npm deps,
- * `latestKnownVersion` from the cache for browsers).
+ * `latestKnownVersion` from the cache for browsers). The semver-range
+ * check used here lives in `heavyDeps.ts` and is shared with the lazy
+ * installer so both code paths see "satisfies the declared constraint"
+ * the same way.
  */
-/**
- * Minimal semver-range check covering the shapes that appear in
- * `package.json#optionalDependencies` for this repo: exact `X.Y.Z`,
- * caret `^X.Y.Z`, tilde `~X.Y.Z`. Anything else (`>=`, `||`, etc.)
- * degrades to "matches" so `status` doesn't surface false outdated
- * warnings. We don't pull in the full `semver` package — it's a
- * runtime dep we're explicitly trying to keep out of the shim, and
- * the surface we need is tiny.
- */
-function satisfiesRange(installed: string, range: string): boolean {
-  if (!range || !installed) return true;
-  const installedParts = parseSemverCore(installed);
-  if (!installedParts) return true;
-  const trimmed = range.trim();
-  if (trimmed.startsWith("^")) {
-    const wanted = parseSemverCore(trimmed.slice(1));
-    if (!wanted) return true;
-    // ^X.Y.Z: same leading non-zero, gte. For X=0, caret pins minor.
-    if (wanted[0] !== installedParts[0]) return false;
-    if (wanted[0] === 0 && wanted[1] !== installedParts[1]) return false;
-    return compareTuple(installedParts, wanted) >= 0;
-  }
-  if (trimmed.startsWith("~")) {
-    const wanted = parseSemverCore(trimmed.slice(1));
-    if (!wanted) return true;
-    return (
-      installedParts[0] === wanted[0] &&
-      installedParts[1] === wanted[1] &&
-      installedParts[2] >= wanted[2]
-    );
-  }
-  // Exact-version constraint (`X.Y.Z`) — equality.
-  const exact = parseSemverCore(trimmed);
-  if (exact) return compareTuple(installedParts, exact) === 0;
-  // Anything else (>=, ||, *) — don't flag.
-  return true;
-}
-
-function parseSemverCore(v: string): [number, number, number] | null {
-  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(v);
-  if (!match) return null;
-  return [Number(match[1]), Number(match[2]), Number(match[3])];
-}
-
-function compareTuple(a: [number, number, number], b: [number, number, number]): number {
-  for (let i = 0; i < 3; i++) {
-    if (a[i] !== b[i]) return a[i] - b[i];
-  }
-  return 0;
-}
-
 export function status(ctx: CacheDirContext = {}): StatusRow[] {
   const record = readInstalledRecord(ctx);
   const rows: StatusRow[] = [];

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
-import { getDeclaredVersion } from "./heavyDeps.js";
+import { getDeclaredVersion, satisfiesRange } from "./heavyDeps.js";
 import {
   getRuntimeDir,
   readInstalledRecord,
@@ -179,16 +179,36 @@ export async function ensureRuntimeInstalled(
   const spawner = deps.spawn ?? (nodeSpawn as SpawnFn);
   if (packages.length === 0) return;
 
-  // Skip what's already resolvable from either the shim's node_modules
-  // (legacy/dev install where the user kept the optionalDependency) or
-  // the runtime cache. Without the shim-resolve skip, the pre-flight
-  // step in runTests() would try to npm-install packages that already
-  // live alongside the CLI — wasteful and slow.
+  // Decide what actually needs `npm install`. The skip cases — when
+  // not forced — are:
+  //   1. The package resolves from the shim's node_modules (npm
+  //      installed it alongside doc-detective). Whatever version was
+  //      pinned with the shim is what users get; we don't try to
+  //      override it here.
+  //   2. The package resolves from <cacheDir>/runtime/node_modules AND
+  //      its installed version still satisfies the shim's declared
+  //      range in package.json#optionalDependencies. Cached installs
+  //      from an older doc-detective release can land here with a
+  //      stale version; we re-install in that case so an upgraded shim
+  //      doesn't run against an outdated cache (the bug Copilot
+  //      flagged for persistent DOC_DETECTIVE_CACHE_DIR setups).
   const toInstall = force
     ? [...packages]
-    : packages.filter(
-        (name) => !tryResolveFromShim(name) && !tryResolveFromCache(name, ctx)
-      );
+    : packages.filter((name) => {
+        if (tryResolveFromShim(name)) return false;
+        if (!tryResolveFromCache(name, ctx)) return true;
+        try {
+          const installed = readInstalledVersionFromCache(name, ctx);
+          const expected = getDeclaredVersion(name);
+          if (!installed) return true;
+          return !satisfiesRange(installed, expected);
+        } catch {
+          // getDeclaredVersion throws for names not in package.json.
+          // The caller passed an unknown name; let the npm install
+          // path produce its own error rather than silently skipping.
+          return true;
+        }
+      });
   if (toInstall.length === 0) return;
 
   const specs = toInstall.map(

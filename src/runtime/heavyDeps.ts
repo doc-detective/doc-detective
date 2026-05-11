@@ -64,3 +64,59 @@ export function getDeclaredVersion(name: string): string {
 export function _resetCacheForTests(): void {
   cachedPkg = null;
 }
+
+/**
+ * Minimal semver-range check covering the shapes that appear in this
+ * repo's `package.json#optionalDependencies`: exact `X.Y.Z`, caret
+ * `^X.Y.Z`, tilde `~X.Y.Z`. Anything else (`>=`, `||`, `*`, etc.)
+ * degrades to "matches" so callers don't surface false positives.
+ *
+ * Pulling in the full `semver` package would put a runtime dep into
+ * the shim we're explicitly trying to keep lean; this is sufficient
+ * for the use sites that compare installed-cache versions against
+ * declared ranges.
+ */
+export function satisfiesRange(installed: string, range: string): boolean {
+  if (!range || !installed) return true;
+  const installedParts = parseSemverCore(installed);
+  if (!installedParts) return true;
+  const trimmed = range.trim();
+  if (trimmed.startsWith("^")) {
+    const wanted = parseSemverCore(trimmed.slice(1));
+    if (!wanted) return true;
+    // ^X.Y.Z: same leading non-zero, gte. For X=0, caret pins minor.
+    if (wanted[0] !== installedParts[0]) return false;
+    if (wanted[0] === 0 && wanted[1] !== installedParts[1]) return false;
+    return compareTuple(installedParts, wanted) >= 0;
+  }
+  if (trimmed.startsWith("~")) {
+    const wanted = parseSemverCore(trimmed.slice(1));
+    if (!wanted) return true;
+    return (
+      installedParts[0] === wanted[0] &&
+      installedParts[1] === wanted[1] &&
+      installedParts[2] >= wanted[2]
+    );
+  }
+  // Exact-version constraint (`X.Y.Z`) — equality.
+  const exact = parseSemverCore(trimmed);
+  if (exact) return compareTuple(installedParts, exact) === 0;
+  // Anything else (>=, ||, *) — don't flag.
+  return true;
+}
+
+function parseSemverCore(v: string): [number, number, number] | null {
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(v);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function compareTuple(
+  a: [number, number, number],
+  b: [number, number, number]
+): number {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
