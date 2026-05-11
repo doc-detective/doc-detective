@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { getDeclaredVersion, satisfiesRange } from "./heavyDeps.js";
 import {
+  assertSafeRuntimePath,
   getRuntimeDir,
   readInstalledRecord,
   writeInstalledRecord,
@@ -70,6 +71,21 @@ function tryResolveFromCache(
   } catch {
     return null;
   }
+}
+
+/**
+ * Resolve a heavy dep's entry path without importing it. Used by call
+ * sites that need to spawn a binary directly (e.g. Appium via
+ * `node <entry>.js`) rather than `await import()` the module — which
+ * lets them bypass `.cmd` shim execution and the Windows shell:true
+ * requirement entirely. Mirrors `loadHeavyDep`'s shim → cache fallback.
+ * Returns `null` if neither location resolves the name.
+ */
+export function resolveHeavyDepPath(
+  name: string,
+  ctx: CacheDirContext = {}
+): string | null {
+  return tryResolveFromShim(name) ?? tryResolveFromCache(name, ctx);
 }
 
 /**
@@ -233,16 +249,19 @@ export async function ensureRuntimeInstalled(
     ...specs,
   ];
 
+  // Node 18+ refuses to spawn `.cmd` files on Windows without
+  // `shell: true` (security feature: spawning .cmd without shell
+  // surfaces as EINVAL). Pair `shell: true` on Windows with explicit
+  // validation of `runtimeDir` — the only user-controlled value that
+  // would otherwise reach the shell — to keep CodeQL happy and avoid
+  // a real injection vector. Linux/macOS spawn the real `npm` binary
+  // without a shell.
+  assertSafeRuntimePath(runtimeDir, "DOC_DETECTIVE_CACHE_DIR / config.cacheDir");
   await new Promise<void>((resolve, reject) => {
-    // No shell. We explicitly choose `npm.cmd` on Windows so Node 18+
-    // can spawn it directly without invoking cmd.exe — and crucially,
-    // without exposing `runtimeDir` (a user-controlled path via
-    // DOC_DETECTIVE_CACHE_DIR / config.cacheDir) to shell parsing.
-    // Same shell-injection avoidance rationale as the Appium spawns
-    // in src/core/tests.ts.
     const child = spawner(npmExe, args, {
       cwd: runtimeDir,
       env: process.env,
+      shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
     });
     const onLine = (stream: "stdout" | "stderr", chunk: Buffer | string) => {

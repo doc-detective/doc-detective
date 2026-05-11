@@ -3,8 +3,8 @@ import { validate } from "../common/src/validate.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
-import { loadHeavyDep } from "../runtime/loader.js";
-import { getBrowsersDir, getRuntimeDir } from "../runtime/cacheDir.js";
+import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { getBrowsersDir } from "../runtime/cacheDir.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
@@ -618,23 +618,29 @@ async function getAvailableApps({ config }: any) {
     // posture even with APPIUM_HOME set, because APPIUM_HOME only
     // governs driver lookup, not binary resolution.
     //
-    // Use `spawn` directly (not the shared `spawnCommand`) because
-    // spawnCommand splits the command string on spaces internally —
-    // which CodeQL flags as a shell-construction pattern when any of
-    // those args derive from user input like `config.cacheDir`. By
-    // spawning npm directly with an arg array and no shell, the
-    // `runtimeDir` value goes to npm verbatim and never touches a
-    // shell-interpreted string.
-    const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
-    const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+    // Resolve appium's JS entry directly (shim first, then cache)
+    // and spawn `node <entry> driver list`. Bypasses `.cmd` shims,
+    // `npm exec`, and shell:true — the same pattern as the Appium
+    // spawns in src/core/tests.ts.
+    const appiumEntry = resolveHeavyDepPath("appium", {
+      cacheDir: config?.cacheDir,
+    });
     const installedAppiumDrivers = await new Promise<{
       stdout: string;
       stderr: string;
       exitCode: number;
     }>((resolve) => {
+      if (!appiumEntry) {
+        resolve({
+          stdout: "",
+          stderr: "appium is not installed; driver list unavailable",
+          exitCode: 1,
+        });
+        return;
+      }
       const child = spawnChild(
-        npmCmd,
-        ["exec", "--prefix", runtimeDir, "--", "appium", "driver", "list"],
+        process.execPath,
+        [appiumEntry, "driver", "list"],
         { env: process.env }
       );
       let stdout = "";

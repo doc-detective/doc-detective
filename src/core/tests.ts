@@ -5,8 +5,7 @@ import kill from "tree-kill";
 // reference uses `typeof import('webdriverio')` directly at the call site
 // so we don't carry a top-level `import type` whose `typeof` would refer
 // to a non-runtime identifier.
-import { loadHeavyDep } from "../runtime/loader.js";
-import { getRuntimeDir } from "../runtime/cacheDir.js";
+import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import os from "node:os";
 import { log, replaceEnvs, selectSpecsForRun, findFreePort } from "./utils.js";
 import axios from "axios";
@@ -487,25 +486,22 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     appiumPort = await findFreePort();
     log(config, "debug", `Starting Appium on port ${appiumPort}`);
-    // Resolve the appium CLI from the runtime cache via `npm exec
-    // --prefix <runtimeDir>` rather than plain `npx`. APPIUM_HOME only
-    // configures Appium's driver lookup, not the binary path — so when
-    // a user installs with `--omit=optional` the appium CLI lives ONLY
-    // in <cacheDir>/runtime/node_modules and a bare `npx appium` would
-    // fail to find it.
-    //
-    // shell:false is deliberate. With shell:true Node would join the
-    // args into a single string and run them through sh/cmd, making
-    // any shell metacharacter inside `runtimeDir` (which the user can
-    // set via DOC_DETECTIVE_CACHE_DIR or config.cacheDir) a shell-
-    // injection vector — CodeQL flags this. Spawning npm directly with
-    // an args array hands the value to npm verbatim with no shell
-    // interpretation. Node 18+ resolves `.cmd` shims on Windows for
-    // spawn() without shell:true.
-    const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
+    // Resolve appium's actual JS entrypoint via `require.resolve`
+    // (shim node_modules first, runtime cache second) and invoke it
+    // with `node <entry>`. This sidesteps every shell-injection trap
+    // at once: no `.cmd` shim, so no Windows-requires-shell:true; no
+    // `npx`, so no PATH lookup; no user-controlled paths in a shell-
+    // interpreted string. Works for both `--omit=optional` users
+    // (appium in cache only) and default installs (appium in shim).
+    const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
+    if (!appiumEntry) {
+      throw new Error(
+        "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
+      );
+    }
     appium = spawn(
-      process.platform === "win32" ? "npm.cmd" : "npm",
-      ["exec", "--prefix", runtimeDir, "--", "appium", "-a", "127.0.0.1", "-p", String(appiumPort)],
+      process.execPath,
+      [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
       {
         windowsHide: true,
         cwd: path.join(__dirname, "../.."),
@@ -1161,14 +1157,18 @@ async function getRunner(options: any = {}) {
   // Set Appium home directory
   setAppiumHome({ cacheDir: config?.cacheDir });
 
-  // Start Appium server on a free ephemeral port. Resolve the appium
-  // CLI from the runtime cache (see comment in runSpecs above for why
-  // we don't use bare `npx appium`, and why shell:true is omitted).
+  // Start Appium server on a free ephemeral port. Same `node <entry>`
+  // pattern as the runSpecs spawn above — see comment there.
   const appiumPort = await findFreePort();
-  const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
+  const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
+  if (!appiumEntry) {
+    throw new Error(
+      "appium is not installed. Run `doc-detective install runtime appium` to install it."
+    );
+  }
   const appium = spawn(
-    process.platform === "win32" ? "npm.cmd" : "npm",
-    ["exec", "--prefix", runtimeDir, "--", "appium", "-a", "127.0.0.1", "-p", String(appiumPort)],
+    process.execPath,
+    [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
     {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),

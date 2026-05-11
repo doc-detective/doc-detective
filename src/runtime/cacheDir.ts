@@ -62,6 +62,44 @@ function trimOrUndefined(v: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+/**
+ * Reject paths that contain shell-metacharacters, so call sites that
+ * must spawn a `.cmd` shim with `shell: true` on Windows (Node 18+
+ * refuses `.cmd` without shell:true with EINVAL) can do so safely.
+ * The cache dir comes from user-controlled inputs (DOC_DETECTIVE_CACHE_DIR
+ * or config.cacheDir), so this is the validation that pairs with the
+ * spawn-via-shell on Windows. Linux/macOS spawn the real `npm` binary
+ * without a shell and don't need this gate, but applying it uniformly
+ * keeps both platforms on the same contract.
+ *
+ * Characters rejected: ; & | $ ` ( ) < > " ' \ newline / carriage return,
+ * and the backslash escape character — the standard set of shell
+ * metacharacters that could change command parsing. Windows path
+ * separators are POSIX-style only; absolute Windows paths use forward
+ * slashes here (Node's path APIs normalize them) so a `C:\Users\...`
+ * style path goes through path.join → forward-slashed or properly
+ * quoted by the helpers that consume it.
+ */
+// Deny-list rather than allow-list: real paths contain enough variety
+// (tildes for Windows short names like `HAWKEY~1`, parens for paths
+// like `Program Files (x86)`, accented characters in non-ASCII locales,
+// dollar signs that aren't shell-variable expansions, etc.) that an
+// allow-list is too brittle. The set rejected here is the canonical
+// shell-metacharacter set for sh/bash/cmd.exe — anything else is a
+// legitimate path component.
+const SHELL_METAS = /[;&|`$<>"'\n\r]/;
+
+export function assertSafeRuntimePath(p: string, label: string): void {
+  const match = SHELL_METAS.exec(p);
+  if (match) {
+    throw new Error(
+      `${label} contains a shell-metacharacter (${JSON.stringify(match[0])}) in the runtime cache path: ${JSON.stringify(p)}. ` +
+        `Shell metacharacters (;, &, |, \`, $, <, >, ", ', newline) would let the path break out of \`npm exec\` argument boundaries on Windows, where the spawn must go through shell:true to invoke npm.cmd. ` +
+        `Adjust DOC_DETECTIVE_CACHE_DIR / config.cacheDir to a path without these characters.`
+    );
+  }
+}
+
 export function getRuntimeDir(ctx: CacheDirContext = {}): string {
   return path.join(getCacheDir(ctx), "runtime");
 }
