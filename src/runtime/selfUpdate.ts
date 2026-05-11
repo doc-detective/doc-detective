@@ -11,11 +11,16 @@ export interface SelfUpdateDeps {
   spawn?: SpawnFn;
 }
 
-// Default logger silences `debug` so the startup self-update check (which
-// runs on every CLI invocation when autoUpdate is enabled) doesn't flood
-// stdout with transient network-failure stack traces. The CLI startup
-// path wires up a real logger that maps to `core/utils.ts:log()`; this
-// fallback is only for direct test invocations / programmatic use.
+// Default logger silences `debug` so the startup self-update check
+// doesn't flood stdout with transient network-failure stack traces.
+// The check is invoked from `runTestsHandler` in src/cli.ts (the
+// default `doc-detective` flow); `install …` subcommands deliberately
+// bypass it so explicit maintenance actions don't trigger surprise
+// upgrades. When the check IS invoked, the CLI wires up a real logger
+// that maps to `core/utils.ts:log()` with the user's configured
+// logLevel; this in-module fallback is only for direct test or
+// programmatic use that calls `checkForUpdate` / `selfUpdate` without
+// passing `deps.logger`.
 const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
 const defaultLogger: Logger = (msg, level = "info") => {
   if (level === "debug" && !RUNTIME_DEBUG) return;
@@ -175,6 +180,23 @@ export async function selfUpdate(
     logger(
       `Update available: doc-detective@${latestVersion}. Run \`npm i doc-detective@latest\` in this project to upgrade.`,
       "info"
+    );
+    return { updated: false, reexec: false };
+  }
+
+  // `latestVersion` comes from the npm registry response (dist-tags.latest)
+  // and is interpolated into the args of an `npm.cmd` / `npx.cmd` spawn
+  // that uses `shell: true` on Windows (Node 18+ refuses .cmd without
+  // shell:true). A compromised or malformed registry value could
+  // therefore reach cmd.exe parsing. Constrain the value to a strict
+  // semver-ish character class (digits, dots, hyphens, and ASCII
+  // alphanumerics for prerelease identifiers) before using it. Anything
+  // outside this set bails out of the self-update — the user keeps
+  // running the current version and a clear error is logged.
+  if (!/^[A-Za-z0-9.\-+]+$/.test(latestVersion)) {
+    logger(
+      `Refusing to self-update: registry-reported version ${JSON.stringify(latestVersion)} contains characters outside the semver charset. Skipping.`,
+      "error"
     );
     return { updated: false, reexec: false };
   }

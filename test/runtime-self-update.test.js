@@ -123,6 +123,25 @@ describe("runtime/selfUpdate", function () {
       expect(spawner.calls).to.deep.equal([]);
     });
 
+    it("refuses to self-update when latestVersion contains non-semver characters", async function () {
+      // A compromised registry could return a value with shell
+      // metacharacters that would reach cmd.exe via the .cmd spawn's
+      // shell:true on Windows. The validator must bail out before
+      // spawning anything.
+      const spawner = fakeSpawner();
+      const errors = [];
+      const result = await selfUpdate("4.6.0; rm -rf /", "global", {
+        logger: (msg, lvl) => {
+          if (lvl === "error") errors.push(msg);
+        },
+        spawn: spawner,
+      });
+      expect(result.updated).to.equal(false);
+      expect(spawner.calls).to.deep.equal([]);
+      expect(errors.length).to.equal(1);
+      expect(errors[0]).to.match(/semver charset/);
+    });
+
     // global / npx modes call process.exit after spawning. We don't test
     // those here because process.exit kills the test runner; the spawn
     // commands are mechanically simple and the behavior is exercised by

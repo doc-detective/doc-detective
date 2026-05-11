@@ -72,29 +72,27 @@ function trimOrUndefined(v: unknown): string | undefined {
  * without a shell and don't need this gate, but applying it uniformly
  * keeps both platforms on the same contract.
  *
- * Characters rejected: ; & | $ ` ( ) < > " ' \ newline / carriage return,
- * and the backslash escape character — the standard set of shell
- * metacharacters that could change command parsing. Windows path
- * separators are POSIX-style only; absolute Windows paths use forward
- * slashes here (Node's path APIs normalize them) so a `C:\Users\...`
- * style path goes through path.join → forward-slashed or properly
- * quoted by the helpers that consume it.
+ * Characters rejected (matching `SHELL_METAS` exactly):
+ *   - POSIX sh/bash:  ;  &  |  `  $  <  >  "  '  newline  carriage-return
+ *   - cmd.exe:        %  (`%VAR%` expansion)
+ *                     ^  (escape character)
+ *                     !  (delayed-expansion variable, when /v:on active)
+ *
+ * Space is intentionally NOT rejected — Node properly quotes single
+ * args containing spaces even with shell:true on Windows, and paths
+ * like `C:\Users\John Doe\…` are common enough that rejecting space
+ * would be hostile. Parens, backslashes, tildes, and dots are all
+ * accepted for the same reason: real paths use them (`Program Files
+ * (x86)`, `HAWKEY~1`, etc.).
  */
-// Deny-list rather than allow-list: real paths contain enough variety
-// (tildes for Windows short names like `HAWKEY~1`, parens for paths
-// like `Program Files (x86)`, accented characters in non-ASCII locales,
-// dollar signs that aren't shell-variable expansions, etc.) that an
-// allow-list is too brittle. The set rejected here is the canonical
-// shell-metacharacter set for sh/bash/cmd.exe — anything else is a
-// legitimate path component.
-const SHELL_METAS = /[;&|`$<>"'\n\r]/;
+const SHELL_METAS = /[;&|`$<>"'\n\r%^!]/;
 
 export function assertSafeRuntimePath(p: string, label: string): void {
   const match = SHELL_METAS.exec(p);
   if (match) {
     throw new Error(
       `${label} contains a shell-metacharacter (${JSON.stringify(match[0])}) in the runtime cache path: ${JSON.stringify(p)}. ` +
-        `Shell metacharacters (;, &, |, \`, $, <, >, ", ', newline) would let the path break out of \`npm exec\` argument boundaries on Windows, where the spawn must go through shell:true to invoke npm.cmd. ` +
+        `Shell metacharacters (;, &, |, \`, $, <, >, ", ', %, ^, !, newline) would let the path break out of \`npm exec\` argument boundaries on Windows, where the spawn must go through shell:true to invoke npm.cmd. ` +
         `Adjust DOC_DETECTIVE_CACHE_DIR / config.cacheDir to a path without these characters.`
     );
   }
