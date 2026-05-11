@@ -66,6 +66,18 @@ GITHUB_TOKEN=... npx semantic-release --dry-run --no-ci
 npx commitlint --from HEAD~1 --to HEAD --verbose
 ```
 
+## Testing behavior
+
+Running tests is time-intensive. Instead of running a test multiple times to check for different behaviors (such as looking at tail for output verification), save output to a file and inspect that file:
+
+```bash
+# Run a test and save both stdout and stderr to a file (mocha and node write
+# diagnostics, including failures, to stderr — `2>&1` captures both).
+npm test -- --test "my test name" > output.txt 2>&1
+# Inspect the output file
+cat output.txt
+```
+
 ## CLI flags ↔ config (required pattern)
 
 Every user-facing knob flows through the merged `config` object. CLI flags do **not** bypass it — they override it. Runtime code (runner, reporters, integrations) reads from `config` only, never from `args`. This is what lets config files and `DOC_DETECTIVE_CONFIG` reach the same code paths the CLI does.
