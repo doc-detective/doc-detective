@@ -50,7 +50,7 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
       doc-detective install all --yes; \
       if ($LASTEXITCODE -ne 0) { throw "doc-detective install all failed with exit code $LASTEXITCODE" } \
     } else { \
-      Write-Host "[postinstall] doc-detective install all unavailable in installed version; skipping cache pre-warm."; \
+      Write-Host '[postinstall] doc-detective install all unavailable in installed version. Skipping cache pre-warm.'; \
       $global:LASTEXITCODE = 0 \
     }
 
