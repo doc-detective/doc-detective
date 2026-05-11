@@ -31,9 +31,11 @@ ENV DOC_DETECTIVE='{"container": "docdetective/docdetective:windows", "version":
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
+# Pre-warm tolerates older published versions that don't yet have the
+# `install all` subcommand — see linux.Dockerfile for the rationale.
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
     npm install -g doc-detective@$env:PACKAGE_VERSION; \
-    doc-detective install all --yes
+    try { doc-detective install all --yes } catch { Write-Host "[postinstall] doc-detective install all unavailable in installed version; skipping cache pre-warm." }
 
 WORKDIR /app
 

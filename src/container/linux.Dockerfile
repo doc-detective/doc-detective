@@ -38,12 +38,20 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Doc Detective from NPM. The shim now lazy-installs heavy deps
+# Install Doc Detective from NPM. The shim lazy-installs heavy deps
 # (browsers, ffmpeg, webdriverio, appium, sharp) on first use, so the
 # initial install is small. The follow-up `doc-detective install all`
 # pre-warms the cache so the image is ready to run tests offline.
+#
+# The pre-warm is tolerant of older published versions that don't yet
+# support the `install all` subcommand — image releases built against
+# the published `doc-detective@$PACKAGE_VERSION` may temporarily lag
+# the in-repo CLI surface (e.g., during PR-time smoke builds where
+# PACKAGE_VERSION=latest). Once a release containing this CLI surface
+# is published, future image builds will pre-warm successfully.
 RUN npm install -g doc-detective@$PACKAGE_VERSION \
-    && doc-detective install all --yes
+    && (doc-detective install all --yes \
+        || echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm.")
 
 # Install DITA-OT
 ARG DITA_OT_VERSION=4.3.4
