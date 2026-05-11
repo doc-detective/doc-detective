@@ -52,6 +52,14 @@ export function getCacheDir(ctx: CacheDirContext = {}): string {
     trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR) ??
     trimOrUndefined(ctx.cacheDir) ??
     defaultCacheRoot();
+  // Validate at the source so every downstream consumer (loader,
+  // installer, browsers helper) inherits the safety check without
+  // having to remember to call assertSafeRuntimePath itself. The cache
+  // dir is user-controlled (env var / config / CLI), and Windows
+  // .cmd spawns go through shell:true — a metachar here would break
+  // out of the argv boundary. Failing fast at getCacheDir() also
+  // beats letting an invalid path get mkdir'd and partially written.
+  assertSafeRuntimePath(resolved, "cacheDir");
   fs.mkdirSync(resolved, { recursive: true });
   return resolved;
 }
@@ -121,7 +129,17 @@ export function getBrowsersDir(ctx: CacheDirContext = {}): string {
   // anywhere). First hit wins; the tmpdir cache is only used when neither
   // legacy location exists.
   for (const candidate of legacyBrowserSnapshotCandidates()) {
-    if (fs.existsSync(candidate)) return candidate;
+    // existsSync also accepts regular files / symlinks-to-files; treating
+    // those as a legacy snapshot dir would route the browser install
+    // and read paths at something that can't hold a buildId tree.
+    // Restrict acceptance to actual directories. statSync throws when
+    // the candidate is missing/unreadable — the catch falls through to
+    // the next candidate (and ultimately to the tmpdir cache).
+    try {
+      if (fs.statSync(candidate).isDirectory()) return candidate;
+    } catch {
+      // candidate missing or inaccessible; skip
+    }
   }
   return path.join(getCacheDir(ctx), "browsers");
 }
