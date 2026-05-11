@@ -9,7 +9,7 @@
 //   - Hint bodies are short — usually 2–6 lines.
 //   - Use fenced ```bash``` (or ```yaml```, etc.) blocks for commands.
 //   - Always link the docs with a Markdown link.
-//   - Ids are stable kebab-case; do not rename existing ids.
+//   - Ids are stable camelCase; do not rename existing ids.
 //   - Priority bands: 10 (onboarding), 20 (current-run problems),
 //     30 (output/reporting), 40 (feature discovery), 50 (advanced).
 //   - Order entries alphabetically by id within this file.
@@ -19,10 +19,10 @@ import { RST_EXTENSIONS } from "./context.js";
 
 export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
-  // add-config-file (onboarding)
+  // addConfigFile (onboarding)
   // ------------------------------------------------------------------
   {
-    id: "add-config-file",
+    id: "addConfigFile",
     priority: 10,
     markdown: [
       "Save your runner settings instead of remembering CLI flags. Drop a",
@@ -43,10 +43,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // add-npm-script (onboarding)
+  // addNpmScript (onboarding)
   // ------------------------------------------------------------------
   {
-    id: "add-npm-script",
+    id: "addNpmScript",
     priority: 10,
     markdown: [
       "Wire Doc Detective into your `package.json` so the team can run docs",
@@ -67,10 +67,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // enable-debug-log (current-run problem) — shipped in v1
+  // enableDebugLog (current-run problem) — shipped in v1
   // ------------------------------------------------------------------
   {
-    id: "enable-debug-log",
+    id: "enableDebugLog",
     priority: 20,
     markdown: [
       "Tests failed. Re-run with `--logLevel debug` for a full trace of every",
@@ -84,10 +84,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // enable-telemetry-user-id-for-team (advanced)
+  // enableTelemetryUserIdForTeam (advanced)
   // ------------------------------------------------------------------
   {
-    id: "enable-telemetry-user-id-for-team",
+    id: "enableTelemetryUserIdForTeam",
     priority: 50,
     markdown: [
       "Attribute Doc Detective usage to your team by setting",
@@ -107,10 +107,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // extract-afterAll-cleanup (advanced)
+  // extractAfterAllCleanup (advanced)
   // ------------------------------------------------------------------
   {
-    id: "extract-afterAll-cleanup",
+    id: "extractAfterAllCleanup",
     priority: 50,
     markdown: [
       "If most specs finish by saving cookies for reuse, pull that cleanup",
@@ -128,10 +128,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // extract-beforeAny-shared-setup (advanced)
+  // extractBeforeAnySharedSetup (advanced)
   // ------------------------------------------------------------------
   {
-    id: "extract-beforeAny-shared-setup",
+    id: "extractBeforeAnySharedSetup",
     priority: 50,
     markdown: [
       "Repeating the same setup across specs? Move it into a `beforeAny`",
@@ -148,10 +148,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // gitignore-output-dir (onboarding)
+  // gitignoreOutputDir (onboarding)
   // ------------------------------------------------------------------
   {
-    id: "gitignore-output-dir",
+    id: "gitignoreOutputDir",
     priority: 10,
     markdown: [
       "Add your Doc Detective output directory to `.gitignore` so artifacts",
@@ -170,10 +170,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // install-agents (onboarding) — promoted aggressively
+  // installAgents (onboarding) — promoted aggressively
   // ------------------------------------------------------------------
   {
-    id: "install-agents",
+    id: "installAgents",
     priority: 10,
     markdown: [
       "Detected coding agents on this machine but no Doc Detective adapter",
@@ -197,10 +197,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // install-github-action (onboarding) — shipped in v1
+  // installGithubAction (onboarding) — shipped in v1
   // ------------------------------------------------------------------
   {
-    id: "install-github-action",
+    id: "installGithubAction",
     priority: 10,
     markdown: [
       "Add Doc Detective to your CI so docs are tested on every push. Save the",
@@ -225,10 +225,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // output-dir-not-set (output & reporting)
+  // outputDirNotSet (output & reporting)
   // ------------------------------------------------------------------
   {
-    id: "output-dir-not-set",
+    id: "outputDirNotSet",
     priority: 30,
     markdown: [
       "Result artifacts are landing next to your source files. Set `output`",
@@ -244,10 +244,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // recursive-might-be-too-broad (advanced)
+  // recursiveMightBeTooBroad (advanced)
   // ------------------------------------------------------------------
   {
-    id: "recursive-might-be-too-broad",
+    id: "recursiveMightBeTooBroad",
     priority: 50,
     markdown: [
       "You're scanning 100+ specs. Scoping `input` to a directory or two is",
@@ -261,10 +261,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // reporters-include-json-for-ci (output & reporting)
+  // reportersIncludeJsonForCi (output & reporting)
   // ------------------------------------------------------------------
   {
-    id: "reporters-include-json-for-ci",
+    id: "reportersIncludeJsonForCi",
     priority: 30,
     markdown: [
       "On GitHub? Add the JSON reporter so CI can upload structured results",
@@ -281,10 +281,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // set-origin-for-relative-urls (advanced)
+  // setOriginForRelativeUrls (advanced)
   // ------------------------------------------------------------------
   {
-    id: "set-origin-for-relative-urls",
+    id: "setOriginForRelativeUrls",
     priority: 50,
     markdown: [
       "Your tests use relative URLs. Set `origin` once and stop hardcoding",
@@ -301,10 +301,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // try-html-reporter (output & reporting) — shipped in v1
+  // tryHtmlReporter (output & reporting) — shipped in v1
   // ------------------------------------------------------------------
   {
-    id: "try-html-reporter",
+    id: "tryHtmlReporter",
     priority: 30,
     markdown: [
       "Generate a shareable HTML report alongside the terminal summary:",
@@ -320,10 +320,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // upgrade-node-version (current-run problem)
+  // upgradeNodeVersion (current-run problem)
   // ------------------------------------------------------------------
   {
-    id: "upgrade-node-version",
+    id: "upgradeNodeVersion",
     priority: 20,
     markdown: [
       "You're on Node 18 or older. Doc Detective targets Node 20+ — older",
@@ -336,10 +336,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-checkLink-step (feature discovery)
+  // useCheckLinkStep (feature discovery)
   // ------------------------------------------------------------------
   {
-    id: "use-checkLink-step",
+    id: "useCheckLinkStep",
     priority: 40,
     markdown: [
       "Catch dead doc links before readers do. Add a `checkLink` step:",
@@ -353,10 +353,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-dry-run-to-debug-no-tests (current-run problem)
+  // useDryRunToDebugNoTests (current-run problem)
   // ------------------------------------------------------------------
   {
-    id: "use-dry-run-to-debug-no-tests",
+    id: "useDryRunToDebugNoTests",
     priority: 20,
     markdown: [
       "Found specs but no tests ran. `--dry-run` prints the resolved test",
@@ -370,7 +370,7 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-fileTypes-for-rst (advanced)
+  // useFileTypesForRst (advanced)
   //
   // Targets `.rst` only because `.mdx` and `.adoc` are already covered
   // by the default `markdown` / `asciidoc` file-type templates in
@@ -379,7 +379,7 @@ export const HINTS: Hint[] = [
   // against `filePath.split('.').pop().toLowerCase()`.
   // ------------------------------------------------------------------
   {
-    id: "use-fileTypes-for-rst",
+    id: "useFileTypesForRst",
     priority: 50,
     markdown: [
       "Doc Detective doesn't have a built-in `reStructuredText` (`.rst`) file",
@@ -426,10 +426,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-httpRequest-step (feature discovery)
+  // useHttpRequestStep (feature discovery)
   // ------------------------------------------------------------------
   {
-    id: "use-httpRequest-step",
+    id: "useHttpRequestStep",
     priority: 40,
     markdown: [
       "Replace shelled-out `curl` with the typed `httpRequest` step. You get",
@@ -452,10 +452,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-loadCookie-saveCookie (feature discovery)
+  // useLoadCookieSaveCookie (feature discovery)
   // ------------------------------------------------------------------
   {
-    id: "use-loadCookie-saveCookie",
+    id: "useLoadCookieSaveCookie",
     priority: 40,
     markdown: [
       "Tests that log in over and over slow your suite down. Capture the",
@@ -474,10 +474,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-openApi-validation (feature discovery)
+  // useOpenApiValidation (feature discovery)
   // ------------------------------------------------------------------
   {
-    id: "use-openApi-validation",
+    id: "useOpenApiValidation",
     priority: 40,
     markdown: [
       "Have an OpenAPI schema? Wire it into `integrations.openApi` and every",
@@ -497,10 +497,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-record-step-on-failure (current-run problem)
+  // useRecordStepOnFailure (current-run problem)
   // ------------------------------------------------------------------
   {
-    id: "use-record-step-on-failure",
+    id: "useRecordStepOnFailure",
     priority: 20,
     markdown: [
       "Add a `record`/`stopRecord` pair around tricky tests so the next",
@@ -519,10 +519,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-runCode-step (feature discovery)
+  // useRunCodeStep (feature discovery)
   // ------------------------------------------------------------------
   {
-    id: "use-runCode-step",
+    id: "useRunCodeStep",
     priority: 40,
     markdown: [
       "Running `node` or `python` in `runShell`? Switch to `runCode` for",
@@ -540,10 +540,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-screenshot-step (feature discovery)
+  // useScreenshotStep (feature discovery)
   // ------------------------------------------------------------------
   {
-    id: "use-screenshot-step",
+    id: "useScreenshotStep",
     priority: 40,
     markdown: [
       "Catch silent UI regressions: add `screenshot: true` to a step and",
@@ -560,10 +560,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-spec-filter-for-iteration (advanced)
+  // useSpecFilterForIteration (advanced)
   // ------------------------------------------------------------------
   {
-    id: "use-spec-filter-for-iteration",
+    id: "useSpecFilterForIteration",
     priority: 50,
     markdown: [
       "Iterating on one spec at a time? `--spec` and `--test` filter the run",
@@ -585,10 +585,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // use-stable-finding-patterns (current-run problem)
+  // useStableFindingPatterns (current-run problem)
   // ------------------------------------------------------------------
   {
-    id: "use-stable-finding-patterns",
+    id: "useStableFindingPatterns",
     priority: 20,
     markdown: [
       "Selectors are the #1 source of flaky doc tests. Prefer stable",

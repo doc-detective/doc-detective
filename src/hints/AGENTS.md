@@ -2,8 +2,8 @@
 
 This package owns the post-run hint system: a small, opt-out feature that
 prints **one** contextual tip after a test run completes (pass or fail —
-several built-in hints, like `enable-debug-log` and
-`use-record-step-on-failure`, intentionally fire on failures). Hints
+several built-in hints, like `enableDebugLog` and
+`useRecordStepOnFailure`, intentionally fire on failures). Hints
 nudge users toward features they aren't yet using (CI workflow, HTML
 reporter, stable find patterns, etc.).
 
@@ -44,7 +44,7 @@ to ignore the entire feature.
 
 ```ts
 {
-  id: "use-stable-finding-patterns",
+  id: "useStableFindingPatterns",
   priority: 20,
   markdown: [
     "Selectors are the #1 source of flaky doc tests. Prefer stable",
@@ -74,19 +74,23 @@ below.
   will become user-visible if a per-hint disable list is added later.
   Renaming a shipped id breaks anyone who'd added it to a disable list
   in their config.
-- **Verb-first kebab-case.** Start with the action you want the user to
-  take: `use-`, `add-`, `enable-`, `extract-`, `install-`, `upgrade-`,
-  `set-`, `try-`, `gitignore-`.
-- **camelCase API references are allowed** when they reference an
-  existing doc-detective field/step name verbatim:
-  `use-httpRequest-step`, `extract-afterAll-cleanup`. Matches the schema
-  so the id is grep-able.
-- **Lowercase otherwise.** Don't write `enable-Telemetry-userId`.
+- **camelCase.** Matches the convention used everywhere else in the
+  project (step names like `goTo` / `httpRequest`, config fields like
+  `concurrentRunners` / `afterAll`).
+- **Verb-first.** Start with the action you want the user to take:
+  `use`, `add`, `enable`, `extract`, `install`, `upgrade`, `set`, `try`,
+  `gitignore`. So: `useScreenshotStep`, `addNpmScript`,
+  `extractAfterAllCleanup`, `gitignoreOutputDir`.
+- **Embed API names verbatim** when referencing them. Doc Detective's
+  schema field and step names are already camelCase, so they drop in
+  directly: `useHttpRequestStep`, `extractAfterAllCleanup`,
+  `useLoadCookieSaveCookie`. The id stays grep-able against the schema.
+- **No hyphens, underscores, or other separators.**
 - **Order entries alphabetically by id** in [`hints.ts`](./hints.ts) so
   reviewers can scan the list.
 
 The id-shape regex is enforced by `test/hints.test.js`:
-`/^[a-z][a-zA-Z0-9-]*$/`.
+`/^[a-z][a-zA-Z0-9]*$/`.
 
 ---
 
@@ -99,7 +103,7 @@ when both are eligible.
 
 | Band | When to use |
 |------|-------------|
-| **10** — onboarding | First-run setup. CI workflow, config file, npm script, install-agents. The user is new, give them the runway. |
+| **10** — onboarding | First-run setup. CI workflow, config file, npm script, installAgents. The user is new, give them the runway. |
 | **20** — current-run problems | Something failed *this run* or the env is misconfigured. Old Node, no tests resolved, brittle selectors, no recording on failure. |
 | **30** — output & reporting | Better artifacts. HTML reporter, JSON for CI artifacts, output dir. |
 | **40** — feature discovery | A first-class step type the user hasn't reached for yet. screenshot, checkLink, httpRequest, runCode. |
@@ -123,13 +127,13 @@ Better to be explicit.
    on a half-broken results shape from a failed run.
 
 3. **Tight.** A hint should fire when the user would clearly benefit,
-   not just when "feature X isn't enabled." The `try-html-reporter`
+   not just when "feature X isn't enabled." The `tryHtmlReporter`
    hint, for example, gates on the user having an explicit reporters
    array — not on the (default) absence of `html`. We don't tell users
    "you could use HTML" unconditionally.
 
 4. **Skipped when the feature is already in use.** Always include the
-   "is the user already doing this?" check. `use-screenshot-step` only
+   "is the user already doing this?" check. `useScreenshotStep` only
    fires when no screenshot was actually produced this run.
 
 5. **Anything that throws inside `when()` is caught and logged at

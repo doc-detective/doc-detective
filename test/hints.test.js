@@ -1052,14 +1052,15 @@ describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
     expect(HINTS.length).to.equal(26);
     const ids = new Set();
-    // Ids start with a lowercase letter and use kebab-case. Embedded
-    // camelCase tokens are allowed *only* when they reference a
-    // doc-detective API/schema name (e.g. `httpRequest`, `loadCookie`),
-    // since matching the literal API name makes hints grep-able.
+    // Ids are camelCase, matching the convention used everywhere else
+    // in the project (step names like `goTo`, config fields like
+    // `concurrentRunners`). No hyphens, no underscores. The regex
+    // rejects ids with `-` so the convention can't drift on a future
+    // hint addition.
     for (const h of HINTS) {
       expect(h.id, `bad id shape: ${h.id}`)
         .to.be.a("string")
-        .and.match(/^[a-z][a-zA-Z0-9-]*$/);
+        .and.match(/^[a-z][a-zA-Z0-9]*$/);
       expect(ids.has(h.id), `duplicate id: ${h.id}`).to.equal(false);
       ids.add(h.id);
       expect(h.markdown).to.be.a("string").and.have.length.greaterThan(0);
@@ -1076,23 +1077,23 @@ describe("hints/hints (registry)", function () {
 
   // ----- onboarding (priority 10) -----
 
-  it("install-github-action: fires on a github repo with no workflow", function () {
-    const h = findHint("install-github-action");
+  it("installGithubAction: fires on a github repo with no workflow", function () {
+    const h = findHint("installGithubAction");
     expect(h.priority).to.equal(10);
     expect(h.when(fakeCtx({ isGitHubRepo: true, hasDocDetectiveWorkflow: false }))).to.equal(true);
     expect(h.when(fakeCtx({ isGitHubRepo: true, hasDocDetectiveWorkflow: true }))).to.equal(false);
     expect(h.when(fakeCtx({ isGitHubRepo: false }))).to.equal(false);
   });
 
-  it("add-config-file: fires when no config file is loaded", function () {
-    const h = findHint("add-config-file");
+  it("addConfigFile: fires when no config file is loaded", function () {
+    const h = findHint("addConfigFile");
     expect(h.priority).to.equal(10);
     expect(h.when(fakeCtx({ configPath: null }))).to.equal(true);
     expect(h.when(fakeCtx({ configPath: ".doc-detective.json" }))).to.equal(false);
   });
 
-  it("add-npm-script: fires only when package.json exists and lacks a doc-detective script", function () {
-    const h = findHint("add-npm-script");
+  it("addNpmScript: fires only when package.json exists and lacks a doc-detective script", function () {
+    const h = findHint("addNpmScript");
     expect(h.priority).to.equal(10);
     // package.json exists, no doc-detective script -> fire
     expect(
@@ -1114,8 +1115,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("gitignore-output-dir: fires when output is set, non-cwd, and not ignored", function () {
-    const h = findHint("gitignore-output-dir");
+  it("gitignoreOutputDir: fires when output is set, non-cwd, and not ignored", function () {
+    const h = findHint("gitignoreOutputDir");
     expect(h.priority).to.equal(10);
     expect(
       h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: false }))
@@ -1128,8 +1129,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("install-agents: fires when ANY present agent lacks the adapter (over-promote)", function () {
-    const h = findHint("install-agents");
+  it("installAgents: fires when ANY present agent lacks the adapter (over-promote)", function () {
+    const h = findHint("installAgents");
     expect(h.priority).to.equal(10);
     // One present agent, no adapter -> fire
     expect(
@@ -1179,15 +1180,15 @@ describe("hints/hints (registry)", function () {
 
   // ----- current-run problems (priority 20) -----
 
-  it("enable-debug-log: fires only when failedCount > 0", function () {
-    const h = findHint("enable-debug-log");
+  it("enableDebugLog: fires only when failedCount > 0", function () {
+    const h = findHint("enableDebugLog");
     expect(h.priority).to.equal(20);
     expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
     expect(h.when(fakeCtx({ failedCount: 3 }))).to.equal(true);
   });
 
-  it("use-record-step-on-failure: fires only on failure with a browser run and no recordings produced", function () {
-    const h = findHint("use-record-step-on-failure");
+  it("useRecordStepOnFailure: fires only on failure with a browser run and no recordings produced", function () {
+    const h = findHint("useRecordStepOnFailure");
     expect(h.priority).to.equal(20);
     expect(
       h.when(
@@ -1210,8 +1211,8 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
   });
 
-  it("use-stable-finding-patterns: fires only on failure with selector-only finds", function () {
-    const h = findHint("use-stable-finding-patterns");
+  it("useStableFindingPatterns: fires only on failure with selector-only finds", function () {
+    const h = findHint("useStableFindingPatterns");
     expect(h.priority).to.equal(20);
     expect(
       h.when(fakeCtx({ failedCount: 2, usedSelectorOnlyFinds: true }))
@@ -1224,16 +1225,16 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-dry-run-to-debug-no-tests: fires when specs found but tests = 0", function () {
-    const h = findHint("use-dry-run-to-debug-no-tests");
+  it("useDryRunToDebugNoTests: fires when specs found but tests = 0", function () {
+    const h = findHint("useDryRunToDebugNoTests");
     expect(h.priority).to.equal(20);
     expect(h.when(fakeCtx({ totalSpecs: 5, totalTests: 0 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 5, totalTests: 5 }))).to.equal(false);
     expect(h.when(fakeCtx({ totalSpecs: 0, totalTests: 0 }))).to.equal(false);
   });
 
-  it("upgrade-node-version: fires when nodeMajor < 20 (and nonzero)", function () {
-    const h = findHint("upgrade-node-version");
+  it("upgradeNodeVersion: fires when nodeMajor < 20 (and nonzero)", function () {
+    const h = findHint("upgradeNodeVersion");
     expect(h.priority).to.equal(20);
     expect(h.when(fakeCtx({ nodeMajor: 18 }))).to.equal(true);
     expect(h.when(fakeCtx({ nodeMajor: 20 }))).to.equal(false);
@@ -1243,15 +1244,15 @@ describe("hints/hints (registry)", function () {
 
   // ----- output & reporting (priority 30) -----
 
-  it("try-html-reporter: fires only when html is not already configured", function () {
-    const h = findHint("try-html-reporter");
+  it("tryHtmlReporter: fires only when html is not already configured", function () {
+    const h = findHint("tryHtmlReporter");
     expect(h.priority).to.equal(30);
     expect(h.when(fakeCtx({ config: { reporters: ["terminal", "json"] } }))).to.equal(true);
     expect(h.when(fakeCtx({ config: { reporters: ["terminal", "html"] } }))).to.equal(false);
   });
 
-  it("reporters-include-json-for-ci: fires on github when json is missing", function () {
-    const h = findHint("reporters-include-json-for-ci");
+  it("reportersIncludeJsonForCi: fires on github when json is missing", function () {
+    const h = findHint("reportersIncludeJsonForCi");
     expect(h.priority).to.equal(30);
     expect(
       h.when(
@@ -1270,8 +1271,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("output-dir-not-set: fires when output is missing or '.' and specs ran", function () {
-    const h = findHint("output-dir-not-set");
+  it("outputDirNotSet: fires when output is missing or '.' and specs ran", function () {
+    const h = findHint("outputDirNotSet");
     expect(h.priority).to.equal(30);
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 1 }))).to.equal(true);
     expect(h.when(fakeCtx({ config: { output: "." }, totalSpecs: 1 }))).to.equal(true);
@@ -1281,8 +1282,8 @@ describe("hints/hints (registry)", function () {
 
   // ----- feature discovery (priority 40) -----
 
-  it("use-screenshot-step: fires when 3+ tests use a browser but no screenshot was produced", function () {
-    const h = findHint("use-screenshot-step");
+  it("useScreenshotStep: fires when 3+ tests use a browser but no screenshot was produced", function () {
+    const h = findHint("useScreenshotStep");
     expect(h.priority).to.equal(40);
     expect(
       h.when(
@@ -1309,8 +1310,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-checkLink-step: fires when goTo is used but checkLink isn't", function () {
-    const h = findHint("use-checkLink-step");
+  it("useCheckLinkStep: fires when goTo is used but checkLink isn't", function () {
+    const h = findHint("useCheckLinkStep");
     expect(h.priority).to.equal(40);
     expect(h.when(fakeCtx({ usedStepTypes: new Set(["goTo"]) }))).to.equal(true);
     expect(
@@ -1318,8 +1319,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-httpRequest-step: fires when runShell is used with curl and no httpRequest", function () {
-    const h = findHint("use-httpRequest-step");
+  it("useHttpRequestStep: fires when runShell is used with curl and no httpRequest", function () {
+    const h = findHint("useHttpRequestStep");
     expect(h.priority).to.equal(40);
     expect(
       h.when(
@@ -1347,8 +1348,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-runCode-step: fires when runShell drives node/python and runCode isn't used", function () {
-    const h = findHint("use-runCode-step");
+  it("useRunCodeStep: fires when runShell drives node/python and runCode isn't used", function () {
+    const h = findHint("useRunCodeStep");
     expect(h.priority).to.equal(40);
     expect(
       h.when(
@@ -1368,8 +1369,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-loadCookie-saveCookie: fires when login pattern likely (browser + type + click) and no loadCookie", function () {
-    const h = findHint("use-loadCookie-saveCookie");
+  it("useLoadCookieSaveCookie: fires when login pattern likely (browser + type + click) and no loadCookie", function () {
+    const h = findHint("useLoadCookieSaveCookie");
     expect(h.priority).to.equal(40);
     expect(
       h.when(
@@ -1397,8 +1398,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-openApi-validation: fires on httpRequest usage without openApi integration", function () {
-    const h = findHint("use-openApi-validation");
+  it("useOpenApiValidation: fires on httpRequest usage without openApi integration", function () {
+    const h = findHint("useOpenApiValidation");
     expect(
       h.when(fakeCtx({ usedStepTypes: new Set(["httpRequest"]), config: {} }))
     ).to.equal(true);
@@ -1414,8 +1415,8 @@ describe("hints/hints (registry)", function () {
 
   // ----- advanced / setup (priority 50) -----
 
-  it("use-spec-filter-for-iteration: fires when 30+ specs and no filter active", function () {
-    const h = findHint("use-spec-filter-for-iteration");
+  it("useSpecFilterForIteration: fires when 30+ specs and no filter active", function () {
+    const h = findHint("useSpecFilterForIteration");
     expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ totalSpecs: 30 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 30, config: { specFilter: ["x"] } }))).to.equal(false);
@@ -1427,16 +1428,16 @@ describe("hints/hints (registry)", function () {
     ).to.equal(true);
   });
 
-  it("recursive-might-be-too-broad: fires only when recursive (default) and 100+ specs", function () {
-    const h = findHint("recursive-might-be-too-broad");
+  it("recursiveMightBeTooBroad: fires only when recursive (default) and 100+ specs", function () {
+    const h = findHint("recursiveMightBeTooBroad");
     expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ totalSpecs: 101 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 101, config: { recursive: false } }))).to.equal(false);
     expect(h.when(fakeCtx({ totalSpecs: 50 }))).to.equal(false);
   });
 
-  it("extract-beforeAny-shared-setup: fires on ≥5 specs with loadVariables and no beforeAny", function () {
-    const h = findHint("extract-beforeAny-shared-setup");
+  it("extractBeforeAnySharedSetup: fires on ≥5 specs with loadVariables and no beforeAny", function () {
+    const h = findHint("extractBeforeAnySharedSetup");
     expect(
       h.when(
         fakeCtx({ totalSpecs: 6, usedStepTypes: new Set(["loadVariables"]) })
@@ -1453,8 +1454,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("extract-afterAll-cleanup: fires on ≥5 specs that produced cookies but have no afterAll", function () {
-    const h = findHint("extract-afterAll-cleanup");
+  it("extractAfterAllCleanup: fires on ≥5 specs that produced cookies but have no afterAll", function () {
+    const h = findHint("extractAfterAllCleanup");
     expect(
       h.when(
         fakeCtx({ totalSpecs: 6, usedStepTypes: new Set(["saveCookie"]) })
@@ -1475,8 +1476,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("set-origin-for-relative-urls: fires on goTo + relative URL with no origin set", function () {
-    const h = findHint("set-origin-for-relative-urls");
+  it("setOriginForRelativeUrls: fires on goTo + relative URL with no origin set", function () {
+    const h = findHint("setOriginForRelativeUrls");
     expect(
       h.when(
         fakeCtx({
@@ -1504,8 +1505,8 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("use-fileTypes-for-rst: fires when .rst files exist and fileTypes lacks them", function () {
-    const h = findHint("use-fileTypes-for-rst");
+  it("useFileTypesForRst: fires when .rst files exist and fileTypes lacks them", function () {
+    const h = findHint("useFileTypesForRst");
     expect(h.when(fakeCtx({ hasRstFiles: true, config: {} }))).to.equal(true);
     // Already declared as a custom extension (no-dot form, matching the
     // schema/runtime convention) -> skip.
@@ -1539,8 +1540,8 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ hasRstFiles: false }))).to.equal(false);
   });
 
-  it("enable-telemetry-user-id-for-team: fires for github repos with telemetry on but userId missing", function () {
-    const h = findHint("enable-telemetry-user-id-for-team");
+  it("enableTelemetryUserIdForTeam: fires for github repos with telemetry on but userId missing", function () {
+    const h = findHint("enableTelemetryUserIdForTeam");
     expect(
       h.when(
         fakeCtx({
