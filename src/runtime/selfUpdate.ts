@@ -32,8 +32,10 @@ const REGISTRY_URL = "https://registry.npmjs.org/doc-detective";
 const REGISTRY_TIMEOUT_MS = 3_000;
 
 /**
- * Compare two semver strings (lenient — handles `X.Y.Z`, prerelease tags
- * are compared lexically as a tiebreaker). Returns:
+ * Compare two semver strings (lenient — handles `X.Y.Z`; prerelease tags
+ * are compared using semver semantics: dot-split identifiers, numeric
+ * vs alphanumeric ranking, shorter set wins on a tie — see
+ * `comparePrerelease()` below). Returns:
  *   <0  if a < b
  *   0   if a === b
  *   >0  if a > b

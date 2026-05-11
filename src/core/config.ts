@@ -611,7 +611,15 @@ function clearAppCache(config?: any) {
 
 // Detect available apps.
 async function getAvailableApps({ config }: any) {
-  const key = cacheKeyFor(config);
+  // Resolve the browsers cache dir *before* chdir-ing. `getBrowsersDir`'s
+  // legacy-snapshot fallback probes `path.resolve('browser-snapshots')`
+  // relative to the current CWD, so it has to run against the user's
+  // original CWD to honor a project-local `./browser-snapshots/` directory.
+  // Reusing the same resolved absolute path for both the cache key and the
+  // `getInstalledBrowsers` call below keeps `cachedAppsByDir` consistent
+  // with the directory actually scanned.
+  const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });
+  const key = browsersDir;
   const hit = cachedAppsByDir.get(key);
   if (hit) return hit;
 
@@ -630,7 +638,7 @@ async function getAvailableApps({ config }: any) {
       ctx: { cacheDir: config?.cacheDir },
     });
     const installedBrowsers = await browsers.getInstalledBrowsers({
-      cacheDir: getBrowsersDir({ cacheDir: config?.cacheDir }),
+      cacheDir: browsersDir,
     });
     // Resolve `appium` from <cacheDir>/runtime via `npm exec --prefix`
     // so a `--omit=optional` install (where appium only lives in the
