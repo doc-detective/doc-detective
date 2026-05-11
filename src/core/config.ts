@@ -616,11 +616,24 @@ async function getAvailableApps({ config }: any) {
     // cache) still finds the CLI. Bare `npx appium` would fail in that
     // posture even with APPIUM_HOME set, because APPIUM_HOME only
     // governs driver lookup, not binary resolution.
+    //
+    // Pass args as an array to avoid `spawnCommand`'s single-string
+    // split-on-space behavior — a `runtimeDir` containing a space
+    // would otherwise break into multiple bogus args. This also keeps
+    // the `runtimeDir` value out of any shell-interpreted string,
+    // matching the CodeQL guidance applied to the Appium spawns in
+    // src/core/tests.ts.
     const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
     const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-    const installedAppiumDrivers = await spawnCommand(
-      `${npmCmd} exec --prefix ${runtimeDir} -- appium driver list`
-    );
+    const installedAppiumDrivers = await spawnCommand(npmCmd, [
+      "exec",
+      "--prefix",
+      runtimeDir,
+      "--",
+      "appium",
+      "driver",
+      "list",
+    ]);
 
     // Note: Edge/Microsoft Edge detection is intentionally excluded
     // Only Chrome, Firefox, and Safari are supported browsers

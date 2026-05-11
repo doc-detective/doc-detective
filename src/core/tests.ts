@@ -493,12 +493,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // a user installs with `--omit=optional` the appium CLI lives ONLY
     // in <cacheDir>/runtime/node_modules and a bare `npx appium` would
     // fail to find it.
+    //
+    // shell:false is deliberate. With shell:true Node would join the
+    // args into a single string and run them through sh/cmd, making
+    // any shell metacharacter inside `runtimeDir` (which the user can
+    // set via DOC_DETECTIVE_CACHE_DIR or config.cacheDir) a shell-
+    // injection vector — CodeQL flags this. Spawning npm directly with
+    // an args array hands the value to npm verbatim with no shell
+    // interpretation. Node 18+ resolves `.cmd` shims on Windows for
+    // spawn() without shell:true.
     const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
     appium = spawn(
       process.platform === "win32" ? "npm.cmd" : "npm",
       ["exec", "--prefix", runtimeDir, "--", "appium", "-a", "127.0.0.1", "-p", String(appiumPort)],
       {
-        shell: true,
         windowsHide: true,
         cwd: path.join(__dirname, "../.."),
       }
@@ -1155,14 +1163,13 @@ async function getRunner(options: any = {}) {
 
   // Start Appium server on a free ephemeral port. Resolve the appium
   // CLI from the runtime cache (see comment in runSpecs above for why
-  // we don't use bare `npx appium`).
+  // we don't use bare `npx appium`, and why shell:true is omitted).
   const appiumPort = await findFreePort();
   const runtimeDir = getRuntimeDir({ cacheDir: config?.cacheDir });
   const appium = spawn(
     process.platform === "win32" ? "npm.cmd" : "npm",
     ["exec", "--prefix", runtimeDir, "--", "appium", "-a", "127.0.0.1", "-p", String(appiumPort)],
     {
-      shell: true,
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
     }
