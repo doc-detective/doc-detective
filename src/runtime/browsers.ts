@@ -309,9 +309,22 @@ async function ensureGeckodriver(
   logger: Logger
 ): Promise<EnsureBrowserResult> {
   const cacheDir = getBrowsersDir(ctxBag.ctx);
+  // Resolve the actual geckodriver binary path. The npm package exports
+  // a `.path` field that points at the resolved binary; if that's
+  // missing (older versions, future shape changes), fall back to the
+  // cache directory so callers at least have a useful starting point.
+  const resolveBinaryPath = (gecko: any): string => {
+    const fromModule =
+      gecko && typeof gecko.path === "string" && gecko.path.length > 0
+        ? gecko.path
+        : null;
+    return fromModule ?? cacheDir;
+  };
+
   if (!ctxBag.force && existing && isStillFresh(existing.latestCheckedAt, ctxBag.now)) {
+    const cachedGecko = ctxBag.deps.geckodriverModule;
     return {
-      path: cacheDir,
+      path: cachedGecko ? resolveBinaryPath(cachedGecko) : cacheDir,
       version: existing.installedVersion,
       outdated: existing.latestKnownVersion !== existing.installedVersion,
     };
@@ -337,7 +350,11 @@ async function ensureGeckodriver(
       latestCheckedAt: ctxBag.now.toISOString(),
     };
     writeInstalledRecord(record, ctxBag.ctx);
-    return { path: cacheDir, version: installedVersion, outdated: false };
+    return {
+      path: resolveBinaryPath(gecko),
+      version: installedVersion,
+      outdated: false,
+    };
   } finally {
     if (prevEnv === undefined) delete process.env.GECKODRIVER_CACHE_DIR;
     else process.env.GECKODRIVER_CACHE_DIR = prevEnv;

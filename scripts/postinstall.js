@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Browsers, ffmpeg, geckodriver, and the heavy npm packages are no longer
 // downloaded at `npm install` time. The shim now lazy-installs them on
 // first use into <cacheDir>/ (default <os.tmpdir()>/doc-detective/), or
-// up-front via `doc-detective install --all`. This postinstall script
+// up-front via `doc-detective install all`. This postinstall script
 // keeps only the optional agent-tools install prompt — it's lightweight
 // (TTY-gated, time-bounded, skipped in CI) and unrelated to the runtime.
 

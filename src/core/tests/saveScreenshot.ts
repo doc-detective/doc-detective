@@ -9,25 +9,31 @@ import {
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
-import type { PNG as PNGType } from "pngjs";
-import type { default as sharpType } from "sharp";
 import { loadHeavyDep } from "../../runtime/loader.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
-// the first time a screenshot step needs it.
-let _pngjs: { PNG: typeof PNGType } | null = null;
-let _sharp: typeof sharpType | null = null;
+// the first time a screenshot step needs it. Use `typeof import('…')`
+// directly here so we never have a top-level type-only import whose
+// `typeof` would refer to a non-runtime identifier (a TS-only construct
+// that Copilot flagged as fragile). The sharp namespace isn't shaped as
+// a default-export module, so the resolved value is typed as `any` and
+// the runtime handles both CJS (`mod`) and ESM-wrapped (`mod.default`)
+// import shapes — same coercion the pixelmatch path uses.
+type PngModule = typeof import("pngjs");
+
+let _pngjs: PngModule | null = null;
+let _sharp: any = null;
 let _pixelmatch: any = null;
 
-async function getPng(): Promise<typeof PNGType> {
-  if (!_pngjs) _pngjs = await loadHeavyDep<{ PNG: typeof PNGType }>("pngjs");
+async function getPng(): Promise<PngModule["PNG"]> {
+  if (!_pngjs) _pngjs = await loadHeavyDep<PngModule>("pngjs");
   return _pngjs.PNG;
 }
 
-async function getSharp(): Promise<typeof sharpType> {
+async function getSharp(): Promise<any> {
   if (!_sharp) {
     const mod = await loadHeavyDep<any>("sharp");
-    _sharp = (mod && (mod.default ?? mod)) as typeof sharpType;
+    _sharp = mod && (mod.default ?? mod);
   }
   return _sharp;
 }

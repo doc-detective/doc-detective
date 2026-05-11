@@ -1,8 +1,10 @@
 import kill from "tree-kill";
 // webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
 // site so the shim's CLI startup doesn't pay its ~50MB load cost when the
-// user is only running e.g. install-agents or install status.
-import type * as wdioTypes from "webdriverio";
+// user is only running e.g. install-agents or install status. The type
+// reference uses `typeof import('webdriverio')` directly at the call site
+// so we don't carry a top-level `import type` whose `typeof` would refer
+// to a non-runtime identifier.
 import { loadHeavyDep } from "../runtime/loader.js";
 import os from "node:os";
 import { log, replaceEnvs, selectSpecsForRun, findFreePort } from "./utils.js";
@@ -481,7 +483,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Warm up Appium
   let appiumPort: number | undefined;
   if (appiumRequired) {
-    setAppiumHome();
+    setAppiumHome({ cacheDir: config?.cacheDir });
     appiumPort = await findFreePort();
     log(config, "debug", `Starting Appium on port ${appiumPort}`);
     appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
@@ -1053,7 +1055,7 @@ async function driverStart(capabilities: any, port: number, maxAttempts: number 
   // /status may already return 200 from the outgoing process while /session
   // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
   // any other error is a real session-creation failure and propagates.
-  const wdio = await loadHeavyDep<typeof wdioTypes>("webdriverio");
+  const wdio = await loadHeavyDep<typeof import("webdriverio")>("webdriverio");
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -1129,7 +1131,7 @@ async function getRunner(options: any = {}) {
   }
 
   // Set Appium home directory
-  setAppiumHome();
+  setAppiumHome({ cacheDir: config?.cacheDir });
 
   // Start Appium server on a free ephemeral port
   const appiumPort = await findFreePort();

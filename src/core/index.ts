@@ -124,9 +124,11 @@ async function runTests(config: any, options: any = {}) {
       }
     }
   } catch (err: any) {
+    // log() in src/core/utils.ts recognizes "warning", not "warn" — using
+    // the wrong key would make this branch silent at every log level.
     log(
       config,
-      "warn",
+      "warning",
       `Runtime pre-flight install hit an error: ${err?.message ?? err}. Falling back to on-demand resolution.`
     );
   }

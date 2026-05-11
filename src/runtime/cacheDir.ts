@@ -95,21 +95,21 @@ export function readInstalledRecord(ctx: CacheDirContext = {}): InstalledRecord 
   }
   try {
     const parsed = JSON.parse(raw);
-    // Defensive shape coercion: a malformed record written by a future or
-    // older version of the shim shouldn't crash readers either.
+    // Defensive shape coercion. A malformed record (corrupt write, future
+    // schema change, hand-edit) shouldn't crash a reader OR a subsequent
+    // writer. Both top-level slots must end up as plain objects so that
+    // later `record.npmPackages[name] = …` assignments don't throw.
     return {
-      npmPackages:
-        parsed && typeof parsed === "object" && parsed.npmPackages
-          ? parsed.npmPackages
-          : {},
-      browsers:
-        parsed && typeof parsed === "object" && parsed.browsers
-          ? parsed.browsers
-          : {},
+      npmPackages: isPlainObject(parsed?.npmPackages) ? parsed.npmPackages : {},
+      browsers: isPlainObject(parsed?.browsers) ? parsed.browsers : {},
     };
   } catch {
     return emptyRecord();
   }
+}
+
+function isPlainObject(v: unknown): v is Record<string, any> {
+  return Boolean(v) && typeof v === "object" && !Array.isArray(v);
 }
 
 /**

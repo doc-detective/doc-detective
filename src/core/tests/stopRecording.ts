@@ -12,8 +12,16 @@ async function getFfmpegPath(): Promise<string> {
   const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg");
   // The package's CJS entry exports an object with a .path field; in ESM
   // dynamic import we get { default: { path }, path? } shape depending on
-  // bundler. Try both.
-  return (mod && (mod.path ?? mod.default?.path)) as string;
+  // bundler. Try both, then guard before handing it to execFile so a
+  // malformed install fails with an actionable message instead of a
+  // confusing "argument must be of type string" deep in node's exec.
+  const candidate = mod && (mod.path ?? mod.default?.path);
+  if (typeof candidate !== "string" || candidate.length === 0) {
+    throw new Error(
+      "ffmpeg binary path is missing or malformed in the installed @ffmpeg-installer/ffmpeg package. Try `doc-detective install runtime --force` to reinstall."
+    );
+  }
+  return candidate;
 }
 
 export { stopRecording };

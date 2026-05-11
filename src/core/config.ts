@@ -594,7 +594,7 @@ function clearAppCache() {
 async function getAvailableApps({ config }: any) {
   if (cachedApps) return cachedApps;
 
-  setAppiumHome();
+  setAppiumHome({ cacheDir: config?.cacheDir });
   const cwd = process.cwd();
   process.chdir(path.join(__dirname, "../.."));
   const apps: any[] = [];
