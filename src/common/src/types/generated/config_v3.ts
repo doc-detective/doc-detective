@@ -140,6 +140,10 @@ export interface Config {
    * Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging.
    */
   debug?: boolean | "stepThrough";
+  /**
+   * If `true`, fully resolve tests (file/env config merge, schema validation, file detection, inline-test extraction) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI.
+   */
+  dryRun?: boolean;
 }
 /**
  * A context in which to perform tests. If no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For example, if a browser isn't specified but is required by steps in the test, Doc Detective will search for and use a supported browser available in the current environment.

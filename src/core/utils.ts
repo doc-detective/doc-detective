@@ -27,7 +27,28 @@ export {
   compileFilter,
   matchesFilter,
   selectSpecsForRun,
+  findFreePort,
 };
+
+// Bind a temp listener to port 0, capture the OS-assigned port, and release
+// it. There is a small close-to-rebind window where another process could
+// grab the port before the caller binds it. driverStart's ECONNREFUSED retry
+// absorbs that race when the caller is Appium.
+async function findFreePort(): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") {
+        server.close(() => reject(new Error("Failed to obtain ephemeral port")));
+        return;
+      }
+      const port = addr.port;
+      server.close(() => resolve(port));
+    });
+  });
+}
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
   if (!Array.isArray(patterns) || patterns.length === 0) return [];
