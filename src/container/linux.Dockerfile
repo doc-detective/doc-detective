@@ -43,16 +43,15 @@ RUN apt-get update \
 # initial install is small. The follow-up `doc-detective install all`
 # pre-warms the cache so the image is ready to run tests offline.
 #
-# Use an availability check (`doc-detective install --help`) instead of
-# `|| echo` to gate the pre-warm. The `|| echo` form would also swallow
-# real failures — a transient npm/network error during the pre-warm
-# would silently ship an image that boots fine but fails offline. With
-# the explicit check, we only skip when `install` is unavailable in the
-# installed CLI (older published versions during PR-time smoke builds
-# where PACKAGE_VERSION=latest predates this PR's CLI surface), and any
-# real `install all` failure fails the build.
+# Detect whether the installed CLI has the new `install <subcommand>`
+# surface by grepping for it in the root `--help` output. yargs always
+# exits 0 from `--help` regardless of whether a subcommand exists, so
+# `install --help` isn't a useful availability probe; matching the
+# command line in root help text IS reliable. Real `install all`
+# failures (transient npm errors, partial cache writes) then propagate
+# normally and fail the build instead of being swallowed.
 RUN npm install -g doc-detective@$PACKAGE_VERSION \
-    && if doc-detective install --help >/dev/null 2>&1; then \
+    && if doc-detective --help 2>&1 | grep -q "install <subcommand>"; then \
          doc-detective install all --yes; \
        else \
          echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \

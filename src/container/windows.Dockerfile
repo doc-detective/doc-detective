@@ -34,19 +34,19 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 # Pre-warm tolerates older published versions that don't yet have the
 # `install all` subcommand — see linux.Dockerfile for the rationale.
 #
-# PowerShell's `try/catch` doesn't trap native-command non-zero exits
-# under the SHELL-level `$ErrorActionPreference = 'Stop'`; the exit code
-# is exposed via `$LASTEXITCODE`. Use an explicit availability check
-# (`install --help` exit code) instead of blindly resetting after
-# `install all` — the latter would swallow real pre-warm failures
-# (transient npm errors during cache materialization), shipping an
-# image that boots fine but fails offline. The current shape only
-# suppresses the specific "subcommand unavailable" path.
+# Detect the new CLI surface by grepping root `--help` for the
+# `install <subcommand>` line. yargs always exits 0 from `--help`
+# regardless of which subcommand was named, so an exit-code probe
+# (`install --help` then `$LASTEXITCODE`) doesn't actually distinguish
+# old from new — content-based detection does. PowerShell's
+# `try/catch` doesn't trap native-command non-zero exits under the
+# SHELL-level `$ErrorActionPreference = 'Stop'`, so real `install all`
+# failures throw explicitly via `$LASTEXITCODE` check.
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
     npm install -g doc-detective@$env:PACKAGE_VERSION; \
     if ($LASTEXITCODE -ne 0) { throw "npm install -g doc-detective failed with exit code $LASTEXITCODE" }; \
-    doc-detective install --help *> $null; \
-    if ($LASTEXITCODE -eq 0) { \
+    $help = (doc-detective --help 2>&1 | Out-String); \
+    if ($help -match 'install <subcommand>') { \
       doc-detective install all --yes; \
       if ($LASTEXITCODE -ne 0) { throw "doc-detective install all failed with exit code $LASTEXITCODE" } \
     } else { \
