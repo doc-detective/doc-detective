@@ -11,7 +11,14 @@ export interface SelfUpdateDeps {
   spawn?: SpawnFn;
 }
 
+// Default logger silences `debug` so the startup self-update check (which
+// runs on every CLI invocation when autoUpdate is enabled) doesn't flood
+// stdout with transient network-failure stack traces. The CLI startup
+// path wires up a real logger that maps to `core/utils.ts:log()`; this
+// fallback is only for direct test invocations / programmatic use.
+const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
 const defaultLogger: Logger = (msg, level = "info") => {
+  if (level === "debug" && !RUNTIME_DEBUG) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };

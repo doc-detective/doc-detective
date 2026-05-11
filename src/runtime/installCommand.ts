@@ -174,7 +174,7 @@ const statusSubcommand: CommandModule<any, InstallArgv> = {
 const allSubcommand: CommandModule<any, InstallArgv> = {
   command: "all",
   describe:
-    "Install everything: agent tools, runtime npm packages, and browsers.",
+    "Install all lazy-installed runtime assets: runtime npm packages and browser binaries. Agent tools are installed separately via `install agents` (they require an interactive picker for per-agent scope choices).",
   builder: (yargs) => sharedInstallOptions(yargs) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));

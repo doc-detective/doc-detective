@@ -45,9 +45,12 @@ describe("runtime/loader", function () {
 
   describe("loadHeavyDep", function () {
     it("resolves a dep that is present in the shim's node_modules without invoking the installer", async function () {
-      // pngjs is currently a regular dependency, so it must resolve from the
-      // shim's node_modules. The fake spawner is wired to throw if invoked —
-      // a successful load proves the cache fallback never fired.
+      // pngjs is declared in the shim's `optionalDependencies`, which npm
+      // installs by default — so we expect it to resolve from the shim's
+      // node_modules in this test environment. The fake spawner is wired
+      // to throw if invoked; a successful load proves the cache fallback
+      // never fired. Users who install with `--omit=optional` would hit
+      // the cache/install path instead, exercised by other tests below.
       const calls = [];
       const spawner = makeFakeSpawner({
         onSpawn: () => calls.push("called"),
@@ -63,15 +66,11 @@ describe("runtime/loader", function () {
     });
 
     it("autoInstall:false throws a clean error when the dep is nowhere to be found", async function () {
-      // Use a name that won't resolve either from the shim or from the cache,
-      // but IS declared in package.json so getDeclaredVersion() doesn't fire
-      // a different error path. pngjs would resolve from shim, so we instead
-      // point the cache at an empty dir and use a freshly-named dep — but the
-      // simplest way is to use autoInstall:false and a name not in shim
-      // node_modules. We pick a package that's in optionalDependencies but
-      // not in regular dependencies. Actually all our heavy deps are in
-      // regular deps today. So we point require resolution at an empty
-      // scope by using a fake package name that is NOT in package.json.
+      // Use a name that won't resolve either from the shim or from the
+      // cache, AND isn't in package.json — so getDeclaredVersion() would
+      // throw on the install path. With autoInstall:false, the loader
+      // short-circuits before that and surfaces the cleaner "not
+      // installed" error.
       try {
         await loadHeavyDep("@doc-detective/definitely-not-installed", {
           autoInstall: false,
@@ -116,8 +115,9 @@ describe("runtime/loader", function () {
         },
       });
 
-      // pngjs is already resolvable from the shim's node_modules (it's a
-      // regular dep). force:true bypasses the skip-if-already-present check
+      // pngjs is already resolvable from the shim's node_modules
+      // (declared in optionalDependencies, which npm installs by
+      // default). force:true bypasses the skip-if-already-present check
       // so the install path is exercised here.
       await ensureRuntimeInstalled(["pngjs"], {
         deps: { spawn: spawner, logger: () => {} },
@@ -143,10 +143,10 @@ describe("runtime/loader", function () {
     });
 
     it("rejects when npm exits non-zero", async function () {
-      // pngjs resolves from the shim's node_modules (it's a regular dep),
-      // so the skip-if-already-present check would short-circuit before
-      // npm even runs. force:true bypasses the skip so we can exercise
-      // the failure path.
+      // pngjs resolves from the shim's node_modules (declared in
+      // optionalDependencies, installed by default), so the
+      // skip-if-already-present check short-circuits before npm runs.
+      // force:true bypasses the skip so we can exercise the failure path.
       const spawner = makeFakeSpawner({ exitCode: 1 });
       try {
         await ensureRuntimeInstalled(["pngjs"], {

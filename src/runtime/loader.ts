@@ -14,7 +14,15 @@ import {
 export type LogLevel = "info" | "warn" | "error" | "debug";
 export type Logger = (msg: string, level?: LogLevel) => void;
 
+// The default logger gates `debug` output OFF so call sites that omit a
+// logger (the JIT pre-flight, the CLI startup self-update check) don't
+// flood stdout with npm child-process stdout/stderr on every run. Set
+// DOC_DETECTIVE_RUNTIME_DEBUG=1 to opt back in for debugging the
+// installer itself. Real callers (the install CLI commands) inject a
+// logger that respects --silent/--verbose explicitly.
+const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
 const defaultLogger: Logger = (msg, level = "info") => {
+  if (level === "debug" && !RUNTIME_DEBUG) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };

@@ -101,9 +101,19 @@ async function runTestsHandler(args: any) {
         "./runtime/selfUpdate.js"
       );
       const currentVersion: string = cliRequire("../package.json").version;
-      const { latest, newer } = await checkForUpdate(currentVersion);
+      // Route the self-update module's logs through the CLI's existing
+      // log() helper so config.logLevel is respected (transient registry
+      // failures should not flood stdout at the default level). Map
+      // "warn" → "warning" since core/utils.ts uses the latter.
+      const cliLogger = (msg: string, level: string = "info") => {
+        const mapped = level === "warn" ? "warning" : level;
+        log(msg, mapped, config);
+      };
+      const { latest, newer } = await checkForUpdate(currentVersion, {
+        logger: cliLogger,
+      });
       if (newer && latest) {
-        await selfUpdate(latest, detectInstallMode());
+        await selfUpdate(latest, detectInstallMode(), { logger: cliLogger });
       }
     } catch (err) {
       log(`Self-update check skipped: ${String(err)}`, "debug", config);

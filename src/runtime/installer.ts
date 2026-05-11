@@ -197,6 +197,57 @@ export interface StatusRow {
  * declared expectations (`package.json#optionalDependencies` for npm deps,
  * `latestKnownVersion` from the cache for browsers).
  */
+/**
+ * Minimal semver-range check covering the shapes that appear in
+ * `package.json#optionalDependencies` for this repo: exact `X.Y.Z`,
+ * caret `^X.Y.Z`, tilde `~X.Y.Z`. Anything else (`>=`, `||`, etc.)
+ * degrades to "matches" so `status` doesn't surface false outdated
+ * warnings. We don't pull in the full `semver` package — it's a
+ * runtime dep we're explicitly trying to keep out of the shim, and
+ * the surface we need is tiny.
+ */
+function satisfiesRange(installed: string, range: string): boolean {
+  if (!range || !installed) return true;
+  const installedParts = parseSemverCore(installed);
+  if (!installedParts) return true;
+  const trimmed = range.trim();
+  if (trimmed.startsWith("^")) {
+    const wanted = parseSemverCore(trimmed.slice(1));
+    if (!wanted) return true;
+    // ^X.Y.Z: same leading non-zero, gte. For X=0, caret pins minor.
+    if (wanted[0] !== installedParts[0]) return false;
+    if (wanted[0] === 0 && wanted[1] !== installedParts[1]) return false;
+    return compareTuple(installedParts, wanted) >= 0;
+  }
+  if (trimmed.startsWith("~")) {
+    const wanted = parseSemverCore(trimmed.slice(1));
+    if (!wanted) return true;
+    return (
+      installedParts[0] === wanted[0] &&
+      installedParts[1] === wanted[1] &&
+      installedParts[2] >= wanted[2]
+    );
+  }
+  // Exact-version constraint (`X.Y.Z`) — equality.
+  const exact = parseSemverCore(trimmed);
+  if (exact) return compareTuple(installedParts, exact) === 0;
+  // Anything else (>=, ||, *) — don't flag.
+  return true;
+}
+
+function parseSemverCore(v: string): [number, number, number] | null {
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(v);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function compareTuple(a: [number, number, number], b: [number, number, number]): number {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
 export function status(ctx: CacheDirContext = {}): StatusRow[] {
   const record = readInstalledRecord(ctx);
   const rows: StatusRow[] = [];
@@ -215,7 +266,14 @@ export function status(ctx: CacheDirContext = {}): StatusRow[] {
       installed: Boolean(entry),
       installedVersion: entry?.installedVersion,
       expectedVersion: expected,
-      outdated: Boolean(entry && expected && entry.installedVersion !== expected),
+      // The package.json range is a constraint (e.g. ^7.0.0), not a
+      // target — string equality would flag `7.1.2` against `^7.0.0` as
+      // outdated even though npm legitimately resolved it. Use a small
+      // semver-range check instead; missing data degrades to "not
+      // outdated" so we don't surface false positives.
+      outdated: Boolean(
+        entry && expected && !satisfiesRange(entry.installedVersion, expected)
+      ),
     });
   }
   for (const name of Object.keys(BROWSER_CHANNELS) as BrowserAssetName[]) {

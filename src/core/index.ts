@@ -97,8 +97,20 @@ async function runTests(config: any, options: any = {}) {
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
     const needs = inferRuntimeNeeds(resolvedTests);
     const ctx = { cacheDir: config.cacheDir };
+    // Bridge the runtime modules' logger contract to core/utils.ts:log()
+    // so config.logLevel filters npm install stdout/stderr (which the
+    // runtime logs at "debug") and prevents flooded output during a
+    // routine `doc-detective` run. Map "warn" → "warning" since
+    // core/utils.ts uses the latter.
+    const preflightLogger = (msg: string, level: string = "info") => {
+      const mapped = level === "warn" ? "warning" : level;
+      log(config, mapped, msg);
+    };
     if (needs.npmPackages.size > 0) {
-      await ensureRuntimeInstalled([...needs.npmPackages], { ctx });
+      await ensureRuntimeInstalled([...needs.npmPackages], {
+        ctx,
+        deps: { logger: preflightLogger },
+      });
     }
     if (needs.browsers.size > 0) {
       try {
@@ -109,11 +121,11 @@ async function runTests(config: any, options: any = {}) {
         for (const browser of needs.browsers) {
           if (availableNames.has(browser)) continue;
           if (browser === "chrome") {
-            await ensureBrowserInstalled("chrome", { ctx });
-            await ensureBrowserInstalled("chromedriver", { ctx });
+            await ensureBrowserInstalled("chrome", { ctx, deps: { logger: preflightLogger } });
+            await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger: preflightLogger } });
           } else if (browser === "firefox") {
-            await ensureBrowserInstalled("firefox", { ctx });
-            await ensureBrowserInstalled("geckodriver", { ctx });
+            await ensureBrowserInstalled("firefox", { ctx, deps: { logger: preflightLogger } });
+            await ensureBrowserInstalled("geckodriver", { ctx, deps: { logger: preflightLogger } });
           }
           // safari has no installable binary — it ships with the OS.
         }
