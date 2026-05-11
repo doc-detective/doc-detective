@@ -695,16 +695,25 @@ export const RST_EXTENSIONS = [".rst"];
 const RST_FILE_SCAN_LIMIT = 100;
 
 /**
- * Returns true if any file under `cwd` (recursive, depth-first) ends
- * with a `.rst` suffix. Caps at 100 file inspections to bound the
- * worst case on huge monorepos. Skips dotted entries and
- * `node_modules`. Failures are caught and treated as "not found" so a
- * permission error never breaks the post-run summary.
+ * Returns true if any file under the repo root (or `cwd` if no
+ * `.git` directory is found in any parent) ends with a `.rst`
+ * suffix. Walks up from `cwd` to locate `.git`, then scans
+ * downward from that directory. This keeps the probe consistent
+ * with `detectDocDetectiveWorkflow` and `findPackageJsonUpward` —
+ * doc-detective run from a monorepo subdirectory still sees `.rst`
+ * files in sibling packages. Caps at 100 file inspections to bound
+ * the worst case on huge monorepos. Skips dotted entries and
+ * `node_modules`. Failures are caught and treated as "not found"
+ * so a permission error never breaks the post-run summary.
  */
 export function detectRstFiles(cwd: string): boolean {
   let scanned = 0;
   try {
-    return scanForExtensions(cwd, RST_EXTENSIONS, () => {
+    // Find the repo root (the directory containing `.git`). Fall
+    // back to cwd if we're not inside a git repo.
+    const gitDir = findUpward(cwd, ".git");
+    const scanRoot = gitDir !== null ? path.dirname(gitDir) : cwd;
+    return scanForExtensions(scanRoot, RST_EXTENSIONS, () => {
       scanned += 1;
       return scanned >= RST_FILE_SCAN_LIMIT;
     });

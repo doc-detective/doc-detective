@@ -56,8 +56,17 @@ export async function maybeShowHint(
   try {
     if (config?.hints?.enabled === false) return;
 
+    // Early-exit for log levels where running hint evaluation buys
+    // nothing the user cares about. `info` is the default and the
+    // only level that actually prints a hint. `debug` users also
+    // exercise the eval path so they can see predicate/render error
+    // logs (the previous version of this function returned at
+    // `!= "info"`, which silently swallowed every predicate error
+    // because `log(..., "debug", ...)` is suppressed at `info` and
+    // unreachable at `debug` — a catch-22). Silent / error / warning
+    // users want clean output, so we skip everything for them.
     const logLevel = config?.logLevel ?? "info";
-    if (logLevel !== "info") return;
+    if (logLevel !== "info" && logLevel !== "debug") return;
 
     // Cheap TTY short-circuit BEFORE building the context. On non-TTY
     // runs (CI logs, piped output), hints will be suppressed anyway —
@@ -84,6 +93,8 @@ export async function maybeShowHint(
         if (hint.when(ctx)) eligible.push(hint);
       } catch (err) {
         // A bad predicate must not poison the rest of the registry.
+        // Logged at debug — visible to `--logLevel debug` users who
+        // reach this point precisely so they can diagnose issues.
         log(
           `hints: predicate for "${hint.id}" threw: ${(err as Error)?.message ?? err}`,
           "debug",
@@ -91,6 +102,12 @@ export async function maybeShowHint(
         );
       }
     }
+
+    // Debug users get the eval (and any error logs above) but never
+    // a printed hint — they explicitly chose verbose output and a
+    // hint at the end would be noise.
+    if (logLevel === "debug") return;
+
     if (eligible.length === 0) return;
 
     const chosen = pickByPriority(eligible, options.random ?? Math.random);

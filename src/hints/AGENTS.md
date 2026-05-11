@@ -186,9 +186,13 @@ Style:
 - **2-3 short prose paragraphs.** If you need more, link to the docs.
 - **One fenced code block.** More than one and the hint feels like a
   tutorial.
-- **Always link the docs.** A markdown link to
-  `doc-detective.com/docs/...` at the end of the body. The user wants to
-  know where to read more.
+- **Prefer linking the docs** when there's a relevant page that
+  expands on the hint. Add a markdown link to
+  `doc-detective.com/docs/...` at the end of the body so the user
+  knows where to read more. For hints whose advice IS the entire
+  payload (`enableDebugLog`, `setOutputDir`, `addJsonReporterForCi` —
+  one flag or one config field, no further nuance), skipping the
+  link is fine.
 - **No headings.** The hint is already prefixed with `💡 Hint:`.
 - **No emojis** beyond what the renderer already emits.
 - **Don't promise the moon.** "Prefer X — usually faster" is honest;

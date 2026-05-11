@@ -636,6 +636,38 @@ describe("hints/context", function () {
       }
     });
 
+    it("walks up to the repo root and scans from there", function () {
+      // Doc Detective run from a subdirectory of a repo should still
+      // see `.rst` files in sibling packages. Mirrors the walk-up
+      // behavior of detectDocDetectiveWorkflow and
+      // findPackageJsonUpward.
+      const root = makeTmpDir();
+      try {
+        // Repo root marker.
+        fs.mkdirSync(path.join(root, ".git"), { recursive: true });
+        // Sibling package with the .rst file.
+        const sibling = path.join(root, "packages", "manual");
+        fs.mkdirSync(sibling, { recursive: true });
+        fs.writeFileSync(path.join(sibling, "intro.rst"), "Title\n=====\n");
+        // Where doc-detective is invoked from.
+        const cwd = path.join(root, "packages", "site");
+        fs.mkdirSync(cwd, { recursive: true });
+        expect(detectRstFiles(cwd)).to.equal(true);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
+    it("falls back to cwd when no .git is found in any parent", function () {
+      const root = makeTmpDir();
+      try {
+        fs.writeFileSync(path.join(root, "spec.rst"), "");
+        expect(detectRstFiles(root)).to.equal(true);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
     it("enforces the 100-file budget even on a flat directory", function () {
       // Regression for the per-recursion vs per-entry budget bug. With
       // the broken per-recursion counter, a flat dir of 200 files would
@@ -912,7 +944,10 @@ describe("hints/index (maybeShowHint)", function () {
     expect(cap.lines).to.deep.equal([]);
   });
 
-  it("rule 3: skips at every non-info logLevel", async function () {
+  it("rule 3: never prints a hint at any non-info logLevel", async function () {
+    // silent / error / warning / debug all suppress the printed hint.
+    // (debug additionally runs the predicate eval so error logs
+    // surface; that's covered by the dedicated debug-eval test below.)
     for (const level of ["silent", "error", "warning", "debug"]) {
       const cap = captureLines();
       await maybeShowHint(
@@ -921,6 +956,56 @@ describe("hints/index (maybeShowHint)", function () {
         { hints: oneHint, contextOverride: ctxOverride(), print: cap.print }
       );
       expect(cap.lines, `level=${level}`).to.deep.equal([]);
+    }
+  });
+
+  it("rule 3 (debug): evaluates predicates so predicate errors can be logged", async function () {
+    // Earlier versions returned at `logLevel !== "info"`, which meant
+    // any `log(err, "debug", ...)` inside an error handler never
+    // executed — predicate failures were unobservable even at debug.
+    // The fix: run eval at debug too, just don't print. This test
+    // proves the predicate is invoked at debug level.
+    const cap = captureLines();
+    let calls = 0;
+    const trackingHint = {
+      id: "always",
+      markdown: "x",
+      when: () => {
+        calls += 1;
+        return true;
+      },
+    };
+    await maybeShowHint(
+      { logLevel: "debug" },
+      null,
+      { hints: [trackingHint], contextOverride: ctxOverride(), print: cap.print }
+    );
+    expect(calls, "predicate was not evaluated at debug level").to.equal(1);
+    expect(cap.lines, "should not print at debug level").to.deep.equal([]);
+  });
+
+  it("silent / error / warning: skip eval entirely (cheap path)", async function () {
+    // At these levels the user has narrowed output to errors / nothing
+    // — running eval (which costs file reads + agent probes) would be
+    // wasted work. Predicates must NOT be called.
+    for (const level of ["silent", "error", "warning"]) {
+      let calls = 0;
+      const trackingHint = {
+        id: "always",
+        markdown: "x",
+        when: () => {
+          calls += 1;
+          return true;
+        },
+      };
+      const cap = captureLines();
+      await maybeShowHint(
+        { logLevel: level },
+        null,
+        { hints: [trackingHint], contextOverride: ctxOverride(), print: cap.print }
+      );
+      expect(calls, `predicate ran at level=${level} but shouldn't have`).to.equal(0);
+      expect(cap.lines, `printed at level=${level}`).to.deep.equal([]);
     }
   });
 
