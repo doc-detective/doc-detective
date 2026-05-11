@@ -152,19 +152,37 @@ function appendQueryParams(
   return pathAndAuthority + (query ? "?" + query : "") + fragment;
 }
 
-// Delete all contents of doc-detective temp directory
+// Delete transient scratch files from the doc-detective temp directory.
+// PRESERVED entries: the lazy-install cache subdirectories (`browsers/`,
+// `runtime/`) and `installed.json`. The default cacheDir is
+// `<os.tmpdir()>/doc-detective/`, which means cache assets and scratch
+// files share the same root directory. A blanket wipe here would delete
+// the very chromedriver/firefox binaries the next runTests call needs
+// (this regression broke sequential `runTests` calls in CI on every
+// platform — see test/core-core.test.js's getRunner suite).
+const PRESERVED_TEMP_ENTRIES = new Set([
+  "browsers",
+  "runtime",
+  "installed.json",
+]);
+
 function cleanTemp() {
   const tempDir = path.join(os.tmpdir(), "doc-detective");
-  if (fs.existsSync(tempDir)) {
-    fs.readdirSync(tempDir).forEach((file) => {
-      const curPath = `${tempDir}/${file}`;
+  if (!fs.existsSync(tempDir)) return;
+  for (const entry of fs.readdirSync(tempDir)) {
+    if (PRESERVED_TEMP_ENTRIES.has(entry)) continue;
+    const curPath = `${tempDir}/${entry}`;
+    try {
       const stat = fs.statSync(curPath);
       if (stat.isDirectory()) {
         fs.rmSync(curPath, { recursive: true, force: true });
       } else {
         fs.unlinkSync(curPath);
       }
-    });
+    } catch {
+      // best-effort: a concurrent run / OS lock may already have removed
+      // this entry — leaving the cache stable is the priority.
+    }
   }
 }
 
