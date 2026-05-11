@@ -116,6 +116,15 @@ export interface EnsureBrowserOptions {
   force?: boolean;
 }
 
+// Process-wide dedupe for concurrent installs targeting the same
+// (name, cacheDir). Without this, two parallel `runTests` invocations
+// (e.g., the appium-port-conflict.test.js parallel scenario) would
+// both pass the not-installed check, both call @puppeteer/browsers'
+// `install`, and race on the extract step — leaving a half-written
+// archive on disk that fails Firefox's own binary self-check with
+// "binary is not a Firefox executable" on the next launch.
+const inFlightInstalls = new Map<string, Promise<EnsureBrowserResult>>();
+
 /**
  * Install (or refresh) a browser asset into <cacheDir>/browsers.
  *
@@ -123,8 +132,26 @@ export interface EnsureBrowserOptions {
  * no-op. Present and outdated → warn (with update instructions) and proceed
  * with the installed version. force=true reinstalls and prunes the old
  * buildId from the cache.
+ *
+ * Concurrent calls for the same (name, cacheDir) share a single
+ * in-flight promise so parallel installs can't corrupt each other.
  */
 export async function ensureBrowserInstalled(
+  name: BrowserAssetName,
+  options: EnsureBrowserOptions = {}
+): Promise<EnsureBrowserResult> {
+  const { ctx = {} } = options;
+  const dedupeKey = `${name}:${getBrowsersDir(ctx)}`;
+  const inFlight = inFlightInstalls.get(dedupeKey);
+  if (inFlight) return inFlight;
+  const p = ensureBrowserInstalledImpl(name, options).finally(() => {
+    inFlightInstalls.delete(dedupeKey);
+  });
+  inFlightInstalls.set(dedupeKey, p);
+  return p;
+}
+
+async function ensureBrowserInstalledImpl(
   name: BrowserAssetName,
   options: EnsureBrowserOptions = {}
 ): Promise<EnsureBrowserResult> {
