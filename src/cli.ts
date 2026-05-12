@@ -10,9 +10,13 @@ import {
   reportResults,
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
+import { installCommand } from "./runtime/installCommand.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
+import { createRequire } from "node:module";
+
+const cliRequire = createRequire(import.meta.url);
 
 // Run
 setMeta();
@@ -37,7 +41,11 @@ async function main(argv: string[]) {
       describe: false,
       handler: runTestsHandler,
     })
-    .command(installAgentsCommand)
+    // Hidden alias kept for back-compat with existing scripts and docs:
+    // `doc-detective install-agents` still works, undocumented, and delegates
+    // to the same implementation as `doc-detective install agents`.
+    .command({ ...installAgentsCommand, describe: false } as any)
+    .command(installCommand as any)
     .strict()
     .demandCommand(0)
     // Suppress yargs' default help-dump on failure; surface the concrete error
@@ -78,6 +86,39 @@ async function runTestsHandler(args: any) {
     config
   );
   log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
+
+  // Self-update on startup. Honors config.autoUpdate (schema default true),
+  // DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 (set by the re-execed child to prevent
+  // loops, and by Docker images), and process.env.CI (CI environments
+  // should pin their version explicitly — surprise updates in CI are bad).
+  if (
+    config.autoUpdate !== false &&
+    !process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE &&
+    !process.env.CI
+  ) {
+    try {
+      const { checkForUpdate, detectInstallMode, selfUpdate } = await import(
+        "./runtime/selfUpdate.js"
+      );
+      const currentVersion: string = cliRequire("../package.json").version;
+      // Route the self-update module's logs through the CLI's existing
+      // log() helper so config.logLevel is respected (transient registry
+      // failures should not flood stdout at the default level). Map
+      // "warn" → "warning" since core/utils.ts uses the latter.
+      const cliLogger = (msg: string, level: string = "info") => {
+        const mapped = level === "warn" ? "warning" : level;
+        log(msg, mapped, config);
+      };
+      const { latest, newer } = await checkForUpdate(currentVersion, {
+        logger: cliLogger,
+      });
+      if (newer && latest) {
+        await selfUpdate(latest, detectInstallMode(), { logger: cliLogger });
+      }
+    } catch (err) {
+      log(`Self-update check skipped: ${String(err)}`, "debug", config);
+    }
+  }
 
   // Check for DOC_DETECTIVE_API environment variable
   const api = await getResolvedTestsFromEnv(config);

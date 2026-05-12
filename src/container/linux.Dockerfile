@@ -2,9 +2,15 @@
 FROM node:22-slim AS runtime
 ARG PACKAGE_VERSION=latest
 
-# Set environment container to trigger container-based behaviors
+# Set environment container to trigger container-based behaviors. The cache
+# dir is pinned to /opt/doc-detective so the pre-warm step at image build
+# time isn't lost to a per-boot /tmp wipe at runtime. Auto-update is off
+# because the image is the authoritative version-bump signal — image
+# releases bump doc-detective, not runtime self-update.
 ENV DEBIAN_FRONTEND=noninteractive \
-    DOC_DETECTIVE='{"container": "docdetective/docdetective:linux", "version": "'$PACKAGE_VERSION'"}'
+    DOC_DETECTIVE='{"container": "docdetective/docdetective:linux", "version": "'$PACKAGE_VERSION'"}' \
+    DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective \
+    DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
 
 LABEL authors="Doc Detective" \
     description="The official Docker image for Doc Detective. Keep your docs accurate with ease." \
@@ -32,8 +38,24 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Doc Detective from NPM
-RUN npm install -g doc-detective@$PACKAGE_VERSION
+# Install Doc Detective from NPM. The shim lazy-installs heavy deps
+# (browsers, ffmpeg, webdriverio, appium, sharp) on first use, so the
+# initial install is small. The follow-up `doc-detective install all`
+# pre-warms the cache so the image is ready to run tests offline.
+#
+# Detect whether the installed CLI has the new `install <subcommand>`
+# surface by grepping for it in the root `--help` output. yargs always
+# exits 0 from `--help` regardless of whether a subcommand exists, so
+# `install --help` isn't a useful availability probe; matching the
+# command line in root help text IS reliable. Real `install all`
+# failures (transient npm errors, partial cache writes) then propagate
+# normally and fail the build instead of being swallowed.
+RUN npm install -g doc-detective@$PACKAGE_VERSION \
+    && if doc-detective --help 2>&1 | grep -q "install <subcommand>"; then \
+         doc-detective install all --yes; \
+       else \
+         echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \
+       fi
 
 # Install DITA-OT
 ARG DITA_OT_VERSION=4.3.4

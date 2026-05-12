@@ -101,6 +101,16 @@ function buildYargs(args: any): any {
         "Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches.",
       type: "string",
     })
+    .option("auto-update", {
+      description:
+        "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
+      type: "boolean",
+    })
+    .option("cache-dir", {
+      description:
+        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
+      type: "string",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -322,6 +332,20 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
     if (list.length > 0) config.specFilter = list;
+  }
+  if (typeof args.autoUpdate === "boolean") {
+    config.autoUpdate = args.autoUpdate;
+  }
+  if (typeof args.cacheDir === "string") {
+    // Mirror the schema's `pattern: "\\S"` defense — the schema rejects
+    // whitespace-only cacheDir values from config files / env vars, and
+    // the CLI override path should follow the same contract so users
+    // can't sneak `--cache-dir "   "` past validation. Trim first and
+    // ignore the override if nothing meaningful is left.
+    const trimmed = args.cacheDir.trim();
+    if (trimmed.length > 0) {
+      config.cacheDir = trimmed;
+    }
   }
   // Resolve paths
   config = await resolvePaths({

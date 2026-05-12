@@ -213,6 +213,79 @@ describe("Util tests", function () {
     expect(configAbsent.dryRun).to.equal(false);
   });
 
+  it("Yargs parses --auto-update / --no-auto-update as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--auto-update"]);
+    expect(on.autoUpdate).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-auto-update"]);
+    expect(off.autoUpdate).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.autoUpdate).to.equal(undefined);
+  });
+
+  it("setConfig stores --no-auto-update on config.autoUpdate and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOff = setArgs(["node", "runTests.js", "--no-auto-update"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.autoUpdate).to.equal(false);
+
+    const argsOn = setArgs(["node", "runTests.js", "--auto-update"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.autoUpdate).to.equal(true);
+
+    // Schema default is true; absent flag yields true via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.autoUpdate).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.autoUpdate).to.equal(true);
+  });
+
+  it("Yargs parses --cache-dir as a string", function () {
+    const set = setArgs(["node", "runTests.js", "--cache-dir", "/tmp/ddc"]);
+    expect(set.cacheDir).to.equal("/tmp/ddc");
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.cacheDir).to.equal(undefined);
+  });
+
+  it("setConfig stores --cache-dir on config.cacheDir; absent leaves it undefined", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--cache-dir", "/tmp/ddc"]);
+    const config = await setConfig({ configPath: null, args });
+    expect(config.cacheDir).to.equal("/tmp/ddc");
+
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    // No schema default — absent means the cacheDir helper falls back to os.tmpdir().
+    expect(configAbsent.cacheDir).to.equal(undefined);
+  });
+
+  it("setConfig ignores empty --cache-dir override", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--cache-dir", ""]);
+    const config = await setConfig({ configPath: null, args });
+    // Empty string would be invalid against the schema (minLength: 1); the
+    // override block should not apply it, leaving the field undefined.
+    expect(config.cacheDir).to.equal(undefined);
+  });
+
+  it("setConfig ignores whitespace-only --cache-dir override", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--cache-dir", "   "]);
+    const config = await setConfig({ configPath: null, args });
+    // Mirrors the schema's `pattern: \\S` defense — a CLI override of
+    // whitespace-only must not slip past validation and reach runtime.
+    expect(config.cacheDir).to.equal(undefined);
+  });
+
+  it("setConfig trims --cache-dir override before applying", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--cache-dir", "  /tmp/dd  "]);
+    const config = await setConfig({ configPath: null, args });
+    expect(config.cacheDir).to.equal("/tmp/dd");
+  });
+
   it("setConfig stores --reporters arg on config.reporters", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--reporters", "html", "terminal"]);
