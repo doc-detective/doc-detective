@@ -55,8 +55,19 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+      # Pre-warm the lazy-install cache so tests that drive Chrome through
+      # the lower-level runSpecs/getRunner paths (and therefore bypass the
+      # JIT pre-flight in runTests) still find a browser. The published
+      # postinstall used to download browsers eagerly; the shim now defers
+      # that to first use. CI pre-warms once here so the matrix doesn't
+      # need a network round-trip per test file. DOC_DETECTIVE_SKIP_AUTO_UPDATE
+      # keeps the staged build from re-execing through the npm registry.
+      - run: node ./bin/doc-detective.js install all --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
       - run: npm test
         env:
           HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
           HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
