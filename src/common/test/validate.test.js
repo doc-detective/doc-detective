@@ -173,6 +173,88 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate a config_v3 object with autoUpdate set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoUpdate: false },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoUpdate).to.equal(false);
+      });
+
+      it("should default autoUpdate to true when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoUpdate).to.equal(true);
+      });
+
+      it("should reject a config_v3 object whose autoUpdate is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoUpdate: "no" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoUpdate");
+      });
+
+      it("should validate a config_v3 object with cacheDir set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: "/tmp/dd-cache" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.cacheDir).to.equal("/tmp/dd-cache");
+      });
+
+      it("should reject a config_v3 object whose cacheDir is not a string", function () {
+        // AJV's coerceTypes converts scalars to strings, so use an object —
+        // it can't be coerced and forces a true type-mismatch failure.
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: { not: "a string" } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("cacheDir");
+      });
+
+      it("should reject a config_v3 object whose cacheDir is an empty string", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: "" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("cacheDir");
+      });
+
+      it("should reject a config_v3 object whose cacheDir is whitespace-only", function () {
+        // minLength alone accepts whitespace-only strings like "   ";
+        // the schema pairs it with a non-whitespace `pattern` so a
+        // config file / env var carrying a typo can't pass validation
+        // and then silently fail at runtime.
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: "   " },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("cacheDir");
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",

@@ -1,5 +1,11 @@
 import kill from "tree-kill";
-import * as wdio from "webdriverio";
+// webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
+// site so the shim's CLI startup doesn't pay its ~50MB load cost when the
+// user is only running e.g. install-agents or install status. The type
+// reference uses `typeof import('webdriverio')` directly at the call site
+// so we don't carry a top-level `import type` whose `typeof` would refer
+// to a non-runtime identifier.
+import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import os from "node:os";
 import { log, replaceEnvs, selectSpecsForRun, findFreePort } from "./utils.js";
 import axios from "axios";
@@ -477,14 +483,30 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Warm up Appium
   let appiumPort: number | undefined;
   if (appiumRequired) {
-    setAppiumHome();
+    setAppiumHome({ cacheDir: config?.cacheDir });
     appiumPort = await findFreePort();
     log(config, "debug", `Starting Appium on port ${appiumPort}`);
-    appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
-      shell: true,
-      windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
-    });
+    // Resolve appium's actual JS entrypoint via `require.resolve`
+    // (shim node_modules first, runtime cache second) and invoke it
+    // with `node <entry>`. This sidesteps every shell-injection trap
+    // at once: no `.cmd` shim, so no Windows-requires-shell:true; no
+    // `npx`, so no PATH lookup; no user-controlled paths in a shell-
+    // interpreted string. Works for both `--omit=optional` users
+    // (appium in cache only) and default installs (appium in shim).
+    const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
+    if (!appiumEntry) {
+      throw new Error(
+        "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
+      );
+    }
+    appium = spawn(
+      process.execPath,
+      [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
+      {
+        windowsHide: true,
+        cwd: path.join(__dirname, "../.."),
+      }
+    );
     appium.on("error", (err: any) => {
       log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
     });
@@ -494,7 +516,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     appium.stderr.on("data", (data: any) => {
       // console.error(`stderr: ${data}`);
     });
-    await appiumIsReady(appiumPort);
+    try {
+      await appiumIsReady(appiumPort);
+    } catch (error) {
+      // appiumIsReady threw or timed out — the spawned child is still
+      // alive and would leak (orphan process, port still bound). Tear
+      // it down before propagating so subsequent runs don't trip on
+      // the stale state.
+      try {
+        if (appium && appium.pid) kill(appium.pid);
+      } catch {
+        // best-effort cleanup; the parent error is what matters
+      }
+      throw error;
+    }
     log(config, "debug", "Appium is ready.");
   }
 
@@ -612,7 +647,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           }
           // Instantiate driver
           try {
-            driver = await driverStart(caps, appiumPort);
+            driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
           } catch (error: any) {
             try {
               // If driver fails to start, try again as headless
@@ -631,7 +666,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                   headless: context.browser?.headless !== false,
                 },
               });
-              driver = await driverStart(caps, appiumPort);
+              driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
               if (context.browser?.name === "safari")
@@ -1044,11 +1079,20 @@ async function appiumIsReady(port: number, timeoutMs: number = 120000) {
 }
 
 // Start the Appium driver specified in `capabilities`.
-async function driverStart(capabilities: any, port: number, maxAttempts: number = 4) {
+async function driverStart(
+  capabilities: any,
+  port: number,
+  maxAttempts: number = 4,
+  ctx: { cacheDir?: string } = {}
+) {
   // POST /session can race a just-spawned-or-still-dying Appium on Windows:
   // /status may already return 200 from the outgoing process while /session
   // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
   // any other error is a real session-creation failure and propagates.
+  const wdio = await loadHeavyDep<typeof import("webdriverio")>(
+    "webdriverio",
+    { ctx }
+  );
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -1124,15 +1168,25 @@ async function getRunner(options: any = {}) {
   }
 
   // Set Appium home directory
-  setAppiumHome();
+  setAppiumHome({ cacheDir: config?.cacheDir });
 
-  // Start Appium server on a free ephemeral port
+  // Start Appium server on a free ephemeral port. Same `node <entry>`
+  // pattern as the runSpecs spawn above — see comment there.
   const appiumPort = await findFreePort();
-  const appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
-    shell: true,
-    windowsHide: true,
-    cwd: path.join(__dirname, "../.."),
-  });
+  const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
+  if (!appiumEntry) {
+    throw new Error(
+      "appium is not installed. Run `doc-detective install runtime appium` to install it."
+    );
+  }
+  const appium = spawn(
+    process.execPath,
+    [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
+    {
+      windowsHide: true,
+      cwd: path.join(__dirname, "../.."),
+    }
+  );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)
   // would crash the process before appiumIsReady's timeout could surface
   // a meaningful failure.
@@ -1140,8 +1194,19 @@ async function getRunner(options: any = {}) {
     log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
 
-  // Wait for Appium to be ready
-  await appiumIsReady(appiumPort);
+  // Wait for Appium to be ready. Same kill-on-throw guard as in
+  // runSpecs above — without it, a startup timeout would leave an
+  // orphan Appium child holding the ephemeral port.
+  try {
+    await appiumIsReady(appiumPort);
+  } catch (error) {
+    try {
+      if (appium && appium.pid) kill(appium.pid);
+    } catch {
+      // best-effort cleanup; the parent error is what matters
+    }
+    throw error;
+  }
   log(config, "debug", `Appium is ready for external driver on port ${appiumPort}.`);
 
   // Get Chrome driver capabilities
@@ -1158,7 +1223,7 @@ async function getRunner(options: any = {}) {
   // Start the runner
   let runner: any;
   try {
-    runner = await driverStart(caps, appiumPort);
+    runner = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
   } catch (error: any) {
     // If runner fails, attempt to set headless and retry
     try {
@@ -1168,7 +1233,7 @@ async function getRunner(options: any = {}) {
         "Failed to start Chrome runner. Retrying as headless."
       );
       caps["goog:chromeOptions"].args.push("--headless", "--disable-gpu");
-      runner = await driverStart(caps, appiumPort);
+      runner = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
     } catch (error: any) {
       // If runner fails, clean up Appium and rethrow
       kill(appium.pid!);
