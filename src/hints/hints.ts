@@ -563,7 +563,7 @@ export const HINTS: Hint[] = [
     id: "useStableFindingPatterns",
     priority: 20,
     markdown: [
-      "Selectors are the #1 source of flaky doc tests. Prefer stable identifiers — display atrings, accessible labels, ARIA roles, or `data-testid` — that outlive a redesign:",
+      "Selectors are the #1 source of flaky doc tests. Prefer stable identifiers — display strings, accessible labels, ARIA roles, or `data-testid` — that outlive a redesign:",
       "",
       "```diff",
       "- find: { selector: \"#login button.primary\" }",
