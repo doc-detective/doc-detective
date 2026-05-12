@@ -55,10 +55,14 @@ export const HINTS: Hint[] = [
       "doc-detective --reporters terminal json",
       "```",
     ].join("\n"),
-    when: (ctx) =>
-      Array.isArray(ctx.config?.reporters) &&
-      !ctx.config.reporters.includes("json") &&
-      ctx.isGitHubRepo,
+    when: (ctx) => {
+      const reporters = ctx.config?.reporters;
+      return (
+        Array.isArray(reporters) &&
+        !reporters.includes("json") &&
+        ctx.isGitHubRepo
+      );
+    },
   },
 
   // ------------------------------------------------------------------
@@ -170,11 +174,15 @@ export const HINTS: Hint[] = [
       "echo \"doc-detective-output/\" >> .gitignore",
       "```",
     ].join("\n"),
-    when: (ctx) =>
-      !ctx.outputDirGitignored &&
-      typeof ctx.config?.output === "string" &&
-      ctx.config.output !== "." &&
-      ctx.config.output !== "./",
+    when: (ctx) => {
+      const output = ctx.config?.output;
+      return (
+        !ctx.outputDirGitignored &&
+        typeof output === "string" &&
+        output !== "." &&
+        output !== "./"
+      );
+    },
   },
 
   // ------------------------------------------------------------------
@@ -277,9 +285,13 @@ export const HINTS: Hint[] = [
       "{ \"output\": \"doc-detective-output\" }",
       "```",
     ].join("\n"),
-    when: (ctx) =>
-      (!ctx.config?.output || ctx.config.output === "." || ctx.config.output === "./") &&
-      ctx.totalSpecs > 0,
+    when: (ctx) => {
+      const output = ctx.config?.output;
+      return (
+        (!output || output === "." || output === "./") &&
+        ctx.totalSpecs > 0
+      );
+    },
   },
 
   // ------------------------------------------------------------------
