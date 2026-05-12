@@ -8,10 +8,13 @@
 // Read that before adding a new entry. Quick rules:
 //   - Hint bodies are short — usually 2–6 lines.
 //   - Use fenced ```bash``` (or ```yaml```, etc.) blocks for commands.
-//   - Always link the docs with a Markdown link.
+//   - Prefer linking the docs with a Markdown link when there's a
+//     relevant page; single-flag / single-field hints can skip it.
 //   - Ids are stable camelCase; do not rename existing ids.
 //   - Priority bands: 10 (onboarding), 20 (current-run problems),
 //     30 (output/reporting), 40 (feature discovery), 50 (advanced).
+//     (All hints currently ship at priority 20 — a deliberate flat
+//     start; bands stay as guidance for future re-prioritization.)
 //   - Order entries alphabetically by id within this file.
 
 import type { Hint } from "./types.js";
