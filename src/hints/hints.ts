@@ -15,7 +15,8 @@
 //   - Order entries alphabetically by id within this file.
 
 import type { Hint } from "./types.js";
-import { RST_EXTENSIONS } from "./context.js";
+// Note: when re-enabling `useFileTypesForRst` below, also restore:
+//   import { RST_EXTENSIONS } from "./context.js";
 
 export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
