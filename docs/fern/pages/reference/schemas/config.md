@@ -35,6 +35,8 @@ concurrentRunners | integer,boolean | Optional. Number of concurrent test runner
 environment | object([Environment details](/reference/schemas/environment-details)) | ReadOnly. Environment information for the system running Doc Detective. | 
 debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging. | `false`
 dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inline-test extraction, config merge, schema validation) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI. Useful for validating test configuration without running actual tests. | `false`
+autoUpdate | boolean | Optional. If `true`, the CLI checks for a newer published version on startup and self-updates before running tests. Global and npx installs auto-update; local project installs show a message instead. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI. Skipped in CI environments and when `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` is set. | `true`
+cacheDir | string | Optional. Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `<os.tmpdir()>/doc-detective/`. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI when the default temp location is unsuitable (e.g., containers where temp gets cleared on reboot). |
 
 ## Examples
 
@@ -199,5 +201,17 @@ dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inl
 {
   "testFilter": ["smoke", "login"],
   "specFilter": ["auth"]
+}
+```
+
+```json
+{
+  "autoUpdate": false
+}
+```
+
+```json
+{
+  "cacheDir": "/opt/doc-detective"
 }
 ```

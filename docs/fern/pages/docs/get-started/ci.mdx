@@ -157,3 +157,57 @@ jobs:
       - uses: actions/checkout@v4
       - uses: doc-detective/github-action@v1
 ```
+
+## Runtime caching
+
+Doc Detective installs heavy runtime assets—browsers, drivers, npm packages—on first use. You can cache these assets to speed up subsequent CI runs.
+
+### Cache the runtime directory
+
+Use GitHub's cache action to persist the runtime cache between workflow runs:
+
+```yaml
+jobs:
+  runTests:
+    runs-on: ubuntu-latest
+    env:
+      DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.doc-detective-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .doc-detective-cache
+          key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            doc-detective-${{ runner.os }}-
+      - uses: doc-detective/github-action@v1
+```
+
+The `DOC_DETECTIVE_CACHE_DIR` environment variable tells Doc Detective where to store browsers, drivers, and npm packages. By pointing it to a path under `${{ github.workspace }}`, the cache action can persist these assets between runs.
+
+### Pre-install assets
+
+For faster first runs or to ensure specific assets are available, pre-install them before running tests:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 22
+  - run: npm install -g doc-detective
+  - run: doc-detective install all --yes
+    env:
+      DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.doc-detective-cache
+  - uses: doc-detective/github-action@v1
+```
+
+## Environment variables
+
+These environment variables control Doc Detective behavior in CI:
+
+| Variable | Description |
+|----------|-------------|
+| `DOC_DETECTIVE_CACHE_DIR` | Override the cache directory for runtime assets. |
+| `DOC_DETECTIVE_SKIP_AUTO_UPDATE` | Set to `1` to disable auto-update checks. |
+| `CI` | When set (automatically by most CI systems), Doc Detective skips auto-update checks. |
