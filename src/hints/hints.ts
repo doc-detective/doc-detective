@@ -24,7 +24,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "addConfigFile",
-    priority: 10,
+    priority: 20,
     markdown: [
       "Save your settings instead of remembering CLI flags. Drop a `.doc-detective.json` next to your tests:",
       "",
@@ -47,7 +47,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "addJsonReporterForCi",
-    priority: 30,
+    priority: 20,
     markdown: [
       "On GitHub? Add the JSON reporter so CI can upload structured results as a workflow artifact:",
       "",
@@ -70,7 +70,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "addNpmScript",
-    priority: 10,
+    priority: 20,
     markdown: [
       "Wire Doc Detective into your `package.json` so the team can run docs tests with `npm run test:docs`:",
       "",
@@ -109,7 +109,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "enableTelemetryUserIdForTeam",
-    priority: 50,
+    priority: 20,
     markdown: [
       "Attribute Doc Detective usage to your team by setting `telemetry.userId` in `.doc-detective.json`.",
       "",
@@ -130,7 +130,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "extractAfterAllCleanup",
-    priority: 50,
+    priority: 20,
     markdown: [
       "If most specs finish by cleaning up the test environment, pull that cleanup into a single `afterAll` spec. Doc Detective runs it once after the rest of the suite:",
       "",
@@ -148,7 +148,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "extractBeforeAnySharedSetup",
-    priority: 50,
+    priority: 20,
     markdown: [
       "Repeating the same setup across specs? Move it into a `beforeAny` spec — it runs once before the rest of the input:",
       "",
@@ -166,7 +166,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "gitignoreOutputDir",
-    priority: 10,
+    priority: 20,
     markdown: [
       "Add your Doc Detective output directory to `.gitignore` so artifacts stay out of commits. Append your configured `output` (for example: `doc-detective-output/`) on its own line:",
       "",
@@ -190,7 +190,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "installAgents",
-    priority: 10,
+    priority: 20,
     markdown: [
       "Install the Doc Detective agent tools so your AI assistant can author and debug Doc Detective tests:",
       "",
@@ -215,7 +215,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "installGithubAction",
-    priority: 10,
+    priority: 20,
     markdown: [
       "Add Doc Detective to your CI so docs are tested on every push. Save the snippet below as `.github/workflows/doc-detective.yml`:",
       "",
@@ -242,7 +242,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "setInputScope",
-    priority: 50,
+    priority: 20,
     markdown: [
       "You're scanning 100+ specs. Scoping `input` to a directory or two is usually faster than recursing the whole repo:",
       "",
@@ -258,7 +258,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "setOriginForRelativeUrls",
-    priority: 50,
+    priority: 20,
     markdown: [
       "Your tests use relative URLs. Set `origin` once and stop hardcoding the host in every spec:",
       "",
@@ -277,7 +277,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "setOutputDir",
-    priority: 30,
+    priority: 20,
     markdown: [
       "Result artifacts are landing next to your source files. Set `output` in `.doc-detective.json` so they go somewhere predictable:",
       "",
@@ -299,7 +299,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "tryHtmlReporter",
-    priority: 30,
+    priority: 20,
     markdown: [
       "Generate a shareable HTML report alongside the terminal summary:",
       "",
@@ -332,7 +332,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "useCheckLinkStep",
-    priority: 40,
+    priority: 20,
     markdown: [
       "Catch dead doc links before readers do. Add a `checkLink` step:",
       "",
@@ -420,7 +420,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "useHttpRequestStep",
-    priority: 40,
+    priority: 20,
     markdown: [
       "Replace shelled-out `curl` with the typed `httpRequest` step. You get structured assertions on status codes, headers, and the JSON body:",
       "",
@@ -445,7 +445,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "useLoadCookieSaveCookie",
-    priority: 40,
+    priority: 20,
     markdown: [
       "Tests that log in over and over slow your suite down. Capture the session once with `saveCookie` and reuse it with `loadCookie`:",
       "",
@@ -467,7 +467,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "useOpenApiValidation",
-    priority: 40,
+    priority: 20,
     markdown: [
       "Have an OpenAPI schema? Wire it into `integrations.openApi` and validate every `httpRequest` step against the spec:",
       "",
@@ -510,7 +510,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "useRunCodeStep",
-    priority: 40,
+    priority: 20,
     markdown: [
       "Running `node` or `python` in `runShell`? Switch to `runCode` for inline snippets — no shell-quoting traps, and you can assert on the result directly:",
       "",
@@ -529,7 +529,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "useScreenshotStep",
-    priority: 40,
+    priority: 20,
     markdown: [
       "Catch silent UI regressions: add a dedicated `screenshot` step after navigating. Doc Detective compares against the baseline on every run.",
       "",
@@ -549,7 +549,7 @@ export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
   {
     id: "useSpecFilterForIteration",
-    priority: 50,
+    priority: 20,
     markdown: [
       "Iterating on one spec at a time? `--spec` and `--test` filter the run with case-insensitive regexes:",
       "",

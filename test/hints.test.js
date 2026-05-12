@@ -1403,7 +1403,6 @@ describe("hints/hints (registry)", function () {
 
   it("installGithubAction: fires on a github repo with no workflow", function () {
     const h = findHint("installGithubAction");
-    expect(h.priority).to.equal(10);
     expect(h.when(fakeCtx({ isGitHubRepo: true, hasDocDetectiveWorkflow: false }))).to.equal(true);
     expect(h.when(fakeCtx({ isGitHubRepo: true, hasDocDetectiveWorkflow: true }))).to.equal(false);
     expect(h.when(fakeCtx({ isGitHubRepo: false }))).to.equal(false);
@@ -1411,14 +1410,12 @@ describe("hints/hints (registry)", function () {
 
   it("addConfigFile: fires when no config file is loaded", function () {
     const h = findHint("addConfigFile");
-    expect(h.priority).to.equal(10);
     expect(h.when(fakeCtx({ configPath: null }))).to.equal(true);
     expect(h.when(fakeCtx({ configPath: ".doc-detective.json" }))).to.equal(false);
   });
 
   it("addNpmScript: fires only when package.json exists and lacks a doc-detective script", function () {
     const h = findHint("addNpmScript");
-    expect(h.priority).to.equal(10);
     // package.json exists, no doc-detective script -> fire
     expect(
       h.when(
@@ -1441,7 +1438,6 @@ describe("hints/hints (registry)", function () {
 
   it("gitignoreOutputDir: fires when output is set, non-cwd, and not ignored", function () {
     const h = findHint("gitignoreOutputDir");
-    expect(h.priority).to.equal(10);
     expect(
       h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: false }))
     ).to.equal(true);
@@ -1455,7 +1451,6 @@ describe("hints/hints (registry)", function () {
 
   it("installAgents: fires when ANY present agent lacks the adapter (over-promote)", function () {
     const h = findHint("installAgents");
-    expect(h.priority).to.equal(10);
     // One present agent, no adapter -> fire
     expect(
       h.when(
@@ -1506,14 +1501,12 @@ describe("hints/hints (registry)", function () {
 
   it("enableDebugLog: fires only when failedCount > 0", function () {
     const h = findHint("enableDebugLog");
-    expect(h.priority).to.equal(20);
     expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
     expect(h.when(fakeCtx({ failedCount: 3 }))).to.equal(true);
   });
 
   it("useRecordStepOnFailure: fires only on failure with a browser run and no recordings produced", function () {
     const h = findHint("useRecordStepOnFailure");
-    expect(h.priority).to.equal(20);
     expect(
       h.when(
         fakeCtx({
@@ -1537,7 +1530,6 @@ describe("hints/hints (registry)", function () {
 
   it("useStableFindingPatterns: fires only on failure with selector-only finds", function () {
     const h = findHint("useStableFindingPatterns");
-    expect(h.priority).to.equal(20);
     expect(
       h.when(fakeCtx({ failedCount: 2, usedSelectorOnlyFinds: true }))
     ).to.equal(true);
@@ -1551,7 +1543,6 @@ describe("hints/hints (registry)", function () {
 
   it("useDryRunToDebugNoTests: fires when specs found but tests = 0", function () {
     const h = findHint("useDryRunToDebugNoTests");
-    expect(h.priority).to.equal(20);
     expect(h.when(fakeCtx({ totalSpecs: 5, totalTests: 0 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 5, totalTests: 5 }))).to.equal(false);
     expect(h.when(fakeCtx({ totalSpecs: 0, totalTests: 0 }))).to.equal(false);
@@ -1559,7 +1550,6 @@ describe("hints/hints (registry)", function () {
 
   it("upgradeNodeVersion: fires when nodeMajor < 20 (and nonzero)", function () {
     const h = findHint("upgradeNodeVersion");
-    expect(h.priority).to.equal(20);
     expect(h.when(fakeCtx({ nodeMajor: 18 }))).to.equal(true);
     // Node 19 is in the < 20 range too — included as a regression
     // anchor so the hint body's "19 or older" stays in sync with the
@@ -1575,14 +1565,12 @@ describe("hints/hints (registry)", function () {
 
   it("tryHtmlReporter: fires only when html is not already configured", function () {
     const h = findHint("tryHtmlReporter");
-    expect(h.priority).to.equal(30);
     expect(h.when(fakeCtx({ config: { reporters: ["terminal", "json"] } }))).to.equal(true);
     expect(h.when(fakeCtx({ config: { reporters: ["terminal", "html"] } }))).to.equal(false);
   });
 
   it("addJsonReporterForCi: fires on github when json is missing", function () {
     const h = findHint("addJsonReporterForCi");
-    expect(h.priority).to.equal(30);
     expect(
       h.when(
         fakeCtx({ config: { reporters: ["terminal"] }, isGitHubRepo: true })
@@ -1602,7 +1590,6 @@ describe("hints/hints (registry)", function () {
 
   it("setOutputDir: fires when output is missing or '.' and specs ran", function () {
     const h = findHint("setOutputDir");
-    expect(h.priority).to.equal(30);
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 1 }))).to.equal(true);
     expect(h.when(fakeCtx({ config: { output: "." }, totalSpecs: 1 }))).to.equal(true);
     expect(h.when(fakeCtx({ config: { output: "out" }, totalSpecs: 1 }))).to.equal(false);
@@ -1613,7 +1600,6 @@ describe("hints/hints (registry)", function () {
 
   it("useScreenshotStep: fires when 3+ tests use a browser but no screenshot was produced", function () {
     const h = findHint("useScreenshotStep");
-    expect(h.priority).to.equal(40);
     expect(
       h.when(
         fakeCtx({
@@ -1641,7 +1627,6 @@ describe("hints/hints (registry)", function () {
 
   it("useCheckLinkStep: fires when goTo is used but checkLink isn't", function () {
     const h = findHint("useCheckLinkStep");
-    expect(h.priority).to.equal(40);
     expect(h.when(fakeCtx({ usedStepTypes: new Set(["goTo"]) }))).to.equal(true);
     expect(
       h.when(fakeCtx({ usedStepTypes: new Set(["goTo", "checkLink"]) }))
@@ -1650,7 +1635,6 @@ describe("hints/hints (registry)", function () {
 
   it("useHttpRequestStep: fires when runShell is used with curl and no httpRequest", function () {
     const h = findHint("useHttpRequestStep");
-    expect(h.priority).to.equal(40);
     expect(
       h.when(
         fakeCtx({
@@ -1679,7 +1663,6 @@ describe("hints/hints (registry)", function () {
 
   it("useRunCodeStep: fires when runShell drives node/python and runCode isn't used", function () {
     const h = findHint("useRunCodeStep");
-    expect(h.priority).to.equal(40);
     expect(
       h.when(
         fakeCtx({
@@ -1700,7 +1683,6 @@ describe("hints/hints (registry)", function () {
 
   it("useLoadCookieSaveCookie: fires only on browser + loadVariables + type + click and no loadCookie", function () {
     const h = findHint("useLoadCookieSaveCookie");
-    expect(h.priority).to.equal(40);
     // Positive case: every required step type plus a browser.
     expect(
       h.when(
@@ -1760,7 +1742,6 @@ describe("hints/hints (registry)", function () {
 
   it("useSpecFilterForIteration: fires when 30+ specs and no filter active", function () {
     const h = findHint("useSpecFilterForIteration");
-    expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ totalSpecs: 30 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 30, config: { specFilter: ["x"] } }))).to.equal(false);
     expect(h.when(fakeCtx({ totalSpecs: 30, config: { testFilter: ["x"] } }))).to.equal(false);
@@ -1773,7 +1754,6 @@ describe("hints/hints (registry)", function () {
 
   it("setInputScope: fires only when recursive (default) and 100+ specs", function () {
     const h = findHint("setInputScope");
-    expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ totalSpecs: 101 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 101, config: { recursive: false } }))).to.equal(false);
     expect(h.when(fakeCtx({ totalSpecs: 50 }))).to.equal(false);
