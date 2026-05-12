@@ -1338,7 +1338,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    expect(HINTS.length).to.equal(26);
+    // 25 active hints. `useFileTypesForRst` is commented out in the
+    // registry but the `RST_EXTENSIONS` constant, the
+    // `detectRstFiles` helper, and the `hasRstFiles` context field
+    // are kept in place so the hint can be re-enabled without
+    // re-plumbing.
+    expect(HINTS.length).to.equal(25);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1662,29 +1667,43 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("useLoadCookieSaveCookie: fires when login pattern likely (browser + type + click) and no loadCookie", function () {
+  it("useLoadCookieSaveCookie: fires only on browser + loadVariables + type + click and no loadCookie", function () {
     const h = findHint("useLoadCookieSaveCookie");
     expect(h.priority).to.equal(40);
+    // Positive case: every required step type plus a browser.
     expect(
       h.when(
         fakeCtx({
           usedBrowserContexts: new Set(["chrome"]),
-          usedStepTypes: new Set(["type", "click"]),
+          usedStepTypes: new Set(["loadVariables", "type", "click"]),
         })
       )
     ).to.equal(true);
+    // Already using loadCookie -> skip.
     expect(
       h.when(
         fakeCtx({
           usedBrowserContexts: new Set(["chrome"]),
-          usedStepTypes: new Set(["type", "click", "loadCookie"]),
+          usedStepTypes: new Set(["loadVariables", "type", "click", "loadCookie"]),
         })
       )
     ).to.equal(false);
+    // No browser -> skip (not a login-driven flow).
     expect(
       h.when(
         fakeCtx({
           usedBrowserContexts: new Set(),
+          usedStepTypes: new Set(["loadVariables", "type", "click"]),
+        })
+      )
+    ).to.equal(false);
+    // Missing loadVariables -> skip (the user's revised predicate
+    // requires loadVariables as a stronger signal of an env-driven
+    // login flow).
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
           usedStepTypes: new Set(["type", "click"]),
         })
       )
@@ -1729,13 +1748,21 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ totalSpecs: 50 }))).to.equal(false);
   });
 
-  it("extractBeforeAnySharedSetup: fires on ≥5 specs with loadVariables and no beforeAny", function () {
+  it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {
     const h = findHint("extractBeforeAnySharedSetup");
+    // Predicate is `totalSpecs >= 5 && !config.beforeAny` — the
+    // earlier `usedStepTypes.has("loadVariables")` gate was dropped in
+    // a manual edit because the setup-extraction advice applies
+    // broadly, not just to env-driven suites.
     expect(
       h.when(
         fakeCtx({ totalSpecs: 6, usedStepTypes: new Set(["loadVariables"]) })
       )
     ).to.equal(true);
+    expect(
+      h.when(fakeCtx({ totalSpecs: 6, usedStepTypes: new Set() }))
+    ).to.equal(true);
+    // Already has beforeAny => skip.
     expect(
       h.when(
         fakeCtx({
@@ -1745,15 +1772,27 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+    // Under the spec-count threshold => skip.
+    expect(
+      h.when(fakeCtx({ totalSpecs: 4, usedStepTypes: new Set() }))
+    ).to.equal(false);
   });
 
-  it("extractAfterAllCleanup: fires on ≥5 specs that produced cookies but have no afterAll", function () {
+  it("extractAfterAllCleanup: fires on ≥5 specs without afterAll regardless of step types", function () {
     const h = findHint("extractAfterAllCleanup");
+    // The current predicate is `totalSpecs >= 5 && !config.afterAll`
+    // — the earlier `usedStepTypes.has("saveCookie")` gate was
+    // dropped in a manual edit because the cleanup advice applies
+    // broadly, not just to cookie-saving suites.
     expect(
       h.when(
         fakeCtx({ totalSpecs: 6, usedStepTypes: new Set(["saveCookie"]) })
       )
     ).to.equal(true);
+    expect(
+      h.when(fakeCtx({ totalSpecs: 6, usedStepTypes: new Set() }))
+    ).to.equal(true);
+    // Already has afterAll => skip.
     expect(
       h.when(
         fakeCtx({
@@ -1763,9 +1802,9 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
-    // No saveCookie usage => skip.
+    // Under the spec-count threshold => skip.
     expect(
-      h.when(fakeCtx({ totalSpecs: 6, usedStepTypes: new Set() }))
+      h.when(fakeCtx({ totalSpecs: 4, usedStepTypes: new Set() }))
     ).to.equal(false);
   });
 
@@ -1798,7 +1837,11 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("useFileTypesForRst: fires when .rst files exist and fileTypes lacks them", function () {
+  // Skipped while the `useFileTypesForRst` hint is commented out in
+  // the registry. Re-enable both together — the test body still
+  // exercises the (preserved) `hasRstFiles` context field and the
+  // custom-extension normalization logic.
+  it.skip("useFileTypesForRst: fires when .rst files exist and fileTypes lacks them", function () {
     const h = findHint("useFileTypesForRst");
     expect(h.when(fakeCtx({ hasRstFiles: true, config: {} }))).to.equal(true);
     // Already declared as a custom extension (no-dot form, matching the

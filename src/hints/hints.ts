@@ -25,7 +25,7 @@ export const HINTS: Hint[] = [
     id: "addConfigFile",
     priority: 10,
     markdown: [
-      "Save your runner settings instead of remembering CLI flags. Drop a `.doc-detective.json` next to your tests:",
+      "Save your settings instead of remembering CLI flags. Drop a `.doc-detective.json` next to your tests:",
       "",
       "```json",
       "{",
@@ -106,7 +106,7 @@ export const HINTS: Hint[] = [
     id: "enableTelemetryUserIdForTeam",
     priority: 50,
     markdown: [
-      "Attribute Doc Detective usage to your team by setting `telemetry.userId` in `.doc-detective.json`. The id is opaque to us; it only appears in your telemetry dashboard.",
+      "Attribute Doc Detective usage to your team by setting `telemetry.userId` in `.doc-detective.json`.",
       "",
       "```json",
       "{",
@@ -127,7 +127,7 @@ export const HINTS: Hint[] = [
     id: "extractAfterAllCleanup",
     priority: 50,
     markdown: [
-      "If most specs finish by saving cookies for reuse, pull that cleanup into a single `afterAll` spec. Doc Detective runs it once after the rest of the suite:",
+      "If most specs finish by cleaning up the test environment, pull that cleanup into a single `afterAll` spec. Doc Detective runs it once after the rest of the suite:",
       "",
       "```json",
       "{ \"afterAll\": \"./cleanup.spec.json\" }",
@@ -135,8 +135,7 @@ export const HINTS: Hint[] = [
     ].join("\n"),
     when: (ctx) =>
       ctx.totalSpecs >= 5 &&
-      !ctx.config?.afterAll &&
-      ctx.usedStepTypes.has("saveCookie"),
+      !ctx.config?.afterAll,
   },
 
   // ------------------------------------------------------------------
@@ -154,8 +153,7 @@ export const HINTS: Hint[] = [
     ].join("\n"),
     when: (ctx) =>
       ctx.totalSpecs >= 5 &&
-      !ctx.config?.beforeAny &&
-      ctx.usedStepTypes.has("loadVariables"),
+      !ctx.config?.beforeAny,
   },
 
   // ------------------------------------------------------------------
@@ -185,10 +183,10 @@ export const HINTS: Hint[] = [
     id: "installAgents",
     priority: 10,
     markdown: [
-      "Detected coding agents on this machine but no Doc Detective adapter installed. Add the adapter so your AI assistant can author and debug Doc Detective tests:",
+      "Install the Doc Detective agent tools so your AI assistant can author and debug Doc Detective tests:",
       "",
       "```bash",
-      "npx doc-detective install-agents",
+      "doc-detective install-agents",
       "```",
       "",
       "More: [doc-detective.com/docs/agents](https://doc-detective.com/docs/integrations/ai-agents)",
@@ -221,7 +219,7 @@ export const HINTS: Hint[] = [
       "    steps:",
       "      - uses: actions/checkout@v4",
       "      - uses: actions/setup-node@v4",
-      "        with: { node-version: 20 }",
+      "        with: { node-version: 24 }",
       "      - run: npx doc-detective",
       "```",
       "",
@@ -358,51 +356,51 @@ export const HINTS: Hint[] = [
   // because file detection in `src/common/src/detectTests.ts` compares
   // against `filePath.split('.').pop().toLowerCase()`.
   // ------------------------------------------------------------------
-  {
-    id: "useFileTypesForRst",
-    priority: 50,
-    markdown: [
-      "Doc Detective doesn't have a built-in `reStructuredText` (`.rst`) file type. Extend `fileTypes` so its detector picks them up:",
-      "",
-      "```json",
-      "{",
-      "  \"fileTypes\": [",
-      "    \"markdown\", \"asciidoc\", \"html\", \"dita\",",
-      "    { \"extends\": \"markdown\", \"extensions\": [\"rst\"] }",
-      "  ]",
-      "}",
-      "```",
-    ].join("\n"),
-    when: (ctx) => {
-      // Strip leading dots so "rst" (the schema/runtime form) and
-      // ".rst" (the dotted form some authors might still write) both
-      // count as a custom-extension declaration.
-      const targetExtensions = RST_EXTENSIONS.map((e) =>
-        e.startsWith(".") ? e.slice(1) : e
-      );
-      const declared = ctx.config?.fileTypes;
-      const hasCustomExtensions = Array.isArray(declared)
-        ? declared.some((entry: any) => {
-            if (!entry || typeof entry !== "object") return false;
-            const exts = entry.extensions;
-            const normalize = (e: any): string =>
-              typeof e === "string"
-                ? (e.startsWith(".") ? e.slice(1) : e).toLowerCase()
-                : "";
-            if (typeof exts === "string") {
-              return targetExtensions.includes(normalize(exts));
-            }
-            if (Array.isArray(exts)) {
-              return exts.some((e: any) =>
-                targetExtensions.includes(normalize(e))
-              );
-            }
-            return false;
-          })
-        : false;
-      return !hasCustomExtensions && ctx.hasRstFiles;
-    },
-  },
+  // {
+  //   id: "useFileTypesForRst",
+  //   priority: 50,
+  //   markdown: [
+  //     "Doc Detective doesn't have a built-in `reStructuredText` (`.rst`) file type. Extend `fileTypes` so its detector picks them up:",
+  //     "",
+  //     "```json",
+  //     "{",
+  //     "  \"fileTypes\": [",
+  //     "    \"markdown\", \"asciidoc\", \"html\", \"dita\",",
+  //     "    { \"extends\": \"markdown\", \"extensions\": [\"rst\"] }",
+  //     "  ]",
+  //     "}",
+  //     "```",
+  //   ].join("\n"),
+  //   when: (ctx) => {
+  //     // Strip leading dots so "rst" (the schema/runtime form) and
+  //     // ".rst" (the dotted form some authors might still write) both
+  //     // count as a custom-extension declaration.
+  //     const targetExtensions = RST_EXTENSIONS.map((e) =>
+  //       e.startsWith(".") ? e.slice(1) : e
+  //     );
+  //     const declared = ctx.config?.fileTypes;
+  //     const hasCustomExtensions = Array.isArray(declared)
+  //       ? declared.some((entry: any) => {
+  //           if (!entry || typeof entry !== "object") return false;
+  //           const exts = entry.extensions;
+  //           const normalize = (e: any): string =>
+  //             typeof e === "string"
+  //               ? (e.startsWith(".") ? e.slice(1) : e).toLowerCase()
+  //               : "";
+  //           if (typeof exts === "string") {
+  //             return targetExtensions.includes(normalize(exts));
+  //           }
+  //           if (Array.isArray(exts)) {
+  //             return exts.some((e: any) =>
+  //               targetExtensions.includes(normalize(e))
+  //             );
+  //           }
+  //           return false;
+  //         })
+  //       : false;
+  //     return !hasCustomExtensions && ctx.hasRstFiles;
+  //   },
+  // },
 
   // ------------------------------------------------------------------
   // useHttpRequestStep (feature discovery)
@@ -446,6 +444,7 @@ export const HINTS: Hint[] = [
     when: (ctx) =>
       ctx.usedBrowserContexts.size > 0 &&
       !ctx.usedStepTypes.has("loadCookie") &&
+      ctx.usedStepTypes.has("loadVariables") &&
       ctx.usedStepTypes.has("type") &&
       ctx.usedStepTypes.has("click"),
   },
@@ -457,7 +456,7 @@ export const HINTS: Hint[] = [
     id: "useOpenApiValidation",
     priority: 40,
     markdown: [
-      "Have an OpenAPI schema? Wire it into `integrations.openApi` and every `httpRequest` step gets validated against the spec automatically:",
+      "Have an OpenAPI schema? Wire it into `integrations.openApi` and validate every `httpRequest` step against the spec:",
       "",
       "```json",
       "{",
@@ -500,7 +499,7 @@ export const HINTS: Hint[] = [
     id: "useRunCodeStep",
     priority: 40,
     markdown: [
-      "Running `node` or `python` in `runShell`? Switch to `runCode` for inline snippets — no shell-quoting traps and you can assert on the result directly:",
+      "Running `node` or `python` in `runShell`? Switch to `runCode` for inline snippets — no shell-quoting traps, and you can assert on the result directly:",
       "",
       "```json",
       "{ \"runCode\": { \"language\": \"node\", \"code\": \"console.log(1+1)\" } }",
@@ -563,7 +562,7 @@ export const HINTS: Hint[] = [
     id: "useStableFindingPatterns",
     priority: 20,
     markdown: [
-      "Selectors are the #1 source of flaky doc tests. Prefer stable identifiers — accessible labels, ARIA roles, or `data-testid` — that outlive a redesign:",
+      "Selectors are the #1 source of flaky doc tests. Prefer stable identifiers — display atrings, accessible labels, ARIA roles, or `data-testid` — that outlive a redesign:",
       "",
       "```diff",
       "- find: { selector: \"#login button.primary\" }",
