@@ -426,10 +426,10 @@ function inspectStep(step: any, data: WalkData): void {
 
   // Screenshot / recording outputs.
   if (step.screenshot !== undefined) {
-    if (truthyOrObject(step.screenshot)) data.producedScreenshots = true;
+    if (producesOutput(step.screenshot)) data.producedScreenshots = true;
   }
   if (step.record !== undefined) {
-    if (truthyOrObject(step.record)) data.producedRecordings = true;
+    if (producesOutput(step.record)) data.producedRecordings = true;
   }
 
   // URL strings on goTo / checkLink.
@@ -480,8 +480,17 @@ function inspectUrl(field: any, data: WalkData): void {
   }
 }
 
-function truthyOrObject(v: any): boolean {
-  return v === true || (v !== null && typeof v === "object");
+function producesOutput(v: any): boolean {
+  // v3 `screenshot` and `record` step fields accept three forms:
+  //   - `true`                  — produce, with default path
+  //   - `"path.png"` / `"x.mp4"` — produce, with explicit path string
+  //   - `{ path, directory, … }` — produce, with object options
+  // The only non-producing values are `false` (explicit opt-out) and
+  // `null` (call sites already exclude `undefined` before getting here).
+  // Treating strings as "not producing" silently skipped the most
+  // common form and caused `useScreenshotStep`/`useRecordStepOnFailure`
+  // to fire incorrectly on suites already using these features.
+  return v !== false && v !== null;
 }
 
 // ---------------------------------------------------------------------

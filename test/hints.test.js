@@ -444,6 +444,37 @@ describe("hints/context", function () {
       expect(data.producedRecordings).to.equal(false);
     });
 
+    // Regression: v3 `screenshot` and `record` step fields accept
+    // `true`, a string path, OR an object. The earlier helper
+    // (`truthyOrObject`) only counted boolean+object, silently
+    // missing the string form — so suites that wrote
+    // `screenshot: "home.png"` would still trigger `useScreenshotStep`
+    // even though they're already using screenshots. Each form gets a
+    // positive test below; the `false` opt-out gets a negative test.
+    for (const screenshotValue of [true, "home.png", { path: "x.png" }]) {
+      it(`producedScreenshots is true for ${JSON.stringify(screenshotValue)}`, function () {
+        const data = walkResults({
+          specs: [{ tests: [{ contexts: [{ steps: [{ screenshot: screenshotValue }] }] }] }],
+        });
+        expect(data.producedScreenshots).to.equal(true);
+      });
+    }
+    for (const recordValue of [true, "run.webm", { path: "x.mp4", directory: "out" }]) {
+      it(`producedRecordings is true for ${JSON.stringify(recordValue)}`, function () {
+        const data = walkResults({
+          specs: [{ tests: [{ contexts: [{ steps: [{ record: recordValue }] }] }] }],
+        });
+        expect(data.producedRecordings).to.equal(true);
+      });
+    }
+    it("producedScreenshots is false when screenshot is explicitly disabled", function () {
+      // `false` is the explicit opt-out form; treat it as non-producing.
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [{ screenshot: false }] }] }] }],
+      });
+      expect(data.producedScreenshots).to.equal(false);
+    });
+
     it("flags usedSelectorOnlyFinds when find uses selector with no stable sibling", function () {
       const data = walkResults({
         specs: [{ tests: [{ contexts: [{ steps: [{ find: { selector: "#x" } }] }] }] }],

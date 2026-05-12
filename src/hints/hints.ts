@@ -494,7 +494,7 @@ export const HINTS: Hint[] = [
       "Add a `record`/`stopRecord` pair around tricky tests so the next failure leaves a video behind:",
       "",
       "```json",
-      "{ \"record\": { \"path\": \"./failure.webm\" } }",
+      "{ \"record\": { \"path\": \"failure.webm\", \"directory\": \"./artifacts\" } }",
       "// ...steps that might fail...",
       "{ \"stopRecord\": true }",
       "```",
