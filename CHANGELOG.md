@@ -1,3 +1,10 @@
+# [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-05-12)
+
+
+### Features
+
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+
 # [4.5.0](https://github.com/doc-detective/doc-detective/compare/v4.4.0...v4.5.0) (2026-05-06)
 
 
