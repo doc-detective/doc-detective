@@ -563,11 +563,11 @@ export const HINTS: Hint[] = [
     id: "useStableFindingPatterns",
     priority: 20,
     markdown: [
-      "Selectors are the #1 source of flaky doc tests. Prefer stable identifiers — display strings, accessible labels, ARIA roles, or `data-testid` — that outlive a redesign:",
+      "Selectors are the #1 source of flaky doc tests. Prefer stable identifiers — display strings, accessible names, or `data-testid` — that outlive a redesign:",
       "",
       "```diff",
       "- find: { selector: \"#login button.primary\" }",
-      "+ find: { elementText: \"Sign in\", elementAria: \"button\" }",
+      "+ find: { elementText: \"Sign in\", elementAria: \"Sign in to your account\" }",
       "```",
       "",
       "More: [doc-detective.com/docs/find](https://doc-detective.com/docs/references/schemas/find)",
