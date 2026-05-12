@@ -10,6 +10,7 @@ import {
   reportResults,
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
+import { maybeShowHint } from "./hints/index.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
@@ -103,5 +104,8 @@ async function runTestsHandler(args: any) {
     // Output results — config.reporters (populated from args.reporters by
     // setConfig) is the source of truth for which reporters run.
     await outputResults(config, output, results, { command: "runTests" });
+    // Optionally print one contextual hint after the reporters finish.
+    // Wrapped in its own try/catch internally — never throws.
+    await maybeShowHint(config, results);
   }
 }

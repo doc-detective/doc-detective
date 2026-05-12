@@ -101,6 +101,11 @@ function buildYargs(args: any): any {
         "Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches.",
       type: "string",
     })
+    .option("hints", {
+      description:
+        "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
+      type: "boolean",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -271,6 +276,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     logLevel: config.logLevel || "info",
     fileTypes: config.fileTypes || ["markdown", "asciidoc", "html"],
     telemetry: config.telemetry || { send: true },
+    hints: config.hints || { enabled: true },
   };
   // Override config values
   if (configPath) {
@@ -322,6 +328,10 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
     if (list.length > 0) config.specFilter = list;
+  }
+  if (typeof args.hints === "boolean") {
+    config.hints = config.hints || { enabled: true };
+    config.hints.enabled = args.hints;
   }
   // Resolve paths
   config = await resolvePaths({
