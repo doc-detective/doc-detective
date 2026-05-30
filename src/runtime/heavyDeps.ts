@@ -46,7 +46,12 @@ export function withPeerCompanions(names: string[]): string[] {
   return out;
 }
 
-interface ShimPackageJson {
+export interface ShimPackageJson {
+  // The published manifest carries heavy-dep version constraints here:
+  // prepack.js moves `optionalDependencies` into this custom field so npm
+  // never auto-installs them, while the source manifest keeps
+  // `optionalDependencies` for Dependabot. See scripts/prepack.js.
+  ddRuntimeDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
   dependencies?: Record<string, string>;
 }
@@ -64,25 +69,41 @@ function readShimPackageJson(): ShimPackageJson {
 
 /**
  * Returns the version constraint declared in the shim's own package.json
- * for `name`. During the migration window heavy deps may live in either
- * `optionalDependencies` (the target state) or `dependencies` (the legacy
- * state) — either is acceptable as the single source of truth.
+ * for `name`. The version source differs between the published package and
+ * a source/CI checkout, so we check in priority order:
+ *   1. `ddRuntimeDependencies` — the published state. prepack.js moves the
+ *      heavy deps here so npm never auto-installs them.
+ *   2. `optionalDependencies` — the source/CI state (kept for Dependabot).
+ *   3. `dependencies` — the legacy state, pre lazy-install migration.
+ * The first non-empty match wins.
  *
  * Throws for unknown names; the resolver is the only caller and a missing
  * entry is a programming error, not a user-facing one.
  */
 export function getDeclaredVersion(name: string): string {
-  const pkg = readShimPackageJson();
-  const fromOptional = pkg.optionalDependencies?.[name];
-  if (typeof fromOptional === "string" && fromOptional.length > 0) {
-    return fromOptional;
-  }
-  const fromRegular = pkg.dependencies?.[name];
-  if (typeof fromRegular === "string" && fromRegular.length > 0) {
-    return fromRegular;
+  return resolveDeclaredVersion(readShimPackageJson(), name);
+}
+
+/**
+ * Pure field-priority resolution, split out from getDeclaredVersion so it can
+ * be unit-tested against synthetic manifests without touching the filesystem.
+ */
+export function resolveDeclaredVersion(
+  pkg: ShimPackageJson,
+  name: string
+): string {
+  for (const field of [
+    pkg.ddRuntimeDependencies,
+    pkg.optionalDependencies,
+    pkg.dependencies,
+  ]) {
+    const declared = field?.[name];
+    if (typeof declared === "string" && declared.length > 0) {
+      return declared;
+    }
   }
   throw new Error(
-    `${name} is not declared in doc-detective's package.json (optionalDependencies or dependencies). Add it before invoking the runtime loader.`
+    `${name} is not declared in doc-detective's package.json (ddRuntimeDependencies, optionalDependencies, or dependencies). Add it before invoking the runtime loader.`
   );
 }
 

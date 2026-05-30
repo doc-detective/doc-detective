@@ -37,17 +37,9 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 ### Lazy-installed runtime
 
-`npm i doc-detective` installs the CLI and a small set of light dependencies. Heavy runtime assets — browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.) — install lazily into `<os.tmpdir()>/doc-detective/` the first time a test needs them, or up front via `doc-detective install all`.
+`npm i doc-detective` installs only the CLI and a small set of light dependencies — no browser download, no heavy npm packages, no deprecation warnings from their transitive trees. Heavy runtime assets — browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.) — install lazily into `<os.tmpdir()>/doc-detective/` the first time a test needs them, or up front via `doc-detective install all`.
 
-The heavy npm packages live in `optionalDependencies`, which means **npm still installs them by default during `npm i doc-detective`** alongside the light deps. To get a truly lean install — only the CLI shim — pass `--omit=optional`:
-
-```bash
-npm i doc-detective --omit=optional
-# or for CI
-npm ci --omit=optional
-```
-
-With `--omit=optional`, the lazy resolver fetches each heavy dep into the cache on first use; without it you still get the speed-of-startup benefits of lazy loading (no `postinstall` browser download) but pay the on-disk cost up front.
+The published package does not declare the heavy packages in `dependencies` or `optionalDependencies`, so npm never fetches them at install time. Their version constraints live in a custom `ddRuntimeDependencies` field that the lazy resolver reads when it installs each dep into the cache on first use.
 
 - **Pre-install everything up front:**
 
