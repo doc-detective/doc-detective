@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const backupPath = "package.json.prepack-backup";
 
@@ -30,10 +31,23 @@ export function transformForPublish(pkg) {
   return out;
 }
 
-// Running as the prepack lifecycle script (not imported by a test).
-const invokedDirectly =
-  process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(new URL(import.meta.url).pathname);
-if (invokedDirectly) {
+// True only when run as the prepack lifecycle script, not when imported by a
+// test. Use fileURLToPath (NOT `new URL(...).pathname`, which yields a
+// leading-slash `/C:/...` on Windows that realpathSync rejects) and guard the
+// whole comparison: realpathSync throws ENOENT if argv[1] isn't an existing
+// file, and a throw here would crash any importer at module-load time.
+function isInvokedDirectly() {
+  try {
+    if (!process.argv[1]) return false;
+    return (
+      fs.realpathSync(process.argv[1]) ===
+      fs.realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+}
+if (isInvokedDirectly()) {
   main();
 }
 
