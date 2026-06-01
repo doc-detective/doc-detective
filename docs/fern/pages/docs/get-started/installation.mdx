@@ -84,7 +84,7 @@ You should see output in the terminal indicating the progress and results of the
 
 ## Lazy-installed runtime
 
-When you run `npm i doc-detective`, you get only the CLI and a small set of light dependencies. Heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—install lazily into `<os.tmpdir()>/doc-detective/` the first time a test needs them.
+Running `npm i doc-detective` installs only the CLI and a small set of light dependencies—no browser downloads, no heavy npm packages, no deprecation warnings from transitive dependencies. Heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—install lazily into `<os.tmpdir()>/doc-detective/` the first time a test needs them.
 
 This keeps initial install times fast and disk usage low when you only need a subset of Doc Detective's capabilities.
 
