@@ -68,6 +68,11 @@ describe("--dry-run short-circuits before execution", function () {
     const step = result.specs[0].tests[0].contexts[0].steps[0];
     expect(step).to.have.property("goTo");
 
+    // Dry runs must NOT probe the environment for apps (no @puppeteer/browsers
+    // load, no `appium driver list` spawn) — that work is what flaked the
+    // windows+node22 mocha timeout. Resolution never reads environment.apps.
+    expect(result.config.environment.apps).to.deep.equal([]);
+
     // JSON was emitted to stdout and round-trips with the same shape.
     const stdoutDump = captured.join("\n");
     const parsed = JSON.parse(stdoutDump);
