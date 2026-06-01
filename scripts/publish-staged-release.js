@@ -17,7 +17,9 @@
 // Exits non-zero if either package fails to reach the desired end state.
 
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import semver from 'semver';
+import { transformForPublish } from './publish-manifest.js';
 
 const version = process.argv[2];
 const tag = process.argv[3];
@@ -93,5 +95,41 @@ function publishOrTag(pkg, workspaceArgs) {
   }
 }
 
-publishOrTag('doc-detective', []);
+// The published manifest must drop `workspaces` and move the heavy
+// `optionalDependencies` into `ddRuntimeDependencies` (see publish-manifest.js).
+// This MUST happen on disk before `npm publish` reads package.json — npm builds
+// the registry packument (what `npm install` resolves deps from) before any
+// prepack/prepare lifecycle hook runs, so a lifecycle-time edit never reaches
+// the registry. We rewrite the file, publish, then ALWAYS restore the original:
+//   * the common-workspace publish below needs the root `workspaces` field, and
+//   * @semantic-release/git commits package.json after this script, so leaving
+//     the stripped manifest on disk would commit it into the repo.
+function withTransformedRootManifest(fn) {
+  const original = fs.readFileSync('package.json', 'utf8');
+  try {
+    const published = transformForPublish(JSON.parse(original));
+    fs.writeFileSync('package.json', JSON.stringify(published, null, 2) + '\n');
+    fn();
+  } finally {
+    fs.writeFileSync('package.json', original);
+  }
+}
+
+// Belt-and-suspenders: confirm the just-published manifest carries no
+// `optionalDependencies` (the regression we're fixing). Only fail on positive
+// evidence — if the registry hasn't propagated the new version yet, `npm view`
+// returns nothing and we don't block an otherwise-successful release.
+function assertNoOptionalDependencies() {
+  const { ok, stdout } = capture(['view', `doc-detective@${version}`, 'optionalDependencies']);
+  if (ok && stdout !== '') {
+    console.error(
+      `[doc-detective] published ${version} still lists optionalDependencies:\n${stdout}\n` +
+        'The publish manifest transform did not reach the registry packument.'
+    );
+    process.exit(1);
+  }
+}
+
+withTransformedRootManifest(() => publishOrTag('doc-detective', []));
+assertNoOptionalDependencies();
 publishOrTag('doc-detective-common', ['--workspace', 'src/common']);

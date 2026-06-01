@@ -34,8 +34,6 @@
     "./cli": "./bin/doc-detective.js"
   },
   "scripts": {
-    "prepack": "node --disable-warning=DEP0190 scripts/prepack.js",
-    "postpack": "node --disable-warning=DEP0190 scripts/postpack.js",
     "postinstall": "node --disable-warning=DEP0190 scripts/postinstall.js",
     "prepare": "husky",
     "commitlint": "commitlint --edit",
