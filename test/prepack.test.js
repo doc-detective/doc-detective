@@ -41,17 +41,14 @@ describe("scripts/prepack transformForPublish", function () {
     expect(input.optionalDependencies).to.deep.equal({ sharp: "1" });
   });
 
-  it("produces a published manifest whose ddRuntimeDependencies covers every heavy dep", function () {
-    // Guards the real source manifest: after the transform, every heavy dep the
-    // runtime lazy-loads must still have a resolvable version constraint.
-    const { HEAVY_NPM_DEPS } = require("../dist/runtime/heavyDeps.js");
-    const published = transformForPublish(require("../package.json"));
+  it("moves the real source manifest's optionalDependencies wholesale into ddRuntimeDependencies", function () {
+    // Run the transform against the actual package.json (source of truth, not a
+    // generated dist artifact) so the published manifest's ddRuntimeDependencies
+    // is exactly the source optionalDependencies — and nothing npm would
+    // auto-install survives in optionalDependencies.
+    const pkg = require("../package.json");
+    const published = transformForPublish(pkg);
     expect(published).to.not.have.property("optionalDependencies");
-    for (const name of HEAVY_NPM_DEPS) {
-      expect(
-        published.ddRuntimeDependencies && published.ddRuntimeDependencies[name],
-        `${name} in published ddRuntimeDependencies`
-      ).to.be.a("string").and.to.have.length.greaterThan(0);
-    }
+    expect(published.ddRuntimeDependencies).to.deep.equal(pkg.optionalDependencies);
   });
 });
