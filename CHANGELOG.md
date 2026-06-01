@@ -1,3 +1,10 @@
+# [4.6.0-next.3](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.2...v4.6.0-next.3) (2026-06-01)
+
+
+### Bug Fixes
+
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+
 # [4.6.0-next.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.1...v4.6.0-next.2) (2026-06-01)
 
 
