@@ -100,6 +100,7 @@
     "geckodriver": "^6.1.0",
     "pixelmatch": "^7.1.0",
     "pngjs": "^7.0.0",
+    "proxy-agent": "^8.0.1",
     "sharp": "^0.34.5",
     "webdriverio": "^9.27.0",
     "@ffmpeg-installer/darwin-arm64": "4.1.5",
