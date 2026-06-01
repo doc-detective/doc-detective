@@ -81,13 +81,13 @@ describe("runtime/installer", function () {
     });
 
     it("installs the requested package and reports an actionable state", async function () {
-      // pngjs lives in the shim's `optionalDependencies`, which npm
-      // installs by default — so it resolves from the shim's node_modules
-      // and the installer's skip-if-already-resolvable path would report
-      // "already-up-to-date". force:true bypasses that skip and exercises
-      // the actual install path. Users on `npm i --omit=optional` would
-      // hit the install path without force, but the test environment
-      // doesn't reliably have that posture.
+      // In a source checkout pngjs lives in the shim's `optionalDependencies`,
+      // which npm installs by default — so it resolves from the shim's
+      // node_modules and the installer's skip-if-already-resolvable path would
+      // report "already-up-to-date". force:true bypasses that skip and
+      // exercises the actual install path. Users of the published package
+      // (heavy deps moved to `ddRuntimeDependencies`, never installed by npm)
+      // hit the install path without force.
       const spawner = fakeNpmSpawner({
         materialize: { pngjs: "7.0.0" },
       });

@@ -45,11 +45,12 @@ describe("runtime/loader", function () {
 
   describe("loadHeavyDep", function () {
     it("resolves a dep that is present in the shim's node_modules without invoking the installer", async function () {
-      // pngjs is declared in the shim's `optionalDependencies`, which npm
-      // installs by default — so we expect it to resolve from the shim's
-      // node_modules in this test environment. The fake spawner is wired
-      // to throw if invoked; a successful load proves the cache fallback
-      // never fired. Users who install with `--omit=optional` would hit
+      // In a source checkout pngjs lives in the shim's `optionalDependencies`,
+      // which npm installs by default — so we expect it to resolve from the
+      // shim's node_modules in this test environment. The fake spawner is
+      // wired to throw if invoked; a successful load proves the cache fallback
+      // never fired. Users of the published package (where prepack moved the
+      // heavy deps to `ddRuntimeDependencies`, so npm never installs them) hit
       // the cache/install path instead, exercised by other tests below.
       const calls = [];
       const spawner = makeFakeSpawner({
@@ -115,8 +116,8 @@ describe("runtime/loader", function () {
         },
       });
 
-      // pngjs is already resolvable from the shim's node_modules
-      // (declared in optionalDependencies, which npm installs by
+      // pngjs is already resolvable from the shim's node_modules (in a source
+      // checkout it's declared in optionalDependencies, which npm installs by
       // default). force:true bypasses the skip-if-already-present check
       // so the install path is exercised here.
       await ensureRuntimeInstalled(["pngjs"], {
@@ -143,8 +144,8 @@ describe("runtime/loader", function () {
     });
 
     it("rejects when npm exits non-zero", async function () {
-      // pngjs resolves from the shim's node_modules (declared in
-      // optionalDependencies, installed by default), so the
+      // pngjs resolves from the shim's node_modules (in a source checkout it's
+      // declared in optionalDependencies, installed by default), so the
       // skip-if-already-present check short-circuits before npm runs.
       // force:true bypasses the skip so we can exercise the failure path.
       const spawner = makeFakeSpawner({ exitCode: 1 });
