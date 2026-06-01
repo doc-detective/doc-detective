@@ -1,3 +1,11 @@
+# [4.6.0-next.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.1...v4.6.0-next.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+
 # [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-05-12)
 
 
