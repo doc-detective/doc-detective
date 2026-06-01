@@ -1,3 +1,10 @@
+# [4.6.0-next.4](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.3...v4.6.0-next.4) (2026-06-01)
+
+
+### Bug Fixes
+
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+
 # [4.6.0-next.3](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.2...v4.6.0-next.3) (2026-06-01)
 
 
