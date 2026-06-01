@@ -20,6 +20,32 @@ export const HEAVY_NPM_DEPS = [
 
 export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];
 
+/**
+ * Optional peer dependencies that npm will NOT auto-install, but a heavy dep
+ * needs for full functionality. `@puppeteer/browsers@3` moved `proxy-agent`
+ * from a regular dependency (2.x) to an `optional` peer, so a bare
+ * `npm install @puppeteer/browsers` into <cacheDir>/runtime omits it and
+ * proxy-based browser downloads break. We install each companion alongside
+ * its owner so the cached install matches what 2.x shipped.
+ */
+export const RUNTIME_PEER_COMPANIONS: Record<string, string[]> = {
+  "@puppeteer/browsers": ["proxy-agent"],
+};
+
+/**
+ * Expand a list of runtime package names to include any peer companions
+ * (see RUNTIME_PEER_COMPANIONS), preserving order and de-duplicating.
+ */
+export function withPeerCompanions(names: string[]): string[] {
+  const out = [...names];
+  for (const name of names) {
+    for (const companion of RUNTIME_PEER_COMPANIONS[name] ?? []) {
+      if (!out.includes(companion)) out.push(companion);
+    }
+  }
+  return out;
+}
+
 interface ShimPackageJson {
   optionalDependencies?: Record<string, string>;
   dependencies?: Record<string, string>;

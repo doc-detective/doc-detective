@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
-import { getDeclaredVersion, satisfiesRange } from "./heavyDeps.js";
+import { getDeclaredVersion, satisfiesRange, withPeerCompanions } from "./heavyDeps.js";
 import {
   assertSafeRuntimePath,
   getRuntimeDir,
@@ -194,6 +194,12 @@ export async function ensureRuntimeInstalled(
   const logger = deps.logger ?? defaultLogger;
   const spawner = deps.spawn ?? (nodeSpawn as SpawnFn);
   if (packages.length === 0) return;
+
+  // Pull in optional peer companions (e.g. proxy-agent for
+  // @puppeteer/browsers@3) that npm won't auto-install but the dep needs for
+  // full functionality. Done here so both the JIT path (loadHeavyDep) and the
+  // bulk path (installRuntime / `install all`) get them.
+  packages = withPeerCompanions(packages);
 
   // Decide what actually needs `npm install`. The skip cases — when
   // not forced — are:

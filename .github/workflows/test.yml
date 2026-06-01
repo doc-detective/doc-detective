@@ -40,8 +40,11 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
+        # node 20 reached EOL 2026-04-30 and is unsupported by this repo's
+        # release tooling (semantic-release@25 requires ^22.14 || >=24.10) and
+        # by @puppeteer/browsers@3 (engines >=22.12, needed for node 24
+        # browser installs). Test the supported lines only.
         node:
-          - 20
           - 22
           - 24
     steps:
