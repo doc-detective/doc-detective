@@ -508,7 +508,13 @@ async function setConfig({ config }: any) {
 
   // Detect current environment.
   config.environment = getEnvironment();
-  config.environment.apps = await getAvailableApps({ config });
+  // Dry runs return the resolved-tests preview without ever executing, and
+  // `environment.apps` is only consumed by the runner paths in tests.ts (which
+  // re-detect themselves). Skipping the detection avoids the @puppeteer/browsers
+  // load, the browser-cache scan, and the unbounded `appium driver list` spawn —
+  // the work that pushes dryRun.test.js past its mocha timeout on a starved
+  // windows+node22 runner. No effect on resolved output.
+  config.environment.apps = config.dryRun ? [] : await getAvailableApps({ config });
 
   // Resolve concurrent runners configuration
   config.concurrentRunners = resolveConcurrentRunners(config);
