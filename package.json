@@ -10,6 +10,9 @@
     "doc-detective-runner": "bin/runner-entrypoint.js"
   },
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "files": [
     "dist/",
     "bin/",
