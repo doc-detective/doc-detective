@@ -117,11 +117,26 @@ function withTransformedRootManifest(fn) {
 
 // Belt-and-suspenders: confirm the just-published manifest carries no
 // `optionalDependencies` (the regression we're fixing). Only fail on positive
-// evidence — if the registry hasn't propagated the new version yet, `npm view`
-// returns nothing and we don't block an otherwise-successful release.
+// evidence: an object with at least one key. We ask for `--json` so an
+// absent/empty field is unambiguous — `npm view` otherwise prints values like
+// ``, `undefined`, or `{}` that are easy to misread as a failure. If the
+// registry hasn't propagated the new version yet (`npm view` errors) or the
+// output isn't parseable, we don't block an otherwise-successful release.
 function assertNoOptionalDependencies() {
-  const { ok, stdout } = capture(['view', `doc-detective@${version}`, 'optionalDependencies']);
-  if (ok && stdout !== '') {
+  const { ok, stdout } = capture(['view', `doc-detective@${version}`, 'optionalDependencies', '--json']);
+  if (!ok || stdout === '') return;
+  let parsed;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    return;
+  }
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    !Array.isArray(parsed) &&
+    Object.keys(parsed).length > 0
+  ) {
     console.error(
       `[doc-detective] published ${version} still lists optionalDependencies:\n${stdout}\n` +
         'The publish manifest transform did not reach the registry packument.'

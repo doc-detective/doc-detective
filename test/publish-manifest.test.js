@@ -34,6 +34,14 @@ describe("scripts/publish-manifest transformForPublish", function () {
     expect(out.dependencies).to.deep.equal({ yargs: "^18.0.0" });
   });
 
+  it("drops an empty optionalDependencies object without creating ddRuntimeDependencies", function () {
+    // An empty `{}` must not survive into the published manifest — otherwise the
+    // publish guardrail could see a stray empty object and misread it.
+    const out = transformForPublish({ optionalDependencies: {} });
+    expect(out).to.not.have.property("optionalDependencies");
+    expect(out).to.not.have.property("ddRuntimeDependencies");
+  });
+
   it("does not mutate the input object", function () {
     const input = { workspaces: ["src/common"], optionalDependencies: { sharp: "1" } };
     transformForPublish(input);

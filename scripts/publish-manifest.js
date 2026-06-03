@@ -25,13 +25,17 @@
 export function transformForPublish(pkg) {
   const out = { ...pkg };
   delete out.workspaces;
+  // Preserve any declared heavy deps under the custom field...
   if (
     out.optionalDependencies &&
     typeof out.optionalDependencies === "object" &&
     Object.keys(out.optionalDependencies).length > 0
   ) {
     out.ddRuntimeDependencies = { ...out.optionalDependencies };
-    delete out.optionalDependencies;
   }
+  // ...then always drop optionalDependencies, including an empty `{}`, so the
+  // published manifest never carries the field (and the publish guardrail never
+  // sees a stray empty object).
+  delete out.optionalDependencies;
   return out;
 }
