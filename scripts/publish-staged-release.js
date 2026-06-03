@@ -106,12 +106,20 @@ function publishOrTag(pkg, workspaceArgs) {
 //     the stripped manifest on disk would commit it into the repo.
 function withTransformedRootManifest(fn) {
   const original = fs.readFileSync('package.json', 'utf8');
+  const restore = () => fs.writeFileSync('package.json', original);
+  // publishOrTag() calls process.exit() on failure, which terminates the
+  // process immediately and bypasses `finally`. Register an `exit` handler
+  // (it fires even on process.exit()) so the original manifest is restored on
+  // that path too — otherwise a failed publish would leave package.json
+  // stripped on disk for @semantic-release/git to commit.
+  process.on('exit', restore);
   try {
     const published = transformForPublish(JSON.parse(original));
     fs.writeFileSync('package.json', JSON.stringify(published, null, 2) + '\n');
     fn();
   } finally {
-    fs.writeFileSync('package.json', original);
+    restore();
+    process.off('exit', restore);
   }
 }
 
@@ -122,6 +130,8 @@ function withTransformedRootManifest(fn) {
 // ``, `undefined`, or `{}` that are easy to misread as a failure. If the
 // registry hasn't propagated the new version yet (`npm view` errors) or the
 // output isn't parseable, we don't block an otherwise-successful release.
+// Scope: only the root `doc-detective` package — `doc-detective-common` has no
+// optionalDependencies in source, so it needs no guardrail.
 function assertNoOptionalDependencies() {
   const { ok, stdout } = capture(['view', `doc-detective@${version}`, 'optionalDependencies', '--json']);
   if (!ok || stdout === '') return;
