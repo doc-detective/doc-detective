@@ -1,3 +1,11 @@
+# [4.6.0-publish-manifest-before-read.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-publish-manifest-before-read.1...v4.6.0-publish-manifest-before-read.2) (2026-06-03)
+
+
+### Bug Fixes
+
+* **release:** always drop optionalDependencies; harden guardrail with --json ([f555100](https://github.com/doc-detective/doc-detective/commit/f555100b47ff8a85cedefe21ddf4f8372688b6f8))
+* **release:** restore manifest on process.exit() failure paths ([5ff6ae2](https://github.com/doc-detective/doc-detective/commit/5ff6ae2897cfa71e00a05c822cb124466335af29))
+
 # [4.6.0-publish-manifest-before-read.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-publish-manifest-before-read.1) (2026-06-01)
 
 
