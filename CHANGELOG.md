@@ -1,3 +1,10 @@
+# [4.6.0-next.6](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.5...v4.6.0-next.6) (2026-06-04)
+
+
+### Bug Fixes
+
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([ef86d51](https://github.com/doc-detective/doc-detective/commit/ef86d510d5bea0e251eb68e7bb51c351c6febb90))
+
 # [4.6.0-publish-manifest-before-read.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-publish-manifest-before-read.1...v4.6.0-publish-manifest-before-read.2) (2026-06-03)
 
 
