@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "4.6.0-next.5",
+  "version": "4.6.0-publish-manifest-before-read.2",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -34,8 +34,6 @@
     "./cli": "./bin/doc-detective.js"
   },
   "scripts": {
-    "prepack": "node --disable-warning=DEP0190 scripts/prepack.js",
-    "postpack": "node --disable-warning=DEP0190 scripts/postpack.js",
     "postinstall": "node --disable-warning=DEP0190 scripts/postinstall.js",
     "prepare": "husky",
     "commitlint": "commitlint --edit",

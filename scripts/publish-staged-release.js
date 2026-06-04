@@ -17,7 +17,9 @@
 // Exits non-zero if either package fails to reach the desired end state.
 
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import semver from 'semver';
+import { transformForPublish } from './publish-manifest.js';
 
 const version = process.argv[2];
 const tag = process.argv[3];
@@ -93,5 +95,66 @@ function publishOrTag(pkg, workspaceArgs) {
   }
 }
 
-publishOrTag('doc-detective', []);
+// The published manifest must drop `workspaces` and move the heavy
+// `optionalDependencies` into `ddRuntimeDependencies` (see publish-manifest.js).
+// This MUST happen on disk before `npm publish` reads package.json — npm builds
+// the registry packument (what `npm install` resolves deps from) before any
+// prepack/prepare lifecycle hook runs, so a lifecycle-time edit never reaches
+// the registry. We rewrite the file, publish, then ALWAYS restore the original:
+//   * the common-workspace publish below needs the root `workspaces` field, and
+//   * @semantic-release/git commits package.json after this script, so leaving
+//     the stripped manifest on disk would commit it into the repo.
+function withTransformedRootManifest(fn) {
+  const original = fs.readFileSync('package.json', 'utf8');
+  const restore = () => fs.writeFileSync('package.json', original);
+  // publishOrTag() calls process.exit() on failure, which terminates the
+  // process immediately and bypasses `finally`. Register an `exit` handler
+  // (it fires even on process.exit()) so the original manifest is restored on
+  // that path too — otherwise a failed publish would leave package.json
+  // stripped on disk for @semantic-release/git to commit.
+  process.on('exit', restore);
+  try {
+    const published = transformForPublish(JSON.parse(original));
+    fs.writeFileSync('package.json', JSON.stringify(published, null, 2) + '\n');
+    fn();
+  } finally {
+    restore();
+    process.off('exit', restore);
+  }
+}
+
+// Belt-and-suspenders: confirm the just-published manifest carries no
+// `optionalDependencies` (the regression we're fixing). Only fail on positive
+// evidence: an object with at least one key. We ask for `--json` so an
+// absent/empty field is unambiguous — `npm view` otherwise prints values like
+// ``, `undefined`, or `{}` that are easy to misread as a failure. If the
+// registry hasn't propagated the new version yet (`npm view` errors) or the
+// output isn't parseable, we don't block an otherwise-successful release.
+// Scope: only the root `doc-detective` package — `doc-detective-common` has no
+// optionalDependencies in source, so it needs no guardrail.
+function assertNoOptionalDependencies() {
+  const { ok, stdout } = capture(['view', `doc-detective@${version}`, 'optionalDependencies', '--json']);
+  if (!ok || stdout === '') return;
+  let parsed;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    return;
+  }
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    !Array.isArray(parsed) &&
+    Object.keys(parsed).length > 0
+  ) {
+    console.error(
+      `[doc-detective] published ${version} still lists optionalDependencies:\n${stdout}\n` +
+        'The publish manifest transform did not reach the registry packument.'
+    );
+    process.exit(1);
+  }
+}
+
+withTransformedRootManifest(() => publishOrTag('doc-detective', []));
+assertNoOptionalDependencies();
 publishOrTag('doc-detective-common', ['--workspace', 'src/common']);
