@@ -17,8 +17,8 @@ before(async function () {
 describe("runtime/heavyDeps", function () {
   it("HEAVY_NPM_DEPS lists every dep that the runtime lazy-loads", function () {
     // This is the canonical list. If a new heavy dep is added, append it here
-    // AND to the source package.json#optionalDependencies (prepack.js moves
-    // that field to ddRuntimeDependencies in the published manifest). Both must
+    // AND to the source package.json#optionalDependencies (the publish step
+    // moves that field to ddRuntimeDependencies in the published manifest). Both must
     // be kept in sync — getDeclaredVersion() is the bridge between the two.
     expect(HEAVY_NPM_DEPS).to.include.members([
       "webdriverio",
@@ -39,8 +39,8 @@ describe("runtime/heavyDeps", function () {
     const pkg = require("../package.json");
     for (const name of HEAVY_NPM_DEPS) {
       const declared = getDeclaredVersion(name);
-      // Source manifest holds the heavy deps in optionalDependencies (prepack
-      // moves them to ddRuntimeDependencies for the published package); legacy
+      // Source manifest holds the heavy deps in optionalDependencies (the
+      // publish step moves them to ddRuntimeDependencies for the published package); legacy
       // checkouts may still have them in dependencies. Any is a valid source.
       const fromPkg =
         (pkg.ddRuntimeDependencies && pkg.ddRuntimeDependencies[name]) ||
@@ -89,8 +89,8 @@ describe("runtime/heavyDeps", function () {
 
   describe("resolveDeclaredVersion field priority", function () {
     it("reads ddRuntimeDependencies first (the published-manifest state)", function () {
-      // Mirrors the published package: prepack.js has moved the heavy deps out
-      // of optionalDependencies into ddRuntimeDependencies, which npm ignores.
+      // Mirrors the published package: the publish step has moved the heavy deps
+      // out of optionalDependencies into ddRuntimeDependencies, which npm ignores.
       const published = { ddRuntimeDependencies: { sharp: "^0.34.5" } };
       expect(resolveDeclaredVersion(published, "sharp")).to.equal("^0.34.5");
     });

@@ -48,9 +48,9 @@ export function withPeerCompanions(names: string[]): string[] {
 
 export interface ShimPackageJson {
   // The published manifest carries heavy-dep version constraints here:
-  // prepack.js moves `optionalDependencies` into this custom field so npm
+  // the publish step moves `optionalDependencies` into this custom field so npm
   // never auto-installs them, while the source manifest keeps
-  // `optionalDependencies` for Dependabot. See scripts/prepack.js.
+  // `optionalDependencies` for Dependabot. See scripts/publish-manifest.js.
   ddRuntimeDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
   dependencies?: Record<string, string>;
@@ -71,7 +71,7 @@ function readShimPackageJson(): ShimPackageJson {
  * Returns the version constraint declared in the shim's own package.json
  * for `name`. The version source differs between the published package and
  * a source/CI checkout, so we check in priority order:
- *   1. `ddRuntimeDependencies` — the published state. prepack.js moves the
+ *   1. `ddRuntimeDependencies` — the published state. The publish step moves the
  *      heavy deps here so npm never auto-installs them.
  *   2. `optionalDependencies` — the source/CI state (kept for Dependabot).
  *   3. `dependencies` — the legacy state, pre lazy-install migration.

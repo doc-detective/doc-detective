@@ -1,4 +1,4 @@
-import { transformForPublish } from "../scripts/prepack.js";
+import { transformForPublish } from "../scripts/publish-manifest.js";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -8,7 +8,7 @@ before(async function () {
   global.expect = expect;
 });
 
-describe("scripts/prepack transformForPublish", function () {
+describe("scripts/publish-manifest transformForPublish", function () {
   it("drops the workspaces field", function () {
     const out = transformForPublish({ workspaces: ["src/common"], name: "x" });
     expect(out).to.not.have.property("workspaces");
@@ -32,6 +32,14 @@ describe("scripts/prepack transformForPublish", function () {
     const out = transformForPublish({ dependencies: { yargs: "^18.0.0" } });
     expect(out).to.not.have.property("ddRuntimeDependencies");
     expect(out.dependencies).to.deep.equal({ yargs: "^18.0.0" });
+  });
+
+  it("drops an empty optionalDependencies object without creating ddRuntimeDependencies", function () {
+    // An empty `{}` must not survive into the published manifest — otherwise the
+    // publish guardrail could see a stray empty object and misread it.
+    const out = transformForPublish({ optionalDependencies: {} });
+    expect(out).to.not.have.property("optionalDependencies");
+    expect(out).to.not.have.property("ddRuntimeDependencies");
   });
 
   it("does not mutate the input object", function () {
