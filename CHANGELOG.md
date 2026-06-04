@@ -1,3 +1,22 @@
+# [4.6.0-typekeys-lazy-webdriverio.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-typekeys-lazy-webdriverio.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* **core:** fail-soft on key-map load error and add subtract alias ([5901f0b](https://github.com/doc-detective/doc-detective/commit/5901f0b4691739b49df68c4939983151c7ddc1f1))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([bdc93b0](https://github.com/doc-detective/doc-detective/commit/bdc93b0cbe4d607ae6deb40ae29b982c84f1fd94)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([ef86d51](https://github.com/doc-detective/doc-detective/commit/ef86d510d5bea0e251eb68e7bb51c351c6febb90))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([82aa6d5](https://github.com/doc-detective/doc-detective/commit/82aa6d58a2e2bd93ec3cf08aed7d1e81b55b42ac))
+
+
+### Features
+
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+
 # [4.6.0-next.6](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.5...v4.6.0-next.6) (2026-06-04)
 
 

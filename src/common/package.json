@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-common",
-  "version": "4.6.0-next.6",
+  "version": "4.6.0-typekeys-lazy-webdriverio.1",
   "description": "Shared components for Doc Detective projects.",
   "type": "module",
   "main": "dist/index.cjs",
