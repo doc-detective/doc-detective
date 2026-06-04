@@ -1,3 +1,10 @@
+# [4.6.0-typekeys-lazy-webdriverio.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-typekeys-lazy-webdriverio.1...v4.6.0-typekeys-lazy-webdriverio.2) (2026-06-04)
+
+
+### Bug Fixes
+
+* **core:** only load webdriverio for typeKeys when a special token is present ([ae8faf8](https://github.com/doc-detective/doc-detective/commit/ae8faf84706efa06b1184261305b2d6912825f38))
+
 # [4.6.0-typekeys-lazy-webdriverio.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-typekeys-lazy-webdriverio.1) (2026-06-04)
 
 
