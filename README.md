@@ -39,7 +39,7 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 `npm i doc-detective` installs the CLI and then, at postinstall, pre-installs the heavy runtime assets — browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.) — into `<os.tmpdir()>/doc-detective/` (or `DOC_DETECTIVE_CACHE_DIR`). This keeps a fresh install — and any Docker image built `FROM` it — ready to run without a separate step. The pre-install runs in a child process whose output is captured, so npm's deprecation warnings from the heavy transitive trees never reach your terminal.
 
-**Opt out of the heavy pre-install** by setting `DOC_DETECTIVE_INSTALL_RUNTIME=0` (also accepts `false`/`no`/`off`). The CLI install then stays small — no browser download, no heavy npm packages — and the heavy assets install lazily the first time a test needs them instead, or up front via `doc-detective install all`.
+**Opt out of the heavy pre-install** by setting `DOC_DETECTIVE_AUTOINSTALL=0` (also accepts `false`/`no`/`off`). The CLI install then stays small — no browser download, no heavy npm packages — and the heavy assets install lazily the first time a test needs them instead, or up front via `doc-detective install all`.
 
 Either way, the heavy packages are never declared in `dependencies` or `optionalDependencies`, so npm itself never fetches them as part of the dependency tree. Their version constraints live in a custom `ddRuntimeDependencies` field that the resolver reads when it installs each dep into the cache — whether at postinstall or on first use.
 

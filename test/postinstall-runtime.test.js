@@ -18,7 +18,7 @@ describe("scripts/postinstall runtime auto-install helpers", function () {
     it("opts out on 0/false/no/off (case-insensitive)", function () {
       for (const v of ["0", "false", "FALSE", "No", "off", " off "]) {
         expect(
-          isRuntimeInstallOptedOut({ DOC_DETECTIVE_INSTALL_RUNTIME: v }),
+          isRuntimeInstallOptedOut({ DOC_DETECTIVE_AUTOINSTALL: v }),
           v
         ).to.equal(true);
       }
@@ -27,7 +27,7 @@ describe("scripts/postinstall runtime auto-install helpers", function () {
     it("installs for any other value", function () {
       for (const v of ["1", "true", "yes", "", "anything"]) {
         expect(
-          isRuntimeInstallOptedOut({ DOC_DETECTIVE_INSTALL_RUNTIME: v }),
+          isRuntimeInstallOptedOut({ DOC_DETECTIVE_AUTOINSTALL: v }),
           v
         ).to.equal(false);
       }

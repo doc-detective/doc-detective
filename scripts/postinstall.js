@@ -13,7 +13,7 @@ const CLI_PATH = path.join(__dirname, "..", "bin", "doc-detective.js");
 //      (webdriverio/appium/sharp + browsers) via `doc-detective install all`,
 //      so a fresh install — and any Docker image built `FROM` it — is ready to
 //      run without a separate install step. On by default; opt out with
-//      DOC_DETECTIVE_INSTALL_RUNTIME=0.
+//      DOC_DETECTIVE_AUTOINSTALL=0.
 //   2. maybePromptInstallAgents(): the optional agent-tools install prompt —
 //      lightweight (TTY-gated, time-bounded, skipped in CI).
 async function main() {
@@ -42,11 +42,11 @@ if (isInvokedDirectly()) main().catch(() => {});
 
 /**
  * True when the user has opted out of the postinstall heavy install via
- * DOC_DETECTIVE_INSTALL_RUNTIME (0/false/no/off, case-insensitive). Default
+ * DOC_DETECTIVE_AUTOINSTALL (0/false/no/off, case-insensitive). Default
  * (unset or any other value) installs. Exported for tests.
  */
 export function isRuntimeInstallOptedOut(env = process.env) {
-  const v = String(env.DOC_DETECTIVE_INSTALL_RUNTIME ?? "").trim().toLowerCase();
+  const v = String(env.DOC_DETECTIVE_AUTOINSTALL ?? "").trim().toLowerCase();
   return v === "0" || v === "false" || v === "no" || v === "off";
 }
 
@@ -95,7 +95,7 @@ async function maybeInstallRuntime() {
 
   console.log(
     "doc-detective: installing runtime + browsers " +
-      "(set DOC_DETECTIVE_INSTALL_RUNTIME=0 to skip)…"
+      "(set DOC_DETECTIVE_AUTOINSTALL=0 to skip)…"
   );
 
   const captured = [];
