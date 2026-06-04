@@ -49,8 +49,8 @@ describe("runtime/loader", function () {
       // which npm installs by default — so we expect it to resolve from the
       // shim's node_modules in this test environment. The fake spawner is
       // wired to throw if invoked; a successful load proves the cache fallback
-      // never fired. Users of the published package (where prepack moved the
-      // heavy deps to `ddRuntimeDependencies`, so npm never installs them) hit
+      // never fired. Users of the published package (where the publish step moved
+      // the heavy deps to `ddRuntimeDependencies`, so npm never installs them) hit
       // the cache/install path instead, exercised by other tests below.
       const calls = [];
       const spawner = makeFakeSpawner({
