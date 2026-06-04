@@ -143,6 +143,37 @@ describe("runtime/loader", function () {
       expect(record.npmPackages.pngjs.installedVersion).to.equal("7.0.0");
     });
 
+    it("drops npm deprecation/funding noise from install output but keeps real lines", async function () {
+      // Even a verbose-style logger (records every level) must not see the
+      // scary deprecation/funding noise — only the loader's filtered output.
+      const logged = [];
+      const spawner = makeFakeSpawner({
+        stdout: "added 1 package in 2s\nnpm fund packages are looking for funding\n",
+        stderr:
+          "npm warn deprecated glob@10.5.0: old versions are not supported\n" +
+          "npm warn deprecated whatwg-encoding@3.1.1: use @exodus/bytes instead\n",
+        onSpawn: ({ args }) => {
+          const prefix = args[args.indexOf("--prefix") + 1];
+          const target = path.join(prefix, "node_modules", "pngjs");
+          fs.mkdirSync(target, { recursive: true });
+          fs.writeFileSync(
+            path.join(target, "package.json"),
+            JSON.stringify({ name: "pngjs", version: "7.0.0" })
+          );
+        },
+      });
+
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: { spawn: spawner, logger: (msg) => logged.push(msg) },
+        force: true,
+      });
+
+      const out = logged.join("\n");
+      expect(out, "deprecation noise must be dropped").to.not.match(/deprecated/i);
+      expect(out, "funding noise must be dropped").to.not.match(/looking for funding/i);
+      expect(out, "real npm output must be kept").to.match(/added 1 package/);
+    });
+
     it("rejects when npm exits non-zero", async function () {
       // pngjs resolves from the shim's node_modules (in a source checkout it's
       // declared in optionalDependencies, installed by default), so the

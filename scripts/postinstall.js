@@ -57,17 +57,20 @@ export function isProgressLine(line) {
 
 /**
  * Pure npm noise (deprecation/funding/notice). Dropped from the captured
- * buffer when surfacing a failure tail so the dump stays readable. Exported
- * for tests.
+ * buffer when surfacing a failure tail so the dump stays readable — genuine
+ * warnings/errors (e.g. EBADENGINE) are kept. Exported for tests.
+ *
+ * Kept in sync with src/runtime/installOutput.ts#isNpmNoiseLine (this is a
+ * plain Node script that can't import the compiled TS module reliably).
  */
 export function isNpmNoiseLine(line) {
   const l = line.trim();
   if (!l) return true;
   return (
     /^npm warn deprecated/i.test(l) ||
-    /^npm warn /i.test(l) ||
     /^npm notice/i.test(l) ||
-    /^npm fund/i.test(l)
+    /^npm fund/i.test(l) ||
+    /packages are looking for funding/i.test(l)
   );
 }
 

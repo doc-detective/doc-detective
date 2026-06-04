@@ -4,6 +4,7 @@ import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:c
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { getDeclaredVersion, satisfiesRange, withPeerCompanions } from "./heavyDeps.js";
+import { isNpmNoiseLine } from "./installOutput.js";
 import {
   assertSafeRuntimePath,
   getRuntimeDir,
@@ -273,7 +274,12 @@ export async function ensureRuntimeInstalled(
     const onLine = (stream: "stdout" | "stderr", chunk: Buffer | string) => {
       const text = typeof chunk === "string" ? chunk : chunk.toString("utf8");
       for (const line of text.split(/\r?\n/)) {
-        if (line.length > 0) logger(`npm[${stream}]: ${line}`, "debug");
+        if (line.length === 0) continue;
+        // Drop npm's deprecation/funding/notice noise (about transitive deps
+        // the user can't fix) so even `--verbose` install output stays calm.
+        // DOC_DETECTIVE_RUNTIME_DEBUG=1 shows everything raw for diagnostics.
+        if (!RUNTIME_DEBUG && isNpmNoiseLine(line)) continue;
+        logger(`npm[${stream}]: ${line}`, "debug");
       }
     };
     if (child.stdout) child.stdout.on("data", (c) => onLine("stdout", c));
