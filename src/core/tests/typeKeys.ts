@@ -182,25 +182,32 @@ async function typeKeys({ config, step, driver }: { config: any; step: any; driv
   }
 
   // Substitute special keys
-  // 1. For each key, identify if it following the escape pattern of `$...$`.
-  // 2. If it does, replace it with the corresponding `Key` object from `specialKeyMap`.
-  // Loading webdriverio can throw (e.g. the runtime dep isn't installed yet).
-  // Return a step-level FAIL rather than letting it abort the whole run, matching
-  // how other heavy-dep-backed steps behave.
-  let specialKeyMap: Record<string, string>;
-  try {
-    specialKeyMap = await getSpecialKeyMap({ cacheDir: config?.cacheDir });
-  } catch (error: any) {
-    result.status = "FAIL";
-    result.description = `Couldn't load key definitions: ${error.message}`;
-    return result;
-  }
-  step.type.keys = step.type.keys.map((key: any) => {
-    if (key.startsWith("$") && key.endsWith("$") && specialKeyMap[key]) {
-      return specialKeyMap[key];
+  // 1. For each key, identify if it follows the escape pattern of `$...$`.
+  // 2. If it does, replace it with the corresponding `Key` value from `specialKeyMap`.
+  // Only load the map (and thus webdriverio) when a sentinel token is actually
+  // present — plain-text typing must not pull in the heavy dep or risk a
+  // load-time FAIL. Loading webdriverio can throw (e.g. the runtime dep isn't
+  // installed yet); return a step-level FAIL rather than aborting the whole run,
+  // matching how other heavy-dep-backed steps behave.
+  const hasSpecialTokens = step.type.keys.some(
+    (key: any) => key.startsWith("$") && key.endsWith("$")
+  );
+  if (hasSpecialTokens) {
+    let specialKeyMap: Record<string, string>;
+    try {
+      specialKeyMap = await getSpecialKeyMap({ cacheDir: config?.cacheDir });
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't load key definitions: ${error.message}`;
+      return result;
     }
-    return key;
-  });
+    step.type.keys = step.type.keys.map((key: any) => {
+      if (key.startsWith("$") && key.endsWith("$") && specialKeyMap[key]) {
+        return specialKeyMap[key];
+      }
+      return key;
+    });
+  }
 
   // Run action
   try {
