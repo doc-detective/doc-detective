@@ -38,10 +38,12 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Doc Detective from NPM. The shim lazy-installs heavy deps
-# (browsers, ffmpeg, webdriverio, appium, sharp) on first use, so the
-# initial install is small. The follow-up `doc-detective install all`
-# pre-warms the cache so the image is ready to run tests offline.
+# Install Doc Detective from NPM. By default its postinstall pre-installs the
+# heavy deps (browsers, ffmpeg, webdriverio, appium, sharp) into
+# DOC_DETECTIVE_CACHE_DIR (set above), so this `npm install -g` already warms
+# the cache. The follow-up `doc-detective install all` is then an idempotent
+# safety net — and the cache pre-warm path for older versions whose postinstall
+# predates the auto-install.
 #
 # Detect whether the installed CLI has the new `install <subcommand>`
 # surface by grepping for it in the root `--help` output. yargs always
