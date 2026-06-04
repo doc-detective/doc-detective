@@ -2,7 +2,13 @@
 title: install
 ---
 
-The `install` command group manages Doc Detective's lazy-loaded runtime assets. Use it to pre-install browsers, npm packages, and agent tools before tests run, or to inspect what's currently installed.
+The `install` command group manages Doc Detective's runtime assets. By default, `npm i doc-detective` pre-installs these assets at postinstall. Use this command to manually install or reinstall assets, install only specific components, or inspect what's currently installed.
+
+<Note>
+
+If you opted out of postinstall pre-installation with `DOC_DETECTIVE_INSTALL_RUNTIME=0`, assets install lazily on first use. Use `doc-detective install all --yes` to pre-install them manually.
+
+</Note>
 
 ## Synopsis
 

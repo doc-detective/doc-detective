@@ -82,15 +82,25 @@ Congratulations! You've run your first test with Doc Detective. :tada:
 
 You should see output in the terminal indicating the progress and results of the test. Results are also saved in a `testResults-<timestamp>.json` file in the current directory (configurable with the `--output` option), and this test saves a screenshot to *example.png*.
 
-## Lazy-installed runtime
+## Runtime installation
 
-Running `npm i doc-detective` installs only the CLI and a small set of light dependencies—no browser downloads, no heavy npm packages, no deprecation warnings from transitive dependencies. Heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—install lazily into `<os.tmpdir()>/doc-detective/` the first time a test needs them.
+Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—into `<os.tmpdir()>/doc-detective/` (or `DOC_DETECTIVE_CACHE_DIR`). This keeps your install ready to run tests without a separate step.
 
-This keeps initial install times fast and disk usage low when you only need a subset of Doc Detective's capabilities.
+The pre-install runs in a child process and captures its output, so npm's deprecation warnings from transitive dependencies won't clutter your terminal.
 
-### Pre-install everything
+### Opt out of pre-installation
 
-To avoid the first-run delay, pre-install all runtime assets up front:
+To skip the heavy asset pre-install, set `DOC_DETECTIVE_INSTALL_RUNTIME=0` (also accepts `false`, `no`, or `off`):
+
+```bash
+DOC_DETECTIVE_INSTALL_RUNTIME=0 npm i doc-detective
+```
+
+With this option, the CLI install stays small. Heavy assets install lazily the first time a test needs them.
+
+### Pre-install manually
+
+If you opted out or need to reinstall, pre-install all runtime assets:
 
 ```bash
 doc-detective install all --yes
