@@ -5,6 +5,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Resolved path to the compiled CLI, shared by both install steps below.
+const CLI_PATH = path.join(__dirname, "..", "bin", "doc-detective.js");
+
 // Two steps run at `npm install` time:
 //   1. maybeInstallRuntime(): eagerly install the heavy runtime assets
 //      (webdriverio/appium/sharp + browsers) via `doc-detective install all`,
@@ -31,7 +34,9 @@ function isInvokedDirectly() {
     return false;
   }
 }
-if (isInvokedDirectly()) main();
+// Swallow any unexpected rejection: a postinstall script must always exit 0,
+// otherwise it fails the user's `npm install`.
+if (isInvokedDirectly()) main().catch(() => {});
 
 // --- Runtime + browsers auto-install ----------------------------------------
 
@@ -83,11 +88,10 @@ export function isNpmNoiseLine(line) {
 async function maybeInstallRuntime() {
   if (isRuntimeInstallOptedOut()) return;
 
-  const cliPath = path.join(__dirname, "..", "bin", "doc-detective.js");
   const distDir = path.join(__dirname, "..", "dist");
   // Dev checkout / partial install without a build: the CLI can't run yet.
   // Skip silently — postinstall must never fail.
-  if (!fs.existsSync(cliPath) || !fs.existsSync(distDir)) return;
+  if (!fs.existsSync(CLI_PATH) || !fs.existsSync(distDir)) return;
 
   console.log(
     "doc-detective: installing runtime + browsers " +
@@ -96,7 +100,7 @@ async function maybeInstallRuntime() {
 
   const captured = [];
   const handleLine = (raw, forward) => {
-    if (raw === "") return;
+    if (!raw.trim()) return;
     captured.push(raw);
     if (forward && isProgressLine(raw)) console.log("  " + raw.trim());
   };
@@ -114,7 +118,7 @@ async function maybeInstallRuntime() {
     try {
       child = spawn(
         process.execPath,
-        [cliPath, "install", "all", "--yes"],
+        [CLI_PATH, "install", "all", "--yes"],
         { stdio: ["ignore", "pipe", "pipe"], env: process.env }
       );
     } catch {
@@ -123,14 +127,14 @@ async function maybeInstallRuntime() {
     }
     let outBuf = "";
     let errBuf = "";
-    child.stdout?.on("data", (c) => (outBuf = consume(outBuf, c, true)));
+    child.stdout?.on("data", (chunk) => (outBuf = consume(outBuf, chunk, true)));
     // stderr is captured for a possible failure dump but never forwarded live.
-    child.stderr?.on("data", (c) => (errBuf = consume(errBuf, c, false)));
-    child.on("close", (c, s) => {
+    child.stderr?.on("data", (chunk) => (errBuf = consume(errBuf, chunk, false)));
+    child.on("close", (code, signal) => {
       // Flush any trailing partial lines left without a final newline.
       handleLine(outBuf, true);
       handleLine(errBuf, false);
-      resolve({ code: c, signal: s, errored: false });
+      resolve({ code, signal, errored: false });
     });
     child.on("error", () => resolve({ code: 1, signal: null, errored: true }));
   });
@@ -319,7 +323,6 @@ async function maybePromptInstallAgents() {
 
   // Pre-fill --agent so the CLI doesn't re-prompt for the picker. Scope stays
   // interactive on purpose — project vs global is a per-user decision.
-  const cliPath = path.join(__dirname, "..", "bin", "doc-detective.js");
   const cliArgs = ["install-agents"];
   for (const a of adaptersNeedingInstall) {
     cliArgs.push("--agent", a.id);
@@ -329,7 +332,7 @@ async function maybePromptInstallAgents() {
   // `node_modules/.bin` during the install step either.
   const childEnv = { ...process.env, [pathKey]: sanitizedPath };
   const { code, signal } = await new Promise((resolve) => {
-    const child = spawn(process.execPath, [cliPath, ...cliArgs], {
+    const child = spawn(process.execPath, [CLI_PATH, ...cliArgs], {
       stdio: "inherit",
       cwd: targetCwd,
       env: childEnv,
