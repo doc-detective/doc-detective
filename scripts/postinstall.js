@@ -130,11 +130,11 @@ async function maybeInstallRuntime() {
     child.stdout?.on("data", (chunk) => (outBuf = consume(outBuf, chunk, true)));
     // stderr is captured for a possible failure dump but never forwarded live.
     child.stderr?.on("data", (chunk) => (errBuf = consume(errBuf, chunk, false)));
-    child.on("close", (code, signal) => {
+    child.on("close", (exitCode, exitSignal) => {
       // Flush any trailing partial lines left without a final newline.
       handleLine(outBuf, true);
       handleLine(errBuf, false);
-      resolve({ code, signal, errored: false });
+      resolve({ code: exitCode, signal: exitSignal, errored: false });
     });
     child.on("error", () => resolve({ code: 1, signal: null, errored: true }));
   });
