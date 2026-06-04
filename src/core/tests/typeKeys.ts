@@ -64,7 +64,10 @@ async function getSpecialKeyMap(
     $MULTIPLY$: Key.Multiply,
     $ADD$: Key.Add,
     $SEPARATOR$: Key.Separator,
+    // `$SUBSTRACT$` is a long-standing misspelling kept for backwards
+    // compatibility; `$SUBTRACT$` is the correctly-spelled alias.
     $SUBSTRACT$: Key.Subtract,
+    $SUBTRACT$: Key.Subtract,
     $DECIMAL$: Key.Decimal,
     $DIVIDE$: Key.Divide,
     $F1$: Key.F1,
@@ -181,7 +184,17 @@ async function typeKeys({ config, step, driver }: { config: any; step: any; driv
   // Substitute special keys
   // 1. For each key, identify if it following the escape pattern of `$...$`.
   // 2. If it does, replace it with the corresponding `Key` object from `specialKeyMap`.
-  const specialKeyMap = await getSpecialKeyMap({ cacheDir: config?.cacheDir });
+  // Loading webdriverio can throw (e.g. the runtime dep isn't installed yet).
+  // Return a step-level FAIL rather than letting it abort the whole run, matching
+  // how other heavy-dep-backed steps behave.
+  let specialKeyMap: Record<string, string>;
+  try {
+    specialKeyMap = await getSpecialKeyMap({ cacheDir: config?.cacheDir });
+  } catch (error: any) {
+    result.status = "FAIL";
+    result.description = `Couldn't load key definitions: ${error.message}`;
+    return result;
+  }
   step.type.keys = step.type.keys.map((key: any) => {
     if (key.startsWith("$") && key.endsWith("$") && specialKeyMap[key]) {
       return specialKeyMap[key];
