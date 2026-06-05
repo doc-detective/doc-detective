@@ -101,6 +101,18 @@ These options are available for all `install` subcommands:
 | `--verbose` | Emit debug-level output, including npm stdout/stderr. |
 | `--cache-dir` | Override the cache root for this invocation. Also settable via `DOC_DETECTIVE_CACHE_DIR` env var. |
 
+## Install log
+
+During `install all` and `install runtime`, Doc Detective writes the full npm output to `<cacheDir>/runtime/install.log`. The terminal shows only filtered progress, but the log file captures everything—including deprecation warnings and dependency resolution details.
+
+If installation fails, the error message includes the log path:
+
+```
+npm install exited with code 1 while installing webdriverio@…. See full npm output: /tmp/doc-detective/runtime/install.log
+```
+
+Check this log to diagnose network issues, authentication problems, or native build failures that the filtered terminal output hides.
+
 ## Cache directory
 
 By default, runtime assets install to `<os.tmpdir()>/doc-detective/`. This location may not persist across reboots on some systems.
@@ -138,3 +150,23 @@ Force-update all browsers to the latest channel versions:
 ```bash
 doc-detective install browsers --force
 ```
+
+## Troubleshooting installation failures
+
+If `install all` or `install runtime` fails:
+
+1. **Check the install log**: Open `<cacheDir>/runtime/install.log` to see the full npm output, including errors that were filtered from the terminal.
+
+2. **Run with verbose output**: Use `--verbose` to see npm's output in real time:
+
+   ```bash
+   doc-detective install all --verbose
+   ```
+
+3. **Check network and authentication**: The log often reveals proxy issues, registry authentication failures, or network timeouts.
+
+4. **Retry with force**: If a partial install left the cache in a bad state:
+
+   ```bash
+   doc-detective install all --force --yes
+   ```
