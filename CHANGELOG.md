@@ -1,3 +1,25 @@
+# [4.6.0-postinstall-runtime-default.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-postinstall-runtime-default.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([65b65fc](https://github.com/doc-detective/doc-detective/commit/65b65fc7bce576639ecf1a63ca363fb27211dbab)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+* **install:** buffer npm stream remainders before filtering noise ([2ac5e0a](https://github.com/doc-detective/doc-detective/commit/2ac5e0a2daa3f3e1c218750970ba29d241a0e6b3))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* **postinstall:** guard main() rejection and address review nits ([7a63379](https://github.com/doc-detective/doc-detective/commit/7a6337939591171c305eacadefbc55d1067fb71f))
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([ef86d51](https://github.com/doc-detective/doc-detective/commit/ef86d510d5bea0e251eb68e7bb51c351c6febb90))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([82aa6d5](https://github.com/doc-detective/doc-detective/commit/82aa6d58a2e2bd93ec3cf08aed7d1e81b55b42ac))
+
+
+### Features
+
+* **install:** filter npm deprecation/funding noise from all install output ([06619e1](https://github.com/doc-detective/doc-detective/commit/06619e1afdb7e972cf7d830199f7c952c62333e6))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** pre-install runtime and browsers at postinstall by default ([b2363f4](https://github.com/doc-detective/doc-detective/commit/b2363f41a804f01fd6f43da97c4b3837974203a3))
+
 # [4.6.0-typekeys-lazy-webdriverio.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-typekeys-lazy-webdriverio.1...v4.6.0-typekeys-lazy-webdriverio.2) (2026-06-04)
 
 

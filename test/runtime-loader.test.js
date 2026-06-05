@@ -10,7 +10,14 @@ before(async function () {
   global.expect = expect;
 });
 
-function makeFakeSpawner({ exitCode = 0, stdout = "", stderr = "", onSpawn } = {}) {
+function makeFakeSpawner({
+  exitCode = 0,
+  stdout = "",
+  stderr = "",
+  stdoutChunks,
+  stderrChunks,
+  onSpawn,
+} = {}) {
   const calls = [];
   const spawner = (cmd, args, opts) => {
     calls.push({ cmd, args, opts });
@@ -20,7 +27,11 @@ function makeFakeSpawner({ exitCode = 0, stdout = "", stderr = "", onSpawn } = {
     child.stderr = new EventEmitter();
     setImmediate(() => {
       if (stdout) child.stdout.emit("data", stdout);
+      // Emit each chunk as a separate `data` event to simulate a line split
+      // across chunk boundaries.
+      for (const c of stdoutChunks || []) child.stdout.emit("data", c);
       if (stderr) child.stderr.emit("data", stderr);
+      for (const c of stderrChunks || []) child.stderr.emit("data", c);
       child.emit("close", exitCode);
     });
     return child;
@@ -141,6 +152,66 @@ describe("runtime/loader", function () {
       const record = readInstalledRecord({});
       expect(record.npmPackages.pngjs).to.be.an("object");
       expect(record.npmPackages.pngjs.installedVersion).to.equal("7.0.0");
+    });
+
+    it("drops npm deprecation/funding noise from install output but keeps real lines", async function () {
+      // Even a verbose-style logger (records every level) must not see the
+      // scary deprecation/funding noise — only the loader's filtered output.
+      const logged = [];
+      const spawner = makeFakeSpawner({
+        stdout: "added 1 package in 2s\nnpm fund packages are looking for funding\n",
+        stderr:
+          "npm warn deprecated glob@10.5.0: old versions are not supported\n" +
+          "npm warn deprecated whatwg-encoding@3.1.1: use @exodus/bytes instead\n",
+        onSpawn: ({ args }) => {
+          const prefix = args[args.indexOf("--prefix") + 1];
+          const target = path.join(prefix, "node_modules", "pngjs");
+          fs.mkdirSync(target, { recursive: true });
+          fs.writeFileSync(
+            path.join(target, "package.json"),
+            JSON.stringify({ name: "pngjs", version: "7.0.0" })
+          );
+        },
+      });
+
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: { spawn: spawner, logger: (msg) => logged.push(msg) },
+        force: true,
+      });
+
+      const out = logged.join("\n");
+      expect(out, "deprecation noise must be dropped").to.not.match(/deprecated/i);
+      expect(out, "funding noise must be dropped").to.not.match(/looking for funding/i);
+      expect(out, "real npm output must be kept").to.match(/added 1 package/);
+    });
+
+    it("reassembles lines split across data chunks before filtering", async function () {
+      // A deprecation line and a real line each arrive in two fragments with no
+      // newline until the second — the per-stream buffer must reassemble them
+      // before isNpmNoiseLine classifies, or fragmented noise would leak.
+      const logged = [];
+      const spawner = makeFakeSpawner({
+        stderrChunks: ["npm warn deprecated gl", "ob@10.5.0: old versions\n"],
+        stdoutChunks: ["added 1 packa", "ge in 2s\n"],
+        onSpawn: ({ args }) => {
+          const prefix = args[args.indexOf("--prefix") + 1];
+          const target = path.join(prefix, "node_modules", "pngjs");
+          fs.mkdirSync(target, { recursive: true });
+          fs.writeFileSync(
+            path.join(target, "package.json"),
+            JSON.stringify({ name: "pngjs", version: "7.0.0" })
+          );
+        },
+      });
+
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: { spawn: spawner, logger: (msg) => logged.push(msg) },
+        force: true,
+      });
+
+      const out = logged.join("\n");
+      expect(out, "fragmented deprecation noise must still be dropped").to.not.match(/deprecated/i);
+      expect(out, "fragmented real line must be reassembled and kept").to.match(/added 1 package in 2s/);
     });
 
     it("rejects when npm exits non-zero", async function () {
