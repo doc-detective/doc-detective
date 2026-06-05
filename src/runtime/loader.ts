@@ -265,12 +265,39 @@ export async function ensureRuntimeInstalled(
   // without a shell.
   assertSafeRuntimePath(runtimeDir, "DOC_DETECTIVE_CACHE_DIR / config.cacheDir");
   await new Promise<void>((resolve, reject) => {
-    const child = spawner(npmExe, args, {
-      cwd: runtimeDir,
-      env: process.env,
-      shell: process.platform === "win32",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    // Tee the full, RAW npm output (deprecation noise included) to a log file so
+    // a non-zero exit is debuggable. The terminal only shows filtered output, so
+    // without this the failure reason is lost. Best-effort — logging must never
+    // break the install.
+    const logPath = path.join(runtimeDir, "install.log");
+    let logStream: fs.WriteStream | null = null;
+    try {
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      logStream = fs.createWriteStream(logPath, { flags: "w" });
+    } catch {
+      logStream = null;
+    }
+    const logHint = logStream ? ` See full npm output: ${logPath}` : "";
+
+    // DEP0190: spawning npm.cmd on Windows needs shell:true, and passing args
+    // with shell:true emits a deprecation warning. We keep the CodeQL-safe args
+    // array (runtimeDir is validated above), so just suppress that one warning
+    // around the synchronous spawn() call — emitWarning() reads
+    // process.noDeprecation synchronously.
+    const child: ChildProcess = (() => {
+      const prevNoDeprecation = process.noDeprecation;
+      process.noDeprecation = true;
+      try {
+        return spawner(npmExe, args, {
+          cwd: runtimeDir,
+          env: process.env,
+          shell: process.platform === "win32",
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      } finally {
+        process.noDeprecation = prevNoDeprecation;
+      }
+    })();
     const emitLine = (stream: "stdout" | "stderr", line: string) => {
       if (line.length === 0) return;
       // Drop npm's deprecation/funding/notice noise (about transitive deps
@@ -285,6 +312,7 @@ export async function ensureRuntimeInstalled(
     const buffers: Record<"stdout" | "stderr", string> = { stdout: "", stderr: "" };
     const onChunk = (stream: "stdout" | "stderr", chunk: Buffer | string) => {
       const text = typeof chunk === "string" ? chunk : chunk.toString("utf8");
+      if (logStream) logStream.write(text); // full raw output → log file
       const parts = (buffers[stream] + text).split(/\r?\n/);
       buffers[stream] = parts.pop() ?? ""; // trailing partial line
       for (const line of parts) emitLine(stream, line);
@@ -301,6 +329,23 @@ export async function ensureRuntimeInstalled(
     // out (callers that explicitly want to wait forever, or unit tests
     // with a synchronously-resolving fake spawner).
     let timer: NodeJS.Timeout | null = null;
+    const clearTimer = () => {
+      if (timer) clearTimeout(timer);
+    };
+    // Settle exactly once, flushing the log stream first (via end()'s callback)
+    // so the file is fully written before the error propagates and the process
+    // may exit.
+    let settled = false;
+    const finish = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimer();
+      flushBuffers();
+      const stream = logStream;
+      logStream = null;
+      if (stream) stream.end(action);
+      else action();
+    };
     if (installTimeoutMs > 0) {
       timer = setTimeout(() => {
         try {
@@ -308,28 +353,29 @@ export async function ensureRuntimeInstalled(
         } catch {
           // best-effort — the child may already have exited
         }
-        reject(
-          new Error(
-            `npm install timed out after ${installTimeoutMs}ms while installing ${specs.join(", ")} into ${runtimeDir}`
+        finish(() =>
+          reject(
+            new Error(
+              `npm install timed out after ${installTimeoutMs}ms while installing ${specs.join(", ")} into ${runtimeDir}.${logHint}`
+            )
           )
         );
       }, installTimeoutMs);
       // Don't keep the event loop alive solely for this timer.
       if (typeof timer.unref === "function") timer.unref();
     }
-    const clearTimer = () => {
-      if (timer) clearTimeout(timer);
-    };
-    child.on("error", (err: Error) => {
-      clearTimer();
-      reject(err);
-    });
-    child.on("close", (code: number | null) => {
-      clearTimer();
-      flushBuffers();
-      if (code === 0) resolve();
-      else reject(new Error(`npm install exited with code ${code ?? "null"}`));
-    });
+    child.on("error", (err: Error) => finish(() => reject(err)));
+    child.on("close", (code: number | null) =>
+      finish(() =>
+        code === 0
+          ? resolve()
+          : reject(
+              new Error(
+                `npm install exited with code ${code ?? "null"} while installing ${specs.join(", ")}.${logHint}`
+              )
+            )
+      )
+    );
   });
 
   const record = readInstalledRecord(ctx);
