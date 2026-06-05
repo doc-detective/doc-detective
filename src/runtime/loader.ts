@@ -275,6 +275,11 @@ export async function ensureRuntimeInstalled(
     try {
       fs.mkdirSync(runtimeDir, { recursive: true });
       logStream = fs.createWriteStream(logPath, { flags: "w" });
+      // A write/flush error (disk full, EIO, permissions) must never crash the
+      // install via an unhandled 'error' event. Swallow it and stop logging.
+      logStream.on("error", () => {
+        logStream = null;
+      });
       // Header so the log is self-contained for diagnostics, even though the
       // terminal no longer lists the deps.
       logStream.write(
@@ -338,9 +343,11 @@ export async function ensureRuntimeInstalled(
     const clearTimer = () => {
       if (timer) clearTimeout(timer);
     };
-    // Settle exactly once, flushing the log stream first (via end()'s callback)
-    // so the file is fully written before the error propagates and the process
-    // may exit.
+    // Settle exactly once, flushing the log stream first so the file is fully
+    // written before the error propagates and the process may exit. end()'s
+    // callback only fires on 'finish'; pair it with a one-shot 'error' guard so
+    // a stream error (disk full mid-flush) still settles the promise instead of
+    // hanging the install.
     let settled = false;
     const finish = (action: () => void) => {
       if (settled) return;
@@ -349,8 +356,19 @@ export async function ensureRuntimeInstalled(
       flushBuffers();
       const stream = logStream;
       logStream = null;
-      if (stream) stream.end(action);
-      else action();
+      if (stream) {
+        let acted = false;
+        const once = () => {
+          if (!acted) {
+            acted = true;
+            action();
+          }
+        };
+        stream.once("error", once);
+        stream.end(once);
+      } else {
+        action();
+      }
     };
     if (installTimeoutMs > 0) {
       timer = setTimeout(() => {
@@ -370,6 +388,8 @@ export async function ensureRuntimeInstalled(
       // Don't keep the event loop alive solely for this timer.
       if (typeof timer.unref === "function") timer.unref();
     }
+    // Spawn failure (ENOENT/EINVAL): the OS error is self-descriptive and the
+    // log holds no npm output for this path, so we don't append logHint.
     child.on("error", (err: Error) => finish(() => reject(err)));
     child.on("close", (code: number | null) =>
       finish(() =>
