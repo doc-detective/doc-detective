@@ -4,6 +4,7 @@ import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:c
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { getDeclaredVersion, satisfiesRange, withPeerCompanions } from "./heavyDeps.js";
+import { isNpmNoiseLine } from "./installOutput.js";
 import {
   assertSafeRuntimePath,
   getRuntimeDir,
@@ -270,14 +271,32 @@ export async function ensureRuntimeInstalled(
       shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
     });
-    const onLine = (stream: "stdout" | "stderr", chunk: Buffer | string) => {
-      const text = typeof chunk === "string" ? chunk : chunk.toString("utf8");
-      for (const line of text.split(/\r?\n/)) {
-        if (line.length > 0) logger(`npm[${stream}]: ${line}`, "debug");
-      }
+    const emitLine = (stream: "stdout" | "stderr", line: string) => {
+      if (line.length === 0) return;
+      // Drop npm's deprecation/funding/notice noise (about transitive deps
+      // the user can't fix) so even `--verbose` install output stays calm.
+      // DOC_DETECTIVE_RUNTIME_DEBUG=1 shows everything raw for diagnostics.
+      if (!RUNTIME_DEBUG && isNpmNoiseLine(line)) return;
+      logger(`npm[${stream}]: ${line}`, "debug");
     };
-    if (child.stdout) child.stdout.on("data", (c) => onLine("stdout", c));
-    if (child.stderr) child.stderr.on("data", (c) => onLine("stderr", c));
+    // Buffer each stream so a line split across `data` chunks is reassembled
+    // before isNpmNoiseLine classifies it — otherwise a fragmented
+    // `npm warn deprecated …` line could slip past the filter.
+    const buffers: Record<"stdout" | "stderr", string> = { stdout: "", stderr: "" };
+    const onChunk = (stream: "stdout" | "stderr", chunk: Buffer | string) => {
+      const text = typeof chunk === "string" ? chunk : chunk.toString("utf8");
+      const parts = (buffers[stream] + text).split(/\r?\n/);
+      buffers[stream] = parts.pop() ?? ""; // trailing partial line
+      for (const line of parts) emitLine(stream, line);
+    };
+    const flushBuffers = () => {
+      emitLine("stdout", buffers.stdout);
+      emitLine("stderr", buffers.stderr);
+      buffers.stdout = "";
+      buffers.stderr = "";
+    };
+    if (child.stdout) child.stdout.on("data", (c) => onChunk("stdout", c));
+    if (child.stderr) child.stderr.on("data", (c) => onChunk("stderr", c));
     // Wall-clock cap so a stalled npm never freezes the first run. 0 opts
     // out (callers that explicitly want to wait forever, or unit tests
     // with a synchronously-resolving fake spawner).
@@ -307,6 +326,7 @@ export async function ensureRuntimeInstalled(
     });
     child.on("close", (code: number | null) => {
       clearTimer();
+      flushBuffers();
       if (code === 0) resolve();
       else reject(new Error(`npm install exited with code ${code ?? "null"}`));
     });
