@@ -90,10 +90,10 @@ The pre-install runs in a child process and captures its output, so npm's deprec
 
 ### Opt out of pre-installation
 
-To skip the heavy asset pre-install, set `DOC_DETECTIVE_INSTALL_RUNTIME=0` (also accepts `false`, `no`, or `off`):
+To skip the heavy asset pre-install, set `DOC_DETECTIVE_AUTOINSTALL=0` (also accepts `false`, `no`, or `off`):
 
 ```bash
-DOC_DETECTIVE_INSTALL_RUNTIME=0 npm i doc-detective
+DOC_DETECTIVE_AUTOINSTALL=0 npm i doc-detective
 ```
 
 With this option, the CLI install stays small. Heavy assets install lazily the first time a test needs them.
