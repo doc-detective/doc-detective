@@ -240,10 +240,11 @@ export async function ensureRuntimeInstalled(
   const runtimeDir = getRuntimeDir(ctx);
   ensureRuntimePackageJson(runtimeDir);
 
-  logger(
-    `Installing ${specs.length} runtime dep(s) into ${runtimeDir}: ${specs.join(", ")}`,
-    "info"
-  );
+  // Keep the announcement calm — no dependency list or count. The resolved
+  // versions are reported once the install completes (the install command's
+  // per-asset report; the lazy path stays quiet on success). The full spec list
+  // still goes to the install.log for diagnostics.
+  logger("Installing dependencies…", "info");
 
   const npmExe = process.platform === "win32" ? "npm.cmd" : "npm";
   const args = [
@@ -274,6 +275,11 @@ export async function ensureRuntimeInstalled(
     try {
       fs.mkdirSync(runtimeDir, { recursive: true });
       logStream = fs.createWriteStream(logPath, { flags: "w" });
+      // Header so the log is self-contained for diagnostics, even though the
+      // terminal no longer lists the deps.
+      logStream.write(
+        `# doc-detective: installing ${specs.join(", ")}\n# into ${runtimeDir}\n\n`
+      );
     } catch {
       logStream = null;
     }
