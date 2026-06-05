@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "4.6.0-postinstall-runtime-default.1",
+  "version": "4.6.0-next.7",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"

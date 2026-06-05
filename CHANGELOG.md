@@ -1,3 +1,15 @@
+# [4.6.0-next.7](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.6...v4.6.0-next.7) (2026-06-05)
+
+
+### Bug Fixes
+
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([65b65fc](https://github.com/doc-detective/doc-detective/commit/65b65fc7bce576639ecf1a63ca363fb27211dbab)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+
+
+### Features
+
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([13e2296](https://github.com/doc-detective/doc-detective/commit/13e22968320eafc16124e8913c10a3811f2f58a8))
+
 # [4.6.0-postinstall-runtime-default.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-postinstall-runtime-default.1) (2026-06-04)
 
 
