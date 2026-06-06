@@ -228,6 +228,73 @@ describe("runtime/loader", function () {
         throw new Error("expected ensureRuntimeInstalled to reject");
       } catch (err) {
         expect(String(err.message)).to.match(/exited with code 1/);
+        expect(String(err.message), "failure should point at the log file").to.match(/install\.log/);
+      }
+    });
+
+    it("tees raw npm output to a log file and surfaces its path on failure", async function () {
+      const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-loader-log-"));
+      const logged = [];
+      const spawner = makeFakeSpawner({
+        exitCode: 1,
+        stderr:
+          "npm warn deprecated glob@10.5.0: old versions\n" +
+          "npm error code E404\n" +
+          "npm error 404 Not Found - GET https://registry/foo\n",
+      });
+      let caught;
+      try {
+        await ensureRuntimeInstalled(["pngjs"], {
+          deps: { spawn: spawner, logger: (msg) => logged.push(msg) },
+          ctx: { cacheDir },
+          force: true,
+        });
+      } catch (err) {
+        caught = err;
+      }
+      try {
+        expect(caught, "should reject on exit 1").to.be.an("error");
+        // Read the log path straight from the message (avoids Windows short/long
+        // path-form mismatches) — it must point at the install.log we tee'd.
+        const match = String(caught.message).match(/See full npm output: (.+install\.log)/);
+        expect(match, "failure message must include the log path").to.not.equal(null);
+        const logPath = match[1];
+
+        // The log keeps the FULL raw output, including the deprecation noise that
+        // was filtered from the terminal — that's what makes failures debuggable.
+        const logContents = fs.readFileSync(logPath, "utf8");
+        expect(logContents).to.match(/deprecated glob@10\.5\.0/);
+        expect(logContents).to.match(/npm error 404 Not Found/);
+        // ...but the terminal output still suppressed the deprecation noise.
+        expect(logged.join("\n")).to.not.match(/deprecated/i);
+      } finally {
+        fs.rmSync(cacheDir, { recursive: true, force: true });
+      }
+    });
+
+    it("still settles (no crash, no hang) when the log file can't be written", async function () {
+      // Make <cacheDir>/runtime/install.log a directory so the log WriteStream
+      // errors on open. Logging is best-effort: the install must still settle.
+      const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-loader-logerr-"));
+      fs.mkdirSync(path.join(cacheDir, "runtime", "install.log"), { recursive: true });
+      const spawner = makeFakeSpawner({ exitCode: 1, stderr: "npm error boom\n" });
+      let caught;
+      try {
+        try {
+          await ensureRuntimeInstalled(["pngjs"], {
+            deps: { spawn: spawner, logger: () => {} },
+            ctx: { cacheDir },
+            force: true,
+          });
+        } catch (err) {
+          caught = err;
+        }
+        // The promise resolved/rejected — it didn't hang (mocha would time out)
+        // or crash on an unhandled stream error.
+        expect(caught, "should still reject on exit 1").to.be.an("error");
+        expect(String(caught.message)).to.match(/exited with code 1/);
+      } finally {
+        fs.rmSync(cacheDir, { recursive: true, force: true });
       }
     });
 
