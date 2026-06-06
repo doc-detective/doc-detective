@@ -14,6 +14,6 @@
     "pnpm": "^10.24.0"
   },
   "dependencies": {
-    "fern-api": "^4.15.1"
+    "fern-api": "^5.45.0"
   }
 }
