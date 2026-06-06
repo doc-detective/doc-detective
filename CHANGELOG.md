@@ -1,3 +1,10 @@
+# [4.6.0-next.8](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.7...v4.6.0-next.8) (2026-06-06)
+
+
+### Features
+
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([f8fec13](https://github.com/doc-detective/doc-detective/commit/f8fec13414b1f6581b3e00e77b569e2335314bf4))
+
 # [4.6.0-install-failure-log.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-install-failure-log.1) (2026-06-05)
 
 
