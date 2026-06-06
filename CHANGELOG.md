@@ -1,3 +1,10 @@
+# [4.6.0-next.9](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.8...v4.6.0-next.9) (2026-06-06)
+
+
+### Bug Fixes
+
+* **core:** self-provision Chrome runtime in getRunner on first use ([#319](https://github.com/doc-detective/doc-detective/issues/319)) ([7f08e61](https://github.com/doc-detective/doc-detective/commit/7f08e610ba6a61481b37bc2b27311d9b86cba08d))
+
 # [4.6.0-next.8](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.7...v4.6.0-next.8) (2026-06-06)
 
 
