@@ -31,7 +31,7 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { resolveExpression } from "./expressions.js";
-import { getEnvironment, getAvailableApps } from "./config.js";
+import { getEnvironment, getAvailableApps, clearAppCache } from "./config.js";
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
@@ -39,7 +39,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { runSpecs, runViaApi, getRunner };
+export { runSpecs, runViaApi, getRunner, ensureChromeAvailable };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
@@ -1144,6 +1144,79 @@ async function driverStart(
  *   await cleanup();
  * }
  */
+/**
+ * Lazy-install the heavy npm runtime + browser binaries needed to drive
+ * Chrome into the doc-detective cache. Mirrors the npm/browser set that
+ * inferRuntimeNeeds() derives for a chrome browser step, and the
+ * ensureBrowserInstalled calls the runTests pre-flight makes. Heavy deps are
+ * imported dynamically so a pure HTTP/CLI consumer never loads them.
+ */
+async function provisionChromeRuntime(config: any): Promise<void> {
+  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
+  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+  const ctx = { cacheDir: config?.cacheDir };
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+  // "warn" → "warning" the same way the runTests pre-flight does.
+  const logger = (msg: string, level: string = "info") =>
+    log(config, level === "warn" ? "warning" : level, msg);
+  await ensureRuntimeInstalled(
+    ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
+    { ctx, deps: { logger } }
+  );
+  await ensureBrowserInstalled("chrome", { ctx, deps: { logger } });
+  await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger } });
+}
+
+/**
+ * Resolve the available-apps list with Chrome guaranteed present, lazy-
+ * installing the browser runtime on a miss before giving up. This is the
+ * runtime counterpart to the runTests pre-flight: it runs regardless of
+ * DOC_DETECTIVE_AUTOINSTALL (that env var only governs the *eager* postinstall
+ * download — first use should still self-provision). A provisioning failure
+ * (e.g. offline) is swallowed so the caller sees the clear "not available"
+ * error rather than a raw npm/network stack. Deps are injected for testing.
+ *
+ * @returns the available-apps array, with a chrome entry present.
+ * @throws if chrome is still unavailable after a provisioning attempt.
+ */
+async function ensureChromeAvailable(
+  config: any,
+  deps: {
+    detect: (config: any) => Promise<any[]>;
+    provision: (config: any) => Promise<void>;
+    invalidate: (config: any) => void;
+    log?: (config: any, level: string, msg: string) => void;
+  }
+): Promise<any[]> {
+  let availableApps = await deps.detect(config);
+  if (availableApps.some((app: any) => app.name === "chrome")) {
+    return availableApps;
+  }
+  // Chrome not detected — attempt to provision it, then re-detect.
+  deps.log?.(
+    config,
+    "info",
+    "Chrome not detected; installing browser runtime (set DOC_DETECTIVE_AUTOINSTALL=0 only disables the eager postinstall, not this first-use install)…"
+  );
+  try {
+    await deps.provision(config);
+    deps.invalidate(config);
+  } catch (err: any) {
+    deps.log?.(
+      config,
+      "warning",
+      `Browser runtime auto-install failed: ${err?.message ?? err}`
+    );
+  }
+  availableApps = await deps.detect(config);
+  if (!availableApps.some((app: any) => app.name === "chrome")) {
+    throw new Error(
+      "Chrome browser is not available. Please ensure Chrome is installed and accessible."
+    );
+  }
+  return availableApps;
+}
+
 async function getRunner(options: any = {}) {
   const environment = getEnvironment();
   const config = { ...options.config, environment };
@@ -1151,21 +1224,18 @@ async function getRunner(options: any = {}) {
   const height = options.height || 800;
   const headless = options.headless !== false;
 
-  // Get runner details
+  // Get runner details, self-provisioning Chrome on a miss (see
+  // ensureChromeAvailable) so a runner started without a pre-warmed cache
+  // installs what it needs instead of failing.
   const runnerDetails = {
     environment,
-    availableApps: await getAvailableApps({ config }),
+    availableApps: await ensureChromeAvailable(config, {
+      detect: (c: any) => getAvailableApps({ config: c }),
+      provision: provisionChromeRuntime,
+      invalidate: clearAppCache,
+      log,
+    }),
   };
-
-  // Check if Chrome is available
-  const chrome = runnerDetails.availableApps.find(
-    (app: any) => app.name === "chrome"
-  );
-  if (!chrome) {
-    throw new Error(
-      "Chrome browser is not available. Please ensure Chrome is installed and accessible."
-    );
-  }
 
   // Set Appium home directory
   setAppiumHome({ cacheDir: config?.cacheDir });
