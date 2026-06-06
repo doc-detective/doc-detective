@@ -3,7 +3,7 @@
 // (instead of throwing) even when DOC_DETECTIVE_AUTOINSTALL=0 disabled the
 // eager postinstall. Deps are injected so these stay pure: no real installs,
 // no network, no spawn.
-import assert from "node:assert";
+import assert from "node:assert/strict";
 
 let ensureChromeAvailable;
 
@@ -81,11 +81,12 @@ describe("ensureChromeAvailable", function () {
     assert.equal(provisionCalls, 1, "should attempt provisioning once before throwing");
   });
 
-  it("still re-detects (and throws cleanly) when provisioning itself fails", async function () {
+  it("still invalidates, re-detects, and throws cleanly when provisioning itself fails", async function () {
     // Offline / install error: provision rejects. The guard should swallow it,
-    // re-detect, and surface the standard "not available" error rather than the
-    // raw install failure.
+    // invalidate (provision may have partially succeeded), re-detect, and
+    // surface the standard "not available" error rather than the raw failure.
     let detectCalls = 0;
+    let invalidateCalls = 0;
     const logs = [];
     await assert.rejects(
       ensureChromeAvailable(
@@ -98,13 +99,20 @@ describe("ensureChromeAvailable", function () {
           provision: async () => {
             throw new Error("network down");
           },
-          invalidate: () => {},
+          invalidate: () => {
+            invalidateCalls++;
+          },
           log: (_config, level, msg) => logs.push({ level, msg }),
         }
       ),
       /Chrome browser is not available/
     );
     assert.equal(detectCalls, 2, "should still re-detect after a failed provision");
+    assert.equal(
+      invalidateCalls,
+      1,
+      "should invalidate even on a failed provision (partial success can't be trusted)"
+    );
     assert.ok(
       logs.some((l) => /network down/.test(l.msg)),
       "should log the provisioning failure"
