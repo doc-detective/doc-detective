@@ -1196,11 +1196,12 @@ async function ensureChromeAvailable(
   deps.log?.(
     config,
     "info",
-    "Chrome not detected; installing browser runtime (set DOC_DETECTIVE_AUTOINSTALL=0 only disables the eager postinstall, not this first-use install)…"
+    "Chrome not detected; installing browser runtime (note: DOC_DETECTIVE_AUTOINSTALL=0 only suppresses the eager postinstall, not this first-use install)…"
   );
+  let provisioned = false;
   try {
     await deps.provision(config);
-    deps.invalidate(config);
+    provisioned = true;
   } catch (err: any) {
     deps.log?.(
       config,
@@ -1208,6 +1209,11 @@ async function ensureChromeAvailable(
       `Browser runtime auto-install failed: ${err?.message ?? err}`
     );
   }
+  // Drop the stale "no chrome" cache entry only when provisioning actually
+  // ran — a failed install changed nothing on disk, so re-detection would be
+  // wasted. Kept outside the try so a bug in `invalidate` is never mislabeled
+  // as a provisioning failure.
+  if (provisioned) deps.invalidate(config);
   availableApps = await deps.detect(config);
   if (!availableApps.some((app: any) => app.name === "chrome")) {
     throw new Error(

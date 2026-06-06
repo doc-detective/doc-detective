@@ -7,11 +7,13 @@ import assert from "node:assert";
 
 let ensureChromeAvailable;
 
-before(async function () {
-  ({ ensureChromeAvailable } = await import("../dist/core/tests.js"));
-});
-
 describe("ensureChromeAvailable", function () {
+  // Scoped to this suite (not a root-level hook) so it can't run for unrelated
+  // suites loaded in the same mocha invocation.
+  before(async function () {
+    ({ ensureChromeAvailable } = await import("../dist/core/tests.js"));
+  });
+
   it("returns detected apps without provisioning when chrome is already present", async function () {
     let provisionCalls = 0;
     let invalidateCalls = 0;
