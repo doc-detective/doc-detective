@@ -52,6 +52,22 @@ describe("isSupportedContext", function () {
     );
   });
 
+  it("supports a webkit context when Safari is available", function () {
+    // resolveContexts normalizes safari -> webkit, but getAvailableApps reports
+    // Safari as `safari`. A webkit context must still be supported on macOS so
+    // it isn't skipped before getDriverCapabilities applies the same alias.
+    const macApps = [{ name: "safari" }];
+    const context = {
+      platform: "mac",
+      browser: { name: "webkit" },
+      steps: [driverStep],
+    };
+    assert.equal(
+      isSupportedContext({ context, apps: macApps, platform: "mac" }),
+      true
+    );
+  });
+
   it("rejects a driver-required context with no resolvable browser name", function () {
     // This is the case that produced "Failed to start context 'undefined'":
     // a driver is required but the browser object carries no name.

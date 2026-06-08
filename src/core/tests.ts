@@ -211,7 +211,13 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   // Check platform
   const isSupportedPlatform = context.platform === platform;
   if (context?.browser?.name) {
-    isSupportedApp = apps.find((app: any) => app.name === context.browser.name);
+    // `safari` is normalized to `webkit` during context resolution, but
+    // getAvailableApps reports Safari as `safari`. Map it back so a Safari
+    // context isn't wrongly treated as unsupported (which would skip it before
+    // getDriverCapabilities could apply the same alias).
+    const appName =
+      context.browser.name === "webkit" ? "safari" : context.browser.name;
+    isSupportedApp = apps.find((app: any) => app.name === appName);
   } else if (Array.isArray(context?.steps) && isDriverRequired({ test: context })) {
     // A context that needs a browser driver but has no resolvable browser name
     // can't run. Treat it as unsupported so it's cleanly skipped rather than
