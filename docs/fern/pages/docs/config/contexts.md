@@ -7,6 +7,8 @@ Doc Detective uses contexts to determine *where* tests should run. A context def
 
 By default, if contexts are needed but not specified, Doc Detective attempts to find a supported browser (like Chrome or Firefox) on the current platform (Windows, macOS, or Linux) and run tests there.
 
+If no supported browser is available, Doc Detective skips contexts that require browser automation and reports: `"no supported browser is available in the current environment"`. This lets tests complete gracefully instead of failing with cryptic errors.
+
 You define contexts using an array of context objects. Each context object specifies the target `platforms` (as a string or array) and the target `browsers` (as a string, array, or object).
 
 When Doc Detective runs tests, it evaluates the defined contexts against the current environment. If the current platform matches one specified in a context, and if a browser is specified and available, the test runs in that specific browser on that platform. You can specify multiple contexts, and Doc Detective will attempt to run the relevant tests in each matching context.
@@ -78,6 +80,10 @@ Or using the object format:
   }
 }
 ```
+
+<Note>
+When using the object format for browsers, `name` is required. If omitted (for example, `{ "headless": true }`), Doc Detective can't resolve the browser and skips the context.
+</Note>
 
 #### Chrome Dimensions and Visibility
 
