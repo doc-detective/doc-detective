@@ -66,6 +66,10 @@ const driverActions = [
   "type",
 ];
 
+// Browser names getDriverCapabilities knows how to build caps for. `safari` is
+// rewritten to `webkit` during context resolution, so both appear here.
+const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
 // Get Appium driver capabilities and apply options.
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
@@ -75,11 +79,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
   // returning empty capabilities. Empty caps used to surface downstream as the
   // cryptic "Failed to start context 'undefined'" driver error, hiding the real
   // problem (no browser was ever resolved for the context).
-  const knownBrowsers = ["firefox", "chrome", "safari", "webkit"];
-  if (!name || !knownBrowsers.includes(name)) {
+  if (!name || !KNOWN_BROWSERS.includes(name)) {
     throw new Error(
       `Cannot build driver capabilities: unknown or missing browser name '${name}'. ` +
-        `Expected one of: ${knownBrowsers.join(", ")}.`
+        `Expected one of: ${KNOWN_BROWSERS.join(", ")}.`
     );
   }
 
@@ -212,7 +215,10 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   } else if (Array.isArray(context?.steps) && isDriverRequired({ test: context })) {
     // A context that needs a browser driver but has no resolvable browser name
     // can't run. Treat it as unsupported so it's cleanly skipped rather than
-    // failing later with "Failed to start context 'undefined'".
+    // failing later with "Failed to start context 'undefined'". The
+    // Array.isArray(steps) guard keeps isDriverRequired (which iterates steps)
+    // from throwing on a steps-less context; such a context does no driver work
+    // anyway, so leaving it supported here is harmless.
     isSupportedApp = false;
   }
   // Return boolean
@@ -628,9 +634,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
           log(config, "warning", errorMessage);
           contextReport = {
+            ...contextReport,
             result: "SKIPPED",
             resultDescription: errorMessage,
-            ...contextReport,
           };
           report.summary.contexts.skipped++;
           testReport.contexts.push(contextReport);

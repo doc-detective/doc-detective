@@ -84,7 +84,9 @@ describe("getDefaultBrowser", function () {
     const runnerDetails = {
       availableApps: [{ name: "chrome" }, { name: "firefox" }],
     };
-    // firefox is preferred over chrome in the lookup order.
+    // getDefaultBrowser walks its browserNames preference list
+    // (["firefox", "chrome", "safari"] in src/core/tests.ts) and returns the
+    // first available, so firefox wins over chrome here.
     assert.deepEqual(getDefaultBrowser({ runnerDetails }), {
       name: "firefox",
     });
