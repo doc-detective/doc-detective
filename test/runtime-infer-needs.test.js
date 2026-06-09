@@ -46,8 +46,7 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("@ffmpeg-installer/ffmpeg")).to.equal(false);
   });
 
-  it("respects an explicit runOn browser at the spec level", function () {
-    const needs = inferRuntimeNeeds([
+  it("respects an explicit runOn browser at the spec level", function () {    const needs = inferRuntimeNeeds([
       makeSpec([{ goTo: { url: "https://x.test" } }], {
         runOn: [{ browsers: [{ name: "firefox" }] }],
       }),
@@ -75,6 +74,43 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("appium-safari-driver")).to.equal(true);
     expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
     expect(needs.npmPackages.has("appium-geckodriver")).to.equal(true);
+  });
+
+  it("maps a resolved `webkit` context browser to the safari bucket (not chrome)", function () {
+    // resolveContexts rewrites `safari` -> `webkit`, so a resolved Safari
+    // context carries browser.name === "webkit". inferRuntimeNeeds must treat
+    // that as safari, not let it fall through to the chrome default.
+    const needs = inferRuntimeNeeds([
+      {
+        specId: "s1",
+        tests: [
+          {
+            testId: "t1",
+            contexts: [
+              {
+                contextId: "c1",
+                browser: { name: "webkit" },
+                steps: [{ goTo: { url: "https://x.test" } }],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["safari"]);
+    expect(needs.npmPackages.has("appium-safari-driver")).to.equal(true);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
+  });
+
+  it("maps a `webkit` runOn browser to the safari bucket", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ goTo: { url: "https://x.test" } }], {
+        runOn: [{ browsers: [{ name: "webkit" }] }],
+      }),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["safari"]);
+    expect(needs.npmPackages.has("appium-safari-driver")).to.equal(true);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
   });
 
   it("a screenshot step adds sharp / pngjs / pixelmatch", function () {
