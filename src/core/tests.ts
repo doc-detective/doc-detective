@@ -39,7 +39,15 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { runSpecs, runViaApi, getRunner, ensureChromeAvailable };
+export {
+  runSpecs,
+  runViaApi,
+  getRunner,
+  ensureChromeAvailable,
+  getDriverCapabilities,
+  getDefaultBrowser,
+  isSupportedContext,
+};
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
@@ -58,10 +66,25 @@ const driverActions = [
   "type",
 ];
 
+// Browser names getDriverCapabilities knows how to build caps for. `safari` is
+// rewritten to `webkit` during context resolution, so both appear here.
+const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
 // Get Appium driver capabilities and apply options.
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
   let args: string[] = [];
+
+  // Fail loudly on an unknown or missing browser name instead of silently
+  // returning empty capabilities. Empty caps used to surface downstream as the
+  // cryptic "Failed to start context 'undefined'" driver error, hiding the real
+  // problem (no browser was ever resolved for the context).
+  if (!name || !KNOWN_BROWSERS.includes(name)) {
+    throw new Error(
+      `Cannot build driver capabilities: unknown or missing browser name '${name}'. ` +
+        `Expected one of: ${KNOWN_BROWSERS.join(", ")}.`
+    );
+  }
 
   // Set Firefox capabilities
   switch (name) {
@@ -95,6 +118,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
       break;
     }
     case "safari":
+    // `safari` is rewritten to `webkit` during context resolution, so the
+    // runtime browser name is usually `webkit`. Both map to Safari.
+    case "webkit":
       // Set Safari capabilities
       if (runnerDetails.availableApps.find((app: any) => app.name === "safari")) {
         let safari = runnerDetails.availableApps.find(
@@ -184,14 +210,25 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   let isSupportedApp: any = true;
   // Check platform
   const isSupportedPlatform = context.platform === platform;
-  if (context?.browser?.name)
-    isSupportedApp = apps.find((app: any) => app.name === context.browser.name);
-  // Return boolean
-  if (isSupportedApp && isSupportedPlatform) {
-    return true;
-  } else {
-    return false;
+  if (context?.browser?.name) {
+    // `safari` is normalized to `webkit` during context resolution, but
+    // getAvailableApps reports Safari as `safari`. Map it back so a Safari
+    // context isn't wrongly treated as unsupported (which would skip it before
+    // getDriverCapabilities could apply the same alias).
+    const appName =
+      context.browser.name === "webkit" ? "safari" : context.browser.name;
+    isSupportedApp = apps.find((app: any) => app.name === appName);
+  } else if (Array.isArray(context?.steps) && isDriverRequired({ test: context })) {
+    // A context that needs a browser driver but has no resolvable browser name
+    // can't run. Treat it as unsupported so it's cleanly skipped rather than
+    // failing later with "Failed to start context 'undefined'". The
+    // Array.isArray(steps) guard keeps isDriverRequired (which iterates steps)
+    // from throwing on a steps-less context; such a context does no driver work
+    // anyway, so leaving it supported here is harmless.
+    isSupportedApp = false;
   }
+  // Return boolean
+  return Boolean(isSupportedApp && isSupportedPlatform);
 }
 
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
@@ -594,6 +631,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         metaValues.specs[spec.specId].tests[test.testId].contexts[
           context.contextId
         ] = { steps: {} };
+
+        // If a driver is required but no browser could be resolved (e.g.
+        // getDefaultBrowser found nothing installed, or the context supplied a
+        // browser object with no name), skip with an explicit reason instead of
+        // letting it fail later as "Failed to start context 'undefined'".
+        if (isDriverRequired({ test: context }) && !context.browser?.name) {
+          const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
+          log(config, "warning", errorMessage);
+          contextReport = {
+            ...contextReport,
+            result: "SKIPPED",
+            resultDescription: errorMessage,
+          };
+          report.summary.contexts.skipped++;
+          testReport.contexts.push(contextReport);
+          continue;
+        }
 
         // Check if current environment supports given contexts
         const supportedContext = isSupportedContext({
