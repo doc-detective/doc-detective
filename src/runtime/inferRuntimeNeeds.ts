@@ -112,7 +112,12 @@ function addBrowserName(set: Set<BrowserName>, name: string): void {
   if (normalized === "chrome" || normalized === "chromium")
     set.add("chrome");
   else if (normalized === "firefox") set.add("firefox");
-  else if (normalized === "safari") set.add("safari");
+  // `webkit` is the resolved alias for `safari` (resolveContexts rewrites
+  // safari -> webkit), so both map to the safari bucket. Without this, a
+  // Safari-only spec looks browser-less and falls through to the chrome
+  // default — provisioning Chrome for a run that only wanted Safari.
+  else if (normalized === "safari" || normalized === "webkit")
+    set.add("safari");
   // edge / others — ignored; runner already restricts to chrome/firefox/safari.
 }
 
