@@ -1,3 +1,10 @@
+# [4.6.0-next.10](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.9...v4.6.0-next.10) (2026-06-09)
+
+
+### Bug Fixes
+
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([d750045](https://github.com/doc-detective/doc-detective/commit/d7500458effc6d3ffa1b45bc34884254119f3800))
+
 # [4.6.0-next.9](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.8...v4.6.0-next.9) (2026-06-06)
 
 
