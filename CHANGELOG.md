@@ -1,3 +1,10 @@
+# [4.6.0-next.11](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.10...v4.6.0-next.11) (2026-06-09)
+
+
+### Bug Fixes
+
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([1261698](https://github.com/doc-detective/doc-detective/commit/126169873fa4fa0b738374682468658e9cb0740b)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+
 # [4.6.0-next.10](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.9...v4.6.0-next.10) (2026-06-09)
 
 
