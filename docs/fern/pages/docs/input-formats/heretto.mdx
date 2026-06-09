@@ -4,7 +4,7 @@ sidebar-title: Heretto
 description: Load DITA content directly from your Heretto CMS for testing.
 ---
 
-Heretto is a component content management system (CCMS) for technical documentation. Doc Detective can load DITA content directly from your Heretto CMS, so you can test documentation without manually exporting files.
+Heretto is a component content management system (CCMS) for technical documentation. Doc Detective can load Darwin Information Typing Architecture (DITA) content directly from your Heretto CCMS, so you can test documentation without manually exporting files.
 
 ## Prerequisites
 
@@ -39,9 +39,9 @@ Add entries to the `integrations.heretto` array in your config file:
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `name` | string | Yes | Identifier for this integration. Use this name in the `heretto:<name>` input syntax. |
-| `organizationId` | string | Yes | Your Heretto organization ID. |
-| `username` | string | Yes | Your Heretto username. Can be set via `HERETTO_USERNAME` environment variable. |
-| `apiToken` | string | Yes | Your Heretto API token. Can be set via `HERETTO_TOKEN` environment variable. |
+| `organizationId` | string | Yes | Your Heretto organization ID. You can set this via the `HERETTO_ORG_ID` environment variable. |
+| `username` | string | Yes | Your Heretto username. You can set this via the `HERETTO_USERNAME` environment variable. |
+| `apiToken` | string | Yes | Your Heretto API token. You can set this via the `HERETTO_TOKEN` environment variable. |
 | `scenarioName` | string | No | Publishing scenario name in Heretto. Defaults to `Doc Detective`. |
 | `uploadOnChange` | boolean | No | If `true`, tracks resource dependencies for change detection. |
 
