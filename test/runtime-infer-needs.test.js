@@ -46,7 +46,8 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("@ffmpeg-installer/ffmpeg")).to.equal(false);
   });
 
-  it("respects an explicit runOn browser at the spec level", function () {    const needs = inferRuntimeNeeds([
+  it("respects an explicit runOn browser at the spec level", function () {
+    const needs = inferRuntimeNeeds([
       makeSpec([{ goTo: { url: "https://x.test" } }], {
         runOn: [{ browsers: [{ name: "firefox" }] }],
       }),
