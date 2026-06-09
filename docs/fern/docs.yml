@@ -178,7 +178,7 @@ navigation:
       - section: Integrations
         contents:
           - page: Heretto
-            path: pages/docs/input-formats/heretto.mdx
+            path: pages/docs/integrations/heretto.mdx
             slug: heretto
 
       - folder: pages/docs/actions
