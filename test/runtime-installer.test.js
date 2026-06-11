@@ -80,6 +80,19 @@ describe("runtime/installer", function () {
       }
     });
 
+    it("dry-run expands peer companions so it matches the real install", async function () {
+      const reports = await installRuntime({
+        packages: ["@puppeteer/browsers"],
+        dryRun: true,
+        deps: { logger: () => {} },
+      });
+      const ids = reports.map((r) => r.assetId);
+      // The real install pulls in proxy-agent alongside @puppeteer/browsers,
+      // so the dry-run report must list it too rather than under-reporting.
+      expect(ids).to.include("@puppeteer/browsers");
+      expect(ids).to.include("proxy-agent");
+    });
+
     it("installs the requested package and reports an actionable state", async function () {
       // In a source checkout pngjs lives in the shim's `optionalDependencies`,
       // which npm installs by default — so it resolves from the shim's

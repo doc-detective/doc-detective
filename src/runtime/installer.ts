@@ -1,6 +1,7 @@
 import {
   HEAVY_NPM_DEPS,
   getDeclaredVersion,
+  withPeerCompanions,
   satisfiesRange,
 } from "./heavyDeps.js";
 import {
@@ -89,7 +90,9 @@ export async function installRuntime(
     // has changed on disk yet. Surface the declared package.json range in
     // `notes` instead so consumers don't render a constraint string (e.g.
     // `^7.0.0`) in a column that elsewhere shows a resolved version.
-    for (const name of targets) {
+    // Expand with peer companions so the dry-run report matches what the real
+    // install actually fetches (e.g. proxy-agent alongside @puppeteer/browsers).
+    for (const name of withPeerCompanions(targets)) {
       reports.push({
         assetId: name,
         kind: "npm",
