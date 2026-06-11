@@ -153,7 +153,9 @@ export function satisfiesRange(installed: string, range: string): boolean {
 }
 
 function parseSemverCore(v: string): [number, number, number] | null {
-  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(v);
+  // Anchor to the full string so composite/OR ranges (e.g. "1.2.3 || 2.0.0")
+  // don't match their leading core and get mistaken for an exact version.
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(v.trim());
   if (!match) return null;
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
