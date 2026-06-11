@@ -58,6 +58,21 @@ describe("runtime/cacheDir", function () {
       const dir = getCacheDir({ cacheDir: "" });
       expect(dir).to.equal(path.join(os.tmpdir(), "doc-detective"));
     });
+
+    it("treats a whitespace-only config.cacheDir as absent and falls back to the default", function () {
+      const dir = getCacheDir({ cacheDir: "   " });
+      expect(dir).to.equal(path.join(os.tmpdir(), "doc-detective"));
+    });
+
+    it("trims surrounding whitespace from config.cacheDir", function () {
+      const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-trim-"));
+      try {
+        const dir = getCacheDir({ cacheDir: `  ${tmpRoot}  ` });
+        expect(dir).to.equal(tmpRoot);
+      } finally {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("dir helpers", function () {
