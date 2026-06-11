@@ -175,6 +175,12 @@ navigation:
           - page: Custom
             path: pages/docs/input-formats/custom.mdx
 
+      - section: Integrations
+        contents:
+          - page: Heretto
+            path: pages/docs/integrations/heretto.mdx
+            slug: heretto
+
       - folder: pages/docs/actions
         title: Actions
 

@@ -106,6 +106,16 @@ function buildYargs(args: any): any {
         "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
       type: "boolean",
     })
+    .option("auto-update", {
+      description:
+        "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
+      type: "boolean",
+    })
+    .option("cache-dir", {
+      description:
+        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
+      type: "string",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -332,6 +342,16 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
+  }
+  if (typeof args.autoUpdate === "boolean") {
+    config.autoUpdate = args.autoUpdate;
+  }
+  if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
+    // Assignment-only per the documented setConfig contract (the standard
+    // `length > 0` guard, no per-flag sanitization). getCacheDir() in
+    // runtime/cacheDir.ts trims and drops whitespace-only values, so a
+    // `--cache-dir "   "` override is neutralized at the consumption site.
+    config.cacheDir = args.cacheDir;
   }
   // Resolve paths
   config = await resolvePaths({

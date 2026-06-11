@@ -1,5 +1,11 @@
 import kill from "tree-kill";
-import * as wdio from "webdriverio";
+// webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
+// site so the shim's CLI startup doesn't pay its ~50MB load cost when the
+// user is only running e.g. install-agents or install status. The type
+// reference uses `typeof import('webdriverio')` directly at the call site
+// so we don't carry a top-level `import type` whose `typeof` would refer
+// to a non-runtime identifier.
+import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import os from "node:os";
 import { log, replaceEnvs, selectSpecsForRun, findFreePort } from "./utils.js";
 import axios from "axios";
@@ -25,7 +31,7 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { resolveExpression } from "./expressions.js";
-import { getEnvironment, getAvailableApps } from "./config.js";
+import { getEnvironment, getAvailableApps, clearAppCache } from "./config.js";
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
@@ -33,7 +39,15 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { runSpecs, runViaApi, getRunner };
+export {
+  runSpecs,
+  runViaApi,
+  getRunner,
+  ensureChromeAvailable,
+  getDriverCapabilities,
+  getDefaultBrowser,
+  isSupportedContext,
+};
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
@@ -52,10 +66,25 @@ const driverActions = [
   "type",
 ];
 
+// Browser names getDriverCapabilities knows how to build caps for. `safari` is
+// rewritten to `webkit` during context resolution, so both appear here.
+const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
 // Get Appium driver capabilities and apply options.
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
   let args: string[] = [];
+
+  // Fail loudly on an unknown or missing browser name instead of silently
+  // returning empty capabilities. Empty caps used to surface downstream as the
+  // cryptic "Failed to start context 'undefined'" driver error, hiding the real
+  // problem (no browser was ever resolved for the context).
+  if (!name || !KNOWN_BROWSERS.includes(name)) {
+    throw new Error(
+      `Cannot build driver capabilities: unknown or missing browser name '${name}'. ` +
+        `Expected one of: ${KNOWN_BROWSERS.join(", ")}.`
+    );
+  }
 
   // Set Firefox capabilities
   switch (name) {
@@ -89,6 +118,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
       break;
     }
     case "safari":
+    // `safari` is rewritten to `webkit` during context resolution, so the
+    // runtime browser name is usually `webkit`. Both map to Safari.
+    case "webkit":
       // Set Safari capabilities
       if (runnerDetails.availableApps.find((app: any) => app.name === "safari")) {
         let safari = runnerDetails.availableApps.find(
@@ -178,14 +210,25 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   let isSupportedApp: any = true;
   // Check platform
   const isSupportedPlatform = context.platform === platform;
-  if (context?.browser?.name)
-    isSupportedApp = apps.find((app: any) => app.name === context.browser.name);
-  // Return boolean
-  if (isSupportedApp && isSupportedPlatform) {
-    return true;
-  } else {
-    return false;
+  if (context?.browser?.name) {
+    // `safari` is normalized to `webkit` during context resolution, but
+    // getAvailableApps reports Safari as `safari`. Map it back so a Safari
+    // context isn't wrongly treated as unsupported (which would skip it before
+    // getDriverCapabilities could apply the same alias).
+    const appName =
+      context.browser.name === "webkit" ? "safari" : context.browser.name;
+    isSupportedApp = apps.find((app: any) => app.name === appName);
+  } else if (Array.isArray(context?.steps) && isDriverRequired({ test: context })) {
+    // A context that needs a browser driver but has no resolvable browser name
+    // can't run. Treat it as unsupported so it's cleanly skipped rather than
+    // failing later with "Failed to start context 'undefined'". The
+    // Array.isArray(steps) guard keeps isDriverRequired (which iterates steps)
+    // from throwing on a steps-less context; such a context does no driver work
+    // anyway, so leaving it supported here is harmless.
+    isSupportedApp = false;
   }
+  // Return boolean
+  return Boolean(isSupportedApp && isSupportedPlatform);
 }
 
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
@@ -477,14 +520,30 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Warm up Appium
   let appiumPort: number | undefined;
   if (appiumRequired) {
-    setAppiumHome();
+    setAppiumHome({ cacheDir: config?.cacheDir });
     appiumPort = await findFreePort();
     log(config, "debug", `Starting Appium on port ${appiumPort}`);
-    appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
-      shell: true,
-      windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
-    });
+    // Resolve appium's actual JS entrypoint via `require.resolve`
+    // (shim node_modules first, runtime cache second) and invoke it
+    // with `node <entry>`. This sidesteps every shell-injection trap
+    // at once: no `.cmd` shim, so no Windows-requires-shell:true; no
+    // `npx`, so no PATH lookup; no user-controlled paths in a shell-
+    // interpreted string. Works for both `--omit=optional` users
+    // (appium in cache only) and default installs (appium in shim).
+    const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
+    if (!appiumEntry) {
+      throw new Error(
+        "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
+      );
+    }
+    appium = spawn(
+      process.execPath,
+      [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
+      {
+        windowsHide: true,
+        cwd: path.join(__dirname, "../.."),
+      }
+    );
     appium.on("error", (err: any) => {
       log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
     });
@@ -494,7 +553,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     appium.stderr.on("data", (data: any) => {
       // console.error(`stderr: ${data}`);
     });
-    await appiumIsReady(appiumPort);
+    try {
+      await appiumIsReady(appiumPort);
+    } catch (error) {
+      // appiumIsReady threw or timed out — the spawned child is still
+      // alive and would leak (orphan process, port still bound). Tear
+      // it down before propagating so subsequent runs don't trip on
+      // the stale state.
+      try {
+        if (appium && appium.pid) kill(appium.pid);
+      } catch {
+        // best-effort cleanup; the parent error is what matters
+      }
+      throw error;
+    }
     log(config, "debug", "Appium is ready.");
   }
 
@@ -560,6 +632,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           context.contextId
         ] = { steps: {} };
 
+        // If a driver is required but no browser could be resolved (e.g.
+        // getDefaultBrowser found nothing installed, or the context supplied a
+        // browser object with no name), skip with an explicit reason instead of
+        // letting it fail later as "Failed to start context 'undefined'".
+        if (isDriverRequired({ test: context }) && !context.browser?.name) {
+          const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
+          log(config, "warning", errorMessage);
+          contextReport = {
+            ...contextReport,
+            result: "SKIPPED",
+            resultDescription: errorMessage,
+          };
+          report.summary.contexts.skipped++;
+          testReport.contexts.push(contextReport);
+          continue;
+        }
+
         // Check if current environment supports given contexts
         const supportedContext = isSupportedContext({
           context: context,
@@ -612,7 +701,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           }
           // Instantiate driver
           try {
-            driver = await driverStart(caps, appiumPort);
+            driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
           } catch (error: any) {
             try {
               // If driver fails to start, try again as headless
@@ -631,7 +720,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
                   headless: context.browser?.headless !== false,
                 },
               });
-              driver = await driverStart(caps, appiumPort);
+              driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
               if (context.browser?.name === "safari")
@@ -1044,11 +1133,20 @@ async function appiumIsReady(port: number, timeoutMs: number = 120000) {
 }
 
 // Start the Appium driver specified in `capabilities`.
-async function driverStart(capabilities: any, port: number, maxAttempts: number = 4) {
+async function driverStart(
+  capabilities: any,
+  port: number,
+  maxAttempts: number = 4,
+  ctx: { cacheDir?: string } = {}
+) {
   // POST /session can race a just-spawned-or-still-dying Appium on Windows:
   // /status may already return 200 from the outgoing process while /session
   // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
   // any other error is a real session-creation failure and propagates.
+  const wdio = await loadHeavyDep<typeof import("webdriverio")>(
+    "webdriverio",
+    { ctx }
+  );
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -1100,6 +1198,86 @@ async function driverStart(capabilities: any, port: number, maxAttempts: number 
  *   await cleanup();
  * }
  */
+/**
+ * Lazy-install the heavy npm runtime + browser binaries needed to drive
+ * Chrome into the doc-detective cache. Mirrors the npm/browser set that
+ * inferRuntimeNeeds() derives for a chrome browser step, and the
+ * ensureBrowserInstalled calls the runTests pre-flight makes. Heavy deps are
+ * imported dynamically so a pure HTTP/CLI consumer never loads them.
+ */
+async function provisionChromeRuntime(config: any): Promise<void> {
+  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
+  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+  const ctx = { cacheDir: config?.cacheDir };
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+  // "warn" → "warning" the same way the runTests pre-flight does.
+  const logger = (msg: string, level: string = "info") =>
+    log(config, level === "warn" ? "warning" : level, msg);
+  await ensureRuntimeInstalled(
+    ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
+    { ctx, deps: { logger } }
+  );
+  await ensureBrowserInstalled("chrome", { ctx, deps: { logger } });
+  await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger } });
+}
+
+/**
+ * Resolve the available-apps list with Chrome guaranteed present, lazy-
+ * installing the browser runtime on a miss before giving up. This is the
+ * runtime counterpart to the runTests pre-flight: it runs regardless of
+ * DOC_DETECTIVE_AUTOINSTALL (that env var only governs the *eager* postinstall
+ * download — first use should still self-provision). A provisioning failure
+ * (e.g. offline) is swallowed so the caller sees the clear "not available"
+ * error rather than a raw npm/network stack. Deps are injected for testing.
+ *
+ * @returns the available-apps array, with a chrome entry present.
+ * @throws if chrome is still unavailable after a provisioning attempt.
+ */
+async function ensureChromeAvailable(
+  config: any,
+  deps: {
+    detect: (config: any) => Promise<any[]>;
+    provision: (config: any) => Promise<void>;
+    invalidate: (config: any) => void;
+    log?: (config: any, level: string, msg: string) => void;
+  }
+): Promise<any[]> {
+  let availableApps = await deps.detect(config);
+  if (availableApps.some((app: any) => app.name === "chrome")) {
+    return availableApps;
+  }
+  // Chrome not detected — attempt to provision it, then re-detect.
+  deps.log?.(
+    config,
+    "info",
+    "Chrome not detected; installing browser runtime (note: DOC_DETECTIVE_AUTOINSTALL=0 only suppresses the eager postinstall, not this first-use install)…"
+  );
+  try {
+    await deps.provision(config);
+  } catch (err: any) {
+    deps.log?.(
+      config,
+      "warning",
+      `Browser runtime auto-install failed: ${err?.message ?? err}`
+    );
+  } finally {
+    // Always drop the memoized "no chrome" entry so the re-detect below is a
+    // real re-scan: provisioning installs several assets and may have
+    // partially succeeded even if it ultimately threw, so the cached empty
+    // snapshot can't be trusted on either path. In `finally` (not the try
+    // body) so a bug in `invalidate` surfaces on its own rather than being
+    // mislabeled as a provisioning failure.
+    deps.invalidate(config);
+  }
+  availableApps = await deps.detect(config);
+  if (!availableApps.some((app: any) => app.name === "chrome")) {
+    throw new Error(
+      "Chrome browser is not available. Please ensure Chrome is installed and accessible."
+    );
+  }
+  return availableApps;
+}
+
 async function getRunner(options: any = {}) {
   const environment = getEnvironment();
   const config = { ...options.config, environment };
@@ -1107,32 +1285,39 @@ async function getRunner(options: any = {}) {
   const height = options.height || 800;
   const headless = options.headless !== false;
 
-  // Get runner details
+  // Get runner details, self-provisioning Chrome on a miss (see
+  // ensureChromeAvailable) so a runner started without a pre-warmed cache
+  // installs what it needs instead of failing.
   const runnerDetails = {
     environment,
-    availableApps: await getAvailableApps({ config }),
+    availableApps: await ensureChromeAvailable(config, {
+      detect: (c: any) => getAvailableApps({ config: c }),
+      provision: provisionChromeRuntime,
+      invalidate: clearAppCache,
+      log,
+    }),
   };
 
-  // Check if Chrome is available
-  const chrome = runnerDetails.availableApps.find(
-    (app: any) => app.name === "chrome"
-  );
-  if (!chrome) {
+  // Set Appium home directory
+  setAppiumHome({ cacheDir: config?.cacheDir });
+
+  // Start Appium server on a free ephemeral port. Same `node <entry>`
+  // pattern as the runSpecs spawn above — see comment there.
+  const appiumPort = await findFreePort();
+  const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
+  if (!appiumEntry) {
     throw new Error(
-      "Chrome browser is not available. Please ensure Chrome is installed and accessible."
+      "appium is not installed. Run `doc-detective install runtime appium` to install it."
     );
   }
-
-  // Set Appium home directory
-  setAppiumHome();
-
-  // Start Appium server on a free ephemeral port
-  const appiumPort = await findFreePort();
-  const appium = spawn("npx", ["appium", "-a", "127.0.0.1", "-p", String(appiumPort)], {
-    shell: true,
-    windowsHide: true,
-    cwd: path.join(__dirname, "../.."),
-  });
+  const appium = spawn(
+    process.execPath,
+    [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
+    {
+      windowsHide: true,
+      cwd: path.join(__dirname, "../.."),
+    }
+  );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)
   // would crash the process before appiumIsReady's timeout could surface
   // a meaningful failure.
@@ -1140,8 +1325,19 @@ async function getRunner(options: any = {}) {
     log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
 
-  // Wait for Appium to be ready
-  await appiumIsReady(appiumPort);
+  // Wait for Appium to be ready. Same kill-on-throw guard as in
+  // runSpecs above — without it, a startup timeout would leave an
+  // orphan Appium child holding the ephemeral port.
+  try {
+    await appiumIsReady(appiumPort);
+  } catch (error) {
+    try {
+      if (appium && appium.pid) kill(appium.pid);
+    } catch {
+      // best-effort cleanup; the parent error is what matters
+    }
+    throw error;
+  }
   log(config, "debug", `Appium is ready for external driver on port ${appiumPort}.`);
 
   // Get Chrome driver capabilities
@@ -1158,7 +1354,7 @@ async function getRunner(options: any = {}) {
   // Start the runner
   let runner: any;
   try {
-    runner = await driverStart(caps, appiumPort);
+    runner = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
   } catch (error: any) {
     // If runner fails, attempt to set headless and retry
     try {
@@ -1168,7 +1364,7 @@ async function getRunner(options: any = {}) {
         "Failed to start Chrome runner. Retrying as headless."
       );
       caps["goog:chromeOptions"].args.push("--headless", "--disable-gpu");
-      runner = await driverStart(caps, appiumPort);
+      runner = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
     } catch (error: any) {
       // If runner fails, clean up Appium and rethrow
       kill(appium.pid!);

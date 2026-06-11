@@ -2,7 +2,9 @@ import os from "node:os";
 import { validate } from "../common/src/validate.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
 import path from "node:path";
-import * as browsers from "@puppeteer/browsers";
+import { spawn as spawnChild } from "node:child_process";
+import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { getBrowsersDir } from "../runtime/cacheDir.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
@@ -506,7 +508,15 @@ async function setConfig({ config }: any) {
 
   // Detect current environment.
   config.environment = getEnvironment();
-  config.environment.apps = await getAvailableApps({ config });
+  // Dry runs return the resolved-tests preview without ever executing.
+  // `environment.apps` is only surfaced in the resolved-config output here —
+  // the runner paths in tests.ts re-discover apps themselves via
+  // getAvailableApps rather than reading this field back — so skipping the
+  // detection on a dry run avoids the @puppeteer/browsers load, the
+  // browser-cache scan, and the unbounded `appium driver list` spawn (the work
+  // that pushes dryRun.test.js past its mocha timeout on a starved
+  // windows+node22 runner) with no effect on resolved output or execution.
+  config.environment.apps = config.dryRun ? [] : await getAvailableApps({ config });
 
   // Resolve concurrent runners configuration
   config.concurrentRunners = resolveConcurrentRunners(config);
@@ -581,31 +591,129 @@ function getEnvironment() {
   return environment;
 }
 
-// Module-level cache for available apps detection.
-// Avoids redundant `npx appium driver list` calls (~17s each) and browser scanning.
-let cachedApps: any[] | null = null;
+// Module-level cache for available apps detection, keyed by the
+// resolved browsers-cache directory. The lookup is cache-dir-sensitive
+// (the same process might detect different browsers depending on
+// config.cacheDir or DOC_DETECTIVE_CACHE_DIR), and lazy-install can
+// materialize new browsers between calls — so a single process-global
+// slot would (a) cross-contaminate different cacheDir values and (b)
+// return stale "no browsers" results after a JIT pre-flight install.
+// Avoids redundant `appium driver list` calls (~17s each) and browser
+// scanning for repeat lookups against the same cache dir.
+const cachedAppsByDir: Map<string, any[]> = new Map();
 
-function clearAppCache() {
-  cachedApps = null;
+function cacheKeyFor(config: any): string {
+  // Reuse `getBrowsersDir` so the key respects every override the rest
+  // of the runtime honors (env var > config.cacheDir > tmpdir, with the
+  // legacy `./browser-snapshots/` fallback).
+  return getBrowsersDir({ cacheDir: config?.cacheDir });
+}
+
+function clearAppCache(config?: any) {
+  if (config === undefined) {
+    cachedAppsByDir.clear();
+    return;
+  }
+  cachedAppsByDir.delete(cacheKeyFor(config));
 }
 
 // Detect available apps.
 async function getAvailableApps({ config }: any) {
-  if (cachedApps) return cachedApps;
+  // Resolve the browsers cache dir *before* chdir-ing. `getBrowsersDir`'s
+  // legacy-snapshot fallback probes `path.resolve('browser-snapshots')`
+  // relative to the current CWD, so it has to run against the user's
+  // original CWD to honor a project-local `./browser-snapshots/` directory.
+  // Reusing the same resolved absolute path for both the cache key and the
+  // `getInstalledBrowsers` call below keeps `cachedAppsByDir` consistent
+  // with the directory actually scanned.
+  const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });
+  const key = browsersDir;
+  const hit = cachedAppsByDir.get(key);
+  if (hit) return hit;
 
-  setAppiumHome();
+  setAppiumHome({ cacheDir: config?.cacheDir });
   const cwd = process.cwd();
   process.chdir(path.join(__dirname, "../.."));
   const apps: any[] = [];
 
   try {
-    const installedBrowsers = await browsers.getInstalledBrowsers({
-      cacheDir: path.resolve("browser-snapshots"),
+    // Lazy-load @puppeteer/browsers; it's a heavy runtime dep that should
+    // only materialize when a runner that actually drives browsers boots up.
+    // Thread the configured cache dir through so a non-default cacheDir is
+    // honored by the resolver (otherwise this lookup could diverge from the
+    // pre-flight install that already used config.cacheDir).
+    const browsers = await loadHeavyDep<any>("@puppeteer/browsers", {
+      ctx: { cacheDir: config?.cacheDir },
     });
-    const installedAppiumDrivers = await spawnCommand("npx appium driver list");
+    const installedBrowsers = await browsers.getInstalledBrowsers({
+      cacheDir: browsersDir,
+    });
+    // Resolve `appium` from <cacheDir>/runtime via `npm exec --prefix`
+    // so a `--omit=optional` install (where appium only lives in the
+    // cache) still finds the CLI. Bare `npx appium` would fail in that
+    // posture even with APPIUM_HOME set, because APPIUM_HOME only
+    // governs driver lookup, not binary resolution.
+    //
+    // Resolve appium's JS entry directly (shim first, then cache)
+    // and spawn `node <entry> driver list`. Bypasses `.cmd` shims,
+    // `npm exec`, and shell:true — the same pattern as the Appium
+    // spawns in src/core/tests.ts.
+    const appiumEntry = resolveHeavyDepPath("appium", {
+      cacheDir: config?.cacheDir,
+    });
+    const installedAppiumDrivers = await new Promise<{
+      stdout: string;
+      stderr: string;
+      exitCode: number;
+    }>((resolve) => {
+      if (!appiumEntry) {
+        resolve({
+          stdout: "",
+          stderr: "appium is not installed; driver list unavailable",
+          exitCode: 1,
+        });
+        return;
+      }
+      const child = spawnChild(
+        process.execPath,
+        [appiumEntry, "driver", "list"],
+        { env: process.env }
+      );
+      let stdout = "";
+      let stderr = "";
+      child.stdout?.on("data", (c: Buffer | string) => {
+        stdout += typeof c === "string" ? c : c.toString("utf8");
+      });
+      child.stderr?.on("data", (c: Buffer | string) => {
+        stderr += typeof c === "string" ? c : c.toString("utf8");
+      });
+      // Treat a spawn error (ENOENT, EACCES) as exitCode 1 with the
+      // message in stderr so the downstream driver-presence regex
+      // checks degrade to "no drivers detected" rather than aborting
+      // the run.
+      child.on("error", (err) => {
+        resolve({
+          stdout: stdout.replace(/\n$/, ""),
+          stderr: (stderr + String(err)).replace(/\n$/, ""),
+          exitCode: 1,
+        });
+      });
+      child.on("close", (code: number | null) => {
+        resolve({
+          stdout: stdout.replace(/\n$/, ""),
+          stderr: stderr.replace(/\n$/, ""),
+          exitCode: code ?? 1,
+        });
+      });
+    });
 
     // Note: Edge/Microsoft Edge detection is intentionally excluded
     // Only Chrome, Firefox, and Safari are supported browsers
+
+    // `appium driver list` writes its formatted table to stdout; combine both
+    // streams so detection works regardless of which version uses which stream.
+    const appiumDriverOutput =
+      installedAppiumDrivers.stdout + "\n" + installedAppiumDrivers.stderr;
 
     // Detect Chrome
     const chrome = installedBrowsers.find(
@@ -615,7 +723,7 @@ async function getAvailableApps({ config }: any) {
     const chromedriver = installedBrowsers.find(
       (browser: any) => browser.browser === "chromedriver"
     );
-    const appiumChromium = installedAppiumDrivers.stderr.match(
+    const appiumChromium = appiumDriverOutput.match(
       /\n.*chromium.*installed \(npm\).*\n/
     );
 
@@ -632,7 +740,7 @@ async function getAvailableApps({ config }: any) {
     const firefox = installedBrowsers.find(
       (browser: any) => browser.browser === "firefox"
     );
-    const appiumFirefox = installedAppiumDrivers.stderr.match(
+    const appiumFirefox = appiumDriverOutput.match(
       /\n.*gecko.*installed \(npm\).*\n/
     );
 
@@ -649,7 +757,7 @@ async function getAvailableApps({ config }: any) {
       const safariVersion = await spawnCommand(
         "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
       );
-      const appiumSafari = installedAppiumDrivers.stderr.match(
+      const appiumSafari = appiumDriverOutput.match(
         /\n.*safari.*installed \(npm\).*\n/
       );
 
@@ -666,6 +774,6 @@ async function getAvailableApps({ config }: any) {
   // Detect Android Studio
   // Detect iOS Simulator
 
-  cachedApps = apps;
+  cachedAppsByDir.set(key, apps);
   return apps;
 }

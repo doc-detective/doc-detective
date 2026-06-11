@@ -3,8 +3,27 @@ import { log } from "../utils.js";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
-import ffmpeg from "@ffmpeg-installer/ffmpeg";
-const ffmpegPath = ffmpeg.path;
+import { loadHeavyDep } from "../../runtime/loader.js";
+
+// Resolve the ffmpeg binary path lazily — @ffmpeg-installer/ffmpeg is a
+// heavy runtime dep that should only be loaded when a stopRecording step
+// actually runs. The ctx is threaded through so a user-overridden
+// cacheDir is honored here just as it is by the JIT pre-flight installer.
+async function getFfmpegPath(ctx: { cacheDir?: string } = {}): Promise<string> {
+  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg", { ctx });
+  // The package's CJS entry exports an object with a .path field; in ESM
+  // dynamic import we get { default: { path }, path? } shape depending on
+  // bundler. Try both, then guard before handing it to execFile so a
+  // malformed install fails with an actionable message instead of a
+  // confusing "argument must be of type string" deep in node's exec.
+  const candidate = mod && (mod.path ?? mod.default?.path);
+  if (typeof candidate !== "string" || candidate.length === 0) {
+    throw new Error(
+      "ffmpeg binary path is missing or malformed in the installed @ffmpeg-installer/ffmpeg package. Try `doc-detective install runtime --force` to reinstall."
+    );
+  }
+  return candidate;
+}
 
 export { stopRecording };
 
@@ -93,6 +112,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       }
       ffmpegArgs.push(targetPath);
       // Await transcoding to complete before returning
+      const ffmpegPath = await getFfmpegPath({ cacheDir: config?.cacheDir });
       await new Promise<void>((resolve, reject) => {
         execFile(ffmpegPath, ffmpegArgs)
           .on("close", (code) => {

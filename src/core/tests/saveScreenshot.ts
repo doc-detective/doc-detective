@@ -9,16 +9,46 @@ import {
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
-import { PNG } from "pngjs";
-import sharp from "sharp";
+import { loadHeavyDep } from "../../runtime/loader.js";
 
-// pixelmatch v7+ is ESM-only, so we need dynamic import
-let pixelmatch: any;
-async function getPixelmatch() {
-  if (!pixelmatch) {
-    pixelmatch = (await import("pixelmatch")).default;
+// pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
+// the first time a screenshot step needs it. Use `typeof import('…')`
+// directly here so we never have a top-level type-only import whose
+// `typeof` would refer to a non-runtime identifier (a TS-only construct
+// that Copilot flagged as fragile). The sharp namespace isn't shaped as
+// a default-export module, so the resolved value is typed as `any` and
+// the runtime handles both CJS (`mod`) and ESM-wrapped (`mod.default`)
+// import shapes — same coercion the pixelmatch path uses.
+type PngModule = typeof import("pngjs");
+
+let _pngjs: PngModule | null = null;
+let _sharp: any = null;
+let _pixelmatch: any = null;
+
+// Each getter accepts an optional ctx so a user-overridden cacheDir is
+// honored on the first call. Subsequent calls return the memoized module
+// regardless of ctx — the cache dir should be stable within a run, and
+// the JIT pre-flight in runTests() guarantees the install already
+// matched config.cacheDir before any step executes.
+async function getPng(ctx: { cacheDir?: string } = {}): Promise<PngModule["PNG"]> {
+  if (!_pngjs) _pngjs = await loadHeavyDep<PngModule>("pngjs", { ctx });
+  return _pngjs.PNG;
+}
+
+async function getSharp(ctx: { cacheDir?: string } = {}): Promise<any> {
+  if (!_sharp) {
+    const mod = await loadHeavyDep<any>("sharp", { ctx });
+    _sharp = mod && (mod.default ?? mod);
   }
-  return pixelmatch;
+  return _sharp;
+}
+
+async function getPixelmatch(ctx: { cacheDir?: string } = {}) {
+  if (!_pixelmatch) {
+    const mod = await loadHeavyDep<any>("pixelmatch", { ctx });
+    _pixelmatch = mod.default ?? mod;
+  }
+  return _pixelmatch;
 }
 
 export { saveScreenshot, clampCropRect, aspectRatiosMatch };
@@ -67,6 +97,26 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     },
   };
   let element: any;
+  // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
+  // already materialized them ahead of step execution. The ctx threads
+  // through so a user-overridden cacheDir resolves from the same location
+  // the JIT pre-flight installer used.
+  //
+  // Surface lazy-load failures as a step-level FAIL rather than letting
+  // them escape and abort the whole run. A broken runtime cache (the
+  // user wiped <cacheDir>/runtime by hand, or npm failed mid-install)
+  // should produce a clean failed screenshot report, not a fatal.
+  const loadCtx = { cacheDir: config?.cacheDir };
+  let sharp: any;
+  let PNG: any;
+  try {
+    sharp = await getSharp(loadCtx);
+    PNG = await getPng(loadCtx);
+  } catch (error: any) {
+    result.status = "FAIL";
+    result.description = `Couldn't load screenshot runtime dependencies. ${error?.message ?? error}`;
+    return result;
+  }
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
@@ -486,7 +536,20 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       }
 
       const { width, height } = img1;
-      const pixelmatchFn = await getPixelmatch();
+      let pixelmatchFn: any;
+      try {
+        pixelmatchFn = await getPixelmatch(loadCtx);
+      } catch (error: any) {
+        // Treat a broken pixelmatch install as a step-level failure rather
+        // than letting it abort the run. Mirrors the earlier sharp/PNG
+        // guard at saveScreenshot entry.
+        result.status = "FAIL";
+        result.description = `Couldn't load screenshot comparison dependency (pixelmatch). ${error?.message ?? error}`;
+        if (!isUrlPath && filePath !== existFilePath && fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        return result;
+      }
       const numDiffPixels = pixelmatchFn(
         img1.data,
         img2.data,
