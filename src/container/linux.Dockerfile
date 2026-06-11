@@ -59,6 +59,25 @@ RUN npm install -g doc-detective@$PACKAGE_VERSION \
          echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \
        fi
 
+# Repair a sharp/libvips version mismatch in the installed tree. Some published
+# versions pin `@img/sharp-libvips-linux-*` at a newer release than `sharp`'s
+# own platform package needs; npm hoists the newer libvips to the top level,
+# the prebuilt `sharp-linux-*.node` RPATH resolves to it, and the load fails
+# with "libvips-cpp.so.<ver>: cannot open shared object file" — crashing any run
+# that touches an image step. Detect the broken load and pin the top-level
+# libvips back to the version `@img/sharp-linux-<arch>` declares, then re-verify.
+# Guarded on a present-but-unloadable sharp, so it is a no-op both when sharp is
+# healthy and when it is deferred to the lazy runtime cache (not installed here).
+RUN DD=/usr/local/lib/node_modules/doc-detective; \
+    if [ -d "$DD/node_modules/sharp" ] && ! ( cd "$DD" && node -e "require('sharp')" ) >/dev/null 2>&1; then \
+      case "$(uname -m)" in x86_64) CPU=x64 ;; aarch64) CPU=arm64 ;; *) CPU="" ;; esac; \
+      LV="@img/sharp-libvips-linux-$CPU"; \
+      REQ="$(node -p "require('$DD/node_modules/@img/sharp-linux-$CPU/package.json').optionalDependencies['$LV']")"; \
+      echo "[sharp] libvips mismatch detected; pinning $LV@$REQ for linux/$CPU"; \
+      npm install --prefix "$DD" --no-save --include=optional --os=linux --cpu="$CPU" --libc=glibc "$LV@$REQ"; \
+      ( cd "$DD" && node -e "const s=require('sharp'); console.log('[sharp] verified OK, libvips', s.versions.vips)" ); \
+    fi
+
 # Install DITA-OT
 ARG DITA_OT_VERSION=4.3.4
 RUN curl -fSL https://github.com/dita-ot/dita-ot/releases/download/${DITA_OT_VERSION}/dita-ot-${DITA_OT_VERSION}.zip -o /tmp/dita-ot.zip \
