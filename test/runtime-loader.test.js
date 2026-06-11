@@ -110,7 +110,13 @@ describe("runtime/loader", function () {
       // version readback succeeds.
       const declaredPngjsVersion = (() => {
         const pkg = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
-        return pkg.dependencies?.pngjs || pkg.optionalDependencies?.pngjs;
+        // Mirror production field priority (resolveDeclaredVersion):
+        // ddRuntimeDependencies > optionalDependencies > dependencies.
+        return (
+          pkg.ddRuntimeDependencies?.pngjs ||
+          pkg.optionalDependencies?.pngjs ||
+          pkg.dependencies?.pngjs
+        );
       })();
       const spawner = makeFakeSpawner({
         onSpawn: ({ args }) => {
