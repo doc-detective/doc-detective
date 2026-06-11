@@ -710,6 +710,11 @@ async function getAvailableApps({ config }: any) {
     // Note: Edge/Microsoft Edge detection is intentionally excluded
     // Only Chrome, Firefox, and Safari are supported browsers
 
+    // `appium driver list` writes its formatted table to stdout; combine both
+    // streams so detection works regardless of which version uses which stream.
+    const appiumDriverOutput =
+      installedAppiumDrivers.stdout + "\n" + installedAppiumDrivers.stderr;
+
     // Detect Chrome
     const chrome = installedBrowsers.find(
       (browser: any) => browser.browser === "chrome"
@@ -718,7 +723,7 @@ async function getAvailableApps({ config }: any) {
     const chromedriver = installedBrowsers.find(
       (browser: any) => browser.browser === "chromedriver"
     );
-    const appiumChromium = installedAppiumDrivers.stderr.match(
+    const appiumChromium = appiumDriverOutput.match(
       /\n.*chromium.*installed \(npm\).*\n/
     );
 
@@ -735,7 +740,7 @@ async function getAvailableApps({ config }: any) {
     const firefox = installedBrowsers.find(
       (browser: any) => browser.browser === "firefox"
     );
-    const appiumFirefox = installedAppiumDrivers.stderr.match(
+    const appiumFirefox = appiumDriverOutput.match(
       /\n.*gecko.*installed \(npm\).*\n/
     );
 
@@ -752,7 +757,7 @@ async function getAvailableApps({ config }: any) {
       const safariVersion = await spawnCommand(
         "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
       );
-      const appiumSafari = installedAppiumDrivers.stderr.match(
+      const appiumSafari = appiumDriverOutput.match(
         /\n.*safari.*installed \(npm\).*\n/
       );
 
