@@ -71,6 +71,10 @@ RUN npm install -g doc-detective@$PACKAGE_VERSION \
 RUN DD=/usr/local/lib/node_modules/doc-detective; \
     if [ -d "$DD/node_modules/sharp" ] && ! ( cd "$DD" && node -e "require('sharp')" ) >/dev/null 2>&1; then \
       case "$(uname -m)" in x86_64) CPU=x64 ;; aarch64) CPU=arm64 ;; *) CPU="" ;; esac; \
+      if [ -z "$CPU" ]; then \
+        echo "[sharp] ERROR: unsupported architecture $(uname -m); supported: x86_64, aarch64" >&2; \
+        exit 1; \
+      fi; \
       LV="@img/sharp-libvips-linux-$CPU"; \
       REQ="$(node -p "require('$DD/node_modules/@img/sharp-linux-$CPU/package.json').optionalDependencies['$LV']")"; \
       echo "[sharp] libvips mismatch detected; pinning $LV@$REQ for linux/$CPU"; \
