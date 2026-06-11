@@ -635,27 +635,45 @@ async function getAvailableApps({ config }: any) {
   const cwd = process.cwd();
   process.chdir(path.join(__dirname, "../.."));
   const apps: any[] = [];
+  // Set only on an *unexpected* browser-detection failure (the dep is present
+  // but fails to load/scan). Used to skip caching so a transient failure can't
+  // poison the per-dir cache and suppress later successful detection. A simply
+  // absent dep (lean install) is the normal "no browsers" case and stays
+  // cacheable.
+  let browserDetectionFailed = false;
 
   try {
-    // Detect installed browsers read-only: pass autoInstall=false so config
+    // Detect installed browsers read-only: autoInstall=false so config
     // resolution never triggers a heavy @puppeteer/browsers install (which
     // would defeat DOC_DETECTIVE_AUTOINSTALL=0 and the lazy-install contract).
     // Provisioning is the JIT pre-flight's job (core/index.ts) when a run
-    // actually needs a browser. Thread the configured cache dir through so this
-    // lookup matches the pre-flight's resolution. On a lean install the dep
-    // isn't present and loadHeavyDep throws — degrade to "no browsers detected"
-    // rather than installing or crashing config resolution.
+    // actually needs a browser. Gate the load on a non-installing presence
+    // check so a missing dep (lean install) is a normal empty result rather
+    // than a thrown error; only a present-but-broken dep counts as a failure.
     let installedBrowsers: any[] = [];
-    try {
-      const browsers = await loadHeavyDep<any>("@puppeteer/browsers", {
-        ctx: { cacheDir: config?.cacheDir },
-        autoInstall: false,
-      });
-      installedBrowsers = await browsers.getInstalledBrowsers({
-        cacheDir: browsersDir,
-      });
-    } catch {
-      installedBrowsers = [];
+    const browsersInstalled = resolveHeavyDepPath("@puppeteer/browsers", {
+      cacheDir: config?.cacheDir,
+    });
+    if (browsersInstalled) {
+      try {
+        const browsers = await loadHeavyDep<any>("@puppeteer/browsers", {
+          ctx: { cacheDir: config?.cacheDir },
+          autoInstall: false,
+        });
+        installedBrowsers = await browsers.getInstalledBrowsers({
+          cacheDir: browsersDir,
+        });
+      } catch (err: any) {
+        // Present but failed to load/scan (corrupt cache, API change, etc.):
+        // non-fatal for detection, but surface the reason and don't cache it.
+        browserDetectionFailed = true;
+        log(
+          config,
+          "warning",
+          `Browser detection failed; continuing without detected browsers: ${err?.message ?? err}`
+        );
+        installedBrowsers = [];
+      }
     }
     // Resolve `appium` from <cacheDir>/runtime via `npm exec --prefix`
     // so a `--omit=optional` install (where appium only lives in the
@@ -783,6 +801,8 @@ async function getAvailableApps({ config }: any) {
   // Detect Android Studio
   // Detect iOS Simulator
 
-  cachedAppsByDir.set(key, apps);
+  // Don't cache a result built on a failed browser detection — a transient
+  // failure must not suppress later successful detection in this process.
+  if (!browserDetectionFailed) cachedAppsByDir.set(key, apps);
   return apps;
 }
