@@ -59,26 +59,6 @@ RUN npm install -g doc-detective@$PACKAGE_VERSION \
          echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \
        fi
 
-# Backfill sharp's platform-specific native packages (@img/sharp-libvips-linux-*).
-# `npm install -g` can skip these nested optional deps, leaving sharp unable to
-# dlopen libvips ("libvips-cpp.so... cannot open shared object file") and crashing
-# any run that touches an image step. Reinstall the optional set for this image's
-# arch, pinned to the already-installed sharp version. Guarded on sharp being
-# present in the global install, so it is a no-op for versions that defer sharp to
-# the lazy runtime cache instead of declaring it as an eager dependency.
-RUN DD_DIR=/usr/local/lib/node_modules/doc-detective; \
-    if [ -d "$DD_DIR/node_modules/sharp" ]; then \
-      case "$(uname -m)" in \
-        x86_64) CPU=x64 ;; \
-        aarch64) CPU=arm64 ;; \
-        *) CPU="" ;; \
-      esac; \
-      SHARP_VER="$(node -p "require('$DD_DIR/node_modules/sharp/package.json').version")"; \
-      echo "[sharp] backfilling native libs for linux/$CPU (sharp@$SHARP_VER)"; \
-      npm install --prefix "$DD_DIR" --no-save --include=optional --os=linux --libc=glibc ${CPU:+--cpu=$CPU} "sharp@$SHARP_VER"; \
-      node -e "require('sharp'); console.log('[sharp] loads OK')"; \
-    fi
-
 # Install DITA-OT
 ARG DITA_OT_VERSION=4.3.4
 RUN curl -fSL https://github.com/dita-ot/dita-ot/releases/download/${DITA_OT_VERSION}/dita-ot-${DITA_OT_VERSION}.zip -o /tmp/dita-ot.zip \
