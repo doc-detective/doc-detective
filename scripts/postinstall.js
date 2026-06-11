@@ -113,7 +113,13 @@ async function maybeInstallRuntime() {
     return remainder;
   };
 
-  const { code, signal, errored } = await new Promise((resolve) => {
+  // Wall-clock ceiling so a hung npm/network can't make the parent
+  // `npm install` hang forever. Heavy deps + browser downloads are large, so
+  // this is generous; on expiry we kill the child and let the assets install
+  // lazily on first use instead.
+  const RUNTIME_INSTALL_TIMEOUT_MS = 10 * 60 * 1000;
+
+  const { code, signal, errored, timedOut } = await new Promise((resolve) => {
     let child;
     try {
       child = spawn(
@@ -122,9 +128,26 @@ async function maybeInstallRuntime() {
         { stdio: ["ignore", "pipe", "pipe"], env: process.env }
       );
     } catch {
-      resolve({ code: 1, signal: null, errored: true });
+      resolve({ code: 1, signal: null, errored: true, timedOut: false });
       return;
     }
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+    // unref() so the timer itself never holds the event loop open.
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        /* already gone */
+      }
+      finish({ code: null, signal: null, errored: false, timedOut: true });
+    }, RUNTIME_INSTALL_TIMEOUT_MS);
+    timer.unref?.();
     let outBuf = "";
     let errBuf = "";
     child.stdout?.on("data", (chunk) => (outBuf = consume(outBuf, chunk, true)));
@@ -134,10 +157,24 @@ async function maybeInstallRuntime() {
       // Flush any trailing partial lines left without a final newline.
       handleLine(outBuf, true);
       handleLine(errBuf, false);
-      resolve({ code: exitCode, signal: exitSignal, errored: false });
+      finish({ code: exitCode, signal: exitSignal, errored: false, timedOut: false });
     });
-    child.on("error", () => resolve({ code: 1, signal: null, errored: true }));
+    child.on("error", () =>
+      finish({ code: 1, signal: null, errored: true, timedOut: false })
+    );
   });
+
+  if (timedOut) {
+    console.error(
+      `doc-detective: runtime pre-warm timed out after ${Math.round(
+        RUNTIME_INSTALL_TIMEOUT_MS / 1000
+      )}s; heavy deps will install on first use, or run \`doc-detective install all\`.`
+    );
+    // A killed `install all` can leave orphaned npm grandchildren that keep the
+    // event loop alive and freeze the parent `npm install` (the same hazard the
+    // agent-detection phase guards against). Exit 0 so the install completes.
+    process.exit(0);
+  }
 
   if (!errored && !signal && code === 0) {
     console.log("doc-detective: runtime + browsers ready.");
