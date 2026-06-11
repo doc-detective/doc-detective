@@ -316,7 +316,7 @@ async function maybePromptInstallAgents() {
   }
   if (!proceed) {
     console.log(
-      "Skipped. Run `npx doc-detective install-agents` later to install."
+      "Skipped. Run `npx doc-detective install agents` later to install."
     );
     return;
   }
@@ -346,8 +346,8 @@ async function maybePromptInstallAgents() {
   if (signal || (code !== null && code !== 0)) {
     const reason = signal ? `due to signal ${signal}` : `with code ${code}`;
     console.log(
-      `\ndoc-detective install-agents exited ${reason}. ` +
-        "You can retry with `npx doc-detective install-agents`."
+      `\ndoc-detective install agents exited ${reason}. ` +
+        "You can retry with `npx doc-detective install agents`."
     );
   }
 }

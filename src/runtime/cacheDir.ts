@@ -43,11 +43,12 @@ function defaultCacheRoot(): string {
  */
 export function getCacheDir(ctx: CacheDirContext = {}): string {
   // Trim env / ctx values so whitespace-only inputs ("   ") are
-  // ignored. The schema enforces `pattern: \\S` on `config.cacheDir`
-  // and the CLI override trims as well; doing the same here keeps
-  // the env-var path consistent (DOC_DETECTIVE_CACHE_DIR doesn't
-  // pass through schema validation) and prevents the surprise of
-  // creating a "   " directory relative to the cwd.
+  // ignored. The schema enforces `pattern: \\S` on `config.cacheDir`,
+  // but the CLI override stores `--cache-dir` verbatim (assignment-only,
+  // see setConfig) and DOC_DETECTIVE_CACHE_DIR never passes through schema
+  // validation — so this is the single layer that trims and neutralizes
+  // whitespace-only values, preventing the surprise of creating a "   "
+  // directory relative to the cwd.
   const resolved =
     trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR) ??
     trimOrUndefined(ctx.cacheDir) ??
