@@ -173,7 +173,7 @@ async function runTests(config: any, options: any = {}) {
   }
 
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
-  if (!process.env.DOC_DETECTIVE_API && config.integrations && config.integrations.docDetectiveApi && config.integrations.docDetectiveApi.apiKey) {
+  if (willRunViaApi) {
     // Run test specs via API
     results = await runViaApi({
       resolvedTests,
