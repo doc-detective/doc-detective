@@ -168,6 +168,7 @@ export interface Config {
   ];
   integrations?: IntegrationsOptions;
   telemetry?: TelemetryOptions;
+  hints?: HintsOptions;
   /**
    * Number of concurrent test runners. Set to true to use CPU core count (capped at 4).
    */
@@ -452,6 +453,15 @@ export interface TelemetryOptions {
    * Identifier for the organization, group, or individual running Doc Detective.
    */
   userId?: string;
+}
+/**
+ * Options for the post-run hints feature. After a test run, Doc Detective may print one short, contextual hint with code samples and links to encourage further engagement (for example, suggesting a CI workflow when none is detected). Hints are shown only on a TTY and only at the default `info` log level.
+ */
+export interface HintsOptions {
+  /**
+   * If `true` (the default), Doc Detective may print one applicable hint after a test run. Disable from the CLI with `--no-hints`.
+   */
+  enabled: boolean;
 }
 /**
  * Environment information for the system running Doc Detective.

@@ -111,6 +111,11 @@ function buildYargs(args: any): any {
         "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
       type: "string",
     })
+    .option("hints", {
+      description:
+        "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
+      type: "boolean",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -281,6 +286,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     logLevel: config.logLevel || "info",
     fileTypes: config.fileTypes || ["markdown", "asciidoc", "html"],
     telemetry: config.telemetry || { send: true },
+    hints: config.hints || { enabled: true },
   };
   // Override config values
   if (configPath) {
@@ -346,6 +352,10 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     if (trimmed.length > 0) {
       config.cacheDir = trimmed;
     }
+  }
+  if (typeof args.hints === "boolean") {
+    config.hints = config.hints || { enabled: true };
+    config.hints.enabled = args.hints;
   }
   // Resolve paths
   config = await resolvePaths({

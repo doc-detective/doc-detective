@@ -286,6 +286,27 @@ describe("Util tests", function () {
     expect(config.cacheDir).to.equal("/tmp/dd");
   });
 
+  it("setConfig stores --hints / --no-hints on config.hints.enabled", async function () {
+    this.timeout(5000);
+    // --no-hints turns hints off
+    const argsOff = setArgs(["node", "runTests.js", "--no-hints"]);
+    expect(argsOff.hints).to.equal(false);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.hints).to.deep.equal({ enabled: false });
+
+    // --hints leaves hints on (the default)
+    const argsOn = setArgs(["node", "runTests.js", "--hints"]);
+    expect(argsOn.hints).to.equal(true);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.hints).to.deep.equal({ enabled: true });
+
+    // Absent flag — schema default kicks in via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.hints).to.be.undefined;
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.hints).to.deep.equal({ enabled: true });
+  });
+
   it("setConfig stores --reporters arg on config.reporters", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--reporters", "html", "terminal"]);

@@ -223,6 +223,38 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("cacheDir");
       });
 
+      it("should validate a config_v3 object with hints set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { hints: { enabled: true } },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.hints.enabled).to.equal(true);
+      });
+
+      it("should reject a config_v3 object whose hints.enabled is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { hints: { enabled: "yes" } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("hints");
+      });
+
+      it("should reject unknown properties on the hints object", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { hints: { enabled: true, bogusKey: 1 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",
