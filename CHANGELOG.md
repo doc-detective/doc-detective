@@ -1,3 +1,10 @@
+## [4.6.1](https://github.com/doc-detective/doc-detective/compare/v4.6.0...v4.6.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** keep browser detection read-only (no auto-install) ([#330](https://github.com/doc-detective/doc-detective/issues/330)) ([ff32472](https://github.com/doc-detective/doc-detective/commit/ff3247229d9a153d8035972e2181a42e7dd1ddce))
+
 # [4.6.0](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0) (2026-06-11)
 
 
