@@ -41,7 +41,7 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 **Opt out of the heavy pre-install** by setting `DOC_DETECTIVE_AUTOINSTALL=0` (also accepts `false`/`no`/`off`). The CLI install then stays small — no browser download, no heavy npm packages — and the heavy assets install lazily the first time a test needs them instead, or up front via `doc-detective install all`.
 
-Either way, the heavy packages are never declared in `dependencies` or `optionalDependencies`, so npm itself never fetches them as part of the dependency tree. Their version constraints live in a custom `ddRuntimeDependencies` field that the resolver reads when it installs each dep into the cache — whether at postinstall or on first use.
+Either way, the *published* package declares the heavy packages in neither `dependencies` nor `optionalDependencies`, so npm itself never fetches them as part of the dependency tree. (In the source repo they live under `optionalDependencies`; the publish step rewrites them into a custom `ddRuntimeDependencies` field.) The resolver reads that field's version constraints when it installs each dep into the cache — whether at postinstall or on first use.
 
 - **Pre-install everything up front:**
 
