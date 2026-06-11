@@ -82,12 +82,19 @@ describe("--dry-run short-circuits before execution", function () {
   });
 
   it("without dryRun, runTests returns an executed-results shape", async function () {
-    // Sanity control: the same spec, run normally, returns an object with
-    // `summary` and `specs[].tests[].contexts[].steps[]` carrying step
-    // results (a `result` field). This proves the dry-run case above is
-    // returning a *different* shape, not just an empty execution.
+    // Sanity control: run normally and confirm an executed-results shape
+    // (has `summary`, no `resolvedTestsId`). Uses a browser-free `wait` step
+    // so the assertion holds deterministically regardless of which browsers
+    // the environment detects — it must not depend on app detection returning
+    // nothing (which is what the prior `goTo` spec accidentally relied on).
+    const waitSpecPath = path.join(tmpDir, "wait.spec.json");
+    fs.writeFileSync(
+      waitSpecPath,
+      JSON.stringify({ tests: [{ steps: [{ wait: 10 }] }] }, null, 2)
+    );
+
     const result = await runTests({
-      input: [specPath],
+      input: [waitSpecPath],
       output: tmpDir,
       logLevel: "silent",
       telemetry: { send: false },

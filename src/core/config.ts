@@ -677,7 +677,10 @@ async function getAvailableApps({ config }: any) {
       const child = spawnChild(
         process.execPath,
         [appiumEntry, "driver", "list"],
-        { env: process.env }
+        // 30s ceiling so a hung/misconfigured appium can't block environment
+        // detection indefinitely; a timeout kills the child and the close/error
+        // handlers below degrade to "no drivers detected".
+        { env: process.env, timeout: 30_000 }
       );
       let stdout = "";
       let stderr = "";
@@ -710,6 +713,12 @@ async function getAvailableApps({ config }: any) {
     // Note: Edge/Microsoft Edge detection is intentionally excluded
     // Only Chrome, Firefox, and Safari are supported browsers
 
+    // `appium driver list` writes its formatted table to stdout on some
+    // versions and stderr on others. Match against both so driver presence
+    // detection doesn't silently fail depending on which stream is used.
+    const appiumDriverList =
+      installedAppiumDrivers.stdout + "\n" + installedAppiumDrivers.stderr;
+
     // Detect Chrome
     const chrome = installedBrowsers.find(
       (browser: any) => browser.browser === "chrome"
@@ -718,7 +727,7 @@ async function getAvailableApps({ config }: any) {
     const chromedriver = installedBrowsers.find(
       (browser: any) => browser.browser === "chromedriver"
     );
-    const appiumChromium = installedAppiumDrivers.stderr.match(
+    const appiumChromium = appiumDriverList.match(
       /\n.*chromium.*installed \(npm\).*\n/
     );
 
@@ -735,7 +744,7 @@ async function getAvailableApps({ config }: any) {
     const firefox = installedBrowsers.find(
       (browser: any) => browser.browser === "firefox"
     );
-    const appiumFirefox = installedAppiumDrivers.stderr.match(
+    const appiumFirefox = appiumDriverList.match(
       /\n.*gecko.*installed \(npm\).*\n/
     );
 
@@ -752,7 +761,7 @@ async function getAvailableApps({ config }: any) {
       const safariVersion = await spawnCommand(
         "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
       );
-      const appiumSafari = installedAppiumDrivers.stderr.match(
+      const appiumSafari = appiumDriverList.match(
         /\n.*safari.*installed \(npm\).*\n/
       );
 
