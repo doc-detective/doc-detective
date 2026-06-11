@@ -114,6 +114,22 @@ describe("runtime/installer", function () {
       expect(reports[0].installedVersion).to.equal("7.0.0");
     });
 
+    it("reports installed peer companions, not just the requested package", async function () {
+      // @puppeteer/browsers pulls in proxy-agent; the install report must list
+      // both so it matches what was actually installed (and the dry-run).
+      const spawner = fakeNpmSpawner({
+        materialize: { "@puppeteer/browsers": "3.0.4", "proxy-agent": "8.0.1" },
+      });
+      const reports = await installRuntime({
+        packages: ["@puppeteer/browsers"],
+        force: true,
+        deps: { spawn: spawner, logger: () => {} },
+      });
+      const ids = reports.map((r) => r.assetId);
+      expect(ids).to.include("@puppeteer/browsers");
+      expect(ids).to.include("proxy-agent");
+    });
+
     it("reports 'already-up-to-date' when nothing changes on re-run", async function () {
       // Pre-seed the cache with a fake pngjs install and matching record.
       const runtimeDir = path.join(tmpRoot, "runtime");
