@@ -113,7 +113,11 @@ export async function installRuntime(
   });
 
   const after = readInstalledRecord(ctx);
-  for (const name of targets) {
+  // ensureRuntimeInstalled also installs and records peer companions (e.g.
+  // proxy-agent alongside @puppeteer/browsers), so report on the expanded set
+  // — otherwise the result omits packages that were actually installed, and
+  // diverges from the dry-run report.
+  for (const name of withPeerCompanions(targets)) {
     const wasInstalled = before.npmPackages[name];
     const nowInstalled = after.npmPackages[name];
     const installedVersion = nowInstalled?.installedVersion;
