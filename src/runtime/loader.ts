@@ -272,23 +272,27 @@ export async function ensureRuntimeInstalled(
     // break the install.
     const logPath = path.join(runtimeDir, "install.log");
     let logStream: fs.WriteStream | null = null;
+    let logHint = "";
     try {
       fs.mkdirSync(runtimeDir, { recursive: true });
       logStream = fs.createWriteStream(logPath, { flags: "w" });
       // A write/flush error (disk full, EIO, permissions) must never crash the
       // install via an unhandled 'error' event. Swallow it and stop logging.
+      // Also drop logHint so a later failure message doesn't point users at a
+      // log file that was never written (or only partially).
       logStream.on("error", () => {
         logStream = null;
+        logHint = "";
       });
       // Header so the log is self-contained for diagnostics, even though the
       // terminal no longer lists the deps.
       logStream.write(
         `# doc-detective: installing ${specs.join(", ")}\n# into ${runtimeDir}\n\n`
       );
+      logHint = ` See full npm output: ${logPath}`;
     } catch {
       logStream = null;
     }
-    const logHint = logStream ? ` See full npm output: ${logPath}` : "";
 
     // DEP0190: spawning npm.cmd on Windows needs shell:true, and passing args
     // with shell:true emits a deprecation warning. We keep the CodeQL-safe args
