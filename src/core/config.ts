@@ -637,17 +637,26 @@ async function getAvailableApps({ config }: any) {
   const apps: any[] = [];
 
   try {
-    // Lazy-load @puppeteer/browsers; it's a heavy runtime dep that should
-    // only materialize when a runner that actually drives browsers boots up.
-    // Thread the configured cache dir through so a non-default cacheDir is
-    // honored by the resolver (otherwise this lookup could diverge from the
-    // pre-flight install that already used config.cacheDir).
-    const browsers = await loadHeavyDep<any>("@puppeteer/browsers", {
-      ctx: { cacheDir: config?.cacheDir },
-    });
-    const installedBrowsers = await browsers.getInstalledBrowsers({
-      cacheDir: browsersDir,
-    });
+    // Detect installed browsers read-only: pass autoInstall=false so config
+    // resolution never triggers a heavy @puppeteer/browsers install (which
+    // would defeat DOC_DETECTIVE_AUTOINSTALL=0 and the lazy-install contract).
+    // Provisioning is the JIT pre-flight's job (core/index.ts) when a run
+    // actually needs a browser. Thread the configured cache dir through so this
+    // lookup matches the pre-flight's resolution. On a lean install the dep
+    // isn't present and loadHeavyDep throws — degrade to "no browsers detected"
+    // rather than installing or crashing config resolution.
+    let installedBrowsers: any[] = [];
+    try {
+      const browsers = await loadHeavyDep<any>("@puppeteer/browsers", {
+        ctx: { cacheDir: config?.cacheDir },
+        autoInstall: false,
+      });
+      installedBrowsers = await browsers.getInstalledBrowsers({
+        cacheDir: browsersDir,
+      });
+    } catch {
+      installedBrowsers = [];
+    }
     // Resolve `appium` from <cacheDir>/runtime via `npm exec --prefix`
     // so a `--omit=optional` install (where appium only lives in the
     // cache) still finds the CLI. Bare `npx appium` would fail in that
