@@ -1,3 +1,36 @@
+# [4.6.0](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** check stdout+stderr for Appium driver detection ([bfc37c6](https://github.com/doc-detective/doc-detective/commit/bfc37c6687ad2190e8e44fab1f834eee9dfab102))
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([9fbf2b2](https://github.com/doc-detective/doc-detective/commit/9fbf2b2156f7832efc8a64a9098c04cf4cf2b277))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([366202e](https://github.com/doc-detective/doc-detective/commit/366202e65277b223e07466cedfd70b081b3976ed)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* declare node >=22.12.0 engine requirement ([e968059](https://github.com/doc-detective/doc-detective/commit/e9680596df88a17865f7defaf313735e48730ef9))
+* **install:** bound the postinstall runtime pre-warm with a timeout ([#329](https://github.com/doc-detective/doc-detective/issues/329)) ([fb99ca7](https://github.com/doc-detective/doc-detective/commit/fb99ca7a83f6b2213bab71da16f234ac304cbcc7))
+* **install:** clear log hint when the install.log stream errors ([fcb1d9b](https://github.com/doc-detective/doc-detective/commit/fcb1d9bbedaceda13efac618aeb277bcb86ae7c7))
+* **install:** include peer companions in the install report ([19e1912](https://github.com/doc-detective/doc-detective/commit/19e19121603c406f9b04ea6c64be3b178ba00c1b))
+* **install:** report peer companions in dry-run output ([0257797](https://github.com/doc-detective/doc-detective/commit/0257797d2439c5c9c8e98b48a05084af2512208b))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([f995df9](https://github.com/doc-detective/doc-detective/commit/f995df9f12c52152cf1a63982999a49ba21d30cb))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([09b985c](https://github.com/doc-detective/doc-detective/commit/09b985ca26d0b17f0465575899c55f45afb58082))
+* **runtime:** anchor parseSemverCore to the full version string ([23b5463](https://github.com/doc-detective/doc-detective/commit/23b546361f4465962b338dc1a3f33e6e24035130))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([396605c](https://github.com/doc-detective/doc-detective/commit/396605c318cb00a907cb63161f6b1d3bddd73476))
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([339c8b9](https://github.com/doc-detective/doc-detective/commit/339c8b9867979425ab52852e1594aca746103bfa)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([a3a36ca](https://github.com/doc-detective/doc-detective/commit/a3a36ca49261d390b1eda2f48c7197f5663d3425))
+
+
+### Features
+
+* **hints:** add post-run contextual hint system with 25 hints ([#303](https://github.com/doc-detective/doc-detective/issues/303)) ([1e2bf43](https://github.com/doc-detective/doc-detective/commit/1e2bf43245c993744ae1967a064005ffe33b21d5))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([2df7b63](https://github.com/doc-detective/doc-detective/commit/2df7b63c12055ce034909e85df70856fd1c56bbc)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([2b620b2](https://github.com/doc-detective/doc-detective/commit/2b620b24d6cb90766b63550fc91d912848801e3b))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([6811c53](https://github.com/doc-detective/doc-detective/commit/6811c53419ff122872d848eb3d179f32c11d7fad))
+
+
+### Reverts
+
+* Revert "ci(docker): backfill sharp native libs in the linux image" ([33ded97](https://github.com/doc-detective/doc-detective/commit/33ded97ba9bd14ce43419e450e32d0c16b7d704b))
+
 # [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-06-11)
 
 
