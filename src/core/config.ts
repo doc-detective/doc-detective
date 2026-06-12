@@ -5,7 +5,7 @@ import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
-import { getBrowsersDir } from "../runtime/cacheDir.js";
+import { getBrowsersDir, readInstalledRecord } from "../runtime/cacheDir.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
@@ -618,17 +618,18 @@ function clearAppCache(config?: any) {
   cachedAppsByDir.delete(cacheKeyFor(config));
 }
 
-// Detect available apps.
-// Shared browser/driver probing used by both `getAvailableApps` (which
-// filters to fully-usable browsers) and `getBrowserDiagnostics` (which
-// reports per-component status). Keeping a single probe here means the
-// diagnostic dump can never disagree with what a real run detects.
+// Live browser/driver probing for `getAvailableApps` — the runtime gate
+// that decides whether a real run can launch a browser right now.
 //
 // Returns the raw `@puppeteer/browsers` install list and the combined
 // `appium driver list` output, plus a `browserDetectionFailed` flag set
 // only on an *unexpected* failure (the dep is present but fails to
 // load/scan) so callers can skip caching. A simply-absent dep (lean
 // install) is the normal "nothing installed" case, not a failure.
+//
+// Note: the diagnostic dump uses `getBrowserDiagnostics` instead, which
+// reads doc-detective's `installed.json` record so it reports the same
+// values as `doc-detective install` / `install status`.
 async function probeBrowserEnvironment({
   config,
   browsersDir,
@@ -843,81 +844,70 @@ interface BrowserDiagnostic {
 
 // Per-browser, per-component status for the diagnostic dump. Always reports
 // all supported browsers (Chrome, Firefox, Safari) whether or not they're
-// usable, so a user can see exactly which piece is missing. `available`
-// matches the gate in `getAvailableApps`; `geckodriver` / `safaridriver` are
-// reported as informational components (Doc Detective auto-installs
-// geckodriver and safaridriver ships with macOS) even though the gate keys on
-// the browser binary plus the Appium driver.
+// usable, so a user can see exactly which piece is missing.
+//
+// Reads from the same `<cacheDir>/installed.json` record that
+// `doc-detective install` / `install status` use (`readInstalledRecord`),
+// NOT live `@puppeteer/browsers` / `appium driver list` probing — so the
+// dump reports the SAME values as the installer (e.g. the appium-*-driver
+// npm packages and the geckodriver binary that live probing misses). A
+// browser is `available` when its browser binary, its webdriver, and its
+// Appium driver are all recorded as installed.
 async function getBrowserDiagnostics({ config }: any): Promise<{
   browsers: BrowserDiagnostic[];
   detectionFailed: boolean;
 }> {
-  const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });
-  const { installedBrowsers, appiumDriverOutput, browserDetectionFailed } =
-    await probeBrowserEnvironment({ config, browsersDir });
-
-  const find = (b: string) =>
-    installedBrowsers.find((x: any) => x.browser === b);
+  const record = readInstalledRecord({ cacheDir: config?.cacheDir });
+  const browsersRec = record.browsers || {};
   const platform = config?.environment?.platform;
+
+  // Browser binaries are tracked in installed.json (matches the `@version`
+  // shown by `install`/`install status`).
+  const brow = (name: string) => browsersRec[name];
+  // Heavy npm packages (the appium-*-driver wrappers) count as installed
+  // when resolvable from the shim's node_modules OR the runtime cache —
+  // the same presence check `ensureRuntimeInstalled` uses to decide
+  // "already-up-to-date". The cache record alone would miss packages that
+  // resolve from node_modules (e.g. a dev checkout or pre-installed deps).
+  const npmInstalled = (name: string) =>
+    Boolean(resolveHeavyDepPath(name, { cacheDir: config?.cacheDir }));
   const browsers: BrowserDiagnostic[] = [];
 
-  // Chrome
-  const chrome = find("chrome");
-  const chromedriver = find("chromedriver");
-  const appiumChromium = /\n.*chromium.*installed \(npm\).*\n/.test(
-    appiumDriverOutput
-  );
+  // Chrome: browser binary + chromedriver + appium-chromium-driver.
+  const chrome = brow("chrome");
+  const chromedriver = brow("chromedriver");
+  const appiumChromium = npmInstalled("appium-chromium-driver");
   browsers.push({
     name: "chrome",
     supported: true,
     available: Boolean(chrome && chromedriver && appiumChromium),
     components: [
-      {
-        label: "chrome browser",
-        installed: Boolean(chrome),
-        detail: chrome ? `${chrome.buildId} (${chrome.executablePath})` : undefined,
-      },
-      {
-        label: "chromedriver",
-        installed: Boolean(chromedriver),
-        detail: chromedriver?.executablePath,
-      },
+      { label: "chrome browser", installed: Boolean(chrome), detail: chrome?.installedVersion },
+      { label: "chromedriver", installed: Boolean(chromedriver), detail: chromedriver?.installedVersion },
       { label: "appium-chromium-driver", installed: appiumChromium },
     ],
   });
 
-  // Firefox
-  const firefox = find("firefox");
-  const geckodriver = find("geckodriver");
-  const appiumGecko = /\n.*gecko.*installed \(npm\).*\n/.test(appiumDriverOutput);
+  // Firefox: browser binary + geckodriver + appium-geckodriver.
+  const firefox = brow("firefox");
+  const geckodriver = brow("geckodriver");
+  const appiumGecko = npmInstalled("appium-geckodriver");
   browsers.push({
     name: "firefox",
     supported: true,
-    available: Boolean(firefox && appiumGecko),
+    available: Boolean(firefox && geckodriver && appiumGecko),
     components: [
-      {
-        label: "firefox browser",
-        installed: Boolean(firefox),
-        detail: firefox
-          ? `${firefox.buildId} (${firefox.executablePath})`
-          : undefined,
-      },
-      {
-        label: "geckodriver",
-        installed: Boolean(geckodriver),
-        detail: geckodriver?.executablePath,
-      },
+      { label: "firefox browser", installed: Boolean(firefox), detail: firefox?.installedVersion },
+      { label: "geckodriver", installed: Boolean(geckodriver), detail: geckodriver?.installedVersion },
       { label: "appium-geckodriver", installed: appiumGecko },
     ],
-    note:
-      firefox && appiumGecko && !geckodriver
-        ? "geckodriver is auto-installed at run time when missing"
-        : undefined,
   });
 
-  // Safari (macOS only)
+  // Safari (macOS only): the OS-provided app + safaridriver, plus the
+  // appium-safari-driver npm package. The app/driver are OS-provided (not
+  // tracked in installed.json), so they're probed directly.
   const isMac = platform === "mac";
-  const appiumSafari = /\n.*safari.*installed \(npm\).*\n/.test(appiumDriverOutput);
+  const appiumSafari = npmInstalled("appium-safari-driver");
   let safariApp = false;
   let safariVersion: string | undefined;
   let safaridriver = false;
@@ -938,7 +928,7 @@ async function getBrowserDiagnostics({ config }: any): Promise<{
   browsers.push({
     name: "safari",
     supported: isMac,
-    available: Boolean(isMac && safariApp && appiumSafari),
+    available: Boolean(isMac && safariApp && safaridriver && appiumSafari),
     components: [
       { label: "Safari app", installed: safariApp, detail: safariVersion },
       {
@@ -951,5 +941,5 @@ async function getBrowserDiagnostics({ config }: any): Promise<{
     note: isMac ? undefined : "Safari is only available on macOS",
   });
 
-  return { browsers, detectionFailed: browserDetectionFailed };
+  return { browsers, detectionFailed: false };
 }

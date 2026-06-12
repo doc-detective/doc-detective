@@ -136,9 +136,9 @@ export interface DebugData {
   config: ConfigData;
 }
 
-// Hard cap on browser-detection latency. Detection shells out to
-// `appium driver list`, which can take ~74s on cold caches without local
-// Appium. Diagnostics must not block that long.
+// Hard cap on browser-detection latency. Detection reads doc-detective's
+// installed.json record (fast), but the macOS Safari probe shells out to
+// `defaults read`; this bounds that so diagnostics never block.
 const BROWSER_DETECTION_TIMEOUT_MS = 5000;
 
 async function collectDebugData(opts: PrintDebugOptions): Promise<DebugData> {
@@ -452,7 +452,7 @@ function renderToolsSection(results: ToolResult[]): Section {
 function renderBrowsersSection(data: BrowsersData): Section {
   if (data.timedOut) {
     return renderSection("Browsers", [
-      `  <browser detection timed out after ${BROWSER_DETECTION_TIMEOUT_MS}ms — most often means Appium isn't installed locally, since detection shells out to \`appium driver list\`>`,
+      `  <browser detection timed out after ${BROWSER_DETECTION_TIMEOUT_MS}ms>`,
     ]);
   }
   if (data.error) {

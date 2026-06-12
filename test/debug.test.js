@@ -577,6 +577,45 @@ describe("debug/printDebug end-to-end", function () {
     }
   });
 
+  it("browser binaries are read from the install record (matches `doc-detective install`)", async function () {
+    this.timeout(60000);
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-record-"));
+    try {
+      // Craft an installed.json the way the installer writes it, then point
+      // config.cacheDir at it. The browser section must reflect THIS record
+      // (the same source `doc-detective install` / `install status` read),
+      // not a live browser-cache scan.
+      fs.writeFileSync(
+        path.join(tmp, "installed.json"),
+        JSON.stringify({
+          npmPackages: {},
+          browsers: {
+            chrome: { installedVersion: "140.0.test", installedAt: "now" },
+            chromedriver: { installedVersion: "140.0.test", installedAt: "now" },
+          },
+        })
+      );
+      const out = [];
+      await printDebug({
+        config: {
+          input: ".",
+          environment: { platform: "linux" },
+          cacheDir: tmp,
+        },
+        configPath: null,
+        print: (line) => out.push(line),
+      });
+      const text = out.join("\n");
+      // chrome browser + chromedriver reflect the record's versions.
+      expect(text).to.match(/chrome browser:\s+installed\s+140\.0\.test/);
+      expect(text).to.match(/chromedriver:\s+installed\s+140\.0\.test/);
+      // firefox browser is absent from the record -> reported not installed.
+      expect(text).to.match(/firefox browser:\s+not installed/);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("surfaces the CONFIG INVALID banner when configError is set", async function () {
     this.timeout(60000);
     const out = [];
