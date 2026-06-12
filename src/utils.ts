@@ -360,13 +360,25 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   }
   if (typeof args.concurrentRunners === "string") {
     // The bare flag ("" after yargs string parsing) and an explicit "true"
-    // select CPU-count mode; anything else is a runner count. A garbage value
-    // becomes NaN here and is rejected by the downstream config_v3 validation
-    // in core — assignment-only per the documented setConfig contract.
-    config.concurrentRunners =
-      args.concurrentRunners === "" || args.concurrentRunners === "true"
-        ? true
-        : Number(args.concurrentRunners);
+    // select CPU-count mode; anything else must parse as a positive integer.
+    // CLI overrides land after the config_v3 validation above, and the
+    // pre-resolved-tests API path never re-validates, so a garbage value
+    // would otherwise reach the runner as NaN and silently degrade to
+    // sequential execution — warn and keep the validated value instead.
+    if (args.concurrentRunners === "" || args.concurrentRunners === "true") {
+      config.concurrentRunners = true;
+    } else {
+      const count = Number(args.concurrentRunners);
+      if (Number.isInteger(count) && count >= 1) {
+        config.concurrentRunners = count;
+      } else {
+        log(
+          `Ignoring invalid --concurrent-runners value '${args.concurrentRunners}'. Expected a positive integer, or no value (or 'true') for CPU-count mode.`,
+          "warning",
+          config
+        );
+      }
+    }
   }
   // Resolve paths
   config = await resolvePaths({

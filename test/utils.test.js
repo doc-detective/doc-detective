@@ -331,6 +331,19 @@ describe("Util tests", function () {
     expect(configAbsent.concurrentRunners).to.equal(1);
   });
 
+  it("setConfig ignores invalid --concurrent-runners values", async function () {
+    this.timeout(5000);
+    // CLI overrides land after config_v3 validation, so the override block
+    // must not let NaN or non-positive counts through (they'd silently
+    // degrade to sequential execution). Invalid values are warned about and
+    // dropped — the validated default stays.
+    for (const bad of ["abc", "1.5", "0"]) {
+      const args = setArgs(["node", "runTests.js", "--concurrent-runners", bad]);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.concurrentRunners, `value: ${bad}`).to.equal(1);
+    }
+  });
+
   it("setConfig ignores empty --cache-dir override", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--cache-dir", ""]);
