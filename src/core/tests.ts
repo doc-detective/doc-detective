@@ -1237,10 +1237,18 @@ async function driverStart(
   maxAttempts: number = 4,
   ctx: { cacheDir?: string } = {}
 ) {
-  // POST /session can race a just-spawned-or-still-dying Appium on Windows:
-  // /status may already return 200 from the outgoing process while /session
-  // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
-  // any other error is a real session-creation failure and propagates.
+  // Two transient, retryable failure modes, both worse under concurrency:
+  //   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
+  //      /status returns 200 from the outgoing process while /session no
+  //      longer accepts -> ECONNREFUSED.
+  //   2. Several Chromes launching at once briefly starve resources and
+  //      ChromeDriver "crashed during startup" / "cannot connect to chrome".
+  //      A staggered retry lets the contention clear; it recovers on the next
+  //      attempt in practice.
+  // Retry these with linear backoff; any other error is a real session-
+  // creation failure and propagates immediately.
+  const TRANSIENT =
+    /ECONNREFUSED|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
   const wdio = await loadHeavyDep<typeof import("webdriverio")>(
     "webdriverio",
     { ctx }
@@ -1264,7 +1272,7 @@ async function driverStart(
       return driver;
     } catch (err: any) {
       lastError = err;
-      if (!/ECONNREFUSED/.test(String(err && err.message))) throw err;
+      if (!TRANSIENT.test(String(err && err.message))) throw err;
       if (attempt < maxAttempts) {
         await new Promise((r) => setTimeout(r, 500 * attempt));
       }
