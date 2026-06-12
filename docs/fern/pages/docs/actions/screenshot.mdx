@@ -170,4 +170,45 @@ Captures the element with text "Submit Button", adds 10px padding, and compares 
 }
 ```
 
+## Automatic screenshots
+
+To capture a screenshot after every browser-based step, use the `autoScreenshot` option. This is useful for:
+
+- Building a visual record of test runs
+- Detecting UI regressions by comparing screenshots between runs
+- Debugging failures by inspecting the state at each step
+
+Enable at the config, spec, or test level (test overrides spec, which overrides config):
+
+```json
+{
+  "autoScreenshot": true,
+  "output": "./test-results"
+}
+```
+
+Or use the CLI flag:
+
+```bash
+doc-detective --auto-screenshot
+```
+
+Auto screenshots are saved to `<output>/.doc-detective/run-<runId>/screenshots/`. The path structure uses stable IDs derived from file paths and content hashes:
+
+```
+.doc-detective/run-<runId>/
+├── testResults.json
+└── screenshots/
+    └── <specId>/
+        └── <testId>/
+            └── <contextId>/
+                └── 01-goTo-s4f2a91c.png
+```
+
+Doc Detective generates deterministic IDs based on content rather than random UUIDs, so the same test step produces the same relative path in every run. This makes it easy to diff two run folders and spot UI changes over time.
+
+<Note>
+Explicit `screenshot` steps are excluded from auto screenshot capture since they already produce an image. Failed steps are still captured—the failure state is often the most useful frame for debugging.
+</Note>
+
 
