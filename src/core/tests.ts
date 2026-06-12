@@ -1243,7 +1243,7 @@ async function driverStart(
   // Retry these with linear backoff; any other error is a real session-
   // creation failure and propagates immediately.
   const TRANSIENT =
-    /ECONNREFUSED|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
+    /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
   const wdio = await loadHeavyDep<typeof import("webdriverio")>(
     "webdriverio",
     { ctx }
