@@ -81,6 +81,11 @@ export interface HintContext {
   totalSpecs: number;
   /** Total test count. */
   totalTests: number;
+  /**
+   * Total context count from `results.summary.contexts`
+   * (pass+fail+warning+skipped). Cheap — read from the in-memory summary.
+   */
+  totalContexts: number;
   /** Total step count. */
   totalSteps: number;
   /**

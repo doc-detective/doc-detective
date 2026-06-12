@@ -890,6 +890,7 @@ describe("hints/context", function () {
             summary: {
               specs: { pass: 5, fail: 1 },
               tests: { pass: 10, fail: 2 },
+              contexts: { pass: 11, fail: 2, skipped: 1 },
               steps: { pass: 30, fail: 3 },
             },
           },
@@ -897,6 +898,7 @@ describe("hints/context", function () {
         expect(ctx.failedCount).to.equal(6);
         expect(ctx.totalSpecs).to.equal(6);
         expect(ctx.totalTests).to.equal(12);
+        expect(ctx.totalContexts).to.equal(14);
         expect(ctx.totalSteps).to.equal(33);
       } finally {
         rmTmpDir(cwd);
@@ -1282,6 +1284,7 @@ function fakeCtx(partial = {}) {
     configPath: ".doc-detective.json",
     totalSpecs: 0,
     totalTests: 0,
+    totalContexts: 0,
     totalSteps: 0,
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
@@ -1369,12 +1372,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 25 active hints. `useFileTypesForRst` is commented out in the
+    // 26 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(25);
+    expect(HINTS.length).to.equal(26);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1757,6 +1760,31 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ totalSpecs: 101 }))).to.equal(true);
     expect(h.when(fakeCtx({ totalSpecs: 101, config: { recursive: false } }))).to.equal(false);
     expect(h.when(fakeCtx({ totalSpecs: 50 }))).to.equal(false);
+  });
+
+  it("setConcurrentRunners: fires for many-context serial runs without recordings", function () {
+    const h = findHint("setConcurrentRunners");
+    expect(h.priority).to.equal(50);
+    expect(h.when(fakeCtx({ totalContexts: 5 }))).to.equal(true);
+    // Too few contexts to benefit from parallelism.
+    expect(h.when(fakeCtx({ totalContexts: 4 }))).to.equal(false);
+    // Already concurrent — numeric or `true` (CPU-count mode).
+    expect(
+      h.when(fakeCtx({ totalContexts: 5, config: { concurrentRunners: 2 } }))
+    ).to.equal(false);
+    expect(
+      h.when(
+        fakeCtx({ totalContexts: 5, config: { concurrentRunners: true } })
+      )
+    ).to.equal(false);
+    // Explicit sequential default still fires.
+    expect(
+      h.when(fakeCtx({ totalContexts: 5, config: { concurrentRunners: 1 } }))
+    ).to.equal(true);
+    // Recording runs should stay sequential — wrong advice for them.
+    expect(
+      h.when(fakeCtx({ totalContexts: 5, producedRecordings: true }))
+    ).to.equal(false);
   });
 
   it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {
