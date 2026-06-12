@@ -14,6 +14,7 @@ import {
   findFreePort,
   runConcurrent,
   rollUpResults,
+  createAppiumPool,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -189,21 +190,6 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
   return capabilities;
 }
 
-// Check if any steps require an Appium driver.
-function isAppiumRequired(specs: any[]) {
-  let appiumRequired = false;
-  specs.forEach((spec: any) => {
-    spec.tests.forEach((test: any) => {
-      test.contexts.forEach((context: any) => {
-        // Check if test includes actions that require a driver.
-        if (isDriverRequired({ test: context })) {
-          appiumRequired = true;
-        }
-      });
-    });
-  });
-  return appiumRequired;
-}
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
@@ -499,7 +485,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const platform = runnerDetails.environment.platform;
   const availableApps = runnerDetails.availableApps;
   const metaValues: any = { specs: {} };
-  let appium: any;
   const report: any = {
     summary: {
       specs: {
@@ -530,61 +515,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     specs: [],
   };
 
-  // Determine which apps are required
-  const appiumRequired = isAppiumRequired(specs);
-
-  // Warm up Appium
-  let appiumPort: number | undefined;
-  if (appiumRequired) {
-    setAppiumHome({ cacheDir: config?.cacheDir });
-    appiumPort = await findFreePort();
-    log(config, "debug", `Starting Appium on port ${appiumPort}`);
-    // Resolve appium's actual JS entrypoint via `require.resolve`
-    // (shim node_modules first, runtime cache second) and invoke it
-    // with `node <entry>`. This sidesteps every shell-injection trap
-    // at once: no `.cmd` shim, so no Windows-requires-shell:true; no
-    // `npx`, so no PATH lookup; no user-controlled paths in a shell-
-    // interpreted string. Works for both `--omit=optional` users
-    // (appium in cache only) and default installs (appium in shim).
-    const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
-    if (!appiumEntry) {
-      throw new Error(
-        "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
-      );
-    }
-    appium = spawn(
-      process.execPath,
-      [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
-      {
-        windowsHide: true,
-        cwd: path.join(__dirname, "../.."),
-      }
-    );
-    appium.on("error", (err: any) => {
-      log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
-    });
-    appium.stdout.on("data", (data: any) => {
-      // console.log(`stdout: ${data}`);
-    });
-    appium.stderr.on("data", (data: any) => {
-      // console.error(`stderr: ${data}`);
-    });
-    try {
-      await appiumIsReady(appiumPort);
-    } catch (error) {
-      // appiumIsReady threw or timed out — the spawned child is still
-      // alive and would leak (orphan process, port still bound). Tear
-      // it down before propagating so subsequent runs don't trip on
-      // the stale state.
-      try {
-        if (appium && appium.pid) kill(appium.pid);
-      } catch {
-        // best-effort cleanup; the parent error is what matters
-      }
-      throw error;
-    }
-    log(config, "debug", "Appium is ready.");
-  }
+  // Resolve concurrency up front (defensive re-resolve: API callers can hand
+  // runSpecs a config that never went through core setConfig, leaving
+  // concurrentRunners as `true`). Drives both the worker pool and how many
+  // Appium servers to start.
+  const limit = resolveConcurrentRunners(config);
 
   // Phase 1: pre-build the report skeleton and a flat list of context jobs
   // across all specs and tests. Slots are pre-assigned so report order always
@@ -622,11 +557,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
   }
 
-  // Phase 2: run every context job through one flat worker pool. A limit of 1
-  // (the default) is strictly sequential in input order. Re-resolve
-  // defensively: API callers can hand runSpecs a config that never went
-  // through core setConfig, leaving concurrentRunners as `true`.
-  const limit = resolveConcurrentRunners(config);
   if (
     limit > 1 &&
     jobs.some((job: any) =>
@@ -641,6 +571,66 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       "Tests include record steps while concurrentRunners is greater than 1. Concurrent recordings can capture the wrong window; set concurrentRunners to 1 for recording runs."
     );
   }
+
+  // Start one Appium server per concurrent runner that will actually use a
+  // driver (capped at the number of driver contexts). Each server owns a
+  // distinct port, so parallel contexts never create sessions on the same
+  // server — that contention crashed ChromeDriver when every context shared
+  // one server. Non-driver runs start none.
+  const driverJobCount = jobs.filter((job: any) =>
+    isDriverRequired({ test: job.context })
+  ).length;
+  let appiumServers: Array<{ port: number; process: any }> = [];
+  let appiumPool:
+    | { acquire(): Promise<number>; release(port: number): void }
+    | undefined;
+  if (driverJobCount > 0) {
+    setAppiumHome({ cacheDir: config?.cacheDir });
+    // Resolve appium's actual JS entrypoint via `require.resolve` (shim
+    // node_modules first, runtime cache second) and invoke it with
+    // `node <entry>`. This sidesteps every shell-injection trap at once: no
+    // `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no PATH
+    // lookup; no user-controlled paths in a shell-interpreted string. Works
+    // for both `--omit=optional` users (appium in cache only) and default
+    // installs (appium in shim).
+    const appiumEntry = resolveHeavyDepPath("appium", {
+      cacheDir: config?.cacheDir,
+    });
+    if (!appiumEntry) {
+      throw new Error(
+        "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
+      );
+    }
+    const serverCount = Math.min(limit, driverJobCount);
+    log(config, "debug", `Starting ${serverCount} Appium server(s).`);
+    const started = await Promise.allSettled(
+      Array.from({ length: serverCount }, () =>
+        startAppiumServer(appiumEntry, config)
+      )
+    );
+    appiumServers = started
+      .filter((r): r is PromiseFulfilledResult<{ port: number; process: any }> =>
+        r.status === "fulfilled"
+      )
+      .map((r) => r.value);
+    const failure = started.find((r) => r.status === "rejected");
+    if (failure) {
+      // One server failed to come up; tear down any that did so they don't
+      // leak, then propagate.
+      for (const server of appiumServers) {
+        try {
+          kill(server.process.pid);
+        } catch {
+          // best-effort
+        }
+      }
+      throw (failure as PromiseRejectedResult).reason;
+    }
+    appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
+  }
+
+  // Phase 2: run every context job through one flat worker pool. A limit of 1
+  // (the default) is strictly sequential in input order.
   await runConcurrent(jobs, limit, async (job: any) => {
     try {
       job.contexts[job.slot] = await runContext({
@@ -649,7 +639,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         test: job.test,
         context: job.context,
         runnerDetails,
-        appiumPort,
+        appiumPool,
         metaValues,
         logPrefix:
           limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
@@ -693,11 +683,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     report.summary.specs[specReport.result.toLowerCase()]++;
   }
 
-  // Close appium server
-  if (appium) {
-    log(config, "debug", "Closing Appium server");
+  // Close every Appium server we started.
+  for (const server of appiumServers) {
+    log(config, "debug", `Closing Appium server on port ${server.port}`);
     try {
-      kill(appium.pid);
+      kill(server.process.pid);
     } catch {
       // Process may already be terminated
     }
@@ -743,7 +733,7 @@ async function runContext({
   test,
   context,
   runnerDetails,
-  appiumPort,
+  appiumPool,
   metaValues,
   logPrefix = "",
 }: {
@@ -752,7 +742,9 @@ async function runContext({
   test: any;
   context: any;
   runnerDetails: any;
-  appiumPort: number | undefined;
+  appiumPool:
+    | { acquire(): Promise<number>; release(port: number): void }
+    | undefined;
   metaValues: any;
   logPrefix?: string;
 }): Promise<any> {
@@ -838,83 +830,89 @@ async function runContext({
   clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
   let driver: any;
+  let appiumPort: number | undefined;
   const driverRequired = isDriverRequired({ test: context });
-  if (driverRequired) {
-    // Define driver capabilities
-    // TODO: Support custom apps
-    let caps: any = getDriverCapabilities({
-      runnerDetails: runnerDetails,
-      name: context.browser.name,
-      options: {
-        width: context.browser?.window?.width || 1200,
-        height: context.browser?.window?.height || 800,
-        headless: context.browser?.headless !== false,
-      },
-    });
-    clog("debug", "CAPABILITIES:");
-    clog("debug", caps);
-
-    if (appiumPort === undefined) {
-      throw new Error(
-        "Driver requested but Appium was not started. " +
-          "isAppiumRequired(specs) and isDriverRequired(context) disagreed; this is a bug."
-      );
-    }
-    // Instantiate driver
-    try {
-      driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
-    } catch (error: any) {
-      try {
-        // If driver fails to start, try again as headless
-        clog(
-          "warning",
-          `Failed to start context '${context.browser?.name}' on '${platform}'. Retrying as headless.`
-        );
-        context.browser.headless = true;
-        caps = getDriverCapabilities({
-          runnerDetails: runnerDetails,
-          name: context.browser.name,
-          options: {
-            width: context.browser?.window?.width || 1200,
-            height: context.browser?.window?.height || 800,
-            headless: context.browser?.headless !== false,
-          },
-        });
-        driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
-      } catch (error: any) {
-        let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
-        if (context.browser?.name === "safari")
-          errorMessage =
-            errorMessage +
-            " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
-        clog("error", errorMessage);
-        contextReport.result = "SKIPPED";
-        contextReport.resultDescription = errorMessage;
-        return contextReport;
-      }
-    }
-
-    if (
-      context.browser?.viewport?.width ||
-      context.browser?.viewport?.height
-    ) {
-      // Set driver viewport size
-      await setViewportSize(context, driver);
-    } else if (
-      context.browser?.window?.width ||
-      context.browser?.window?.height
-    ) {
-      // Get driver window size
-      const windowSize = await driver.getWindowSize();
-      // Resize window if necessary
-      await driver.setWindowSize(
-        context.browser?.window?.width || windowSize.width,
-        context.browser?.window?.height || windowSize.height
-      );
-    }
+  if (driverRequired && !appiumPool) {
+    throw new Error(
+      "Driver requested but no Appium server pool was created; " +
+        "driverJobCount and isDriverRequired(context) disagreed; this is a bug."
+    );
   }
 
   try {
+    if (driverRequired) {
+      // Check out a server for this context's lifetime — released in the
+      // finally so the next queued context can reuse it.
+      appiumPort = await appiumPool!.acquire();
+
+      // Define driver capabilities
+      // TODO: Support custom apps
+      let caps: any = getDriverCapabilities({
+        runnerDetails: runnerDetails,
+        name: context.browser.name,
+        options: {
+          width: context.browser?.window?.width || 1200,
+          height: context.browser?.window?.height || 800,
+          headless: context.browser?.headless !== false,
+        },
+      });
+      clog("debug", "CAPABILITIES:");
+      clog("debug", caps);
+
+      // Instantiate driver
+      try {
+        driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
+      } catch (error: any) {
+        try {
+          // If driver fails to start, try again as headless
+          clog(
+            "warning",
+            `Failed to start context '${context.browser?.name}' on '${platform}'. Retrying as headless.`
+          );
+          context.browser.headless = true;
+          caps = getDriverCapabilities({
+            runnerDetails: runnerDetails,
+            name: context.browser.name,
+            options: {
+              width: context.browser?.window?.width || 1200,
+              height: context.browser?.window?.height || 800,
+              headless: context.browser?.headless !== false,
+            },
+          });
+          driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
+        } catch (error: any) {
+          let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
+          if (context.browser?.name === "safari")
+            errorMessage =
+              errorMessage +
+              " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
+          clog("error", errorMessage);
+          contextReport.result = "SKIPPED";
+          contextReport.resultDescription = errorMessage;
+          return contextReport;
+        }
+      }
+
+      if (
+        context.browser?.viewport?.width ||
+        context.browser?.viewport?.height
+      ) {
+        // Set driver viewport size
+        await setViewportSize(context, driver);
+      } else if (
+        context.browser?.window?.width ||
+        context.browser?.window?.height
+      ) {
+        // Get driver window size
+        const windowSize = await driver.getWindowSize();
+        // Resize window if necessary
+        await driver.setWindowSize(
+          context.browser?.window?.width || windowSize.width,
+          context.browser?.window?.height || windowSize.height
+        );
+      }
+    }
+
     // Iterates steps
     let stepExecutionFailed = false;
     for (let step of context.steps) {
@@ -1024,6 +1022,12 @@ async function runContext({
       } catch (error: any) {
         clog("error", `Failed to delete driver session: ${error.message}`);
       }
+    }
+    // Return the Appium server to the pool for the next queued context. Always
+    // runs (even on the driver-start-failure early return) so a port can't
+    // leak out of the pool and starve later contexts.
+    if (appiumPort !== undefined && appiumPool) {
+      appiumPool.release(appiumPort);
     }
   }
 
@@ -1149,6 +1153,49 @@ async function runStep({
     );
   }
   return actionResult;
+}
+
+// Start one Appium server on a free port and resolve once it answers /status.
+// Each concurrent runner gets its own server (own port) so parallel contexts
+// never create sessions on the same Appium instance.
+async function startAppiumServer(
+  appiumEntry: string,
+  config: any
+): Promise<{ port: number; process: any }> {
+  const port = await findFreePort();
+  log(config, "debug", `Starting Appium on port ${port}`);
+  const proc: any = spawn(
+    process.execPath,
+    [appiumEntry, "-a", "127.0.0.1", "-p", String(port)],
+    {
+      windowsHide: true,
+      cwd: path.join(__dirname, "../.."),
+    }
+  );
+  proc.on("error", (err: any) => {
+    log(
+      config,
+      "warning",
+      `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`
+    );
+  });
+  proc.stdout.on("data", () => {});
+  proc.stderr.on("data", () => {});
+  try {
+    await appiumIsReady(port);
+  } catch (error) {
+    // appiumIsReady threw or timed out — the spawned child is still alive and
+    // would leak (orphan process, port still bound). Tear it down before
+    // propagating so subsequent runs don't trip on the stale state.
+    try {
+      if (proc && proc.pid) kill(proc.pid);
+    } catch {
+      // best-effort cleanup; the parent error is what matters
+    }
+    throw error;
+  }
+  log(config, "debug", `Appium is ready on port ${port}.`);
+  return { port, process: proc };
 }
 
 // Delay execution until Appium server is available.

@@ -1,4 +1,8 @@
-import { runConcurrent, rollUpResults } from "../dist/core/utils.js";
+import {
+  runConcurrent,
+  rollUpResults,
+  createAppiumPool,
+} from "../dist/core/utils.js";
 import { runSpecs } from "../dist/core/tests.js";
 import { getEnvironment } from "../dist/core/config.js";
 
@@ -164,6 +168,43 @@ describe("rollUpResults", function () {
     // Matches the previous inline logic: zero children means
     // length === filter(SKIPPED).length.
     expect(rollUpResults([])).to.equal("SKIPPED");
+  });
+});
+
+describe("createAppiumPool", function () {
+  it("hands out each port until exhausted", async function () {
+    const pool = createAppiumPool([4723, 4724]);
+    expect(await pool.acquire()).to.equal(4723);
+    expect(await pool.acquire()).to.equal(4724);
+  });
+
+  it("blocks acquire when exhausted, then resolves on release", async function () {
+    const pool = createAppiumPool([4723]);
+    const held = await pool.acquire();
+    let got;
+    const pending = pool.acquire().then((p) => (got = p));
+    // Nothing free yet — the second acquire must still be pending.
+    await Promise.resolve();
+    expect(got).to.equal(undefined);
+    pool.release(held);
+    await pending;
+    expect(got).to.equal(4723);
+  });
+
+  it("hands a released port straight to the next waiter, in FIFO order", async function () {
+    const pool = createAppiumPool([5]);
+    const held = await pool.acquire();
+    const order = [];
+    const w1 = pool.acquire().then((p) => order.push(["w1", p]));
+    const w2 = pool.acquire().then((p) => order.push(["w2", p]));
+    pool.release(held); // -> w1
+    await w1;
+    pool.release(5); // -> w2
+    await w2;
+    expect(order).to.deep.equal([
+      ["w1", 5],
+      ["w2", 5],
+    ]);
   });
 });
 
