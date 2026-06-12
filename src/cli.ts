@@ -8,10 +8,13 @@ import {
   log,
   getResolvedTestsFromEnv,
   reportResults,
+  isDebugRequested,
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
 import { installCommand } from "./runtime/installCommand.js";
+import { printDebug } from "./debug/index.js";
+import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
@@ -47,6 +50,7 @@ async function main(argv: string[]) {
     // to the same implementation as `doc-detective install agents`.
     .command({ ...installAgentsCommand, describe: false } as any)
     .command(installCommand as any)
+    .command(debugCommand)
     .strict()
     .demandCommand(0)
     // Suppress yargs' default help-dump on failure; surface the concrete error
@@ -78,8 +82,48 @@ async function runTestsHandler(args: any) {
     ? configPathYML
     : null;
 
+  // Detect env-var debug intent before setConfig so we can still emit
+  // the diagnostic dump when validation fails. `isDebugRequested`
+  // reads `process.env.DOC_DETECTIVE_DEBUG`. Users who want diagnostic
+  // output on the CLI should prefer the dedicated `doc-detective
+  // debug` subcommand (which also supports `--include-env`); this
+  // env-var path stays as the CI-friendly trigger.
+  const debugRequested = isDebugRequested(args);
+
   // Set config
-  const config: any = await setConfig({ configPath: configPath, args: args });
+  let config: any;
+  try {
+    config = await setConfig({ configPath: configPath, args: args });
+  } catch (err: any) {
+    if (debugRequested) {
+      // Build a minimal stub config so the dump can still render.
+      // `printDebug` tolerates undefined fields; the configError banner
+      // surfaces the underlying validation message.
+      const stubConfig: any = {
+        logLevel: typeof args.logLevel === "string" ? args.logLevel : "info",
+        input: typeof args.input === "string" ? args.input : ".",
+      };
+      await printDebug({
+        config: stubConfig,
+        configPath: configPath,
+        configError: err instanceof Error ? err : new Error(String(err)),
+      });
+      return;
+    }
+    throw err;
+  }
+
+  // Diagnostic dump — fires when DOC_DETECTIVE_DEBUG is truthy. The
+  // env-var path intentionally does NOT enable --include-env; users
+  // who want the full process.env must run `doc-detective debug
+  // --include-env` explicitly. (There is no config-file equivalent —
+  // the `debug` field was removed because making test runs silently
+  // skip themselves via a saved config setting was more footgun than
+  // feature.)
+  if (debugRequested) {
+    await printDebug({ config, configPath, configError: null });
+    return;
+  }
 
   log(
     `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,

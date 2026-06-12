@@ -141,6 +141,19 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("dryRun");
       });
 
+      it("should accept a config_v3 object with the deprecated `debug` field (ignored; kept so existing configs still validate)", function () {
+        // `debug` is deprecated and ignored — diagnostics moved to the
+        // DOC_DETECTIVE_DEBUG env var / `doc-detective debug` subcommand —
+        // but old configs that still carry it must keep validating.
+        for (const value of [false, true, "stepThrough"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { debug: value },
+          });
+          expect(result.valid, `debug: ${JSON.stringify(value)}`).to.be.true;
+        }
+      });
+
       it("should validate a config_v3 object with hints set", function () {
         const result = validate({
           schemaKey: "config_v3",

@@ -213,6 +213,46 @@ describe("Util tests", function () {
     expect(configAbsent.dryRun).to.equal(false);
   });
 
+  it("isDebugRequested: returns true only for truthy DOC_DETECTIVE_DEBUG values", async function () {
+    const { isDebugRequested } = await import("../dist/utils.js");
+    const prev = process.env.DOC_DETECTIVE_DEBUG;
+    try {
+      for (const v of ["true", "TRUE", "1", "yes", "Yes"]) {
+        process.env.DOC_DETECTIVE_DEBUG = v;
+        expect(isDebugRequested()).to.equal(true);
+      }
+      for (const v of ["false", "0", "no", "", "off"]) {
+        process.env.DOC_DETECTIVE_DEBUG = v;
+        expect(isDebugRequested()).to.equal(false);
+      }
+      delete process.env.DOC_DETECTIVE_DEBUG;
+      expect(isDebugRequested()).to.equal(false);
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_DEBUG;
+      else process.env.DOC_DETECTIVE_DEBUG = prev;
+    }
+  });
+
+  it("setConfig: accepts a config with the deprecated `debug` field (ignored, not rejected)", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const os = await import("node:os");
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-deprecated-"));
+    try {
+      const configPath = path.join(tmp, ".doc-detective.json");
+      // Old configs that still carry `debug` must keep validating; the
+      // field is deprecated and has no runtime effect.
+      fs.writeFileSync(configPath, JSON.stringify({ debug: true, input: "." }));
+      const config = await setConfig({ configPath, args: {} });
+      expect(config).to.be.an("object");
+      expect(config.input).to.exist;
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("setConfig stores --hints / --no-hints on config.hints.enabled", async function () {
     this.timeout(5000);
     // --no-hints turns hints off

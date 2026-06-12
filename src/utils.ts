@@ -24,7 +24,22 @@ export {
   reportResults,
   reporters,
   registerReporter,
+  isDebugRequested,
 };
+
+// True when `DOC_DETECTIVE_DEBUG` env var is set to a truthy value.
+// Used by `runTestsHandler` in cli.ts to decide whether to catch
+// setConfig failures and still emit a diagnostic dump.
+//
+// The `--debug` CLI flag was retired in favor of the dedicated
+// `doc-detective debug` subcommand; the subcommand handler does its
+// own setConfig-error handling, so this helper is now env-var-only.
+//
+// `args` is accepted for signature stability but no longer consulted.
+function isDebugRequested(_args: any = {}): boolean {
+  const envVal = process.env.DOC_DETECTIVE_DEBUG;
+  return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal);
+}
 
 // Log function that respects logLevel
 function log(message: any, level: string = "info", config: any = {}) {
@@ -220,19 +235,19 @@ async function getConfigFromEnv() {
     });
 
     if (!envValidation.valid) {
-      console.error(
-        "Invalid config from DOC_DETECTIVE_CONFIG environment variable.",
-        envValidation.errors
+      throw new Error(
+        `Invalid config from DOC_DETECTIVE_CONFIG environment variable. ${envValidation.errors}`
       );
-      process.exit(1);
     }
 
     log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
   } catch (error: any) {
-    console.error(
-      `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
-    );
-    process.exit(1);
+    if (error instanceof SyntaxError) {
+      throw new Error(
+        `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
+      );
+    }
+    throw error;
   }
   return envConfig;
 }
@@ -267,9 +282,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     object: config,
   });
   if (!validation.valid) {
-    // Output validation errors
-    console.error("Invalid config.", validation.errors);
-    process.exit(1);
+    throw new Error(`Invalid config. ${validation.errors}`);
   }
 
   // Accept coerced and defaulted values
