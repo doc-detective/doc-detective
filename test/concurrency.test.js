@@ -76,27 +76,39 @@ describe("runConcurrent", function () {
   });
 
   it("rejects while a sibling worker is still in flight", async function () {
-    // Item 5 throws while item 60 is mid-flight: the call rejects with the
-    // error, and the sibling finishes as an orphaned microtask (promises
-    // can't be cancelled). Callers needing isolation catch inside fn.
+    // Item 0 parks on an explicit gate while item 1 throws: the call rejects,
+    // and the parked sibling finishes only once the test releases it — an
+    // orphaned microtask (promises can't be cancelled). Gated with deferred
+    // promises rather than timers so it can't flake under CI load. Callers
+    // needing isolation catch inside fn.
     const completed = [];
+    let releaseSibling;
+    const release = new Promise((resolve) => (releaseSibling = resolve));
+    let signalDone;
+    const siblingFinished = new Promise((resolve) => (signalDone = resolve));
+
     let threw = false;
     try {
-      await runConcurrent([60, 5], 2, async (ms) => {
-        await sleep(ms);
-        if (ms === 5) throw new Error("boom");
-        completed.push(ms);
+      await runConcurrent([0, 1], 2, async (item) => {
+        if (item === 0) {
+          await release; // stay in flight until the test frees it
+          completed.push(0);
+          signalDone();
+          return;
+        }
+        throw new Error("boom"); // rejects while item 0 is still parked
       });
     } catch (error) {
       threw = true;
       expect(error.message).to.equal("boom");
-      // The rejection arrives before the 60ms sibling has completed.
+      // The sibling is still parked, so nothing has completed yet.
       expect(completed).to.deep.equal([]);
     }
     expect(threw).to.equal(true);
-    // Let the orphaned sibling drain so it can't bleed into other tests.
-    await sleep(100);
-    expect(completed).to.deep.equal([60]);
+    // Release the orphaned sibling and confirm it still runs to completion.
+    releaseSibling();
+    await siblingFinished;
+    expect(completed).to.deep.equal([0]);
   });
 
   it("resolves immediately for an empty item list", async function () {
