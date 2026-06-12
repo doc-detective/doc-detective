@@ -161,7 +161,15 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         if (options.headless) args.push("--headless", "--disable-gpu");
-        if (process.platform === "linux") args.push("--no-sandbox");
+        if (process.platform === "linux") {
+          args.push("--no-sandbox");
+          // Chrome writes shared memory to /dev/shm, which is only ~64MB on
+          // many Linux/CI hosts. A single browser fits, but several launched
+          // at once under concurrentRunners exhaust it and ChromeDriver
+          // "crashed during startup". Redirect that allocation to /tmp so
+          // parallel browser contexts start reliably.
+          args.push("--disable-dev-shm-usage");
+        }
         // Set capabilities
         capabilities = {
           platformName: runnerDetails.environment.platform,
