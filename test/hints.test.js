@@ -1369,12 +1369,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 25 active hints. `useFileTypesForRst` is commented out in the
+    // 26 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(25);
+    expect(HINTS.length).to.equal(26);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1597,6 +1597,50 @@ describe("hints/hints (registry)", function () {
   });
 
   // ----- feature discovery (priority 40) -----
+
+  it("enableAutoScreenshot: fires for browser runs with no screenshots and autoScreenshot off", function () {
+    const h = findHint("enableAutoScreenshot");
+    expect(h.priority).to.equal(40);
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          producedScreenshots: false,
+          config: {},
+        })
+      )
+    ).to.equal(true);
+    // Negative: no browser contexts in the run.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(),
+          producedScreenshots: false,
+          config: {},
+        })
+      )
+    ).to.equal(false);
+    // Negative: the run already produced screenshots.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          producedScreenshots: true,
+          config: {},
+        })
+      )
+    ).to.equal(false);
+    // Negative: autoScreenshot is already enabled.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          producedScreenshots: false,
+          config: { autoScreenshot: true },
+        })
+      )
+    ).to.equal(false);
+  });
 
   it("useScreenshotStep: fires when 3+ tests use a browser but no screenshot was produced", function () {
     const h = findHint("useScreenshotStep");

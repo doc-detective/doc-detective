@@ -10,12 +10,12 @@ import os from "node:os";
 import crypto from "node:crypto";
 import YAML from "yaml";
 import { validate } from "../common/src/validate.js";
-import { detectTests as parseContent, getLineNumber, getLineStarts } from "../common/src/detectTests.js";
+import { detectTests as parseContent, getLineNumber, getLineStarts, contentHash } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand } from "./utils.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 
-export { detectTests, parseTests };
+export { detectTests, parseTests, generateSpecId };
 
 /**
  * Detects tests from files based on config.
@@ -385,6 +385,50 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     }
 
     if (typeof content === "object") {
+      // Stable IDs for JSON/YAML specs, assigned before any path resolution
+      // or before/after-spec merging so the IDs hash the spec as authored:
+      // - specId derives from the file path (mirroring the text-content
+      //   branch below) instead of getting a fresh UUID at resolution.
+      // - testId fallbacks are `<specId>~<contentHash>` so the same test
+      //   keeps the same ID across runs and machines.
+      if (!content.specId) content.specId = generateSpecId(file);
+      if (!content.contentPath) content.contentPath = file;
+      if (Array.isArray(content.tests)) {
+        const usedTestIds = new Set(
+          content.tests
+            .map((test: any) => test?.testId)
+            .filter((id: any) => id)
+        );
+        for (const test of content.tests) {
+          if (!test || typeof test !== "object" || test.testId) continue;
+          // v2-shaped tests (`id`, `setup`/`cleanup`, action-keyed steps) are
+          // validated against the strict test_v2 schema before the v2→v3
+          // transform runs — injecting an unknown `testId` property would
+          // fail that validation. Leave them to resolveTest's fallback.
+          if (
+            typeof test.id !== "undefined" ||
+            test.file ||
+            test.setup ||
+            test.cleanup ||
+            (Array.isArray(test.steps) &&
+              test.steps.some(
+                (step: any) =>
+                  step && typeof step === "object" && "action" in step
+              ))
+          ) {
+            continue;
+          }
+          const baseId = `${content.specId}~${contentHash(test)}`;
+          let id = baseId;
+          let suffix = 2;
+          while (usedTestIds.has(id)) {
+            id = `${baseId}-${suffix++}`;
+          }
+          usedTestIds.add(id);
+          test.testId = id;
+        }
+      }
+
       // Collect step location data from YAML AST before validation/transformation.
       // Location must be applied AFTER resolvePaths (which may transform v2→v3 steps).
       const stepLocations: Map<number, Map<number, { line: number; startIndex: number; endIndex: number }>> = new Map();
@@ -560,12 +604,15 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         continue;
       }
 
-      // Parse content using common's detectTests
+      // Parse content using common's detectTests. testIdBase keys generated
+      // testIds to the spec's stable path-derived ID instead of the absolute
+      // file path.
       const tests = await parseContent({
         config: config,
         content: content,
         fileType: fileType,
         filePath: file,
+        testIdBase: id,
       });
       spec.tests.push(...tests);
 

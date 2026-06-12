@@ -119,6 +119,38 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate a config_v3 object with autoScreenshot set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoScreenshot: true },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoScreenshot).to.equal(true);
+      });
+
+      it("should default autoScreenshot to false when unset", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoScreenshot).to.equal(false);
+      });
+
+      it("should reject a config_v3 object whose autoScreenshot is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoScreenshot: "yes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoScreenshot");
+      });
+
       it("should validate a config_v3 object with dryRun set", function () {
         const result = validate({
           schemaKey: "config_v3",

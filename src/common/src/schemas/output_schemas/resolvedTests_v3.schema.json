@@ -63,7 +63,7 @@
           "default": "."
         },
         "reporters": {
-          "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`. Custom reporters registered via `registerReporter()` can also be referenced by name.",
+          "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (enabled by default) archives each run's results as `<output>/.doc-detective/run-<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Custom reporters registered via `registerReporter()` can also be referenced by name.",
           "type": "array",
           "items": {
             "type": "string",
@@ -71,7 +71,8 @@
           },
           "default": [
             "terminal",
-            "json"
+            "json",
+            "runFolder"
           ]
         },
         "specFilter": {
@@ -9457,6 +9458,11 @@
           "type": "boolean",
           "default": false
         },
+        "autoScreenshot": {
+          "description": "If `true`, captures a screenshot after every step that runs in a browser, in addition to any explicit `screenshot` steps. Images are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Equivalent to `--auto-screenshot` on the CLI.",
+          "type": "boolean",
+          "default": false
+        },
         "autoUpdate": {
           "description": "If `true` (default), the CLI checks for a newer published `doc-detective` on startup and self-updates before running tests. Updates happen for global (`npm i -g`) and `npx` installs only — local installs (where `doc-detective` is a project dep) get an informational message instead, since auto-updating would mutate the user's lockfile. CI environments and the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` env var also skip the check. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI.",
           "type": "boolean",
@@ -17799,6 +17805,10 @@
           "specFilter": [
             "auth"
           ]
+        },
+        {
+          "autoScreenshot": true,
+          "output": "./test-results"
         }
       ]
     },

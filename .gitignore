@@ -113,6 +113,9 @@ coverageResults*
 testSuggestions*
 *.mp4
 
+# Per-run artifact folders (runFolder reporter + auto screenshots)
+.doc-detective/
+
 # Container test outputs
 src/container/test/artifacts/results*.json
 src/container/test/artifacts/output/

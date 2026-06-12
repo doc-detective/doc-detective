@@ -92,6 +92,25 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // enableAutoScreenshot (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "enableAutoScreenshot",
+    priority: 40,
+    markdown: [
+      "Want a visual record of every run? `--auto-screenshot` captures an image after each browser step and archives them per run (with results) under `.doc-detective/run-<runId>/` — diff two run folders to spot UI changes over time.",
+      "",
+      "```bash",
+      "doc-detective --auto-screenshot",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      !ctx.producedScreenshots &&
+      !ctx.config?.autoScreenshot,
+  },
+
+  // ------------------------------------------------------------------
   // enableDebugLog (current-run problem) — shipped in v1
   // ------------------------------------------------------------------
   {

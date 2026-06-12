@@ -13,6 +13,7 @@ export {
   log,
   timestamp,
   getOrInitRunTimestamp,
+  getRunOutputDir,
   replaceEnvs,
   spawnCommand,
   inContainer,
@@ -522,6 +523,32 @@ function getOrInitRunTimestamp(config: any): string {
     config.__runTimestamp = timestamp();
   }
   return config.__runTimestamp;
+}
+
+// Per-run artifact directory: `<output>/.doc-detective/run-<runId>/`, where
+// runId is the run timestamp. Memoized on the config object so auto
+// screenshots and the runFolder reporter all land in the same folder for the
+// duration of a run. If `config.output` points at a report file (reporters
+// accept `.json`/`.html` paths), the run folder is created next to it. A
+// pre-existing folder (parallel run in the same second) gets an ordinal
+// suffix rather than being merged into.
+function getRunOutputDir(config: any): string {
+  if (config?.__runOutputDir) return config.__runOutputDir;
+  let base = config?.output || ".";
+  const reportFileExtensions = [".json", ".html", ".htm"];
+  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+    base = path.dirname(base);
+  }
+  const runsRoot = path.resolve(base, ".doc-detective");
+  const runId = getOrInitRunTimestamp(config);
+  let dir = path.join(runsRoot, `run-${runId}`);
+  let suffix = 2;
+  while (fs.existsSync(dir)) {
+    dir = path.join(runsRoot, `run-${runId}-${suffix++}`);
+  }
+  fs.mkdirSync(dir, { recursive: true });
+  if (config) config.__runOutputDir = dir;
+  return dir;
 }
 
 // Perform a native command in the current working directory.

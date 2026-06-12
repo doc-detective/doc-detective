@@ -6,6 +6,8 @@
 
 import crypto from "node:crypto";
 import { log } from "./utils.js";
+import { generateSpecId } from "./detectTests.js";
+import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
 
 // Doc Detective actions that require a driver.
@@ -143,8 +145,27 @@ async function fetchOpenApiDocuments({ config, documentArray }: { config: any; d
   return openApiDocuments;
 }
 
-async function resolveContext({ config, test, context }: { config: any; test: any; context: any }) {
-  const contextId = context.contextId || crypto.randomUUID();
+// Deterministic fallback IDs: when a spec/test/context doesn't declare its
+// own ID, derive one from stable inputs (file path, content hash, platform +
+// browser) instead of a random UUID. Same inputs → same IDs on every run,
+// which is what makes run-over-run result comparison possible. Explicitly
+// declared IDs always win.
+function deriveContextId({ context, usedIds }: { context: any; usedIds: Set<string> }) {
+  const base =
+    [context.platform, context.browser?.name].filter(Boolean).join("-") ||
+    "default";
+  let contextId = base;
+  let suffix = 2;
+  while (usedIds.has(contextId)) {
+    contextId = `${base}-${suffix++}`;
+  }
+  return contextId;
+}
+
+async function resolveContext({ config, test, context, usedContextIds }: { config: any; test: any; context: any; usedContextIds: Set<string> }) {
+  const contextId =
+    context.contextId || deriveContextId({ context, usedIds: usedContextIds });
+  usedContextIds.add(contextId);
   log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);
   const resolvedContext = {
     ...context,
@@ -158,7 +179,10 @@ async function resolveContext({ config, test, context }: { config: any; test: an
 }
 
 async function resolveTest({ config, spec, test }: { config: any; spec: any; test: any }) {
-  const testId = test.testId || crypto.randomUUID();
+  // Last-resort content-hash fallback (detection already assigns
+  // `<specId>~<hash>` IDs for both inline and JSON/YAML tests); covers
+  // programmatic callers that hand resolveTests raw specs.
+  const testId = test.testId || `${spec.specId}~${contentHash(test)}`;
   log(config, "debug", `RESOLVING TEST ID ${testId}:\n${JSON.stringify(test, null, 2)}`);
   const resolvedTest = {
     ...test,
@@ -178,11 +202,13 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
     config: config,
   });
 
+  const usedContextIds = new Set<string>();
   for (const context of testContexts) {
     const resolvedContext = await resolveContext({
       config,
       test: test,
       context,
+      usedContextIds,
     });
     resolvedTest.contexts.push(resolvedContext);
   }
@@ -191,7 +217,12 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
 }
 
 async function resolveSpec({ config, spec }: { config: any; spec: any }) {
-  const specId = spec.specId || crypto.randomUUID();
+  // Prefer a path-derived specId over a random UUID so the same spec file
+  // keeps the same ID across runs. UUIDs remain only for programmatic specs
+  // with neither a specId nor a content path.
+  const specId =
+    spec.specId ||
+    (spec.contentPath ? generateSpecId(spec.contentPath) : crypto.randomUUID());
   log(config, "debug", `RESOLVING SPEC ID ${specId}:\n${JSON.stringify(spec, null, 2)}`);
   const resolvedSpec = {
     ...spec,
