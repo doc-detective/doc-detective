@@ -1,0 +1,38 @@
+# Throwaway benchmark workflow for concurrent test runners. Not part of the
+# PR or release pipeline — lives only on the bench/concurrent-runners branch
+# and triggers on push to it. Delete the branch when done.
+name: Bench Concurrent Runners
+
+on:
+  push:
+    branches:
+      - bench/concurrent-runners
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      # Pre-warm the lazy-install cache (Chrome, chromedriver, Appium) exactly
+      # as the real test matrix does, so the benchmark doesn't time a network
+      # download.
+      - run: node ./bin/doc-detective.js install all --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+      - run: node scripts/bench-concurrent-runners.mjs
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
