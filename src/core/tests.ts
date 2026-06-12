@@ -1187,8 +1187,13 @@ async function startAppiumServer(
       `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`
     );
   });
-  proc.stdout.on("data", () => {});
-  proc.stderr.on("data", () => {});
+  if (process.env.DOC_DETECTIVE_APPIUM_LOG === "1") {
+    proc.stdout.on("data", (d: any) => process.stderr.write(`[appium:${port}] ${d}`));
+    proc.stderr.on("data", (d: any) => process.stderr.write(`[appium:${port}] ${d}`));
+  } else {
+    proc.stdout.on("data", () => {});
+    proc.stderr.on("data", () => {});
+  }
   try {
     await appiumIsReady(port);
   } catch (error) {

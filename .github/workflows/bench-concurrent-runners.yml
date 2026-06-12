@@ -36,3 +36,4 @@ jobs:
       - run: node scripts/bench-concurrent-runners.mjs
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+          DOC_DETECTIVE_APPIUM_LOG: '1'
