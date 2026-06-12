@@ -686,7 +686,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         }
         report.summary.contexts[contextReport.result.toLowerCase()]++;
       }
-      testReport.result = rollUpResults(testReport.contexts);
+      testReport.result = rollUpResults(testReport.contexts.filter(Boolean));
       report.summary.tests[testReport.result.toLowerCase()]++;
     }
     specReport.result = rollUpResults(specReport.tests);
