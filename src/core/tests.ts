@@ -207,7 +207,9 @@ function isAppiumRequired(specs: any[]) {
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
-  test.steps.forEach((step: any) => {
+  // The resolved shape doesn't guarantee `steps` — treat a stepless test or
+  // context as needing no driver instead of throwing.
+  (test.steps || []).forEach((step: any) => {
     // Check if test includes actions that require a driver.
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") driverRequired = true;
@@ -763,6 +765,13 @@ async function runContext({
         : message
     );
 
+  // Ensure context contains a 'steps' property before anything walks it —
+  // isDriverRequired iterates context.steps and the resolved shape doesn't
+  // guarantee the field.
+  if (!context.steps) {
+    context.steps = [];
+  }
+
   // If "platform" is not defined, set it to the current platform
   if (!context.platform)
     context.platform = runnerDetails.environment.platform;
@@ -825,10 +834,6 @@ async function runContext({
   clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
   let driver: any;
-  // Ensure context contains a 'steps' property
-  if (!context.steps) {
-    context.steps = [];
-  }
   const driverRequired = isDriverRequired({ test: context });
   if (driverRequired) {
     // Define driver capabilities

@@ -232,6 +232,37 @@ describe("runSpecs concurrency", function () {
     expect(report.specs[1].result).to.equal("PASS");
   });
 
+  it("handles a context without steps gracefully", async function () {
+    // The resolved shape doesn't guarantee `steps`; a stepless context must
+    // roll up SKIPPED instead of crashing in isDriverRequired.
+    const resolvedTests = {
+      config: {
+        logLevel: "silent",
+        telemetry: { send: false },
+        environment: getEnvironment(),
+      },
+      specs: [
+        {
+          specId: "stepless",
+          tests: [
+            {
+              testId: "stepless-test",
+              contexts: [{ contextId: "stepless-context" }],
+            },
+          ],
+        },
+      ],
+    };
+    const report = await runSpecs({ resolvedTests });
+    expect(report.specs[0].tests[0].contexts[0].result).to.equal("SKIPPED");
+    expect(report.summary.contexts).to.deep.equal({
+      pass: 0,
+      fail: 0,
+      warning: 0,
+      skipped: 1,
+    });
+  });
+
   it("actually runs contexts concurrently", async function () {
     // Two contexts that each wait 1200ms, timed at 1 runner and at 2 runners.
     // Comparing against a sequential baseline measured in the same run keeps
