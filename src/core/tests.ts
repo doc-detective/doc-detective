@@ -654,17 +654,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       });
     } catch (error: any) {
       // Error isolation: one crashing context must not abort sibling jobs.
+      // Guard against non-Error throws (a thrown string/object has no
+      // .message) so the real failure detail survives in logs and report.
+      const detail = error?.message ?? String(error);
       log(
         config,
         "error",
-        `Context '${job.context.contextId}' crashed: ${error.message}`
+        `Context '${job.context.contextId}' crashed: ${detail}`
       );
       job.contexts[job.slot] = {
         contextId: job.context.contextId,
         platform: job.context.platform,
         browser: job.context.browser,
         result: "FAIL",
-        resultDescription: `Unexpected error: ${error.message}`,
+        resultDescription: `Unexpected error: ${detail}`,
         steps: [],
       };
     }
