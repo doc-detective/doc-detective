@@ -27,6 +27,10 @@ export type Test = {
    */
   detectSteps?: boolean;
   /**
+   * If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   */
+  autoScreenshot?: boolean;
+  /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.
    */
   runOn?: Context[];

@@ -65,6 +65,10 @@ export interface Specification {
   runOn?: Context[];
   openApi?: (OpenApi & OpenAPIDescriptionTest)[];
   /**
+   * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
+   */
+  autoScreenshot?: boolean;
+  /**
    * [Tests](test) to perform.
    *
    * @minItems 1

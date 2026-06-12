@@ -9459,7 +9459,7 @@
           "default": false
         },
         "autoScreenshot": {
-          "description": "If `true`, captures a screenshot after every step that runs in a browser, in addition to any explicit `screenshot` steps. Images are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Equivalent to `--auto-screenshot` on the CLI.",
+          "description": "If `true`, captures a screenshot after every step that runs in a browser, in addition to any explicit `screenshot` steps. Images are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.",
           "type": "boolean",
           "default": false
         },
@@ -18413,6 +18413,10 @@
                   ]
                 }
               },
+              "autoScreenshot": {
+                "type": "boolean",
+                "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
+              },
               "tests": {
                 "description": "[Tests](test) to perform.",
                 "type": "array",
@@ -18441,6 +18445,10 @@
                           "type": "boolean",
                           "description": "Whether or not to detect steps in input files based on markup regex.",
                           "default": true
+                        },
+                        "autoScreenshot": {
+                          "type": "boolean",
+                          "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
                         },
                         "runOn": {
                           "type": "array",

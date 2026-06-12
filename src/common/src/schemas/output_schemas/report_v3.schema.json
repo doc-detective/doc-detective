@@ -611,6 +611,10 @@
                   ]
                 }
               },
+              "autoScreenshot": {
+                "type": "boolean",
+                "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
+              },
               "tests": {
                 "description": "[Tests](test) to perform.",
                 "type": "array",
@@ -639,6 +643,10 @@
                           "type": "boolean",
                           "description": "Whether or not to detect steps in input files based on markup regex.",
                           "default": true
+                        },
+                        "autoScreenshot": {
+                          "type": "boolean",
+                          "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
                         },
                         "runOn": {
                           "type": "array",

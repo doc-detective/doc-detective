@@ -55,6 +55,7 @@ export {
   getDriverCapabilities,
   getDefaultBrowser,
   isSupportedContext,
+  resolveAutoScreenshot,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -617,6 +618,13 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       // Set meta values
       metaValues.specs[spec.specId].tests[test.testId] = { contexts: {} };
 
+      // Effective autoScreenshot for this test (test > spec > config).
+      const autoScreenshotEnabled = resolveAutoScreenshot({
+        config,
+        spec,
+        test,
+      });
+
       // Iterate contexts
       // TODO: Support both serial and parallel execution
       for (const context of test.contexts) {
@@ -878,7 +886,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // already produce an image). Failed steps are captured too — the
           // failure state is often the most useful frame.
           if (
-            config.autoScreenshot &&
+            autoScreenshotEnabled &&
             driver &&
             typeof step.screenshot === "undefined" &&
             isDriverRequired({ test: { steps: [step] } })
@@ -1055,6 +1063,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   }
 
   return report;
+}
+
+// Effective autoScreenshot setting for a test: the test level wins over the
+// spec level, which wins over the global config. Levels left unset defer
+// down the chain.
+function resolveAutoScreenshot({
+  config,
+  spec,
+  test,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+}): boolean {
+  return Boolean(
+    test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot
+  );
 }
 
 // Directory/file segments built from IDs are capped so deeply nested doc

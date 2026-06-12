@@ -1,5 +1,6 @@
 import { getRunOutputDir } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
+import { resolveAutoScreenshot } from "../dist/core/tests.js";
 import { reporters } from "../dist/utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -93,6 +94,48 @@ describe("runFolder reporter", function () {
     expect(
       path.relative(path.resolve(tempBase, ".doc-detective"), written)
     ).to.match(/^run-\d{8}-\d{6}([\\/-]|$)/);
+  });
+});
+
+describe("resolveAutoScreenshot precedence", function () {
+  it("defers down the chain when levels are unset (test > spec > config)", function () {
+    // Config only.
+    expect(
+      resolveAutoScreenshot({ config: { autoScreenshot: true }, spec: {}, test: {} })
+    ).to.equal(true);
+    expect(resolveAutoScreenshot({ config: {}, spec: {}, test: {} })).to.equal(
+      false
+    );
+    // Spec overrides config.
+    expect(
+      resolveAutoScreenshot({
+        config: { autoScreenshot: false },
+        spec: { autoScreenshot: true },
+        test: {},
+      })
+    ).to.equal(true);
+    expect(
+      resolveAutoScreenshot({
+        config: { autoScreenshot: true },
+        spec: { autoScreenshot: false },
+        test: {},
+      })
+    ).to.equal(false);
+    // Test overrides spec and config.
+    expect(
+      resolveAutoScreenshot({
+        config: { autoScreenshot: false },
+        spec: { autoScreenshot: false },
+        test: { autoScreenshot: true },
+      })
+    ).to.equal(true);
+    expect(
+      resolveAutoScreenshot({
+        config: { autoScreenshot: true },
+        spec: { autoScreenshot: true },
+        test: { autoScreenshot: false },
+      })
+    ).to.equal(false);
   });
 });
 

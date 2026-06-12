@@ -151,6 +151,55 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoScreenshot");
       });
 
+      it("should validate spec_v3 and test_v3 objects with autoScreenshot overrides", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            autoScreenshot: true,
+            tests: [
+              {
+                autoScreenshot: false,
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoScreenshot).to.equal(true);
+        expect(result.object.tests[0].autoScreenshot).to.equal(false);
+      });
+
+      it("should not default autoScreenshot on specs or tests when unset", function () {
+        // No schema default at the spec/test levels — an absent value must
+        // stay absent so the runtime can defer to the config level.
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoScreenshot).to.equal(undefined);
+        expect(result.object.tests[0].autoScreenshot).to.equal(undefined);
+      });
+
+      it("should reject a test_v3 object whose autoScreenshot is not a boolean", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            autoScreenshot: "yes",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoScreenshot");
+      });
+
       it("should validate a config_v3 object with dryRun set", function () {
         const result = validate({
           schemaKey: "config_v3",
