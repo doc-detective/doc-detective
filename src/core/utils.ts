@@ -37,6 +37,11 @@ export {
 // sequential and concurrent runs share this single code path. The shared
 // cursor is safe without locking: JS is single-threaded, and `next++` happens
 // synchronously between awaits.
+//
+// If `fn` rejects, the returned promise rejects with that error, but sibling
+// calls already in flight keep running as orphaned microtasks (promises can't
+// be cancelled). Callers that need error isolation must catch inside `fn` —
+// runSpecs does.
 async function runConcurrent<T>(
   items: T[],
   limit: number,

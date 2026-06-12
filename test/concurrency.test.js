@@ -233,14 +233,16 @@ describe("runSpecs concurrency", function () {
   });
 
   it("actually runs contexts concurrently", async function () {
-    // Two contexts that each wait 1500ms: sequential needs >=3000ms; two
-    // runners should finish well under that (generous bound for slow CI).
-    const resolvedTests = {
+    // Two contexts that each wait 1200ms, timed at 1 runner and at 2 runners.
+    // Comparing against a sequential baseline measured in the same run keeps
+    // the assertion meaningful under heavy CI load, where a fixed wall-clock
+    // bound would be brittle.
+    const timingFixture = (concurrentRunners) => ({
       config: {
         logLevel: "silent",
         telemetry: { send: false },
         environment: getEnvironment(),
-        concurrentRunners: 2,
+        concurrentRunners,
       },
       specs: [
         {
@@ -250,17 +252,30 @@ describe("runSpecs concurrency", function () {
               testId: "timing-test",
               contexts: [1, 2].map((c) => ({
                 contextId: `timing-context-${c}`,
-                steps: [{ stepId: `timing-wait-${c}`, wait: 1500 }],
+                steps: [{ stepId: `timing-wait-${c}`, wait: 1200 }],
               })),
             },
           ],
         },
       ],
-    };
-    const start = Date.now();
-    const report = await runSpecs({ resolvedTests });
-    const elapsed = Date.now() - start;
-    expect(report.summary.contexts.pass).to.equal(2);
-    expect(elapsed).to.be.below(2800);
+    });
+
+    let start = Date.now();
+    const sequentialReport = await runSpecs({
+      resolvedTests: timingFixture(1),
+    });
+    const sequentialMs = Date.now() - start;
+
+    start = Date.now();
+    const concurrentReport = await runSpecs({
+      resolvedTests: timingFixture(2),
+    });
+    const concurrentMs = Date.now() - start;
+
+    expect(sequentialReport.summary.contexts.pass).to.equal(2);
+    expect(concurrentReport.summary.contexts.pass).to.equal(2);
+    // Sequential is >= 2400ms of pure waiting; concurrent overlaps the two
+    // waits, so it should beat the baseline by a comfortable margin.
+    expect(concurrentMs).to.be.below(sequentialMs - 600);
   });
 });

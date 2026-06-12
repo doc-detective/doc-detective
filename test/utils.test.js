@@ -324,6 +324,19 @@ describe("Util tests", function () {
     const configTrue = await setConfig({ configPath: null, args: argsTrue });
     expect(configTrue.concurrentRunners).to.equal(true);
 
+    // Case-insensitive — "True" should not fall through to Number() (NaN).
+    const argsTrueCap = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "True",
+    ]);
+    const configTrueCap = await setConfig({
+      configPath: null,
+      args: argsTrueCap,
+    });
+    expect(configTrueCap.concurrentRunners).to.equal(true);
+
     // Absent flag — schema default 1 via AJV useDefaults.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.concurrentRunners).to.equal(undefined);

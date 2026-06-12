@@ -93,6 +93,9 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       if (!fs.existsSync(recording.downloadPath)) {
         result.status = "FAIL";
         result.description = "Recording download timed out.";
+        // Clear the state so the auto-stop in runContext doesn't re-invoke
+        // a doomed second stop (the recorder was already told to stop).
+        driver.state.recording = null;
         return result;
       }
       // Close recording tab and switch back to the original content tab
@@ -141,6 +144,9 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     // Couldn't stop recording
     result.status = "FAIL";
     result.description = `Couldn't stop recording. ${error}`;
+    // Clear the state so the auto-stop in runContext doesn't re-invoke a
+    // doomed second stop.
+    driver.state.recording = null;
     return result;
   }
 

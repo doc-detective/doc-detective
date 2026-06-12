@@ -365,7 +365,10 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // pre-resolved-tests API path never re-validates, so a garbage value
     // would otherwise reach the runner as NaN and silently degrade to
     // sequential execution — warn and keep the validated value instead.
-    if (args.concurrentRunners === "" || args.concurrentRunners === "true") {
+    if (
+      args.concurrentRunners === "" ||
+      args.concurrentRunners.toLowerCase() === "true"
+    ) {
       config.concurrentRunners = true;
     } else {
       const count = Number(args.concurrentRunners);
