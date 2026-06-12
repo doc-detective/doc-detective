@@ -30,8 +30,10 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
   handler: async (args) => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
     const { setConfig } = await import("../utils.js");
-    const { printDebug, defaultDebugOutFile } = await import("./index.js");
+    const { printDebug, defaultDebugOutFile, defaultDebugJsonFile } =
+      await import("./index.js");
     const outFile = defaultDebugOutFile();
+    const jsonOutFile = defaultDebugJsonFile();
 
     const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
     const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
@@ -69,9 +71,17 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
         configError: err instanceof Error ? err : new Error(String(err)),
         includeEnv,
         outFile,
+        jsonOutFile,
       });
       return;
     }
-    await printDebug({ config, configPath, configError: null, includeEnv, outFile });
+    await printDebug({
+      config,
+      configPath,
+      configError: null,
+      includeEnv,
+      outFile,
+      jsonOutFile,
+    });
   },
 };

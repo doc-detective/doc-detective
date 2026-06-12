@@ -409,6 +409,21 @@ describe("debug/tools", function () {
     expect(result.version).to.match(/<not found>|<probe failed>|<timed out/);
   });
 
+  it("suppresses the noisy 'command not found' note for a missing binary", async function () {
+    this.timeout(5000);
+    // The OS "not recognized"/"command not found" message is a truncated,
+    // comma-dangling fragment — `<not found>` already conveys absence, so
+    // no note should be attached (regression: java showed a half-sentence).
+    const result = await probeTool(
+      "definitely-not-a-real-binary",
+      "definitely-not-a-real-binary --version",
+      { timeoutMs: 2000 }
+    );
+    if (result.version === "<not found>") {
+      expect(result.notes).to.equal(undefined);
+    }
+  });
+
   it("returns process.version-style output for a real binary (node)", async function () {
     this.timeout(5000);
     const result = await probeTool("node", "node --version", { timeoutMs: 3000 });
@@ -457,6 +472,9 @@ describe("debug/printDebug end-to-end", function () {
     // System info markers
     expect(text).to.match(/platform\s+\w+/);
     expect(text).to.match(/nodeVersion\s+v\d+\./);
+    // Doc Detective section surfaces where the running package loaded from.
+    expect(text).to.match(/loadedFrom\s+\S/);
+    expect(text).to.match(/entryPoint\s+\S/);
 
     // Browsers section always enumerates all three supported browsers with
     // an explicit availability status and per-component breakdown.
@@ -498,6 +516,63 @@ describe("debug/printDebug end-to-end", function () {
       });
       expect(fs.readdirSync(tmp)).to.deep.equal(before);
     } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("writes structured, redacted JSON to jsonOutFile", async function () {
+    this.timeout(60000);
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-json-"));
+    const prev = process.env.DD_TEST_JSON_CONN;
+    process.env.DD_TEST_JSON_CONN = "postgres://app:hunter2@db.example.com/prod";
+    try {
+      const jsonOutFile = path.join(tmp, ".doc-detective", "debug.json");
+      const out = [];
+      await printDebug({
+        config: {
+          input: ".",
+          environment: { platform: "linux" },
+          integrations: { docDetectiveApi: { apiKey: "supersecret-key" } },
+        },
+        configPath: null,
+        includeEnv: true,
+        jsonOutFile,
+        print: (line) => out.push(line),
+      });
+      expect(fs.existsSync(jsonOutFile)).to.equal(true);
+      const data = JSON.parse(fs.readFileSync(jsonOutFile, "utf8"));
+
+      // Structured top-level shape.
+      expect(data).to.include.keys(
+        "system",
+        "docDetective",
+        "tools",
+        "browsers",
+        "container",
+        "environment",
+        "config"
+      );
+      // Where doc-detective loaded from is captured.
+      expect(data.docDetective.loadedFrom).to.be.a("string");
+      expect(data.docDetective.entryPoint).to.be.a("string");
+      // Browsers enumerated structurally with availability flags.
+      expect(data.browsers.browsers.map((b) => b.name)).to.deep.equal([
+        "chrome",
+        "firefox",
+        "safari",
+      ]);
+      // Redaction carries into JSON: no secrets in the serialized form.
+      const serialized = JSON.stringify(data);
+      expect(serialized).to.not.include("hunter2");
+      expect(serialized).to.not.include("supersecret-key");
+      expect(data.config.redacted.integrations.docDetectiveApi.apiKey).to.match(
+        /redacted/
+      );
+      // stdout reports the JSON save path.
+      expect(out.join("\n")).to.include(`Diagnostic JSON saved to ${jsonOutFile}`);
+    } finally {
+      if (prev === undefined) delete process.env.DD_TEST_JSON_CONN;
+      else process.env.DD_TEST_JSON_CONN = prev;
       fs.rmSync(tmp, { recursive: true, force: true });
     }
   });
@@ -637,7 +712,7 @@ describe("debug CLI smoke test", function () {
       expect(result.stdout).to.include(
         "-- Referenced environment variables "
       );
-      // The dump is also saved to <cwd>/.doc-detective/debug.txt.
+      // The dump is also saved to <cwd>/.doc-detective/ as text + JSON.
       const savedPath = path.join(tmp, ".doc-detective", "debug.txt");
       expect(fs.existsSync(savedPath), "debug.txt should be saved in cwd").to.equal(
         true
@@ -646,6 +721,14 @@ describe("debug CLI smoke test", function () {
         "Doc Detective diagnostic dump"
       );
       expect(result.stdout).to.include("Diagnostic dump saved to");
+
+      const jsonPath = path.join(tmp, ".doc-detective", "debug.json");
+      expect(fs.existsSync(jsonPath), "debug.json should be saved in cwd").to.equal(
+        true
+      );
+      const parsed = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+      expect(parsed).to.include.keys("system", "docDetective", "browsers");
+      expect(result.stdout).to.include("Diagnostic JSON saved to");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

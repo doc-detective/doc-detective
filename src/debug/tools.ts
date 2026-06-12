@@ -44,8 +44,21 @@ export async function probeTool(
     );
     if (timedOut) return { name, version: `<timed out after ${timeoutMs}ms>` };
     if (exitCode !== 0) {
-      const tail = (stderr || stdout || "").split("\n")[0] || "";
-      return { name, version: `<not found>`, notes: tail };
+      const firstLine = (stderr || stdout || "").split("\n")[0]?.trim() || "";
+      // "command not found" shell errors (e.g. Windows' "'java' is not
+      // recognized as an internal or external command,") are just noise —
+      // the `<not found>` marker already says the tool is absent, and the
+      // raw message is a truncated, comma-dangling fragment. Suppress those;
+      // keep genuinely-informative errors as a note.
+      const notFoundNoise =
+        /not recognized|not found|no such file|cannot find|command not found/i.test(
+          firstLine
+        );
+      return {
+        name,
+        version: "<not found>",
+        notes: notFoundNoise ? undefined : firstLine || undefined,
+      };
     }
     // Some tools (java, appium with stderr noise) print version on stderr.
     const text = (stdout + (stdout ? "" : stderr) || "").trim();

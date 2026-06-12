@@ -13,7 +13,11 @@ import {
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
 import { installCommand } from "./runtime/installCommand.js";
-import { printDebug, defaultDebugOutFile } from "./debug/index.js";
+import {
+  printDebug,
+  defaultDebugOutFile,
+  defaultDebugJsonFile,
+} from "./debug/index.js";
 import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
@@ -108,6 +112,7 @@ async function runTestsHandler(args: any) {
         configPath: configPath,
         configError: err instanceof Error ? err : new Error(String(err)),
         outFile: defaultDebugOutFile(),
+        jsonOutFile: defaultDebugJsonFile(),
       });
       return;
     }
@@ -121,7 +126,13 @@ async function runTestsHandler(args: any) {
   // the `debug` config field is deprecated and ignored; diagnostics live
   // behind this env var and the `debug` subcommand.)
   if (debugRequested) {
-    await printDebug({ config, configPath, configError: null, outFile: defaultDebugOutFile() });
+    await printDebug({
+      config,
+      configPath,
+      configError: null,
+      outFile: defaultDebugOutFile(),
+      jsonOutFile: defaultDebugJsonFile(),
+    });
     return;
   }
 
