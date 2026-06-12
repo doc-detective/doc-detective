@@ -647,16 +647,21 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           context.browser = getDefaultBrowser({ runnerDetails });
         }
 
-        // Set context report. Resolution always assigns a contextId; the
-        // derived fallback covers programmatic callers that hand runSpecs
-        // un-resolved contexts, and matches the resolver's derivation
-        // (platform is guaranteed set a few lines up).
+        // Resolution always assigns a contextId; the derived fallback covers
+        // programmatic callers that hand runSpecs un-resolved contexts, and
+        // matches the resolver's derivation (platform is guaranteed set a
+        // few lines up). Normalized onto the context itself so the metaValues
+        // keys (here and in the step loop) and log messages all see the same
+        // ID as the report.
+        if (!context.contextId) {
+          context.contextId = [context.platform, context.browser?.name]
+            .filter(Boolean)
+            .join("-");
+        }
+
+        // Set context report
         let contextReport: any = {
-          contextId:
-            context.contextId ||
-            [context.platform, context.browser?.name]
-              .filter(Boolean)
-              .join("-"),
+          contextId: context.contextId,
           platform: context.platform,
           browser: context.browser,
           steps: [],
