@@ -1,4 +1,8 @@
-import { runConcurrent, rollUpResults } from "../dist/core/utils.js";
+import {
+  runConcurrent,
+  rollUpResults,
+  createAppiumPool,
+} from "../dist/core/utils.js";
 import { runSpecs } from "../dist/core/tests.js";
 import { getEnvironment } from "../dist/core/config.js";
 
@@ -76,27 +80,39 @@ describe("runConcurrent", function () {
   });
 
   it("rejects while a sibling worker is still in flight", async function () {
-    // Item 5 throws while item 60 is mid-flight: the call rejects with the
-    // error, and the sibling finishes as an orphaned microtask (promises
-    // can't be cancelled). Callers needing isolation catch inside fn.
+    // Item 0 parks on an explicit gate while item 1 throws: the call rejects,
+    // and the parked sibling finishes only once the test releases it — an
+    // orphaned microtask (promises can't be cancelled). Gated with deferred
+    // promises rather than timers so it can't flake under CI load. Callers
+    // needing isolation catch inside fn.
     const completed = [];
+    let releaseSibling;
+    const release = new Promise((resolve) => (releaseSibling = resolve));
+    let signalDone;
+    const siblingFinished = new Promise((resolve) => (signalDone = resolve));
+
     let threw = false;
     try {
-      await runConcurrent([60, 5], 2, async (ms) => {
-        await sleep(ms);
-        if (ms === 5) throw new Error("boom");
-        completed.push(ms);
+      await runConcurrent([0, 1], 2, async (item) => {
+        if (item === 0) {
+          await release; // stay in flight until the test frees it
+          completed.push(0);
+          signalDone();
+          return;
+        }
+        throw new Error("boom"); // rejects while item 0 is still parked
       });
     } catch (error) {
       threw = true;
       expect(error.message).to.equal("boom");
-      // The rejection arrives before the 60ms sibling has completed.
+      // The sibling is still parked, so nothing has completed yet.
       expect(completed).to.deep.equal([]);
     }
     expect(threw).to.equal(true);
-    // Let the orphaned sibling drain so it can't bleed into other tests.
-    await sleep(100);
-    expect(completed).to.deep.equal([60]);
+    // Release the orphaned sibling and confirm it still runs to completion.
+    releaseSibling();
+    await siblingFinished;
+    expect(completed).to.deep.equal([0]);
   });
 
   it("resolves immediately for an empty item list", async function () {
@@ -152,6 +168,43 @@ describe("rollUpResults", function () {
     // Matches the previous inline logic: zero children means
     // length === filter(SKIPPED).length.
     expect(rollUpResults([])).to.equal("SKIPPED");
+  });
+});
+
+describe("createAppiumPool", function () {
+  it("hands out each port until exhausted", async function () {
+    const pool = createAppiumPool([4723, 4724]);
+    expect(await pool.acquire()).to.equal(4723);
+    expect(await pool.acquire()).to.equal(4724);
+  });
+
+  it("blocks acquire when exhausted, then resolves on release", async function () {
+    const pool = createAppiumPool([4723]);
+    const held = await pool.acquire();
+    let got;
+    const pending = pool.acquire().then((p) => (got = p));
+    // Nothing free yet — the second acquire must still be pending.
+    await Promise.resolve();
+    expect(got).to.equal(undefined);
+    pool.release(held);
+    await pending;
+    expect(got).to.equal(4723);
+  });
+
+  it("hands a released port straight to the next waiter, in FIFO order", async function () {
+    const pool = createAppiumPool([5]);
+    const held = await pool.acquire();
+    const order = [];
+    const w1 = pool.acquire().then((p) => order.push(["w1", p]));
+    const w2 = pool.acquire().then((p) => order.push(["w2", p]));
+    pool.release(held); // -> w1
+    await w1;
+    pool.release(5); // -> w2
+    await w2;
+    expect(order).to.deep.equal([
+      ["w1", 5],
+      ["w2", 5],
+    ]);
   });
 });
 

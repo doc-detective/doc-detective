@@ -30,7 +30,34 @@ export {
   findFreePort,
   runConcurrent,
   rollUpResults,
+  createAppiumPool,
 };
+
+// A fixed set of Appium server ports shared by concurrent runners. `acquire()`
+// hands out a free port, waiting if every port is checked out; `release()`
+// returns one, handing it straight to the next waiter. Single-threaded JS
+// means the shift/push pairs never race. Each port backs its own Appium
+// server, so two contexts never create sessions on the same server at once —
+// the contention that crashed ChromeDriver when every context shared one.
+function createAppiumPool(ports: number[]): {
+  acquire(): Promise<number>;
+  release(port: number): void;
+} {
+  const available = [...ports];
+  const waiters: Array<(port: number) => void> = [];
+  return {
+    acquire() {
+      const port = available.shift();
+      if (port !== undefined) return Promise.resolve(port);
+      return new Promise<number>((resolve) => waiters.push(resolve));
+    },
+    release(port: number) {
+      const next = waiters.shift();
+      if (next) next(port);
+      else available.push(port);
+    },
+  };
+}
 
 // Run `fn` over `items` with at most `limit` calls in flight. A limit of 1 (or
 // less) degenerates to strictly sequential execution in input order, so
