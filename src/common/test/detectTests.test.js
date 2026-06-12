@@ -627,6 +627,13 @@ function readFixture(filename) {
         expect(contentHash(decorated)).to.equal(contentHash(base));
       });
 
+      it("contentHash tolerates unserializable input", function () {
+        // JSON.stringify(undefined) returns undefined; the hash must not
+        // crash and must stay deterministic.
+        expect(contentHash(undefined)).to.match(/^[0-9a-f]{8}$/);
+        expect(contentHash(undefined)).to.equal(contentHash(""));
+      });
+
       it("should generate identical testIds for identical content across parses", async function () {
         const content =
           '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->\n' +

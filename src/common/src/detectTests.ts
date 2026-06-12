@@ -49,12 +49,15 @@ const HASH_EXCLUDED_KEYS = new Set([
  * browser-compatible.
  */
 export function contentHash(value: any): string {
+  // JSON.stringify returns undefined for unserializable inputs (undefined,
+  // functions, symbols); fall back to "" so the hash stays a stable string
+  // instead of crashing on optional/empty values.
   const input =
     typeof value === "string"
       ? value
       : JSON.stringify(value, (key, v) =>
           HASH_EXCLUDED_KEYS.has(key) ? undefined : v
-        );
+        ) ?? "";
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
     hash ^= input.charCodeAt(i);

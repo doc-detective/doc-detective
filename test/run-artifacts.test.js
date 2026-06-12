@@ -1,5 +1,6 @@
 import { getRunOutputDir } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
+import { generateSpecId } from "../dist/core/detectTests.js";
 import { resolveAutoScreenshot } from "../dist/core/tests.js";
 import { reporters } from "../dist/utils.js";
 import path from "node:path";
@@ -207,6 +208,18 @@ describe("deterministic resolved-test IDs", function () {
         })),
       }));
     expect(ids(first)).to.deep.equal(ids(second));
+  });
+
+  it("generateSpecId does not misclassify sibling paths sharing a cwd prefix", function () {
+    // /repo vs /repo-other: a bare startsWith(cwd) check would relativize
+    // the sibling into an unstable `../`-laden ID.
+    const sibling = `${process.cwd()}-other${path.sep}spec.json`;
+    const specId = generateSpecId(sibling);
+    expect(specId).to.not.include("..");
+    // Inside-cwd paths still relativize.
+    expect(generateSpecId(path.join(process.cwd(), "docs", "a.md"))).to.equal(
+      "docs/a.md"
+    );
   });
 
   it("derives a specId from contentPath when none is declared", async function () {

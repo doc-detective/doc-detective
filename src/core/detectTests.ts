@@ -47,12 +47,15 @@ function generateSpecId(filePath: string) {
   const absolutePath = path.resolve(filePath);
   const cwd = process.cwd();
 
-  let relativePath;
-  if (absolutePath.startsWith(cwd)) {
-    relativePath = path.relative(cwd, absolutePath);
-  } else {
-    relativePath = absolutePath;
-  }
+  // Relativize only when the path is genuinely inside cwd. A bare
+  // startsWith(cwd) check would misclassify siblings that share a prefix
+  // (/repo vs /repo-other), producing unstable `../`-laden IDs.
+  const candidate = path.relative(cwd, absolutePath);
+  const isInsideCwd =
+    candidate.length > 0 &&
+    !candidate.startsWith("..") &&
+    !path.isAbsolute(candidate);
+  const relativePath = isInsideCwd ? candidate : absolutePath;
 
   const normalizedPath = relativePath
     .split(path.sep)
