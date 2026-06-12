@@ -116,6 +116,11 @@ function buildYargs(args: any): any {
         "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
       type: "string",
     })
+    .option("concurrent-runners", {
+      description:
+        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+      type: "string",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -352,6 +357,16 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // runtime/cacheDir.ts trims and drops whitespace-only values, so a
     // `--cache-dir "   "` override is neutralized at the consumption site.
     config.cacheDir = args.cacheDir;
+  }
+  if (typeof args.concurrentRunners === "string") {
+    // The bare flag ("" after yargs string parsing) and an explicit "true"
+    // select CPU-count mode; anything else is a runner count. A garbage value
+    // becomes NaN here and is rejected by the downstream config_v3 validation
+    // in core — assignment-only per the documented setConfig contract.
+    config.concurrentRunners =
+      args.concurrentRunners === "" || args.concurrentRunners === "true"
+        ? true
+        : Number(args.concurrentRunners);
   }
   // Resolve paths
   config = await resolvePaths({
