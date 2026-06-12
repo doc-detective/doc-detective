@@ -90,10 +90,13 @@ const browserCtx = () =>
   Array.from({ length: BROWSER_N }, (_, i) => ({
     contextId: `b-${i}`,
     browser: { name: "chrome", headless: true },
-    steps: [{ stepId: `b-${i}-s`, goTo: url }],
+    steps: [
+      { stepId: `b-${i}-go`, goTo: url },
+      { stepId: `b-${i}-wait`, wait: 2000 },
+    ],
   }));
 const bMed = await bench(
-  `Realistic browser: ${BROWSER_N} Chrome contexts (goTo local page)`,
+  `Realistic browser: ${BROWSER_N} Chrome contexts (goTo + 2s work)`,
   browserCtx,
   [1, 2, 4],
   2
