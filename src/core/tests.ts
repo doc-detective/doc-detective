@@ -452,11 +452,6 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
  */
 async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const config: any = resolvedTests.config;
-  // Per-run artifact folder and ID, stamped on the report so the runFolder
-  // reporter archives results beside any auto screenshots from the same run,
-  // and so consumers can correlate results over time.
-  const runDir = getRunOutputDir(config);
-  const runId = path.basename(runDir).replace(/^run-/, "");
   // Narrow the spec set to what specFilter / testFilter allow before running.
   // Filtered-out specs / tests do not appear in the report (true filter, not
   // skip). Pass-through when neither filter is set.
@@ -474,10 +469,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // loop entirely. Without this, a fully-filtered run still spins up
     // getAvailableApps and friends — wasted work, plus an avoidable error
     // path if discovery fails on the host. Mirrors the runViaApi early
-    // return so both run paths behave the same way.
+    // return so both run paths behave the same way. No runId/runDir here —
+    // a run that matched nothing shouldn't create an artifact folder; the
+    // runFolder reporter derives one lazily if it's configured to archive.
     return {
-      runId,
-      runDir,
       summary: {
         specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
@@ -487,6 +482,13 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       specs: [],
     };
   }
+
+  // Per-run artifact folder and ID, stamped on the report so the runFolder
+  // reporter archives results beside any auto screenshots from the same run,
+  // and so consumers can correlate results over time. Created after the
+  // filter short-circuit so a run that matched nothing leaves no folder.
+  const runDir = getRunOutputDir(config);
+  const runId = path.basename(runDir).replace(/^run-/, "");
 
   // Get runner details
   const runnerDetails = {
@@ -645,14 +647,16 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           context.browser = getDefaultBrowser({ runnerDetails });
         }
 
-        // Set context report
+        // Set context report. Resolution always assigns a contextId; the
+        // derived fallback covers programmatic callers that hand runSpecs
+        // un-resolved contexts, and matches the resolver's derivation
+        // (platform is guaranteed set a few lines up).
         let contextReport: any = {
           contextId:
             context.contextId ||
             [context.platform, context.browser?.name]
               .filter(Boolean)
-              .join("-") ||
-            randomUUID(),
+              .join("-"),
           platform: context.platform,
           browser: context.browser,
           steps: [],
@@ -1121,8 +1125,9 @@ async function captureAutoScreenshot({
       String(test.testId ?? ""),
       "test"
     );
+    const runDir = getRunOutputDir(config);
     const dir = path.join(
-      getRunOutputDir(config),
+      runDir,
       "screenshots",
       capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
       capPathSegment(sanitizedTestId),
@@ -1163,7 +1168,14 @@ async function captureAutoScreenshot({
       );
       return null;
     }
-    return screenshotStep.screenshot.path;
+    // Report the path relative to the run folder (normalized to forward
+    // slashes) so the same step produces an identical report value in every
+    // run — absolute, timestamped paths would defeat run-over-run diffing.
+    // Consumers resolve it against the report's `runDir`.
+    return path
+      .relative(runDir, screenshotStep.screenshot.path)
+      .split(path.sep)
+      .join("/");
   } catch (error: any) {
     log(
       config,

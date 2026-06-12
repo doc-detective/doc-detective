@@ -71,7 +71,7 @@ function normalizePathForId(filePath?: string): string {
   return filePath
     .replace(/\\/g, "/")
     .replace(/^\.\//, "")
-    .replace(/[^a-zA-Z0-9._\-\/]/g, "_");
+    .replace(/[^a-zA-Z0-9._/-]/g, "_");
 }
 
 /**

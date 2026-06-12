@@ -83,6 +83,23 @@ describe("runFolder reporter", function () {
     expect(parsed.runId).to.equal("20260612-130000");
   });
 
+  it("ignores a results.runDir outside the output's .doc-detective root", async function () {
+    // Results can originate outside the local process (API runs); a garbled
+    // or malicious runDir must not redirect the write outside the output.
+    const evilDir = path.join(tempBase, "elsewhere", "run-x");
+    const written = await reporters.runFolderReporter(
+      {},
+      tempBase,
+      { runDir: evilDir, summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    expect(written).to.not.include(path.join("elsewhere", "run-x"));
+    expect(
+      path.relative(path.resolve(tempBase, ".doc-detective"), written)
+    ).to.match(/^run-\d{8}-\d{6}([\\/-]|$)/);
+    expect(fs.existsSync(evilDir)).to.equal(false);
+  });
+
   it("derives a run folder from the output path when results carry none", async function () {
     const written = await reporters.runFolderReporter(
       {},

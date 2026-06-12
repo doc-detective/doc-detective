@@ -450,11 +450,29 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     }
 
     // Prefer the run folder stamped on the results (set by runSpecs, shared
-    // with auto screenshots); fall back to deriving one from the output path
-    // for results that didn't come from a local run.
-    const runDir =
+    // with auto screenshots) — but only when it resolves inside this output
+    // path's `.doc-detective/` root. Results can originate outside the local
+    // process (e.g. API runs), and a garbled or malicious runDir must not
+    // redirect the write elsewhere. Otherwise derive a fresh run folder.
+    const expectedRunsRoot = (() => {
+      let base = outputPath || config.output || ".";
+      const reportFileExtensions = [".json", ".html", ".htm"];
+      if (
+        reportFileExtensions.some((ext) =>
+          String(base).toLowerCase().endsWith(ext)
+        )
+      ) {
+        base = path.dirname(base);
+      }
+      return path.resolve(base, ".doc-detective");
+    })();
+    const stampedRunDir =
       typeof results?.runDir === "string" && results.runDir.length > 0
-        ? results.runDir
+        ? path.resolve(results.runDir)
+        : null;
+    const runDir =
+      stampedRunDir && stampedRunDir.startsWith(expectedRunsRoot + path.sep)
+        ? stampedRunDir
         : getRunOutputDir({ output: outputPath || config.output || "." });
     const outputFile = path.resolve(runDir, `${reportType}.json`);
 

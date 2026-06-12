@@ -529,9 +529,10 @@ function getOrInitRunTimestamp(config: any): string {
 // runId is the run timestamp. Memoized on the config object so auto
 // screenshots and the runFolder reporter all land in the same folder for the
 // duration of a run. If `config.output` points at a report file (reporters
-// accept `.json`/`.html` paths), the run folder is created next to it. A
-// pre-existing folder (parallel run in the same second) gets an ordinal
-// suffix rather than being merged into.
+// accept `.json`/`.html` paths), the run folder is created next to it.
+// Creation is atomic (non-recursive mkdir, EEXIST → ordinal suffix) so two
+// runs starting in the same second each get their own folder instead of
+// silently merging artifacts.
 function getRunOutputDir(config: any): string {
   if (config?.__runOutputDir) return config.__runOutputDir;
   let base = config?.output || ".";
@@ -540,13 +541,22 @@ function getRunOutputDir(config: any): string {
     base = path.dirname(base);
   }
   const runsRoot = path.resolve(base, ".doc-detective");
+  fs.mkdirSync(runsRoot, { recursive: true });
   const runId = getOrInitRunTimestamp(config);
   let dir = path.join(runsRoot, `run-${runId}`);
   let suffix = 2;
-  while (fs.existsSync(dir)) {
-    dir = path.join(runsRoot, `run-${runId}-${suffix++}`);
+  // Non-recursive mkdir is the reservation: it throws EEXIST if another
+  // process already claimed the name, closing the check-then-create race an
+  // existsSync loop would leave open.
+  for (;;) {
+    try {
+      fs.mkdirSync(dir);
+      break;
+    } catch (error: any) {
+      if (error?.code !== "EEXIST") throw error;
+      dir = path.join(runsRoot, `run-${runId}-${suffix++}`);
+    }
   }
-  fs.mkdirSync(dir, { recursive: true });
   if (config) config.__runOutputDir = dir;
   return dir;
 }
