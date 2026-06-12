@@ -4,7 +4,10 @@ import {
   createAppiumPool,
 } from "../dist/core/utils.js";
 import { runSpecs } from "../dist/core/tests.js";
-import { getEnvironment } from "../dist/core/config.js";
+import {
+  getEnvironment,
+  resolveConcurrentRunners,
+} from "../dist/core/config.js";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -168,6 +171,32 @@ describe("rollUpResults", function () {
     // Matches the previous inline logic: zero children means
     // length === filter(SKIPPED).length.
     expect(rollUpResults([])).to.equal("SKIPPED");
+  });
+});
+
+describe("resolveConcurrentRunners", function () {
+  it("returns explicit positive integers unchanged", function () {
+    expect(resolveConcurrentRunners({ concurrentRunners: 1 })).to.equal(1);
+    expect(resolveConcurrentRunners({ concurrentRunners: 4 })).to.equal(4);
+  });
+
+  it("maps true to the CPU count capped at 4", function () {
+    const n = resolveConcurrentRunners({ concurrentRunners: true });
+    expect(n).to.be.a("number");
+    expect(n).to.be.at.least(1);
+    expect(n).to.be.at.most(4);
+  });
+
+  it("falls back to 1 for missing or invalid values", function () {
+    // API callers can bypass schema validation; an invalid value must never
+    // size the worker/Appium pools to 0 and hang. 1.5 floors to 1.
+    for (const bad of [undefined, 0, -2, NaN, 1.5, "nope", null]) {
+      expect(
+        resolveConcurrentRunners({ concurrentRunners: bad }),
+        `value: ${String(bad)}`
+      ).to.equal(1);
+    }
+    expect(resolveConcurrentRunners({})).to.equal(1);
   });
 });
 
