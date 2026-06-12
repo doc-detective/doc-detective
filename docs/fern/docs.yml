@@ -193,6 +193,11 @@ navigation:
             path: pages/docs/selectors/xpath.mdx
             slug: xpath
 
+      - section: Troubleshooting
+        contents:
+          - page: Setup issues
+            path: pages/docs/troubleshooting/setup-issues.mdx
+
       - section: Contribute
         contents:
           - page: Contribute to the docs

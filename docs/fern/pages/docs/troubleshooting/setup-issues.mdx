@@ -1,0 +1,144 @@
+---
+title: Troubleshooting setup issues
+description: Diagnose environment and configuration problems with the debug command.
+---
+
+# Troubleshooting setup issues
+
+When Doc Detective fails to run or behaves unexpectedly, use the built-in diagnostic dump to identify the problem.
+
+## Symptoms
+
+- Tests fail with environment-related errors
+- Browser detection fails or times out
+- Configuration validation errors
+- Missing dependencies or tool version mismatches
+- Tests work locally but fail in CI
+
+## Generate a diagnostic dump
+
+Run the `debug` subcommand to collect diagnostic information about your environment:
+
+```bash
+doc-detective debug
+```
+
+Or use the environment variable (useful in CI):
+
+```bash
+DOC_DETECTIVE_DEBUG=true doc-detective
+```
+
+The diagnostic dump reports:
+
+- **System info**: OS, platform, architecture, CPU, memory, and whether you're running in a container
+- **Doc Detective version**: Installed version plus dependency versions
+- **Tool versions**: Node.js, npm, Python, Java, Git, Docker, ffmpeg, and Appium
+- **Detected browsers**: Available browsers and their Appium drivers
+- **Referenced environment variables**: Variables your config and documentation files reference via `$VAR` syntax
+- **Effective config**: Your merged configuration after file and environment processing
+
+## Include full environment variables
+
+By default, the dump only shows environment variables referenced in your config and docs. To include all environment variables:
+
+```bash
+doc-detective debug --include-env
+```
+
+<Warning>
+
+Review the output before sharing. Secrets are redacted by name (like `TOKEN`, `SECRET`, `PASSWORD`) and by value shape (JWTs, GitHub tokens, AWS keys), but unusual credential formats may slip through.
+
+</Warning>
+
+## Diagnose configuration errors
+
+If your configuration file has validation errors, the dump still runs and shows what went wrong:
+
+```
+-- Config -----------------------------------------------------------
+  === CONFIG INVALID ===
+  Invalid value at path: runOn[0].browsers[0] - must be a string or object
+
+  Best-effort raw config (validation failed):
+  {
+    "input": "docs",
+    "runOn": [{ "browsers": [123] }]
+  }
+```
+
+Fix the issue indicated in the error message, then run `debug` again to verify.
+
+## Common issues revealed by the dump
+
+### Browser detection times out
+
+If the Browsers section shows a timeout:
+
+```
+-- Browsers ---------------------------------------------------------
+  <browser detection timed out after 5000ms — most often means Appium 
+  isn't installed locally, since detection shells out to `npx appium 
+  driver list`>
+```
+
+Install the required browser driver:
+
+```bash
+npm install appium appium-chromium-driver
+```
+
+### Version mismatch warning
+
+If you see a warning about version drift:
+
+```
+-- Doc Detective ----------------------------------------------------
+  doc-detective                2.0.0
+  doc-detective-common         1.9.0
+  
+  ! WARNING: doc-detective (2.0.0) and doc-detective-common (1.9.0) 
+    versions differ — they ship in lockstep, mismatch usually means 
+    a stale install.
+```
+
+Reinstall Doc Detective:
+
+```bash
+npm uninstall -g doc-detective && npm install -g doc-detective
+```
+
+### Missing environment variable
+
+If a variable referenced in your config shows `<unset>`:
+
+```
+-- Referenced environment variables ---------------------------------
+  Scanned 12 documentation file(s) plus config for $VAR references.
+
+  API_KEY = <unset>
+  BASE_URL = https://example.com
+```
+
+Set the missing variable before running tests:
+
+```bash
+export API_KEY=your-key-here
+```
+
+Or add it to your `.env` file and reference it with `loadVariables` in your config.
+
+## Share diagnostics in bug reports
+
+When opening an issue or asking for help, paste the diagnostic output. It contains everything a maintainer needs to understand your environment without back-and-forth questions.
+
+1. Run `doc-detective debug`
+2. Copy the output
+3. Paste it into your [GitHub issue](https://github.com/doc-detective/doc-detective/issues) or [Discord message](https://discord.gg/2M7wXEThfF)
+
+## See also
+
+- [Installation](/docs/get-started/installation)
+- [Configuration reference](/reference/schemas/config)
+- [Contexts](/docs/config/contexts)
