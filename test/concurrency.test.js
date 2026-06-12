@@ -75,6 +75,30 @@ describe("runConcurrent", function () {
     expect(threw).to.equal(true);
   });
 
+  it("rejects while a sibling worker is still in flight", async function () {
+    // Item 5 throws while item 60 is mid-flight: the call rejects with the
+    // error, and the sibling finishes as an orphaned microtask (promises
+    // can't be cancelled). Callers needing isolation catch inside fn.
+    const completed = [];
+    let threw = false;
+    try {
+      await runConcurrent([60, 5], 2, async (ms) => {
+        await sleep(ms);
+        if (ms === 5) throw new Error("boom");
+        completed.push(ms);
+      });
+    } catch (error) {
+      threw = true;
+      expect(error.message).to.equal("boom");
+      // The rejection arrives before the 60ms sibling has completed.
+      expect(completed).to.deep.equal([]);
+    }
+    expect(threw).to.equal(true);
+    // Let the orphaned sibling drain so it can't bleed into other tests.
+    await sleep(100);
+    expect(completed).to.deep.equal([60]);
+  });
+
   it("resolves immediately for an empty item list", async function () {
     let calls = 0;
     await runConcurrent([], 4, async () => {

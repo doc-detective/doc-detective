@@ -677,6 +677,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   for (const specReport of report.specs) {
     for (const testReport of specReport.tests) {
       for (const contextReport of testReport.contexts) {
+        // Every slot is assigned by the pool callback (even on crash), so
+        // this guard should never fire — it documents the invariant and
+        // keeps a future gap from surfacing as a cryptic undefined read.
+        if (!contextReport) continue;
         for (const stepReport of contextReport.steps) {
           report.summary.steps[stepReport.result.toLowerCase()]++;
         }
