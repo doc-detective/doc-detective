@@ -28,7 +28,38 @@ export {
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
+  runConcurrent,
+  rollUpResults,
 };
+
+// Run `fn` over `items` with at most `limit` calls in flight. A limit of 1 (or
+// less) degenerates to strictly sequential execution in input order, so
+// sequential and concurrent runs share this single code path. The shared
+// cursor is safe without locking: JS is single-threaded, and `next++` happens
+// synchronously between awaits.
+async function runConcurrent<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> {
+  let next = 0;
+  const workerCount = Math.max(1, Math.min(Math.floor(limit) || 1, items.length));
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (next < items.length) {
+      await fn(items[next++]);
+    }
+  });
+  await Promise.all(workers);
+}
+
+// Roll child results up to a parent result: FAIL > WARNING > all-SKIPPED >
+// PASS. An empty list rolls up to SKIPPED (vacuously "all children skipped").
+function rollUpResults(children: Array<{ result?: string }>): string {
+  if (children.some((child) => child.result === "FAIL")) return "FAIL";
+  if (children.some((child) => child.result === "WARNING")) return "WARNING";
+  if (children.every((child) => child.result === "SKIPPED")) return "SKIPPED";
+  return "PASS";
+}
 
 // Bind a temp listener to port 0, capture the OS-assigned port, and release
 // it. There is a small close-to-rebind window where another process could
