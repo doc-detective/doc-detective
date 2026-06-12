@@ -182,28 +182,3 @@ function probeFfmpeg(): ToolResult {
 function probeAppium(): ToolResult {
   return probeFromPackageJson("appium", "appium", "from");
 }
-
-// Returns the list of known Appium driver packages with their
-// installed versions, read straight from each package's package.json.
-// Replaces an earlier `npx --no-install appium driver list` spawn that
-// could have executed a project-local `node_modules/.bin/appium`.
-//
-// The candidate list mirrors the drivers Doc Detective itself depends
-// on (`appium-chromium-driver`, `appium-geckodriver`,
-// `appium-safari-driver`). Drivers installed via Appium's own
-// extension manager into `~/.appium/node_modules` are NOT enumerated
-// here — they'd require parsing `~/.appium/extensions.yaml`, which
-// is a follow-up if it turns out to be useful.
-export async function probeAppiumDrivers(): Promise<string> {
-  const candidates = [
-    "appium-chromium-driver",
-    "appium-geckodriver",
-    "appium-safari-driver",
-  ];
-  const lines: string[] = [];
-  for (const name of candidates) {
-    const result = probeFromPackageJson(name, name);
-    lines.push(`${result.name} ${result.version}`);
-  }
-  return lines.join("\n");
-}

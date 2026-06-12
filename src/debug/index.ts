@@ -11,10 +11,11 @@
 // "your config is broken" is the most useful thing we can show.
 
 import fs from "node:fs";
+import path from "node:path";
 import { getVersionData } from "../utils.js";
-import { getAvailableApps } from "../core/config.js";
+import { getBrowserDiagnostics } from "../core/config.js";
 import { collectSystemInfo } from "./system.js";
-import { probeAllTools, probeAppiumDrivers } from "./tools.js";
+import { probeAllTools } from "./tools.js";
 import {
   findReferencedEnvVars,
   detectContainer,
@@ -44,7 +45,20 @@ export interface PrintDebugOptions {
    * implicit full env dump unless they explicitly ask for it.
    */
   includeEnv?: boolean;
+  /**
+   * When set, the rendered dump is also written to this path (parent
+   * directories are created). Production callers pass
+   * `defaultDebugOutFile()`; unit tests omit it so calling `printDebug`
+   * never writes a file as a side effect.
+   */
+  outFile?: string;
   print?: (line: string) => void;
+}
+
+// Where the dump is saved by default: `<cwd>/.doc-detective/debug.txt`.
+// A function (not a constant) because it reads the live cwd at call time.
+export function defaultDebugOutFile(): string {
+  return path.join(process.cwd(), ".doc-detective", "debug.txt");
 }
 
 export async function printDebug(opts: PrintDebugOptions): Promise<void> {
@@ -63,7 +77,22 @@ export async function printDebug(opts: PrintDebugOptions): Promise<void> {
 
   sections.push(renderConfigSection(opts));
 
-  print(renderDocument(sections));
+  const document = renderDocument(sections);
+  print(document);
+
+  // Persist a copy for easy attachment to bug reports. Best-effort: a
+  // write failure (read-only fs, permissions) must never crash the dump.
+  if (opts.outFile) {
+    try {
+      fs.mkdirSync(path.dirname(opts.outFile), { recursive: true });
+      fs.writeFileSync(opts.outFile, document + "\n", "utf8");
+      print(`\nDiagnostic dump saved to ${opts.outFile}`);
+    } catch (err: any) {
+      print(
+        `\n<failed to save diagnostic dump to ${opts.outFile}: ${err?.message || err}>`
+      );
+    }
+  }
 }
 
 function renderSystemSection(): Section {
@@ -144,61 +173,62 @@ async function renderToolsSection(): Promise<Section> {
     const value = r.notes ? `${r.version}  (${r.notes})` : r.version;
     return [r.name, value];
   });
-  const lines = renderKeyValues(rows);
-
-  // Appium drivers — separate block since the output is multi-line.
-  let driversText = "<not probed>";
-  try {
-    driversText = await probeAppiumDrivers();
-  } catch (err: any) {
-    driversText = `<probe error: ${err?.message || err}>`;
-  }
-  lines.push("");
-  lines.push("  appium drivers:");
-  for (const dl of driversText.split("\n")) {
-    lines.push(`    ${dl}`);
-  }
-  return renderSection("Tools", lines);
+  // Browser/Appium drivers are reported per-browser in the Browsers section.
+  return renderSection("Tools", renderKeyValues(rows));
 }
 
-// Hard cap on browser-detection latency. `getAvailableApps` internally
-// runs `npx appium driver list` with no timeout (~74s observed on cold
-// caches without local Appium). Diagnostics must not block that long.
+// Hard cap on browser-detection latency. Detection shells out to
+// `appium driver list`, which can take ~74s on cold caches without local
+// Appium. Diagnostics must not block that long.
 const BROWSER_DETECTION_TIMEOUT_MS = 5000;
 
 async function renderBrowsersSection(config: any): Promise<Section> {
   try {
-    // getAvailableApps mutates cwd and reads process.env for APPIUM_HOME;
-    // it expects a config with an `environment.platform` field. Synthesize
-    // a minimal one if validation never completed.
+    // getBrowserDiagnostics mutates cwd and reads process.env for
+    // APPIUM_HOME; it expects a config with an `environment.platform`
+    // field. Synthesize a minimal one if validation never completed.
     const safeConfig = config && config.environment
       ? config
       : { ...(config || {}), environment: { platform: detectPlatform() } };
 
     const timeoutSentinel: unique symbol = Symbol("browser-timeout") as any;
-    const apps = await Promise.race<any>([
-      getAvailableApps({ config: safeConfig }),
+    const result = await Promise.race<any>([
+      getBrowserDiagnostics({ config: safeConfig }),
       new Promise((resolve) =>
         setTimeout(() => resolve(timeoutSentinel), BROWSER_DETECTION_TIMEOUT_MS)
       ),
     ]);
 
-    if (apps === timeoutSentinel) {
+    if (result === timeoutSentinel) {
       return renderSection("Browsers", [
-        `  <browser detection timed out after ${BROWSER_DETECTION_TIMEOUT_MS}ms — most often means Appium isn't installed locally, since detection shells out to \`npx appium driver list\`>`,
+        `  <browser detection timed out after ${BROWSER_DETECTION_TIMEOUT_MS}ms — most often means Appium isn't installed locally, since detection shells out to \`appium driver list\`>`,
       ]);
     }
 
-    if (!Array.isArray(apps) || apps.length === 0) {
-      return renderSection("Browsers", [
-        "  <no supported browsers detected — Chrome, Firefox, or Safari with a matching Appium driver is required>",
-      ]);
-    }
     const lines: string[] = [];
-    for (const app of apps) {
-      lines.push(`  ${app.name} ${app.version || ""}`.trimEnd());
-      if (app.path) lines.push(`    path:    ${app.path}`);
-      if (app.driver) lines.push(`    driver:  ${app.driver}`);
+    if (result.detectionFailed) {
+      lines.push(
+        "  ! browser detection hit an error; component status may be incomplete."
+      );
+      lines.push("");
+    }
+    // Always enumerate every supported browser with a clear AVAILABLE /
+    // NOT AVAILABLE / NOT SUPPORTED status, then break down each
+    // component (browser binary, webdriver, Appium driver) so the user
+    // can see exactly which piece is missing.
+    for (const browser of result.browsers) {
+      const status = !browser.supported
+        ? "NOT SUPPORTED"
+        : browser.available
+        ? "AVAILABLE"
+        : "NOT AVAILABLE";
+      const note = browser.note ? `  (${browser.note})` : "";
+      lines.push(`  ${browser.name.padEnd(8)} ${status}${note}`);
+      for (const c of browser.components) {
+        const mark = c.installed ? "installed" : "not installed";
+        const detail = c.detail ? `  ${c.detail}` : "";
+        lines.push(`    ${`${c.label}:`.padEnd(25)} ${mark}${detail}`);
+      }
     }
     return renderSection("Browsers", lines);
   } catch (err: any) {

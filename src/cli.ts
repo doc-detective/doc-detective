@@ -13,7 +13,7 @@ import {
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
 import { installCommand } from "./runtime/installCommand.js";
-import { printDebug } from "./debug/index.js";
+import { printDebug, defaultDebugOutFile } from "./debug/index.js";
 import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
@@ -107,6 +107,7 @@ async function runTestsHandler(args: any) {
         config: stubConfig,
         configPath: configPath,
         configError: err instanceof Error ? err : new Error(String(err)),
+        outFile: defaultDebugOutFile(),
       });
       return;
     }
@@ -117,11 +118,10 @@ async function runTestsHandler(args: any) {
   // env-var path intentionally does NOT enable --include-env; users
   // who want the full process.env must run `doc-detective debug
   // --include-env` explicitly. (There is no config-file equivalent —
-  // the `debug` field was removed because making test runs silently
-  // skip themselves via a saved config setting was more footgun than
-  // feature.)
+  // the `debug` config field is deprecated and ignored; diagnostics live
+  // behind this env var and the `debug` subcommand.)
   if (debugRequested) {
-    await printDebug({ config, configPath, configError: null });
+    await printDebug({ config, configPath, configError: null, outFile: defaultDebugOutFile() });
     return;
   }
 

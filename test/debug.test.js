@@ -457,6 +457,49 @@ describe("debug/printDebug end-to-end", function () {
     // System info markers
     expect(text).to.match(/platform\s+\w+/);
     expect(text).to.match(/nodeVersion\s+v\d+\./);
+
+    // Browsers section always enumerates all three supported browsers with
+    // an explicit availability status and per-component breakdown.
+    expect(text).to.match(/\n\s+chrome\s+(AVAILABLE|NOT AVAILABLE)/);
+    expect(text).to.match(/\n\s+firefox\s+(AVAILABLE|NOT AVAILABLE)/);
+    // platform: linux -> Safari is unsupported.
+    expect(text).to.match(/\n\s+safari\s+NOT SUPPORTED/);
+    expect(text).to.include("appium-chromium-driver:");
+    expect(text).to.include("geckodriver:");
+    expect(text).to.include("safaridriver:");
+  });
+
+  it("writes the dump to outFile when provided (and not when omitted)", async function () {
+    this.timeout(60000);
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-outfile-"));
+    try {
+      const outFile = path.join(tmp, ".doc-detective", "debug.txt");
+      const out = [];
+      await printDebug({
+        config: { input: ".", environment: { platform: "linux" } },
+        configPath: null,
+        outFile,
+        print: (line) => out.push(line),
+      });
+      // File written, parent dir created, content matches the dump.
+      expect(fs.existsSync(outFile)).to.equal(true);
+      const fileContent = fs.readFileSync(outFile, "utf8");
+      expect(fileContent).to.include("Doc Detective diagnostic dump");
+      expect(fileContent).to.include("-- Browsers ");
+      // stdout gets a save-confirmation line pointing at the file.
+      expect(out.join("\n")).to.include(`Diagnostic dump saved to ${outFile}`);
+
+      // Omitting outFile must not write anything (no side effects in tests).
+      const before = fs.readdirSync(tmp);
+      await printDebug({
+        config: { input: ".", environment: { platform: "linux" } },
+        configPath: null,
+        print: () => {},
+      });
+      expect(fs.readdirSync(tmp)).to.deep.equal(before);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   it("surfaces the CONFIG INVALID banner when configError is set", async function () {
@@ -594,6 +637,15 @@ describe("debug CLI smoke test", function () {
       expect(result.stdout).to.include(
         "-- Referenced environment variables "
       );
+      // The dump is also saved to <cwd>/.doc-detective/debug.txt.
+      const savedPath = path.join(tmp, ".doc-detective", "debug.txt");
+      expect(fs.existsSync(savedPath), "debug.txt should be saved in cwd").to.equal(
+        true
+      );
+      expect(fs.readFileSync(savedPath, "utf8")).to.include(
+        "Doc Detective diagnostic dump"
+      );
+      expect(result.stdout).to.include("Diagnostic dump saved to");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
