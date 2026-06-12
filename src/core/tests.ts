@@ -841,7 +841,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         }
 
         // If recording, stop recording
-        if (config.recording) {
+        if (driver?.state?.recording) {
           const stopRecordStep = {
             stopRecord: true,
             description: "Stopping recording",
@@ -1059,7 +1059,7 @@ async function runStep({
       step: step,
       driver: driver,
     });
-    config.recording = actionResult.recording;
+    driver.state.recording = actionResult.recording ?? null;
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step });
   } else if (typeof step.runShell !== "undefined") {
@@ -1085,7 +1085,7 @@ async function runStep({
     };
   }
   // If recording, wait until browser is loaded, then instantiate cursor
-  if (config?.recording) {
+  if (driver?.state?.recording) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
@@ -1160,7 +1160,9 @@ async function driverStart(
         connectionRetryTimeout: 120000, // 2 minutes
         waitforTimeout: 120000, // 2 minutes
       });
-      driver.state = { url: "", x: null, y: null };
+      // Per-context mutable state. `recording` lives here (not on config)
+      // so concurrent contexts can't clobber each other's recordings.
+      driver.state = { url: "", x: null, y: null, recording: null };
       return driver;
     } catch (err: any) {
       lastError = err;

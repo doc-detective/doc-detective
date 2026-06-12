@@ -43,19 +43,22 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
-  // Skip if recording is not started
-  if (!config.recording) {
+  // Skip if recording is not started. Recording state is per-context (it
+  // lives on driver.state), so concurrent contexts can't see each other's
+  // recordings.
+  const recording = driver?.state?.recording;
+  if (!recording) {
     result.status = "SKIPPED";
     result.description = `Recording isn't started.`;
     return result;
   }
 
   try {
-    if (config.recording.type === "MediaRecorder") {
+    if (recording.type === "MediaRecorder") {
       // MediaRecorder
 
       // Switch to recording tab
-      await driver.switchToWindow(config.recording.tab);
+      await driver.switchToWindow(recording.tab);
 
       // Check that recorder was properly initialized
       const recorderExists = await driver.execute(() => {
@@ -68,12 +71,12 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         const allHandles = await driver.getWindowHandles();
         await driver.closeWindow();
         const remainingHandles = allHandles.filter(
-          (h: string) => h !== config.recording.tab
+          (h: string) => h !== recording.tab
         );
         if (remainingHandles.length > 0) {
           await driver.switchToWindow(remainingHandles[0]);
         }
-        config.recording = null;
+        driver.state.recording = null;
         return result;
       }
 
@@ -83,11 +86,11 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       });
       // Wait for file to be in download path
       let waitCount = 0;
-      while (!fs.existsSync(config.recording.downloadPath) && waitCount < 60) {
+      while (!fs.existsSync(recording.downloadPath) && waitCount < 60) {
         await new Promise((r) => setTimeout(r, 1000));
         waitCount++;
       }
-      if (!fs.existsSync(config.recording.downloadPath)) {
+      if (!fs.existsSync(recording.downloadPath)) {
         result.status = "FAIL";
         result.description = "Recording download timed out.";
         return result;
@@ -96,16 +99,16 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       const allHandles = await driver.getWindowHandles();
       await driver.closeWindow();
       const remainingHandles = allHandles.filter(
-        (h: string) => h !== config.recording.tab
+        (h: string) => h !== recording.tab
       );
       if (remainingHandles.length > 0) {
         await driver.switchToWindow(remainingHandles[0]);
       }
 
       // Convert the file into the target format/location
-      const targetPath = `${config.recording.targetPath}`;
-      const downloadPath = `${config.recording.downloadPath}`;
-      const endMessage = `Finished processing file: ${config.recording.targetPath}`;
+      const targetPath = `${recording.targetPath}`;
+      const downloadPath = `${recording.downloadPath}`;
+      const endMessage = `Finished processing file: ${recording.targetPath}`;
       const ffmpegArgs = ["-y", "-i", downloadPath, "-pix_fmt", "yuv420p"];
       if (path.extname(targetPath) === ".gif") {
         ffmpegArgs.push("-vf", "scale=iw:-1:flags=lanczos");
@@ -129,10 +132,10 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
           })
           .on("error", reject);
       });
-      config.recording = null;
+      driver.state.recording = null;
     } else {
       // FFMPEG
-      // config.recording.stdin.write("q");
+      // recording.stdin.write("q");
     }
   } catch (error) {
     // Couldn't stop recording

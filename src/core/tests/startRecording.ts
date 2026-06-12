@@ -75,7 +75,6 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     context?.browser?.name === "chrome" &&
     context?.browser?.headless === false
   ) {
-    config.recording = {};
     // Chrome and Chromium
     // Get document title
     const documentTitle = await driver.getTitle();
@@ -90,7 +89,6 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     await driver.switchToWindow(recorderTab.handle);
     await driver.url("chrome://new-tab-page");
     await driver.execute(() => (document.title = "RECORDER"));
-    config.recording.tab = await driver.getWindowHandle();
 
     // Start recording
     const recorderStarted = await driver.executeAsync((baseName: any, done: any) => {
@@ -173,7 +171,6 @@ async function startRecording({ config, context, step, driver }: { config: any; 
 
     // Handle recording failure
     if (!recorderStarted) {
-      config.recording = null;
       result.status = "FAIL";
       result.description =
         "Failed to start recording. getDisplayMedia may have been rejected. " +
