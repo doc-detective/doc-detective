@@ -38,7 +38,12 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { resolveExpression } from "./expressions.js";
-import { getEnvironment, getAvailableApps, clearAppCache } from "./config.js";
+import {
+  getEnvironment,
+  getAvailableApps,
+  clearAppCache,
+  resolveConcurrentRunners,
+} from "./config.js";
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
@@ -435,9 +440,11 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
 /**
  * Orchestrates execution of resolved test specifications and returns a hierarchical run report.
  *
- * Executes each spec -> test -> context -> step, conditionally starts Appium and browser drivers,
- * applies viewport/window sizing, handles unsafe-step policies and recording, aggregates per-step,
- * per-context, per-test, and per-spec results, and performs resource cleanup.
+ * Flattens every context across all specs and tests into one job list and runs it through a
+ * worker pool sized by config.concurrentRunners (default 1 = sequential). Conditionally starts
+ * Appium and browser drivers, applies viewport/window sizing, handles unsafe-step policies and
+ * recording, then rolls per-step, per-context, per-test, and per-spec results up in a
+ * deterministic post-pass. Report order always matches input order.
  *
  * @param {Object} resolvedTests - Resolved test bundle containing configuration and specs to run.
  * @param {Object} resolvedTests.config - Runner configuration used during execution.
@@ -614,8 +621,24 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   }
 
   // Phase 2: run every context job through one flat worker pool. A limit of 1
-  // preserves today's strictly sequential order.
-  const limit = 1;
+  // (the default) is strictly sequential in input order. Re-resolve
+  // defensively: API callers can hand runSpecs a config that never went
+  // through core setConfig, leaving concurrentRunners as `true`.
+  const limit = resolveConcurrentRunners(config);
+  if (
+    limit > 1 &&
+    jobs.some((job: any) =>
+      job.context.steps?.some((step: any) => step.record !== undefined)
+    )
+  ) {
+    // Concurrent headed recordings capture via getDisplayMedia and can grab
+    // the wrong window. Recording filenames in the temp dir can also collide.
+    log(
+      config,
+      "warning",
+      "Tests include record steps while concurrentRunners is greater than 1. Concurrent recordings can capture the wrong window; set concurrentRunners to 1 for recording runs."
+    );
+  }
   await runConcurrent(jobs, limit, async (job: any) => {
     try {
       job.contexts[job.slot] = await runContext({
