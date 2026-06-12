@@ -1,90 +1,109 @@
-// Benchmark concurrent runners against the repo's full test/artifacts spec
-// corpus. Measures two things:
-//   1. Execution-only: resolve once, then run runSpecs at N runners (isolates
-//      the parallelized portion from fixed detect/resolve overhead).
-//   2. End-to-end: full runTests (detect + resolve + execute) at 1 vs 4.
-import { runTests, detectAndResolveTests } from "../dist/index.js";
+// Benchmark concurrent runners on a clean CI runner. Two workloads:
+//   A. I/O-bound ceiling: pure `wait` steps (zero CPU/contention) — the
+//      theoretical upper bound on speedup.
+//   B. Realistic browser workload: N independent Chrome contexts each loading
+//      a local page. Driver/browser startup + page load is the real cost
+//      users parallelize. Fully local (no external network, no flaky deps).
+import http from "node:http";
 import { runSpecs } from "../dist/core/tests.js";
 import { getEnvironment } from "../dist/core/config.js";
-
-const INPUT = "test/artifacts";
-const RUNNERS = [1, 2, 4];
-const ITERS = 3;
 
 const median = (xs) => {
   const s = [...xs].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
 };
-
-const baseConfig = {
-  input: INPUT,
+const env = getEnvironment();
+const baseConfig = () => ({
   logLevel: "silent",
   telemetry: { send: false },
   hints: { enabled: false },
-};
+  environment: env,
+});
 
-// Resolve once so the execution-only numbers exclude detect/resolve cost.
-const resolved = await detectAndResolveTests({ config: { ...baseConfig } });
-if (!resolved?.config?.environment) {
-  resolved.config = { ...resolved.config, environment: getEnvironment() };
-}
-const contexts = resolved.specs.flatMap((s) =>
-  s.tests.flatMap((t) => t.contexts)
-);
-console.log(
-  `Workload: ${resolved.specs.length} specs, ` +
-    `${resolved.specs.flatMap((s) => s.tests).length} tests, ` +
-    `${contexts.length} contexts\n`
-);
-
-console.log("=== Execution only (runSpecs on pre-resolved tests) ===");
-const execMedian = {};
-for (const runners of RUNNERS) {
-  const times = [];
-  let summary;
-  for (let i = 0; i < ITERS; i++) {
-    const rt = structuredClone(resolved);
-    rt.config.concurrentRunners = runners;
-    const start = Date.now();
-    try {
-      const report = await runSpecs({ resolvedTests: rt });
-      summary = report.summary;
-    } catch (e) {
-      console.log(`  runners=${runners} iter=${i} ERROR: ${e.message}`);
-    }
-    times.push(Date.now() - start);
+function buildResolved(contexts, runners) {
+  // Spread contexts across a few specs/tests so it mirrors a real suite
+  // shape rather than one giant test.
+  const perTest = 4;
+  const specs = [];
+  for (let i = 0; i < contexts.length; i += perTest) {
+    const slice = contexts.slice(i, i + perTest);
+    specs.push({
+      specId: `spec-${i / perTest}`,
+      tests: [{ testId: `test-${i / perTest}`, contexts: slice }],
+    });
   }
-  execMedian[runners] = median(times);
-  const sp = (execMedian[1] / execMedian[runners]).toFixed(2);
-  console.log(
-    `  runners=${runners}: median ${execMedian[runners]}ms ` +
-      `[${times.join(", ")}]  speedup ${sp}x` +
-      (summary ? `  (specs P${summary.specs.pass}/F${summary.specs.fail}/W${summary.specs.warning})` : "")
-  );
+  const config = { ...baseConfig(), concurrentRunners: runners };
+  return { config, specs };
 }
 
-console.log("\n=== End-to-end (runTests: detect + resolve + execute) ===");
-const e2eMedian = {};
-for (const runners of [1, 4]) {
-  const times = [];
-  for (let i = 0; i < ITERS; i++) {
-    const start = Date.now();
-    try {
-      await runTests({ ...baseConfig, concurrentRunners: runners });
-    } catch (e) {
-      console.log(`  runners=${runners} iter=${i} ERROR: ${e.message}`);
+async function bench(label, makeContexts, runnerList, iters) {
+  console.log(`\n=== ${label} ===`);
+  const med = {};
+  for (const runners of runnerList) {
+    const times = [];
+    let summary;
+    for (let i = 0; i < iters; i++) {
+      const rt = buildResolved(makeContexts(), runners);
+      const start = Date.now();
+      try {
+        summary = (await runSpecs({ resolvedTests: rt })).summary;
+      } catch (e) {
+        console.log(`  runners=${runners} iter=${i} ERROR: ${e.message}`);
+      }
+      times.push(Date.now() - start);
     }
-    times.push(Date.now() - start);
+    med[runners] = median(times);
+    const sp = (med[runnerList[0]] / med[runners]).toFixed(2);
+    console.log(
+      `  runners=${runners}: median ${med[runners]}ms [${times.join(", ")}]  ` +
+        `speedup ${sp}x` +
+        (summary ? `  (ctx P${summary.contexts.pass}/F${summary.contexts.fail})` : "")
+    );
   }
-  e2eMedian[runners] = median(times);
-  const sp = (e2eMedian[1] / e2eMedian[runners]).toFixed(2);
-  console.log(
-    `  runners=${runners}: median ${e2eMedian[runners]}ms ` +
-      `[${times.join(", ")}]  speedup ${sp}x`
-  );
+  return med;
 }
 
-console.log("\n=== Summary ===");
-console.log(`Execution-only speedup @4 runners: ${(execMedian[1] / execMedian[4]).toFixed(2)}x`);
-console.log(`End-to-end speedup @4 runners:     ${(e2eMedian[1] / e2eMedian[4]).toFixed(2)}x`);
+// --- Workload A: pure-wait ceiling ---
+const WAIT_N = 8;
+const waitCtx = () =>
+  Array.from({ length: WAIT_N }, (_, i) => ({
+    contextId: `w-${i}`,
+    steps: [{ stepId: `w-${i}-s`, wait: 500 }],
+  }));
+const aMed = await bench(
+  `I/O-bound ceiling: ${WAIT_N} contexts x 500ms wait`,
+  waitCtx,
+  [1, 2, 4],
+  3
+);
+
+// --- Workload B: realistic browser workload (local server) ---
+const PAGE =
+  "<!doctype html><html><head><title>Bench</title></head>" +
+  "<body><h1>Benchmark page</h1></body></html>";
+const server = http.createServer((_, res) => {
+  res.writeHead(200, { "Content-Type": "text/html" });
+  res.end(PAGE);
+});
+await new Promise((r) => server.listen(0, "127.0.0.1", r));
+const url = `http://127.0.0.1:${server.address().port}/`;
+
+const BROWSER_N = 12;
+const browserCtx = () =>
+  Array.from({ length: BROWSER_N }, (_, i) => ({
+    contextId: `b-${i}`,
+    browser: { name: "chrome", headless: true },
+    steps: [{ stepId: `b-${i}-s`, goTo: url }],
+  }));
+const bMed = await bench(
+  `Realistic browser: ${BROWSER_N} Chrome contexts (goTo local page)`,
+  browserCtx,
+  [1, 2, 4],
+  2
+);
+server.close();
+
+console.log("\n=== Summary (speedup vs 1 runner) ===");
+console.log(`I/O ceiling   @2: ${(aMed[1] / aMed[2]).toFixed(2)}x  @4: ${(aMed[1] / aMed[4]).toFixed(2)}x`);
+console.log(`Browser       @2: ${(bMed[1] / bMed[2]).toFixed(2)}x  @4: ${(bMed[1] / bMed[4]).toFixed(2)}x`);
