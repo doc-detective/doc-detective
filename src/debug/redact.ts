@@ -120,8 +120,11 @@ export function redactArgv(args: string[]): string[] {
       continue;
     }
     expectSecretValue = false;
-    // Bare secret-named flag (`--password`, `-p`) with no `=value` — its
-    // value is the following token.
+    // Bare secret-named flag (e.g. `--password`) with no `=value` — its
+    // value is the following token. Matched by flag NAME, so single-letter
+    // aliases (`-p`) are intentionally NOT treated as secret: none of Doc
+    // Detective's flags carry a credential via a short alias, and blanket-
+    // redacting any `-x value` would clobber legitimate flags (`-i`, `-o`).
     const bareFlag = arg.match(/^--?([^=]+)$/);
     if (bareFlag && isSecretName(bareFlag[1])) {
       out.push(arg);
