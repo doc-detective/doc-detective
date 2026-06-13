@@ -4,10 +4,11 @@
 // `printDebug` collects environment information into a single structured
 // object (`collectDebugData`), then renders it two ways from that one
 // source of truth: a paste-friendly plaintext document printed to stdout
-// (and optionally saved to `debug.txt`) and a machine-readable
-// `debug.json`. Rendering from shared data means the two outputs can
-// never disagree. Callers (currently src/cli.ts) handle `process.exit(0)`
-// separately so tests can assert on output without forking.
+// (and optionally saved to `<outDir>/debug-<timestamp>.txt`) and a
+// machine-readable `debug-<timestamp>.json`. Rendering from shared data
+// means the two outputs can never disagree. Callers (currently src/cli.ts)
+// handle `process.exit(0)` separately so tests can assert on output
+// without forking.
 //
 // The dump runs even when config validation failed — the caller passes
 // the original error as `configError`, and the renderer surfaces it under
@@ -391,8 +392,18 @@ function writeFileSafe(
   successPrefix: string
 ): void {
   try {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, contents, "utf8");
+    // The dump can contain environment/config data, so keep it private to
+    // the user: owner-only dir (0700) and file (0600). chmod the dir too in
+    // case it already existed with looser perms. (No-ops on Windows, which
+    // doesn't use POSIX modes.)
+    const dir = path.dirname(file);
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    try {
+      fs.chmodSync(dir, 0o700);
+    } catch {
+      // Best-effort — not all platforms/filesystems honor chmod.
+    }
+    fs.writeFileSync(file, contents, { encoding: "utf8", mode: 0o600 });
     print(`\n${successPrefix} ${file}`);
   } catch (err: any) {
     print(`\n<failed to save ${file}: ${err?.message || err}>`);

@@ -481,9 +481,36 @@ describe("debug/envvars", function () {
 });
 
 describe("debug/tools", function () {
-  let probeTool;
+  let probeTool, envWithoutNodeModulesBin;
   before(async function () {
-    ({ probeTool } = await import("../dist/debug/tools.js"));
+    ({ probeTool, envWithoutNodeModulesBin } = await import(
+      "../dist/debug/tools.js"
+    ));
+  });
+
+  it("envWithoutNodeModulesBin strips node_modules/.bin segments, keeps system dirs", function () {
+    const sep = path.delimiter;
+    const prev = process.env.PATH;
+    const sysA = process.platform === "win32" ? "C:\\Windows\\System32" : "/usr/bin";
+    const sysB = process.platform === "win32" ? "C:\\Windows" : "/bin";
+    const bin = process.platform === "win32"
+      ? "C:\\repo\\node_modules\\.bin"
+      : "/repo/node_modules/.bin";
+    const nested = process.platform === "win32"
+      ? "C:\\repo\\packages\\x\\node_modules\\.bin"
+      : "/repo/packages/x/node_modules/.bin";
+    try {
+      process.env.PATH = [sysA, bin, sysB, nested].join(sep);
+      const env = envWithoutNodeModulesBin();
+      const key = Object.keys(env).find((k) => k.toLowerCase() === "path");
+      const segs = env[key].split(sep);
+      expect(segs).to.include(sysA);
+      expect(segs).to.include(sysB);
+      expect(segs.some((s) => /node_modules[\\/]\.bin/i.test(s))).to.equal(false);
+    } finally {
+      if (prev === undefined) delete process.env.PATH;
+      else process.env.PATH = prev;
+    }
   });
 
   it("returns <not found> for a non-existent binary", async function () {
@@ -616,6 +643,28 @@ describe("debug/printDebug end-to-end", function () {
         print: () => {},
       });
       expect(fs.readdirSync(outDir)).to.deep.equal(before);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("saves dump files with owner-only permissions (POSIX)", async function () {
+    if (process.platform === "win32") this.skip();
+    this.timeout(60000);
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-perms-"));
+    try {
+      const outDir = path.join(tmp, ".doc-detective");
+      await printDebug({
+        config: { input: ".", environment: { platform: "linux" } },
+        configPath: null,
+        outDir,
+        print: () => {},
+      });
+      // Dir is 0700, files are 0600 — dumps can carry env/config data.
+      expect(fs.statSync(outDir).mode & 0o777).to.equal(0o700);
+      for (const f of fs.readdirSync(outDir)) {
+        expect(fs.statSync(path.join(outDir, f)).mode & 0o777, f).to.equal(0o600);
+      }
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

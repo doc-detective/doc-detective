@@ -2,16 +2,16 @@
 //
 // Two flavors of probe:
 //   1. Spawn-based (`probeTool`) — runs `<binary> --version` with a
-//      hard timeout (default 3000 ms). Used ONLY for system binaries
-//      whose path comes from PATH (node, npm, npx, git, docker, java,
-//      python). PATH is system-level and trusted.
-//   2. Package-read (`probeFromPackageJson`) — reads `version` from a
-//      named package's `package.json` via `require.resolve`. Used for
-//      anything that would otherwise route through a project-local
-//      `node_modules/.bin` binary (appium, appium drivers, ffmpeg
-//      bundled by @ffmpeg-installer). Avoids executing project-local
-//      binaries just to collect diagnostics — a compromised
-//      `node_modules/.bin/appium` would otherwise run on
+//      hard timeout (default 3000 ms). Used for system binaries (node,
+//      npm, npx, git, docker, java, python). To keep with the
+//      "don't execute project-local binaries" model, the spawn runs with
+//      a PATH that has any `node_modules/.bin` segments stripped, so a
+//      repo-local shim (common when launched from an npm/yarn/pnpm
+//      script, which prepends `node_modules/.bin`) can't shadow a system
+//      tool during diagnostics.
+//   2. Metadata-read (`resolveHeavyDep*`) — reads `version` from a named
+//      package's `package.json` without executing it. Used for appium and
+//      ffmpeg so a compromised `node_modules/.bin/<tool>` doesn't run on
 //      `doc-detective debug`.
 //
 // All spawn-based probes use `shell: true` for PATH lookup consistency
@@ -27,6 +27,21 @@ import {
 } from "../runtime/loader.js";
 
 const require = createRequire(import.meta.url);
+
+// Return a copy of `process.env` whose PATH has any `node_modules/.bin`
+// segments removed, so a repo-local shim can't shadow a system tool the
+// probes invoke by bare name. Exported for testing.
+export function envWithoutNodeModulesBin(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  const pathKey = Object.keys(env).find((k) => k.toLowerCase() === "path");
+  if (pathKey && typeof env[pathKey] === "string") {
+    env[pathKey] = (env[pathKey] as string)
+      .split(path.delimiter)
+      .filter((seg) => !/[\\/]node_modules[\\/]\.bin([\\/]|$)/i.test(seg))
+      .join(path.delimiter);
+  }
+  return env;
+}
 
 export interface ToolResult {
   name: string;
@@ -81,7 +96,10 @@ function runWithTimeout(
   timeoutMs: number
 ): Promise<{ stdout: string; stderr: string; exitCode: number; timedOut: boolean }> {
   return new Promise((resolve) => {
-    const child = spawn(command, { shell: true });
+    const child = spawn(command, {
+      shell: true,
+      env: envWithoutNodeModulesBin(),
+    });
     let stdout = "";
     let stderr = "";
     let settled = false;
