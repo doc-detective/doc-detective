@@ -766,9 +766,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
               }", "apps": ${JSON.stringify(context.apps)}}`;
           log(config, freshInstallRedetected ? "warning" : "info", errorMessage);
           contextReport = {
+            ...contextReport,
             result: "SKIPPED",
             resultDescription: errorMessage,
-            ...contextReport,
           };
           report.summary.contexts.skipped++;
           testReport.contexts.push(contextReport);
@@ -792,9 +792,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
             const errorMessage = `Skipping context '${context.browser?.name}' on '${context.platform}': this context combination could not start a driver earlier in this run.`;
             log(config, "warning", errorMessage);
             contextReport = {
+              ...contextReport,
               result: "SKIPPED",
               resultDescription: errorMessage,
-              ...contextReport,
             };
             report.summary.contexts.skipped++;
             testReport.contexts.push(contextReport);
@@ -844,7 +844,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
               driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
             } catch (error: any) {
               let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
-              if (context.browser?.name === "safari")
+              // `safari` is normalized to `webkit` during context resolution, so
+              // match both or this Safari-specific hint never fires on real runs.
+              if (
+                context.browser?.name === "safari" ||
+                context.browser?.name === "webkit"
+              )
                 errorMessage =
                   errorMessage +
                   " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
@@ -854,9 +859,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
               // rather than re-running this same doomed start.
               if (!warmUpResults.has(combo)) warmUpResults.set(combo, "failed");
               contextReport = {
+                ...contextReport,
                 result: "SKIPPED",
                 resultDescription: errorMessage,
-                ...contextReport,
               };
               report.summary.contexts.skipped++;
               testReport.contexts.push(contextReport);
