@@ -542,8 +542,10 @@ async function setConfig({ config }: any) {
  */
 function resolveConcurrentRunners(config: any) {
   if (config.concurrentRunners === true) {
-    // Cap at 4 only for the boolean convenience option
-    return Math.min(os.cpus().length, 4);
+    // Cap at 4 for the boolean convenience option; floor at 1 in case
+    // os.cpus() reports 0 (some restricted containers) so the pool is never
+    // sized to 0.
+    return Math.max(1, Math.min(os.cpus().length, 4));
   }
   // Coerce to a positive integer; fall back to 1 for anything invalid.
   const runners = Math.floor(Number(config.concurrentRunners));
