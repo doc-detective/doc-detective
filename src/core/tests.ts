@@ -658,20 +658,17 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
     const serverCount = Math.min(limit, driverJobCount);
     log(config, "debug", `Starting ${serverCount} Appium server(s).`);
-    const started = await Promise.allSettled(
-      Array.from({ length: serverCount }, () =>
-        startAppiumServer(appiumEntry, config)
-      )
-    );
-    appiumServers = started
-      .filter((r): r is PromiseFulfilledResult<{ port: number; process: any }> =>
-        r.status === "fulfilled"
-      )
-      .map((r) => r.value);
-    const failure = started.find((r) => r.status === "rejected");
-    if (failure) {
-      // One server failed to come up; tear down any that did so they don't
-      // leak, then propagate.
+    // Start servers one at a time rather than all at once: concurrent
+    // findFreePort() calls share a close-to-rebind window (two could hand out
+    // the same port), and spawning every Appium at once spikes CPU during
+    // startup. Sequential startup is a one-time per-run cost (serverCount <= 4)
+    // that removes the port race and fails fast on the first server that can't
+    // come up, tearing down any already started so they don't leak.
+    try {
+      for (let i = 0; i < serverCount; i++) {
+        appiumServers.push(await startAppiumServer(appiumEntry, config));
+      }
+    } catch (error) {
       for (const server of appiumServers) {
         try {
           kill(server.process.pid);
@@ -679,7 +676,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // best-effort
         }
       }
-      throw (failure as PromiseRejectedResult).reason;
+      throw error;
     }
     appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
   }
