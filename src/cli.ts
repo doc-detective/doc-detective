@@ -72,12 +72,13 @@ async function runTestsHandler(args: any) {
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
   const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-  // Guard `args.config` so the handler falls back to the defaults cleanly
-  // when --config is omitted (args.config is undefined in that case).
+  // Treat any non-empty `--config` as authoritative (resolved to an
+  // absolute path). A mistyped path then fails deterministically via
+  // setConfig rather than silently falling back to auto-discovery.
   const hasExplicitConfig =
-    typeof args.config === "string" && args.config.length > 0 && fs.existsSync(args.config);
+    typeof args.config === "string" && args.config.trim().length > 0;
   const configPath = hasExplicitConfig
-    ? args.config
+    ? path.resolve(args.config)
     : fs.existsSync(configPathJSON)
     ? configPathJSON
     : fs.existsSync(configPathYAML)
@@ -114,6 +115,9 @@ async function runTestsHandler(args: any) {
         outFile: defaultDebugOutFile(),
         jsonOutFile: defaultDebugJsonFile(),
       });
+      // The env-var dump replaced a real test run; a broken config must
+      // still fail the process so CI doesn't go green on an unran suite.
+      process.exitCode = 1;
       return;
     }
     throw err;

@@ -253,6 +253,48 @@ describe("Util tests", function () {
     }
   });
 
+  it("setConfig: throws (does not return null) when an explicit config path can't be read", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const path = await import("node:path");
+    const os = await import("node:os");
+    const missing = path.join(os.tmpdir(), "dd-nonexistent-config-xyz.json");
+    let threw = null;
+    try {
+      await setConfig({ configPath: missing, args: {} });
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw, "expected setConfig to throw on an unreadable config path").to.be.an(
+      "error"
+    );
+    expect(threw.message).to.match(/config file/i);
+  });
+
+  it("setConfig: throws a targeted error when DOC_DETECTIVE_CONFIG is valid JSON but not an object", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const prev = process.env.DOC_DETECTIVE_CONFIG;
+    try {
+      for (const bad of ["null", "true", "42", "[1,2]", '"str"']) {
+        process.env.DOC_DETECTIVE_CONFIG = bad;
+        let threw = null;
+        try {
+          await setConfig({ configPath: null, args: {} });
+        } catch (err) {
+          threw = err;
+        }
+        expect(threw, `expected throw for DOC_DETECTIVE_CONFIG=${bad}`).to.be.an(
+          "error"
+        );
+        expect(threw.message).to.match(/DOC_DETECTIVE_CONFIG/);
+      }
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = prev;
+    }
+  });
+
   it("setConfig stores --hints / --no-hints on config.hints.enabled", async function () {
     this.timeout(5000);
     // --no-hints turns hints off

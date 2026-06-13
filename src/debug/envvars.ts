@@ -18,7 +18,7 @@ import path from "node:path";
 // Env-var references, scoped to POSIX-valid variable names: a leading
 // letter or underscore followed by letters / digits / underscores.
 //
-// `replaceEnvs` (src/core/utils.ts:454) uses the looser `\$[a-zA-Z0-9_]+`
+// `replaceEnvs` (in src/core/utils.ts) uses the looser `\$[a-zA-Z0-9_]+`
 // shape, but that's harmless there — it only ever resolves names that
 // actually exist in `process.env`, and env var names can't start with a
 // digit. The debug dump GREPS raw source, so the loose shape matched
@@ -123,7 +123,10 @@ export function resolveDocExtensions(fileTypes: unknown): Set<string> {
         for (const e of DOC_EXTENSIONS_BY_TYPE[ft] || []) add(e);
       } else if (ft && typeof ft === "object") {
         const obj = ft as Record<string, unknown>;
-        if (Array.isArray(obj.extensions)) {
+        // The schema allows `extensions` as a string OR an array.
+        if (typeof obj.extensions === "string") {
+          add(obj.extensions);
+        } else if (Array.isArray(obj.extensions)) {
           for (const e of obj.extensions) add(e);
         }
         for (const key of ["name", "extends"]) {
@@ -168,6 +171,11 @@ export function enumerateInputFiles(
   const out: string[] = [];
   const stack: string[] = [];
   const explicit = new Set<string>();
+  // Canonical paths of directories already walked. Guards against cyclic
+  // symlinked directory graphs (e.g. `a/link -> ..`) that would otherwise
+  // keep the stack non-empty forever — a real hang risk, especially when
+  // the extension filter means no files ever pass to bound the walk.
+  const visitedDirs = new Set<string>();
   for (const i of inputs) {
     if (typeof i === "string" && i.length > 0) {
       stack.push(i);
@@ -189,6 +197,14 @@ export function enumerateInputFiles(
       continue;
     }
     if (stat.isDirectory()) {
+      let realDir: string;
+      try {
+        realDir = fs.realpathSync(p);
+      } catch {
+        realDir = p;
+      }
+      if (visitedDirs.has(realDir)) continue;
+      visitedDirs.add(realDir);
       let entries: string[];
       try {
         entries = fs.readdirSync(p);

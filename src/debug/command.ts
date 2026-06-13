@@ -38,12 +38,13 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
     const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
     const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
     const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
+    // Treat any non-empty `--config` as authoritative (resolved to an
+    // absolute path) — a mistyped path must surface as a CONFIG INVALID
+    // dump for that path, not silently fall back to auto-discovery.
     const hasExplicitConfig =
-      typeof args.config === "string" &&
-      args.config.length > 0 &&
-      fs.existsSync(args.config);
+      typeof args.config === "string" && args.config.trim().length > 0;
     const configPath = hasExplicitConfig
-      ? (args.config as string)
+      ? path.resolve(args.config as string)
       : fs.existsSync(configPathJSON)
       ? configPathJSON
       : fs.existsSync(configPathYAML)

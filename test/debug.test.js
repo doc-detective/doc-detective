@@ -383,6 +383,10 @@ describe("debug/envvars", function () {
       "txt",
     ]);
 
+    // The schema allows `extensions` as a string too (e.g. `"ipynb"`).
+    const fromStringExt = resolveDocExtensions([{ extensions: ".IPYNB" }]);
+    expect(fromStringExt.has("ipynb")).to.equal(true);
+
     // Absent / empty / unrecognized → union of all known doc extensions.
     const fallback = resolveDocExtensions(undefined);
     expect(fallback.has("md")).to.equal(true);
@@ -390,6 +394,28 @@ describe("debug/envvars", function () {
     expect(fallback.has("html")).to.equal(true);
     expect(fallback.has("dita")).to.equal(true);
     expect(resolveDocExtensions(["nonexistent-type"]).has("md")).to.equal(true);
+  });
+
+  it("enumerateInputFiles terminates on a symlinked directory cycle", function () {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-cycle-"));
+    try {
+      const sub = path.join(tmp, "sub");
+      fs.mkdirSync(sub);
+      fs.writeFileSync(path.join(sub, "a.txt"), "alpha");
+      // `sub/loop -> tmp` makes a cycle: tmp/sub/loop/sub/loop/... Skip the
+      // test where the OS won't let us create a directory symlink (Windows
+      // without Developer Mode / admin).
+      try {
+        fs.symlinkSync(tmp, path.join(sub, "loop"), "dir");
+      } catch {
+        this.skip();
+      }
+      // Must return (not hang) thanks to the visited-dir guard.
+      const files = enumerateInputFiles([tmp], 100);
+      expect(files.some((f) => f.endsWith("a.txt"))).to.equal(true);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });
 

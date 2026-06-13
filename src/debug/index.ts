@@ -243,12 +243,19 @@ async function collectBrowsers(config: any): Promise<BrowsersData> {
         : { ...(config || {}), environment: { platform: detectPlatform() } };
 
     const timeoutSentinel: unique symbol = Symbol("browser-timeout") as any;
+    // `.unref()` so the pending timer never keeps the process alive after
+    // the real probe resolves (otherwise `doc-detective debug` would idle
+    // until the timer fires), and clear it once the race settles.
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const result = await Promise.race<any>([
       getBrowserDiagnostics({ config: safeConfig }),
-      new Promise((resolve) =>
-        setTimeout(() => resolve(timeoutSentinel), BROWSER_DETECTION_TIMEOUT_MS)
-      ),
-    ]);
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(timeoutSentinel), BROWSER_DETECTION_TIMEOUT_MS);
+        timer.unref?.();
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
     if (result === timeoutSentinel) return { timedOut: true };
     return {
       detectionFailed: result.detectionFailed,
