@@ -2,6 +2,7 @@ import {
   ensureBrowserInstalled,
   getInstalledBrowsers,
   BROWSER_CHANNELS,
+  requiredBrowserAssets,
 } from "../dist/runtime/browsers.js";
 import {
   readInstalledRecord,
@@ -48,6 +49,50 @@ describe("runtime/browsers", function () {
     if (originalEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
     else process.env.DOC_DETECTIVE_CACHE_DIR = originalEnv;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  describe("requiredBrowserAssets", function () {
+    it("maps chrome to its browser + driver assets", function () {
+      expect(requiredBrowserAssets("chrome")).to.deep.equal([
+        "chrome",
+        "chromedriver",
+      ]);
+    });
+
+    it("maps chromium to the same assets as chrome", function () {
+      expect(requiredBrowserAssets("chromium")).to.deep.equal([
+        "chrome",
+        "chromedriver",
+      ]);
+    });
+
+    it("maps firefox to its browser + driver assets", function () {
+      expect(requiredBrowserAssets("firefox")).to.deep.equal([
+        "firefox",
+        "geckodriver",
+      ]);
+    });
+
+    it("returns no installable assets for safari (ships with the OS)", function () {
+      expect(requiredBrowserAssets("safari")).to.deep.equal([]);
+    });
+
+    it("returns no installable assets for webkit (safari alias)", function () {
+      expect(requiredBrowserAssets("webkit")).to.deep.equal([]);
+    });
+
+    it("is case-insensitive about the browser name", function () {
+      expect(requiredBrowserAssets("FireFox")).to.deep.equal([
+        "firefox",
+        "geckodriver",
+      ]);
+    });
+
+    it("returns no assets for an unknown or missing name", function () {
+      expect(requiredBrowserAssets("edge")).to.deep.equal([]);
+      expect(requiredBrowserAssets(undefined)).to.deep.equal([]);
+      expect(requiredBrowserAssets("")).to.deep.equal([]);
+    });
   });
 
   it("exports BROWSER_CHANNELS with the expected channel names", function () {

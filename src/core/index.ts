@@ -131,22 +131,20 @@ async function runTests(config: any, options: any = {}) {
     if (needs.browsers.size > 0) {
       try {
         const { getAvailableApps, clearAppCache } = await import("./config.js");
-        const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+        const { ensureBrowserInstalled, requiredBrowserAssets } = await import(
+          "../runtime/browsers.js"
+        );
         const available = await getAvailableApps({ config });
         const availableNames = new Set(available.map((a: any) => a.name));
         let installedAnything = false;
         for (const browser of needs.browsers) {
           if (availableNames.has(browser)) continue;
-          if (browser === "chrome") {
-            await ensureBrowserInstalled("chrome", { ctx, deps: { logger: preflightLogger } });
-            await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger: preflightLogger } });
-            installedAnything = true;
-          } else if (browser === "firefox") {
-            await ensureBrowserInstalled("firefox", { ctx, deps: { logger: preflightLogger } });
-            await ensureBrowserInstalled("geckodriver", { ctx, deps: { logger: preflightLogger } });
+          // requiredBrowserAssets returns [] for safari (ships with the OS)
+          // and any unknown name, so the loop body simply no-ops for those.
+          for (const asset of requiredBrowserAssets(browser)) {
+            await ensureBrowserInstalled(asset, { ctx, deps: { logger: preflightLogger } });
             installedAnything = true;
           }
-          // safari has no installable binary — it ships with the OS.
         }
         // Invalidate the available-apps cache for this cacheDir so a
         // subsequent runSpecs/getRunner call re-detects what the
