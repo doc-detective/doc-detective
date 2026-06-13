@@ -707,10 +707,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // Firefox declared but geckodriver absent because the pre-flight was
         // skipped or its install failed. Memoized per browser (installAttempts)
         // so a failed/no-op install isn't retried for every later context.
-        let installAttempted = false;
+        let freshInstallRedetected = false;
         if (
           !supportedContext &&
           context.platform === platform &&
+          // Mirror isSupportedContext's own guard: isDriverRequired iterates
+          // context.steps, so a malformed context without a steps array would
+          // otherwise crash the loop here instead of skipping cleanly.
+          Array.isArray(context?.steps) &&
           isDriverRequired({ test: context }) &&
           requiredBrowserAssets(context.browser?.name).length > 0
         ) {
@@ -737,7 +741,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // re-scan so isSupportedContext (and getDriverCapabilities, which
           // reads runnerDetails.availableApps live) see the new state.
           if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
-            installAttempted = true;
+            freshInstallRedetected = true;
             clearAppCache(config);
             availableApps = await getAvailableApps({ config });
             runnerDetails.availableApps = availableApps;
@@ -755,12 +759,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // from a plain unsupported context, so the skip reason points at the
           // real problem (detection after install) rather than implying a
           // platform mismatch.
-          const errorMessage = installAttempted
+          const errorMessage = freshInstallRedetected
             ? `Skipping context '${context.browser?.name}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
             : `Skipping context. The current system doesn't support this context: {"platform": "${
                 context.platform
               }", "apps": ${JSON.stringify(context.apps)}}`;
-          log(config, installAttempted ? "warning" : "info", errorMessage);
+          log(config, freshInstallRedetected ? "warning" : "info", errorMessage);
           contextReport = {
             result: "SKIPPED",
             resultDescription: errorMessage,
