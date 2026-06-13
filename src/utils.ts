@@ -24,7 +24,22 @@ export {
   reportResults,
   reporters,
   registerReporter,
+  isDebugRequested,
 };
+
+// True when `DOC_DETECTIVE_DEBUG` env var is set to a truthy value.
+// Used by `runTestsHandler` in cli.ts to decide whether to catch
+// setConfig failures and still emit a diagnostic dump.
+//
+// The `--debug` CLI flag was retired in favor of the dedicated
+// `doc-detective debug` subcommand; the subcommand handler does its
+// own setConfig-error handling, so this helper is now env-var-only.
+function isDebugRequested(): boolean {
+  const envVal = process.env.DOC_DETECTIVE_DEBUG;
+  // Trim so a templated/copy-pasted value with stray whitespace (e.g.
+  // `"true "`) still activates debug mode.
+  return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal.trim());
+}
 
 // Log function that respects logLevel
 function log(message: any, level: string = "info", config: any = {}) {
@@ -213,6 +228,15 @@ async function getConfigFromEnv() {
     // Parse the environment variable as JSON
     envConfig = JSON.parse(process.env.DOC_DETECTIVE_CONFIG);
 
+    // JSON.parse legally yields non-objects (null, arrays, primitives).
+    // validate() would then throw a generic "Object is required." that
+    // doesn't point at the env var — give a targeted message instead.
+    if (envConfig === null || typeof envConfig !== "object" || Array.isArray(envConfig)) {
+      throw new Error(
+        "DOC_DETECTIVE_CONFIG environment variable must be a JSON object."
+      );
+    }
+
     // Validate the environment variable config
     const envValidation = validate({
       schemaKey: "config_v3",
@@ -220,19 +244,19 @@ async function getConfigFromEnv() {
     });
 
     if (!envValidation.valid) {
-      console.error(
-        "Invalid config from DOC_DETECTIVE_CONFIG environment variable.",
-        envValidation.errors
+      throw new Error(
+        `Invalid config from DOC_DETECTIVE_CONFIG environment variable. ${envValidation.errors}`
       );
-      process.exit(1);
     }
 
     log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
   } catch (error: any) {
-    console.error(
-      `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
-    );
-    process.exit(1);
+    if (error instanceof SyntaxError) {
+      throw new Error(
+        `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
+      );
+    }
+    throw error;
   }
   return envConfig;
 }
@@ -243,14 +267,27 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     configPath = args.config;
   }
 
-  // If config file exists, read it
+  // If a config path is given, read it. `readFile` returns null on a read
+  // failure (missing/unreadable file) and may throw on bad input; in both
+  // cases throw a clear error rather than letting a null config fall
+  // through to a generic "Object is required." validation message. Throwing
+  // (rather than returning null) means an unreadable / mistyped config path
+  // follows the same error path as a validation failure: the normal run
+  // exits non-zero via the top-level catch, and the debug flows render it
+  // under the CONFIG INVALID banner.
   let config: any = {};
   if (configPath) {
     try {
       config = await readFile({ fileURLOrPath: configPath });
-    } catch (error) {
-      console.error(`Error reading config file at ${configPath}: ${error}`);
-      return null;
+    } catch (error: any) {
+      throw new Error(
+        `Error reading config file at ${configPath}: ${error?.message || error}`
+      );
+    }
+    if (config === null || config === undefined) {
+      throw new Error(
+        `Could not read config file at ${configPath}. Check that the path exists and is readable.`
+      );
     }
   }
 
@@ -267,9 +304,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     object: config,
   });
   if (!validation.valid) {
-    // Output validation errors
-    console.error("Invalid config.", validation.errors);
-    process.exit(1);
+    throw new Error(`Invalid config. ${validation.errors}`);
   }
 
   // Accept coerced and defaulted values
