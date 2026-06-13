@@ -27,7 +27,12 @@
 // over-redaction while catching every common credential carrier
 // surveyed in the security review.
 const SECRET_NAME_PATTERNS: RegExp[] = [
-  /token|secret|key|password|auth|credential|bearer/i,
+  /token|secret|password|auth|credential|bearer/i,
+  // `key` only as a tokenized word (KEY / API_KEY / api-key / bare `key`)
+  // or a CamelCase suffix (apiKey, accessKey) — NOT the raw substring,
+  // which over-redacts innocuous names like MONKEY / hockeyStats.
+  /(^|[_-])key([_-]|$)/i,
+  /[a-z]Key([^a-z]|$)/,
   /(_URL|_URI|_DSN|_PASS|_PASSWD|_PWD)$/i,
   /WEBHOOK/i,
   /^(JWT|PAT)$/i,

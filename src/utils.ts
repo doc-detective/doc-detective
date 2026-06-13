@@ -36,7 +36,9 @@ export {
 // own setConfig-error handling, so this helper is now env-var-only.
 function isDebugRequested(): boolean {
   const envVal = process.env.DOC_DETECTIVE_DEBUG;
-  return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal);
+  // Trim so a templated/copy-pasted value with stray whitespace (e.g.
+  // `"true "`) still activates debug mode.
+  return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal.trim());
 }
 
 // Log function that respects logLevel

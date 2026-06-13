@@ -110,6 +110,18 @@ describe("debug/redact", function () {
     // Anchored suffixes don't false-positive on similar prefixes
     expect(isSecretName("PASSAGE")).to.equal(false);
     expect(isSecretName("PASSPORT")).to.equal(false);
+    // `key` matches tokenized/CamelCase forms, not the raw substring.
+    expect(isSecretName("MONKEY")).to.equal(false);
+    expect(isSecretName("hockeyStats")).to.equal(false);
+    expect(isSecretName("keyboard")).to.equal(false);
+  });
+
+  it("flags tokenized and CamelCase `key` names", function () {
+    expect(isSecretName("API_KEY")).to.equal(true);
+    expect(isSecretName("api-key")).to.equal(true);
+    expect(isSecretName("key")).to.equal(true);
+    expect(isSecretName("apiKey")).to.equal(true);
+    expect(isSecretName("accessKey")).to.equal(true);
   });
 
   it("redacts values containing URL userinfo regardless of name", function () {

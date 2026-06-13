@@ -217,9 +217,9 @@ describe("Util tests", function () {
     const { isDebugRequested } = await import("../dist/utils.js");
     const prev = process.env.DOC_DETECTIVE_DEBUG;
     try {
-      for (const v of ["true", "TRUE", "1", "yes", "Yes"]) {
+      for (const v of ["true", "TRUE", "1", "yes", "Yes", "true ", "  1  ", "\tyes\n"]) {
         process.env.DOC_DETECTIVE_DEBUG = v;
-        expect(isDebugRequested()).to.equal(true);
+        expect(isDebugRequested(), `value: ${JSON.stringify(v)}`).to.equal(true);
       }
       for (const v of ["false", "0", "no", "", "off"]) {
         process.env.DOC_DETECTIVE_DEBUG = v;
