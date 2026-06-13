@@ -684,6 +684,27 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
   }
 
+  // For concurrent runs, resolve missing browser dependencies and warm up each
+  // unique driver combination serially *before* the pool. Two contexts can't
+  // then race on an on-demand install (which mutates the shared app cache), and
+  // a combination that can't start a driver is recorded once here so every
+  // parallel context sharing it skips instantly instead of re-paying
+  // driverStart's backoff. This pre-populates installAttempts / warmUpResults /
+  // runnerDetails.availableApps, so runContext's own gates below collapse to
+  // fast cache hits. Sequential runs (limit 1) keep #338's natural
+  // first-context-warms-up behavior in runContext — no pre-pass, no extra
+  // driver start, byte-identical to before.
+  if (limit > 1 && appiumPool) {
+    await warmUpContexts({
+      jobs,
+      config,
+      runnerDetails,
+      appiumPool,
+      installAttempts,
+      warmUpResults,
+    });
+  }
+
   // Phase 2: run every context job through one flat worker pool. A limit of 1
   // (the default) is strictly sequential in input order.
   await runConcurrent(jobs, limit, async (job: any) => {
@@ -779,6 +800,149 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   }
 
   return report;
+}
+
+/**
+ * Serial pre-pass for concurrent runs. For each unique driver combination
+ * (platform::browser) among the jobs, resolves a missing browser dependency on
+ * demand and then warms up a driver once, recording the outcome. Runs before
+ * the worker pool so:
+ *   - on-demand installs never race (they mutate the shared app cache), and
+ *   - a combination that can't start a driver is recorded once, so every
+ *     parallel context sharing it is skipped instantly by runContext's warm-up
+ *     gate instead of each re-paying driverStart's retry/backoff.
+ * Mirrors the install + driver-start logic in runContext so the memoization
+ * state (installAttempts / warmUpResults / runnerDetails.availableApps) is
+ * identical to what the first same-combo context would have produced serially.
+ */
+async function warmUpContexts({
+  jobs,
+  config,
+  runnerDetails,
+  appiumPool,
+  installAttempts,
+  warmUpResults,
+}: {
+  jobs: any[];
+  config: any;
+  runnerDetails: any;
+  appiumPool: { acquire(): Promise<number>; release(port: number): void };
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
+}): Promise<void> {
+  const platform = runnerDetails.environment.platform;
+  const seen = new Set<string>();
+  for (const job of jobs) {
+    const context = job.context;
+    if (!context.steps) context.steps = [];
+    // Resolve a default browser the same way runContext does, so the
+    // combination key and warm-up match what the context will actually use.
+    if (!context.browser && isDriverRequired({ test: context })) {
+      context.browser = getDefaultBrowser({ runnerDetails });
+    }
+    if (!isDriverRequired({ test: context })) continue;
+    // No resolvable browser — runContext skips these per-context with its own
+    // message; nothing to warm up.
+    if (!context.browser?.name) continue;
+    const combo = combinationKey(context);
+    if (seen.has(combo)) continue;
+    seen.add(combo);
+
+    // On-demand install + re-detect (serial), mirroring runContext's gate.
+    let supported = isSupportedContext({
+      context,
+      apps: runnerDetails.availableApps,
+      platform,
+    });
+    if (
+      !supported &&
+      context.platform === platform &&
+      Array.isArray(context?.steps) &&
+      requiredBrowserAssets(context.browser?.name).length > 0
+    ) {
+      const firstAttempt = !installAttempts.has(
+        (context.browser?.name ?? "<none>").toLowerCase()
+      );
+      const outcome = await ensureContextBrowserInstalled({
+        browserName: context.browser?.name,
+        config,
+        installAttempts,
+        deps: {
+          ensureBrowser: (asset, options) =>
+            ensureBrowserInstalled(asset, options),
+          log,
+        },
+      });
+      if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
+        clearAppCache(config);
+        runnerDetails.availableApps = await getAvailableApps({ config });
+        supported = isSupportedContext({
+          context,
+          apps: runnerDetails.availableApps,
+          platform,
+        });
+      }
+    }
+    // Unsupported combinations are left unmarked; runContext skips each with the
+    // appropriate per-context reason (install-but-undetected vs unsupported).
+    if (!supported) continue;
+
+    // Warm-up probe: start a driver once to prove the combination works.
+    // driverStart's own transient retry absorbs concurrent-launch flakiness;
+    // a headless fallback (on a throwaway caps object, so the real contexts
+    // keep their configured headedness) matches runContext so a headed-only
+    // failure on a headless-capable box doesn't poison the combination.
+    const port = await appiumPool.acquire();
+    let warmDriver: any;
+    try {
+      const options = {
+        width: context.browser?.window?.width || 1200,
+        height: context.browser?.window?.height || 800,
+        headless: context.browser?.headless !== false,
+      };
+      try {
+        warmDriver = await driverStart(
+          getDriverCapabilities({
+            runnerDetails,
+            name: context.browser.name,
+            options,
+          }),
+          port,
+          4,
+          { cacheDir: config?.cacheDir }
+        );
+      } catch {
+        warmDriver = await driverStart(
+          getDriverCapabilities({
+            runnerDetails,
+            name: context.browser.name,
+            options: { ...options, headless: true },
+          }),
+          port,
+          4,
+          { cacheDir: config?.cacheDir }
+        );
+      }
+      warmUpResults.set(combo, "ok");
+      log(config, "debug", `Warm-up succeeded for ${combo}.`);
+    } catch (error: any) {
+      warmUpResults.set(combo, "failed");
+      log(
+        config,
+        "warning",
+        `Warm-up failed for ${combo}; contexts using it will be skipped: ${error?.message ?? String(error)}`
+      );
+    } finally {
+      if (warmDriver) {
+        try {
+          await warmDriver.deleteSession();
+        } catch {
+          // best-effort teardown of the warm-up session
+        }
+      }
+      appiumPool.release(port);
+    }
+  }
 }
 
 /**
