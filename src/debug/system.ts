@@ -4,6 +4,7 @@
 // Output is consumed by `render.ts` and `index.ts` only.
 
 import os from "node:os";
+import { redactArg } from "./redact.js";
 
 export interface SystemInfo {
   platform: string;
@@ -63,7 +64,9 @@ export function collectSystemInfo(): SystemInfo {
     pid: process.pid,
     ppid: process.ppid,
     cwd: safe(() => process.cwd(), "<unknown>"),
-    argv: process.argv.slice(),
+    // Redact credentials that may ride in CLI args (e.g. `--token=…`, an
+    // embedded URL with userinfo) so the dump stays safe to paste.
+    argv: process.argv.map(redactArg),
     execPath: process.execPath,
     isTTY: Boolean(process.stdout.isTTY),
     ci: process.env.CI,

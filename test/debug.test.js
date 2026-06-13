@@ -17,10 +17,34 @@ before(async function () {
 });
 
 describe("debug/redact", function () {
-  let redactValue, isSecretName, isSecretValue, redactObject;
+  let redactValue, isSecretName, isSecretValue, redactObject, redactArg;
   before(async function () {
-    ({ redactValue, isSecretName, isSecretValue, redactObject } =
+    ({ redactValue, isSecretName, isSecretValue, redactObject, redactArg } =
       await import("../dist/debug/redact.js"));
+  });
+
+  describe("redactArg", function () {
+    it("redacts secret-named --flag=value pairs but keeps the flag", function () {
+      expect(redactArg("--token=ghp_secretvalue")).to.match(
+        /^--token=\*{3}redacted/
+      );
+      expect(redactArg("--api-key=abc123")).to.match(/^--api-key=\*{3}redacted/);
+    });
+
+    it("redacts credential-shaped values regardless of flag name", function () {
+      expect(redactArg("--db=postgres://u:pw@host/db")).to.match(
+        /^--db=\*{3}redacted .*value shape/
+      );
+      const bareJwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.dummysig12345";
+      expect(redactArg(bareJwt)).to.match(/^\*{3}redacted .*value shape/);
+    });
+
+    it("passes through node/entry paths and ordinary flags/values", function () {
+      expect(redactArg("/usr/bin/node")).to.equal("/usr/bin/node");
+      expect(redactArg("debug")).to.equal("debug");
+      expect(redactArg("--include-env")).to.equal("--include-env");
+      expect(redactArg("--logLevel=info")).to.equal("--logLevel=info");
+    });
   });
 
   it("redacts classic secret-looking names case-insensitively", function () {

@@ -146,6 +146,13 @@ export function resolveDocExtensions(fileTypes: unknown): Set<string> {
   return exts;
 }
 
+// Hard cap on how many filesystem entries the walk will examine, separate
+// from the matched-file `cap`. Without it, an input pointed at `/` or a
+// huge repo with no doc-extension matches would traverse the whole tree
+// (the matched-file cap never trips), making `doc-detective debug` look
+// hung. 50k entries is plenty for any real docs tree.
+const MAX_ENTRIES_EXAMINED = 50_000;
+
 // Walk a list of input paths (files or directories) and return a list of
 // readable file paths up to `cap` entries. Bounded so the debug dump can
 // never hang on a giant tree. Skips node_modules and .git.
@@ -176,13 +183,15 @@ export function enumerateInputFiles(
   // keep the stack non-empty forever — a real hang risk, especially when
   // the extension filter means no files ever pass to bound the walk.
   const visitedDirs = new Set<string>();
+  let examined = 0;
   for (const i of inputs) {
     if (typeof i === "string" && i.length > 0) {
       stack.push(i);
       explicit.add(i);
     }
   }
-  while (stack.length > 0 && out.length < cap) {
+  while (stack.length > 0 && out.length < cap && examined < MAX_ENTRIES_EXAMINED) {
+    examined++;
     const p = stack.shift() as string;
     let stat;
     try {

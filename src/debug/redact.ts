@@ -77,6 +77,34 @@ export function redactValue(name: string, value: string | undefined): string {
   return value;
 }
 
+// Redact a single `process.argv` entry so the dump stays safe to paste.
+// CLI args can carry credentials that bypass the env/config redaction:
+//   - `--token=ghp_…` / `--api-key=…`  → value redacted when the flag name
+//     looks secret;
+//   - an embedded credential anywhere (`https://user:pass@host`, a JWT, a
+//     GitHub/AWS token) → redacted by value shape.
+// Node + entry-point paths and ordinary flags pass through unchanged.
+export function redactArg(arg: string): string {
+  if (typeof arg !== "string" || arg.length === 0) return arg;
+  const eq = arg.indexOf("=");
+  if (eq > 0) {
+    const flag = arg.slice(0, eq);
+    const value = arg.slice(eq + 1);
+    const name = flag.replace(/^-+/, "");
+    if (isSecretName(name)) {
+      return `${flag}=***redacted (${value.length} chars)***`;
+    }
+    if (isSecretValue(value)) {
+      return `${flag}=***redacted (${value.length} chars, value shape)***`;
+    }
+    return arg;
+  }
+  if (isSecretValue(arg)) {
+    return `***redacted (${arg.length} chars, value shape)***`;
+  }
+  return arg;
+}
+
 // Recursively walk an arbitrary value (object / array / primitive) and
 // return a deep-cloned copy with sensitive strings replaced. Used by
 // the Config section of the debug dump so secrets in config files

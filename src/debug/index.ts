@@ -1,4 +1,5 @@
-// Public entry point for the `--debug` / `DOC_DETECTIVE_DEBUG` dump.
+// Public entry point for the diagnostic dump, reachable via the
+// `doc-detective debug` subcommand or `DOC_DETECTIVE_DEBUG=true`.
 //
 // `printDebug` collects environment information into a single structured
 // object (`collectDebugData`), then renders it two ways from that one
