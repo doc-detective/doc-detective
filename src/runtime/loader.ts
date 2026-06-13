@@ -90,6 +90,59 @@ export function resolveHeavyDepPath(
 }
 
 /**
+ * Where a heavy dep resolves from, or `null` if it doesn't resolve.
+ * "shim" = the doc-detective package's own node_modules (a pre-installed
+ * optionalDependency or dev checkout); "cache" = <cacheDir>/runtime. The
+ * distinction matters for freshness: `ensureRuntimeInstalled` never
+ * overrides a shim-resolved version but DOES reinstall a stale cache, so
+ * callers reporting "outdated" must only apply the declared-range check to
+ * cache resolutions.
+ */
+export function resolveHeavyDepSource(
+  name: string,
+  ctx: CacheDirContext = {}
+): "shim" | "cache" | null {
+  if (tryResolveFromShim(name)) return "shim";
+  if (tryResolveFromCache(name, ctx)) return "cache";
+  return null;
+}
+
+/**
+ * Read the installed version of a heavy dep that's resolvable (shim
+ * node_modules OR runtime cache) but may not be recorded in
+ * <cacheDir>/installed.json — e.g. a pre-installed optionalDependency or a
+ * dev checkout. Walks up from the resolved entry to the package's own
+ * package.json (the first one whose `name` matches, so a nested
+ * `dist/package.json` with only `{"type":"module"}` is skipped). Returns
+ * `null` when the dep isn't resolvable or the version can't be read.
+ */
+export function resolveHeavyDepVersion(
+  name: string,
+  ctx: CacheDirContext = {}
+): string | null {
+  const entry = resolveHeavyDepPath(name, ctx);
+  if (!entry) return null;
+  let dir = path.dirname(entry);
+  for (let i = 0; i < 12; i++) {
+    const pkgJsonPath = path.join(dir, "package.json");
+    try {
+      if (fs.existsSync(pkgJsonPath)) {
+        const parsed = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+        if (parsed?.name === name && typeof parsed.version === "string") {
+          return parsed.version;
+        }
+      }
+    } catch {
+      // Unreadable / malformed package.json — keep walking.
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+/**
  * Resolve and import a heavy dep, lazy-installing into <cacheDir>/runtime
  * if neither the shim's node_modules nor the cache currently has it. The
  * shim's own node_modules wins so a user who kept the optionalDependency

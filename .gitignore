@@ -121,3 +121,6 @@ src/container/test/artifacts/*.png
 # Common subpackage build artifacts
 src/common/dist/
 src/common/node_modules/
+
+# Diagnostic dump output (`doc-detective debug`)
+.doc-detective/

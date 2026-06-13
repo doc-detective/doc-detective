@@ -1372,12 +1372,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 26 active hints. `useFileTypesForRst` is commented out in the
+    // 27 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(26);
+    expect(HINTS.length).to.equal(27);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1506,6 +1506,12 @@ describe("hints/hints (registry)", function () {
     const h = findHint("enableDebugLog");
     expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
     expect(h.when(fakeCtx({ failedCount: 3 }))).to.equal(true);
+  });
+
+  it("useDebugFlag: fires only when run failed", function () {
+    const h = findHint("useDebugFlag");
+    expect(h.when(fakeCtx({ failedCount: 2 }))).to.equal(true);
+    expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
   });
 
   it("useRecordStepOnFailure: fires only on failure with a browser run and no recordings produced", function () {

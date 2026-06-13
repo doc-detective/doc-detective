@@ -370,6 +370,24 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useDebugFlag (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useDebugFlag",
+    priority: 20,
+    markdown: [
+      "Stuck on a setup problem? `doc-detective debug` captures your OS, Doc Detective version, browsers, tool versions, and any env vars referenced by your config:",
+      "",
+      "```bash",
+      "doc-detective debug",
+      "```",
+      "",
+      "Review the output before pasting into a bug report — secrets are best-effort-redacted by name and value shape, but values with novel names or shapes (custom URL-style connection strings, in-house token formats) may slip through. `--include-env` opts into a full `process.env` dump if you need it.",
+    ].join("\n"),
+    when: (ctx) => ctx.failedCount > 0,
+  },
+
+  // ------------------------------------------------------------------
   // useDryRunToDebugNoTests (current-run problem)
   // ------------------------------------------------------------------
   {

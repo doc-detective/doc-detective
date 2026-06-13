@@ -6,6 +6,11 @@ import kill from "tree-kill";
 // so we don't carry a top-level `import type` whose `typeof` would refer
 // to a non-runtime identifier.
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import {
+  requiredBrowserAssets,
+  ensureBrowserInstalled,
+  type BrowserAssetName,
+} from "../runtime/browsers.js";
 import os from "node:os";
 import {
   log,
@@ -57,6 +62,9 @@ export {
   runViaApi,
   getRunner,
   ensureChromeAvailable,
+  ensureContextBrowserInstalled,
+  combinationKey,
+  warmUpDecision,
   getDriverCapabilities,
   getDefaultBrowser,
   isSupportedContext,
@@ -82,6 +90,32 @@ const driverActions = [
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
+/**
+ * Stable identity for a "context combination" — the platform + browser pairing
+ * that determines whether a driver session can be created. The runner memoizes
+ * warm-up outcomes by this key so a combination that fails to start once isn't
+ * re-attempted (with its slow driverStart backoff) for every later context.
+ * headless is intentionally excluded: headed/headless are two attempts at the
+ * same combination (the loop retries headless on failure), not distinct ones.
+ * `webkit` is normalized to `safari` so the key matches getAvailableApps naming.
+ */
+function combinationKey(context: any): string {
+  const rawName = context?.browser?.name;
+  const name = rawName === "webkit" ? "safari" : rawName || "<none>";
+  return `${context?.platform}::${name}`;
+}
+
+/**
+ * Decide whether a context combination should be attempted or skipped, given
+ * its prior warm-up outcome in this run. Pure so the memoization branching is
+ * unit-testable without spinning up Appium. A previously-failed combination is
+ * skipped outright; everything else is attempted (and its outcome recorded by
+ * the caller).
+ */
+function warmUpDecision(prev: "ok" | "failed" | undefined): "attempt" | "skip" {
+  return prev === "failed" ? "skip" : "attempt";
+}
 
 // Get Appium driver capabilities and apply options.
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
@@ -491,8 +525,21 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
   // Set initial shorthand values
   const platform = runnerDetails.environment.platform;
-  const availableApps = runnerDetails.availableApps;
+  // `let`, not `const`: an on-demand browser install during the context loop
+  // re-detects available apps and reassigns this snapshot (see the support
+  // gate below).
+  let availableApps = runnerDetails.availableApps;
   const metaValues: any = { specs: {} };
+  // Per-run memoization, shared across the concurrent context pool below.
+  // installAttempts keeps a browser's on-demand install from being retried for
+  // every context that uses it; warmUpResults keeps a context combination that
+  // can't start a driver from being re-attempted (with its slow driverStart
+  // backoff) for the rest of the run.
+  const installAttempts = new Map<
+    string,
+    "installed" | "failed" | "notInstallable"
+  >();
+  const warmUpResults = new Map<string, "ok" | "failed">();
   const report: any = {
     summary: {
       specs: {
@@ -649,6 +696,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         runnerDetails,
         appiumPool,
         metaValues,
+        installAttempts,
+        warmUpResults,
         logPrefix:
           limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
       });
@@ -746,6 +795,8 @@ async function runContext({
   runnerDetails,
   appiumPool,
   metaValues,
+  installAttempts,
+  warmUpResults,
   logPrefix = "",
 }: {
   config: any;
@@ -757,10 +808,14 @@ async function runContext({
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
   metaValues: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
-  const availableApps = runnerDetails.availableApps;
+  // `let`, not `const`: an on-demand browser install below re-detects available
+  // apps and reassigns this snapshot.
+  let availableApps = runnerDetails.availableApps;
   // Context-scoped log: prefixed only when contexts run concurrently, so
   // sequential output stays unchanged.
   const clog = (level: string, message: any) =>
@@ -821,21 +876,74 @@ async function runContext({
   }
 
   // Check if current environment supports given contexts
-  const supportedContext = isSupportedContext({
+  let supportedContext = isSupportedContext({
     context: context,
     apps: availableApps,
     platform: platform,
   });
 
+  // If the context needs a browser that isn't available yet, try to resolve
+  // the missing dependency on demand before giving up — e.g. Firefox declared
+  // but geckodriver absent because the pre-flight was skipped or its install
+  // failed. Memoized per browser (installAttempts) so a failed/no-op install
+  // isn't retried for every later context. The install + re-detect mutate the
+  // shared runnerDetails.availableApps; under concurrency that's racy, but it
+  // only fires for a genuinely-missing browser (rare) and the app list only
+  // grows, so a sibling reading a slightly stale snapshot still re-detects.
+  let freshInstallRedetected = false;
+  if (
+    !supportedContext &&
+    context.platform === platform &&
+    // Mirror isSupportedContext's own guard: isDriverRequired iterates
+    // context.steps, so a malformed context without a steps array would
+    // otherwise crash here instead of skipping cleanly.
+    Array.isArray(context?.steps) &&
+    isDriverRequired({ test: context }) &&
+    requiredBrowserAssets(context.browser?.name).length > 0
+  ) {
+    // Whether this browser was already attempted earlier this run; a cached
+    // outcome installed nothing new, so there's no point paying for a re-detect.
+    const firstAttempt = !installAttempts.has(
+      (context.browser?.name ?? "<none>").toLowerCase()
+    );
+    const outcome = await ensureContextBrowserInstalled({
+      browserName: context.browser?.name,
+      config,
+      installAttempts,
+      deps: {
+        ensureBrowser: (asset, options) =>
+          ensureBrowserInstalled(asset, options),
+        log,
+      },
+    });
+    // Re-detect after a real attempt regardless of outcome: a "failed" install
+    // can still have materialized assets before it threw, so a stale snapshot
+    // could wrongly skip a now-usable browser.
+    if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
+      freshInstallRedetected = true;
+      clearAppCache(config);
+      availableApps = await getAvailableApps({ config });
+      runnerDetails.availableApps = availableApps;
+      supportedContext = isSupportedContext({
+        context: context,
+        apps: availableApps,
+        platform: platform,
+      });
+    }
+  }
+
   // If context isn't supported, skip it
   if (!supportedContext) {
-    clog(
-      "info",
-      `Skipping context. The current system doesn't support this context: {"platform": "${
-        context.platform
-      }", "apps": ${JSON.stringify(context.apps)}}`
-    );
+    // Distinguish "we installed the dependency but still can't see it" from a
+    // plain unsupported context, so the skip reason points at the real problem.
+    const errorMessage = freshInstallRedetected
+      ? `Skipping context '${context.browser?.name}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
+      : `Skipping context. The current system doesn't support this context: {"platform": "${
+          context.platform
+        }", "apps": ${JSON.stringify(context.apps)}}`;
+    clog(freshInstallRedetected ? "warning" : "info", errorMessage);
     contextReport.result = "SKIPPED";
+    contextReport.resultDescription = errorMessage;
     return contextReport;
   }
   clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
@@ -850,8 +958,22 @@ async function runContext({
     );
   }
 
+  // Warm-up memoization. The first context of each combination acts as the
+  // warm-up; if that combination already failed to start a driver earlier in
+  // this run, skip it outright instead of paying driverStart's retry/backoff
+  // again. Under concurrency this is a best-effort speedup, not correctness —
+  // same-combo contexts may start before one records a result.
+  const combo = combinationKey(context);
+
   try {
     if (driverRequired) {
+      if (warmUpDecision(warmUpResults.get(combo)) === "skip") {
+        const errorMessage = `Skipping context '${context.browser?.name}' on '${context.platform}': this context combination could not start a driver earlier in this run.`;
+        clog("warning", errorMessage);
+        contextReport.result = "SKIPPED";
+        contextReport.resultDescription = errorMessage;
+        return contextReport;
+      }
       // Check out a server for this context's lifetime — released in the
       // finally so the next queued context can reuse it.
       appiumPort = await appiumPool!.acquire();
@@ -893,16 +1015,27 @@ async function runContext({
           driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
         } catch (error: any) {
           let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
-          if (context.browser?.name === "safari")
+          // `safari` is normalized to `webkit` during context resolution, so
+          // match both or this Safari-specific hint never fires on real runs.
+          if (
+            context.browser?.name === "safari" ||
+            context.browser?.name === "webkit"
+          )
             errorMessage =
               errorMessage +
               " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
           clog("error", errorMessage);
+          // Record the combination as failed so every later context that shares
+          // it is skipped instantly (see the warm-up check above).
+          if (!warmUpResults.has(combo)) warmUpResults.set(combo, "failed");
           contextReport.result = "SKIPPED";
           contextReport.resultDescription = errorMessage;
           return contextReport;
         }
       }
+      // Driver started (first attempt or headless retry) — mark this
+      // combination as known-good for the rest of the run.
+      if (!warmUpResults.has(combo)) warmUpResults.set(combo, "ok");
 
       if (
         context.browser?.viewport?.width ||
@@ -1382,6 +1515,71 @@ async function ensureChromeAvailable(
     );
   }
   return availableApps;
+}
+
+/**
+ * On-demand, per-context browser/driver install used by the runner when a
+ * context's browser isn't yet available (e.g. Firefox declared but geckodriver
+ * missing). Attempts to install every asset the browser needs, memoizing the
+ * outcome in `installAttempts` so a failed (or no-op) attempt isn't repeated
+ * for every later context that shares the browser. Like ensureChromeAvailable,
+ * this self-provisions regardless of DOC_DETECTIVE_AUTOINSTALL (that env var
+ * only governs the eager postinstall). Deps are injected for testing.
+ *
+ * @returns "installed" when all assets installed, "failed" when an install
+ *   threw, or "notInstallable" for browsers with no installable asset (safari).
+ */
+async function ensureContextBrowserInstalled({
+  browserName,
+  config,
+  installAttempts,
+  deps,
+}: {
+  browserName: string | undefined;
+  config: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  deps: {
+    ensureBrowser: (asset: BrowserAssetName, options: any) => Promise<any>;
+    log?: (config: any, level: string, msg: string) => void;
+  };
+}): Promise<"installed" | "failed" | "notInstallable"> {
+  const key = (browserName ?? "<none>").toLowerCase();
+  const cached = installAttempts.get(key);
+  if (cached) return cached;
+
+  const assets = requiredBrowserAssets(browserName);
+  if (assets.length === 0) {
+    installAttempts.set(key, "notInstallable");
+    return "notInstallable";
+  }
+
+  const ctx = { cacheDir: config?.cacheDir };
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+  // "warn" → "warning" the same way provisionChromeRuntime does.
+  const logger = (msg: string, level: string = "info") =>
+    deps.log?.(config, level === "warn" ? "warning" : level, msg);
+  try {
+    deps.log?.(
+      config,
+      "info",
+      `Browser '${browserName}' is not available; attempting on-demand install of: ${assets.join(
+        ", "
+      )}.`
+    );
+    for (const asset of assets) {
+      await deps.ensureBrowser(asset, { ctx, deps: { logger } });
+    }
+    installAttempts.set(key, "installed");
+    return "installed";
+  } catch (err: any) {
+    deps.log?.(
+      config,
+      "warning",
+      `On-demand install for '${browserName}' failed: ${err?.message ?? err}`
+    );
+    installAttempts.set(key, "failed");
+    return "failed";
+  }
 }
 
 async function getRunner(options: any = {}) {

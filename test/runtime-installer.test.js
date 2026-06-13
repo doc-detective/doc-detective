@@ -3,6 +3,7 @@ import {
   installBrowsers,
   status,
 } from "../dist/runtime/installer.js";
+import { resolveHeavyDepSource } from "../dist/runtime/loader.js";
 import { writeInstalledRecord } from "../dist/runtime/cacheDir.js";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
@@ -214,36 +215,68 @@ describe("runtime/installer", function () {
   });
 
   describe("status", function () {
-    it("reports all HEAVY_NPM_DEPS + all browser assets, marking installed: false for missing entries", function () {
+    it("reports all HEAVY_NPM_DEPS + all browser assets; browsers absent on an empty cache", function () {
       const rows = status({});
       const npmRows = rows.filter((r) => r.kind === "npm");
       const browserRows = rows.filter((r) => r.kind === "browser");
       expect(npmRows.length).to.be.greaterThan(0);
       expect(browserRows.length).to.equal(4);
-      // Empty cache → nothing installed.
-      for (const r of rows) expect(r.installed).to.equal(false);
+      // Browsers only come from the cache/record (never the shim's
+      // node_modules), so an empty cache means none are installed.
+      for (const r of browserRows) expect(r.installed).to.equal(false);
+      // npm packages count as installed when resolvable from the shim's
+      // node_modules OR the cache — matching `install all`'s presence check
+      // — even with an empty cache record. Assert status agrees with the
+      // resolver rather than hard-coding env-dependent install state.
+      for (const r of npmRows) {
+        expect(r.installed).to.equal(Boolean(resolveHeavyDepSource(r.assetId)));
+      }
     });
 
-    it("marks rows as outdated when installed version drifts from expected", function () {
-      writeInstalledRecord({
-        npmPackages: {
-          pngjs: { installedVersion: "6.0.0", installedAt: "2026-01-01T00:00:00Z" },
-        },
-        browsers: {
-          chrome: {
-            installedVersion: "100.0.0",
-            installedAt: "2026-01-01T00:00:00Z",
-            latestKnownVersion: "121.0.0",
+    it("never flags a shim-resolved package as outdated, even with a stale cache record", function () {
+      // pngjs is declared as a heavy dep and present in this source
+      // checkout's node_modules, so it resolves from the shim. The shim
+      // wins over the cache at runtime and is never overridden, so a stale
+      // cache record must NOT flag it outdated (regression: status consulted
+      // the cache record before the shim).
+      const source = resolveHeavyDepSource("pngjs");
+      if (source !== "shim") this.skip();
+      writeInstalledRecord(
+        {
+          npmPackages: {
+            pngjs: { installedVersion: "1.0.0", installedAt: "2026-01-01T00:00:00Z" },
           },
+          browsers: {},
         },
-      }, {});
+        {}
+      );
       const rows = status({});
       const pngjs = rows.find((r) => r.assetId === "pngjs");
       expect(pngjs.installed).to.equal(true);
-      // pngjs is in package.json#dependencies (constraint string like "^7.1.0"),
-      // and our installed entry is "6.0.0" — a mismatch.
-      expect(pngjs.outdated).to.equal(true);
+      // Reports the real shim version, not the stale "1.0.0" record, and
+      // is not flagged outdated.
+      expect(pngjs.installedVersion).to.be.a("string");
+      expect(pngjs.installedVersion).to.not.equal("1.0.0");
+      expect(pngjs.outdated).to.equal(false);
+    });
 
+    it("marks a browser row outdated when its installed buildId drifts from the channel", function () {
+      // Browsers are never shim-resolved, so the cache record's freshness
+      // check applies directly.
+      writeInstalledRecord(
+        {
+          npmPackages: {},
+          browsers: {
+            chrome: {
+              installedVersion: "100.0.0",
+              installedAt: "2026-01-01T00:00:00Z",
+              latestKnownVersion: "121.0.0",
+            },
+          },
+        },
+        {}
+      );
+      const rows = status({});
       const chrome = rows.find((r) => r.assetId === "chrome");
       expect(chrome.installed).to.equal(true);
       expect(chrome.outdated).to.equal(true);

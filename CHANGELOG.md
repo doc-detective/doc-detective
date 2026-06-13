@@ -1,3 +1,10 @@
+# [4.7.0](https://github.com/doc-detective/doc-detective/compare/v4.6.1...v4.7.0) (2026-06-13)
+
+
+### Features
+
+* **debug:** add diagnostic dump via debug subcommand and DOC_DETECTIVE_DEBUG ([#336](https://github.com/doc-detective/doc-detective/issues/336)) ([e417131](https://github.com/doc-detective/doc-detective/commit/e4171311d6abb5322a75746b94a2b30f9b463e8a))
+
 ## [4.6.1](https://github.com/doc-detective/doc-detective/compare/v4.6.0...v4.6.1) (2026-06-11)
 
 
