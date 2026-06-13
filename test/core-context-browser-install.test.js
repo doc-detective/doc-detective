@@ -86,7 +86,11 @@ describe("ensureContextBrowserInstalled", function () {
     });
     assert.equal(first, "installed");
     assert.equal(second, "installed");
-    assert.equal(calls, 2, "two assets installed once; not re-invoked on the cached call");
+    assert.equal(
+      calls,
+      2,
+      "firefox has 2 assets; both install on the first call, none on the cached call"
+    );
   });
 
   it("memoizes a failure: a second call returns 'failed' without retrying", async function () {

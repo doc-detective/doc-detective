@@ -707,12 +707,19 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // Firefox declared but geckodriver absent because the pre-flight was
         // skipped or its install failed. Memoized per browser (installAttempts)
         // so a failed/no-op install isn't retried for every later context.
+        let installAttempted = false;
         if (
           !supportedContext &&
           context.platform === platform &&
           isDriverRequired({ test: context }) &&
           requiredBrowserAssets(context.browser?.name).length > 0
         ) {
+          // Whether this browser was already attempted earlier this run; a
+          // cached outcome installed nothing new, so there's no point paying
+          // for a re-detect.
+          const firstAttempt = !installAttempts.has(
+            (context.browser?.name ?? "<none>").toLowerCase()
+          );
           const outcome = await ensureContextBrowserInstalled({
             browserName: context.browser?.name,
             config,
@@ -723,10 +730,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
               log,
             },
           });
-          if (outcome === "installed") {
-            // Drop the cached "not installed" app snapshot and re-detect so
-            // isSupportedContext (and getDriverCapabilities, which reads
-            // runnerDetails.availableApps live) see what we just materialized.
+          // Re-detect after a real attempt regardless of outcome: a "failed"
+          // install can still have materialized assets before it threw (the
+          // installs run sequentially), so a stale "not installed" snapshot
+          // could wrongly skip a now-usable browser. Drop the cached apps and
+          // re-scan so isSupportedContext (and getDriverCapabilities, which
+          // reads runnerDetails.availableApps live) see the new state.
+          if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
+            installAttempted = true;
             clearAppCache(config);
             availableApps = await getAvailableApps({ config });
             runnerDetails.availableApps = availableApps;
@@ -740,14 +751,21 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
         // If context isn't supported, skip it
         if (!supportedContext) {
-          log(
-            config,
-            "info",
-            `Skipping context. The current system doesn't support this context: {"platform": "${
-              context.platform
-            }", "apps": ${JSON.stringify(context.apps)}}`
-          );
-          contextReport = { result: "SKIPPED", ...contextReport };
+          // Distinguish "we installed the dependency but still can't see it"
+          // from a plain unsupported context, so the skip reason points at the
+          // real problem (detection after install) rather than implying a
+          // platform mismatch.
+          const errorMessage = installAttempted
+            ? `Skipping context '${context.browser?.name}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
+            : `Skipping context. The current system doesn't support this context: {"platform": "${
+                context.platform
+              }", "apps": ${JSON.stringify(context.apps)}}`;
+          log(config, installAttempted ? "warning" : "info", errorMessage);
+          contextReport = {
+            result: "SKIPPED",
+            resultDescription: errorMessage,
+            ...contextReport,
+          };
           report.summary.contexts.skipped++;
           testReport.contexts.push(contextReport);
           continue;

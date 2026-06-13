@@ -14,11 +14,16 @@ export type BrowserAssetName = "chrome" | "firefox" | "chromedriver" | "geckodri
  * runtime install paths share (the runTests pre-flight and the runner's
  * on-demand context-gate install both consume it). Safari/webkit ship with
  * macOS, so they have no installable assets; unknown names map to nothing.
+ *
+ * Only schema-valid driver browser names are mapped. "chromium" is
+ * intentionally absent: it isn't in the runner's KNOWN_BROWSERS, so installing
+ * Chrome for it wouldn't make the context runnable end-to-end (isSupportedContext
+ * and getDriverCapabilities key off the exact name) — mapping it would install
+ * assets that then go unused.
  */
 export function requiredBrowserAssets(name: string | undefined): BrowserAssetName[] {
   switch ((name ?? "").toLowerCase()) {
     case "chrome":
-    case "chromium":
       return ["chrome", "chromedriver"];
     case "firefox":
       return ["firefox", "geckodriver"];

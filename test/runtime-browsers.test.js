@@ -59,11 +59,10 @@ describe("runtime/browsers", function () {
       ]);
     });
 
-    it("maps chromium to the same assets as chrome", function () {
-      expect(requiredBrowserAssets("chromium")).to.deep.equal([
-        "chrome",
-        "chromedriver",
-      ]);
+    it("returns no assets for chromium (not a runner-supported browser name)", function () {
+      // "chromium" isn't in KNOWN_BROWSERS, so installing Chrome for it
+      // wouldn't make a context runnable end-to-end — it maps to nothing.
+      expect(requiredBrowserAssets("chromium")).to.deep.equal([]);
     });
 
     it("maps firefox to its browser + driver assets", function () {

@@ -141,10 +141,11 @@ async function runTests(config: any, options: any = {}) {
           if (availableNames.has(browser)) continue;
           // requiredBrowserAssets returns [] for safari (ships with the OS)
           // and any unknown name, so the loop body simply no-ops for those.
-          for (const asset of requiredBrowserAssets(browser)) {
+          const assets = requiredBrowserAssets(browser);
+          for (const asset of assets) {
             await ensureBrowserInstalled(asset, { ctx, deps: { logger: preflightLogger } });
-            installedAnything = true;
           }
+          if (assets.length > 0) installedAnything = true;
         }
         // Invalidate the available-apps cache for this cacheDir so a
         // subsequent runSpecs/getRunner call re-detects what the
