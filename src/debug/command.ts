@@ -74,6 +74,10 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
         outFile,
         jsonOutFile,
       });
+      // Config is broken — exit non-zero so scripts/CI that gate on the
+      // exit code don't treat a CONFIG INVALID dump as success. Mirrors
+      // the DOC_DETECTIVE_DEBUG env-var path in cli.ts.
+      process.exitCode = 1;
       return;
     }
     await printDebug({

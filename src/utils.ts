@@ -34,9 +34,7 @@ export {
 // The `--debug` CLI flag was retired in favor of the dedicated
 // `doc-detective debug` subcommand; the subcommand handler does its
 // own setConfig-error handling, so this helper is now env-var-only.
-//
-// `args` is accepted for signature stability but no longer consulted.
-function isDebugRequested(_args: any = {}): boolean {
+function isDebugRequested(): boolean {
   const envVal = process.env.DOC_DETECTIVE_DEBUG;
   return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal);
 }

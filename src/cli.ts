@@ -93,7 +93,7 @@ async function runTestsHandler(args: any) {
   // output on the CLI should prefer the dedicated `doc-detective
   // debug` subcommand (which also supports `--include-env`); this
   // env-var path stays as the CI-friendly trigger.
-  const debugRequested = isDebugRequested(args);
+  const debugRequested = isDebugRequested();
 
   // Set config
   let config: any;

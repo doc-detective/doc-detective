@@ -243,7 +243,7 @@ async function collectBrowsers(config: any): Promise<BrowsersData> {
         ? config
         : { ...(config || {}), environment: { platform: detectPlatform() } };
 
-    const timeoutSentinel: unique symbol = Symbol("browser-timeout") as any;
+    const timeoutSentinel = Symbol("browser-timeout");
     // `.unref()` so the pending timer never keeps the process alive after
     // the real probe resolves (otherwise `doc-detective debug` would idle
     // until the timer fires), and clear it once the race settles.
