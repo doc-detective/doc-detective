@@ -30,10 +30,8 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
   handler: async (args) => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
     const { setConfig } = await import("../utils.js");
-    const { printDebug, defaultDebugOutFile, defaultDebugJsonFile } =
-      await import("./index.js");
-    const outFile = defaultDebugOutFile();
-    const jsonOutFile = defaultDebugJsonFile();
+    const { printDebug, defaultDebugDir } = await import("./index.js");
+    const outDir = defaultDebugDir();
 
     const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
     const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
@@ -71,8 +69,7 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
         configPath,
         configError: err instanceof Error ? err : new Error(String(err)),
         includeEnv,
-        outFile,
-        jsonOutFile,
+        outDir,
       });
       // Config is broken — exit non-zero so scripts/CI that gate on the
       // exit code don't treat a CONFIG INVALID dump as success. Mirrors
@@ -85,8 +82,7 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
       configPath,
       configError: null,
       includeEnv,
-      outFile,
-      jsonOutFile,
+      outDir,
     });
   },
 };

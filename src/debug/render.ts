@@ -27,10 +27,11 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-export function renderDocument(sections: Section[]): string {
+export function renderDocument(sections: Section[], generatedAt?: string): string {
   const out: string[] = [];
   out.push("=".repeat(72));
   out.push("Doc Detective diagnostic dump");
+  if (generatedAt) out.push(`Generated: ${generatedAt}`);
   out.push("=".repeat(72));
   for (const s of sections) {
     out.push("");

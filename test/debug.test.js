@@ -536,8 +536,9 @@ describe("debug/printDebug end-to-end", function () {
     });
     const text = out.join("\n");
 
-    // Header banner
+    // Header banner + generated-at timestamp at the top.
     expect(text).to.include("Doc Detective diagnostic dump");
+    expect(text).to.match(/Generated: \d{4}-\d{2}-\d{2}T[\d:.]+Z/);
     // Each section header
     expect(text).to.include("-- System ");
     expect(text).to.include("-- Doc Detective ");
@@ -564,46 +565,59 @@ describe("debug/printDebug end-to-end", function () {
     expect(text).to.include("safaridriver:");
   });
 
-  it("writes the dump to outFile when provided (and not when omitted)", async function () {
+  it("writes timestamped dump files to outDir, matching the header timestamp (and nothing when omitted)", async function () {
     this.timeout(60000);
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-outfile-"));
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-outdir-"));
     try {
-      const outFile = path.join(tmp, ".doc-detective", "debug.txt");
+      const outDir = path.join(tmp, ".doc-detective");
       const out = [];
       await printDebug({
         config: { input: ".", environment: { platform: "linux" } },
         configPath: null,
-        outFile,
+        outDir,
         print: (line) => out.push(line),
       });
-      // File written, parent dir created, content matches the dump.
-      expect(fs.existsSync(outFile)).to.equal(true);
-      const fileContent = fs.readFileSync(outFile, "utf8");
-      expect(fileContent).to.include("Doc Detective diagnostic dump");
-      expect(fileContent).to.include("-- Browsers ");
-      // stdout gets a save-confirmation line pointing at the file.
-      expect(out.join("\n")).to.include(`Diagnostic dump saved to ${outFile}`);
+      // Two timestamped files written, parent dir created.
+      const files = fs.readdirSync(outDir);
+      const txt = files.find((f) => /^debug-.+\.txt$/.test(f));
+      const json = files.find((f) => /^debug-.+\.json$/.test(f));
+      expect(txt, "timestamped .txt written").to.be.a("string");
+      expect(json, "timestamped .json written").to.be.a("string");
+      // Both files share the SAME timestamp token.
+      const stamp = txt.replace(/^debug-/, "").replace(/\.txt$/, "");
+      expect(json).to.equal(`debug-${stamp}.json`);
 
-      // Omitting outFile must not write anything (no side effects in tests).
-      const before = fs.readdirSync(tmp);
+      const content = fs.readFileSync(path.join(outDir, txt), "utf8");
+      expect(content).to.include("Doc Detective diagnostic dump");
+      expect(content).to.include("-- Browsers ");
+      // The "Generated:" header timestamp is the same instant as the
+      // filename timestamp (filename just swaps `:`/`.` for `-`).
+      const m = content.match(/Generated: (\S+)/);
+      expect(m, "Generated: header present").to.not.equal(null);
+      expect(m[1].replace(/[:.]/g, "-")).to.equal(stamp);
+      expect(out.join("\n")).to.include("Diagnostic dump saved to");
+      expect(out.join("\n")).to.include("Diagnostic JSON saved to");
+
+      // Omitting outDir must not write anything (no side effects in tests).
+      const before = fs.readdirSync(outDir);
       await printDebug({
         config: { input: ".", environment: { platform: "linux" } },
         configPath: null,
         print: () => {},
       });
-      expect(fs.readdirSync(tmp)).to.deep.equal(before);
+      expect(fs.readdirSync(outDir)).to.deep.equal(before);
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
   });
 
-  it("writes structured, redacted JSON to jsonOutFile", async function () {
+  it("writes structured, redacted JSON to the timestamped outDir file", async function () {
     this.timeout(60000);
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-json-"));
     const prev = process.env.DD_TEST_JSON_CONN;
     process.env.DD_TEST_JSON_CONN = "postgres://app:hunter2@db.example.com/prod";
     try {
-      const jsonOutFile = path.join(tmp, ".doc-detective", "debug.json");
+      const outDir = path.join(tmp, ".doc-detective");
       const out = [];
       await printDebug({
         config: {
@@ -613,11 +627,14 @@ describe("debug/printDebug end-to-end", function () {
         },
         configPath: null,
         includeEnv: true,
-        jsonOutFile,
+        outDir,
         print: (line) => out.push(line),
       });
-      expect(fs.existsSync(jsonOutFile)).to.equal(true);
-      const data = JSON.parse(fs.readFileSync(jsonOutFile, "utf8"));
+      const jsonName = fs
+        .readdirSync(outDir)
+        .find((f) => /^debug-.+\.json$/.test(f));
+      expect(jsonName, "timestamped .json written").to.be.a("string");
+      const data = JSON.parse(fs.readFileSync(path.join(outDir, jsonName), "utf8"));
 
       // Structured top-level shape.
       expect(data).to.include.keys(
@@ -646,7 +663,7 @@ describe("debug/printDebug end-to-end", function () {
         /redacted/
       );
       // stdout reports the JSON save path.
-      expect(out.join("\n")).to.include(`Diagnostic JSON saved to ${jsonOutFile}`);
+      expect(out.join("\n")).to.include("Diagnostic JSON saved to");
     } finally {
       if (prev === undefined) delete process.env.DD_TEST_JSON_CONN;
       else process.env.DD_TEST_JSON_CONN = prev;
@@ -828,22 +845,24 @@ describe("debug CLI smoke test", function () {
       expect(result.stdout).to.include(
         "-- Referenced environment variables "
       );
-      // The dump is also saved to <cwd>/.doc-detective/ as text + JSON.
-      const savedPath = path.join(tmp, ".doc-detective", "debug.txt");
-      expect(fs.existsSync(savedPath), "debug.txt should be saved in cwd").to.equal(
-        true
-      );
-      expect(fs.readFileSync(savedPath, "utf8")).to.include(
+      // A timestamp is printed at the top of the dump.
+      expect(result.stdout).to.match(/Generated: \S+/);
+      // The dump is also saved to <cwd>/.doc-detective/ as timestamped
+      // text + JSON files (debug-<timestamp>.txt / .json).
+      const savedDir = path.join(tmp, ".doc-detective");
+      const saved = fs.readdirSync(savedDir);
+      const txtName = saved.find((f) => /^debug-.+\.txt$/.test(f));
+      const jsonName = saved.find((f) => /^debug-.+\.json$/.test(f));
+      expect(txtName, "debug-<ts>.txt should be saved in cwd").to.be.a("string");
+      expect(jsonName, "debug-<ts>.json should be saved in cwd").to.be.a("string");
+      expect(fs.readFileSync(path.join(savedDir, txtName), "utf8")).to.include(
         "Doc Detective diagnostic dump"
       );
-      expect(result.stdout).to.include("Diagnostic dump saved to");
-
-      const jsonPath = path.join(tmp, ".doc-detective", "debug.json");
-      expect(fs.existsSync(jsonPath), "debug.json should be saved in cwd").to.equal(
-        true
+      const parsed = JSON.parse(
+        fs.readFileSync(path.join(savedDir, jsonName), "utf8")
       );
-      const parsed = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
       expect(parsed).to.include.keys("system", "docDetective", "browsers");
+      expect(result.stdout).to.include("Diagnostic dump saved to");
       expect(result.stdout).to.include("Diagnostic JSON saved to");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });

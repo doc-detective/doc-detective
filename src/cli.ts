@@ -13,11 +13,7 @@ import {
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
 import { installCommand } from "./runtime/installCommand.js";
-import {
-  printDebug,
-  defaultDebugOutFile,
-  defaultDebugJsonFile,
-} from "./debug/index.js";
+import { printDebug, defaultDebugDir } from "./debug/index.js";
 import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
@@ -112,8 +108,7 @@ async function runTestsHandler(args: any) {
         config: stubConfig,
         configPath: configPath,
         configError: err instanceof Error ? err : new Error(String(err)),
-        outFile: defaultDebugOutFile(),
-        jsonOutFile: defaultDebugJsonFile(),
+        outDir: defaultDebugDir(),
       });
       // The env-var dump replaced a real test run; a broken config must
       // still fail the process so CI doesn't go green on an unran suite.
@@ -134,8 +129,7 @@ async function runTestsHandler(args: any) {
       config,
       configPath,
       configError: null,
-      outFile: defaultDebugOutFile(),
-      jsonOutFile: defaultDebugJsonFile(),
+      outDir: defaultDebugDir(),
     });
     return;
   }

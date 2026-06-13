@@ -52,27 +52,27 @@ export interface PrintDebugOptions {
    */
   includeEnv?: boolean;
   /**
-   * When set, the rendered plaintext dump is also written here (parent
-   * directories are created). Production callers pass
-   * `defaultDebugOutFile()`; unit tests omit it so calling `printDebug`
-   * never writes a file as a side effect.
+   * When set, the dump is written into this directory as two timestamped
+   * files — `debug-<timestamp>.txt` and `debug-<timestamp>.json` — using
+   * the same timestamp printed at the top of the dump. Parent directories
+   * are created. Production callers pass `defaultDebugDir()`; unit tests
+   * omit it so calling `printDebug` never writes a file as a side effect.
    */
-  outFile?: string;
-  /**
-   * When set, the structured dump is written here as JSON. Production
-   * callers pass `defaultDebugJsonFile()`; unit tests omit it.
-   */
-  jsonOutFile?: string;
+  outDir?: string;
   print?: (line: string) => void;
 }
 
-// Where the dump is saved by default, under `<cwd>/.doc-detective/`.
-// Functions (not constants) because they read the live cwd at call time.
-export function defaultDebugOutFile(): string {
-  return path.join(process.cwd(), ".doc-detective", "debug.txt");
+// Where the dump is saved by default: `<cwd>/.doc-detective/`. A function
+// (not a constant) because it reads the live cwd at call time.
+export function defaultDebugDir(): string {
+  return path.join(process.cwd(), ".doc-detective");
 }
-export function defaultDebugJsonFile(): string {
-  return path.join(process.cwd(), ".doc-detective", "debug.json");
+
+// Turn the dump's ISO timestamp into a filesystem-safe token (the `:` and
+// `.` in an ISO string are illegal/awkward in filenames, notably on
+// Windows). Same instant, just `-`-separated: 2026-06-13T13-40-11-123Z.
+function timestampForFilename(iso: string): string {
+  return iso.replace(/[:.]/g, "-");
 }
 
 // ---------------------------------------------------------------------------
@@ -355,12 +355,18 @@ export async function printDebug(opts: PrintDebugOptions): Promise<void> {
   const document = renderText(data, opts);
   print(document);
 
-  // Persist copies for easy attachment to bug reports. Best-effort: a
-  // write failure (read-only fs, permissions) must never crash the dump.
-  if (opts.outFile) {
-    writeFileSafe(opts.outFile, document + "\n", print, "Diagnostic dump saved to");
-  }
-  if (opts.jsonOutFile) {
+  // Persist copies for easy attachment to bug reports, named with the same
+  // timestamp printed at the top of the dump so each run is distinct and
+  // the file matches its contents. Best-effort: a write failure (read-only
+  // fs, permissions) must never crash the dump.
+  if (opts.outDir) {
+    const stamp = timestampForFilename(data.generatedAt);
+    writeFileSafe(
+      path.join(opts.outDir, `debug-${stamp}.txt`),
+      document + "\n",
+      print,
+      "Diagnostic dump saved to"
+    );
     let json: string;
     try {
       json = JSON.stringify(data, null, 2);
@@ -369,7 +375,12 @@ export async function printDebug(opts: PrintDebugOptions): Promise<void> {
         error: `failed to serialize debug data: ${err?.message || err}`,
       });
     }
-    writeFileSafe(opts.jsonOutFile, json + "\n", print, "Diagnostic JSON saved to");
+    writeFileSafe(
+      path.join(opts.outDir, `debug-${stamp}.json`),
+      json + "\n",
+      print,
+      "Diagnostic JSON saved to"
+    );
   }
 }
 
@@ -402,7 +413,7 @@ function renderText(data: DebugData, opts: PrintDebugOptions): string {
     renderEnvSection(data.environment),
     renderConfigSection(data.config, opts.configError ?? null),
   ];
-  return renderDocument(sections);
+  return renderDocument(sections, data.generatedAt);
 }
 
 function renderSystemSection(info: SystemInfo): Section {
