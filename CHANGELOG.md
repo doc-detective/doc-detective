@@ -1,3 +1,18 @@
+# [4.7.0-runtime-dependency-detection.1](https://github.com/doc-detective/doc-detective/compare/v4.6.1...v4.7.0-runtime-dependency-detection.1) (2026-06-13)
+
+
+### Bug Fixes
+
+* **core:** address PR review on runtime dependency detection ([78479dd](https://github.com/doc-detective/doc-detective/commit/78479dda8e68c0c1809c002a03ef2a58e23b2e6a))
+* **core:** guard on-demand install gate against steps-less contexts ([b12f5b0](https://github.com/doc-detective/doc-detective/commit/b12f5b0b4f4e551e448255e3ac74545dce9206b4))
+* **core:** robust skip-result spread order and webkit safari hint ([fb3e65c](https://github.com/doc-detective/doc-detective/commit/fb3e65c91fa3cc4f2d3444896043655aec378ae3))
+
+
+### Features
+
+* **core:** add runtime dependency detection and Appium warm-up guard ([505ff3b](https://github.com/doc-detective/doc-detective/commit/505ff3b02f7b75e01bdd026ebc9e54f064b44c7b))
+* **debug:** add diagnostic dump via debug subcommand and DOC_DETECTIVE_DEBUG ([#336](https://github.com/doc-detective/doc-detective/issues/336)) ([e417131](https://github.com/doc-detective/doc-detective/commit/e4171311d6abb5322a75746b94a2b30f9b463e8a))
+
 ## [4.6.1](https://github.com/doc-detective/doc-detective/compare/v4.6.0...v4.6.1) (2026-06-11)
 
 
