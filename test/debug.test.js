@@ -138,6 +138,16 @@ describe("debug/redact", function () {
     expect(isSecretValue("ghp_short")).to.equal(false);
   });
 
+  it("redacts GitHub fine-grained PAT-shaped values (github_pat_…)", function () {
+    const fakeFineGrained = "github_pat_" + "A".repeat(82);
+    expect(isSecretValue(fakeFineGrained)).to.equal(true);
+    // Even under an innocuous name, the value shape catches it.
+    expect(redactValue("GITHUB_PAT", fakeFineGrained)).to.match(
+      /^\*{3}redacted/
+    );
+    expect(isSecretValue("github_pat_short")).to.equal(false);
+  });
+
   it("redacts AWS access key ID-shaped values regardless of name", function () {
     expect(isSecretValue("AKIAIOSFODNN7EXAMPLE")).to.equal(true);
     expect(isSecretValue("ASIAIOSFODNN7EXAMPLE")).to.equal(true);

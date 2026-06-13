@@ -54,6 +54,8 @@ const SECRET_VALUE_PATTERNS: RegExp[] = [
   /:\/\/[^/\s:@]*:[^@\s]+@/,
   /\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\b/,
   /\bgh[pousr]_[A-Za-z0-9]{36,255}\b/,
+  // GitHub fine-grained PAT: `github_pat_` + base62/underscore body.
+  /\bgithub_pat_[A-Za-z0-9_]{20,255}\b/,
   /\b(AKIA|ASIA)[0-9A-Z]{16}\b/,
 ];
 
