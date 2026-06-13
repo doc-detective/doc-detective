@@ -17,10 +17,37 @@ before(async function () {
 });
 
 describe("debug/redact", function () {
-  let redactValue, isSecretName, isSecretValue, redactObject, redactArg;
+  let redactValue, isSecretName, isSecretValue, redactObject, redactArg, redactArgv;
   before(async function () {
-    ({ redactValue, isSecretName, isSecretValue, redactObject, redactArg } =
+    ({ redactValue, isSecretName, isSecretValue, redactObject, redactArg, redactArgv } =
       await import("../dist/debug/redact.js"));
+  });
+
+  describe("redactArgv", function () {
+    it("redacts the value of a split secret flag (--password hunter2)", function () {
+      const out = redactArgv(["node", "x", "--password", "hunter2", "--input", "."]);
+      expect(out).to.deep.equal([
+        "node",
+        "x",
+        "--password",
+        "***redacted (7 chars)***",
+        "--input",
+        ".",
+      ]);
+    });
+
+    it("does not consume the next token when the secret flag has no value", function () {
+      // `--token` immediately followed by another flag: nothing to redact.
+      const out = redactArgv(["--token", "--include-env"]);
+      expect(out).to.deep.equal(["--token", "--include-env"]);
+    });
+
+    it("still handles --flag=value and value-shape via redactArg", function () {
+      const out = redactArgv(["--api-key=abc123", "https://u:pw@host/x", "plain"]);
+      expect(out[0]).to.match(/^--api-key=\*{3}redacted/);
+      expect(out[1]).to.match(/^\*{3}redacted .*value shape/);
+      expect(out[2]).to.equal("plain");
+    });
   });
 
   describe("redactArg", function () {

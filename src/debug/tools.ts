@@ -20,6 +20,7 @@
 
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import path from "node:path";
 
 const require = createRequire(import.meta.url);
 
@@ -61,7 +62,9 @@ export async function probeTool(
       };
     }
     // Some tools (java, appium with stderr noise) print version on stderr.
-    const text = (stdout + (stdout ? "" : stderr) || "").trim();
+    // Fall back to stderr when stdout is empty OR whitespace-only — a bare
+    // "\n" on stdout is truthy but carries no version.
+    const text = (stdout.trim() ? stdout : stderr || "").trim();
     const firstLine = text.split("\n")[0] || "<unknown>";
     return { name, version: firstLine };
   } catch (err: any) {
@@ -159,33 +162,19 @@ function probeFromPackageJson(
 }
 
 function probeFfmpeg(): ToolResult {
-  // Doc Detective bundles ffmpeg via @ffmpeg-installer/ffmpeg. We
-  // report the installer's package version plus the resolved bundled
-  // binary path WITHOUT invoking the binary — earlier revisions ran
-  // `<bundledPath> -version`, which means `doc-detective debug` would
-  // execute whatever lives at that path. A compromised installer dep
-  // would therefore execute on every diagnostic run; reading the
-  // package.json + path avoids that while still surfacing the
-  // information a user needs ("is ffmpeg bundled? at what version?
-  // from where?").
+  // Doc Detective bundles ffmpeg via @ffmpeg-installer/ffmpeg. Report the
+  // installer's package version and location using metadata only —
+  // `require.resolve` + reading the package.json (JSON, no code). We
+  // deliberately do NOT `require("@ffmpeg-installer/ffmpeg")` (its index.js
+  // runs platform-branching code) nor invoke the binary, so a compromised
+  // installer dep can never execute during `doc-detective debug`.
   try {
     const pkgPath = require.resolve("@ffmpeg-installer/ffmpeg/package.json");
     const pkg = require(pkgPath);
-    let binPath = "<unknown>";
-    try {
-      // The installer's main export carries the binary path. Loading
-      // it can run a small index.js that branches by platform — no
-      // subprocess.
-      const installer = require("@ffmpeg-installer/ffmpeg");
-      binPath = installer?.path || "<unknown>";
-    } catch {
-      // Platform-specific binary package not installed for this
-      // platform — fall through with binPath unset.
-    }
     return {
       name: "ffmpeg",
       version: `@ffmpeg-installer/ffmpeg ${pkg.version}`,
-      notes: `bundled binary: ${binPath}`,
+      notes: `installer package: ${path.dirname(pkgPath)}`,
     };
   } catch {
     return { name: "ffmpeg", version: "<bundled installer not found>" };

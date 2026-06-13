@@ -857,7 +857,18 @@ async function getBrowserDiagnostics({ config }: any): Promise<{
   browsers: BrowserDiagnostic[];
   detectionFailed: boolean;
 }> {
-  const record = readInstalledRecord({ cacheDir: config?.cacheDir });
+  // Track unexpected failures so the caller can warn that component status
+  // may be incomplete. Reading the record is normally defensive (returns an
+  // empty record on a bad/missing file), but guard it anyway, and flag a
+  // throwing Safari probe below.
+  let detectionFailed = false;
+  let record: ReturnType<typeof readInstalledRecord>;
+  try {
+    record = readInstalledRecord({ cacheDir: config?.cacheDir });
+  } catch {
+    detectionFailed = true;
+    record = { npmPackages: {}, browsers: {} };
+  }
   const browsersRec = record.browsers || {};
   const platform = config?.environment?.platform;
 
@@ -912,17 +923,19 @@ async function getBrowserDiagnostics({ config }: any): Promise<{
   let safariVersion: string | undefined;
   let safaridriver = false;
   if (isMac) {
-    const result = await spawnCommand(
-      "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
-    );
-    safariApp = result.exitCode === 0;
-    safariVersion = safariApp ? result.stdout.trim() : undefined;
     try {
+      const result = await spawnCommand(
+        "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
+      );
+      safariApp = result.exitCode === 0;
+      safariVersion = safariApp ? result.stdout.trim() : undefined;
       // safaridriver ships with macOS; it still needs `safaridriver --enable`
       // and "Allow Remote Automation" before a run can use it.
       safaridriver = fs.existsSync("/usr/bin/safaridriver");
     } catch {
-      // Stat failures are non-fatal for diagnostics.
+      // An unexpected probe failure (not just "Safari absent") — flag it so
+      // the caller can note the component status may be incomplete.
+      detectionFailed = true;
     }
   }
   browsers.push({
@@ -941,5 +954,5 @@ async function getBrowserDiagnostics({ config }: any): Promise<{
     note: isMac ? undefined : "Safari is only available on macOS",
   });
 
-  return { browsers, detectionFailed: false };
+  return { browsers, detectionFailed };
 }

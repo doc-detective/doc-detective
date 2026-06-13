@@ -105,6 +105,34 @@ export function redactArg(arg: string): string {
   return arg;
 }
 
+// Redact a full argv array with flag/value context. Beyond what redactArg
+// catches per-token, this handles the SPLIT form where a secret-named flag
+// and its value are separate args (`--password hunter2`) — `hunter2` alone
+// matches no value-shape, so it would otherwise leak. When a bare
+// secret-named flag is seen, the next non-flag token is redacted.
+export function redactArgv(args: string[]): string[] {
+  const out: string[] = [];
+  let expectSecretValue = false;
+  for (const arg of args) {
+    if (expectSecretValue && !arg.startsWith("-")) {
+      out.push(`***redacted (${arg.length} chars)***`);
+      expectSecretValue = false;
+      continue;
+    }
+    expectSecretValue = false;
+    // Bare secret-named flag (`--password`, `-p`) with no `=value` — its
+    // value is the following token.
+    const bareFlag = arg.match(/^--?([^=]+)$/);
+    if (bareFlag && isSecretName(bareFlag[1])) {
+      out.push(arg);
+      expectSecretValue = true;
+      continue;
+    }
+    out.push(redactArg(arg));
+  }
+  return out;
+}
+
 // Recursively walk an arbitrary value (object / array / primitive) and
 // return a deep-cloned copy with sensitive strings replaced. Used by
 // the Config section of the debug dump so secrets in config files

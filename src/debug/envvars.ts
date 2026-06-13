@@ -192,7 +192,9 @@ export function enumerateInputFiles(
   }
   while (stack.length > 0 && out.length < cap && examined < MAX_ENTRIES_EXAMINED) {
     examined++;
-    const p = stack.shift() as string;
+    // pop() (LIFO) keeps the walk O(n); shift() reindexes the array on every
+    // iteration, degrading a large tree to O(n²). Order doesn't matter here.
+    const p = stack.pop() as string;
     let stat;
     try {
       stat = fs.statSync(p);
