@@ -21,6 +21,10 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
+import {
+  resolveHeavyDepPath,
+  resolveHeavyDepVersion,
+} from "../runtime/loader.js";
 
 const require = createRequire(import.meta.url);
 
@@ -109,8 +113,9 @@ function runWithTimeout(
   });
 }
 
-// The probe set the debug dump runs. Order is the print order.
-export async function probeAllTools(): Promise<ToolResult[]> {
+// The probe set the debug dump runs. Order is the print order. `cacheDir`
+// (from config) lets the appium probe see cache-installed runtime deps.
+export async function probeAllTools(cacheDir?: string): Promise<ToolResult[]> {
   const probes: Array<ToolResult | Promise<ToolResult>> = [
     { name: "node", version: process.version },
     probeTool("npm", "npm --version"),
@@ -118,7 +123,7 @@ export async function probeAllTools(): Promise<ToolResult[]> {
     probePython(),
     probeTool("java", "java -version"),
     probeFfmpeg(),
-    probeAppium(),
+    probeAppium(cacheDir),
     probeTool("git", "git --version"),
     probeTool("docker", "docker --version"),
   ];
@@ -132,33 +137,6 @@ async function probePython(): Promise<ToolResult> {
   }
   const py = await probeTool("python", "python --version");
   return { name: "python", version: py.version, notes: py.notes };
-}
-
-// Read `{ name, version }` from a package's package.json without
-// executing any of its binaries. Used for tools shipped via npm
-// dependencies so a compromised `node_modules/.bin/<tool>` doesn't get
-// invoked just to report a version.
-function probeFromPackageJson(
-  displayName: string,
-  packageName: string,
-  notesPrefix?: string
-): ToolResult {
-  try {
-    const pkgPath = require.resolve(`${packageName}/package.json`);
-    const pkg = require(pkgPath);
-    const version = typeof pkg?.version === "string" ? pkg.version : "<unknown>";
-    return {
-      name: displayName,
-      version,
-      notes: notesPrefix ? `${notesPrefix}: ${pkgPath}` : pkgPath,
-    };
-  } catch (err: any) {
-    return {
-      name: displayName,
-      version: "<not installed>",
-      notes: err?.code === "MODULE_NOT_FOUND" ? undefined : err?.message,
-    };
-  }
 }
 
 function probeFfmpeg(): ToolResult {
@@ -181,6 +159,20 @@ function probeFfmpeg(): ToolResult {
   }
 }
 
-function probeAppium(): ToolResult {
-  return probeFromPackageJson("appium", "appium", "from");
+// Resolve appium the same way the runtime does — shim node_modules OR
+// `<cacheDir>/runtime` — so a cached install (`doc-detective install`) is
+// reported as present here too, instead of `<not installed>` while the
+// Browsers section shows it available. Reads version metadata only; never
+// executes an appium binary.
+function probeAppium(cacheDir?: string): ToolResult {
+  const resolved = resolveHeavyDepPath("appium", { cacheDir });
+  if (!resolved) {
+    return { name: "appium", version: "<not installed>" };
+  }
+  const version = resolveHeavyDepVersion("appium", { cacheDir });
+  return {
+    name: "appium",
+    version: version ?? "<unknown>",
+    notes: `from: ${resolved}`,
+  };
 }

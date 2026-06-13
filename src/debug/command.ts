@@ -44,7 +44,7 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
     const hasExplicitConfig =
       typeof args.config === "string" && args.config.trim().length > 0;
     const configPath = hasExplicitConfig
-      ? path.resolve(args.config as string)
+      ? path.resolve((args.config as string).trim())
       : fs.existsSync(configPathJSON)
       ? configPathJSON
       : fs.existsSync(configPathYAML)

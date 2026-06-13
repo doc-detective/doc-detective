@@ -137,9 +137,13 @@ export interface DebugData {
   config: ConfigData;
 }
 
-// Hard cap on browser-detection latency. Detection reads doc-detective's
-// installed.json record (fast), but the macOS Safari probe shells out to
-// `defaults read`; this bounds that so diagnostics never block.
+// Secondary cap on browser-detection latency. Detection reads
+// doc-detective's installed.json record (fast); the only subprocess is the
+// macOS Safari probe, which already bounds and kills itself
+// (`probeSafariVersion`). This race is belt-and-suspenders for any
+// unforeseen slow path — it returns `{ timedOut: true }` rather than
+// cancelling the work, so the self-bounding probe is what actually
+// guarantees the cap.
 const BROWSER_DETECTION_TIMEOUT_MS = 5000;
 
 async function collectDebugData(opts: PrintDebugOptions): Promise<DebugData> {
@@ -148,7 +152,7 @@ async function collectDebugData(opts: PrintDebugOptions): Promise<DebugData> {
     generatedAt: system.wallclockIso,
     system,
     docDetective: collectDocDetective(),
-    tools: await probeAllTools(),
+    tools: await probeAllTools(opts.config?.cacheDir),
     browsers: await collectBrowsers(opts.config),
     container: detectContainer(),
     environment: collectEnvVars(opts),

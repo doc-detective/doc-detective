@@ -842,6 +842,53 @@ interface BrowserDiagnostic {
   note?: string;
 }
 
+// Bounded, killable Safari version probe for diagnostics. `spawnCommand`
+// has no timeout and the debug-side `Promise.race` doesn't cancel the
+// child, so a hung `defaults` could keep the process alive past the cap.
+// Spawn it directly (no shell) with a hard kill-on-timeout. Returns the
+// version string, or null if Safari is absent / the probe times out / errors.
+function probeSafariVersion(timeoutMs: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    let child: ReturnType<typeof spawnChild>;
+    try {
+      child = spawnChild(
+        "defaults",
+        [
+          "read",
+          "/Applications/Safari.app/Contents/Info.plist",
+          "CFBundleShortVersionString",
+        ],
+        { stdio: ["ignore", "pipe", "ignore"] }
+      );
+    } catch {
+      resolve(null);
+      return;
+    }
+    let stdout = "";
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        child.kill();
+      } catch {
+        // Best-effort.
+      }
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    timer.unref?.();
+    child.stdout?.on("data", (c: Buffer | string) => {
+      stdout += typeof c === "string" ? c : c.toString("utf8");
+    });
+    child.on("error", () => finish(null));
+    child.on("close", (code: number | null) =>
+      finish(code === 0 ? stdout.trim() : null)
+    );
+  });
+}
+
 // Per-browser, per-component status for the diagnostic dump. Always reports
 // all supported browsers (Chrome, Firefox, Safari) whether or not they're
 // usable, so a user can see exactly which piece is missing.
@@ -924,11 +971,9 @@ async function getBrowserDiagnostics({ config }: any): Promise<{
   let safaridriver = false;
   if (isMac) {
     try {
-      const result = await spawnCommand(
-        "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
-      );
-      safariApp = result.exitCode === 0;
-      safariVersion = safariApp ? result.stdout.trim() : undefined;
+      const version = await probeSafariVersion(4000);
+      safariApp = version !== null;
+      safariVersion = version ?? undefined;
       // safaridriver ships with macOS; it still needs `safaridriver --enable`
       // and "Allow Remote Automation" before a run can use it.
       safaridriver = fs.existsSync("/usr/bin/safaridriver");

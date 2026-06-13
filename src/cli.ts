@@ -78,7 +78,7 @@ async function runTestsHandler(args: any) {
   const hasExplicitConfig =
     typeof args.config === "string" && args.config.trim().length > 0;
   const configPath = hasExplicitConfig
-    ? path.resolve(args.config)
+    ? path.resolve(args.config.trim())
     : fs.existsSync(configPathJSON)
     ? configPathJSON
     : fs.existsSync(configPathYAML)
