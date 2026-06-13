@@ -9,6 +9,30 @@ import { loadHeavyDep, type Logger } from "./loader.js";
 export type BrowserAssetName = "chrome" | "firefox" | "chromedriver" | "geckodriver";
 
 /**
+ * Map a browser name to the installable asset(s) it needs to drive — the
+ * browser binary plus its WebDriver. This is the single source of truth the
+ * runtime install paths share (the runTests pre-flight and the runner's
+ * on-demand context-gate install both consume it). Safari/webkit ship with
+ * macOS, so they have no installable assets; unknown names map to nothing.
+ *
+ * Only schema-valid driver browser names are mapped. "chromium" is
+ * intentionally absent: it isn't in the runner's KNOWN_BROWSERS, so installing
+ * Chrome for it wouldn't make the context runnable end-to-end (isSupportedContext
+ * and getDriverCapabilities key off the exact name) — mapping it would install
+ * assets that then go unused.
+ */
+export function requiredBrowserAssets(name: string | undefined): BrowserAssetName[] {
+  switch ((name ?? "").toLowerCase()) {
+    case "chrome":
+      return ["chrome", "chromedriver"];
+    case "firefox":
+      return ["firefox", "geckodriver"];
+    default:
+      return [];
+  }
+}
+
+/**
  * The one place browser channel selection lives. Exact buildIds are NOT
  * pinned in source — they are resolved against @puppeteer/browsers at
  * install time so an `install browsers --force` always picks up the

@@ -9438,7 +9438,8 @@
           "title": "Environment details"
         },
         "debug": {
-          "description": "Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging.",
+          "description": "Deprecated and ignored. Previously reserved for an interactive step-through debugger that was never implemented. Retained so existing configs continue to validate. For diagnostics, run `doc-detective debug` or set the `DOC_DETECTIVE_DEBUG` environment variable.",
+          "deprecated": true,
           "anyOf": [
             {
               "type": "boolean"
@@ -9449,8 +9450,7 @@
                 "stepThrough"
               ]
             }
-          ],
-          "default": false
+          ]
         },
         "dryRun": {
           "description": "If `true`, fully resolve tests (file/env config merge, schema validation, file detection, inline-test extraction) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI.",
@@ -17759,12 +17759,6 @@
         },
         {
           "debug": false
-        },
-        {
-          "debug": true
-        },
-        {
-          "debug": "stepThrough"
         },
         {
           "integrations": {
