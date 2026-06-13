@@ -10,6 +10,8 @@ import {
 } from "./cacheDir.js";
 import {
   ensureRuntimeInstalled,
+  resolveHeavyDepSource,
+  resolveHeavyDepVersion,
   type Logger,
   type SpawnFn,
 } from "./loader.js";
@@ -232,20 +234,47 @@ export function status(ctx: CacheDirContext = {}): StatusRow[] {
         return undefined;
       }
     })();
+    // A package counts as installed when it's recorded in the cache OR
+    // resolvable from the shim's node_modules / runtime cache — the same
+    // presence check `ensureRuntimeInstalled` uses to report
+    // "already-up-to-date". Without the resolvable fallback, `status`
+    // showed `installed=—` for pre-installed optionalDependencies (and dev
+    // checkouts) that `install all` reports as present — an inconsistency.
+    //
+    // The package.json range is a constraint (e.g. ^7.0.0), not a target —
+    // string equality would flag `7.1.2` against `^7.0.0` as outdated even
+    // though npm legitimately resolved it; use a semver-range check, and
+    // only where the installer would actually act on it:
+    //   - cache record / cache resolution → freshness-checked (the
+    //     installer reinstalls a stale cache);
+    //   - shim resolution → never flagged outdated (the installer never
+    //     overrides a shim-pinned version), matching `install all`.
+    let installed = Boolean(entry);
+    let installedVersion: string | undefined = entry?.installedVersion;
+    let outdated = Boolean(
+      entry && expected && !satisfiesRange(entry.installedVersion, expected)
+    );
+    if (!installed) {
+      const source = resolveHeavyDepSource(name, ctx);
+      if (source) {
+        installed = true;
+        installedVersion = resolveHeavyDepVersion(name, ctx) ?? undefined;
+        outdated =
+          source === "cache" &&
+          Boolean(
+            installedVersion &&
+              expected &&
+              !satisfiesRange(installedVersion, expected)
+          );
+      }
+    }
     rows.push({
       assetId: name,
       kind: "npm",
-      installed: Boolean(entry),
-      installedVersion: entry?.installedVersion,
+      installed,
+      installedVersion,
       expectedVersion: expected,
-      // The package.json range is a constraint (e.g. ^7.0.0), not a
-      // target — string equality would flag `7.1.2` against `^7.0.0` as
-      // outdated even though npm legitimately resolved it. Use a small
-      // semver-range check instead; missing data degrades to "not
-      // outdated" so we don't surface false positives.
-      outdated: Boolean(
-        entry && expected && !satisfiesRange(entry.installedVersion, expected)
-      ),
+      outdated,
     });
   }
   for (const name of Object.keys(BROWSER_CHANNELS) as BrowserAssetName[]) {

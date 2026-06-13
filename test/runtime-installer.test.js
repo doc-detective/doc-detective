@@ -3,6 +3,7 @@ import {
   installBrowsers,
   status,
 } from "../dist/runtime/installer.js";
+import { resolveHeavyDepSource } from "../dist/runtime/loader.js";
 import { writeInstalledRecord } from "../dist/runtime/cacheDir.js";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
@@ -214,14 +215,37 @@ describe("runtime/installer", function () {
   });
 
   describe("status", function () {
-    it("reports all HEAVY_NPM_DEPS + all browser assets, marking installed: false for missing entries", function () {
+    it("reports all HEAVY_NPM_DEPS + all browser assets; browsers absent on an empty cache", function () {
       const rows = status({});
       const npmRows = rows.filter((r) => r.kind === "npm");
       const browserRows = rows.filter((r) => r.kind === "browser");
       expect(npmRows.length).to.be.greaterThan(0);
       expect(browserRows.length).to.equal(4);
-      // Empty cache → nothing installed.
-      for (const r of rows) expect(r.installed).to.equal(false);
+      // Browsers only come from the cache/record (never the shim's
+      // node_modules), so an empty cache means none are installed.
+      for (const r of browserRows) expect(r.installed).to.equal(false);
+      // npm packages count as installed when resolvable from the shim's
+      // node_modules OR the cache — matching `install all`'s presence check
+      // — even with an empty cache record. Assert status agrees with the
+      // resolver rather than hard-coding env-dependent install state.
+      for (const r of npmRows) {
+        expect(r.installed).to.equal(Boolean(resolveHeavyDepSource(r.assetId)));
+      }
+    });
+
+    it("counts a shim/node_modules-resolved package as installed without flagging it outdated", function () {
+      // pngjs is declared as a heavy dep and present in this source
+      // checkout's node_modules. With an empty cache record it must still
+      // report installed (from the shim) — and never `outdated`, since the
+      // installer never overrides a shim-pinned version (matches the
+      // "already-up-to-date" `install all` reports).
+      const source = resolveHeavyDepSource("pngjs");
+      if (source !== "shim") this.skip();
+      const rows = status({});
+      const pngjs = rows.find((r) => r.assetId === "pngjs");
+      expect(pngjs.installed).to.equal(true);
+      expect(pngjs.installedVersion).to.be.a("string");
+      expect(pngjs.outdated).to.equal(false);
     });
 
     it("marks rows as outdated when installed version drifts from expected", function () {

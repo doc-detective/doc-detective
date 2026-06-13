@@ -1,4 +1,10 @@
-import { loadHeavyDep, ensureRuntimeInstalled } from "../dist/runtime/loader.js";
+import {
+  loadHeavyDep,
+  ensureRuntimeInstalled,
+  resolveHeavyDepPath,
+  resolveHeavyDepSource,
+  resolveHeavyDepVersion,
+} from "../dist/runtime/loader.js";
 import { readInstalledRecord } from "../dist/runtime/cacheDir.js";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
@@ -52,6 +58,21 @@ describe("runtime/loader", function () {
     if (originalEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
     else process.env.DOC_DETECTIVE_CACHE_DIR = originalEnv;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  describe("resolveHeavyDepSource / resolveHeavyDepVersion", function () {
+    it("reports a shim-resolvable dep's source and version", function () {
+      // pngjs is a declared heavy dep present in this source checkout.
+      if (!resolveHeavyDepPath("pngjs")) this.skip();
+      expect(resolveHeavyDepSource("pngjs")).to.equal("shim");
+      expect(resolveHeavyDepVersion("pngjs")).to.match(/^\d+\.\d+\.\d+/);
+    });
+
+    it("returns null for a name that doesn't resolve anywhere", function () {
+      const bogus = "definitely-not-a-real-heavy-dep-xyz";
+      expect(resolveHeavyDepSource(bogus)).to.equal(null);
+      expect(resolveHeavyDepVersion(bogus)).to.equal(null);
+    });
   });
 
   describe("loadHeavyDep", function () {
