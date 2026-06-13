@@ -233,41 +233,50 @@ describe("runtime/installer", function () {
       }
     });
 
-    it("counts a shim/node_modules-resolved package as installed without flagging it outdated", function () {
+    it("never flags a shim-resolved package as outdated, even with a stale cache record", function () {
       // pngjs is declared as a heavy dep and present in this source
-      // checkout's node_modules. With an empty cache record it must still
-      // report installed (from the shim) — and never `outdated`, since the
-      // installer never overrides a shim-pinned version (matches the
-      // "already-up-to-date" `install all` reports).
+      // checkout's node_modules, so it resolves from the shim. The shim
+      // wins over the cache at runtime and is never overridden, so a stale
+      // cache record must NOT flag it outdated (regression: status consulted
+      // the cache record before the shim).
       const source = resolveHeavyDepSource("pngjs");
       if (source !== "shim") this.skip();
+      writeInstalledRecord(
+        {
+          npmPackages: {
+            pngjs: { installedVersion: "1.0.0", installedAt: "2026-01-01T00:00:00Z" },
+          },
+          browsers: {},
+        },
+        {}
+      );
       const rows = status({});
       const pngjs = rows.find((r) => r.assetId === "pngjs");
       expect(pngjs.installed).to.equal(true);
+      // Reports the real shim version, not the stale "1.0.0" record, and
+      // is not flagged outdated.
       expect(pngjs.installedVersion).to.be.a("string");
+      expect(pngjs.installedVersion).to.not.equal("1.0.0");
       expect(pngjs.outdated).to.equal(false);
     });
 
-    it("marks rows as outdated when installed version drifts from expected", function () {
-      writeInstalledRecord({
-        npmPackages: {
-          pngjs: { installedVersion: "6.0.0", installedAt: "2026-01-01T00:00:00Z" },
-        },
-        browsers: {
-          chrome: {
-            installedVersion: "100.0.0",
-            installedAt: "2026-01-01T00:00:00Z",
-            latestKnownVersion: "121.0.0",
+    it("marks a browser row outdated when its installed buildId drifts from the channel", function () {
+      // Browsers are never shim-resolved, so the cache record's freshness
+      // check applies directly.
+      writeInstalledRecord(
+        {
+          npmPackages: {},
+          browsers: {
+            chrome: {
+              installedVersion: "100.0.0",
+              installedAt: "2026-01-01T00:00:00Z",
+              latestKnownVersion: "121.0.0",
+            },
           },
         },
-      }, {});
+        {}
+      );
       const rows = status({});
-      const pngjs = rows.find((r) => r.assetId === "pngjs");
-      expect(pngjs.installed).to.equal(true);
-      // pngjs is in package.json#dependencies (constraint string like "^7.1.0"),
-      // and our installed entry is "6.0.0" — a mismatch.
-      expect(pngjs.outdated).to.equal(true);
-
       const chrome = rows.find((r) => r.assetId === "chrome");
       expect(chrome.installed).to.equal(true);
       expect(chrome.outdated).to.equal(true);

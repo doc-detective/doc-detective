@@ -258,7 +258,10 @@ describe("Util tests", function () {
     const { setConfig } = await import("../dist/utils.js");
     const path = await import("node:path");
     const os = await import("node:os");
-    const missing = path.join(os.tmpdir(), "dd-nonexistent-config-xyz.json");
+    const missing = path.join(
+      os.tmpdir(),
+      `dd-nonexistent-config-${process.pid}-${Date.now()}.json`
+    );
     let threw = null;
     try {
       await setConfig({ configPath: missing, args: {} });

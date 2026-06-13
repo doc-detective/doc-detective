@@ -249,24 +249,30 @@ export function status(ctx: CacheDirContext = {}): StatusRow[] {
     //     installer reinstalls a stale cache);
     //   - shim resolution → never flagged outdated (the installer never
     //     overrides a shim-pinned version), matching `install all`.
-    let installed = Boolean(entry);
-    let installedVersion: string | undefined = entry?.installedVersion;
-    let outdated = Boolean(
-      entry && expected && !satisfiesRange(entry.installedVersion, expected)
-    );
-    if (!installed) {
-      const source = resolveHeavyDepSource(name, ctx);
-      if (source) {
-        installed = true;
-        installedVersion = resolveHeavyDepVersion(name, ctx) ?? undefined;
-        outdated =
-          source === "cache" &&
-          Boolean(
-            installedVersion &&
-              expected &&
-              !satisfiesRange(installedVersion, expected)
-          );
-      }
+    // Mirror the runtime resolution order: the shim's node_modules wins
+    // over the cache. A shim-resolved package is never "outdated" because
+    // ensureRuntimeInstalled never overrides a shim-pinned version — so a
+    // stale cache record must NOT flag a shim-resolved dep as outdated.
+    // Only genuine cache installs are freshness-checked against the range.
+    const source = resolveHeavyDepSource(name, ctx);
+    let installed = false;
+    let installedVersion: string | undefined;
+    let outdated = false;
+    if (source === "shim") {
+      installed = true;
+      installedVersion = resolveHeavyDepVersion(name, ctx) ?? undefined;
+    } else if (entry) {
+      installed = true;
+      installedVersion = entry.installedVersion;
+      outdated = Boolean(expected && !satisfiesRange(entry.installedVersion, expected));
+    } else if (source === "cache") {
+      // Resolvable in the cache but no record entry (edge case) — still a
+      // cache install, so apply the same freshness check.
+      installed = true;
+      installedVersion = resolveHeavyDepVersion(name, ctx) ?? undefined;
+      outdated = Boolean(
+        installedVersion && expected && !satisfiesRange(installedVersion, expected)
+      );
     }
     rows.push({
       assetId: name,
