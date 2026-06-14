@@ -832,8 +832,13 @@ async function warmUpContexts({
   for (const job of jobs) {
     const context = job.context;
     if (!context.steps) context.steps = [];
-    // Resolve a default browser the same way runContext does, so the
-    // combination key and warm-up match what the context will actually use.
+    // Normalize platform and the default browser exactly as runContext does, so
+    // the combination key, support check, and warm-up all match what the
+    // context will actually use. Without the platform default, a resolved
+    // context of `{}` (no runOn) keys as `undefined::<browser>` and fails the
+    // support check, skipping the warm-up for the most common driver contexts
+    // and letting them race on on-demand installs in the pool.
+    if (!context.platform) context.platform = platform;
     if (!context.browser && isDriverRequired({ test: context })) {
       context.browser = getDefaultBrowser({ runnerDetails });
     }
