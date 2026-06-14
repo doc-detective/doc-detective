@@ -260,6 +260,28 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // setConcurrentRunners (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "setConcurrentRunners",
+    priority: 50,
+    markdown: [
+      "This run executed several test contexts one at a time. Independent contexts can run in parallel with `concurrentRunners`:",
+      "",
+      "```json",
+      '{ "concurrentRunners": true }',
+      "```",
+      "",
+      "Or pass `--concurrent-runners 4` on the CLI. `true` uses your CPU core count (capped at 4). Keep it at `1` if your tests share variables across contexts or record video.",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.totalContexts >= 5 &&
+      ctx.config?.concurrentRunners !== true &&
+      !(Number(ctx.config?.concurrentRunners) > 1) &&
+      !ctx.producedRecordings,
+  },
+
+  // ------------------------------------------------------------------
   // setInputScope (advanced)
   // ------------------------------------------------------------------
   {
@@ -364,6 +386,24 @@ export const HINTS: Hint[] = [
     ].join("\n"),
     when: (ctx) =>
       !ctx.usedStepTypes.has("checkLink") && ctx.usedStepTypes.has("goTo"),
+  },
+
+  // ------------------------------------------------------------------
+  // useDebugFlag (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useDebugFlag",
+    priority: 20,
+    markdown: [
+      "Stuck on a setup problem? `doc-detective debug` captures your OS, Doc Detective version, browsers, tool versions, and any env vars referenced by your config:",
+      "",
+      "```bash",
+      "doc-detective debug",
+      "```",
+      "",
+      "Review the output before pasting into a bug report — secrets are best-effort-redacted by name and value shape, but values with novel names or shapes (custom URL-style connection strings, in-house token formats) may slip through. `--include-env` opts into a full `process.env` dump if you need it.",
+    ].join("\n"),
+    when: (ctx) => ctx.failedCount > 0,
   },
 
   // ------------------------------------------------------------------

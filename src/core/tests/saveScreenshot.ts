@@ -348,7 +348,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
 
   try {
     // If recording is true, hide cursor
-    if (config.recording) {
+    if (driver?.state?.recording) {
       await driver.execute(() => {
         (document.querySelector("dd-mouse-pointer") as any).style.display = "none";
       });
@@ -356,7 +356,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     // Save screenshot
     await driver.saveScreenshot(filePath);
     // If recording is true, show cursor
-    if (config.recording) {
+    if (driver?.state?.recording) {
       await driver.execute(() => {
         (document.querySelector("dd-mouse-pointer") as any).style.display = "block";
       });

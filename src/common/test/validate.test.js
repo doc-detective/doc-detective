@@ -200,6 +200,32 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoScreenshot");
       });
 
+      it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
+        for (const concurrentRunners of [1, 4, true]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { input: ".", concurrentRunners },
+          });
+
+          expect(result.valid, `concurrentRunners: ${concurrentRunners}`).to.be
+            .true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject config_v3 concurrentRunners of 0, false, or a fraction", function () {
+        for (const concurrentRunners of [0, false, 1.5]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { input: ".", concurrentRunners },
+          });
+
+          expect(result.valid, `concurrentRunners: ${concurrentRunners}`).to.be
+            .false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
       it("should validate a config_v3 object with dryRun set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -220,6 +246,33 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("dryRun");
+      });
+
+      it("should accept a config_v3 object with the deprecated `debug` field (ignored; kept so existing configs still validate)", function () {
+        // `debug` is deprecated and ignored — diagnostics moved to the
+        // DOC_DETECTIVE_DEBUG env var / `doc-detective debug` subcommand —
+        // but old configs that still carry it must keep validating.
+        for (const value of [false, true, "stepThrough"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { debug: value },
+          });
+          expect(result.valid, `debug: ${JSON.stringify(value)}`).to.be.true;
+        }
+      });
+
+      it("should reject a config_v3 object whose deprecated `debug` value is malformed", function () {
+        // The accepted envelope is boolean | "stepThrough". Use values that
+        // are neither (and not AJV-coercible to boolean, so not "true"/"false"
+        // or 0/1) so the deprecated field's contract can't silently widen.
+        for (const value of ["yes", "stepthrough", "enabled", "on"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { debug: value },
+          });
+          expect(result.valid, `debug: ${JSON.stringify(value)}`).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
       });
 
       it("should validate a config_v3 object with hints set", function () {

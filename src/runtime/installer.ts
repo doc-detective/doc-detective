@@ -10,6 +10,8 @@ import {
 } from "./cacheDir.js";
 import {
   ensureRuntimeInstalled,
+  resolveHeavyDepSource,
+  resolveHeavyDepVersion,
   type Logger,
   type SpawnFn,
 } from "./loader.js";
@@ -232,20 +234,53 @@ export function status(ctx: CacheDirContext = {}): StatusRow[] {
         return undefined;
       }
     })();
+    // A package counts as installed when it's recorded in the cache OR
+    // resolvable from the shim's node_modules / runtime cache — the same
+    // presence check `ensureRuntimeInstalled` uses to report
+    // "already-up-to-date". Without the resolvable fallback, `status`
+    // showed `installed=—` for pre-installed optionalDependencies (and dev
+    // checkouts) that `install all` reports as present — an inconsistency.
+    //
+    // The package.json range is a constraint (e.g. ^7.0.0), not a target —
+    // string equality would flag `7.1.2` against `^7.0.0` as outdated even
+    // though npm legitimately resolved it; use a semver-range check, and
+    // only where the installer would actually act on it:
+    //   - cache record / cache resolution → freshness-checked (the
+    //     installer reinstalls a stale cache);
+    //   - shim resolution → never flagged outdated (the installer never
+    //     overrides a shim-pinned version), matching `install all`.
+    // Mirror the runtime resolution order: the shim's node_modules wins
+    // over the cache. A shim-resolved package is never "outdated" because
+    // ensureRuntimeInstalled never overrides a shim-pinned version — so a
+    // stale cache record must NOT flag a shim-resolved dep as outdated.
+    // Only genuine cache installs are freshness-checked against the range.
+    const source = resolveHeavyDepSource(name, ctx);
+    let installed = false;
+    let installedVersion: string | undefined;
+    let outdated = false;
+    if (source === "shim") {
+      installed = true;
+      installedVersion = resolveHeavyDepVersion(name, ctx) ?? undefined;
+    } else if (entry) {
+      installed = true;
+      installedVersion = entry.installedVersion;
+      outdated = Boolean(expected && !satisfiesRange(entry.installedVersion, expected));
+    } else if (source === "cache") {
+      // Resolvable in the cache but no record entry (edge case) — still a
+      // cache install, so apply the same freshness check.
+      installed = true;
+      installedVersion = resolveHeavyDepVersion(name, ctx) ?? undefined;
+      outdated = Boolean(
+        installedVersion && expected && !satisfiesRange(installedVersion, expected)
+      );
+    }
     rows.push({
       assetId: name,
       kind: "npm",
-      installed: Boolean(entry),
-      installedVersion: entry?.installedVersion,
+      installed,
+      installedVersion,
       expectedVersion: expected,
-      // The package.json range is a constraint (e.g. ^7.0.0), not a
-      // target — string equality would flag `7.1.2` against `^7.0.0` as
-      // outdated even though npm legitimately resolved it. Use a small
-      // semver-range check instead; missing data degrades to "not
-      // outdated" so we don't surface false positives.
-      outdated: Boolean(
-        entry && expected && !satisfiesRange(entry.installedVersion, expected)
-      ),
+      outdated,
     });
   }
   for (const name of Object.keys(BROWSER_CHANNELS) as BrowserAssetName[]) {

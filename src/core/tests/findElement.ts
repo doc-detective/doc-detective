@@ -147,7 +147,7 @@ async function findElement({ config, step, driver, click }: { config: any; step:
   }
 
   // If recording, wait until page is loaded and instantiate cursor
-  if (config.recording) {
+  if (driver?.state?.recording) {
     await wait({ config: config, step: { wait: 2000 }, driver: driver });
   }
   // PASS

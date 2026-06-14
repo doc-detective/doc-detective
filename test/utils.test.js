@@ -213,6 +213,91 @@ describe("Util tests", function () {
     expect(configAbsent.dryRun).to.equal(false);
   });
 
+  it("isDebugRequested: returns true only for truthy DOC_DETECTIVE_DEBUG values", async function () {
+    const { isDebugRequested } = await import("../dist/utils.js");
+    const prev = process.env.DOC_DETECTIVE_DEBUG;
+    try {
+      for (const v of ["true", "TRUE", "1", "yes", "Yes", "true ", "  1  ", "\tyes\n"]) {
+        process.env.DOC_DETECTIVE_DEBUG = v;
+        expect(isDebugRequested(), `value: ${JSON.stringify(v)}`).to.equal(true);
+      }
+      for (const v of ["false", "0", "no", "", "off"]) {
+        process.env.DOC_DETECTIVE_DEBUG = v;
+        expect(isDebugRequested()).to.equal(false);
+      }
+      delete process.env.DOC_DETECTIVE_DEBUG;
+      expect(isDebugRequested()).to.equal(false);
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_DEBUG;
+      else process.env.DOC_DETECTIVE_DEBUG = prev;
+    }
+  });
+
+  it("setConfig: accepts a config with the deprecated `debug` field (ignored, not rejected)", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const os = await import("node:os");
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-deprecated-"));
+    try {
+      const configPath = path.join(tmp, ".doc-detective.json");
+      // Old configs that still carry `debug` must keep validating; the
+      // field is deprecated and has no runtime effect.
+      fs.writeFileSync(configPath, JSON.stringify({ debug: true, input: "." }));
+      const config = await setConfig({ configPath, args: {} });
+      expect(config).to.be.an("object");
+      expect(config.input).to.exist;
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("setConfig: throws (does not return null) when an explicit config path can't be read", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const path = await import("node:path");
+    const os = await import("node:os");
+    const missing = path.join(
+      os.tmpdir(),
+      `dd-nonexistent-config-${process.pid}-${Date.now()}.json`
+    );
+    let threw = null;
+    try {
+      await setConfig({ configPath: missing, args: {} });
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw, "expected setConfig to throw on an unreadable config path").to.be.an(
+      "error"
+    );
+    expect(threw.message).to.match(/config file/i);
+  });
+
+  it("setConfig: throws a targeted error when DOC_DETECTIVE_CONFIG is valid JSON but not an object", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const prev = process.env.DOC_DETECTIVE_CONFIG;
+    try {
+      for (const bad of ["null", "true", "42", "[1,2]", '"str"']) {
+        process.env.DOC_DETECTIVE_CONFIG = bad;
+        let threw = null;
+        try {
+          await setConfig({ configPath: null, args: {} });
+        } catch (err) {
+          threw = err;
+        }
+        expect(threw, `expected throw for DOC_DETECTIVE_CONFIG=${bad}`).to.be.an(
+          "error"
+        );
+        expect(threw.message).to.match(/DOC_DETECTIVE_CONFIG/);
+      }
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = prev;
+    }
+  });
+
   it("setConfig stores --hints / --no-hints on config.hints.enabled", async function () {
     this.timeout(5000);
     // --no-hints turns hints off
@@ -308,6 +393,81 @@ describe("Util tests", function () {
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
     // No schema default — absent means the cacheDir helper falls back to os.tmpdir().
     expect(configAbsent.cacheDir).to.equal(undefined);
+  });
+
+  it("Yargs parses --concurrent-runners as a string (bare flag yields empty string)", function () {
+    const numeric = setArgs(["node", "runTests.js", "--concurrent-runners", "4"]);
+    expect(numeric.concurrentRunners).to.equal("4");
+
+    // Bare flag — string-typed options yield "" so the CPU-count mode is
+    // distinguishable from an absent flag.
+    const bare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
+    expect(bare.concurrentRunners).to.equal("");
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.concurrentRunners).to.equal(undefined);
+  });
+
+  it("setConfig maps --concurrent-runners to config.concurrentRunners", async function () {
+    this.timeout(5000);
+    const argsNumeric = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "4",
+    ]);
+    const configNumeric = await setConfig({
+      configPath: null,
+      args: argsNumeric,
+    });
+    expect(configNumeric.concurrentRunners).to.equal(4);
+
+    // Bare flag and explicit `true` opt into CPU-count mode (resolved to a
+    // concrete integer by the core runner, not here).
+    const argsBare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
+    const configBare = await setConfig({ configPath: null, args: argsBare });
+    expect(configBare.concurrentRunners).to.equal(true);
+
+    const argsTrue = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "true",
+    ]);
+    const configTrue = await setConfig({ configPath: null, args: argsTrue });
+    expect(configTrue.concurrentRunners).to.equal(true);
+
+    // Case-insensitive — "True" should not fall through to Number() (NaN).
+    const argsTrueCap = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "True",
+    ]);
+    const configTrueCap = await setConfig({
+      configPath: null,
+      args: argsTrueCap,
+    });
+    expect(configTrueCap.concurrentRunners).to.equal(true);
+
+    // Absent flag — schema default 1 via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.concurrentRunners).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.concurrentRunners).to.equal(1);
+  });
+
+  it("setConfig ignores invalid --concurrent-runners values", async function () {
+    this.timeout(5000);
+    // CLI overrides land after config_v3 validation, so the override block
+    // must not let NaN or non-positive counts through (they'd silently
+    // degrade to sequential execution). Invalid values are warned about and
+    // dropped — the validated default stays.
+    for (const bad of ["abc", "1.5", "0"]) {
+      const args = setArgs(["node", "runTests.js", "--concurrent-runners", bad]);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.concurrentRunners, `value: ${bad}`).to.equal(1);
+    }
   });
 
   it("setConfig ignores empty --cache-dir override", async function () {

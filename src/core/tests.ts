@@ -6,12 +6,20 @@ import kill from "tree-kill";
 // so we don't carry a top-level `import type` whose `typeof` would refer
 // to a non-runtime identifier.
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import {
+  requiredBrowserAssets,
+  ensureBrowserInstalled,
+  type BrowserAssetName,
+} from "../runtime/browsers.js";
 import os from "node:os";
 import {
   log,
   replaceEnvs,
   selectSpecsForRun,
   findFreePort,
+  runConcurrent,
+  rollUpResults,
+  createAppiumPool,
   getRunOutputDir,
   sanitizeFilesystemName,
 } from "./utils.js";
@@ -39,7 +47,12 @@ import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
-import { getEnvironment, getAvailableApps, clearAppCache } from "./config.js";
+import {
+  getEnvironment,
+  getAvailableApps,
+  clearAppCache,
+  resolveConcurrentRunners,
+} from "./config.js";
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
@@ -52,6 +65,10 @@ export {
   runViaApi,
   getRunner,
   ensureChromeAvailable,
+  ensureContextBrowserInstalled,
+  combinationKey,
+  warmUpDecision,
+  selectWarmUpTargets,
   getDriverCapabilities,
   getDefaultBrowser,
   isSupportedContext,
@@ -78,6 +95,32 @@ const driverActions = [
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
+/**
+ * Stable identity for a "context combination" — the platform + browser pairing
+ * that determines whether a driver session can be created. The runner memoizes
+ * warm-up outcomes by this key so a combination that fails to start once isn't
+ * re-attempted (with its slow driverStart backoff) for every later context.
+ * headless is intentionally excluded: headed/headless are two attempts at the
+ * same combination (the loop retries headless on failure), not distinct ones.
+ * `webkit` is normalized to `safari` so the key matches getAvailableApps naming.
+ */
+function combinationKey(context: any): string {
+  const rawName = context?.browser?.name;
+  const name = rawName === "webkit" ? "safari" : rawName || "<none>";
+  return `${context?.platform}::${name}`;
+}
+
+/**
+ * Decide whether a context combination should be attempted or skipped, given
+ * its prior warm-up outcome in this run. Pure so the memoization branching is
+ * unit-testable without spinning up Appium. A previously-failed combination is
+ * skipped outright; everything else is attempted (and its outcome recorded by
+ * the caller).
+ */
+function warmUpDecision(prev: "ok" | "failed" | undefined): "attempt" | "skip" {
+  return prev === "failed" ? "skip" : "attempt";
+}
 
 // Get Appium driver capabilities and apply options.
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
@@ -157,7 +200,15 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         args.push(`--enable-chrome-browser-cloud-management`);
         args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
         if (options.headless) args.push("--headless", "--disable-gpu");
-        if (process.platform === "linux") args.push("--no-sandbox");
+        if (process.platform === "linux") {
+          args.push("--no-sandbox");
+          // Chrome writes shared memory to /dev/shm, which is only ~64MB on
+          // many Linux/CI hosts. A single browser fits, but several launched
+          // at once under concurrentRunners exhaust it and ChromeDriver
+          // "crashed during startup". Redirect that allocation to /tmp so
+          // parallel browser contexts start reliably.
+          args.push("--disable-dev-shm-usage");
+        }
         // Set capabilities
         capabilities = {
           platformName: runnerDetails.environment.platform,
@@ -186,25 +237,12 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
   return capabilities;
 }
 
-// Check if any steps require an Appium driver.
-function isAppiumRequired(specs: any[]) {
-  let appiumRequired = false;
-  specs.forEach((spec: any) => {
-    spec.tests.forEach((test: any) => {
-      test.contexts.forEach((context: any) => {
-        // Check if test includes actions that require a driver.
-        if (isDriverRequired({ test: context })) {
-          appiumRequired = true;
-        }
-      });
-    });
-  });
-  return appiumRequired;
-}
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
-  test.steps.forEach((step: any) => {
+  // The resolved shape doesn't guarantee `steps` — treat a stepless test or
+  // context as needing no driver instead of throwing.
+  (test.steps || []).forEach((step: any) => {
     // Check if test includes actions that require a driver.
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") driverRequired = true;
@@ -437,9 +475,11 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
 /**
  * Orchestrates execution of resolved test specifications and returns a hierarchical run report.
  *
- * Executes each spec -> test -> context -> step, conditionally starts Appium and browser drivers,
- * applies viewport/window sizing, handles unsafe-step policies and recording, aggregates per-step,
- * per-context, per-test, and per-spec results, and performs resource cleanup.
+ * Flattens every context across all specs and tests into one job list and runs it through a
+ * worker pool sized by config.concurrentRunners (default 1 = sequential). Conditionally starts
+ * Appium and browser drivers, applies viewport/window sizing, handles unsafe-step policies and
+ * recording, then rolls per-step, per-context, per-test, and per-spec results up in a
+ * deterministic post-pass. Report order always matches input order.
  *
  * @param {Object} resolvedTests - Resolved test bundle containing configuration and specs to run.
  * @param {Object} resolvedTests.config - Runner configuration used during execution.
@@ -469,9 +509,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // loop entirely. Without this, a fully-filtered run still spins up
     // getAvailableApps and friends — wasted work, plus an avoidable error
     // path if discovery fails on the host. Mirrors the runViaApi early
-    // return so both run paths behave the same way. No runId/runDir here —
-    // a run that matched nothing shouldn't create an artifact folder; the
-    // runFolder reporter derives one lazily if it's configured to archive.
+    // return so both run paths behave the same way.
     return {
       summary: {
         specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
@@ -483,13 +521,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     };
   }
 
-  // Per-run artifact folder and ID, stamped on the report so the runFolder
-  // reporter archives results beside any auto screenshots from the same run,
-  // and so consumers can correlate results over time. Created after the
-  // filter short-circuit so a run that matched nothing leaves no folder.
-  const runDir = getRunOutputDir(config);
-  const runId = path.basename(runDir).replace(/^run-/, "");
-
   // Get runner details
   const runnerDetails = {
     environment: getEnvironment(),
@@ -499,9 +530,27 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
   // Set initial shorthand values
   const platform = runnerDetails.environment.platform;
-  const availableApps = runnerDetails.availableApps;
+  // `let`, not `const`: an on-demand browser install during the context loop
+  // re-detects available apps and reassigns this snapshot (see the support
+  // gate below).
+  let availableApps = runnerDetails.availableApps;
   const metaValues: any = { specs: {} };
-  let appium: any;
+  // Per-run memoization, shared across the concurrent context pool below.
+  // installAttempts keeps a browser's on-demand install from being retried for
+  // every context that uses it; warmUpResults keeps a context combination that
+  // can't start a driver from being re-attempted (with its slow driverStart
+  // backoff) for the rest of the run.
+  const installAttempts = new Map<
+    string,
+    "installed" | "failed" | "notInstallable"
+  >();
+  const warmUpResults = new Map<string, "ok" | "failed">();
+  // Per-run artifact folder and ID, stamped on the report so the runFolder
+  // reporter archives results beside any auto screenshots from the same run,
+  // and so consumers can correlate results over time. Created after the
+  // filter short-circuit above so a run that matched nothing leaves no folder.
+  const runDir = getRunOutputDir(config);
+  const runId = path.basename(runDir).replace(/^run-/, "");
   const report: any = {
     runId,
     runDir,
@@ -534,515 +583,219 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     specs: [],
   };
 
-  // Determine which apps are required
-  const appiumRequired = isAppiumRequired(specs);
+  // Resolve concurrency up front (defensive re-resolve: API callers can hand
+  // runSpecs a config that never went through core setConfig, leaving
+  // concurrentRunners as `true`). Drives both the worker pool and how many
+  // Appium servers to start.
+  const limit = resolveConcurrentRunners(config);
 
-  // Warm up Appium
-  let appiumPort: number | undefined;
-  if (appiumRequired) {
-    setAppiumHome({ cacheDir: config?.cacheDir });
-    appiumPort = await findFreePort();
-    log(config, "debug", `Starting Appium on port ${appiumPort}`);
-    // Resolve appium's actual JS entrypoint via `require.resolve`
-    // (shim node_modules first, runtime cache second) and invoke it
-    // with `node <entry>`. This sidesteps every shell-injection trap
-    // at once: no `.cmd` shim, so no Windows-requires-shell:true; no
-    // `npx`, so no PATH lookup; no user-controlled paths in a shell-
-    // interpreted string. Works for both `--omit=optional` users
-    // (appium in cache only) and default installs (appium in shim).
-    const appiumEntry = resolveHeavyDepPath("appium", { cacheDir: config?.cacheDir });
-    if (!appiumEntry) {
-      throw new Error(
-        "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
-      );
-    }
-    appium = spawn(
-      process.execPath,
-      [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
-      {
-        windowsHide: true,
-        cwd: path.join(__dirname, "../.."),
-      }
-    );
-    appium.on("error", (err: any) => {
-      log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
-    });
-    appium.stdout.on("data", (data: any) => {
-      // console.log(`stdout: ${data}`);
-    });
-    appium.stderr.on("data", (data: any) => {
-      // console.error(`stderr: ${data}`);
-    });
-    try {
-      await appiumIsReady(appiumPort);
-    } catch (error) {
-      // appiumIsReady threw or timed out — the spawned child is still
-      // alive and would leak (orphan process, port still bound). Tear
-      // it down before propagating so subsequent runs don't trip on
-      // the stale state.
-      try {
-        if (appium && appium.pid) kill(appium.pid);
-      } catch {
-        // best-effort cleanup; the parent error is what matters
-      }
-      throw error;
-    }
-    log(config, "debug", "Appium is ready.");
-  }
-
-  // Iterate specs
+  // Phase 1: pre-build the report skeleton and a flat list of context jobs
+  // across all specs and tests. Slots are pre-assigned so report order always
+  // matches input order, no matter what order concurrent contexts finish in.
   log(config, "info", "Running test specs.");
+  const jobs: any[] = [];
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
-
-    // Set spec report
-    let specReport: any = {
+    // Create-if-missing: specIds (and testIds) aren't guaranteed unique
+    // across the run, and all registration now happens up front — an
+    // overwrite here would wipe an earlier spec's registered tests.
+    metaValues.specs[spec.specId] ??= { tests: {} };
+    const specReport: any = {
       specId: spec.specId,
       description: spec.description,
       contentPath: spec.contentPath,
       tests: [],
     };
-    // Set meta values
-    metaValues.specs[spec.specId] = { tests: {} };
-
-    // Iterates tests
+    report.specs.push(specReport);
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.testId}`);
-
-      // Set test report
-      let testReport: any = {
+      metaValues.specs[spec.specId].tests[test.testId] ??= { contexts: {} };
+      const testReport: any = {
         testId: test.testId,
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
-        contexts: [],
+        contexts: new Array(test.contexts.length),
       };
-      // Set meta values
-      metaValues.specs[spec.specId].tests[test.testId] = { contexts: {} };
-
-      // Effective autoScreenshot for this test (test > spec > config).
-      const autoScreenshotEnabled = resolveAutoScreenshot({
-        config,
-        spec,
-        test,
-      });
-
-      // Iterate contexts
-      // TODO: Support both serial and parallel execution
-      for (const context of test.contexts) {
-        // If "platform" is not defined, set it to the current platform
-        if (!context.platform)
-          context.platform = runnerDetails.environment.platform;
-
-        // Attach OpenAPI definitions to context
-        if (config.integrations?.openApi) {
-          context.openApi = [
-            ...(context.openApi || []),
-            ...config.integrations.openApi,
-          ];
-        }
-
-        // If "browser" isn't defined but is required by the test, set it to the first available browser in the sequence of Firefox, Chrome, Safari
-        if (!context.browser && isDriverRequired({ test: context })) {
-          context.browser = getDefaultBrowser({ runnerDetails });
-        }
-
-        // Resolution always assigns a contextId; the derived fallback covers
-        // programmatic callers that hand runSpecs un-resolved contexts, and
-        // matches the resolver's derivation (platform is guaranteed set a
-        // few lines up). Normalized onto the context itself so the metaValues
-        // keys (here and in the step loop) and log messages all see the same
-        // ID as the report.
-        if (!context.contextId) {
-          context.contextId = [context.platform, context.browser?.name]
-            .filter(Boolean)
-            .join("-");
-        }
-
-        // Set context report
-        let contextReport: any = {
-          contextId: context.contextId,
-          platform: context.platform,
-          browser: context.browser,
-          steps: [],
-        };
-        // Set meta values
-        metaValues.specs[spec.specId].tests[test.testId].contexts[
-          context.contextId
-        ] = { steps: {} };
-
-        // If a driver is required but no browser could be resolved (e.g.
-        // getDefaultBrowser found nothing installed, or the context supplied a
-        // browser object with no name), skip with an explicit reason instead of
-        // letting it fail later as "Failed to start context 'undefined'".
-        if (isDriverRequired({ test: context }) && !context.browser?.name) {
-          const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
-          log(config, "warning", errorMessage);
-          contextReport = {
-            ...contextReport,
-            result: "SKIPPED",
-            resultDescription: errorMessage,
-          };
-          report.summary.contexts.skipped++;
-          testReport.contexts.push(contextReport);
-          continue;
-        }
-
-        // Check if current environment supports given contexts
-        const supportedContext = isSupportedContext({
-          context: context,
-          apps: availableApps,
-          platform: platform,
-        });
-
-        // If context isn't supported, skip it
-        if (!supportedContext) {
-          log(
-            config,
-            "info",
-            `Skipping context. The current system doesn't support this context: {"platform": "${
-              context.platform
-            }", "apps": ${JSON.stringify(context.apps)}}`
-          );
-          contextReport = { result: "SKIPPED", ...contextReport };
-          report.summary.contexts.skipped++;
-          testReport.contexts.push(contextReport);
-          continue;
-        }
-        log(config, "debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
-
-        let driver: any;
-        // Ensure context contains a 'steps' property
-        if (!context.steps) {
-          context.steps = [];
-        }
-        const driverRequired = isDriverRequired({ test: context });
-        if (driverRequired) {
-          // Define driver capabilities
-          // TODO: Support custom apps
-          let caps: any = getDriverCapabilities({
-            runnerDetails: runnerDetails,
-            name: context.browser.name,
-            options: {
-              width: context.browser?.window?.width || 1200,
-              height: context.browser?.window?.height || 800,
-              headless: context.browser?.headless !== false,
-            },
-          });
-          log(config, "debug", "CAPABILITIES:");
-          log(config, "debug", caps);
-
-          if (appiumPort === undefined) {
-            throw new Error(
-              "Driver requested but Appium was not started. " +
-                "isAppiumRequired(specs) and isDriverRequired(context) disagreed; this is a bug."
-            );
-          }
-          // Instantiate driver
-          try {
-            driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
-          } catch (error: any) {
-            try {
-              // If driver fails to start, try again as headless
-              log(
-                config,
-                "warning",
-                `Failed to start context '${context.browser?.name}' on '${platform}'. Retrying as headless.`
-              );
-              context.browser.headless = true;
-              caps = getDriverCapabilities({
-                runnerDetails: runnerDetails,
-                name: context.browser.name,
-                options: {
-                  width: context.browser?.window?.width || 1200,
-                  height: context.browser?.window?.height || 800,
-                  headless: context.browser?.headless !== false,
-                },
-              });
-              driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
-            } catch (error: any) {
-              let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
-              if (context.browser?.name === "safari")
-                errorMessage =
-                  errorMessage +
-                  " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
-              log(config, "error", errorMessage);
-              contextReport = {
-                result: "SKIPPED",
-                resultDescription: errorMessage,
-                ...contextReport,
-              };
-              report.summary.contexts.skipped++;
-              testReport.contexts.push(contextReport);
-              continue;
-            }
-          }
-
-          if (
-            context.browser?.viewport?.width ||
-            context.browser?.viewport?.height
-          ) {
-            // Set driver viewport size
-            await setViewportSize(context, driver);
-          } else if (
-            context.browser?.window?.width ||
-            context.browser?.window?.height
-          ) {
-            // Get driver window size
-            const windowSize = await driver.getWindowSize();
-            // Resize window if necessary
-            await driver.setWindowSize(
-              context.browser?.window?.width || windowSize.width,
-              context.browser?.window?.height || windowSize.height
-            );
-          }
-        }
-
-        // Iterates steps
-        let stepExecutionFailed = false;
-        const usedStepIds = new Set(
-          context.steps.map((s: any) => s.stepId).filter(Boolean)
-        );
-        for (const [stepIndex, step] of context.steps.entries()) {
-          // Set step id if not defined. Derived from the test ID and a hash
-          // of the step's authored definition so the same step keeps the
-          // same ID (and any `screenshot: true` default filename) across
-          // runs. Sanitized because the ID doubles as a screenshot filename;
-          // identical steps in one test get an ordinal suffix.
-          if (!step.stepId) {
-            const baseId = sanitizeFilesystemName(
-              `${test.testId}~s${contentHash(step)}`,
-              `step-${randomUUID()}`
-            );
-            let stepId = baseId;
-            let suffix = 2;
-            while (usedStepIds.has(stepId)) {
-              stepId = `${baseId}-${suffix++}`;
-            }
-            step.stepId = stepId;
-          }
-          usedStepIds.add(step.stepId);
-          log(config, "debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
-
-          if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
-            log(
-              config,
-              "warning",
-              `Skipping unsafe step: ${step.description} in test ${test.testId} context ${context.contextId}`
-            );
-            // Mark as skipped
-            const stepReport = {
-              ...step,
-              result: "SKIPPED",
-              resultDescription: "Skipped because unsafe steps aren't allowed.",
-            };
-            contextReport.steps.push(stepReport);
-            report.summary.steps.skipped++;
-            continue;
-          }
-
-          if (stepExecutionFailed) {
-            // Mark as skipped
-            const stepReport = {
-              ...step,
-              result: "SKIPPED",
-              resultDescription: "Skipped due to previous failure in context.",
-            };
-            contextReport.steps.push(stepReport);
-            report.summary.steps.skipped++;
-            continue;
-          }
-
-          // Set meta values
-          metaValues.specs[spec.specId].tests[test.testId].contexts[
-            context.contextId
-          ].steps[step.stepId] = {};
-
-          // Run step
-          const stepResult = await runStep({
-            config: config,
-            context: context,
-            step: step,
-            driver: driver,
-            metaValues: metaValues,
-            options: {
-              openApiDefinitions: context.openApi || [],
-            },
-          });
-          log(
-            config,
-            "debug",
-            `RESULT: ${stepResult.status}\n${JSON.stringify(
-              stepResult,
-              null,
-              2
-            )}`
-          );
-
-          stepResult.result = stepResult.status;
-          stepResult.resultDescription = stepResult.description;
-          delete stepResult.status;
-          delete stepResult.description;
-
-          // Add step result to report
-          const stepReport = {
-            ...step,
-            ...stepResult,
-          };
-
-          // Capture a post-step screenshot for autoScreenshot runs. Applies
-          // to steps that act on the browser (explicit `screenshot` steps
-          // already produce an image). Failed steps are captured too — the
-          // failure state is often the most useful frame.
-          if (
-            autoScreenshotEnabled &&
-            driver &&
-            typeof step.screenshot === "undefined" &&
-            isDriverRequired({ test: { steps: [step] } })
-          ) {
-            const capturedPath = await captureAutoScreenshot({
-              config,
-              driver,
-              spec,
-              test,
-              context,
-              step,
-              stepIndex,
-            });
-            if (capturedPath) stepReport.autoScreenshot = capturedPath;
-          }
-
-          contextReport.steps.push(stepReport);
-          report.summary.steps[stepReport.result.toLowerCase()]++;
-
-          // If this step failed, set flag to skip remaining steps
-          if (stepReport.result === "FAIL") {
-            stepExecutionFailed = true;
-          }
-        }
-
-        // If recording, stop recording
-        if (config.recording) {
-          const stopRecordStep = {
-            stopRecord: true,
-            description: "Stopping recording",
-            stepId: randomUUID(),
-          };
-          const stepResult = await runStep({
-            config: config,
-            context: context,
-            step: stopRecordStep,
-            driver: driver,
-            options: {
-              openApiDefinitions: context.openApi || [],
-            },
-          });
-          stepResult.result = stepResult.status;
-          stepResult.resultDescription = stepResult.description;
-          delete stepResult.status;
-          delete stepResult.description;
-
-          // Add step result to report
-          const stepReport = {
-            ...stopRecordStep,
-            ...stepResult,
-          };
-          contextReport.steps.push(stepReport);
-          report.summary.steps[stepReport.result.toLowerCase()]++;
-        }
-
-        // Parse step results to calc context result
-
-        // If any step fails, context fails
-        let contextResult: string;
-        if (contextReport.steps.find((step: any) => step.result === "FAIL"))
-          contextResult = "FAIL";
-        // If any step warns, context warns
-        else if (contextReport.steps.find((step: any) => step.result === "WARNING"))
-          contextResult = "WARNING";
-        // If all steps skipped, context skipped
-        else if (
-          contextReport.steps.length ===
-          contextReport.steps.filter((step: any) => step.result === "SKIPPED").length
-        )
-          contextResult = "SKIPPED";
-        // If all steps pass, context passes
-        else contextResult = "PASS";
-
-        contextReport = { result: contextResult, ...contextReport };
-        testReport.contexts.push(contextReport);
-        report.summary.contexts[contextResult.toLowerCase()]++;
-
-        if (driverRequired) {
-          // Close driver
-          try {
-            await driver.deleteSession();
-          } catch (error: any) {
-            log(
-              config,
-              "error",
-              `Failed to delete driver session: ${error.message}`
-            );
-          }
-        }
-      }
-
-      // Parse context results to calc test result
-
-      // If any context fails, test fails
-      let testResult: string;
-      if (testReport.contexts.find((context: any) => context.result === "FAIL"))
-        testResult = "FAIL";
-      // If any context warns, test warns
-      else if (
-        testReport.contexts.find((context: any) => context.result === "WARNING")
-      )
-        testResult = "WARNING";
-      // If all contexts skipped, test skipped
-      else if (
-        testReport.contexts.length ===
-        testReport.contexts.filter((context: any) => context.result === "SKIPPED")
-          .length
-      )
-        testResult = "SKIPPED";
-      // If all contexts pass, test passes
-      else testResult = "PASS";
-
-      testReport = { result: testResult, ...testReport };
       specReport.tests.push(testReport);
-      report.summary.tests[testResult.toLowerCase()]++;
+      test.contexts.forEach((context: any, slot: number) => {
+        // Derive a stable contextId from platform/browser when unset (the
+        // resolver normally assigns one) so the same context keeps the same
+        // ID across runs for comparison; fall back to a UUID only when
+        // neither is known. Normalized onto the context so runContext's
+        // metaValues keys and the report all read the same value.
+        if (!context.contextId) {
+          context.contextId =
+            [context.platform, context.browser?.name].filter(Boolean).join("-") ||
+            randomUUID();
+        }
+        jobs.push({ spec, test, context, contexts: testReport.contexts, slot });
+      });
     }
-
-    // Parse test results to calc spec result
-
-    // If any context fails, test fails
-    let specResult: string;
-    if (specReport.tests.find((test: any) => test.result === "FAIL"))
-      specResult = "FAIL";
-    // If any test warns, spec warns
-    else if (specReport.tests.find((test: any) => test.result === "WARNING"))
-      specResult = "WARNING";
-    // If all tests skipped, spec skipped
-    else if (
-      specReport.tests.length ===
-      specReport.tests.filter((test: any) => test.result === "SKIPPED").length
-    )
-      specResult = "SKIPPED";
-    // If all contexts pass, test passes
-    else specResult = "PASS";
-
-    specReport = { result: specResult, ...specReport };
-    report.specs.push(specReport);
-    report.summary.specs[specResult.toLowerCase()]++;
   }
 
-  // Close appium server
-  if (appium) {
-    log(config, "debug", "Closing Appium server");
+  if (
+    limit > 1 &&
+    jobs.some((job: any) =>
+      job.context.steps?.some((step: any) => step.record !== undefined)
+    )
+  ) {
+    // Concurrent headed recordings capture via getDisplayMedia and can grab
+    // the wrong window. Recording filenames in the temp dir can also collide.
+    log(
+      config,
+      "warning",
+      "Tests include record steps while concurrentRunners is greater than 1. Concurrent recordings can capture the wrong window; set concurrentRunners to 1 for recording runs."
+    );
+  }
+
+  // Start one Appium server per concurrent runner that will actually use a
+  // driver (capped at the number of driver contexts). Each server owns a
+  // distinct port, so parallel contexts never create sessions on the same
+  // server — that contention crashed ChromeDriver when every context shared
+  // one server. Non-driver runs start none.
+  const driverJobCount = jobs.filter((job: any) =>
+    isDriverRequired({ test: job.context })
+  ).length;
+  let appiumServers: Array<{ port: number; process: any }> = [];
+  let appiumPool:
+    | { acquire(): Promise<number>; release(port: number): void }
+    | undefined;
+  if (driverJobCount > 0) {
+    setAppiumHome({ cacheDir: config?.cacheDir });
+    // Resolve appium's actual JS entrypoint via `require.resolve` (shim
+    // node_modules first, runtime cache second) and invoke it with
+    // `node <entry>`. This sidesteps every shell-injection trap at once: no
+    // `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no PATH
+    // lookup; no user-controlled paths in a shell-interpreted string. Works
+    // for both `--omit=optional` users (appium in cache only) and default
+    // installs (appium in shim).
+    const appiumEntry = resolveHeavyDepPath("appium", {
+      cacheDir: config?.cacheDir,
+    });
+    if (!appiumEntry) {
+      throw new Error(
+        "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
+      );
+    }
+    const serverCount = Math.min(limit, driverJobCount);
+    log(config, "debug", `Starting ${serverCount} Appium server(s).`);
+    // Start servers one at a time rather than all at once: concurrent
+    // findFreePort() calls share a close-to-rebind window (two could hand out
+    // the same port), and spawning every Appium at once spikes CPU during
+    // startup. Sequential startup is a one-time per-run cost (serverCount <= 4)
+    // that removes the port race and fails fast on the first server that can't
+    // come up, tearing down any already started so they don't leak.
     try {
-      kill(appium.pid);
-    } catch {
-      // Process may already be terminated
+      for (let i = 0; i < serverCount; i++) {
+        appiumServers.push(await startAppiumServer(appiumEntry, config));
+      }
+    } catch (error) {
+      for (const server of appiumServers) {
+        try {
+          kill(server.process.pid);
+        } catch {
+          // best-effort
+        }
+      }
+      throw error;
+    }
+    appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
+  }
+
+  // Everything that uses the Appium servers runs inside this try so the
+  // shutdown in `finally` always reaches them — otherwise a throw in
+  // warmUpContexts (e.g. getAvailableApps failing during the re-detect) would
+  // leak the started servers, leaving orphaned processes bound to their ports.
+  try {
+    // For concurrent runs, resolve missing browser dependencies and warm up
+    // each unique driver combination serially *before* the pool. Two contexts
+    // can't then race on an on-demand install (which mutates the shared app
+    // cache), and a combination that can't start a driver is recorded once here
+    // so every parallel context sharing it skips instantly instead of re-paying
+    // driverStart's backoff. This pre-populates installAttempts /
+    // warmUpResults / runnerDetails.availableApps, so runContext's own gates
+    // below collapse to fast cache hits. Sequential runs (limit 1) keep #338's
+    // natural first-context-warms-up behavior in runContext — no pre-pass, no
+    // extra driver start, byte-identical to before.
+    if (limit > 1 && appiumPool) {
+      await warmUpContexts({
+        jobs,
+        config,
+        runnerDetails,
+        appiumPool,
+        installAttempts,
+        warmUpResults,
+      });
+    }
+
+    // Phase 2: run every context job through one flat worker pool. A limit of 1
+    // (the default) is strictly sequential in input order.
+    await runConcurrent(jobs, limit, async (job: any) => {
+      try {
+        job.contexts[job.slot] = await runContext({
+          config,
+          spec: job.spec,
+          test: job.test,
+          context: job.context,
+          runnerDetails,
+          appiumPool,
+          metaValues,
+          installAttempts,
+          warmUpResults,
+          logPrefix:
+            limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
+        });
+      } catch (error: any) {
+        // Error isolation: one crashing context must not abort sibling jobs.
+        // Guard against non-Error throws (a thrown string/object has no
+        // .message) so the real failure detail survives in logs and report.
+        const detail = error?.message ?? String(error);
+        log(
+          config,
+          "error",
+          `Context '${job.context.contextId}' crashed: ${detail}`
+        );
+        job.contexts[job.slot] = {
+          contextId: job.context.contextId,
+          platform: job.context.platform,
+          browser: job.context.browser,
+          result: "FAIL",
+          resultDescription: `Unexpected error: ${detail}`,
+          steps: [],
+        };
+      }
+    });
+
+    // Phase 3: roll results up the tree and count the summary in one
+    // deterministic pass after all contexts have finished.
+    for (const specReport of report.specs) {
+      for (const testReport of specReport.tests) {
+        for (const contextReport of testReport.contexts) {
+          // Every slot is assigned by the pool callback (even on crash), so
+          // this guard should never fire — it documents the invariant and
+          // keeps a future gap from surfacing as a cryptic undefined read.
+          if (!contextReport) continue;
+          for (const stepReport of contextReport.steps) {
+            report.summary.steps[stepReport.result.toLowerCase()]++;
+          }
+          report.summary.contexts[contextReport.result.toLowerCase()]++;
+        }
+        testReport.result = rollUpResults(testReport.contexts.filter(Boolean));
+        report.summary.tests[testReport.result.toLowerCase()]++;
+      }
+      specReport.result = rollUpResults(specReport.tests);
+      report.summary.specs[specReport.result.toLowerCase()]++;
+    }
+  } finally {
+    // Close every Appium server we started.
+    for (const server of appiumServers) {
+      log(config, "debug", `Closing Appium server on port ${server.port}`);
+      try {
+        kill(server.process.pid);
+      } catch {
+        // Process may already be terminated
+      }
     }
   }
 
@@ -1072,6 +825,183 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   }
 
   return report;
+}
+
+/**
+ * Pick which contexts warmUpContexts should warm up: one representative per
+ * unique platform::browser combination among the driver-required jobs. Applies
+ * the same platform default and default-browser resolution runContext uses, so
+ * the combination keys it produces match the ones runContext looks up in the
+ * pool. Non-driver and browserless contexts are excluded. Mutates
+ * context.platform / context.browser in place — idempotent, since runContext
+ * applies the identical defaults. Pure (no I/O) so the selection + de-dup +
+ * normalization logic is unit-testable without Appium.
+ */
+function selectWarmUpTargets(
+  jobs: any[],
+  runnerDetails: any
+): Array<{ context: any; combo: string }> {
+  const platform = runnerDetails.environment.platform;
+  const seen = new Set<string>();
+  const targets: Array<{ context: any; combo: string }> = [];
+  for (const job of jobs) {
+    const context = job.context;
+    if (!context.steps) context.steps = [];
+    // Default platform to the runner's, matching runContext. Without this a
+    // resolved context of `{}` (no runOn — the common case) keys as
+    // `undefined::<browser>`, fails the support check, and is skipped — which
+    // would defeat the warm-up/install de-racing the pre-pass exists for.
+    if (!context.platform) context.platform = platform;
+    if (!context.browser && isDriverRequired({ test: context })) {
+      context.browser = getDefaultBrowser({ runnerDetails });
+    }
+    if (!isDriverRequired({ test: context })) continue;
+    // No resolvable browser — runContext skips these per-context with its own
+    // message; nothing to warm up.
+    if (!context.browser?.name) continue;
+    const combo = combinationKey(context);
+    if (seen.has(combo)) continue;
+    seen.add(combo);
+    targets.push({ context, combo });
+  }
+  return targets;
+}
+
+/**
+ * Serial pre-pass for concurrent runs. For each unique driver combination
+ * (platform::browser) among the jobs, resolves a missing browser dependency on
+ * demand and then warms up a driver once, recording the outcome. Runs before
+ * the worker pool so:
+ *   - on-demand installs never race (they mutate the shared app cache), and
+ *   - a combination that can't start a driver is recorded once, so every
+ *     parallel context sharing it is skipped instantly by runContext's warm-up
+ *     gate instead of each re-paying driverStart's retry/backoff.
+ * Mirrors the install + driver-start logic in runContext so the memoization
+ * state (installAttempts / warmUpResults / runnerDetails.availableApps) is
+ * identical to what the first same-combo context would have produced serially.
+ */
+async function warmUpContexts({
+  jobs,
+  config,
+  runnerDetails,
+  appiumPool,
+  installAttempts,
+  warmUpResults,
+}: {
+  jobs: any[];
+  config: any;
+  runnerDetails: any;
+  appiumPool: { acquire(): Promise<number>; release(port: number): void };
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
+}): Promise<void> {
+  const platform = runnerDetails.environment.platform;
+  // Which unique combinations to warm up (with the same platform/browser
+  // normalization runContext applies) is extracted into selectWarmUpTargets so
+  // it can be unit-tested without spinning up Appium.
+  for (const { context } of selectWarmUpTargets(jobs, runnerDetails)) {
+    const combo = combinationKey(context);
+
+    // On-demand install + re-detect (serial), mirroring runContext's gate.
+    let supported = isSupportedContext({
+      context,
+      apps: runnerDetails.availableApps,
+      platform,
+    });
+    if (
+      !supported &&
+      context.platform === platform &&
+      Array.isArray(context?.steps) &&
+      requiredBrowserAssets(context.browser?.name).length > 0
+    ) {
+      const firstAttempt = !installAttempts.has(
+        (context.browser?.name ?? "<none>").toLowerCase()
+      );
+      const outcome = await ensureContextBrowserInstalled({
+        browserName: context.browser?.name,
+        config,
+        installAttempts,
+        deps: {
+          ensureBrowser: (asset, options) =>
+            ensureBrowserInstalled(asset, options),
+          log,
+        },
+      });
+      if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
+        clearAppCache(config);
+        runnerDetails.availableApps = await getAvailableApps({ config });
+        supported = isSupportedContext({
+          context,
+          apps: runnerDetails.availableApps,
+          platform,
+        });
+      }
+    }
+    // Unsupported combinations are left unmarked; runContext skips each with the
+    // appropriate per-context reason (install-but-undetected vs unsupported).
+    if (!supported) continue;
+
+    // Warm-up probe: start a driver once to prove the combination works.
+    // driverStart's own transient retry absorbs concurrent-launch flakiness;
+    // a headless fallback (on a throwaway caps object, so the real contexts
+    // keep their configured headedness) matches runContext so a headed-only
+    // failure on a headless-capable box doesn't poison the combination.
+    const port = await appiumPool.acquire();
+    let warmDriver: any;
+    try {
+      const options = {
+        width: context.browser?.window?.width || 1200,
+        height: context.browser?.window?.height || 800,
+        headless: context.browser?.headless !== false,
+      };
+      try {
+        warmDriver = await driverStart(
+          getDriverCapabilities({
+            runnerDetails,
+            name: context.browser.name,
+            options,
+          }),
+          port,
+          4,
+          { cacheDir: config?.cacheDir }
+        );
+      } catch {
+        log(
+          config,
+          "warning",
+          `Warm-up for ${combo} failed headed; retrying headless.`
+        );
+        warmDriver = await driverStart(
+          getDriverCapabilities({
+            runnerDetails,
+            name: context.browser.name,
+            options: { ...options, headless: true },
+          }),
+          port,
+          4,
+          { cacheDir: config?.cacheDir }
+        );
+      }
+      warmUpResults.set(combo, "ok");
+      log(config, "debug", `Warm-up succeeded for ${combo}.`);
+    } catch (error: any) {
+      warmUpResults.set(combo, "failed");
+      log(
+        config,
+        "warning",
+        `Warm-up failed for ${combo}; contexts using it will be skipped: ${error?.message ?? String(error)}`
+      );
+    } finally {
+      if (warmDriver) {
+        try {
+          await warmDriver.deleteSession();
+        } catch {
+          // best-effort teardown of the warm-up session
+        }
+      }
+      appiumPool.release(port);
+    }
+  }
 }
 
 // Effective autoScreenshot setting for a test: the test level wins over the
@@ -1193,6 +1123,449 @@ async function captureAutoScreenshot({
   }
 }
 
+/**
+ * Runs a single resolved context to completion and returns its finished
+ * contextReport (steps array + rolled-up result). Never touches the shared
+ * report or summary counters — the caller owns aggregation, which keeps this
+ * function safe to run concurrently with sibling contexts.
+ */
+async function runContext({
+  config,
+  spec,
+  test,
+  context,
+  runnerDetails,
+  appiumPool,
+  metaValues,
+  installAttempts,
+  warmUpResults,
+  logPrefix = "",
+}: {
+  config: any;
+  spec: any;
+  test: any;
+  context: any;
+  runnerDetails: any;
+  appiumPool:
+    | { acquire(): Promise<number>; release(port: number): void }
+    | undefined;
+  metaValues: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
+  logPrefix?: string;
+}): Promise<any> {
+  const platform = runnerDetails.environment.platform;
+  // `let`, not `const`: an on-demand browser install below re-detects available
+  // apps and reassigns this snapshot.
+  let availableApps = runnerDetails.availableApps;
+  // Context-scoped log: prefixed only when contexts run concurrently, so
+  // sequential output stays unchanged.
+  const clog = (level: string, message: any) =>
+    log(
+      config,
+      level,
+      logPrefix && typeof message === "string"
+        ? `${logPrefix} ${message}`
+        : message
+    );
+
+  // Ensure context contains a 'steps' property before anything walks it —
+  // isDriverRequired iterates context.steps and the resolved shape doesn't
+  // guarantee the field.
+  if (!context.steps) {
+    context.steps = [];
+  }
+
+  // If "platform" is not defined, set it to the current platform
+  if (!context.platform)
+    context.platform = runnerDetails.environment.platform;
+
+  // Attach OpenAPI definitions to context
+  if (config.integrations?.openApi) {
+    context.openApi = [
+      ...(context.openApi || []),
+      ...config.integrations.openApi,
+    ];
+  }
+
+  // If "browser" isn't defined but is required by the test, set it to the first available browser in the sequence of Firefox, Chrome, Safari
+  if (!context.browser && isDriverRequired({ test: context })) {
+    context.browser = getDefaultBrowser({ runnerDetails });
+  }
+
+  // Set context report
+  const contextReport: any = {
+    contextId: context.contextId,
+    platform: context.platform,
+    browser: context.browser,
+    steps: [],
+  };
+  // Set meta values (create-if-missing — ids aren't guaranteed unique)
+  metaValues.specs[spec.specId].tests[test.testId].contexts[
+    context.contextId
+  ] ??= { steps: {} };
+
+  // If a driver is required but no browser could be resolved (e.g.
+  // getDefaultBrowser found nothing installed, or the context supplied a
+  // browser object with no name), skip with an explicit reason instead of
+  // letting it fail later as "Failed to start context 'undefined'".
+  if (isDriverRequired({ test: context }) && !context.browser?.name) {
+    const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
+    clog("warning", errorMessage);
+    contextReport.result = "SKIPPED";
+    contextReport.resultDescription = errorMessage;
+    return contextReport;
+  }
+
+  // Check if current environment supports given contexts
+  let supportedContext = isSupportedContext({
+    context: context,
+    apps: availableApps,
+    platform: platform,
+  });
+
+  // If the context needs a browser that isn't available yet, try to resolve
+  // the missing dependency on demand before giving up — e.g. Firefox declared
+  // but geckodriver absent because the pre-flight was skipped or its install
+  // failed. Memoized per browser (installAttempts) so a failed/no-op install
+  // isn't retried for every later context. The install + re-detect mutate the
+  // shared runnerDetails.availableApps; under concurrency that's racy, but it
+  // only fires for a genuinely-missing browser (rare) and the app list only
+  // grows, so a sibling reading a slightly stale snapshot still re-detects.
+  let freshInstallRedetected = false;
+  if (
+    !supportedContext &&
+    context.platform === platform &&
+    // Mirror isSupportedContext's own guard: isDriverRequired iterates
+    // context.steps, so a malformed context without a steps array would
+    // otherwise crash here instead of skipping cleanly.
+    Array.isArray(context?.steps) &&
+    isDriverRequired({ test: context }) &&
+    requiredBrowserAssets(context.browser?.name).length > 0
+  ) {
+    // Whether this browser was already attempted earlier this run; a cached
+    // outcome installed nothing new, so there's no point paying for a re-detect.
+    const firstAttempt = !installAttempts.has(
+      (context.browser?.name ?? "<none>").toLowerCase()
+    );
+    const outcome = await ensureContextBrowserInstalled({
+      browserName: context.browser?.name,
+      config,
+      installAttempts,
+      deps: {
+        ensureBrowser: (asset, options) =>
+          ensureBrowserInstalled(asset, options),
+        log,
+      },
+    });
+    // Re-detect after a real attempt regardless of outcome: a "failed" install
+    // can still have materialized assets before it threw, so a stale snapshot
+    // could wrongly skip a now-usable browser.
+    if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
+      freshInstallRedetected = true;
+      clearAppCache(config);
+      availableApps = await getAvailableApps({ config });
+      runnerDetails.availableApps = availableApps;
+      supportedContext = isSupportedContext({
+        context: context,
+        apps: availableApps,
+        platform: platform,
+      });
+    }
+  }
+
+  // If context isn't supported, skip it
+  if (!supportedContext) {
+    // Distinguish "we installed the dependency but still can't see it" from a
+    // plain unsupported context, so the skip reason points at the real problem.
+    const errorMessage = freshInstallRedetected
+      ? `Skipping context '${context.browser?.name}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
+      : `Skipping context. The current system doesn't support this context: {"platform": "${
+          context.platform
+        }", "apps": ${JSON.stringify(context.apps)}}`;
+    clog(freshInstallRedetected ? "warning" : "info", errorMessage);
+    contextReport.result = "SKIPPED";
+    contextReport.resultDescription = errorMessage;
+    return contextReport;
+  }
+  clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
+
+  let driver: any;
+  let appiumPort: number | undefined;
+  const driverRequired = isDriverRequired({ test: context });
+  if (driverRequired && !appiumPool) {
+    throw new Error(
+      "Driver requested but no Appium server pool was created; " +
+        "driverJobCount and isDriverRequired(context) disagreed; this is a bug."
+    );
+  }
+
+  // Warm-up memoization. The first context of each combination acts as the
+  // warm-up; if that combination already failed to start a driver earlier in
+  // this run, skip it outright instead of paying driverStart's retry/backoff
+  // again. Under concurrency this is a best-effort speedup, not correctness —
+  // same-combo contexts may start before one records a result.
+  const combo = combinationKey(context);
+
+  try {
+    if (driverRequired) {
+      if (warmUpDecision(warmUpResults.get(combo)) === "skip") {
+        const errorMessage = `Skipping context '${context.browser?.name}' on '${context.platform}': this context combination could not start a driver earlier in this run.`;
+        clog("warning", errorMessage);
+        contextReport.result = "SKIPPED";
+        contextReport.resultDescription = errorMessage;
+        return contextReport;
+      }
+      // Check out a server for this context's lifetime — released in the
+      // finally so the next queued context can reuse it.
+      appiumPort = await appiumPool!.acquire();
+
+      // Define driver capabilities
+      // TODO: Support custom apps
+      let caps: any = getDriverCapabilities({
+        runnerDetails: runnerDetails,
+        name: context.browser.name,
+        options: {
+          width: context.browser?.window?.width || 1200,
+          height: context.browser?.window?.height || 800,
+          headless: context.browser?.headless !== false,
+        },
+      });
+      clog("debug", "CAPABILITIES:");
+      clog("debug", caps);
+
+      // Instantiate driver
+      try {
+        driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
+      } catch (error: any) {
+        try {
+          // If driver fails to start, try again as headless
+          clog(
+            "warning",
+            `Failed to start context '${context.browser?.name}' on '${platform}'. Retrying as headless.`
+          );
+          context.browser.headless = true;
+          caps = getDriverCapabilities({
+            runnerDetails: runnerDetails,
+            name: context.browser.name,
+            options: {
+              width: context.browser?.window?.width || 1200,
+              height: context.browser?.window?.height || 800,
+              headless: context.browser?.headless !== false,
+            },
+          });
+          driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
+        } catch (error: any) {
+          let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
+          // `safari` is normalized to `webkit` during context resolution, so
+          // match both or this Safari-specific hint never fires on real runs.
+          if (
+            context.browser?.name === "safari" ||
+            context.browser?.name === "webkit"
+          )
+            errorMessage =
+              errorMessage +
+              " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
+          clog("error", errorMessage);
+          // Record the combination as failed so every later context that shares
+          // it is skipped instantly (see the warm-up check above).
+          if (!warmUpResults.has(combo)) warmUpResults.set(combo, "failed");
+          contextReport.result = "SKIPPED";
+          contextReport.resultDescription = errorMessage;
+          return contextReport;
+        }
+      }
+      // Driver started (first attempt or headless retry) — mark this
+      // combination as known-good for the rest of the run.
+      if (!warmUpResults.has(combo)) warmUpResults.set(combo, "ok");
+
+      if (
+        context.browser?.viewport?.width ||
+        context.browser?.viewport?.height
+      ) {
+        // Set driver viewport size
+        await setViewportSize(context, driver);
+      } else if (
+        context.browser?.window?.width ||
+        context.browser?.window?.height
+      ) {
+        // Get driver window size
+        const windowSize = await driver.getWindowSize();
+        // Resize window if necessary
+        await driver.setWindowSize(
+          context.browser?.window?.width || windowSize.width,
+          context.browser?.window?.height || windowSize.height
+        );
+      }
+    }
+
+    // Effective autoScreenshot for this context (test > spec > config).
+    const autoScreenshotEnabled = resolveAutoScreenshot({ config, spec, test });
+
+    // Iterates steps
+    let stepExecutionFailed = false;
+    const usedStepIds = new Set(
+      context.steps.map((s: any) => s.stepId).filter(Boolean)
+    );
+    for (const [stepIndex, step] of context.steps.entries()) {
+      // Set step id if not defined. Derived from the test ID and a hash of
+      // the step's authored definition so the same step keeps the same ID
+      // (and any `screenshot: true` default filename) across runs.
+      // Sanitized because the ID doubles as a screenshot filename; identical
+      // steps in one test get an ordinal suffix.
+      if (!step.stepId) {
+        const baseId = sanitizeFilesystemName(
+          `${test.testId}~s${contentHash(step)}`,
+          `step-${randomUUID()}`
+        );
+        let stepId = baseId;
+        let suffix = 2;
+        while (usedStepIds.has(stepId)) {
+          stepId = `${baseId}-${suffix++}`;
+        }
+        step.stepId = stepId;
+      }
+      usedStepIds.add(step.stepId);
+      clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
+
+      if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
+        clog(
+          "warning",
+          `Skipping unsafe step: ${step.description} in test ${test.testId} context ${context.contextId}`
+        );
+        // Mark as skipped
+        const stepReport = {
+          ...step,
+          result: "SKIPPED",
+          resultDescription: "Skipped because unsafe steps aren't allowed.",
+        };
+        contextReport.steps.push(stepReport);
+        continue;
+      }
+
+      if (stepExecutionFailed) {
+        // Mark as skipped
+        const stepReport = {
+          ...step,
+          result: "SKIPPED",
+          resultDescription: "Skipped due to previous failure in context.",
+        };
+        contextReport.steps.push(stepReport);
+        continue;
+      }
+
+      // Set meta values
+      metaValues.specs[spec.specId].tests[test.testId].contexts[
+        context.contextId
+      ].steps[step.stepId] = {};
+
+      // Run step
+      const stepResult = await runStep({
+        config: config,
+        context: context,
+        step: step,
+        driver: driver,
+        metaValues: metaValues,
+        options: {
+          openApiDefinitions: context.openApi || [],
+        },
+      });
+      clog(
+        "debug",
+        `RESULT: ${stepResult.status}\n${JSON.stringify(stepResult, null, 2)}`
+      );
+
+      stepResult.result = stepResult.status;
+      stepResult.resultDescription = stepResult.description;
+      delete stepResult.status;
+      delete stepResult.description;
+
+      // Add step result to report
+      const stepReport = {
+        ...step,
+        ...stepResult,
+      };
+
+      // Capture a post-step screenshot for autoScreenshot runs. Applies to
+      // browser steps (explicit `screenshot` steps already produce an image);
+      // failed steps are captured too — the failure frame is often the most
+      // useful. A capture failure logs a warning and never fails the step.
+      if (
+        autoScreenshotEnabled &&
+        driver &&
+        typeof step.screenshot === "undefined" &&
+        isDriverRequired({ test: { steps: [step] } })
+      ) {
+        const capturedPath = await captureAutoScreenshot({
+          config,
+          driver,
+          spec,
+          test,
+          context,
+          step,
+          stepIndex,
+        });
+        if (capturedPath) stepReport.autoScreenshot = capturedPath;
+      }
+
+      contextReport.steps.push(stepReport);
+
+      // If this step failed, set flag to skip remaining steps
+      if (stepReport.result === "FAIL") {
+        stepExecutionFailed = true;
+      }
+    }
+
+    // If recording, stop recording
+    if (driver?.state?.recording) {
+      const stopRecordStep = {
+        stopRecord: true,
+        description: "Stopping recording",
+        stepId: randomUUID(),
+      };
+      const stepResult = await runStep({
+        config: config,
+        context: context,
+        step: stopRecordStep,
+        driver: driver,
+        options: {
+          openApiDefinitions: context.openApi || [],
+        },
+      });
+      stepResult.result = stepResult.status;
+      stepResult.resultDescription = stepResult.description;
+      delete stepResult.status;
+      delete stepResult.description;
+
+      // Add step result to report
+      const stepReport = {
+        ...stopRecordStep,
+        ...stepResult,
+      };
+      contextReport.steps.push(stepReport);
+    }
+  } finally {
+    // Close driver. In a finally so an unexpected throw can't leak a session
+    // while sibling contexts keep running.
+    if (driver) {
+      try {
+        await driver.deleteSession();
+      } catch (error: any) {
+        clog("error", `Failed to delete driver session: ${error.message}`);
+      }
+    }
+    // Return the Appium server to the pool for the next queued context. Always
+    // runs (even on the driver-start-failure early return) so a port can't
+    // leak out of the pool and starve later contexts.
+    if (appiumPort !== undefined && appiumPool) {
+      appiumPool.release(appiumPort);
+    }
+  }
+
+  contextReport.result = rollUpResults(contextReport.steps);
+  return contextReport;
+}
+
 // Run a specific step
 async function runStep({
   config = {},
@@ -1259,7 +1632,7 @@ async function runStep({
       step: step,
       driver: driver,
     });
-    config.recording = actionResult.recording;
+    driver.state.recording = actionResult.recording ?? null;
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step });
   } else if (typeof step.runShell !== "undefined") {
@@ -1285,7 +1658,7 @@ async function runStep({
     };
   }
   // If recording, wait until browser is loaded, then instantiate cursor
-  if (config?.recording) {
+  if (driver?.state?.recording) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
@@ -1311,6 +1684,49 @@ async function runStep({
     );
   }
   return actionResult;
+}
+
+// Start one Appium server on a free port and resolve once it answers /status.
+// Each concurrent runner gets its own server (own port) so parallel contexts
+// never create sessions on the same Appium instance.
+async function startAppiumServer(
+  appiumEntry: string,
+  config: any
+): Promise<{ port: number; process: any }> {
+  const port = await findFreePort();
+  log(config, "debug", `Starting Appium on port ${port}`);
+  const proc: any = spawn(
+    process.execPath,
+    [appiumEntry, "-a", "127.0.0.1", "-p", String(port)],
+    {
+      windowsHide: true,
+      cwd: path.join(__dirname, "../.."),
+    }
+  );
+  proc.on("error", (err: any) => {
+    log(
+      config,
+      "warning",
+      `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`
+    );
+  });
+  proc.stdout.on("data", () => {});
+  proc.stderr.on("data", () => {});
+  try {
+    await appiumIsReady(port);
+  } catch (error) {
+    // appiumIsReady threw or timed out — the spawned child is still alive and
+    // would leak (orphan process, port still bound). Tear it down before
+    // propagating so subsequent runs don't trip on the stale state.
+    try {
+      if (proc && proc.pid) kill(proc.pid);
+    } catch {
+      // best-effort cleanup; the parent error is what matters
+    }
+    throw error;
+  }
+  log(config, "debug", `Appium is ready on port ${port}.`);
+  return { port, process: proc };
 }
 
 // Delay execution until Appium server is available.
@@ -1339,10 +1755,21 @@ async function driverStart(
   maxAttempts: number = 4,
   ctx: { cacheDir?: string } = {}
 ) {
-  // POST /session can race a just-spawned-or-still-dying Appium on Windows:
-  // /status may already return 200 from the outgoing process while /session
-  // is no longer accepting. Retry with linear backoff ONLY on ECONNREFUSED --
-  // any other error is a real session-creation failure and propagates.
+  // Two families of transient, retryable session-creation failures, both worse
+  // under concurrency (the TRANSIENT regex below enumerates the specific
+  // patterns):
+  //   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
+  //      /status returns 200 from the outgoing process while /session no longer
+  //      accepts, or Appium's proxy to chromedriver drops the socket ->
+  //      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
+  //   2. Several Chromes launching at once briefly starve resources and
+  //      ChromeDriver "crashed during startup" / "cannot connect to" /
+  //      "DevToolsActivePort" / "session not created". A staggered retry lets
+  //      the contention clear; it recovers on the next attempt in practice.
+  // Retry these with linear backoff; any other error is a real session-
+  // creation failure and propagates immediately.
+  const TRANSIENT =
+    /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
   const wdio = await loadHeavyDep<typeof import("webdriverio")>(
     "webdriverio",
     { ctx }
@@ -1360,11 +1787,13 @@ async function driverStart(
         connectionRetryTimeout: 120000, // 2 minutes
         waitforTimeout: 120000, // 2 minutes
       });
-      driver.state = { url: "", x: null, y: null };
+      // Per-context mutable state. `recording` lives here (not on config)
+      // so concurrent contexts can't clobber each other's recordings.
+      driver.state = { url: "", x: null, y: null, recording: null };
       return driver;
     } catch (err: any) {
       lastError = err;
-      if (!/ECONNREFUSED/.test(String(err && err.message))) throw err;
+      if (!TRANSIENT.test(String(err && err.message))) throw err;
       if (attempt < maxAttempts) {
         await new Promise((r) => setTimeout(r, 500 * attempt));
       }
@@ -1476,6 +1905,71 @@ async function ensureChromeAvailable(
     );
   }
   return availableApps;
+}
+
+/**
+ * On-demand, per-context browser/driver install used by the runner when a
+ * context's browser isn't yet available (e.g. Firefox declared but geckodriver
+ * missing). Attempts to install every asset the browser needs, memoizing the
+ * outcome in `installAttempts` so a failed (or no-op) attempt isn't repeated
+ * for every later context that shares the browser. Like ensureChromeAvailable,
+ * this self-provisions regardless of DOC_DETECTIVE_AUTOINSTALL (that env var
+ * only governs the eager postinstall). Deps are injected for testing.
+ *
+ * @returns "installed" when all assets installed, "failed" when an install
+ *   threw, or "notInstallable" for browsers with no installable asset (safari).
+ */
+async function ensureContextBrowserInstalled({
+  browserName,
+  config,
+  installAttempts,
+  deps,
+}: {
+  browserName: string | undefined;
+  config: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  deps: {
+    ensureBrowser: (asset: BrowserAssetName, options: any) => Promise<any>;
+    log?: (config: any, level: string, msg: string) => void;
+  };
+}): Promise<"installed" | "failed" | "notInstallable"> {
+  const key = (browserName ?? "<none>").toLowerCase();
+  const cached = installAttempts.get(key);
+  if (cached) return cached;
+
+  const assets = requiredBrowserAssets(browserName);
+  if (assets.length === 0) {
+    installAttempts.set(key, "notInstallable");
+    return "notInstallable";
+  }
+
+  const ctx = { cacheDir: config?.cacheDir };
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+  // "warn" → "warning" the same way provisionChromeRuntime does.
+  const logger = (msg: string, level: string = "info") =>
+    deps.log?.(config, level === "warn" ? "warning" : level, msg);
+  try {
+    deps.log?.(
+      config,
+      "info",
+      `Browser '${browserName}' is not available; attempting on-demand install of: ${assets.join(
+        ", "
+      )}.`
+    );
+    for (const asset of assets) {
+      await deps.ensureBrowser(asset, { ctx, deps: { logger } });
+    }
+    installAttempts.set(key, "installed");
+    return "installed";
+  } catch (err: any) {
+    deps.log?.(
+      config,
+      "warning",
+      `On-demand install for '${browserName}' failed: ${err?.message ?? err}`
+    );
+    installAttempts.set(key, "failed");
+    return "failed";
+  }
 }
 
 async function getRunner(options: any = {}) {

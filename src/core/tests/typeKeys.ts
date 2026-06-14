@@ -166,7 +166,7 @@ async function typeKeys({ config, step, driver }: { config: any; step: any; driv
   }
 
   // Split into array of strings, each containing a single key
-  if (config.recording) {
+  if (driver?.state?.recording) {
     let keys: any[] = [];
     step.type.keys.forEach((key: any) => {
       if (key.startsWith("$") && key.endsWith("$")) {
@@ -211,7 +211,7 @@ async function typeKeys({ config, step, driver }: { config: any; step: any; driv
 
   // Run action
   try {
-    if (config.recording) {
+    if (driver?.state?.recording) {
       // Type keys one at a time
       for (let i = 0; i < step.type.keys.length; i++) {
         await driver.keys(step.type.keys[i]);

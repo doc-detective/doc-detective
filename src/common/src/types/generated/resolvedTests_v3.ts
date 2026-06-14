@@ -175,7 +175,8 @@ export interface Config {
   concurrentRunners?: number | boolean;
   environment?: EnvironmentDetails;
   /**
-   * Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging.
+   * @deprecated
+   * Deprecated and ignored. Previously reserved for an interactive step-through debugger that was never implemented. Retained so existing configs continue to validate. For diagnostics, run `doc-detective debug` or set the `DOC_DETECTIVE_DEBUG` environment variable.
    */
   debug?: boolean | "stepThrough";
   /**
