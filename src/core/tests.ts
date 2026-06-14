@@ -1059,6 +1059,7 @@ async function captureAutoScreenshot({
   context,
   step,
   stepIndex,
+  stepCount,
 }: {
   config: any;
   driver: any;
@@ -1067,6 +1068,7 @@ async function captureAutoScreenshot({
   context: any;
   step: any;
   stepIndex: number;
+  stepCount: number;
 }): Promise<string | null> {
   try {
     const action =
@@ -1096,7 +1098,11 @@ async function captureAutoScreenshot({
         ? stepIdString.slice(sanitizedTestId.length + 1)
         : stepIdString
     );
-    const fileName = `${String(stepIndex + 1).padStart(2, "0")}-${action}-${stepRef}.png`;
+    // Zero-pad the step ordinal to the width of the context's step count
+    // (min 2), so file listings sort naturally even past 99 steps (100 would
+    // otherwise sort before 11).
+    const pad = Math.max(2, String(stepCount).length);
+    const fileName = `${String(stepIndex + 1).padStart(pad, "0")}-${action}-${stepRef}.png`;
     const screenshotStep = {
       stepId: `${step.stepId}_auto`,
       description: "Automatic post-step screenshot",
@@ -1519,6 +1525,7 @@ async function runContext({
           context,
           step,
           stepIndex,
+          stepCount: context.steps.length,
         });
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }

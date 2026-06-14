@@ -58,6 +58,17 @@ describe("getRunOutputDir", function () {
       path.resolve(tempBase, ".doc-detective")
     );
   });
+
+  it("coerces a non-string output instead of throwing", function () {
+    // A programmatic caller could hand a PathLike; the extension check and
+    // path ops assume a string, so it must be coerced defensively.
+    const config = { output: { toString: () => tempBase } };
+    const dir = getRunOutputDir(config);
+    expect(path.dirname(dir)).to.equal(
+      path.resolve(tempBase, ".doc-detective")
+    );
+    expect(fs.existsSync(dir)).to.equal(true);
+  });
 });
 
 describe("runFolder reporter", function () {

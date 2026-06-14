@@ -587,7 +587,9 @@ function getOrInitRunTimestamp(config: any): string {
 }
 
 // Per-run artifact directory: `<output>/.doc-detective/run-<runId>/`, where
-// runId is the run timestamp. Memoized on the config object so auto
+// runId is the run timestamp — plus an ordinal suffix (`-2`, `-3`, …) on the
+// rare same-millisecond collision, so the effective runId stamped in the
+// report can carry that suffix. Memoized on the config object so auto
 // screenshots and the runFolder reporter all land in the same folder for the
 // duration of a run. If `config.output` points at a report file (reporters
 // accept `.json`/`.html` paths), the run folder is created next to it.
@@ -596,7 +598,10 @@ function getOrInitRunTimestamp(config: any): string {
 // silently merging artifacts.
 function getRunOutputDir(config: any): string {
   if (config?.__runOutputDir) return config.__runOutputDir;
-  let base = config?.output || ".";
+  // Coerce defensively: a programmatic caller could hand us a non-string
+  // output (e.g. a PathLike), and the extension check / path ops below assume
+  // a string. Mirrors the String() coercion in runFolderReporter.
+  let base = String(config?.output || ".");
   const reportFileExtensions = [".json", ".html", ".htm"];
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     base = path.dirname(base);
