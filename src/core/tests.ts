@@ -618,16 +618,31 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
+      // Track contextIds within this test so the deterministic fallback below
+      // can suffix collisions, mirroring resolveTests' deriveContextId.
+      const usedContextIds = new Set<string>(
+        test.contexts.map((c: any) => c.contextId).filter(Boolean)
+      );
       test.contexts.forEach((context: any, slot: number) => {
         // Derive a stable contextId from platform/browser when unset (the
         // resolver normally assigns one) so the same context keeps the same
-        // ID across runs for comparison; fall back to a UUID only when
-        // neither is known. Normalized onto the context so runContext's
-        // metaValues keys and the report all read the same value.
+        // ID across runs for comparison — `default` when neither is known,
+        // with an ordinal suffix on collision. No randomness, so two
+        // otherwise-identical runs produce identical reports. Normalized onto
+        // the context so runContext's metaValues keys and the report all read
+        // the same value.
         if (!context.contextId) {
-          context.contextId =
-            [context.platform, context.browser?.name].filter(Boolean).join("-") ||
-            randomUUID();
+          const base =
+            [context.platform, context.browser?.name]
+              .filter(Boolean)
+              .join("-") || "default";
+          let id = base;
+          let suffix = 2;
+          while (usedContextIds.has(id)) {
+            id = `${base}-${suffix++}`;
+          }
+          usedContextIds.add(id);
+          context.contextId = id;
         }
         jobs.push({ spec, test, context, contexts: testReport.contexts, slot });
       });
