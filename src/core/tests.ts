@@ -909,6 +909,11 @@ async function warmUpContexts({
           { cacheDir: config?.cacheDir }
         );
       } catch {
+        log(
+          config,
+          "warning",
+          `Warm-up for ${combo} failed headed; retrying headless.`
+        );
         warmDriver = await driverStart(
           getDriverCapabilities({
             runnerDetails,
@@ -1529,14 +1534,17 @@ async function driverStart(
   maxAttempts: number = 4,
   ctx: { cacheDir?: string } = {}
 ) {
-  // Two transient, retryable failure modes, both worse under concurrency:
+  // Two families of transient, retryable session-creation failures, both worse
+  // under concurrency (the TRANSIENT regex below enumerates the specific
+  // patterns):
   //   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
-  //      /status returns 200 from the outgoing process while /session no
-  //      longer accepts -> ECONNREFUSED.
+  //      /status returns 200 from the outgoing process while /session no longer
+  //      accepts, or Appium's proxy to chromedriver drops the socket ->
+  //      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
   //   2. Several Chromes launching at once briefly starve resources and
-  //      ChromeDriver "crashed during startup" / "cannot connect to chrome".
-  //      A staggered retry lets the contention clear; it recovers on the next
-  //      attempt in practice.
+  //      ChromeDriver "crashed during startup" / "cannot connect to" /
+  //      "DevToolsActivePort" / "session not created". A staggered retry lets
+  //      the contention clear; it recovers on the next attempt in practice.
   // Retry these with linear backoff; any other error is a real session-
   // creation failure and propagates immediately.
   const TRANSIENT =
