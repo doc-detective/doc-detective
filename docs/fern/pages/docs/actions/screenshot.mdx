@@ -198,12 +198,15 @@ Auto screenshots are saved to `<output>/.doc-detective/run-<runId>/screenshots/`
 ```
 .doc-detective/run-<runId>/
 ├── testResults.json
+├── testResults.html
 └── screenshots/
     └── <specId>/
         └── <testId>/
             └── <contextId>/
                 └── 01-goTo-s4f2a91c.png
 ```
+
+The HTML report provides a human-readable view of the same results, making run folders self-contained artifacts you can share or compare without needing the standalone `html` reporter.
 
 Doc Detective generates deterministic IDs based on content rather than random UUIDs, so the same test step produces the same relative path in every run. This makes it easy to diff two run folders and spot UI changes over time.
 
