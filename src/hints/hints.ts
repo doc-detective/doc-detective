@@ -241,6 +241,28 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // setConcurrentRunners (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "setConcurrentRunners",
+    priority: 50,
+    markdown: [
+      "This run executed several test contexts one at a time. Independent contexts can run in parallel with `concurrentRunners`:",
+      "",
+      "```json",
+      '{ "concurrentRunners": true }',
+      "```",
+      "",
+      "Or pass `--concurrent-runners 4` on the CLI. `true` uses your CPU core count (capped at 4). Keep it at `1` if your tests share variables across contexts or record video.",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.totalContexts >= 5 &&
+      ctx.config?.concurrentRunners !== true &&
+      !(Number(ctx.config?.concurrentRunners) > 1) &&
+      !ctx.producedRecordings,
+  },
+
+  // ------------------------------------------------------------------
   // setInputScope (advanced)
   // ------------------------------------------------------------------
   {

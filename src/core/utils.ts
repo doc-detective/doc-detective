@@ -28,7 +28,70 @@ export {
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
+  runConcurrent,
+  rollUpResults,
+  createAppiumPool,
 };
+
+// A fixed set of Appium server ports shared by concurrent runners. `acquire()`
+// hands out a free port, waiting if every port is checked out; `release()`
+// returns one, handing it straight to the next waiter. Single-threaded JS
+// means the shift/push pairs never race. Each port backs its own Appium
+// server, so two contexts never create sessions on the same server at once —
+// the contention that crashed ChromeDriver when every context shared one.
+function createAppiumPool(ports: number[]): {
+  acquire(): Promise<number>;
+  release(port: number): void;
+} {
+  const available = [...ports];
+  const waiters: Array<(port: number) => void> = [];
+  return {
+    acquire() {
+      const port = available.shift();
+      if (port !== undefined) return Promise.resolve(port);
+      return new Promise<number>((resolve) => waiters.push(resolve));
+    },
+    release(port: number) {
+      const next = waiters.shift();
+      if (next) next(port);
+      else available.push(port);
+    },
+  };
+}
+
+// Run `fn` over `items` with at most `limit` calls in flight. A limit of 1 (or
+// less) degenerates to strictly sequential execution in input order, so
+// sequential and concurrent runs share this single code path. The shared
+// cursor is safe without locking: JS is single-threaded, and `next++` happens
+// synchronously between awaits.
+//
+// If `fn` rejects, the returned promise rejects with that error, but sibling
+// calls already in flight keep running as orphaned microtasks (promises can't
+// be cancelled). Callers that need error isolation must catch inside `fn` —
+// runSpecs does.
+async function runConcurrent<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> {
+  let next = 0;
+  const workerCount = Math.max(1, Math.min(Math.floor(limit) || 1, items.length));
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (next < items.length) {
+      await fn(items[next++]);
+    }
+  });
+  await Promise.all(workers);
+}
+
+// Roll child results up to a parent result: FAIL > WARNING > all-SKIPPED >
+// PASS. An empty list rolls up to SKIPPED (vacuously "all children skipped").
+function rollUpResults(children: Array<{ result?: string }>): string {
+  if (children.some((child) => child.result === "FAIL")) return "FAIL";
+  if (children.some((child) => child.result === "WARNING")) return "WARNING";
+  if (children.every((child) => child.result === "SKIPPED")) return "SKIPPED";
+  return "PASS";
+}
 
 // Bind a temp listener to port 0, capture the OS-assigned port, and release
 // it. There is a small close-to-rebind window where another process could

@@ -95,7 +95,9 @@ export async function buildHintContext(
 
   const walkData = walkResults(options.results);
   const failedCount = countFailures(options.results);
-  const { totalSpecs, totalTests, totalSteps } = countTotals(options.results);
+  const { totalSpecs, totalTests, totalContexts, totalSteps } = countTotals(
+    options.results
+  );
 
   const adapters = options.adapters ?? listAdapters();
   const agentDetections = await detectAgents(
@@ -125,6 +127,7 @@ export async function buildHintContext(
     configPath: typeof config.configPath === "string" ? config.configPath : null,
     totalSpecs,
     totalTests,
+    totalContexts,
     totalSteps,
     usedStepTypes: walkData.usedStepTypes,
     usedBrowserContexts: walkData.usedBrowserContexts,
@@ -330,15 +333,22 @@ function countFailures(results: any): number {
 function countTotals(results: any): {
   totalSpecs: number;
   totalTests: number;
+  totalContexts: number;
   totalSteps: number;
 } {
-  const empty = { totalSpecs: 0, totalTests: 0, totalSteps: 0 };
+  const empty = {
+    totalSpecs: 0,
+    totalTests: 0,
+    totalContexts: 0,
+    totalSteps: 0,
+  };
   if (!results || typeof results !== "object") return empty;
   const summary = results.summary;
   if (!summary || typeof summary !== "object") return empty;
   return {
     totalSpecs: sumOutcomes(summary.specs),
     totalTests: sumOutcomes(summary.tests),
+    totalContexts: sumOutcomes(summary.contexts),
     totalSteps: sumOutcomes(summary.steps),
   };
 }

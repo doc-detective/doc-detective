@@ -367,6 +367,81 @@ describe("Util tests", function () {
     expect(configAbsent.cacheDir).to.equal(undefined);
   });
 
+  it("Yargs parses --concurrent-runners as a string (bare flag yields empty string)", function () {
+    const numeric = setArgs(["node", "runTests.js", "--concurrent-runners", "4"]);
+    expect(numeric.concurrentRunners).to.equal("4");
+
+    // Bare flag — string-typed options yield "" so the CPU-count mode is
+    // distinguishable from an absent flag.
+    const bare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
+    expect(bare.concurrentRunners).to.equal("");
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.concurrentRunners).to.equal(undefined);
+  });
+
+  it("setConfig maps --concurrent-runners to config.concurrentRunners", async function () {
+    this.timeout(5000);
+    const argsNumeric = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "4",
+    ]);
+    const configNumeric = await setConfig({
+      configPath: null,
+      args: argsNumeric,
+    });
+    expect(configNumeric.concurrentRunners).to.equal(4);
+
+    // Bare flag and explicit `true` opt into CPU-count mode (resolved to a
+    // concrete integer by the core runner, not here).
+    const argsBare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
+    const configBare = await setConfig({ configPath: null, args: argsBare });
+    expect(configBare.concurrentRunners).to.equal(true);
+
+    const argsTrue = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "true",
+    ]);
+    const configTrue = await setConfig({ configPath: null, args: argsTrue });
+    expect(configTrue.concurrentRunners).to.equal(true);
+
+    // Case-insensitive — "True" should not fall through to Number() (NaN).
+    const argsTrueCap = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "True",
+    ]);
+    const configTrueCap = await setConfig({
+      configPath: null,
+      args: argsTrueCap,
+    });
+    expect(configTrueCap.concurrentRunners).to.equal(true);
+
+    // Absent flag — schema default 1 via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.concurrentRunners).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.concurrentRunners).to.equal(1);
+  });
+
+  it("setConfig ignores invalid --concurrent-runners values", async function () {
+    this.timeout(5000);
+    // CLI overrides land after config_v3 validation, so the override block
+    // must not let NaN or non-positive counts through (they'd silently
+    // degrade to sequential execution). Invalid values are warned about and
+    // dropped — the validated default stays.
+    for (const bad of ["abc", "1.5", "0"]) {
+      const args = setArgs(["node", "runTests.js", "--concurrent-runners", bad]);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.concurrentRunners, `value: ${bad}`).to.equal(1);
+    }
+  });
+
   it("setConfig ignores empty --cache-dir override", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--cache-dir", ""]);

@@ -119,6 +119,32 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
+        for (const concurrentRunners of [1, 4, true]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { input: ".", concurrentRunners },
+          });
+
+          expect(result.valid, `concurrentRunners: ${concurrentRunners}`).to.be
+            .true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject config_v3 concurrentRunners of 0, false, or a fraction", function () {
+        for (const concurrentRunners of [0, false, 1.5]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { input: ".", concurrentRunners },
+          });
+
+          expect(result.valid, `concurrentRunners: ${concurrentRunners}`).to.be
+            .false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
       it("should validate a config_v3 object with dryRun set", function () {
         const result = validate({
           schemaKey: "config_v3",
