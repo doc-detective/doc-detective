@@ -152,6 +152,17 @@ async function fetchOpenApiDocuments({ config, documentArray }: { config: any; d
   return openApiDocuments;
 }
 
+// Make `base` unique within `usedIds` by appending an ordinal suffix on
+// collision (`base`, `base-2`, `base-3`, …).
+function uniqueId(base: string, usedIds: Set<string>): string {
+  let id = base;
+  let suffix = 2;
+  while (usedIds.has(id)) {
+    id = `${base}-${suffix++}`;
+  }
+  return id;
+}
+
 // Deterministic fallback IDs: when a spec/test/context doesn't declare its
 // own ID, derive one from stable inputs (file path, content hash, platform +
 // browser) instead of a random UUID. Same inputs → same IDs on every run,
@@ -161,20 +172,19 @@ function deriveContextId({ context, usedIds }: { context: any; usedIds: Set<stri
   const base =
     [context.platform, context.browser?.name].filter(Boolean).join("-") ||
     "default";
-  let contextId = base;
-  let suffix = 2;
-  while (usedIds.has(contextId)) {
-    contextId = `${base}-${suffix++}`;
-  }
-  return contextId;
+  return uniqueId(base, usedIds);
 }
 
 async function resolveContext({ config, test, context, usedContextIds }: { config: any; test: any; context: any; usedContextIds: Set<string> }) {
-  // Normalize the derived ID back onto the context so any downstream reader
+  // Normalize the resolved ID back onto the context so any downstream reader
   // of `context.contextId` (not just the resolved copy) sees the same value.
-  if (!context.contextId) {
-    context.contextId = deriveContextId({ context, usedIds: usedContextIds });
-  }
+  // Explicit IDs win, but are still de-duplicated: one authored context with
+  // `platforms`/`browsers` arrays expands into several contexts that all carry
+  // the same authored `contextId`, so the 2nd+ must be suffixed or they'd
+  // collide in `metaValues` and other contextId-keyed structures.
+  context.contextId = context.contextId
+    ? uniqueId(context.contextId, usedContextIds)
+    : deriveContextId({ context, usedIds: usedContextIds });
   const contextId = context.contextId;
   usedContextIds.add(contextId);
   log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);

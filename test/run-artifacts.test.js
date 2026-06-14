@@ -284,6 +284,25 @@ describe("deterministic resolved-test IDs", function () {
     );
   });
 
+  it("suffixes an explicit contextId that expands across platforms/browsers", async function () {
+    // One authored context with an explicit contextId + multiple browsers
+    // expands into several contexts; they can't all keep the same id or
+    // they'd collide in contextId-keyed structures, so 2nd+ get suffixed.
+    const spec = makeDetectedSpec();
+    spec.runOn = [
+      {
+        contextId: "my-ctx",
+        platforms: ["windows"],
+        browsers: ["chrome", "firefox"],
+      },
+    ];
+    const resolved = await resolveTests({ config, detectedTests: [spec] });
+    const contextIds = resolved.specs[0].tests[0].contexts.map(
+      (context) => context.contextId
+    );
+    expect(contextIds).to.deep.equal(["my-ctx", "my-ctx-2"]);
+  });
+
   it("suffixes derived contextIds on platform/browser collisions", async function () {
     const spec = makeDetectedSpec();
     spec.runOn = [
