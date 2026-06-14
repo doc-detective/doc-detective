@@ -682,93 +682,99 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
   }
 
-  // For concurrent runs, resolve missing browser dependencies and warm up each
-  // unique driver combination serially *before* the pool. Two contexts can't
-  // then race on an on-demand install (which mutates the shared app cache), and
-  // a combination that can't start a driver is recorded once here so every
-  // parallel context sharing it skips instantly instead of re-paying
-  // driverStart's backoff. This pre-populates installAttempts / warmUpResults /
-  // runnerDetails.availableApps, so runContext's own gates below collapse to
-  // fast cache hits. Sequential runs (limit 1) keep #338's natural
-  // first-context-warms-up behavior in runContext — no pre-pass, no extra
-  // driver start, byte-identical to before.
-  if (limit > 1 && appiumPool) {
-    await warmUpContexts({
-      jobs,
-      config,
-      runnerDetails,
-      appiumPool,
-      installAttempts,
-      warmUpResults,
-    });
-  }
-
-  // Phase 2: run every context job through one flat worker pool. A limit of 1
-  // (the default) is strictly sequential in input order.
-  await runConcurrent(jobs, limit, async (job: any) => {
-    try {
-      job.contexts[job.slot] = await runContext({
+  // Everything that uses the Appium servers runs inside this try so the
+  // shutdown in `finally` always reaches them — otherwise a throw in
+  // warmUpContexts (e.g. getAvailableApps failing during the re-detect) would
+  // leak the started servers, leaving orphaned processes bound to their ports.
+  try {
+    // For concurrent runs, resolve missing browser dependencies and warm up
+    // each unique driver combination serially *before* the pool. Two contexts
+    // can't then race on an on-demand install (which mutates the shared app
+    // cache), and a combination that can't start a driver is recorded once here
+    // so every parallel context sharing it skips instantly instead of re-paying
+    // driverStart's backoff. This pre-populates installAttempts /
+    // warmUpResults / runnerDetails.availableApps, so runContext's own gates
+    // below collapse to fast cache hits. Sequential runs (limit 1) keep #338's
+    // natural first-context-warms-up behavior in runContext — no pre-pass, no
+    // extra driver start, byte-identical to before.
+    if (limit > 1 && appiumPool) {
+      await warmUpContexts({
+        jobs,
         config,
-        spec: job.spec,
-        test: job.test,
-        context: job.context,
         runnerDetails,
         appiumPool,
-        metaValues,
         installAttempts,
         warmUpResults,
-        logPrefix:
-          limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
       });
-    } catch (error: any) {
-      // Error isolation: one crashing context must not abort sibling jobs.
-      // Guard against non-Error throws (a thrown string/object has no
-      // .message) so the real failure detail survives in logs and report.
-      const detail = error?.message ?? String(error);
-      log(
-        config,
-        "error",
-        `Context '${job.context.contextId}' crashed: ${detail}`
-      );
-      job.contexts[job.slot] = {
-        contextId: job.context.contextId,
-        platform: job.context.platform,
-        browser: job.context.browser,
-        result: "FAIL",
-        resultDescription: `Unexpected error: ${detail}`,
-        steps: [],
-      };
     }
-  });
 
-  // Phase 3: roll results up the tree and count the summary in one
-  // deterministic pass after all contexts have finished.
-  for (const specReport of report.specs) {
-    for (const testReport of specReport.tests) {
-      for (const contextReport of testReport.contexts) {
-        // Every slot is assigned by the pool callback (even on crash), so
-        // this guard should never fire — it documents the invariant and
-        // keeps a future gap from surfacing as a cryptic undefined read.
-        if (!contextReport) continue;
-        for (const stepReport of contextReport.steps) {
-          report.summary.steps[stepReport.result.toLowerCase()]++;
-        }
-        report.summary.contexts[contextReport.result.toLowerCase()]++;
+    // Phase 2: run every context job through one flat worker pool. A limit of 1
+    // (the default) is strictly sequential in input order.
+    await runConcurrent(jobs, limit, async (job: any) => {
+      try {
+        job.contexts[job.slot] = await runContext({
+          config,
+          spec: job.spec,
+          test: job.test,
+          context: job.context,
+          runnerDetails,
+          appiumPool,
+          metaValues,
+          installAttempts,
+          warmUpResults,
+          logPrefix:
+            limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
+        });
+      } catch (error: any) {
+        // Error isolation: one crashing context must not abort sibling jobs.
+        // Guard against non-Error throws (a thrown string/object has no
+        // .message) so the real failure detail survives in logs and report.
+        const detail = error?.message ?? String(error);
+        log(
+          config,
+          "error",
+          `Context '${job.context.contextId}' crashed: ${detail}`
+        );
+        job.contexts[job.slot] = {
+          contextId: job.context.contextId,
+          platform: job.context.platform,
+          browser: job.context.browser,
+          result: "FAIL",
+          resultDescription: `Unexpected error: ${detail}`,
+          steps: [],
+        };
       }
-      testReport.result = rollUpResults(testReport.contexts.filter(Boolean));
-      report.summary.tests[testReport.result.toLowerCase()]++;
-    }
-    specReport.result = rollUpResults(specReport.tests);
-    report.summary.specs[specReport.result.toLowerCase()]++;
-  }
+    });
 
-  // Close every Appium server we started.
-  for (const server of appiumServers) {
-    log(config, "debug", `Closing Appium server on port ${server.port}`);
-    try {
-      kill(server.process.pid);
-    } catch {
-      // Process may already be terminated
+    // Phase 3: roll results up the tree and count the summary in one
+    // deterministic pass after all contexts have finished.
+    for (const specReport of report.specs) {
+      for (const testReport of specReport.tests) {
+        for (const contextReport of testReport.contexts) {
+          // Every slot is assigned by the pool callback (even on crash), so
+          // this guard should never fire — it documents the invariant and
+          // keeps a future gap from surfacing as a cryptic undefined read.
+          if (!contextReport) continue;
+          for (const stepReport of contextReport.steps) {
+            report.summary.steps[stepReport.result.toLowerCase()]++;
+          }
+          report.summary.contexts[contextReport.result.toLowerCase()]++;
+        }
+        testReport.result = rollUpResults(testReport.contexts.filter(Boolean));
+        report.summary.tests[testReport.result.toLowerCase()]++;
+      }
+      specReport.result = rollUpResults(specReport.tests);
+      report.summary.specs[specReport.result.toLowerCase()]++;
+    }
+  } finally {
+    // Close every Appium server we started.
+    for (const server of appiumServers) {
+      log(config, "debug", `Closing Appium server on port ${server.port}`);
+      try {
+        kill(server.process.pid);
+      } catch {
+        // Process may already be terminated
+      }
     }
   }
 
