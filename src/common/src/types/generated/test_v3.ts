@@ -27,6 +27,10 @@ export type Test = {
    */
   detectSteps?: boolean;
   /**
+   * If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   */
+  autoScreenshot?: boolean;
+  /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.
    */
   runOn?: Context[];
@@ -773,6 +777,10 @@ export interface Common {
    */
   breakpoint?: boolean;
   location?: SourceLocation;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -877,6 +885,10 @@ export interface Common1 {
    */
   breakpoint?: boolean;
   location?: SourceLocation1;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -948,6 +960,10 @@ export interface Common2 {
    */
   breakpoint?: boolean;
   location?: SourceLocation2;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1019,6 +1035,10 @@ export interface Common3 {
    */
   breakpoint?: boolean;
   location?: SourceLocation3;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1151,6 +1171,10 @@ export interface Common4 {
    */
   breakpoint?: boolean;
   location?: SourceLocation4;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1222,6 +1246,10 @@ export interface Common5 {
    */
   breakpoint?: boolean;
   location?: SourceLocation5;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1336,6 +1364,10 @@ export interface Common6 {
    */
   breakpoint?: boolean;
   location?: SourceLocation6;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1455,6 +1487,10 @@ export interface Common7 {
    */
   breakpoint?: boolean;
   location?: SourceLocation7;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1563,6 +1599,10 @@ export interface Common8 {
    */
   breakpoint?: boolean;
   location?: SourceLocation8;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1677,6 +1717,10 @@ export interface Common9 {
    */
   breakpoint?: boolean;
   location?: SourceLocation9;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1748,6 +1792,10 @@ export interface Common10 {
    */
   breakpoint?: boolean;
   location?: SourceLocation10;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1834,6 +1882,10 @@ export interface Common11 {
    */
   breakpoint?: boolean;
   location?: SourceLocation11;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1905,6 +1957,10 @@ export interface Common12 {
    */
   breakpoint?: boolean;
   location?: SourceLocation12;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -1976,6 +2032,10 @@ export interface Common13 {
    */
   breakpoint?: boolean;
   location?: SourceLocation13;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2065,6 +2125,10 @@ export interface Common14 {
    */
   breakpoint?: boolean;
   location?: SourceLocation14;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2136,6 +2200,10 @@ export interface Common15 {
    */
   breakpoint?: boolean;
   location?: SourceLocation15;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2266,6 +2334,10 @@ export interface Common16 {
    */
   breakpoint?: boolean;
   location?: SourceLocation16;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2370,6 +2442,10 @@ export interface Common17 {
    */
   breakpoint?: boolean;
   location?: SourceLocation17;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2441,6 +2517,10 @@ export interface Common18 {
    */
   breakpoint?: boolean;
   location?: SourceLocation18;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2512,6 +2592,10 @@ export interface Common19 {
    */
   breakpoint?: boolean;
   location?: SourceLocation19;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2644,6 +2728,10 @@ export interface Common20 {
    */
   breakpoint?: boolean;
   location?: SourceLocation20;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2715,6 +2803,10 @@ export interface Common21 {
    */
   breakpoint?: boolean;
   location?: SourceLocation21;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2829,6 +2921,10 @@ export interface Common22 {
    */
   breakpoint?: boolean;
   location?: SourceLocation22;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -2948,6 +3044,10 @@ export interface Common23 {
    */
   breakpoint?: boolean;
   location?: SourceLocation23;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3056,6 +3156,10 @@ export interface Common24 {
    */
   breakpoint?: boolean;
   location?: SourceLocation24;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3170,6 +3274,10 @@ export interface Common25 {
    */
   breakpoint?: boolean;
   location?: SourceLocation25;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3241,6 +3349,10 @@ export interface Common26 {
    */
   breakpoint?: boolean;
   location?: SourceLocation26;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3327,6 +3439,10 @@ export interface Common27 {
    */
   breakpoint?: boolean;
   location?: SourceLocation27;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3398,6 +3514,10 @@ export interface Common28 {
    */
   breakpoint?: boolean;
   location?: SourceLocation28;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3469,6 +3589,10 @@ export interface Common29 {
    */
   breakpoint?: boolean;
   location?: SourceLocation29;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3558,6 +3682,10 @@ export interface Common30 {
    */
   breakpoint?: boolean;
   location?: SourceLocation30;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**
@@ -3629,6 +3757,10 @@ export interface Common31 {
    */
   breakpoint?: boolean;
   location?: SourceLocation31;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
   [k: string]: unknown;
 }
 /**

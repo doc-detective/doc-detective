@@ -347,6 +347,34 @@ describe("Util tests", function () {
     expect(configAbsent.autoUpdate).to.equal(true);
   });
 
+  it("Yargs parses --auto-screenshot / --no-auto-screenshot as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--auto-screenshot"]);
+    expect(on.autoScreenshot).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-auto-screenshot"]);
+    expect(off.autoScreenshot).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.autoScreenshot).to.equal(undefined);
+  });
+
+  it("setConfig stores --auto-screenshot on config.autoScreenshot and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--auto-screenshot"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.autoScreenshot).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-auto-screenshot"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.autoScreenshot).to.equal(false);
+
+    // Schema default is false; absent flag yields false via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.autoScreenshot).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.autoScreenshot).to.equal(false);
+  });
+
   it("Yargs parses --cache-dir as a string", function () {
     const set = setArgs(["node", "runTests.js", "--cache-dir", "/tmp/ddc"]);
     expect(set.cacheDir).to.equal("/tmp/ddc");
@@ -482,9 +510,9 @@ describe("Util tests", function () {
     const args = setArgs(["node", "runTests.js", "--input", "."]);
     expect(args.reporters).to.be.undefined;
     const config = await setConfig({ configPath: null, args });
-    // Schema default is ["terminal", "json"] — AJV useDefaults applies it
-    // during validation when the --reporters arg is not provided.
-    expect(config.reporters).to.deep.equal(["terminal", "json"]);
+    // Schema default is ["terminal", "json", "runFolder"] — AJV useDefaults
+    // applies it during validation when the --reporters arg is not provided.
+    expect(config.reporters).to.deep.equal(["terminal", "json", "runFolder"]);
   });
 
   it("outputResults uses config.reporters as source of truth", async function () {

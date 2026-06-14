@@ -119,6 +119,114 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate a config_v3 object with autoScreenshot set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoScreenshot: true },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoScreenshot).to.equal(true);
+      });
+
+      it("should default autoScreenshot to false when unset", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoScreenshot).to.equal(false);
+      });
+
+      it("should reject a config_v3 object whose autoScreenshot is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoScreenshot: "yes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoScreenshot");
+      });
+
+      it("should validate spec_v3 and test_v3 objects with autoScreenshot overrides", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            autoScreenshot: true,
+            tests: [
+              {
+                autoScreenshot: false,
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoScreenshot).to.equal(true);
+        expect(result.object.tests[0].autoScreenshot).to.equal(false);
+      });
+
+      it("should not default autoScreenshot on specs or tests when unset", function () {
+        // No schema default at the spec/test levels — an absent value must
+        // stay absent so the runtime can defer to the config level.
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoScreenshot).to.equal(undefined);
+        expect(result.object.tests[0].autoScreenshot).to.equal(undefined);
+      });
+
+      it("should reject a test_v3 object whose autoScreenshot is not a boolean", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            autoScreenshot: "yes",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoScreenshot");
+      });
+
+      it("should accept a relative forward-slash step autoScreenshot path", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            autoScreenshot: "screenshots/spec/test/ctx/01-goTo-sabc.png",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject step autoScreenshot paths that are empty, absolute, or backslashed", function () {
+        for (const bad of [
+          "",
+          "/abs/shot.png",
+          "C:\\shot.png",
+          "screenshots\\spec\\01.png",
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { goTo: { url: "https://example.com" }, autoScreenshot: bad },
+          });
+          expect(result.valid, `expected invalid: ${JSON.stringify(bad)}`).to.be
+            .false;
+        }
+      });
+
       it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
         for (const concurrentRunners of [1, 4, true]) {
           const result = validate({

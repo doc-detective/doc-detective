@@ -348,7 +348,53 @@ describe("runSpecs concurrency", function () {
     const concurrent = await runSpecs({
       resolvedTests: buildFixture({ concurrentRunners: 2 }),
     });
+    // runId / runDir are intentionally unique per run (timestamped artifact
+    // folder); drop them before comparing execution results.
+    for (const report of [sequential, concurrent]) {
+      delete report.runId;
+      delete report.runDir;
+    }
     expect(concurrent).to.deep.equal(sequential);
+  });
+
+  it("derives deterministic contextIds when contexts omit one", async function () {
+    // Contexts without an explicit contextId (programmatic callers that skip
+    // the resolver) must get a stable platform-derived ID with collision
+    // suffixing — never a random UUID — so two runs produce identical IDs.
+    function fixtureWithoutContextIds() {
+      const platform = getEnvironment().platform;
+      return {
+        config: {
+          logLevel: "silent",
+          telemetry: { send: false },
+          environment: getEnvironment(),
+          concurrentRunners: 1,
+        },
+        specs: [
+          {
+            specId: "spec-x",
+            tests: [
+              {
+                testId: "spec-x-test-1",
+                // Two browserless contexts on the same platform → same base,
+                // so the second must get a `-2` suffix.
+                contexts: [
+                  { platform, steps: [{ runShell: "echo a" }] },
+                  { platform, steps: [{ runShell: "echo b" }] },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+    }
+    const platform = getEnvironment().platform;
+    const first = await runSpecs({ resolvedTests: fixtureWithoutContextIds() });
+    const second = await runSpecs({ resolvedTests: fixtureWithoutContextIds() });
+    const ids = (report) =>
+      report.specs[0].tests[0].contexts.map((c) => c.contextId);
+    expect(ids(first)).to.deep.equal([platform, `${platform}-2`]);
+    expect(ids(second)).to.deep.equal(ids(first));
   });
 
   it("keeps report order identical to input order with 3 runners", async function () {

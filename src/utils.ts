@@ -2,6 +2,7 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
+import { getRunOutputDir } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -100,7 +101,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html. Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/run-<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -119,6 +120,11 @@ function buildYargs(args: any): any {
     .option("hints", {
       description:
         "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
+      type: "boolean",
+    })
+    .option("auto-screenshot", {
+      description:
+        "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs plus each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
       type: "boolean",
     })
     .option("auto-update", {
@@ -386,6 +392,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
   }
+  if (typeof args.autoScreenshot === "boolean") {
+    config.autoScreenshot = args.autoScreenshot;
+  }
   if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
     // Assignment-only per the documented setConfig contract (the standard
     // `length > 0` guard, no per-flag sanitization). getCacheDir() in
@@ -485,6 +494,86 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       // Write results to output file
       fs.writeFileSync(outputFile, data);
       console.log(`See detailed results at ${outputFile}\n`);
+      return outputFile;
+    } catch (err) {
+      console.error(`Error writing results to ${outputFile}. ${err}`);
+      return null;
+    }
+  },
+
+  // runFolder reporter: archives each run's results in its per-run artifact
+  // folder (`<output>/.doc-detective/run-<runId>/`), beside any screenshots
+  // captured during the run. The folder is the timestamp, so the filename
+  // stays constant across runs — diff two run folders to compare results
+  // over time. Runs by default in addition to the flat json reporter.
+  runFolderReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
+    let reportType = "doc-detective-results";
+    if (options.command === "runCoverage") {
+      reportType = "coverageResults";
+    } else if (options.command === "runTests") {
+      reportType = "testResults";
+    }
+
+    // Prefer the run folder stamped on the results (set by runSpecs, shared
+    // with auto screenshots) — but only when it resolves inside this output
+    // path's `.doc-detective/` root. Results can originate outside the local
+    // process (e.g. API runs), and a garbled or malicious runDir must not
+    // redirect the write elsewhere. Otherwise derive a fresh run folder.
+    const expectedRunsRoot = (() => {
+      let base = outputPath || config.output || ".";
+      const reportFileExtensions = [".json", ".html", ".htm"];
+      if (
+        reportFileExtensions.some((ext) =>
+          String(base).toLowerCase().endsWith(ext)
+        )
+      ) {
+        base = path.dirname(base);
+      }
+      return path.resolve(base, ".doc-detective");
+    })();
+    const stampedRunDir =
+      typeof results?.runDir === "string" && results.runDir.length > 0
+        ? path.resolve(results.runDir)
+        : null;
+    // Confine the stamped runDir to the output's `.doc-detective/` root.
+    // Compare *real* paths (resolving symlinks on both sides) so a runDir
+    // that is — or sits under — a symlink pointing outside the tree can't
+    // slip past a plain string-prefix check and redirect the write. Both
+    // paths exist in the normal local case (getRunOutputDir created them);
+    // a non-existent or unresolvable stamped path (e.g. an external/API
+    // result) throws and falls through to a fresh local folder.
+    let useStampedRunDir = false;
+    if (stampedRunDir) {
+      try {
+        const realRoot = fs.realpathSync(expectedRunsRoot);
+        const realStamped = fs.realpathSync(stampedRunDir);
+        useStampedRunDir =
+          realStamped === realRoot ||
+          realStamped.startsWith(realRoot + path.sep);
+      } catch {
+        useStampedRunDir = false;
+      }
+    }
+    const runDir = useStampedRunDir
+      ? stampedRunDir!
+      : getRunOutputDir({ output: outputPath || config.output || "." });
+    // When we reject the stamped runDir and write to a fresh folder, rewrite
+    // runDir/runId in the archived JSON so the report describes the folder it
+    // actually sits beside — otherwise consumers resolve `autoScreenshot`
+    // paths against a directory the report no longer lives in.
+    const persistedResults = useStampedRunDir
+      ? results
+      : {
+          ...results,
+          runDir,
+          runId: path.basename(runDir).replace(/^run-/, ""),
+        };
+    const outputFile = path.resolve(runDir, `${reportType}.json`);
+
+    try {
+      fs.mkdirSync(runDir, { recursive: true });
+      fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
+      console.log(`See per-run results at ${outputFile}\n`);
       return outputFile;
     } catch (err) {
       console.error(`Error writing results to ${outputFile}. ${err}`);
@@ -994,7 +1083,7 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
   // Config is the source of truth. Fall back to options.reporters for
   // programmatic callers that pass them directly, then to defaults.
-  const defaultReporters = ["terminal", "json"];
+  const defaultReporters = ["terminal", "json", "runFolder"];
 
   let activeReporters =
     (config && Array.isArray(config.reporters) && config.reporters.length > 0
@@ -1014,6 +1103,8 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
             return "jsonReporter";
           case "html":
             return "htmlReporter";
+          case "runfolder":
+            return "runFolderReporter";
           case "terminal":
             return "terminalReporter";
           default:

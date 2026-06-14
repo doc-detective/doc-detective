@@ -10,6 +10,16 @@
       "type": "string",
       "description": "Unique identifier for the test specification."
     },
+    "runId": {
+      "type": "string",
+      "description": "Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name (`run-<runId>`). System-populated.",
+      "readOnly": true
+    },
+    "runDir": {
+      "type": "string",
+      "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/run-<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved. Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
+      "readOnly": true
+    },
     "specs": {
       "description": "Test specifications that were performed.",
       "type": "array",
@@ -611,6 +621,10 @@
                   ]
                 }
               },
+              "autoScreenshot": {
+                "type": "boolean",
+                "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
+              },
               "tests": {
                 "description": "[Tests](test) to perform.",
                 "type": "array",
@@ -639,6 +653,10 @@
                           "type": "boolean",
                           "description": "Whether or not to detect steps in input files based on markup regex.",
                           "default": true
+                        },
+                        "autoScreenshot": {
+                          "type": "boolean",
+                          "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
                         },
                         "runOn": {
                           "type": "array",
@@ -1306,6 +1324,13 @@
                                       ],
                                       "additionalProperties": false,
                                       "title": "Source Location"
+                                    },
+                                    "autoScreenshot": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                      "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                      "readOnly": true
                                     }
                                   },
                                   "title": "Common"
@@ -1358,6 +1383,13 @@
                                   "type": "boolean",
                                   "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                   "default": false
+                                },
+                                "autoScreenshot": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                  "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                  "readOnly": true
                                 },
                                 "location": {
                                   "type": "object",
@@ -1476,6 +1508,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -1784,6 +1823,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -2136,6 +2182,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -3585,6 +3638,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -4127,6 +4187,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -5221,6 +5288,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -5557,6 +5631,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -5879,6 +5960,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -6223,6 +6311,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -7010,6 +7105,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -7355,6 +7457,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -7556,6 +7665,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -7668,6 +7784,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -7777,6 +7900,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -8373,6 +8503,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -8701,6 +8838,13 @@
                                         ],
                                         "additionalProperties": false,
                                         "title": "Source Location"
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -9495,6 +9639,13 @@
                                             ],
                                             "additionalProperties": false,
                                             "title": "Source Location"
+                                          },
+                                          "autoScreenshot": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                            "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                            "readOnly": true
                                           }
                                         },
                                         "title": "Common"
@@ -9547,6 +9698,13 @@
                                         "type": "boolean",
                                         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
                                         "default": false
+                                      },
+                                      "autoScreenshot": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                        "readOnly": true
                                       },
                                       "location": {
                                         "type": "object",
@@ -9665,6 +9823,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -9973,6 +10138,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -10325,6 +10497,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -11774,6 +11953,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -12316,6 +12502,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -13410,6 +13603,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -13746,6 +13946,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -14068,6 +14275,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -14412,6 +14626,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -15199,6 +15420,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -15544,6 +15772,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -15745,6 +15980,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -15857,6 +16099,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -15966,6 +16215,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -16562,6 +16818,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -16890,6 +17153,13 @@
                                               ],
                                               "additionalProperties": false,
                                               "title": "Source Location"
+                                            },
+                                            "autoScreenshot": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+                                              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"

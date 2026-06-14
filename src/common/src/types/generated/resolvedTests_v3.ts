@@ -97,7 +97,7 @@ export interface Config {
    */
   output?: string;
   /**
-   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`. Custom reporters registered via `registerReporter()` can also be referenced by name.
+   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (enabled by default) archives each run's results as `<output>/.doc-detective/run-<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Custom reporters registered via `registerReporter()` can also be referenced by name.
    */
   reporters?: string[];
   /**
@@ -183,6 +183,10 @@ export interface Config {
    * If `true`, fully resolve tests (file/env config merge, schema validation, file detection, inline-test extraction) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI.
    */
   dryRun?: boolean;
+  /**
+   * If `true`, captures a screenshot after every step that runs in a browser, in addition to any explicit `screenshot` steps. Images are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
+   */
+  autoScreenshot?: boolean;
   /**
    * If `true` (default), the CLI checks for a newer published `doc-detective` on startup and self-updates before running tests. Updates happen for global (`npm i -g`) and `npx` installs only — local installs (where `doc-detective` is a project dep) get an informational message instead, since auto-updating would mutate the user's lockfile. CI environments and the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` env var also skip the check. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI.
    */
@@ -507,6 +511,10 @@ export interface Specification {
    */
   runOn?: Context1[];
   openApi?: (OpenApi1 & OpenAPIDescriptionTest1)[];
+  /**
+   * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
+   */
+  autoScreenshot?: boolean;
   /**
    * [Tests](test) to perform.
    *

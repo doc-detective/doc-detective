@@ -13,6 +13,7 @@ export {
   log,
   timestamp,
   getOrInitRunTimestamp,
+  getRunOutputDir,
   replaceEnvs,
   spawnCommand,
   inContainer,
@@ -566,15 +567,13 @@ function replaceEnvs(stringOrObject: any): any {
   return stringOrObject;
 }
 
+// Filesystem-safe instant token, matching the `doc-detective debug` dump's
+// file naming (`debug-<timestamp>`): an ISO-8601 string with the `:` and `.`
+// (illegal/awkward in filenames, notably on Windows) replaced by `-`, e.g.
+// `2026-06-14T16-18-00-113Z`. Millisecond precision keeps per-run folders
+// distinct; the run-folder caller still suffixes on the rare same-ms clash.
 function timestamp() {
-  let timestamp = new Date();
-  return `${timestamp.getFullYear()}${("0" + (timestamp.getMonth() + 1)).slice(
-    -2
-  )}${("0" + timestamp.getDate()).slice(-2)}-${(
-    "0" + timestamp.getHours()
-  ).slice(-2)}${("0" + timestamp.getMinutes()).slice(-2)}${(
-    "0" + timestamp.getSeconds()
-  ).slice(-2)}`;
+  return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
 // Memoize one timestamp per run on the config object so every URL-referenced
@@ -585,6 +584,47 @@ function getOrInitRunTimestamp(config: any): string {
     config.__runTimestamp = timestamp();
   }
   return config.__runTimestamp;
+}
+
+// Per-run artifact directory: `<output>/.doc-detective/run-<runId>/`, where
+// runId is the run timestamp — plus an ordinal suffix (`-2`, `-3`, …) on the
+// rare same-millisecond collision, so the effective runId stamped in the
+// report can carry that suffix. Memoized on the config object so auto
+// screenshots and the runFolder reporter all land in the same folder for the
+// duration of a run. If `config.output` points at a report file (reporters
+// accept `.json`/`.html` paths), the run folder is created next to it.
+// Creation is atomic (non-recursive mkdir, EEXIST → ordinal suffix) so two
+// runs starting in the same millisecond each get their own folder instead of
+// silently merging artifacts.
+function getRunOutputDir(config: any): string {
+  if (config?.__runOutputDir) return config.__runOutputDir;
+  // Coerce defensively: a programmatic caller could hand us a non-string
+  // output (e.g. a PathLike), and the extension check / path ops below assume
+  // a string. Mirrors the String() coercion in runFolderReporter.
+  let base = String(config?.output || ".");
+  const reportFileExtensions = [".json", ".html", ".htm"];
+  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+    base = path.dirname(base);
+  }
+  const runsRoot = path.resolve(base, ".doc-detective");
+  fs.mkdirSync(runsRoot, { recursive: true });
+  const runId = getOrInitRunTimestamp(config);
+  let dir = path.join(runsRoot, `run-${runId}`);
+  let suffix = 2;
+  // Non-recursive mkdir is the reservation: it throws EEXIST if another
+  // process already claimed the name, closing the check-then-create race an
+  // existsSync loop would leave open.
+  for (;;) {
+    try {
+      fs.mkdirSync(dir);
+      break;
+    } catch (error: any) {
+      if (error?.code !== "EEXIST") throw error;
+      dir = path.join(runsRoot, `run-${runId}-${suffix++}`);
+    }
+  }
+  if (config) config.__runOutputDir = dir;
+  return dir;
 }
 
 // Perform a native command in the current working directory.

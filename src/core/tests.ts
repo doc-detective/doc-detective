@@ -20,6 +20,8 @@ import {
   runConcurrent,
   rollUpResults,
   createAppiumPool,
+  getRunOutputDir,
+  sanitizeFilesystemName,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -43,6 +45,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
+import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
 import {
   getEnvironment,
@@ -69,6 +72,7 @@ export {
   getDriverCapabilities,
   getDefaultBrowser,
   isSupportedContext,
+  resolveAutoScreenshot,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -541,7 +545,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     "installed" | "failed" | "notInstallable"
   >();
   const warmUpResults = new Map<string, "ok" | "failed">();
+  // Per-run artifact folder and ID, stamped on the report so the runFolder
+  // reporter archives results beside any auto screenshots from the same run,
+  // and so consumers can correlate results over time. Created after the
+  // filter short-circuit above so a run that matched nothing leaves no folder.
+  const runDir = getRunOutputDir(config);
+  const runId = path.basename(runDir).replace(/^run-/, "");
   const report: any = {
+    runId,
+    runDir,
     summary: {
       specs: {
         pass: 0,
@@ -606,8 +618,32 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
+      // Track contextIds within this test so the deterministic fallback below
+      // can suffix collisions, mirroring resolveTests' deriveContextId.
+      const usedContextIds = new Set<string>(
+        test.contexts.map((c: any) => c.contextId).filter(Boolean)
+      );
       test.contexts.forEach((context: any, slot: number) => {
-        context.contextId = context.contextId || randomUUID();
+        // Derive a stable contextId from platform/browser when unset (the
+        // resolver normally assigns one) so the same context keeps the same
+        // ID across runs for comparison — `default` when neither is known,
+        // with an ordinal suffix on collision. No randomness, so two
+        // otherwise-identical runs produce identical reports. Normalized onto
+        // the context so runContext's metaValues keys and the report all read
+        // the same value.
+        if (!context.contextId) {
+          const base =
+            [context.platform, context.browser?.name]
+              .filter(Boolean)
+              .join("-") || "default";
+          let id = base;
+          let suffix = 2;
+          while (usedContextIds.has(id)) {
+            id = `${base}-${suffix++}`;
+          }
+          usedContextIds.add(id);
+          context.contextId = id;
+        }
         jobs.push({ spec, test, context, contexts: testReport.contexts, slot });
       });
     }
@@ -983,6 +1019,131 @@ async function warmUpContexts({
   }
 }
 
+// Effective autoScreenshot setting for a test: the test level wins over the
+// spec level, which wins over the global config. Levels left unset defer
+// down the chain.
+function resolveAutoScreenshot({
+  config,
+  spec,
+  test,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+}): boolean {
+  return Boolean(
+    test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot
+  );
+}
+
+// Directory/file segments built from IDs are capped so deeply nested doc
+// trees can't push the full screenshot path past Windows' MAX_PATH. Keep the
+// tail — content hashes live at the end of generated IDs.
+function capPathSegment(segment: string, max: number = 64): string {
+  return segment.length <= max ? segment : segment.slice(segment.length - max);
+}
+
+// Capture a post-step screenshot for `autoScreenshot` runs. The relative
+// path is derived from stable IDs (spec/test/context) plus the step's
+// order, action, and ID (e.g. screenshots/docs_guide.md/
+// docs_guide.md~3f9a2c1b/windows-chrome/01-goTo-s4f2a91c.png), so the same
+// step lands on the same relative path inside every run's folder — that's
+// what makes run-over-run image comparison possible. Failures are logged as
+// warnings, never thrown: a missed capture must not fail the step it
+// documents.
+async function captureAutoScreenshot({
+  config,
+  driver,
+  spec,
+  test,
+  context,
+  step,
+  stepIndex,
+  stepCount,
+}: {
+  config: any;
+  driver: any;
+  spec: any;
+  test: any;
+  context: any;
+  step: any;
+  stepIndex: number;
+  stepCount: number;
+}): Promise<string | null> {
+  try {
+    const action =
+      driverActions.find((key) => typeof step[key] !== "undefined") || "step";
+    const sanitizedTestId = sanitizeFilesystemName(
+      String(test.testId ?? ""),
+      "test"
+    );
+    const runDir = getRunOutputDir(config);
+    const dir = path.join(
+      runDir,
+      "screenshots",
+      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
+      capPathSegment(sanitizedTestId),
+      capPathSegment(
+        sanitizeFilesystemName(String(context.contextId ?? ""), "context")
+      )
+    );
+    // The stepId usually embeds the testId (its parent folder) — strip that
+    // prefix so filenames stay short while still carrying the step's ID.
+    const stepIdString = sanitizeFilesystemName(
+      String(step.stepId ?? ""),
+      "step"
+    );
+    const stepRef = capPathSegment(
+      stepIdString.startsWith(`${sanitizedTestId}~`)
+        ? stepIdString.slice(sanitizedTestId.length + 1)
+        : stepIdString
+    );
+    // Zero-pad the step ordinal to the width of the context's step count
+    // (min 2), so file listings sort naturally even past 99 steps (100 would
+    // otherwise sort before 11).
+    const pad = Math.max(2, String(stepCount).length);
+    const fileName = `${String(stepIndex + 1).padStart(pad, "0")}-${action}-${stepRef}.png`;
+    const screenshotStep = {
+      stepId: `${step.stepId}_auto`,
+      description: "Automatic post-step screenshot",
+      screenshot: {
+        path: path.join(dir, fileName),
+        overwrite: "true",
+      },
+    };
+    const captureResult = await saveScreenshot({
+      config,
+      step: screenshotStep,
+      driver,
+    });
+    if (captureResult.status !== "PASS") {
+      log(
+        config,
+        "warning",
+        `Auto screenshot failed after step ${step.stepId}: ${captureResult.description}`
+      );
+      return null;
+    }
+    // Report the path relative to the run folder (normalized to forward
+    // slashes) so the same step produces an identical report value in every
+    // run — absolute, timestamped paths would defeat run-over-run diffing.
+    // Consumers resolve it against the report's `runDir`.
+    return path
+      .relative(runDir, screenshotStep.screenshot.path)
+      .split(path.sep)
+      .join("/");
+  } catch (error: any) {
+    log(
+      config,
+      "warning",
+      `Auto screenshot failed after step ${step.stepId}: ${
+        error?.message ?? error
+      }`
+    );
+    return null;
+  }
+}
+
 /**
  * Runs a single resolved context to completion and returns its finished
  * contextReport (steps array + rolled-up result). Never touches the shared
@@ -1259,11 +1420,33 @@ async function runContext({
       }
     }
 
+    // Effective autoScreenshot for this context (test > spec > config).
+    const autoScreenshotEnabled = resolveAutoScreenshot({ config, spec, test });
+
     // Iterates steps
     let stepExecutionFailed = false;
-    for (let step of context.steps) {
-      // Set step id if not defined
-      if (!step.stepId) step.stepId = randomUUID();
+    const usedStepIds = new Set(
+      context.steps.map((s: any) => s.stepId).filter(Boolean)
+    );
+    for (const [stepIndex, step] of context.steps.entries()) {
+      // Set step id if not defined. Derived from the test ID and a hash of
+      // the step's authored definition so the same step keeps the same ID
+      // (and any `screenshot: true` default filename) across runs.
+      // Sanitized because the ID doubles as a screenshot filename; identical
+      // steps in one test get an ordinal suffix.
+      if (!step.stepId) {
+        const baseId = sanitizeFilesystemName(
+          `${test.testId}~s${contentHash(step)}`,
+          `step-${randomUUID()}`
+        );
+        let stepId = baseId;
+        let suffix = 2;
+        while (usedStepIds.has(stepId)) {
+          stepId = `${baseId}-${suffix++}`;
+        }
+        step.stepId = stepId;
+      }
+      usedStepIds.add(step.stepId);
       clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
@@ -1323,6 +1506,30 @@ async function runContext({
         ...step,
         ...stepResult,
       };
+
+      // Capture a post-step screenshot for autoScreenshot runs. Applies to
+      // browser steps (explicit `screenshot` steps already produce an image);
+      // failed steps are captured too — the failure frame is often the most
+      // useful. A capture failure logs a warning and never fails the step.
+      if (
+        autoScreenshotEnabled &&
+        driver &&
+        typeof step.screenshot === "undefined" &&
+        isDriverRequired({ test: { steps: [step] } })
+      ) {
+        const capturedPath = await captureAutoScreenshot({
+          config,
+          driver,
+          spec,
+          test,
+          context,
+          step,
+          stepIndex,
+          stepCount: context.steps.length,
+        });
+        if (capturedPath) stepReport.autoScreenshot = capturedPath;
+      }
+
       contextReport.steps.push(stepReport);
 
       // If this step failed, set flag to skip remaining steps
