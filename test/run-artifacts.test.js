@@ -23,13 +23,16 @@ describe("getRunOutputDir", function () {
     fs.rmSync(tempBase, { recursive: true, force: true });
   });
 
+  // run folder uses the same ISO instant token as the debug dump's filenames.
+  const RUN_ID_RE = /^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/;
+
   it("creates a .doc-detective/run-<runId> folder under config.output", function () {
     const config = { output: tempBase };
     const dir = getRunOutputDir(config);
     expect(path.dirname(dir)).to.equal(
       path.resolve(tempBase, ".doc-detective")
     );
-    expect(path.basename(dir)).to.match(/^run-\d{8}-\d{6}$/);
+    expect(path.basename(dir)).to.match(RUN_ID_RE);
     expect(fs.existsSync(dir)).to.equal(true);
   });
 
@@ -40,17 +43,12 @@ describe("getRunOutputDir", function () {
     expect(second).to.equal(first);
   });
 
-  it("suffixes the folder when a same-second run already created it", function () {
-    const first = getRunOutputDir({
-      output: tempBase,
-      __runTimestamp: "20260612-120000",
-    });
-    const second = getRunOutputDir({
-      output: tempBase,
-      __runTimestamp: "20260612-120000",
-    });
-    expect(path.basename(first)).to.equal("run-20260612-120000");
-    expect(path.basename(second)).to.equal("run-20260612-120000-2");
+  it("suffixes the folder when a same-instant run already created it", function () {
+    const stamp = "2026-06-12T12-00-00-000Z";
+    const first = getRunOutputDir({ output: tempBase, __runTimestamp: stamp });
+    const second = getRunOutputDir({ output: tempBase, __runTimestamp: stamp });
+    expect(path.basename(first)).to.equal(`run-${stamp}`);
+    expect(path.basename(second)).to.equal(`run-${stamp}-2`);
   });
 
   it("creates the run folder next to a report-file output path", function () {
@@ -137,7 +135,7 @@ describe("runFolder reporter", function () {
     expect(written).to.not.include(path.join("elsewhere", "run-x"));
     expect(
       path.relative(path.resolve(tempBase, ".doc-detective"), written)
-    ).to.match(/^run-\d{8}-\d{6}([\\/-]|$)/);
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
     expect(fs.existsSync(evilDir)).to.equal(false);
   });
 
@@ -151,7 +149,7 @@ describe("runFolder reporter", function () {
     expect(written).to.match(/testResults\.json$/);
     expect(
       path.relative(path.resolve(tempBase, ".doc-detective"), written)
-    ).to.match(/^run-\d{8}-\d{6}([\\/-]|$)/);
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 });
 

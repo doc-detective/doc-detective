@@ -567,15 +567,13 @@ function replaceEnvs(stringOrObject: any): any {
   return stringOrObject;
 }
 
+// Filesystem-safe instant token, matching the `doc-detective debug` dump's
+// file naming (`debug-<timestamp>`): an ISO-8601 string with the `:` and `.`
+// (illegal/awkward in filenames, notably on Windows) replaced by `-`, e.g.
+// `2026-06-14T16-18-00-113Z`. Millisecond precision keeps per-run folders
+// distinct; the run-folder caller still suffixes on the rare same-ms clash.
 function timestamp() {
-  let timestamp = new Date();
-  return `${timestamp.getFullYear()}${("0" + (timestamp.getMonth() + 1)).slice(
-    -2
-  )}${("0" + timestamp.getDate()).slice(-2)}-${(
-    "0" + timestamp.getHours()
-  ).slice(-2)}${("0" + timestamp.getMinutes()).slice(-2)}${(
-    "0" + timestamp.getSeconds()
-  ).slice(-2)}`;
+  return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
 // Memoize one timestamp per run on the config object so every URL-referenced
