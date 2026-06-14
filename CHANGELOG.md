@@ -1,3 +1,11 @@
+# [4.8.0](https://github.com/doc-detective/doc-detective/compare/v4.7.0...v4.8.0) (2026-06-14)
+
+
+### Features
+
+* concurrent test runners (parallel context execution) ([#332](https://github.com/doc-detective/doc-detective/issues/332)) ([dd24819](https://github.com/doc-detective/doc-detective/commit/dd24819798f7712067cae64378ba5c59bbbdfc20)), closes [doc-detective/core#337](https://github.com/doc-detective/core/issues/337) [#338](https://github.com/doc-detective/doc-detective/issues/338)
+* **core:** runtime dependency detection + Appium warm-up guard ([#338](https://github.com/doc-detective/doc-detective/issues/338)) ([45adfaf](https://github.com/doc-detective/doc-detective/commit/45adfaf12db31b469916906581344760ce82e785))
+
 # [4.7.0](https://github.com/doc-detective/doc-detective/compare/v4.6.1...v4.7.0) (2026-06-13)
 
 
