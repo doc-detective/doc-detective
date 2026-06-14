@@ -574,6 +574,24 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       fs.mkdirSync(runDir, { recursive: true });
       fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
       console.log(`See per-run results at ${outputFile}\n`);
+
+      // Also archive a human-readable HTML report beside the JSON so the run
+      // folder is a complete, shareable artifact without enabling the standalone
+      // `html` reporter. Best-effort and isolated in its own try/catch: an HTML
+      // failure must not break the JSON archive (this reporter's primary
+      // contract). Dynamic import keeps the large inlined CSS/JS off the hot
+      // path for non-reporting CLI invocations, matching the htmlReporter.
+      try {
+        const { buildHtml } = await import("./reporters/htmlReporter.js");
+        const htmlFile = path.resolve(runDir, `${reportType}.html`);
+        fs.writeFileSync(htmlFile, buildHtml(persistedResults));
+        console.log(`See per-run HTML report at ${htmlFile}\n`);
+      } catch (htmlErr) {
+        console.error(
+          `Error writing per-run HTML report to ${runDir}. ${htmlErr}`
+        );
+      }
+
       return outputFile;
     } catch (err) {
       console.error(`Error writing results to ${outputFile}. ${err}`);
