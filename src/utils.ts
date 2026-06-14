@@ -535,9 +535,25 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       typeof results?.runDir === "string" && results.runDir.length > 0
         ? path.resolve(results.runDir)
         : null;
-    const useStampedRunDir = Boolean(
-      stampedRunDir && stampedRunDir.startsWith(expectedRunsRoot + path.sep)
-    );
+    // Confine the stamped runDir to the output's `.doc-detective/` root.
+    // Compare *real* paths (resolving symlinks on both sides) so a runDir
+    // that is — or sits under — a symlink pointing outside the tree can't
+    // slip past a plain string-prefix check and redirect the write. Both
+    // paths exist in the normal local case (getRunOutputDir created them);
+    // a non-existent or unresolvable stamped path (e.g. an external/API
+    // result) throws and falls through to a fresh local folder.
+    let useStampedRunDir = false;
+    if (stampedRunDir) {
+      try {
+        const realRoot = fs.realpathSync(expectedRunsRoot);
+        const realStamped = fs.realpathSync(stampedRunDir);
+        useStampedRunDir =
+          realStamped === realRoot ||
+          realStamped.startsWith(realRoot + path.sep);
+      } catch {
+        useStampedRunDir = false;
+      }
+    }
     const runDir = useStampedRunDir
       ? stampedRunDir!
       : getRunOutputDir({ output: outputPath || config.output || "." });

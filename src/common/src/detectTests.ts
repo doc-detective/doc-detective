@@ -506,8 +506,13 @@ export async function parseContent({
   let tests: DetectedTest[] = [];
   const pendingTestIds = new Set<string>();
   let pendingCounter = 0;
+  // Salt the ephemeral pending-ID prefix with a hash of the file content so a
+  // user can't author a `testId` that collides with one — the replacement
+  // pass below only overwrites IDs in `pendingTestIds`, and an authored value
+  // would have to match this content-derived salt exactly to land there.
+  const pendingSalt = contentHash(content);
   const nextPendingTestId = () => {
-    const id = `__doc-detective-pending-${++pendingCounter}`;
+    const id = `__dd-pending-${pendingSalt}-${++pendingCounter}`;
     pendingTestIds.add(id);
     return id;
   };

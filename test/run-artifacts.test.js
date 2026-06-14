@@ -75,6 +75,9 @@ describe("runFolder reporter", function () {
 
   it("writes testResults.json into the run folder stamped on the results", async function () {
     const runDir = path.join(tempBase, ".doc-detective", "run-20260612-130000");
+    // runSpecs creates the run folder before the reporter runs; the reporter's
+    // confinement check resolves real paths, so the folder must exist on disk.
+    fs.mkdirSync(runDir, { recursive: true });
     const results = { runId: "20260612-130000", runDir, summary: {}, specs: [] };
     const written = await reporters.runFolderReporter({}, tempBase, results, {
       command: "runTests",
@@ -82,6 +85,43 @@ describe("runFolder reporter", function () {
     expect(written).to.equal(path.resolve(runDir, "testResults.json"));
     const parsed = JSON.parse(fs.readFileSync(written, "utf8"));
     expect(parsed.runId).to.equal("20260612-130000");
+  });
+
+  it("rejects a stamped runDir that symlinks outside the .doc-detective root", async function () {
+    // A runDir that lives under .doc-detective/ but is a symlink resolving
+    // outside the output tree must not slip past the confinement check.
+    const runsRoot = path.resolve(tempBase, ".doc-detective");
+    fs.mkdirSync(runsRoot, { recursive: true });
+    const outsideTarget = fs.mkdtempSync(path.join(os.tmpdir(), "dd-escape-"));
+    const linkPath = path.join(runsRoot, "run-escape");
+    let symlinkSupported = true;
+    try {
+      fs.symlinkSync(outsideTarget, linkPath, "junction");
+    } catch {
+      // Symlink creation can require privileges on some Windows setups; skip
+      // rather than fail the suite where the OS won't allow it.
+      symlinkSupported = false;
+    }
+    if (!symlinkSupported) {
+      fs.rmSync(outsideTarget, { recursive: true, force: true });
+      this.skip();
+      return;
+    }
+    try {
+      const written = await reporters.runFolderReporter(
+        {},
+        tempBase,
+        { runDir: linkPath, summary: {}, specs: [] },
+        { command: "runTests" }
+      );
+      // Wrote into a fresh in-tree folder, not the escaping symlink target.
+      expect(fs.realpathSync(path.dirname(written))).to.not.equal(
+        fs.realpathSync(outsideTarget)
+      );
+      expect(fs.readdirSync(outsideTarget)).to.have.lengthOf(0);
+    } finally {
+      fs.rmSync(outsideTarget, { recursive: true, force: true });
+    }
   });
 
   it("ignores a results.runDir outside the output's .doc-detective root", async function () {

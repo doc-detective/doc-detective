@@ -563,6 +563,21 @@ function readFixture(filename) {
         expect(result[0].testId).to.match(/^docs\/guide\.md~[0-9a-f]{8}$/);
       });
 
+      it("should preserve an authored testId that resembles a pending placeholder", async function () {
+        // The internal pending prefix is salted with a content hash, so a
+        // user-authored testId can't accidentally land in the pending set and
+        // get overwritten by the content-hash replacement pass.
+        const content =
+          '<!-- test {"testId": "__dd-pending-deadbeef-1", "steps": [{"goTo": {"url": "https://a.com"}}]} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result[0].testId).to.equal("__dd-pending-deadbeef-1");
+      });
+
       it("should suffix generated testIds for identical tests in one file", async function () {
         const content =
           '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->\n' +
