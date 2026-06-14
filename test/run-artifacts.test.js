@@ -190,9 +190,11 @@ describe("runFolder reporter", function () {
     expect(fs.existsSync(path.resolve(runDir, "coverageResults.json"))).to.equal(
       true
     );
-    expect(fs.existsSync(path.resolve(runDir, "coverageResults.html"))).to.equal(
-      true
-    );
+    const htmlFile = path.resolve(runDir, "coverageResults.html");
+    expect(fs.existsSync(htmlFile)).to.equal(true);
+    const html = fs.readFileSync(htmlFile, "utf8");
+    expect(html).to.include("<!DOCTYPE html>");
+    expect(html).to.include("20260612-150000");
   });
 
   it("writes the HTML beside the JSON when the stamped runDir is rejected", async function () {
