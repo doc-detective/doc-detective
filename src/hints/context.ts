@@ -132,6 +132,7 @@ export async function buildHintContext(
     usedStepTypes: walkData.usedStepTypes,
     usedBrowserContexts: walkData.usedBrowserContexts,
     producedScreenshots: walkData.producedScreenshots,
+    producedAutoScreenshots: walkData.producedAutoScreenshots,
     producedRecordings: walkData.producedRecordings,
     usedSelectorOnlyFinds: walkData.usedSelectorOnlyFinds,
     hasRelativeUrls: walkData.hasRelativeUrls,
@@ -372,6 +373,7 @@ interface WalkData {
   usedStepTypes: Set<string>;
   usedBrowserContexts: Set<string>;
   producedScreenshots: boolean;
+  producedAutoScreenshots: boolean;
   producedRecordings: boolean;
   usedSelectorOnlyFinds: boolean;
   hasRelativeUrls: boolean;
@@ -384,6 +386,7 @@ function emptyWalkData(): WalkData {
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
     producedScreenshots: false,
+    producedAutoScreenshots: false,
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
     hasRelativeUrls: false,
@@ -437,6 +440,12 @@ function inspectStep(step: any, data: WalkData): void {
   // Screenshot / recording outputs.
   if (step.screenshot !== undefined) {
     if (producesOutput(step.screenshot)) data.producedScreenshots = true;
+  }
+  // Auto screenshots land in a separate result field (a relative path string),
+  // not `step.screenshot`. Track it so the enableAutoScreenshot hint doesn't
+  // fire when spec/test-level autoScreenshot already produced images.
+  if (typeof step.autoScreenshot === "string" && step.autoScreenshot.length > 0) {
+    data.producedAutoScreenshots = true;
   }
   if (step.record !== undefined) {
     if (producesOutput(step.record)) data.producedRecordings = true;

@@ -50,14 +50,22 @@ const HASH_EXCLUDED_KEYS = new Set([
  */
 export function contentHash(value: any): string {
   // JSON.stringify returns undefined for unserializable inputs (undefined,
-  // functions, symbols); fall back to "" so the hash stays a stable string
-  // instead of crashing on optional/empty values.
-  const input =
-    typeof value === "string"
-      ? value
-      : JSON.stringify(value, (key, v) =>
+  // functions, symbols) and throws for circular references or BigInt. Fall
+  // back to "" in both cases so ID generation degrades to a stable hash
+  // instead of crashing.
+  let input: string;
+  if (typeof value === "string") {
+    input = value;
+  } else {
+    try {
+      input =
+        JSON.stringify(value, (key, v) =>
           HASH_EXCLUDED_KEYS.has(key) ? undefined : v
         ) ?? "";
+    } catch {
+      input = "";
+    }
+  }
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
     hash ^= input.charCodeAt(i);

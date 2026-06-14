@@ -634,6 +634,15 @@ function readFixture(filename) {
         expect(contentHash(undefined)).to.equal(contentHash(""));
       });
 
+      it("contentHash degrades to a stable hash on circular / BigInt input", function () {
+        // JSON.stringify throws (not returns undefined) for circular refs and
+        // BigInt; the try/catch must keep ID generation from crashing.
+        const circular = {};
+        circular.self = circular;
+        expect(contentHash(circular)).to.match(/^[0-9a-f]{8}$/);
+        expect(contentHash({ n: 1n })).to.match(/^[0-9a-f]{8}$/);
+      });
+
       it("should generate identical testIds for identical content across parses", async function () {
         const content =
           '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->\n' +

@@ -100,6 +100,12 @@ export interface HintContext {
   usedBrowserContexts: Set<string>;
   /** True if any step produced a screenshot. */
   producedScreenshots: boolean;
+  /**
+   * True if any step produced an auto screenshot (the `--auto-screenshot` /
+   * config/spec/test `autoScreenshot` feature), which lands in the separate
+   * `step.autoScreenshot` result field rather than `step.screenshot`.
+   */
+  producedAutoScreenshots: boolean;
   /** True if any step produced a recording. */
   producedRecordings: boolean;
   /**

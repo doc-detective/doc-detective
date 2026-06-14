@@ -77,13 +77,20 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
   // Resolve to final contexts. Each context should include a single platform and at most a single browser.
   contexts.forEach((context) => {
     const staticContexts: any[] = [];
+    // Carry forward authored fields (e.g. an explicit `contextId`) onto each
+    // expanded static context — rebuilding as a bare `{ platform, browser }`
+    // would silently drop a user-supplied contextId. `platforms`/`browsers`
+    // are the array forms we're expanding away, so strip them.
+    const carry = { ...context };
+    delete carry.platforms;
+    delete carry.browsers;
     context.platforms.forEach((platform: any) => {
       if (!browserRequired) {
-        const staticContext = { platform };
+        const staticContext = { ...carry, platform };
         staticContexts.push(staticContext);
       } else {
         context.browsers.forEach((browser: any) => {
-          const staticContext = { platform, browser };
+          const staticContext = { ...carry, platform, browser };
           staticContexts.push(staticContext);
         });
       }
@@ -163,8 +170,12 @@ function deriveContextId({ context, usedIds }: { context: any; usedIds: Set<stri
 }
 
 async function resolveContext({ config, test, context, usedContextIds }: { config: any; test: any; context: any; usedContextIds: Set<string> }) {
-  const contextId =
-    context.contextId || deriveContextId({ context, usedIds: usedContextIds });
+  // Normalize the derived ID back onto the context so any downstream reader
+  // of `context.contextId` (not just the resolved copy) sees the same value.
+  if (!context.contextId) {
+    context.contextId = deriveContextId({ context, usedIds: usedContextIds });
+  }
+  const contextId = context.contextId;
   usedContextIds.add(contextId);
   log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);
   const resolvedContext = {

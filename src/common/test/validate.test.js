@@ -200,6 +200,33 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoScreenshot");
       });
 
+      it("should accept a relative forward-slash step autoScreenshot path", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            autoScreenshot: "screenshots/spec/test/ctx/01-goTo-sabc.png",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject step autoScreenshot paths that are empty, absolute, or backslashed", function () {
+        for (const bad of [
+          "",
+          "/abs/shot.png",
+          "C:\\shot.png",
+          "screenshots\\spec\\01.png",
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { goTo: { url: "https://example.com" }, autoScreenshot: bad },
+          });
+          expect(result.valid, `expected invalid: ${JSON.stringify(bad)}`).to.be
+            .false;
+        }
+      });
+
       it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
         for (const concurrentRunners of [1, 4, true]) {
           const result = validate({

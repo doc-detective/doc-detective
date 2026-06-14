@@ -98,7 +98,9 @@ export const HINTS: Hint[] = [
     id: "enableAutoScreenshot",
     priority: 40,
     markdown: [
-      "Want a visual record of every run? `--auto-screenshot` captures an image after each browser step and archives them per run (with results) under `.doc-detective/run-<runId>/` — diff two run folders to spot UI changes over time.",
+      "Want a visual record of every run? Enable `--auto-screenshot` to capture an image after each browser step.",
+      "",
+      "Screenshots are archived per run under `.doc-detective/run-<runId>/` alongside test results. Diff two run folders to spot UI changes over time.",
       "",
       "```bash",
       "doc-detective --auto-screenshot",
@@ -107,6 +109,7 @@ export const HINTS: Hint[] = [
     when: (ctx) =>
       ctx.usedBrowserContexts.size > 0 &&
       !ctx.producedScreenshots &&
+      !ctx.producedAutoScreenshots &&
       !ctx.config?.autoScreenshot,
   },
 

@@ -535,15 +535,28 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       typeof results?.runDir === "string" && results.runDir.length > 0
         ? path.resolve(results.runDir)
         : null;
-    const runDir =
+    const useStampedRunDir = Boolean(
       stampedRunDir && stampedRunDir.startsWith(expectedRunsRoot + path.sep)
-        ? stampedRunDir
-        : getRunOutputDir({ output: outputPath || config.output || "." });
+    );
+    const runDir = useStampedRunDir
+      ? stampedRunDir!
+      : getRunOutputDir({ output: outputPath || config.output || "." });
+    // When we reject the stamped runDir and write to a fresh folder, rewrite
+    // runDir/runId in the archived JSON so the report describes the folder it
+    // actually sits beside — otherwise consumers resolve `autoScreenshot`
+    // paths against a directory the report no longer lives in.
+    const persistedResults = useStampedRunDir
+      ? results
+      : {
+          ...results,
+          runDir,
+          runId: path.basename(runDir).replace(/^run-/, ""),
+        };
     const outputFile = path.resolve(runDir, `${reportType}.json`);
 
     try {
       fs.mkdirSync(runDir, { recursive: true });
-      fs.writeFileSync(outputFile, JSON.stringify(results, null, 2));
+      fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
       console.log(`See per-run results at ${outputFile}\n`);
       return outputFile;
     } catch (err) {

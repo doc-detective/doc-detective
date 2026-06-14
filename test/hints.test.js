@@ -475,6 +475,34 @@ describe("hints/context", function () {
       expect(data.producedScreenshots).to.equal(false);
     });
 
+    it("producedAutoScreenshots is true when a step carries an autoScreenshot path", function () {
+      // Auto screenshots land in the separate `autoScreenshot` result field
+      // (a relative path string), not `screenshot`.
+      const data = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { steps: [{ goTo: "x", autoScreenshot: "screenshots/a/01-goTo.png" }] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(data.producedAutoScreenshots).to.equal(true);
+      // The plain screenshot flag stays false — different field.
+      expect(data.producedScreenshots).to.equal(false);
+    });
+
+    it("producedAutoScreenshots is false for an empty autoScreenshot string", function () {
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [{ goTo: "x", autoScreenshot: "" }] }] }] }],
+      });
+      expect(data.producedAutoScreenshots).to.equal(false);
+    });
+
     it("flags usedSelectorOnlyFinds when find uses selector with no stable sibling", function () {
       const data = walkResults({
         specs: [{ tests: [{ contexts: [{ steps: [{ find: { selector: "#x" } }] }] }] }],
@@ -1289,6 +1317,7 @@ function fakeCtx(partial = {}) {
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
     producedScreenshots: false,
+    producedAutoScreenshots: false,
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
     agentDetections: [],
@@ -1646,6 +1675,18 @@ describe("hints/hints (registry)", function () {
           usedBrowserContexts: new Set(["chrome"]),
           producedScreenshots: false,
           config: { autoScreenshot: true },
+        })
+      )
+    ).to.equal(false);
+    // Negative: auto screenshots were produced (spec/test-level enable, where
+    // config.autoScreenshot is unset but images still landed this run).
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          producedScreenshots: false,
+          producedAutoScreenshots: true,
+          config: {},
         })
       )
     ).to.equal(false);
