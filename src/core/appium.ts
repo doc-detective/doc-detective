@@ -43,11 +43,14 @@ function setAppiumHome(ctx: { cacheDir?: string } = {}) {
   // appium resolved to a different node_modules than its drivers — making
   // `appium driver list` report every driver as not-installed and browser
   // detection come up empty.
-  const driverEntry =
-    resolveHeavyDepPath("appium-chromium-driver", { cacheDir: ctx.cacheDir }) ||
-    resolveHeavyDepPath("appium-geckodriver", { cacheDir: ctx.cacheDir });
-  if (driverEntry) {
-    const home = appiumHomeForDriverPath(driverEntry);
+  // Try each driver in turn: resolveHeavyDepPath can return a shim path with no
+  // node_modules segment (appiumHomeForDriverPath then yields null), so a bad
+  // first candidate must not stop us from deriving the home from the second.
+  for (const driverName of ["appium-chromium-driver", "appium-geckodriver"]) {
+    const driverEntry = resolveHeavyDepPath(driverName, {
+      cacheDir: ctx.cacheDir,
+    });
+    const home = driverEntry ? appiumHomeForDriverPath(driverEntry) : null;
     if (home) {
       process.env.APPIUM_HOME = home;
       return;

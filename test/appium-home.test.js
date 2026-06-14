@@ -1,5 +1,7 @@
 import { appiumHomeForDriverPath, setAppiumHome } from "../dist/core/appium.js";
+import { resolveHeavyDepPath } from "../dist/runtime/loader.js";
 import path from "node:path";
+import { existsSync } from "node:fs";
 import assert from "node:assert/strict";
 
 // Build paths with the platform separator so the assertions hold on the whole
@@ -27,19 +29,32 @@ describe("appiumHomeForDriverPath", function () {
 });
 
 describe("setAppiumHome", function () {
-  it("points APPIUM_HOME at a directory whose node_modules holds the drivers", function () {
+  it("points APPIUM_HOME at a directory whose node_modules holds appium/drivers", function () {
+    // Needs the drivers actually installed to exercise (and validate) the
+    // resolution. The CI matrix runs `install all` first; skip on a lean env.
+    const driverEntry =
+      resolveHeavyDepPath("appium-chromium-driver") ||
+      resolveHeavyDepPath("appium-geckodriver");
+    if (!driverEntry) this.skip();
+
     const prev = process.env.APPIUM_HOME;
     try {
       delete process.env.APPIUM_HOME;
       setAppiumHome({});
       const home = process.env.APPIUM_HOME;
       assert.ok(home, "APPIUM_HOME should be set");
-      // The resolved home must not itself end in node_modules — that was the
-      // bug (appium would then look in <home>/node_modules/node_modules).
-      assert.notEqual(
-        path.basename(home),
-        "node_modules",
-        `APPIUM_HOME should be the parent of node_modules, got ${home}`
+      // `appium driver list` reads <APPIUM_HOME>/node_modules, so that directory
+      // must actually contain appium or a driver. This is the deterministic
+      // catch for the worktree regression: the pre-fix value was
+      // <...>/node_modules, whose node_modules/node_modules holds nothing, so
+      // every driver read "not installed".
+      const nm = path.join(home, "node_modules");
+      const usable = ["appium", "appium-chromium-driver", "appium-geckodriver"].some(
+        (dep) => existsSync(path.join(nm, dep))
+      );
+      assert.ok(
+        usable,
+        `expected ${nm} to contain appium or a driver, APPIUM_HOME=${home}`
       );
     } finally {
       if (prev === undefined) delete process.env.APPIUM_HOME;
