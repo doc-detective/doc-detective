@@ -121,6 +121,12 @@ src/container/test/artifacts/results*.json
 src/container/test/artifacts/output/
 src/container/test/artifacts/*.png
 
+# Test-generated screenshot / recording artifacts (created by the core
+# screenshot/recording specs; not curated baselines, regenerated per run)
+/screenshot-boolean.png
+test/core-artifacts/**/*.png
+test/core-artifacts/**/*.webm
+
 # Common subpackage build artifacts
 src/common/dist/
 src/common/node_modules/
