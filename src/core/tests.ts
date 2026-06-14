@@ -65,6 +65,7 @@ export {
   ensureContextBrowserInstalled,
   combinationKey,
   warmUpDecision,
+  selectWarmUpTargets,
   getDriverCapabilities,
   getDefaultBrowser,
   isSupportedContext,
@@ -800,6 +801,46 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 }
 
 /**
+ * Pick which contexts warmUpContexts should warm up: one representative per
+ * unique platform::browser combination among the driver-required jobs. Applies
+ * the same platform default and default-browser resolution runContext uses, so
+ * the combination keys it produces match the ones runContext looks up in the
+ * pool. Non-driver and browserless contexts are excluded. Mutates
+ * context.platform / context.browser in place — idempotent, since runContext
+ * applies the identical defaults. Pure (no I/O) so the selection + de-dup +
+ * normalization logic is unit-testable without Appium.
+ */
+function selectWarmUpTargets(
+  jobs: any[],
+  runnerDetails: any
+): Array<{ context: any; combo: string }> {
+  const platform = runnerDetails.environment.platform;
+  const seen = new Set<string>();
+  const targets: Array<{ context: any; combo: string }> = [];
+  for (const job of jobs) {
+    const context = job.context;
+    if (!context.steps) context.steps = [];
+    // Default platform to the runner's, matching runContext. Without this a
+    // resolved context of `{}` (no runOn — the common case) keys as
+    // `undefined::<browser>`, fails the support check, and is skipped — which
+    // would defeat the warm-up/install de-racing the pre-pass exists for.
+    if (!context.platform) context.platform = platform;
+    if (!context.browser && isDriverRequired({ test: context })) {
+      context.browser = getDefaultBrowser({ runnerDetails });
+    }
+    if (!isDriverRequired({ test: context })) continue;
+    // No resolvable browser — runContext skips these per-context with its own
+    // message; nothing to warm up.
+    if (!context.browser?.name) continue;
+    const combo = combinationKey(context);
+    if (seen.has(combo)) continue;
+    seen.add(combo);
+    targets.push({ context, combo });
+  }
+  return targets;
+}
+
+/**
  * Serial pre-pass for concurrent runs. For each unique driver combination
  * (platform::browser) among the jobs, resolves a missing browser dependency on
  * demand and then warms up a driver once, recording the outcome. Runs before
@@ -828,27 +869,11 @@ async function warmUpContexts({
   warmUpResults: Map<string, "ok" | "failed">;
 }): Promise<void> {
   const platform = runnerDetails.environment.platform;
-  const seen = new Set<string>();
-  for (const job of jobs) {
-    const context = job.context;
-    if (!context.steps) context.steps = [];
-    // Normalize platform and the default browser exactly as runContext does, so
-    // the combination key, support check, and warm-up all match what the
-    // context will actually use. Without the platform default, a resolved
-    // context of `{}` (no runOn) keys as `undefined::<browser>` and fails the
-    // support check, skipping the warm-up for the most common driver contexts
-    // and letting them race on on-demand installs in the pool.
-    if (!context.platform) context.platform = platform;
-    if (!context.browser && isDriverRequired({ test: context })) {
-      context.browser = getDefaultBrowser({ runnerDetails });
-    }
-    if (!isDriverRequired({ test: context })) continue;
-    // No resolvable browser — runContext skips these per-context with its own
-    // message; nothing to warm up.
-    if (!context.browser?.name) continue;
+  // Which unique combinations to warm up (with the same platform/browser
+  // normalization runContext applies) is extracted into selectWarmUpTargets so
+  // it can be unit-tested without spinning up Appium.
+  for (const { context } of selectWarmUpTargets(jobs, runnerDetails)) {
     const combo = combinationKey(context);
-    if (seen.has(combo)) continue;
-    seen.add(combo);
 
     // On-demand install + re-detect (serial), mirroring runContext's gate.
     let supported = isSupportedContext({

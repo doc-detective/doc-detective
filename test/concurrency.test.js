@@ -3,7 +3,7 @@ import {
   rollUpResults,
   createAppiumPool,
 } from "../dist/core/utils.js";
-import { runSpecs } from "../dist/core/tests.js";
+import { runSpecs, selectWarmUpTargets } from "../dist/core/tests.js";
 import {
   getEnvironment,
   resolveConcurrentRunners,
@@ -197,6 +197,71 @@ describe("resolveConcurrentRunners", function () {
       ).to.equal(1);
     }
     expect(resolveConcurrentRunners({})).to.equal(1);
+  });
+});
+
+describe("selectWarmUpTargets", function () {
+  // The serial warm-up pre-pass keys work by combinationKey; this is the
+  // selection/normalization/dedup logic it runs before any driver starts.
+  const runner = (platform, appNames = []) => ({
+    environment: { platform },
+    availableApps: appNames.map((name) => ({ name })),
+  });
+  const job = (context) => ({ context });
+  const combos = (jobs, runnerDetails) =>
+    selectWarmUpTargets(jobs, runnerDetails).map((t) => t.combo);
+
+  it("defaults a missing platform to the runner's and dedups by combo", function () {
+    // Regression guard: a resolved context of `{}` (no runOn) must key as
+    // `windows::firefox`, not `undefined::firefox`. The two firefox contexts
+    // collapse to a single warm-up target.
+    const jobs = [
+      job({ browser: { name: "firefox" }, steps: [{ goTo: "x" }] }),
+      job({ browser: { name: "firefox" }, steps: [{ find: "y" }] }),
+    ];
+    expect(combos(jobs, runner("windows"))).to.deep.equal(["windows::firefox"]);
+  });
+
+  it("keeps platform and browser distinct in the key", function () {
+    const jobs = [
+      job({ platform: "windows", browser: { name: "chrome" }, steps: [{ goTo: "x" }] }),
+      job({ platform: "windows", browser: { name: "firefox" }, steps: [{ goTo: "x" }] }),
+      job({ platform: "mac", browser: { name: "chrome" }, steps: [{ goTo: "x" }] }),
+    ];
+    expect(combos(jobs, runner("windows"))).to.deep.equal([
+      "windows::chrome",
+      "windows::firefox",
+      "mac::chrome",
+    ]);
+  });
+
+  it("normalizes webkit to safari in the key", function () {
+    const jobs = [
+      job({ platform: "mac", browser: { name: "webkit" }, steps: [{ goTo: "x" }] }),
+    ];
+    expect(combos(jobs, runner("mac"))).to.deep.equal(["mac::safari"]);
+  });
+
+  it("excludes non-driver contexts", function () {
+    const jobs = [
+      job({ browser: { name: "chrome" }, steps: [{ runShell: "echo hi" }] }),
+      job({ steps: [{ wait: 10 }] }),
+    ];
+    expect(combos(jobs, runner("windows", ["chrome"]))).to.deep.equal([]);
+  });
+
+  it("resolves a default browser when the context omits one", function () {
+    const jobs = [job({ steps: [{ goTo: "x" }] })];
+    const targets = selectWarmUpTargets(jobs, runner("linux", ["chrome"]));
+    expect(targets.map((t) => t.combo)).to.deep.equal(["linux::chrome"]);
+    // The default browser is written back onto the context for the pool.
+    expect(targets[0].context.browser.name).to.equal("chrome");
+  });
+
+  it("excludes a driver context when no browser can be resolved", function () {
+    // Driver required, no browser on the context, none available to default to.
+    const jobs = [job({ steps: [{ goTo: "x" }] })];
+    expect(combos(jobs, runner("windows", []))).to.deep.equal([]);
   });
 });
 
