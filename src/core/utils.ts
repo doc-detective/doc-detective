@@ -592,7 +592,7 @@ function getOrInitRunTimestamp(config: any): string {
 // duration of a run. If `config.output` points at a report file (reporters
 // accept `.json`/`.html` paths), the run folder is created next to it.
 // Creation is atomic (non-recursive mkdir, EEXIST → ordinal suffix) so two
-// runs starting in the same second each get their own folder instead of
+// runs starting in the same millisecond each get their own folder instead of
 // silently merging artifacts.
 function getRunOutputDir(config: any): string {
   if (config?.__runOutputDir) return config.__runOutputDir;
