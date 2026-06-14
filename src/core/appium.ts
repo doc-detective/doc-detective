@@ -2,16 +2,26 @@ import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { getRuntimeDir } from "../runtime/cacheDir.js";
+import { resolveHeavyDepPath } from "../runtime/loader.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { setAppiumHome };
+export { setAppiumHome, appiumHomeForDriverPath };
+
+// Given a resolved driver module path like
+// `<X>/node_modules/appium-geckodriver/build/lib/index.js`, return `<X>` — the
+// directory whose `node_modules` holds the driver. `appium driver list` looks
+// in `<APPIUM_HOME>/node_modules`, so this is the home that makes the driver
+// resolvable. Returns null if the path has no `node_modules` segment.
+function appiumHomeForDriverPath(driverEntry: string): string | null {
+  const marker = `${path.sep}node_modules${path.sep}`;
+  const idx = driverEntry.lastIndexOf(marker);
+  return idx === -1 ? null : driverEntry.slice(0, idx);
+}
 
 function setAppiumHome(ctx: { cacheDir?: string } = {}) {
-  // Prefer the lazy-installed copy in <cacheDir>/runtime/node_modules/appium.
-  // The cache install is the canonical home post-shim; only fall back to the
-  // legacy node_modules walk for installs where the user pre-installed
-  // appium as a regular npm dep alongside doc-detective.
+  // 1. Prefer the lazy-installed copy in <cacheDir>/runtime/node_modules/appium.
+  // The cache install is the canonical home post-shim.
   const runtimeAppium = path.join(
     getRuntimeDir({ cacheDir: ctx.cacheDir }),
     "node_modules",
@@ -23,6 +33,28 @@ function setAppiumHome(ctx: { cacheDir?: string } = {}) {
     );
     return;
   }
+
+  // 2. Otherwise anchor APPIUM_HOME to the directory whose node_modules holds
+  // the appium drivers, resolved the same way the runner loads them. appium
+  // looks for drivers in <APPIUM_HOME>/node_modules, so the home is the parent
+  // of the node_modules that contains the driver package. This is robust to
+  // git worktrees and hoisted layouts where the legacy __dirname walk below
+  // landed on the node_modules directory itself (one level too deep) whenever
+  // appium resolved to a different node_modules than its drivers — making
+  // `appium driver list` report every driver as not-installed and browser
+  // detection come up empty.
+  const driverEntry =
+    resolveHeavyDepPath("appium-chromium-driver", { cacheDir: ctx.cacheDir }) ||
+    resolveHeavyDepPath("appium-geckodriver", { cacheDir: ctx.cacheDir });
+  if (driverEntry) {
+    const home = appiumHomeForDriverPath(driverEntry);
+    if (home) {
+      process.env.APPIUM_HOME = home;
+      return;
+    }
+  }
+
+  // 3. Legacy fallback: walk up from core's node_modules looking for appium.
   const corePath = path.join(__dirname, "../../node_modules");
   const pathArray = corePath.split("node_modules");
   let appiumParentPath = pathArray[0];
