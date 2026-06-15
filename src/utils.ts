@@ -586,8 +586,11 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         fs.writeFileSync(htmlFile, buildHtml(persistedResults));
         console.log(`See per-run HTML report at ${htmlFile}\n`);
       } catch (htmlErr) {
+        // Pass the error as a separate arg so its stack survives (string
+        // interpolation would flatten it, e.g. to "[object Object]").
         console.error(
-          `Error writing per-run HTML report to ${htmlFile}. ${htmlErr}`
+          `Error writing per-run HTML report to ${htmlFile}.`,
+          htmlErr
         );
       }
 
