@@ -181,7 +181,7 @@ async function resolveCropGeometry({
     // getWindowRect is in CSS pixels; the crop filter is in physical pixels,
     // so scale by devicePixelRatio (as the viewport branch does). Falls back
     // to 1 if the page can't report it.
-    let dpr = 1;
+    let dpr: number;
     try {
       dpr = (await driver.execute(() => (window as any).devicePixelRatio || 1)) || 1;
     } catch {
