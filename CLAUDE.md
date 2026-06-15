@@ -5,6 +5,16 @@ Repo-wide guidance for AI agents. Package-specific rules live alongside the code
 - [src/common/AGENTS.md](src/common/AGENTS.md) — schemas, validation, and the doc-detective-common subpackage.
 - [src/hints/AGENTS.md](src/hints/AGENTS.md) — authoring post-run hints when you add a user-facing feature.
 
+## Development workflow (required)
+
+Always use **red → green** test-driven development. For every behavior change:
+
+1. **Red** — write a failing test that captures the desired behavior first, and run it to confirm it fails for the expected reason.
+2. **Green** — write the minimum code to make that test pass, and run it to confirm it passes.
+3. **Refactor** — clean up while keeping the test green.
+
+Don't write implementation code before the failing test exists, and don't batch many changes behind a single test. The ["TDD cycle per flag"](#tdd-cycle-per-flag) section below shows the canonical red→green sequence applied to a new CLI flag.
+
 ## Commit messages (required)
 
 All commits must follow [Conventional Commits](https://www.conventionalcommits.org/). This is enforced locally by a husky `commit-msg` hook and on PRs by [.github/workflows/commitlint.yml](.github/workflows/commitlint.yml). Non-conforming commits are rejected.
