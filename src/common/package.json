@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-common",
-  "version": "4.9.0",
+  "version": "4.10.0-per-run-html-report.1",
   "description": "Shared components for Doc Detective projects.",
   "type": "module",
   "main": "dist/index.cjs",

@@ -3,6 +3,7 @@ import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
 import { resolveAutoScreenshot } from "../dist/core/tests.js";
 import { reporters } from "../dist/utils.js";
+import { buildHtml } from "../dist/reporters/htmlReporter.js";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -161,6 +162,84 @@ describe("runFolder reporter", function () {
     expect(
       path.relative(path.resolve(tempBase, ".doc-detective"), written)
     ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+  });
+
+  it("also writes an HTML report beside the JSON in the run folder", async function () {
+    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-140000");
+    fs.mkdirSync(runDir, { recursive: true });
+    const results = { runId: "20260612-140000", runDir, summary: {}, specs: [] };
+    const written = await reporters.runFolderReporter({}, tempBase, results, {
+      command: "runTests",
+    });
+    // Return value stays the JSON path; HTML is a side artifact.
+    expect(written).to.equal(path.resolve(runDir, "testResults.json"));
+    const htmlFile = path.resolve(runDir, "testResults.html");
+    expect(fs.existsSync(htmlFile)).to.equal(true);
+    const html = fs.readFileSync(htmlFile, "utf8");
+    expect(html).to.include("<!DOCTYPE html>");
+    expect(html).to.include("20260612-140000");
+  });
+
+  it("names the HTML file to match the command's JSON report type", async function () {
+    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-150000");
+    fs.mkdirSync(runDir, { recursive: true });
+    const results = { runId: "20260612-150000", runDir, summary: {}, specs: [] };
+    await reporters.runFolderReporter({}, tempBase, results, {
+      command: "runCoverage",
+    });
+    expect(fs.existsSync(path.resolve(runDir, "coverageResults.json"))).to.equal(
+      true
+    );
+    const htmlFile = path.resolve(runDir, "coverageResults.html");
+    expect(fs.existsSync(htmlFile)).to.equal(true);
+    const html = fs.readFileSync(htmlFile, "utf8");
+    expect(html).to.include("<!DOCTYPE html>");
+    expect(html).to.include("20260612-150000");
+  });
+
+  it("writes the HTML beside the JSON when the stamped runDir is rejected", async function () {
+    // When the stamped runDir is outside the output tree, both artifacts must
+    // land together in the fresh in-tree run folder.
+    const evilDir = path.join(tempBase, "elsewhere", "run-x");
+    const written = await reporters.runFolderReporter(
+      {},
+      tempBase,
+      { runDir: evilDir, summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    const htmlFile = path.resolve(path.dirname(written), "testResults.html");
+    expect(fs.existsSync(htmlFile)).to.equal(true);
+    expect(fs.existsSync(evilDir)).to.equal(false);
+  });
+
+  it("keeps the JSON archive when the HTML write fails (best-effort)", async function () {
+    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-160000");
+    fs.mkdirSync(runDir, { recursive: true });
+    // Force only the HTML write to fail without mocking internals: occupy the
+    // HTML path with a directory so fs.writeFileSync throws (EISDIR/EPERM),
+    // while the JSON write to a different filename still succeeds. Validates
+    // the inner try/catch — an HTML failure must not break the JSON archive.
+    fs.mkdirSync(path.join(runDir, "testResults.html"));
+    const results = { runId: "20260612-160000", runDir, summary: {}, specs: [] };
+    const written = await reporters.runFolderReporter({}, tempBase, results, {
+      command: "runTests",
+    });
+    // JSON still written and returned; the call did not throw.
+    expect(written).to.equal(path.resolve(runDir, "testResults.json"));
+    expect(JSON.parse(fs.readFileSync(written, "utf8")).runId).to.equal(
+      "20260612-160000"
+    );
+    // The HTML path remains the pre-existing directory (the write never ran).
+    expect(
+      fs.statSync(path.join(runDir, "testResults.html")).isDirectory()
+    ).to.equal(true);
+  });
+
+  it("exports buildHtml that embeds the report data", function () {
+    const html = buildHtml({ runId: "abc123", summary: {}, specs: [] });
+    expect(html).to.be.a("string");
+    expect(html).to.include("<!DOCTYPE html>");
+    expect(html).to.include("abc123");
   });
 });
 
