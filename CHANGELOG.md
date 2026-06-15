@@ -1,3 +1,11 @@
+# [4.9.0-per-run-html-report.1](https://github.com/doc-detective/doc-detective/compare/v4.8.0...v4.9.0-per-run-html-report.1) (2026-06-15)
+
+
+### Features
+
+* auto screenshots, per-run artifact folders, and stable IDs ([#334](https://github.com/doc-detective/doc-detective/issues/334)) ([0527292](https://github.com/doc-detective/doc-detective/commit/0527292bb5270224548e4e03b22772531c8b33a6))
+* **reporters:** emit per-run HTML report in runFolder archive ([f8ad42a](https://github.com/doc-detective/doc-detective/commit/f8ad42a69c32b918e3315addfe913a2815ec0943))
+
 # [4.8.0](https://github.com/doc-detective/doc-detective/compare/v4.7.0...v4.8.0) (2026-06-14)
 
 
