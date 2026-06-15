@@ -1,47 +1,7 @@
 {
   "specId": "recording",
-  "description": "Tests for screen recording start/stop lifecycle. The browser engine (default for headed Chrome) is concurrency-safe; the ffmpeg engine records the screen for any application (serial on Windows/macOS). Non-headless tests require a visible display and only run on Windows and macOS. Headless tests verify skip/guard behavior on all platforms.",
+  "description": "Tests for screen recording start/stop lifecycle. Uses the browser (Chrome getDisplayMedia) engine, which is concurrency-safe. The ffmpeg engine isn't exercised here because CI runners can't grant OS screen-recording permission (macOS avfoundation) or provide a display; it's covered by local E2E instead. Non-headless tests require a visible display and only run on Windows and macOS. Headless tests verify skip/guard behavior on all platforms.",
   "tests": [
-    {
-      "testId": "recording-ffmpeg-display",
-      "description": "Record the full display with the ffmpeg engine.",
-      "runOn": [
-        {
-          "platforms": [
-            "windows",
-            "mac"
-          ],
-          "browsers": {
-            "name": "chrome",
-            "headless": false
-          }
-        }
-      ],
-      "steps": [
-        {
-          "goTo": "http://localhost:8092"
-        },
-        {
-          "record": {
-            "path": "recording-ffmpeg-display.mp4",
-            "engine": {
-              "name": "ffmpeg",
-              "target": "display"
-            },
-            "overwrite": "true"
-          }
-        },
-        {
-          "find": {
-            "selector": "body",
-            "timeout": 5000
-          }
-        },
-        {
-          "stopRecord": true
-        }
-      ]
-    },
     {
       "testId": "recording-basic",
       "description": "Start and stop a basic recording.",

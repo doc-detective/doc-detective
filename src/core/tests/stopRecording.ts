@@ -13,15 +13,15 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     description: "Stopped recording.",
   };
 
-  // Validate step payload
+  // Validate step payload. (The stopRecord step carries no fields we read
+  // here — the recording state lives on driver.state — so we only assert
+  // validity and don't keep the coerced object.)
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
-  step = isValidStep.object;
 
   // Skip if recording is not started. Recording state is per-context (it
   // lives on driver.state), so concurrent contexts can't see each other's
@@ -116,15 +116,17 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         };
         proc.on("close", finish);
         proc.on("exit", finish);
-        // ffmpeg should exit promptly after "q"; kill as a last resort. The
-        // .mkv intermediate survives a hard kill.
+        // ffmpeg should exit promptly after "q". If it doesn't, kill it — but
+        // still wait for the process to actually exit (and flush the .mkv)
+        // before transcoding, falling back to a hard finish only if the kill
+        // itself doesn't take effect.
         setTimeout(() => {
           try {
             proc.kill();
           } catch {
             /* ignore */
           }
-          finish();
+          setTimeout(finish, 2000);
         }, 15000);
       });
 
@@ -237,5 +239,8 @@ async function waitForStableFile(
     lastSize = size;
     await new Promise((r) => setTimeout(r, 500));
   }
-  return fs.existsSync(filePath);
+  // Timed out without the size ever holding steady — the file is missing or
+  // still being written. Report not-stable so the caller fails cleanly rather
+  // than transcoding a partial download.
+  return false;
 }

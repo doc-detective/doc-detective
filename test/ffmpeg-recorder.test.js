@@ -189,12 +189,21 @@ describe("ffmpegRecorder", function () {
       expect(geo).to.deep.equal({ x: 20, y: 40, w: 1600, h: 1200 });
     });
 
-    it("computes a window crop from getWindowRect", async function () {
+    it("computes a window crop from getWindowRect (dpr=1 when unavailable)", async function () {
       const driver = {
         getWindowRect: async () => ({ x: 5, y: 6, width: 1024, height: 768 }),
       };
       const geo = await resolveCropGeometry({ driver, target: "window" });
       expect(geo).to.deep.equal({ x: 5, y: 6, w: 1024, h: 768 });
+    });
+
+    it("scales the window crop by devicePixelRatio on HiDPI", async function () {
+      const driver = {
+        getWindowRect: async () => ({ x: 5, y: 6, width: 1024, height: 768 }),
+        execute: async () => 2,
+      };
+      const geo = await resolveCropGeometry({ driver, target: "window" });
+      expect(geo).to.deep.equal({ x: 10, y: 12, w: 2048, h: 1536 });
     });
   });
 

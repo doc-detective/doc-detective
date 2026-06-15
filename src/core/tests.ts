@@ -1853,7 +1853,7 @@ async function startAppiumServer(
     throw error;
   }
   log(config, "debug", `Appium is ready on port ${port}.`);
-  return { port, process: proc };
+  return { port, process: proc, display };
 }
 
 // Delay execution until Appium server is available.

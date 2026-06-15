@@ -99,6 +99,15 @@ async function startRecording({ config, context, step, driver }: { config: any; 
       fs.mkdirSync(downloadDir, { recursive: true });
     }
     const downloadPath = path.join(downloadDir, `${baseName}.webm`);
+    // Remove any stale download from a previous crashed run — otherwise Chrome
+    // saves as "<name> (1).webm" and stopRecording waits on the wrong path.
+    if (fs.existsSync(downloadPath)) {
+      try {
+        fs.unlinkSync(downloadPath);
+      } catch {
+        /* best-effort */
+      }
+    }
 
     // Get document title
     const documentTitle = await driver.getTitle();
@@ -284,6 +293,13 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     displayEnv: context.__display || process.env.DISPLAY,
     outputPath: tempPath,
   });
+  log(
+    config,
+    "debug",
+    `ffmpeg recording: platform=${process.platform} target=${plan.target}${
+      context.__display ? ` display=${context.__display}` : ""
+    } -> ${tempPath}`
+  );
 
   const proc = spawn(ffmpegPath, args, { stdio: ["pipe", "ignore", "pipe"] });
   let spawnError: any = null;
