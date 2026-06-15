@@ -212,6 +212,29 @@ describe("runFolder reporter", function () {
     expect(fs.existsSync(evilDir)).to.equal(false);
   });
 
+  it("keeps the JSON archive when the HTML write fails (best-effort)", async function () {
+    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-160000");
+    fs.mkdirSync(runDir, { recursive: true });
+    // Force only the HTML write to fail without mocking internals: occupy the
+    // HTML path with a directory so fs.writeFileSync throws (EISDIR/EPERM),
+    // while the JSON write to a different filename still succeeds. Validates
+    // the inner try/catch — an HTML failure must not break the JSON archive.
+    fs.mkdirSync(path.join(runDir, "testResults.html"));
+    const results = { runId: "20260612-160000", runDir, summary: {}, specs: [] };
+    const written = await reporters.runFolderReporter({}, tempBase, results, {
+      command: "runTests",
+    });
+    // JSON still written and returned; the call did not throw.
+    expect(written).to.equal(path.resolve(runDir, "testResults.json"));
+    expect(JSON.parse(fs.readFileSync(written, "utf8")).runId).to.equal(
+      "20260612-160000"
+    );
+    // The HTML path remains the pre-existing directory (the write never ran).
+    expect(
+      fs.statSync(path.join(runDir, "testResults.html")).isDirectory()
+    ).to.equal(true);
+  });
+
   it("exports buildHtml that embeds the report data", function () {
     const html = buildHtml({ runId: "abc123", summary: {}, specs: [] });
     expect(html).to.be.a("string");
