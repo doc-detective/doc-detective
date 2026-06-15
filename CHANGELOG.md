@@ -1,3 +1,10 @@
+# [4.10.0-per-run-html-report.1](https://github.com/doc-detective/doc-detective/compare/v4.9.0...v4.10.0-per-run-html-report.1) (2026-06-15)
+
+
+### Features
+
+* **reporters:** emit per-run HTML report in runFolder archive ([f8ad42a](https://github.com/doc-detective/doc-detective/commit/f8ad42a69c32b918e3315addfe913a2815ec0943))
+
 # [4.9.0](https://github.com/doc-detective/doc-detective/compare/v4.8.0...v4.9.0) (2026-06-14)
 
 
