@@ -4,9 +4,7 @@ description: Start capturing a video of test execution.
 ---
 
 
-The `record` action starts recording the browser viewport as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recording continues until a `stopRecord` step is encountered.
-
-*Note: Recording is currently only supported in visible Chrome browsers.*
+The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recording continues until a `stopRecord` step is encountered.
 
 You can specify the recording action in several ways:
 
@@ -16,8 +14,29 @@ You can specify the recording action in several ways:
   - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
   - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
   - `overwrite`: (Optional) Set to `true` to overwrite an existing file at the target path. Defaults to `false`.
+  - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
 
 **Stopping the Recording:** You *must* include a `stopRecord` step later in your test to finalize and save the video file.
+
+## Recording engines
+
+Recording uses one of two engines, selected by the optional `engine` field in the object format:
+
+- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the browser tab and is safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
+- **`ffmpeg`:** Records the screen with ffmpeg, so it works for any application, not just Chrome. ffmpeg must be installed and available on your system.
+
+If you don't set `engine`, Doc Detective chooses one for you. It prefers the `browser` engine when a visible Chrome context is available (coercing an unspecified browser to headed Chrome), and falls back to `ffmpeg` otherwise.
+
+Set `engine` as a string to select an engine with its defaults (for example, `"engine": "ffmpeg"`), or as an object for more control:
+
+- `name`: (Required) The engine to use, either `browser` or `ffmpeg`.
+- `target`: (Optional, `ffmpeg` only) What the engine captures. Use `display` to record the full screen, `window` to record the active window, or `viewport` to record the browser content area (default: `display`). The `window` and `viewport` targets are best-effort: ffmpeg captures the full screen and then crops the result. The `browser` engine ignores this field and always captures its tab.
+- `fps`: (Optional, `ffmpeg` only) The capture frame rate (default: `30`).
+
+**Recording with concurrency:** Concurrency support depends on the engine and platform. The `browser` engine is always safe to run concurrently. The `ffmpeg` engine needs exclusive use of the display, so its behavior differs by platform:
+
+- **Windows and macOS:** When a run includes an `ffmpeg` record step, Doc Detective forces the run to execute serially, even if `concurrentRunners` is greater than 1. To keep concurrency while recording, use the `browser` engine instead.
+- **Linux:** Each runner records its own virtual display using Xvfb, so `ffmpeg` recording stays concurrent and works headless. Install Xvfb to enable this.
 
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 
@@ -94,6 +113,70 @@ Records to `test_video.gif` in the `output/gifs` directory, overwriting if it ex
             "path": "test_video.gif",
             "directory": "./output/gifs",
             "overwrite": true
+          }
+        },
+        {
+          "description": "...",
+          "wait": 2000
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Recording any application with the ffmpeg engine
+
+Records the screen with ffmpeg so the recording isn't limited to Chrome.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the screen with ffmpeg.",
+          "record": {
+            "path": "demo.mp4",
+            "engine": "ffmpeg"
+          }
+        },
+        {
+          "description": "...",
+          "runShell": "my-cli --help"
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Configuring the ffmpeg engine (detailed object)
+
+Records the active window at 60 fps with ffmpeg.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the active window.",
+          "record": {
+            "path": "demo.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "window",
+              "fps": 60
+            }
           }
         },
         {
