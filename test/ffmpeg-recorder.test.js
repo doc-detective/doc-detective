@@ -6,6 +6,7 @@ import {
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
+  jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   checkSystemBinary,
   xvfbDisplay,
@@ -204,6 +205,24 @@ describe("ffmpegRecorder", function () {
       };
       const geo = await resolveCropGeometry({ driver, target: "window" });
       expect(geo).to.deep.equal({ x: 10, y: 12, w: 2048, h: 1536 });
+    });
+  });
+
+  describe("jobIsFfmpegRecording", function () {
+    it("is true only for jobs whose record step resolves to ffmpeg", function () {
+      const ffmpeg = {
+        context: { steps: [{ record: { engine: "ffmpeg" } }] },
+      };
+      const browser = {
+        context: {
+          browser: { name: "chrome", headless: false },
+          steps: [{ record: true }],
+        },
+      };
+      const none = { context: { steps: [{ goTo: "x" }] } };
+      expect(jobIsFfmpegRecording(ffmpeg)).to.equal(true);
+      expect(jobIsFfmpegRecording(browser)).to.equal(false);
+      expect(jobIsFfmpegRecording(none)).to.equal(false);
     });
   });
 

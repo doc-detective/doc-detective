@@ -38,6 +38,7 @@ import {
   browserCaptureTitle,
   browserDownloadDir,
   coerceRecordContextBrowser,
+  jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   checkSystemBinary,
   xvfbDisplay,
@@ -685,11 +686,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // recordings are only safe on Linux with per-runner Xvfb displays. Probe
   // Xvfb only when it could matter, then let computeEffectiveConcurrency
   // decide the effective limit.
-  const anyRecordStep = jobs.some((job: any) =>
-    job.context.steps?.some((step: any) => step.record !== undefined)
-  );
+  // Only ffmpeg-engine recordings need Xvfb; a browser-engine-only run
+  // shouldn't pay for an `Xvfb -help` spawn. Contexts are already coerced
+  // above, so resolveRecordPlan reflects the engine that will actually run.
+  const anyFfmpegRecording = jobs.some(jobIsFfmpegRecording);
   let xvfbAvailable = false;
-  if (anyRecordStep && process.platform === "linux") {
+  if (anyFfmpegRecording && process.platform === "linux") {
     xvfbAvailable = await checkSystemBinary("Xvfb");
   }
   const concurrency = computeEffectiveConcurrency({

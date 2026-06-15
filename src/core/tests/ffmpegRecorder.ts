@@ -11,6 +11,7 @@ export {
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
+  jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   getFfmpegPath,
   checkSystemBinary,
