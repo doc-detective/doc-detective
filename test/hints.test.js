@@ -1329,6 +1329,7 @@ function fakeCtx(partial = {}) {
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
     hasRstFiles: false,
+    recordingForcedSerial: false,
     ...partial,
   };
 }
@@ -1401,12 +1402,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 28 active hints. `useFileTypesForRst` is commented out in the
+    // 29 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(28);
+    expect(HINTS.length).to.equal(29);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1876,6 +1877,13 @@ describe("hints/hints (registry)", function () {
     expect(
       h.when(fakeCtx({ totalContexts: 5, producedRecordings: true }))
     ).to.equal(false);
+  });
+
+  it("recordConcurrently: fires only when the run was forced serial for recording", function () {
+    const h = findHint("recordConcurrently");
+    expect(h.priority).to.equal(50);
+    expect(h.when(fakeCtx({ recordingForcedSerial: true }))).to.equal(true);
+    expect(h.when(fakeCtx({ recordingForcedSerial: false }))).to.equal(false);
   });
 
   it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {

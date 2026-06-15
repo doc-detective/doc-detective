@@ -144,6 +144,9 @@ export async function buildHintContext(
     outputDirGitignored,
     nodeMajor,
     hasRstFiles,
+    // Set by the runner on the results object when it forced serial execution
+    // for ffmpeg recording. Defensive read — results may be partial/absent.
+    recordingForcedSerial: options.results?.recordingForcedSerial === true,
   };
 }
 

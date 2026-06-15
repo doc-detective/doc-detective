@@ -7449,7 +7449,7 @@
                             "record": {
                               "$schema": "http://json-schema.org/draft-07/schema#",
                               "title": "record",
-                              "description": "Start recording the current browser viewport. Must be followed by a `stopRecord` step. Only runs in Chrome browsers when they are visible. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+                              "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
                               "anyOf": [
                                 {
                                   "title": "Record (simple)",
@@ -7484,6 +7484,55 @@
                                       "enum": [
                                         "true",
                                         "false"
+                                      ]
+                                    },
+                                    "engine": {
+                                      "title": "Recording engine",
+                                      "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Recording engine (simple)",
+                                          "type": "string",
+                                          "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                          "enum": [
+                                            "browser",
+                                            "ffmpeg"
+                                          ]
+                                        },
+                                        {
+                                          "title": "Recording engine (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "name": {
+                                              "type": "string",
+                                              "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                              "enum": [
+                                                "browser",
+                                                "ffmpeg"
+                                              ]
+                                            },
+                                            "target": {
+                                              "type": "string",
+                                              "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                                              "enum": [
+                                                "display",
+                                                "window",
+                                                "viewport"
+                                              ],
+                                              "default": "display"
+                                            },
+                                            "fps": {
+                                              "type": "integer",
+                                              "description": "Capture frame rate for the `ffmpeg` engine.",
+                                              "default": 30,
+                                              "minimum": 1
+                                            }
+                                          }
+                                        }
                                       ]
                                     }
                                   },
@@ -7531,9 +7580,107 @@
                                           "true",
                                           "false"
                                         ]
+                                      },
+                                      "engine": {
+                                        "title": "Recording engine",
+                                        "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Recording engine (simple)",
+                                            "type": "string",
+                                            "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                            "enum": [
+                                              "browser",
+                                              "ffmpeg"
+                                            ]
+                                          },
+                                          {
+                                            "title": "Recording engine (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "name"
+                                            ],
+                                            "properties": {
+                                              "name": {
+                                                "type": "string",
+                                                "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                                "enum": [
+                                                  "browser",
+                                                  "ffmpeg"
+                                                ]
+                                              },
+                                              "target": {
+                                                "type": "string",
+                                                "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                                                "enum": [
+                                                  "display",
+                                                  "window",
+                                                  "viewport"
+                                                ],
+                                                "default": "display"
+                                              },
+                                              "fps": {
+                                                "type": "integer",
+                                                "description": "Capture frame rate for the `ffmpeg` engine.",
+                                                "default": 30,
+                                                "minimum": 1
+                                              }
+                                            }
+                                          }
+                                        ]
                                       }
                                     },
                                     "title": "Record (detailed)"
+                                  },
+                                  "engine": {
+                                    "title": "Recording engine",
+                                    "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                    "anyOf": [
+                                      {
+                                        "title": "Recording engine (simple)",
+                                        "type": "string",
+                                        "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                        "enum": [
+                                          "browser",
+                                          "ffmpeg"
+                                        ]
+                                      },
+                                      {
+                                        "title": "Recording engine (detailed)",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "name"
+                                        ],
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                            "enum": [
+                                              "browser",
+                                              "ffmpeg"
+                                            ]
+                                          },
+                                          "target": {
+                                            "type": "string",
+                                            "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                                            "enum": [
+                                              "display",
+                                              "window",
+                                              "viewport"
+                                            ],
+                                            "default": "display"
+                                          },
+                                          "fps": {
+                                            "type": "integer",
+                                            "description": "Capture frame rate for the `ffmpeg` engine.",
+                                            "default": 30,
+                                            "minimum": 1
+                                          }
+                                        }
+                                      }
+                                    ]
                                   }
                                 }
                               },
@@ -7544,6 +7691,18 @@
                                   "path": "results.mp4",
                                   "directory": "static/media",
                                   "overwrite": "true"
+                                },
+                                {
+                                  "path": "results.mp4",
+                                  "engine": "ffmpeg"
+                                },
+                                {
+                                  "path": "results.mp4",
+                                  "engine": {
+                                    "name": "ffmpeg",
+                                    "target": "window",
+                                    "fps": 60
+                                  }
                                 }
                               ]
                             }
@@ -15764,7 +15923,7 @@
                                   "record": {
                                     "$schema": "http://json-schema.org/draft-07/schema#",
                                     "title": "record",
-                                    "description": "Start recording the current browser viewport. Must be followed by a `stopRecord` step. Only runs in Chrome browsers when they are visible. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+                                    "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
                                     "anyOf": [
                                       {
                                         "title": "Record (simple)",
@@ -15799,6 +15958,55 @@
                                             "enum": [
                                               "true",
                                               "false"
+                                            ]
+                                          },
+                                          "engine": {
+                                            "title": "Recording engine",
+                                            "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                            "anyOf": [
+                                              {
+                                                "title": "Recording engine (simple)",
+                                                "type": "string",
+                                                "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                                "enum": [
+                                                  "browser",
+                                                  "ffmpeg"
+                                                ]
+                                              },
+                                              {
+                                                "title": "Recording engine (detailed)",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "name"
+                                                ],
+                                                "properties": {
+                                                  "name": {
+                                                    "type": "string",
+                                                    "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                                    "enum": [
+                                                      "browser",
+                                                      "ffmpeg"
+                                                    ]
+                                                  },
+                                                  "target": {
+                                                    "type": "string",
+                                                    "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                                                    "enum": [
+                                                      "display",
+                                                      "window",
+                                                      "viewport"
+                                                    ],
+                                                    "default": "display"
+                                                  },
+                                                  "fps": {
+                                                    "type": "integer",
+                                                    "description": "Capture frame rate for the `ffmpeg` engine.",
+                                                    "default": 30,
+                                                    "minimum": 1
+                                                  }
+                                                }
+                                              }
                                             ]
                                           }
                                         },
@@ -15846,9 +16054,107 @@
                                                 "true",
                                                 "false"
                                               ]
+                                            },
+                                            "engine": {
+                                              "title": "Recording engine",
+                                              "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                              "anyOf": [
+                                                {
+                                                  "title": "Recording engine (simple)",
+                                                  "type": "string",
+                                                  "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                                  "enum": [
+                                                    "browser",
+                                                    "ffmpeg"
+                                                  ]
+                                                },
+                                                {
+                                                  "title": "Recording engine (detailed)",
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "name"
+                                                  ],
+                                                  "properties": {
+                                                    "name": {
+                                                      "type": "string",
+                                                      "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                                      "enum": [
+                                                        "browser",
+                                                        "ffmpeg"
+                                                      ]
+                                                    },
+                                                    "target": {
+                                                      "type": "string",
+                                                      "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                                                      "enum": [
+                                                        "display",
+                                                        "window",
+                                                        "viewport"
+                                                      ],
+                                                      "default": "display"
+                                                    },
+                                                    "fps": {
+                                                      "type": "integer",
+                                                      "description": "Capture frame rate for the `ffmpeg` engine.",
+                                                      "default": 30,
+                                                      "minimum": 1
+                                                    }
+                                                  }
+                                                }
+                                              ]
                                             }
                                           },
                                           "title": "Record (detailed)"
+                                        },
+                                        "engine": {
+                                          "title": "Recording engine",
+                                          "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                          "anyOf": [
+                                            {
+                                              "title": "Recording engine (simple)",
+                                              "type": "string",
+                                              "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                              "enum": [
+                                                "browser",
+                                                "ffmpeg"
+                                              ]
+                                            },
+                                            {
+                                              "title": "Recording engine (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "name"
+                                              ],
+                                              "properties": {
+                                                "name": {
+                                                  "type": "string",
+                                                  "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+                                                  "enum": [
+                                                    "browser",
+                                                    "ffmpeg"
+                                                  ]
+                                                },
+                                                "target": {
+                                                  "type": "string",
+                                                  "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                                                  "enum": [
+                                                    "display",
+                                                    "window",
+                                                    "viewport"
+                                                  ],
+                                                  "default": "display"
+                                                },
+                                                "fps": {
+                                                  "type": "integer",
+                                                  "description": "Capture frame rate for the `ffmpeg` engine.",
+                                                  "default": 30,
+                                                  "minimum": 1
+                                                }
+                                              }
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -15859,6 +16165,18 @@
                                         "path": "results.mp4",
                                         "directory": "static/media",
                                         "overwrite": "true"
+                                      },
+                                      {
+                                        "path": "results.mp4",
+                                        "engine": "ffmpeg"
+                                      },
+                                      {
+                                        "path": "results.mp4",
+                                        "engine": {
+                                          "name": "ffmpeg",
+                                          "target": "window",
+                                          "fps": 60
+                                        }
                                       }
                                     ]
                                   }

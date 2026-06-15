@@ -163,6 +163,13 @@ export interface HintContext {
    * Python as a top-level interpreter. Powers `useRunCodeStep`.
    */
   hasNodeOrPythonInRunShell: boolean;
+  /**
+   * True when the runner capped `concurrentRunners` to 1 because the run used
+   * the ffmpeg recording engine (which needs exclusive use of the display) on
+   * a platform without per-runner virtual displays. Read directly from
+   * `results.recordingForcedSerial`. Powers `recordConcurrently`.
+   */
+  recordingForcedSerial: boolean;
 }
 
 export interface Hint {

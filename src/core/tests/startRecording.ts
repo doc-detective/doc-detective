@@ -1,6 +1,15 @@
 import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
+import {
+  resolveRecordPlan,
+  browserCaptureTitle,
+  browserDownloadDir,
+  buildCaptureArgs,
+  resolveCropGeometry,
+  getFfmpegPath,
+} from "./ffmpegRecorder.js";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -45,13 +54,6 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     overwrite: step.record.overwrite || "false",
   };
 
-  // If headless is true, skip recording
-  if (context.browser?.headless) {
-    result.status = "SKIPPED";
-    result.description = `Recording isn't supported in headless mode.`;
-    return result;
-  }
-
   // Set file name
   let filePath = step.record.path;
   const baseName = path.basename(filePath, path.extname(filePath));
@@ -71,16 +73,39 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     return result;
   }
 
-  if (
-    context?.browser?.name === "chrome" &&
-    context?.browser?.headless === false
-  ) {
-    // Chrome and Chromium
+  // Resolve which engine to use. The context's browser is already coerced by
+  // the runner (headed Chrome preferred when nothing was specified), so this
+  // is a pure read.
+  const plan = resolveRecordPlan({ step, context });
+
+  if (plan.name === "browser") {
+    // Browser engine: capture the Chrome viewport via getDisplayMedia +
+    // MediaRecorder. Concurrency-safe — each context auto-selects its own
+    // window by a unique title. Requires headed Chrome.
+    if (context.browser?.headless) {
+      result.status = "SKIPPED";
+      result.description = `Recording isn't supported in headless mode with the browser engine. Use the ffmpeg engine to record headless.`;
+      return result;
+    }
+    if (context.browser?.name !== "chrome") {
+      result.status = "SKIPPED";
+      result.description = `The browser recording engine requires Chrome. Use the ffmpeg engine for '${context.browser?.name}'.`;
+      return result;
+    }
+
+    const captureTitle = browserCaptureTitle(context.contextId);
+    const downloadDir = browserDownloadDir(context.contextId);
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir, { recursive: true });
+    }
+    const downloadPath = path.join(downloadDir, `${baseName}.webm`);
+
     // Get document title
     const documentTitle = await driver.getTitle();
     const originalTab = await driver.getWindowHandle();
-    // Set document title to "RECORD_ME"
-    await driver.execute(() => (document.title = "RECORD_ME"));
+    // Set document title to the per-context capture title so the launch flag
+    // --auto-select-desktop-capture-source picks exactly this window.
+    await driver.execute((title: any) => (document.title = title), captureTitle);
     // Instantiate cursor
     await instantiateCursor(driver, { position: "center" });
     // Create new tab
@@ -195,16 +220,95 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     result.recording = {
       type: "MediaRecorder",
       tab: recorderTab.handle,
-      downloadPath: path.join(os.tmpdir(), `${baseName}.webm`), // Where the recording will be downloaded.
+      downloadPath, // Where the recording will be downloaded.
       targetPath: filePath, // Where the recording will be saved.
     };
-  } else {
-    // Other context — recording not supported
-    result.status = "SKIPPED";
-    result.description = `Recording is not supported for this context.`;
     return result;
   }
 
-  // PASS
+  // ffmpeg engine: capture the screen with ffmpeg. Works for any application.
+  // window/viewport targets capture the full display and are cropped during
+  // stopRecording's transcode.
+
+  // A headless browser has no on-screen content to capture. ffmpeg headless
+  // recording is only meaningful against a virtual display (Linux Xvfb),
+  // threaded in as context.__display. Without one, skip — matching the
+  // long-standing "recording isn't supported headless" behavior.
+  if (context.browser?.headless && !context.__display) {
+    result.status = "SKIPPED";
+    result.description = `Recording isn't supported in headless mode without a virtual display (Xvfb).`;
+    return result;
+  }
+
+  let crop: any = null;
+  if (driver && plan.target !== "display") {
+    try {
+      crop = await resolveCropGeometry({ driver, target: plan.target });
+    } catch (err) {
+      log(
+        config,
+        "warning",
+        `Couldn't resolve ${plan.target} geometry for recording; capturing the full display. ${err}`
+      );
+    }
+  }
+
+  // Show the synthetic cursor in the page so automated actions are visible
+  // (WebDriver doesn't move the OS pointer).
+  if (driver) {
+    try {
+      await instantiateCursor(driver, { position: "center" });
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+  const tempPath = path.join(tempDir, `${context.contextId || "ctx"}-${baseName}.mkv`);
+
+  let ffmpegPath: string;
+  try {
+    ffmpegPath = await getFfmpegPath({ cacheDir: config?.cacheDir });
+  } catch (err) {
+    result.status = "FAIL";
+    result.description = `Couldn't start recording: ${err}`;
+    log(config, "error", result.description);
+    return result;
+  }
+
+  const args = buildCaptureArgs({
+    platform: process.platform,
+    fps: plan.fps,
+    // Honor a per-context virtual display (Linux Xvfb) when threaded through.
+    displayEnv: context.__display || process.env.DISPLAY,
+    outputPath: tempPath,
+  });
+
+  const proc = spawn(ffmpegPath, args, { stdio: ["pipe", "ignore", "pipe"] });
+  let spawnError: any = null;
+  proc.on("error", (err) => {
+    spawnError = err;
+  });
+
+  // Give ffmpeg a moment to initialize, then make sure it didn't immediately
+  // fail (e.g. missing display, permission denied).
+  await new Promise((r) => setTimeout(r, 500));
+  if (spawnError || proc.exitCode !== null) {
+    result.status = "FAIL";
+    result.description = `Couldn't start ffmpeg recording.${
+      spawnError ? ` ${spawnError}` : ` ffmpeg exited with code ${proc.exitCode}.`
+    } On macOS, grant screen recording permission; on Linux, ensure a display (or Xvfb) is available.`;
+    log(config, "error", result.description);
+    return result;
+  }
+
+  result.recording = {
+    type: "ffmpeg",
+    process: proc,
+    tempPath,
+    targetPath: filePath,
+    crop,
+  };
   return result;
 }

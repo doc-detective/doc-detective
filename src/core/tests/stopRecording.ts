@@ -3,27 +3,7 @@ import { log } from "../utils.js";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
-import { loadHeavyDep } from "../../runtime/loader.js";
-
-// Resolve the ffmpeg binary path lazily — @ffmpeg-installer/ffmpeg is a
-// heavy runtime dep that should only be loaded when a stopRecording step
-// actually runs. The ctx is threaded through so a user-overridden
-// cacheDir is honored here just as it is by the JIT pre-flight installer.
-async function getFfmpegPath(ctx: { cacheDir?: string } = {}): Promise<string> {
-  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg", { ctx });
-  // The package's CJS entry exports an object with a .path field; in ESM
-  // dynamic import we get { default: { path }, path? } shape depending on
-  // bundler. Try both, then guard before handing it to execFile so a
-  // malformed install fails with an actionable message instead of a
-  // confusing "argument must be of type string" deep in node's exec.
-  const candidate = mod && (mod.path ?? mod.default?.path);
-  if (typeof candidate !== "string" || candidate.length === 0) {
-    throw new Error(
-      "ffmpeg binary path is missing or malformed in the installed @ffmpeg-installer/ffmpeg package. Try `doc-detective install runtime --force` to reinstall."
-    );
-  }
-  return candidate;
-}
+import { getFfmpegPath } from "./ffmpegRecorder.js";
 
 export { stopRecording };
 
@@ -55,7 +35,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
 
   try {
     if (recording.type === "MediaRecorder") {
-      // MediaRecorder
+      // Browser engine.
 
       // Switch to recording tab
       await driver.switchToWindow(recording.tab);
@@ -84,13 +64,12 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       await driver.execute(() => {
         (window as any).recorder.stop();
       });
-      // Wait for file to be in download path
-      let waitCount = 0;
-      while (!fs.existsSync(recording.downloadPath) && waitCount < 60) {
-        await new Promise((r) => setTimeout(r, 1000));
-        waitCount++;
-      }
-      if (!fs.existsSync(recording.downloadPath)) {
+      // Wait for the download to appear AND finish writing. Chrome streams the
+      // blob to disk (and may use a .crdownload temp first), so existence
+      // alone isn't enough — transcoding a still-growing file makes ffmpeg
+      // fail. Wait for the size to hold steady across two reads.
+      const downloaded = await waitForStableFile(recording.downloadPath, 60);
+      if (!downloaded) {
         result.status = "FAIL";
         result.description = "Recording download timed out.";
         // Clear the state so the auto-stop in runContext doesn't re-invoke
@@ -108,37 +87,55 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         await driver.switchToWindow(remainingHandles[0]);
       }
 
-      // Convert the file into the target format/location
-      const targetPath = `${recording.targetPath}`;
-      const downloadPath = `${recording.downloadPath}`;
-      const endMessage = `Finished processing file: ${recording.targetPath}`;
-      const ffmpegArgs = ["-y", "-i", downloadPath, "-pix_fmt", "yuv420p"];
-      if (path.extname(targetPath) === ".gif") {
-        ffmpegArgs.push("-vf", "scale=iw:-1:flags=lanczos");
-      }
-      ffmpegArgs.push(targetPath);
-      // Await transcoding to complete before returning
-      const ffmpegPath = await getFfmpegPath({ cacheDir: config?.cacheDir });
-      await new Promise<void>((resolve, reject) => {
-        execFile(ffmpegPath, ffmpegArgs)
-          .on("close", (code) => {
-            if (code === 0) {
-              // Only delete the downloaded file after successful transcoding
-              if (targetPath !== downloadPath) {
-                try { fs.unlinkSync(downloadPath); } catch { /* ignore */ }
-              }
-              log(config, "debug", endMessage);
-              resolve();
-            } else {
-              reject(new Error(`ffmpeg exited with code ${code}`));
-            }
-          })
-          .on("error", reject);
+      // Convert the downloaded .webm into the target format/location.
+      await transcode({
+        config,
+        sourcePath: recording.downloadPath,
+        targetPath: recording.targetPath,
+        deleteSource: true,
       });
       driver.state.recording = null;
-    } else {
-      // FFMPEG
-      // recording.stdin.write("q");
+    } else if (recording.type === "ffmpeg") {
+      // ffmpeg engine. Stop the capture gracefully (write "q" to stdin so the
+      // container is finalized), then transcode the temp .mkv into the target
+      // format, cropping to the requested window/viewport if one was resolved.
+      const proc = recording.process;
+      try {
+        proc.stdin?.write("q");
+        proc.stdin?.end?.();
+      } catch {
+        /* fall through to kill */
+      }
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (!settled) {
+            settled = true;
+            resolve();
+          }
+        };
+        proc.on("close", finish);
+        proc.on("exit", finish);
+        // ffmpeg should exit promptly after "q"; kill as a last resort. The
+        // .mkv intermediate survives a hard kill.
+        setTimeout(() => {
+          try {
+            proc.kill();
+          } catch {
+            /* ignore */
+          }
+          finish();
+        }, 15000);
+      });
+
+      await transcode({
+        config,
+        sourcePath: recording.tempPath,
+        targetPath: recording.targetPath,
+        deleteSource: true,
+        crop: recording.crop,
+      });
+      driver.state.recording = null;
     }
   } catch (error) {
     // Couldn't stop recording
@@ -152,4 +149,93 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
 
   // PASS
   return result;
+}
+
+// Transcode a recording into the requested target format/location with
+// ffmpeg, applying an optional crop and the gif scale filter. Deletes the
+// source on success when requested (and when it isn't the target itself).
+async function transcode({
+  config,
+  sourcePath,
+  targetPath,
+  deleteSource,
+  crop,
+}: {
+  config: any;
+  sourcePath: string;
+  targetPath: string;
+  deleteSource: boolean;
+  crop?: { x: number; y: number; w: number; h: number } | null;
+}): Promise<void> {
+  // Drop audio (-an): doc recordings are visual, and the browser engine's
+  // captured opus track fails to mux into mp4 ("Too many packets buffered for
+  // output stream"). Silent video is the intended, reliable output.
+  const ffmpegArgs = ["-y", "-i", `${sourcePath}`, "-an", "-pix_fmt", "yuv420p"];
+  const filters: string[] = [];
+  if (crop) {
+    filters.push(`crop=${crop.w}:${crop.h}:${crop.x}:${crop.y}`);
+  }
+  if (path.extname(targetPath) === ".gif") {
+    filters.push("scale=iw:-1:flags=lanczos");
+  }
+  if (filters.length > 0) {
+    ffmpegArgs.push("-vf", filters.join(","));
+  }
+  ffmpegArgs.push(`${targetPath}`);
+  const ffmpegPath = await getFfmpegPath({ cacheDir: config?.cacheDir });
+  await new Promise<void>((resolve, reject) => {
+    const child = execFile(ffmpegPath, ffmpegArgs);
+    let stderr = "";
+    child.stderr?.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child
+      .on("close", (code) => {
+        if (code === 0) {
+          if (deleteSource && sourcePath !== targetPath) {
+            try {
+              fs.unlinkSync(sourcePath);
+            } catch {
+              /* ignore */
+            }
+          }
+          log(config, "debug", `Finished processing file: ${targetPath}`);
+          resolve();
+        } else {
+          reject(
+            new Error(`ffmpeg exited with code ${code}: ${stderr.slice(-600)}`)
+          );
+        }
+      })
+      .on("error", reject);
+  });
+}
+
+// Wait for a file to exist and stop growing (size unchanged across two reads
+// ~500ms apart), up to `maxSeconds`. Returns true once stable, false on
+// timeout. Guards against transcoding a download that's still being written.
+async function waitForStableFile(
+  filePath: string,
+  maxSeconds: number
+): Promise<boolean> {
+  let lastSize = -1;
+  let stableReads = 0;
+  const deadline = maxSeconds * 2; // two checks per second
+  for (let i = 0; i < deadline; i++) {
+    let size = -1;
+    try {
+      size = fs.statSync(filePath).size;
+    } catch {
+      size = -1;
+    }
+    if (size >= 0 && size === lastSize) {
+      stableReads++;
+      if (stableReads >= 1) return true;
+    } else {
+      stableReads = 0;
+    }
+    lastSize = size;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return fs.existsSync(filePath);
 }
