@@ -2,6 +2,7 @@ import { expect } from "chai";
 import {
   resolveRecordPlan,
   coerceRecordContextBrowser,
+  safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
   buildCaptureArgs,
@@ -130,6 +131,16 @@ describe("ffmpegRecorder", function () {
     it("derives a per-context download dir that varies by contextId", function () {
       expect(browserDownloadDir("a")).to.not.equal(browserDownloadDir("b"));
       expect(browserDownloadDir("a")).to.contain("a");
+    });
+
+    it("sanitizes a traversal contextId so it can't escape the temp dir", function () {
+      expect(safeContextId("../../etc")).to.not.match(/[\\/]/);
+      expect(safeContextId("..")).to.equal("ctx");
+      expect(safeContextId("")).to.equal("ctx");
+      expect(browserCaptureTitle("../x")).to.not.match(/[\\/]/);
+      // The download dir's leaf segment contains no path separator.
+      const dir = browserDownloadDir("../../evil");
+      expect(/recordings[\\/][^\\/]+$/.test(dir)).to.equal(true);
     });
   });
 

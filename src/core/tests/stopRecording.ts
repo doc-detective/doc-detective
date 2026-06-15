@@ -107,6 +107,12 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         /* fall through to kill */
       }
       await new Promise<void>((resolve) => {
+        // Already exited (e.g. ffmpeg reacted to "q" before we got here) —
+        // don't wait on a "close" that will never fire again.
+        if (proc.exitCode !== null || proc.signalCode !== null) {
+          resolve();
+          return;
+        }
         let settled = false;
         const finish = () => {
           if (!settled) {
@@ -114,20 +120,22 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
             resolve();
           }
         };
-        proc.on("close", finish);
-        proc.on("exit", finish);
-        // ffmpeg should exit promptly after "q". If it doesn't, kill it — but
-        // still wait for the process to actually exit (and flush the .mkv)
-        // before transcoding, falling back to a hard finish only if the kill
-        // itself doesn't take effect.
-        setTimeout(() => {
+        // Normal path: ffmpeg exits after "q"; close clears the kill timer and
+        // we transcode the fully-flushed .mkv.
+        const killTimer = setTimeout(() => {
           try {
-            proc.kill();
+            proc.kill("SIGKILL");
           } catch {
             /* ignore */
           }
+          // Resolve on the post-kill close, or after a short grace if it never
+          // arrives. The .mkv survives a hard kill.
           setTimeout(finish, 2000);
         }, 15000);
+        proc.once("close", () => {
+          clearTimeout(killTimer);
+          finish();
+        });
       });
 
       await transcode({

@@ -3,6 +3,7 @@ import { log } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
   resolveRecordPlan,
+  safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
   buildCaptureArgs,
@@ -281,7 +282,10 @@ async function startRecording({ config, context, step, driver }: { config: any; 
 
   const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-  const tempPath = path.join(tempDir, `${context.contextId || "ctx"}-${baseName}.mkv`);
+  const tempPath = path.join(
+    tempDir,
+    `${safeContextId(context.contextId)}-${baseName}.mkv`
+  );
 
   let ffmpegPath: string;
   try {

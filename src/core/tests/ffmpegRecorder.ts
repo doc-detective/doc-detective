@@ -3,10 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import { loadHeavyDep } from "../../runtime/loader.js";
+import { sanitizeFilesystemName } from "../utils.js";
 
 export {
   resolveRecordPlan,
   coerceRecordContextBrowser,
+  safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
   buildCaptureArgs,
@@ -25,11 +27,22 @@ export {
 // sets document.title + reads the download) must agree, so both derive these
 // from the contextId here. Unique-per-context titles are what make concurrent
 // Chrome recordings safe — each browser auto-selects only its own window.
+// contextId can be author-supplied (a spec may set it), so it must be
+// sanitized before going into a filesystem path or a launch-flag value —
+// otherwise a value like "../x" could escape the temp dir.
+function safeContextId(contextId: any): string {
+  return sanitizeFilesystemName(String(contextId ?? "ctx"), "ctx");
+}
 function browserCaptureTitle(contextId: string): string {
-  return `RECORD_ME_${contextId}`;
+  return `RECORD_ME_${safeContextId(contextId)}`;
 }
 function browserDownloadDir(contextId: string): string {
-  return path.join(os.tmpdir(), "doc-detective", "recordings", String(contextId));
+  return path.join(
+    os.tmpdir(),
+    "doc-detective",
+    "recordings",
+    safeContextId(contextId)
+  );
 }
 
 type RecordPlan = { name: "browser" | "ffmpeg"; target: string; fps: number };
