@@ -111,6 +111,14 @@ describe("ffmpegRecorder", function () {
       });
       expect(out).to.equal(null);
     });
+
+    it("does not coerce for an explicit record: false", function () {
+      const out = coerceRecordContextBrowser({
+        context: { steps: [{ record: false }] },
+        availableApps: chromeApps,
+      });
+      expect(out).to.equal(null);
+    });
   });
 
   describe("browser engine paths", function () {
@@ -220,9 +228,11 @@ describe("ffmpegRecorder", function () {
         },
       };
       const none = { context: { steps: [{ goTo: "x" }] } };
+      const disabled = { context: { steps: [{ record: false }] } };
       expect(jobIsFfmpegRecording(ffmpeg)).to.equal(true);
       expect(jobIsFfmpegRecording(browser)).to.equal(false);
       expect(jobIsFfmpegRecording(none)).to.equal(false);
+      expect(jobIsFfmpegRecording(disabled)).to.equal(false);
     });
   });
 

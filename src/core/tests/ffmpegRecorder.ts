@@ -72,14 +72,16 @@ function resolveRecordPlan({
   return {
     name: engineName as "browser" | "ffmpeg",
     target: target || "display",
-    fps: fps || 30,
+    fps: fps ?? 30,
   };
 }
 
 function hasRecordStepWithoutEngine(context: any): boolean {
   const steps = Array.isArray(context?.steps) ? context.steps : [];
   return steps.some((s: any) => {
-    if (typeof s?.record === "undefined") return false;
+    // Falsy record (undefined, or an explicit `record: false`) is not an
+    // active recording step.
+    if (!s?.record) return false;
     return engineFields(s.record).name === undefined;
   });
 }
@@ -121,7 +123,7 @@ function buildCaptureArgs({
   outputPath: string;
   screenIndex?: string;
 }): string[] {
-  const rate = String(fps || 30);
+  const rate = String(fps ?? 30);
   let input: string[];
   switch (platform) {
     case "win32":
@@ -201,7 +203,7 @@ async function resolveCropGeometry({
 function jobIsFfmpegRecording(job: any): boolean {
   const steps = Array.isArray(job?.context?.steps) ? job.context.steps : [];
   return steps.some((s: any) => {
-    if (typeof s?.record === "undefined") return false;
+    if (!s?.record) return false; // skip undefined / `record: false`
     return resolveRecordPlan({ step: s, context: job.context }).name === "ffmpeg";
   });
 }

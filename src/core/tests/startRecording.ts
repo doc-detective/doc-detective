@@ -32,6 +32,13 @@ async function startRecording({ config, context, step, driver }: { config: any; 
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
+  // `record: false` explicitly disables recording — don't start one.
+  if (step.record === false) {
+    result.status = "SKIPPED";
+    result.description = "Recording is disabled (record: false).";
+    return result;
+  }
+
   // Convert boolean to string
   if (typeof step.record === "boolean") {
     step.record = { path: `${step.stepId}.mp4` };

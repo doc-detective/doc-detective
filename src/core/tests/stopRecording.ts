@@ -230,7 +230,9 @@ async function waitForStableFile(
     } catch {
       size = -1;
     }
-    if (size >= 0 && size === lastSize) {
+    // Require a non-empty, steady size: Chrome may pre-create the .webm
+    // before writing data, and transcoding an empty file fails.
+    if (size > 0 && size === lastSize) {
       stableReads++;
       if (stableReads >= 1) return true;
     } else {
