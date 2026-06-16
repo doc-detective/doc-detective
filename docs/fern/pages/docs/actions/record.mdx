@@ -4,7 +4,7 @@ description: Start capturing a video of test execution.
 ---
 
 
-The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recording continues until a `stopRecord` step is encountered.
+The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recordings are video only, with no audio track. Recording continues until a `stopRecord` step is encountered.
 
 You can specify the recording action in several ways:
 
@@ -23,7 +23,7 @@ You can specify the recording action in several ways:
 Recording uses one of two engines, selected by the optional `engine` field in the object format:
 
 - **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the browser tab and is safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
-- **`ffmpeg`:** Records the screen with ffmpeg, so it works for any application, not just Chrome. ffmpeg must be installed and available on your system.
+- **`ffmpeg`:** Records the screen with ffmpeg, so it works for any application, not just Chrome. Doc Detective installs ffmpeg automatically as a runtime dependency the first time a recording runs, so you don't need to install it yourself.
 
 If you don't set `engine`, Doc Detective chooses one for you. It prefers the `browser` engine when a visible Chrome context is available (coercing an unspecified browser to headed Chrome), and falls back to `ffmpeg` otherwise.
 
