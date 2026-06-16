@@ -233,12 +233,23 @@ describe("ffmpegRecorder", function () {
       expect(geo).to.equal(null);
     });
 
-    it("computes a viewport crop from window metrics scaled by DPR", async function () {
+    it("computes a viewport crop offset past the browser chrome and scaled by DPR", async function () {
+      // window at (10,20), 800x600 content inside an 800x700 outer window:
+      // side border = 0, top chrome = 700-600 = 100. Content top-left =
+      // (10, 120); scaled by dpr 2 => (20, 240), size 1600x1200.
       const driver = {
-        execute: async () => ({ x: 10, y: 20, w: 800, h: 600, dpr: 2 }),
+        execute: async () => ({
+          sx: 10,
+          sy: 20,
+          iw: 800,
+          ih: 600,
+          ow: 800,
+          oh: 700,
+          dpr: 2,
+        }),
       };
       const geo = await resolveCropGeometry({ driver, target: "viewport" });
-      expect(geo).to.deep.equal({ x: 20, y: 40, w: 1600, h: 1200 });
+      expect(geo).to.deep.equal({ x: 20, y: 240, w: 1600, h: 1200 });
     });
 
     it("computes a window crop from getWindowRect (dpr=1 when unavailable)", async function () {

@@ -212,19 +212,28 @@ async function resolveCropGeometry({
   if (target === "viewport") {
     const m = await driver.execute(() => {
       return {
-        x: (window as any).screenX,
-        y: (window as any).screenY,
-        w: (window as any).innerWidth,
-        h: (window as any).innerHeight,
+        sx: (window as any).screenX,
+        sy: (window as any).screenY,
+        iw: (window as any).innerWidth,
+        ih: (window as any).innerHeight,
+        ow: (window as any).outerWidth,
+        oh: (window as any).outerHeight,
         dpr: (window as any).devicePixelRatio || 1,
       };
     });
     const dpr = m.dpr || 1;
+    // screenX/screenY is the window's outer top-left, which sits above the
+    // browser chrome (tabs, address bar, infobars). Offset to the content
+    // area: by the side border on X, and by the top chrome height on Y
+    // (outerHeight - innerHeight, minus one border for the matching bottom
+    // edge). Otherwise the crop captures the chrome instead of the page.
+    const border = Math.max(0, (m.ow - m.iw) / 2);
+    const topChrome = Math.max(0, m.oh - m.ih - border);
     return {
-      x: Math.round(m.x * dpr),
-      y: Math.round(m.y * dpr),
-      w: Math.round(m.w * dpr),
-      h: Math.round(m.h * dpr),
+      x: Math.round((m.sx + border) * dpr),
+      y: Math.round((m.sy + topChrome) * dpr),
+      w: Math.round(m.iw * dpr),
+      h: Math.round(m.ih * dpr),
     };
   }
   if (target === "window") {
