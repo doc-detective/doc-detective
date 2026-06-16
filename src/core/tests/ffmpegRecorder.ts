@@ -322,20 +322,34 @@ async function detectMacScreenIndex(
 ): Promise<string | null> {
   return new Promise((resolve) => {
     let out = "";
+    let settled = false;
+    let proc: any = null;
+    const done = (v: string | null) => {
+      if (settled) return;
+      settled = true;
+      try {
+        proc?.kill();
+      } catch {
+        /* ignore */
+      }
+      resolve(v);
+    };
     try {
-      const proc = spawn(
+      proc = spawn(
         ffmpegPath,
         ["-f", "avfoundation", "-list_devices", "true", "-i", ""],
         { stdio: ["ignore", "ignore", "pipe"] }
       );
-      proc.stderr?.on("data", (d) => {
+      proc.stderr?.on("data", (d: any) => {
         out += d.toString();
       });
-      proc.on("error", () => resolve(null));
+      proc.on("error", () => done(null));
       // ffmpeg exits non-zero for a list-only invocation; parse regardless.
-      proc.on("close", () => resolve(parseMacScreenIndex(out)));
+      proc.on("close", () => done(parseMacScreenIndex(out)));
+      // Bound the probe so a hung ffmpeg can't stall recording startup.
+      setTimeout(() => done(null), 5000);
     } catch {
-      resolve(null);
+      done(null);
     }
   });
 }
@@ -347,19 +361,33 @@ async function detectMacScreenIndex(
 async function detectX11ScreenSize(display?: string): Promise<string | null> {
   return new Promise((resolve) => {
     let out = "";
+    let settled = false;
+    let proc: any = null;
+    const done = (v: string | null) => {
+      if (settled) return;
+      settled = true;
+      try {
+        proc?.kill();
+      } catch {
+        /* ignore */
+      }
+      resolve(v);
+    };
     try {
       const env = display ? { ...process.env, DISPLAY: display } : process.env;
-      const proc = spawn("xdpyinfo", [], { env, stdio: ["ignore", "pipe", "ignore"] });
-      proc.stdout?.on("data", (d) => {
+      proc = spawn("xdpyinfo", [], { env, stdio: ["ignore", "pipe", "ignore"] });
+      proc.stdout?.on("data", (d: any) => {
         out += d.toString();
       });
-      proc.on("error", () => resolve(null));
+      proc.on("error", () => done(null));
       proc.on("close", () => {
         const m = /dimensions:\s+(\d+x\d+)\s+pixels/i.exec(out);
-        resolve(m ? m[1] : null);
+        done(m ? m[1] : null);
       });
+      // Bound the probe so a hung xdpyinfo can't stall recording startup.
+      setTimeout(() => done(null), 5000);
     } catch {
-      resolve(null);
+      done(null);
     }
   });
 }
