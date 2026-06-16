@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { sanitizeFilesystemName } from "../utils.js";
 
@@ -33,7 +34,16 @@ export {
 // sanitized before going into a filesystem path or a launch-flag value —
 // otherwise a value like "../x" could escape the temp dir.
 function safeContextId(contextId: any): string {
-  return sanitizeFilesystemName(String(contextId ?? "ctx"), "ctx");
+  const raw = String(contextId ?? "ctx");
+  const base = sanitizeFilesystemName(raw, "ctx");
+  // If sanitization didn't change anything, the id is already filesystem-safe
+  // and unique. If it did, distinct raw ids (e.g. "a/b" and "a\\b") could
+  // collapse to the same value — which would reintroduce the concurrency bug
+  // (shared capture title / download dir). Disambiguate with a short stable
+  // hash of the raw id so uniqueness survives sanitization.
+  if (base === raw) return base;
+  const hash = crypto.createHash("sha1").update(raw).digest("hex").slice(0, 8);
+  return `${base}-${hash}`;
 }
 function browserCaptureTitle(contextId: string): string {
   return `RECORD_ME_${safeContextId(contextId)}`;

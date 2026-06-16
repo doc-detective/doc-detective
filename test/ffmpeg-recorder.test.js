@@ -136,12 +136,20 @@ describe("ffmpegRecorder", function () {
 
     it("sanitizes a traversal contextId so it can't escape the temp dir", function () {
       expect(safeContextId("../../etc")).to.not.match(/[\\/]/);
-      expect(safeContextId("..")).to.equal("ctx");
-      expect(safeContextId("")).to.equal("ctx");
+      expect(safeContextId("..")).to.not.match(/[\\/]/);
+      expect(safeContextId("")).to.not.match(/[\\/]/);
       expect(browserCaptureTitle("../x")).to.not.match(/[\\/]/);
       // The download dir's leaf segment contains no path separator.
       const dir = browserDownloadDir("../../evil");
       expect(/recordings[\\/][^\\/]+$/.test(dir)).to.equal(true);
+    });
+
+    it("keeps distinct ids distinct after sanitization (no collision)", function () {
+      // Different raw ids that sanitize to the same base must not collide.
+      expect(safeContextId("a/b")).to.not.equal(safeContextId("a\\b"));
+      expect(safeContextId("..")).to.not.equal(safeContextId(""));
+      // A clean, already-safe id is left untouched (no hash noise).
+      expect(safeContextId("mac-chrome-2")).to.equal("mac-chrome-2");
     });
   });
 

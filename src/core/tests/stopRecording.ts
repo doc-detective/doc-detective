@@ -1,6 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
 import { getFfmpegPath } from "./ffmpegRecorder.js";
@@ -194,10 +194,13 @@ async function transcode({
   ffmpegArgs.push(`${targetPath}`);
   const ffmpegPath = await getFfmpegPath({ cacheDir: config?.cacheDir });
   await new Promise<void>((resolve, reject) => {
-    const child = execFile(ffmpegPath, ffmpegArgs);
+    // spawn (not execFile): a long/noisy ffmpeg transcode can emit megabytes
+    // of progress on stderr, which would overflow execFile's internal buffer
+    // (ERR_CHILD_PROCESS_STDIO_MAXBUFFER). We stream stderr into a bounded tail.
+    const child = spawn(ffmpegPath, ffmpegArgs);
     let stderr = "";
     child.stderr?.on("data", (d) => {
-      stderr += d.toString();
+      stderr = (stderr + d.toString()).slice(-2000);
     });
     child
       .on("close", (code) => {
