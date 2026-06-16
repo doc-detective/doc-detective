@@ -227,6 +227,48 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
+      it("should validate a record step with an engine string shorthand", function () {
+        for (const engine of ["browser", "ffmpeg"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", engine } },
+          });
+          expect(result.valid, `engine: ${engine} -> ${result.errors}`).to.be
+            .true;
+        }
+      });
+
+      it("should validate a record step with a detailed engine object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            record: {
+              path: "out.mp4",
+              engine: { name: "ffmpeg", target: "window", fps: 60 },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject a record step with an invalid engine", function () {
+        for (const engine of [
+          "webkit",
+          { name: "vlc" },
+          { name: "ffmpeg", target: "tab" },
+          { name: "ffmpeg", fps: 1.5 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", engine } },
+          });
+          expect(
+            result.valid,
+            `expected invalid engine: ${JSON.stringify(engine)}`
+          ).to.be.false;
+        }
+      });
+
       it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
         for (const concurrentRunners of [1, 4, true]) {
           const result = validate({

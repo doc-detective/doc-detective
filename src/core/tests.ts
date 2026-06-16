@@ -34,6 +34,17 @@ import { wait } from "./tests/wait.js";
 import { saveScreenshot } from "./tests/saveScreenshot.js";
 import { startRecording } from "./tests/startRecording.js";
 import { stopRecording } from "./tests/stopRecording.js";
+import {
+  browserCaptureTitle,
+  browserDownloadDir,
+  coerceRecordContextBrowser,
+  jobIsFfmpegRecording,
+  computeEffectiveConcurrency,
+  checkSystemBinary,
+  xvfbDisplay,
+  startXvfb,
+  XVFB_SCREEN_SIZE,
+} from "./tests/ffmpegRecorder.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
 import { loadCookie } from "./tests/loadCookie.js";
@@ -198,7 +209,16 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         if (!chromium) break;
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
-        args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
+        // Auto-select the getDisplayMedia capture source by window title. A
+        // per-context title (set on document.title in startRecording) makes
+        // concurrent Chrome recordings safe: each browser process auto-selects
+        // only its own window. Falls back to the shared default for callers
+        // (warm-up, non-record contexts) that don't supply one.
+        args.push(
+          `--auto-select-desktop-capture-source=${
+            options.captureSourceTitle || "RECORD_ME"
+          }`
+        );
         if (options.headless) args.push("--headless", "--disable-gpu");
         if (process.platform === "linux") {
           args.push("--no-sandbox");
@@ -221,7 +241,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
             prefs: {
-              "download.default_directory": os.tmpdir(),
+              // Per-context download dir keeps concurrent recordings from
+              // colliding on the same .webm filename in a shared temp dir.
+              "download.default_directory": options.downloadDir || os.tmpdir(),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
             },
@@ -586,8 +608,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Resolve concurrency up front (defensive re-resolve: API callers can hand
   // runSpecs a config that never went through core setConfig, leaving
   // concurrentRunners as `true`). Drives both the worker pool and how many
-  // Appium servers to start.
-  const limit = resolveConcurrentRunners(config);
+  // Appium servers to start. Mutable: recording constraints may cap it below.
+  let limit = resolveConcurrentRunners(config);
 
   // Phase 1: pre-build the report skeleton and a flat list of context jobs
   // across all specs and tests. Slots are pre-assigned so report order always
@@ -644,24 +666,49 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           usedContextIds.add(id);
           context.contextId = id;
         }
+        // Auto-resolution: when a record step has no explicit engine and the
+        // user never chose a browser, prefer the concurrency-safe browser
+        // engine by coercing to headed Chrome (when available). Done here,
+        // before the concurrency calc below, so each job's engine is settled.
+        // Non-record contexts keep runContext's normal browser defaulting.
+        const coercedBrowser = coerceRecordContextBrowser({
+          context,
+          availableApps: runnerDetails.availableApps,
+        });
+        if (coercedBrowser) context.browser = coercedBrowser;
         jobs.push({ spec, test, context, contexts: testReport.contexts, slot });
       });
     }
   }
 
-  if (
-    limit > 1 &&
-    jobs.some((job: any) =>
-      job.context.steps?.some((step: any) => step.record !== undefined)
-    )
-  ) {
-    // Concurrent headed recordings capture via getDisplayMedia and can grab
-    // the wrong window. Recording filenames in the temp dir can also collide.
+  // Recording concurrency. The browser (Chrome getDisplayMedia) engine is
+  // concurrency-safe via per-context capture titles, but the ffmpeg engine
+  // grabs the whole physical display and must own it — so concurrent ffmpeg
+  // recordings are only safe on Linux with per-runner Xvfb displays. Probe
+  // Xvfb only when it could matter, then let computeEffectiveConcurrency
+  // decide the effective limit.
+  // Only ffmpeg-engine recordings need Xvfb; a browser-engine-only run
+  // shouldn't pay for an `Xvfb -help` spawn. Contexts are already coerced
+  // above, so resolveRecordPlan reflects the engine that will actually run.
+  const anyFfmpegRecording = jobs.some(jobIsFfmpegRecording);
+  let xvfbAvailable = false;
+  if (anyFfmpegRecording && process.platform === "linux") {
+    xvfbAvailable = await checkSystemBinary("Xvfb");
+  }
+  const concurrency = computeEffectiveConcurrency({
+    requestedLimit: limit,
+    jobs,
+    platform: process.platform,
+    xvfbAvailable,
+  });
+  limit = concurrency.limit;
+  if (concurrency.forcedSerial) {
     log(
       config,
       "warning",
-      "Tests include record steps while concurrentRunners is greater than 1. Concurrent recordings can capture the wrong window; set concurrentRunners to 1 for recording runs."
+      "Recording with the ffmpeg engine needs exclusive use of the display, so this run is executing serially (concurrentRunners=1). To record concurrently, use the Chrome browser engine (record: { engine: \"browser\" }) or, on Linux, install Xvfb."
     );
+    report.recordingForcedSerial = true;
   }
 
   // Start one Appium server per concurrent runner that will actually use a
@@ -672,10 +719,17 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const driverJobCount = jobs.filter((job: any) =>
     isDriverRequired({ test: job.context })
   ).length;
-  let appiumServers: Array<{ port: number; process: any }> = [];
+  let appiumServers: Array<{ port: number; process: any; display?: string }> =
+    [];
   let appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
+  // Per-server virtual displays (Linux Xvfb) for concurrent ffmpeg recording,
+  // and the port→display map so a context that acquires a server records the
+  // same display its browser renders on.
+  const xvfbProcesses: any[] = [];
+  const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
+  let portToDisplay: Map<number, string> | undefined;
   if (driverJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     // Resolve appium's actual JS entrypoint via `require.resolve` (shim
@@ -703,7 +757,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // come up, tearing down any already started so they don't leak.
     try {
       for (let i = 0; i < serverCount; i++) {
-        appiumServers.push(await startAppiumServer(appiumEntry, config));
+        let display: string | undefined;
+        if (useXvfbDisplays) {
+          display = xvfbDisplay(i);
+          xvfbProcesses.push(await startXvfb(display));
+          log(config, "debug", `Started Xvfb on ${display} for recording.`);
+        }
+        appiumServers.push(
+          await startAppiumServer(appiumEntry, config, display)
+        );
       }
     } catch (error) {
       for (const server of appiumServers) {
@@ -713,9 +775,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // best-effort
         }
       }
+      for (const xvfb of xvfbProcesses) {
+        try {
+          xvfb.kill();
+        } catch {
+          // best-effort
+        }
+      }
       throw error;
     }
     appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
+    if (useXvfbDisplays) {
+      portToDisplay = new Map(
+        appiumServers
+          .filter((s) => s.display)
+          .map((s) => [s.port, s.display as string])
+      );
+    }
   }
 
   // Everything that uses the Appium servers runs inside this try so the
@@ -755,6 +831,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           context: job.context,
           runnerDetails,
           appiumPool,
+          portToDisplay,
           metaValues,
           installAttempts,
           warmUpResults,
@@ -808,6 +885,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       log(config, "debug", `Closing Appium server on port ${server.port}`);
       try {
         kill(server.process.pid);
+      } catch {
+        // Process may already be terminated
+      }
+    }
+    // Tear down any Xvfb virtual displays started for recording.
+    for (const xvfb of xvfbProcesses) {
+      try {
+        xvfb.kill();
       } catch {
         // Process may already be terminated
       }
@@ -1157,6 +1242,7 @@ async function runContext({
   context,
   runnerDetails,
   appiumPool,
+  portToDisplay,
   metaValues,
   installAttempts,
   warmUpResults,
@@ -1170,6 +1256,7 @@ async function runContext({
   appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
+  portToDisplay?: Map<number, string>;
   metaValues: any;
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
@@ -1340,9 +1427,27 @@ async function runContext({
       // Check out a server for this context's lifetime — released in the
       // finally so the next queued context can reuse it.
       appiumPort = await appiumPool!.acquire();
+      // If this server runs on a dedicated Xvfb display, record it on the
+      // context so the ffmpeg recorder captures the same display the browser
+      // renders on.
+      if (portToDisplay) {
+        const display = portToDisplay.get(appiumPort);
+        if (display) {
+          context.__display = display;
+          // The Xvfb displays are created at a known fixed size; record it so
+          // x11grab captures the full display (its default grabs only 640x480).
+          context.__displaySize = XVFB_SCREEN_SIZE;
+        }
+      }
 
       // Define driver capabilities
       // TODO: Support custom apps
+      // Per-context recording identifiers so concurrent Chrome recordings
+      // auto-select their own window and download to their own dir.
+      const recordOptions = {
+        captureSourceTitle: browserCaptureTitle(context.contextId),
+        downloadDir: browserDownloadDir(context.contextId),
+      };
       let caps: any = getDriverCapabilities({
         runnerDetails: runnerDetails,
         name: context.browser.name,
@@ -1350,6 +1455,7 @@ async function runContext({
           width: context.browser?.window?.width || 1200,
           height: context.browser?.window?.height || 800,
           headless: context.browser?.headless !== false,
+          ...recordOptions,
         },
       });
       clog("debug", "CAPABILITIES:");
@@ -1373,6 +1479,7 @@ async function runContext({
               width: context.browser?.window?.width || 1200,
               height: context.browser?.window?.height || 800,
               headless: context.browser?.headless !== false,
+              ...recordOptions,
             },
           });
           driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
@@ -1713,16 +1820,22 @@ async function runStep({
 // never create sessions on the same Appium instance.
 async function startAppiumServer(
   appiumEntry: string,
-  config: any
-): Promise<{ port: number; process: any }> {
+  config: any,
+  display?: string
+): Promise<{ port: number; process: any; display?: string }> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
+  // When a virtual display is supplied (Linux Xvfb recording), launch the
+  // server with DISPLAY set so the browser it spawns (via chromedriver)
+  // renders on that display — which is what ffmpeg x11grab then captures.
+  const env = display ? { ...process.env, DISPLAY: display } : process.env;
   const proc: any = spawn(
     process.execPath,
     [appiumEntry, "-a", "127.0.0.1", "-p", String(port)],
     {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
+      env,
     }
   );
   proc.on("error", (err: any) => {
@@ -1748,7 +1861,7 @@ async function startAppiumServer(
     throw error;
   }
   log(config, "debug", `Appium is ready on port ${port}.`);
-  return { port, process: proc };
+  return { port, process: proc, display };
 }
 
 // Delay execution until Appium server is available.

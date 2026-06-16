@@ -252,7 +252,7 @@ export type SaveCookieDetailed =
       [k: string]: unknown;
     };
 /**
- * Start recording the current browser viewport. Must be followed by a `stopRecord` step. Only runs in Chrome browsers when they are visible. Supported extensions: [ '.mp4', '.webm', '.gif' ]
+ * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
 export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
 /**
@@ -260,7 +260,15 @@ export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
  */
 export type RecordSimple = string;
 /**
- * If `true`, records the current browser viewport. If `false`, doesn't record the current browser viewport.
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ */
+export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
+/**
+ * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+ */
+export type RecordingEngineSimple = "browser" | "ffmpeg";
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
 /**
@@ -546,7 +554,7 @@ export type SaveCookieDetailed1 =
       [k: string]: unknown;
     };
 /**
- * Start recording the current browser viewport. Must be followed by a `stopRecord` step. Only runs in Chrome browsers when they are visible. Supported extensions: [ '.mp4', '.webm', '.gif' ]
+ * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
 export type Record3 = RecordSimple1 | RecordDetailed1 | RecordBoolean1;
 /**
@@ -554,7 +562,15 @@ export type Record3 = RecordSimple1 | RecordDetailed1 | RecordBoolean1;
  */
 export type RecordSimple1 = string;
 /**
- * If `true`, records the current browser viewport. If `false`, doesn't record the current browser viewport.
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ */
+export type RecordingEngine1 = RecordingEngineSimple1 | RecordingEngineDetailed1;
+/**
+ * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+ */
+export type RecordingEngineSimple1 = "browser" | "ffmpeg";
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean1 = boolean;
 /**
@@ -1856,7 +1872,22 @@ export interface RecordDetailed {
    * If `true`, overwrites the existing recording at `path` if it exists.
    */
   overwrite?: "true" | "false";
+  engine?: RecordingEngine;
   [k: string]: unknown;
+}
+export interface RecordingEngineDetailed {
+  /**
+   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   */
+  name: "browser" | "ffmpeg";
+  /**
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   */
+  target?: "display" | "window" | "viewport";
+  /**
+   * Capture frame rate for the `ffmpeg` engine.
+   */
+  fps?: number;
 }
 export interface Common11 {
   /**
@@ -3413,7 +3444,22 @@ export interface RecordDetailed1 {
    * If `true`, overwrites the existing recording at `path` if it exists.
    */
   overwrite?: "true" | "false";
+  engine?: RecordingEngine1;
   [k: string]: unknown;
+}
+export interface RecordingEngineDetailed1 {
+  /**
+   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   */
+  name: "browser" | "ffmpeg";
+  /**
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   */
+  target?: "display" | "window" | "viewport";
+  /**
+   * Capture frame rate for the `ffmpeg` engine.
+   */
+  fps?: number;
 }
 export interface Common27 {
   /**

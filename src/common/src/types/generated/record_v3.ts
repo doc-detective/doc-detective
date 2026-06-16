@@ -5,7 +5,7 @@
  */
 
 /**
- * Start recording the current browser viewport. Must be followed by a `stopRecord` step. Only runs in Chrome browsers when they are visible. Supported extensions: [ '.mp4', '.webm', '.gif' ]
+ * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
 export type Record = RecordSimple | RecordDetailed | RecordBoolean;
 /**
@@ -13,7 +13,15 @@ export type Record = RecordSimple | RecordDetailed | RecordBoolean;
  */
 export type RecordSimple = string;
 /**
- * If `true`, records the current browser viewport. If `false`, doesn't record the current browser viewport.
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ */
+export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
+/**
+ * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+ */
+export type RecordingEngineSimple = "browser" | "ffmpeg";
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
 
@@ -30,5 +38,20 @@ export interface RecordDetailed {
    * If `true`, overwrites the existing recording at `path` if it exists.
    */
   overwrite?: "true" | "false";
+  engine?: RecordingEngine;
   [k: string]: unknown;
+}
+export interface RecordingEngineDetailed {
+  /**
+   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   */
+  name: "browser" | "ffmpeg";
+  /**
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   */
+  target?: "display" | "window" | "viewport";
+  /**
+   * Capture frame rate for the `ffmpeg` engine.
+   */
+  fps?: number;
 }
