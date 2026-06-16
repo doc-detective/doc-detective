@@ -10,6 +10,7 @@ import {
   resolveCropGeometry,
   getFfmpegPath,
   detectMacScreenIndex,
+  detectX11ScreenSize,
 } from "./ffmpegRecorder.js";
 import { spawn } from "node:child_process";
 import path from "node:path";
@@ -305,13 +306,26 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     screenIndex = (await detectMacScreenIndex(ffmpegPath)) ?? undefined;
   }
 
+  const displayEnv = context.__display || process.env.DISPLAY;
+  // On Linux, x11grab must be told the screen size or the bundled ffmpeg only
+  // grabs a 640x480 corner. Use the known Xvfb size when threaded, else detect
+  // the real display's size.
+  let screenSize: string | undefined;
+  if (process.platform === "linux") {
+    screenSize =
+      context.__displaySize ||
+      (await detectX11ScreenSize(displayEnv)) ||
+      undefined;
+  }
+
   const args = buildCaptureArgs({
     platform: process.platform,
     fps: plan.fps,
     // Honor a per-context virtual display (Linux Xvfb) when threaded through.
-    displayEnv: context.__display || process.env.DISPLAY,
+    displayEnv,
     outputPath: tempPath,
     screenIndex,
+    screenSize,
   });
   log(
     config,

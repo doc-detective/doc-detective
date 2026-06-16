@@ -1,6 +1,6 @@
 {
   "specId": "recording-permutations",
-  "description": "Validates each permutation of recording support that isn't already covered by recording.spec.json: the record value forms (boolean/false), both engines as a string shorthand, every ffmpeg target (display/window/viewport), custom fps, all output formats (mp4/webm/gif) per engine, and the engine-specific headless skip. ffmpeg permutations run on Windows (gdigrab) and macOS (avfoundation); the browser engine needs headed Chrome.",
+  "description": "Validates each permutation of recording support that isn't already covered by recording.spec.json: the record value forms (boolean/false), both engines as a string shorthand, every ffmpeg target (display/window/viewport), custom fps, all output formats (mp4/webm/gif) per engine, and the engine-specific headless skip. ffmpeg permutations run on Windows (gdigrab), macOS (avfoundation), and Linux (x11grab on a per-runner Xvfb display); the browser engine needs headed Chrome (Windows/macOS).",
   "tests": [
     {
       "testId": "rec-perm-record-true",
@@ -113,7 +113,8 @@
         {
           "platforms": [
             "windows",
-            "mac"
+            "mac",
+            "linux"
           ],
           "browsers": {
             "name": "chrome",
@@ -150,7 +151,8 @@
         {
           "platforms": [
             "windows",
-            "mac"
+            "mac",
+            "linux"
           ],
           "browsers": {
             "name": "chrome",
@@ -190,7 +192,8 @@
         {
           "platforms": [
             "windows",
-            "mac"
+            "mac",
+            "linux"
           ],
           "browsers": {
             "name": "chrome",
@@ -230,7 +233,8 @@
         {
           "platforms": [
             "windows",
-            "mac"
+            "mac",
+            "linux"
           ],
           "browsers": {
             "name": "chrome",
@@ -308,7 +312,8 @@
         {
           "platforms": [
             "windows",
-            "mac"
+            "mac",
+            "linux"
           ],
           "browsers": {
             "name": "chrome",
@@ -345,7 +350,8 @@
         {
           "platforms": [
             "windows",
-            "mac"
+            "mac",
+            "linux"
           ],
           "browsers": {
             "name": "chrome",
@@ -377,13 +383,12 @@
     },
     {
       "testId": "rec-perm-ffmpeg-headless-skip",
-      "description": "ffmpeg engine in headless mode with no virtual display is skipped.",
+      "description": "ffmpeg engine in headless mode is skipped on Windows/macOS (no virtual display). On Linux the per-runner Xvfb provides a display, so headless ffmpeg recording is supported there and this skip case doesn't apply.",
       "runOn": [
         {
           "platforms": [
             "windows",
-            "mac",
-            "linux"
+            "mac"
           ],
           "browsers": {
             "name": "chrome",

@@ -43,6 +43,7 @@ import {
   checkSystemBinary,
   xvfbDisplay,
   startXvfb,
+  XVFB_SCREEN_SIZE,
 } from "./tests/ffmpegRecorder.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
@@ -1431,7 +1432,12 @@ async function runContext({
       // renders on.
       if (portToDisplay) {
         const display = portToDisplay.get(appiumPort);
-        if (display) context.__display = display;
+        if (display) {
+          context.__display = display;
+          // The Xvfb displays are created at a known fixed size; record it so
+          // x11grab captures the full display (its default grabs only 640x480).
+          context.__displaySize = XVFB_SCREEN_SIZE;
+        }
       }
 
       // Define driver capabilities

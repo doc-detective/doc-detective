@@ -22,7 +22,14 @@ export {
   checkSystemBinary,
   xvfbDisplay,
   startXvfb,
+  XVFB_SCREEN_SIZE,
+  detectX11ScreenSize,
 };
+
+// Fixed virtual-display size for the Linux Xvfb recording path. Used both to
+// start Xvfb and as the x11grab `-video_size`, so the capture matches the
+// display exactly (and window/viewport crops fit within it).
+const XVFB_SCREEN_SIZE = "1920x1080";
 
 // The browser engine drives getDisplayMedia's auto-select via a per-context
 // window title and downloads the .webm to a per-context dir. tests.ts (which
@@ -141,12 +148,14 @@ function buildCaptureArgs({
   displayEnv,
   outputPath,
   screenIndex,
+  screenSize,
 }: {
   platform: string;
   fps: number;
   displayEnv?: string;
   outputPath: string;
   screenIndex?: string;
+  screenSize?: string;
 }): string[] {
   const rate = String(fps ?? 30);
   let input: string[];
@@ -167,7 +176,19 @@ function buildCaptureArgs({
       ];
       break;
     case "linux":
-      input = ["-f", "x11grab", "-framerate", rate, "-i", displayEnv || ":0.0"];
+      // x11grab in the bundled ffmpeg defaults to a 640x480 grab when
+      // -video_size is omitted, capturing only a corner of the display. Pass
+      // the real screen size so the full display (and any window/viewport
+      // crop within it) is captured.
+      input = [
+        "-f",
+        "x11grab",
+        "-framerate",
+        rate,
+        ...(screenSize ? ["-video_size", screenSize] : []),
+        "-i",
+        displayEnv || ":0.0",
+      ];
       break;
     default:
       throw new Error(
@@ -319,6 +340,30 @@ async function detectMacScreenIndex(
   });
 }
 
+// Best-effort detection of an X11 display's screen size via xdpyinfo, e.g.
+// "1920x1080". Used to set x11grab's -video_size for a non-Xvfb (real
+// desktop) Linux display. Returns null if xdpyinfo is unavailable or the
+// output can't be parsed (the caller then omits -video_size).
+async function detectX11ScreenSize(display?: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    let out = "";
+    try {
+      const env = display ? { ...process.env, DISPLAY: display } : process.env;
+      const proc = spawn("xdpyinfo", [], { env, stdio: ["ignore", "pipe", "ignore"] });
+      proc.stdout?.on("data", (d) => {
+        out += d.toString();
+      });
+      proc.on("error", () => resolve(null));
+      proc.on("close", () => {
+        const m = /dimensions:\s+(\d+x\d+)\s+pixels/i.exec(out);
+        resolve(m ? m[1] : null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 // Probe for a system binary on PATH (e.g. Xvfb, which is not an npm package).
 // Resolves true if the binary launches, false on ENOENT/spawn error.
 async function checkSystemBinary(name: string): Promise<boolean> {
@@ -349,8 +394,9 @@ async function startXvfb(
   opts: { width?: number; height?: number } = {}
 ): Promise<any> {
   const num = display.replace(/^:/, "").split(".")[0];
-  const w = opts.width ?? 1920;
-  const h = opts.height ?? 1080;
+  const [defW, defH] = XVFB_SCREEN_SIZE.split("x").map(Number);
+  const w = opts.width ?? defW;
+  const h = opts.height ?? defH;
   // Capture the spawn time so a stale `/tmp/.X<N>-lock` (left by a dead Xvfb
   // or another server) can't false-ready us — we only accept a lock created
   // at/after our own start.

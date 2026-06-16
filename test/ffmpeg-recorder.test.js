@@ -197,6 +197,29 @@ describe("ffmpegRecorder", function () {
       expect(args).to.include(":0.0");
     });
 
+    it("passes -video_size before -i on linux when a screen size is given", function () {
+      const args = buildCaptureArgs({
+        platform: "linux",
+        fps: 30,
+        displayEnv: ":99",
+        screenSize: "1920x1080",
+        outputPath: "out.mkv",
+      });
+      expect(args).to.include("-video_size");
+      expect(args).to.include("1920x1080");
+      expect(args.indexOf("-video_size")).to.be.lessThan(args.indexOf("-i"));
+    });
+
+    it("omits -video_size on linux when no screen size is given", function () {
+      const args = buildCaptureArgs({
+        platform: "linux",
+        fps: 30,
+        displayEnv: ":99",
+        outputPath: "out.mkv",
+      });
+      expect(args).to.not.include("-video_size");
+    });
+
     it("throws on an unsupported platform", function () {
       expect(() =>
         buildCaptureArgs({ platform: "sunos", fps: 30, outputPath: "o" })

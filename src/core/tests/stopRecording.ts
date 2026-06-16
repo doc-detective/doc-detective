@@ -183,7 +183,15 @@ async function transcode({
   const ffmpegArgs = ["-y", "-i", `${sourcePath}`, "-an", "-pix_fmt", "yuv420p"];
   const filters: string[] = [];
   if (crop) {
-    filters.push(`crop=${crop.w}:${crop.h}:${crop.x}:${crop.y}`);
+    // Clamp the crop to the captured frame using ffmpeg expressions (iw/ih),
+    // so a window/viewport rectangle larger than the captured display can't
+    // make the crop filter fail with "Invalid too big size". Commas inside
+    // min()/max() are escaped (\,) so they aren't read as filter separators.
+    const cw = `min(iw\\,${crop.w})`;
+    const ch = `min(ih\\,${crop.h})`;
+    const cx = `max(0\\,min(${crop.x}\\,iw-${cw}))`;
+    const cy = `max(0\\,min(${crop.y}\\,ih-${ch}))`;
+    filters.push(`crop=w=${cw}:h=${ch}:x=${cx}:y=${cy}`);
   }
   if (path.extname(targetPath) === ".gif") {
     filters.push("scale=iw:-1:flags=lanczos");
