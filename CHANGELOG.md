@@ -1,3 +1,10 @@
+## [4.11.1](https://github.com/doc-detective/doc-detective/compare/v4.11.0...v4.11.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* **reporters:** keep per-run JSON path as the last "results at" token ([#346](https://github.com/doc-detective/doc-detective/issues/346)) ([79f35b8](https://github.com/doc-detective/doc-detective/commit/79f35b85ca6a62fd5c986afb6b9918ec6f222eae)), closes [#341](https://github.com/doc-detective/doc-detective/issues/341)
+
 # [4.11.0](https://github.com/doc-detective/doc-detective/compare/v4.10.0...v4.11.0) (2026-06-16)
 
 
