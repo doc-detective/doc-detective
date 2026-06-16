@@ -593,11 +593,14 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         );
       }
 
-      // Log the JSON path *last* so it stays the final "results at" token on
-      // stdout. The doc-detective GitHub Action resolves the results file by
-      // splitting stdout on "results at " and require()-ing the trimmed last
-      // segment; a trailing "...report at <html>" line would otherwise get
-      // folded into the path and break the release smoke test.
+      // Log the JSON path *after* the HTML line so that, within this reporter,
+      // no "...report at <html>" line trails the per-run "results at" line. The
+      // doc-detective GitHub Action resolves the results file by splitting
+      // stdout on "results at " and require()-ing the trimmed last segment; a
+      // trailing HTML line folded into that segment broke the release smoke
+      // test. (Reporters run concurrently, so this line isn't guaranteed to be
+      // the final stdout token overall — but every reporter's "results at" line
+      // is itself a valid results path, so whichever lands last still resolves.)
       console.log(`See per-run results at ${outputFile}\n`);
 
       return outputFile;
