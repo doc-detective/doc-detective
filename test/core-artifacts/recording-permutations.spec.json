@@ -1,0 +1,417 @@
+{
+  "specId": "recording-permutations",
+  "description": "Validates each permutation of recording support that isn't already covered by recording.spec.json: the record value forms (boolean/false), both engines as a string shorthand, every ffmpeg target (display/window/viewport), custom fps, all output formats (mp4/webm/gif) per engine, and the engine-specific headless skip. ffmpeg permutations run on Windows (gdigrab) and macOS (avfoundation); the browser engine needs headed Chrome.",
+  "tests": [
+    {
+      "testId": "rec-perm-record-true",
+      "description": "record: true (boolean) auto-resolves to the browser engine on headed Chrome.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": true
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-record-false",
+      "description": "record: false disables recording — the step is skipped, not started.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": false
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-engine-string-browser",
+      "description": "engine string shorthand \"browser\".",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-engine-browser.mp4",
+            "engine": "browser",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-engine-string-ffmpeg",
+      "description": "engine string shorthand \"ffmpeg\" (default display target).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-engine-ffmpeg.mp4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-window",
+      "description": "ffmpeg engine, window target (full-screen capture cropped to the window).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-window.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "window"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-viewport",
+      "description": "ffmpeg engine, viewport target (cropped to the browser content area).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-viewport.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "viewport"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-fps",
+      "description": "ffmpeg engine with a custom capture frame rate.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-fps.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display",
+              "fps": 60
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-browser-gif",
+      "description": "browser engine output as a .gif.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-browser.gif",
+            "engine": "browser",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-webm",
+      "description": "ffmpeg engine output as a .webm.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-ffmpeg.webm",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-gif",
+      "description": "ffmpeg engine output as a .gif.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-ffmpeg.gif",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-headless-skip",
+      "description": "ffmpeg engine in headless mode with no virtual display is skipped.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-headless.mp4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
