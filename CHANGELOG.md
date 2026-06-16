@@ -1,3 +1,10 @@
+# [4.11.0](https://github.com/doc-detective/doc-detective/compare/v4.10.0...v4.11.0) (2026-06-16)
+
+
+### Features
+
+* **record:** ffmpeg engine for any-app recording + concurrency-safe Chrome ([#343](https://github.com/doc-detective/doc-detective/issues/343)) ([36a83ba](https://github.com/doc-detective/doc-detective/commit/36a83ba172ac4c259455b167954df0990bf658d8))
+
 # [4.10.0](https://github.com/doc-detective/doc-detective/compare/v4.9.0...v4.10.0) (2026-06-15)
 
 
