@@ -180,6 +180,38 @@ describe("runFolder reporter", function () {
     expect(html).to.include("20260612-140000");
   });
 
+  it("prints the per-run JSON path as the last 'results at' token", async function () {
+    // The doc-detective GitHub Action resolves the results file by splitting
+    // stdout on "results at " and `require()`-ing the trimmed last segment
+    // (see github-action dist/index.js). The HTML-report line ("...report at
+    // <html>") must therefore print *before* the per-run JSON line
+    // ("...results at <json>") — otherwise the action folds the trailing HTML
+    // line into the path and the require() fails the release smoke test.
+    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-170000");
+    fs.mkdirSync(runDir, { recursive: true });
+    const results = { runId: "20260612-170000", runDir, summary: {}, specs: [] };
+
+    const lines = [];
+    const origLog = console.log;
+    console.log = (...args) => {
+      lines.push(args.join(" "));
+    };
+    let written;
+    try {
+      written = await reporters.runFolderReporter({}, tempBase, results, {
+        command: "runTests",
+      });
+    } finally {
+      console.log = origLog;
+    }
+
+    // Mirror the action's parser exactly.
+    const stdout = lines.join("\n");
+    const segments = stdout.split("results at ");
+    const parsed = segments[segments.length - 1].trim();
+    expect(parsed).to.equal(written);
+  });
+
   it("names the HTML file to match the command's JSON report type", async function () {
     const runDir = path.join(tempBase, ".doc-detective", "run-20260612-150000");
     fs.mkdirSync(runDir, { recursive: true });

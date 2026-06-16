@@ -573,7 +573,6 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     try {
       fs.mkdirSync(runDir, { recursive: true });
       fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
-      console.log(`See per-run results at ${outputFile}\n`);
 
       // Archive a human-readable HTML report beside the JSON, so the run folder
       // is a complete shareable artifact without the standalone `html` reporter.
@@ -593,6 +592,13 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
           htmlErr
         );
       }
+
+      // Log the JSON path *last* so it stays the final "results at" token on
+      // stdout. The doc-detective GitHub Action resolves the results file by
+      // splitting stdout on "results at " and require()-ing the trimmed last
+      // segment; a trailing "...report at <html>" line would otherwise get
+      // folded into the path and break the release smoke test.
+      console.log(`See per-run results at ${outputFile}\n`);
 
       return outputFile;
     } catch (err) {
