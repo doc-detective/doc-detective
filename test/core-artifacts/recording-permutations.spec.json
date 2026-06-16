@@ -417,6 +417,274 @@
           "stopRecord": true
         }
       ]
+    },
+    {
+      "testId": "rec-perm-record-string",
+      "description": "record as a string path shorthand (auto-resolves to the browser engine on headed Chrome).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": "rec-perm-string.mp4"
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-engine-object-browser",
+      "description": "engine as a detailed object { name: \"browser\" }.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-engine-obj-browser.mp4",
+            "engine": {
+              "name": "browser"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-chrome-ffmpeg-object",
+      "description": "Chrome context with the ffmpeg engine as a detailed object { name: \"ffmpeg\", target: \"display\" } — records the screen while driving Chrome.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-chrome-ffmpeg-obj.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-firefox-ffmpeg",
+      "description": "Non-Chrome (Firefox) context with the ffmpeg engine — the ffmpeg engine is browser-agnostic.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-firefox-ffmpeg.mp4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 8000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-firefox-auto",
+      "description": "Firefox context with no explicit engine auto-resolves to ffmpeg (the browser engine is Chrome-only).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-firefox-auto.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 8000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-firefox-browser-skip",
+      "description": "Firefox context with the browser engine is skipped (the browser engine requires Chrome).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-firefox-browser.mp4",
+            "engine": "browser",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 8000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-overwrite-false-skip",
+      "description": "A second recording to an existing path with overwrite:false is skipped.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-overwrite.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "record": {
+            "path": "rec-perm-overwrite.mp4",
+            "overwrite": "false"
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
     }
   ]
 }
