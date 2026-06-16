@@ -685,6 +685,110 @@
           "stopRecord": true
         }
       ]
+    },
+    {
+      "testId": "rec-perm-safari-ffmpeg",
+      "description": "Safari (macOS-only, non-Chrome) context with the ffmpeg engine — the ffmpeg engine is browser-agnostic.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": {
+            "name": "safari"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-safari-ffmpeg.mp4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 8000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-safari-auto",
+      "description": "Safari context with no explicit engine auto-resolves to ffmpeg (the browser engine is Chrome-only).",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": {
+            "name": "safari"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-safari-auto.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 8000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-safari-browser-skip",
+      "description": "Safari context with the browser engine is skipped (the browser engine requires Chrome).",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": {
+            "name": "safari"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-safari-browser.mp4",
+            "engine": "browser",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 8000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
     }
   ]
 }
