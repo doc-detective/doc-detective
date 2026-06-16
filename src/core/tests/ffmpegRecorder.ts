@@ -6,6 +6,11 @@ import crypto from "node:crypto";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { sanitizeFilesystemName } from "../utils.js";
 
+// Fixed virtual-display size for the Linux Xvfb recording path. Used both to
+// start Xvfb and as the x11grab `-video_size`, so the capture matches the
+// display exactly (and window/viewport crops fit within it).
+const XVFB_SCREEN_SIZE = "1920x1080";
+
 export {
   resolveRecordPlan,
   coerceRecordContextBrowser,
@@ -25,11 +30,6 @@ export {
   XVFB_SCREEN_SIZE,
   detectX11ScreenSize,
 };
-
-// Fixed virtual-display size for the Linux Xvfb recording path. Used both to
-// start Xvfb and as the x11grab `-video_size`, so the capture matches the
-// display exactly (and window/viewport crops fit within it).
-const XVFB_SCREEN_SIZE = "1920x1080";
 
 // The browser engine drives getDisplayMedia's auto-select via a per-context
 // window title and downloads the .webm to a per-context dir. tests.ts (which
