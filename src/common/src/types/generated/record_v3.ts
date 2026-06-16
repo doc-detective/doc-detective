@@ -21,7 +21,7 @@ export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
  */
 export type RecordingEngineSimple = "browser" | "ffmpeg";
 /**
- * If `true`, records the current browser viewport. If `false`, doesn't record the current browser viewport.
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
 

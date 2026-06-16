@@ -351,6 +351,10 @@ async function startXvfb(
   const num = display.replace(/^:/, "").split(".")[0];
   const w = opts.width ?? 1920;
   const h = opts.height ?? 1080;
+  // Capture the spawn time so a stale `/tmp/.X<N>-lock` (left by a dead Xvfb
+  // or another server) can't false-ready us — we only accept a lock created
+  // at/after our own start.
+  const startMs = Date.now();
   const proc: any = spawn(
     "Xvfb",
     [display, "-screen", "0", `${w}x${h}x24`, "-nolisten", "tcp"],
@@ -363,13 +367,18 @@ async function startXvfb(
   // Readiness signal: the X lock file `/tmp/.X<N>-lock`, which Xvfb creates
   // once it owns the display. We don't watch `/tmp/.X11-unix/X<N>` because some
   // environments (e.g. WSLg) back the display with an abstract socket that
-  // never appears there.
+  // never appears there. If the display is already in use, Xvfb exits with an
+  // error (caught by the exitCode check) rather than acquiring the lock.
   const lock = `/tmp/.X${num}-lock`;
   for (let i = 0; i < 50; i++) {
     if (spawnErr) throw spawnErr;
     if (proc.exitCode !== null)
       throw new Error(`Xvfb exited early on ${display} (code ${proc.exitCode})`);
-    if (fs.existsSync(lock)) return proc;
+    try {
+      if (fs.statSync(lock).mtimeMs >= startMs) return proc;
+    } catch {
+      /* lock not present yet */
+    }
     await new Promise((r) => setTimeout(r, 100));
   }
   try {

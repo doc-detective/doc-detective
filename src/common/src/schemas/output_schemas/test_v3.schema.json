@@ -6936,7 +6936,7 @@
                       {
                         "type": "boolean",
                         "title": "Record (boolean)",
-                        "description": "If `true`, records the current browser viewport. If `false`, doesn't record the current browser viewport."
+                        "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record."
                       }
                     ],
                     "components": {
@@ -15410,7 +15410,7 @@
                             {
                               "type": "boolean",
                               "title": "Record (boolean)",
-                              "description": "If `true`, records the current browser viewport. If `false`, doesn't record the current browser viewport."
+                              "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record."
                             }
                           ],
                           "components": {
