@@ -79,3 +79,5 @@ Heretto
 DITA
 CMS
 CCMS
+ffmpeg
+Xvfb
