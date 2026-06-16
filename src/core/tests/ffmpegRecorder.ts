@@ -16,6 +16,8 @@ export {
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   getFfmpegPath,
+  detectMacScreenIndex,
+  parseMacScreenIndex,
   checkSystemBinary,
   xvfbDisplay,
   startXvfb,
@@ -143,13 +145,15 @@ function buildCaptureArgs({
       input = ["-f", "gdigrab", "-framerate", rate, "-i", "desktop"];
       break;
     case "darwin":
+      // Default to screen index 0 (a camera-less host — e.g. CI — lists the
+      // screen at 0). startRecording detects the real index when it can.
       input = [
         "-f",
         "avfoundation",
         "-framerate",
         rate,
         "-i",
-        `${screenIndex ?? "1"}:none`,
+        `${screenIndex ?? "0"}:none`,
       ];
       break;
     case "linux":
@@ -267,6 +271,42 @@ async function getFfmpegPath(ctx: { cacheDir?: string } = {}): Promise<string> {
     );
   }
   return candidate;
+}
+
+// Parse the stderr of `ffmpeg -f avfoundation -list_devices true -i ""` for
+// the screen-capture device index. Only the video-devices section labels an
+// entry "Capture screen N", so this won't match audio devices. Returns the
+// index string (e.g. "0") or null if not found.
+function parseMacScreenIndex(listing: string): string | null {
+  const m = /\[(\d+)\]\s+Capture screen/i.exec(listing || "");
+  return m ? m[1] : null;
+}
+
+// macOS only: discover the avfoundation device index of the screen. Indices
+// shift with attached cameras (a camera-less host such as a CI runner lists
+// the screen at 0, not 1), so a hardcoded value frequently opens the wrong
+// device and ffmpeg exits immediately. Returns null if it can't be determined.
+async function detectMacScreenIndex(
+  ffmpegPath: string
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    let out = "";
+    try {
+      const proc = spawn(
+        ffmpegPath,
+        ["-f", "avfoundation", "-list_devices", "true", "-i", ""],
+        { stdio: ["ignore", "ignore", "pipe"] }
+      );
+      proc.stderr?.on("data", (d) => {
+        out += d.toString();
+      });
+      proc.on("error", () => resolve(null));
+      // ffmpeg exits non-zero for a list-only invocation; parse regardless.
+      proc.on("close", () => resolve(parseMacScreenIndex(out)));
+    } catch {
+      resolve(null);
+    }
+  });
 }
 
 // Probe for a system binary on PATH (e.g. Xvfb, which is not an npm package).

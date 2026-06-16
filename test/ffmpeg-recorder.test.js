@@ -9,6 +9,7 @@ import {
   resolveCropGeometry,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
+  parseMacScreenIndex,
   checkSystemBinary,
   xvfbDisplay,
 } from "../dist/core/tests/ffmpegRecorder.js";
@@ -314,6 +315,32 @@ describe("ffmpegRecorder", function () {
       });
       expect(r.limit).to.equal(1);
       expect(r.forcedSerial).to.equal(false);
+    });
+  });
+
+  describe("parseMacScreenIndex", function () {
+    it("finds the screen index on a camera-less host (screen at 0)", function () {
+      const listing = [
+        "[AVFoundation indev @ 0x1] AVFoundation video devices:",
+        "[AVFoundation indev @ 0x1] [0] Capture screen 0",
+        "[AVFoundation indev @ 0x1] AVFoundation audio devices:",
+        "[AVFoundation indev @ 0x1] [0] MacBook Pro Microphone",
+      ].join("\n");
+      expect(parseMacScreenIndex(listing)).to.equal("0");
+    });
+
+    it("finds the screen index past a camera (screen at 1)", function () {
+      const listing = [
+        "[AVFoundation indev] AVFoundation video devices:",
+        "[AVFoundation indev] [0] FaceTime HD Camera",
+        "[AVFoundation indev] [1] Capture screen 0",
+      ].join("\n");
+      expect(parseMacScreenIndex(listing)).to.equal("1");
+    });
+
+    it("returns null when no screen device is listed", function () {
+      expect(parseMacScreenIndex("[0] FaceTime HD Camera")).to.equal(null);
+      expect(parseMacScreenIndex("")).to.equal(null);
     });
   });
 

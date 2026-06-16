@@ -9,6 +9,7 @@ import {
   buildCaptureArgs,
   resolveCropGeometry,
   getFfmpegPath,
+  detectMacScreenIndex,
 } from "./ffmpegRecorder.js";
 import { spawn } from "node:child_process";
 import path from "node:path";
@@ -297,23 +298,38 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     return result;
   }
 
+  // On macOS the avfoundation screen device index isn't fixed (it shifts with
+  // attached cameras), so detect it rather than guessing.
+  let screenIndex: string | undefined;
+  if (process.platform === "darwin") {
+    screenIndex = (await detectMacScreenIndex(ffmpegPath)) ?? undefined;
+  }
+
   const args = buildCaptureArgs({
     platform: process.platform,
     fps: plan.fps,
     // Honor a per-context virtual display (Linux Xvfb) when threaded through.
     displayEnv: context.__display || process.env.DISPLAY,
     outputPath: tempPath,
+    screenIndex,
   });
   log(
     config,
     "debug",
     `ffmpeg recording: platform=${process.platform} target=${plan.target}${
-      context.__display ? ` display=${context.__display}` : ""
-    } -> ${tempPath}`
+      screenIndex !== undefined ? ` screen=${screenIndex}` : ""
+    }${context.__display ? ` display=${context.__display}` : ""} -> ${tempPath}`
   );
 
   const proc = spawn(ffmpegPath, args, { stdio: ["pipe", "ignore", "pipe"] });
   let spawnError: any = null;
+  // Drain ffmpeg's stderr into a bounded tail: it both prevents the unread
+  // pipe from filling and blocking ffmpeg, and surfaces the real reason on a
+  // start failure (wrong device index, denied screen-recording permission…).
+  let stderrTail = "";
+  proc.stderr?.on("data", (d) => {
+    stderrTail = (stderrTail + d.toString()).slice(-2000);
+  });
   proc.on("error", (err) => {
     spawnError = err;
   });
@@ -325,7 +341,9 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     result.status = "FAIL";
     result.description = `Couldn't start ffmpeg recording.${
       spawnError ? ` ${spawnError}` : ` ffmpeg exited with code ${proc.exitCode}.`
-    } On macOS, grant screen recording permission; on Linux, ensure a display (or Xvfb) is available.`;
+    } On macOS, grant screen recording permission; on Linux, ensure a display (or Xvfb) is available.${
+      stderrTail ? ` ffmpeg: ${stderrTail.trim().slice(-500)}` : ""
+    }`;
     log(config, "error", result.description);
     return result;
   }
