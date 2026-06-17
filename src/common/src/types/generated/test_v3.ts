@@ -185,7 +185,7 @@ export type RunShellCommandSimple = string;
  */
 export type RunCode1 = RunCodeDetailed;
 /**
- * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. The script's return value is captured in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
  */
 export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetailed;
 /**
@@ -508,7 +508,7 @@ export type RunShellCommandSimple1 = string;
  */
 export type RunCode3 = RunCodeDetailed1;
 /**
- * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. The script's return value is captured in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
  */
 export type RunBrowserScript3 = RunBrowserScriptSimple1 | RunBrowserScriptDetailed1;
 /**
@@ -1602,7 +1602,7 @@ export interface RunBrowserScript {
 }
 export interface RunBrowserScriptDetailed {
   /**
-   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. Arguments supplied in `args` are available via the `arguments` object (`arguments[0]`, `arguments[1]`, ...).
+   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
   script: string;
   /**
@@ -1610,7 +1610,7 @@ export interface RunBrowserScriptDetailed {
    */
   args?: string[];
   /**
-   * Content expected in the script's serialized return value. Non-string return values are serialized to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
   output?: string;
   /**
@@ -3294,7 +3294,7 @@ export interface RunBrowserScript2 {
 }
 export interface RunBrowserScriptDetailed1 {
   /**
-   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. Arguments supplied in `args` are available via the `arguments` object (`arguments[0]`, `arguments[1]`, ...).
+   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
   script: string;
   /**
@@ -3302,7 +3302,7 @@ export interface RunBrowserScriptDetailed1 {
    */
   args?: string[];
   /**
-   * Content expected in the script's serialized return value. Non-string return values are serialized to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
   output?: string;
   /**

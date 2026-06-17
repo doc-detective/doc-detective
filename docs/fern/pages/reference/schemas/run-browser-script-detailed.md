@@ -10,9 +10,9 @@ title: "Run browser script (detailed)"
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-script | string | Required. JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. Arguments supplied in `args` are available via the `arguments` object (`arguments[0]`, `arguments[1]`, ...). | 
+script | string | Required. JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on). | 
 args | array of string | Optional. Arguments passed positionally to the script. Available inside the script via the `arguments` object. | ``[]``
-output | string | Optional. Content expected in the script's serialized return value. Non-string return values are serialized to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`. | 
+output | string | Optional. Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`. | 
 path | string | Optional. File path to save the script's serialized return value, relative to `directory`. | 
 directory | string | Optional. Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory. | 
 maxVariation | number | Optional. Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. If the difference between the current value and the previous value is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.<br/><br/>Minimum: 0. Maximum: 1 | `0`
