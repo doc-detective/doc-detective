@@ -311,6 +311,32 @@ describe("ffmpegRecorder", function () {
       expect(jobIsFfmpegRecording(overlap)).to.equal(true);
     });
 
+    it("does not count browser recordings that startRecording would skip (headless/non-chrome)", function () {
+      // Explicit browser-engine records on a context that can't run one are
+      // SKIPPED at runtime, so two of them must NOT be classified as an ffmpeg
+      // fallback (which would wrongly force serial/Xvfb).
+      const headless = {
+        context: {
+          browser: { name: "chrome", headless: true },
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { record: { name: "b", engine: "browser" } },
+          ],
+        },
+      };
+      const firefox = {
+        context: {
+          browser: { name: "firefox", headless: false },
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { record: { name: "b", engine: "browser" } },
+          ],
+        },
+      };
+      expect(jobIsFfmpegRecording(headless)).to.equal(false);
+      expect(jobIsFfmpegRecording(firefox)).to.equal(false);
+    });
+
     it("does not count sequential (non-overlapping) browser recordings as ffmpeg", function () {
       const sequential = {
         context: {

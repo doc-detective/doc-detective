@@ -1243,10 +1243,11 @@ function buildAutoRecordStep({
   context: any;
 }): any | null {
   if (!isDriverRequired({ test: context })) return null;
-  // Compute the path only — don't create the run folder here. runSpecs reserves
-  // it up front when runArchivesArtifacts is true (autoRecord counts), and the
-  // recording's own startRecording mkdirs the target dir when it actually
-  // writes, so a headless run that skips recording leaves no empty folder.
+  // Compute the path only — runSpecs reserves the run folder up front when
+  // runArchivesArtifacts is true (autoRecord counts), so creating it here would
+  // be redundant. (startRecording also mkdirs the recording's target dir up
+  // front, so an enabled autoRecord run reserves the folder regardless — same as
+  // autoScreenshot.)
   const runDir = getRunOutputDir(config, { create: false });
   const fileName = `${capPathSegment(
     sanitizeFilesystemName(String(context.contextId ?? ""), "context")

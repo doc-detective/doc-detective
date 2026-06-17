@@ -395,6 +395,14 @@ function jobIsFfmpegRecording(job: any): boolean {
     if (!s?.record || s.record === false) continue; // not a start
     const plan = resolveRecordPlan({ step: s, context });
     if (plan.name === "ffmpeg") return true;
+    // plan.name === "browser": an explicit browser-engine record on a context
+    // that can't run one (headless or non-Chrome) is SKIPPED by startRecording,
+    // so it neither occupies the single browser slot nor falls back to ffmpeg —
+    // don't let it force serial/Xvfb. (Auto-engine on such contexts already
+    // resolves to ffmpeg above.)
+    const supportsBrowser =
+      context?.browser?.name === "chrome" && !context?.browser?.headless;
+    if (!supportsBrowser) continue;
     // A second concurrent browser-engine recording falls back to ffmpeg.
     if (activeBrowser.length > 0) return true;
     activeBrowser.push(recordStepName(s.record));
