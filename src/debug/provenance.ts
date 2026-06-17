@@ -9,7 +9,8 @@
 // setConfig untouched and this logic pure / unit-testable.
 
 export interface CliOverride {
-  // The CLI flag the user passed (without leading dashes).
+  // The CLI flag spelling (without leading dashes) as declared in
+  // buildYargs — e.g. "dry-run", "cache-dir", "logLevel".
   flag: string;
   // The config key it overrides after validation.
   configKey: string;
@@ -24,58 +25,82 @@ export interface Provenance {
   cliOverrides: CliOverride[];
 }
 
-// The CLI overrides setConfig() applies, paired with the config key each
-// lands on. The `present` guard mirrors the exact truthiness check in the
-// corresponding setConfig override block so this report can't claim an
-// override that setConfig would have skipped. Keep in sync with the
-// override section of setConfig in src/utils.ts.
+// Replicates setConfig's reporters guard: `if (args.reporters != null)` then
+// only overrides when the normalized list is non-empty.
+function reportersPresent(reporters: unknown): boolean {
+  if (reporters == null) return false;
+  const list = Array.isArray(reporters) ? reporters : [reporters];
+  return list.length > 0;
+}
+
+// Replicates setConfig's --test / --spec guard: comma-split, trim, drop
+// empties, override only when at least one entry survives. A value like ","
+// or "  " trims to nothing and does NOT override, so it must not be reported.
+function commaListPresent(value: unknown): boolean {
+  if (typeof value !== "string" || value.length === 0) return false;
+  return (
+    value
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0).length > 0
+  );
+}
+
+// The CLI overrides setConfig() applies. `flag` is the declared yargs option
+// name (what the user types); `argKey` is the camelCased property yargs
+// exposes on argv; `configKey` is where it lands after validation. The
+// `present` guard mirrors the exact check in the corresponding setConfig
+// override block so this report can't claim an override setConfig skipped.
+//
+// This is a curated mirror of the override section of setConfig in
+// src/utils.ts — when a new user-facing flag is wired there, add it here too.
+// `test/debug.test.js` pins the flag list so any change is deliberate.
 const OVERRIDE_SPECS: Array<{
   flag: string;
+  argKey: string;
   configKey: string;
   present: (args: any) => boolean;
 }> = [
-  { flag: "input", configKey: "input", present: (a) => Boolean(a.input) },
-  { flag: "output", configKey: "output", present: (a) => Boolean(a.output) },
-  { flag: "logLevel", configKey: "logLevel", present: (a) => Boolean(a.logLevel) },
+  { flag: "input", argKey: "input", configKey: "input", present: (a) => Boolean(a.input) },
+  { flag: "output", argKey: "output", configKey: "output", present: (a) => Boolean(a.output) },
+  { flag: "logLevel", argKey: "logLevel", configKey: "logLevel", present: (a) => Boolean(a.logLevel) },
   {
-    flag: "allowUnsafe",
+    flag: "allow-unsafe",
+    argKey: "allowUnsafe",
     configKey: "allowUnsafeSteps",
     present: (a) => typeof a.allowUnsafe === "boolean",
   },
-  { flag: "dryRun", configKey: "dryRun", present: (a) => typeof a.dryRun === "boolean" },
-  { flag: "reporters", configKey: "reporters", present: (a) => a.reporters != null },
-  {
-    flag: "test",
-    configKey: "testFilter",
-    present: (a) => typeof a.test === "string" && a.test.length > 0,
-  },
-  {
-    flag: "spec",
-    configKey: "specFilter",
-    present: (a) => typeof a.spec === "string" && a.spec.length > 0,
-  },
+  { flag: "dry-run", argKey: "dryRun", configKey: "dryRun", present: (a) => typeof a.dryRun === "boolean" },
+  { flag: "reporters", argKey: "reporters", configKey: "reporters", present: (a) => reportersPresent(a.reporters) },
+  { flag: "test", argKey: "test", configKey: "testFilter", present: (a) => commaListPresent(a.test) },
+  { flag: "spec", argKey: "spec", configKey: "specFilter", present: (a) => commaListPresent(a.spec) },
   {
     flag: "hints",
+    argKey: "hints",
     configKey: "hints.enabled",
     present: (a) => typeof a.hints === "boolean",
   },
   {
-    flag: "autoUpdate",
+    flag: "auto-update",
+    argKey: "autoUpdate",
     configKey: "autoUpdate",
     present: (a) => typeof a.autoUpdate === "boolean",
   },
   {
-    flag: "autoScreenshot",
+    flag: "auto-screenshot",
+    argKey: "autoScreenshot",
     configKey: "autoScreenshot",
     present: (a) => typeof a.autoScreenshot === "boolean",
   },
   {
-    flag: "cacheDir",
+    flag: "cache-dir",
+    argKey: "cacheDir",
     configKey: "cacheDir",
     present: (a) => typeof a.cacheDir === "string" && a.cacheDir.length > 0,
   },
   {
-    flag: "concurrentRunners",
+    flag: "concurrent-runners",
+    argKey: "concurrentRunners",
     configKey: "concurrentRunners",
     present: (a) => typeof a.concurrentRunners === "string",
   },
@@ -102,10 +127,13 @@ export function collectProvenance(opts: {
   env?: NodeJS.ProcessEnv;
 }): Provenance {
   const env = opts.env ?? process.env;
+  // Empty-string env vars do NOT apply: getConfigFromEnv() /
+  // getResolvedTestsFromEnv() both gate on `if (!process.env.*)`, so an empty
+  // value is treated as unset. Match that with a non-empty (truthy) check.
   return {
     configPath: opts.configPath ?? null,
-    docDetectiveConfigApplied: typeof env.DOC_DETECTIVE_CONFIG === "string",
-    docDetectiveApiApplied: typeof env.DOC_DETECTIVE_API === "string",
+    docDetectiveConfigApplied: Boolean(env.DOC_DETECTIVE_CONFIG),
+    docDetectiveApiApplied: Boolean(env.DOC_DETECTIVE_API),
     cliOverrides: collectCliOverrides(opts.args),
   };
 }

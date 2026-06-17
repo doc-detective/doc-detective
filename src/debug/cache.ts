@@ -49,13 +49,27 @@ function safeExists(target: string): boolean {
   }
 }
 
-// Probe W_OK on the path, or — when the path doesn't exist yet — on its
-// nearest existing ancestor, so "could doc-detective create/write here?"
-// is answered even for not-yet-created dirs.
+// The target itself if it exists, otherwise the nearest existing ancestor —
+// so probes against a not-yet-created dir (e.g. <cache>/runtime/browsers,
+// whose parents may also be missing) answer "could doc-detective create and
+// write here?" instead of failing on the first non-existent level.
+function nearestExistingPath(target: string): string {
+  let current = target;
+  // Bounded by the path depth; stops at the filesystem root (dirname of a
+  // root returns the root itself).
+  for (let i = 0; i < 64; i++) {
+    if (safeExists(current)) return current;
+    const parent = path.dirname(current);
+    if (parent === current) return current;
+    current = parent;
+  }
+  return current;
+}
+
+// Probe W_OK on the path (or its nearest existing ancestor).
 function isWritable(target: string): boolean {
   try {
-    const probe = safeExists(target) ? target : path.dirname(target);
-    fs.accessSync(probe, fs.constants.W_OK);
+    fs.accessSync(nearestExistingPath(target), fs.constants.W_OK);
     return true;
   } catch {
     return false;
@@ -68,8 +82,10 @@ function freeSpaceBytes(target: string): number | null {
     const statfsSync = (fs as unknown as { statfsSync?: (p: string) => unknown })
       .statfsSync;
     if (typeof statfsSync !== "function") return null;
-    const probe = safeExists(target) ? target : path.dirname(target);
-    const stats = statfsSync(probe) as { bavail?: number; bsize?: number };
+    const stats = statfsSync(nearestExistingPath(target)) as {
+      bavail?: number;
+      bsize?: number;
+    };
     if (typeof stats?.bavail !== "number" || typeof stats?.bsize !== "number") {
       return null;
     }

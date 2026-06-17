@@ -1043,7 +1043,7 @@ describe("debug/provenance", function () {
     ));
   });
 
-  it("reports only the CLI flags actually present, mapped to config keys", function () {
+  it("reports only the CLI flags actually present, with real flag spellings", function () {
     const overrides = collectCliOverrides({
       input: "docs",
       test: "smoke,api",
@@ -1054,12 +1054,67 @@ describe("debug/provenance", function () {
       logLevel: "",
     });
     const flags = overrides.map((o) => o.flag);
-    expect(flags).to.have.members(["input", "test", "dryRun"]);
+    // dryRun is the camel argv key, but the reported flag is the real
+    // CLI spelling `--dry-run`.
+    expect(flags).to.have.members(["input", "test", "dry-run"]);
     expect(flags).to.not.include("output");
     expect(flags).to.not.include("spec");
     expect(flags).to.not.include("logLevel");
     const testOverride = overrides.find((o) => o.flag === "test");
     expect(testOverride.configKey).to.equal("testFilter");
+  });
+
+  it("matches setConfig's guards for reporters / test / spec edge cases", function () {
+    // reporters: [] does NOT override in setConfig (normalized list empty).
+    expect(
+      collectCliOverrides({ reporters: [] }).map((o) => o.flag)
+    ).to.not.include("reporters");
+    expect(
+      collectCliOverrides({ reporters: ["html"] }).map((o) => o.flag)
+    ).to.include("reporters");
+    // test / spec whose comma-split trims to nothing do NOT override.
+    expect(collectCliOverrides({ test: " , " }).map((o) => o.flag)).to.not.include(
+      "test"
+    );
+    expect(collectCliOverrides({ spec: "," }).map((o) => o.flag)).to.not.include(
+      "spec"
+    );
+  });
+
+  it("pins the full set of recognized override flags (keep in sync with setConfig)", function () {
+    // Every flag set at once → the complete list this collector recognizes.
+    // If setConfig gains/loses a user-facing override, update OVERRIDE_SPECS
+    // and this assertion together.
+    const all = collectCliOverrides({
+      input: "x",
+      output: "y",
+      logLevel: "info",
+      allowUnsafe: true,
+      dryRun: true,
+      reporters: ["html"],
+      test: "a",
+      spec: "b",
+      hints: true,
+      autoUpdate: true,
+      autoScreenshot: true,
+      cacheDir: "z",
+      concurrentRunners: "2",
+    });
+    expect(all.map((o) => o.flag)).to.deep.equal([
+      "input",
+      "output",
+      "logLevel",
+      "allow-unsafe",
+      "dry-run",
+      "reporters",
+      "test",
+      "spec",
+      "hints",
+      "auto-update",
+      "auto-screenshot",
+      "cache-dir",
+      "concurrent-runners",
+    ]);
   });
 
   it("returns [] for non-object args", function () {
@@ -1083,6 +1138,17 @@ describe("debug/provenance", function () {
     expect(none.docDetectiveConfigApplied).to.equal(false);
     expect(none.docDetectiveApiApplied).to.equal(false);
     expect(none.cliOverrides).to.deep.equal([]);
+  });
+
+  it("treats empty-string env vars as NOT applied (matches getConfigFromEnv)", function () {
+    // setConfig's env readers gate on `if (!process.env.*)`, so "" is unset.
+    const p = collectProvenance({
+      configPath: null,
+      args: {},
+      env: { DOC_DETECTIVE_CONFIG: "", DOC_DETECTIVE_API: "" },
+    });
+    expect(p.docDetectiveConfigApplied).to.equal(false);
+    expect(p.docDetectiveApiApplied).to.equal(false);
   });
 });
 
@@ -1186,7 +1252,10 @@ describe("debug/appium", function () {
       "appium-geckodriver",
     ]);
     for (const d of diag.drivers) {
-      expect(d).to.have.property("registered").that.is.a("boolean");
+      // registered is tri-state: true / false / null (manifest unread).
+      expect(d.registered === null || typeof d.registered === "boolean").to.equal(
+        true
+      );
       expect(d).to.have.property("npmResolvable").that.is.a("boolean");
     }
     expect(diag).to.have.property("registeredDrivers").that.is.an("array");
@@ -1270,9 +1339,10 @@ describe("debug/findings", function () {
       baseData({
         appium: {
           extensionsManifestPresent: false,
+          // Manifest unread → registration is null (unknown), not false.
           drivers: [
-            { name: "appium-geckodriver", registered: false, npmResolvable: true },
-            { name: "appium-chromium-driver", registered: false, npmResolvable: true },
+            { name: "appium-geckodriver", registered: null, npmResolvable: true },
+            { name: "appium-chromium-driver", registered: null, npmResolvable: true },
           ],
         },
       })
@@ -1331,7 +1401,7 @@ describe("debug/printDebug new sections end-to-end", function () {
     expect(text.indexOf("-- Findings / next steps ")).to.be.lessThan(
       text.indexOf("-- System ")
     );
-    // Provenance reflects the args we passed.
-    expect(text).to.match(/--dryRun → config\.dryRun/);
+    // Provenance reflects the args we passed (real CLI spelling).
+    expect(text).to.match(/--dry-run → config\.dryRun/);
   });
 });

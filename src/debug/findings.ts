@@ -35,8 +35,9 @@ const chromeUnavailable: Rule = (data) => {
   const chrome = findBrowser(data, "chrome");
   if (!chrome || !chrome.supported || chrome.available) return null;
   const driver = findDriver(data, "appium-chromium-driver");
-  // Only fire when the driver is actually the likely cause.
-  if (driver && driver.npmResolvable && driver.registered) return null;
+  // Only fire when the driver is actually the likely cause — suppress when
+  // it's confirmed resolvable AND registered.
+  if (driver && driver.npmResolvable && driver.registered === true) return null;
   return {
     severity: "error",
     title: "Chrome is not available",
@@ -100,16 +101,12 @@ const proxyMaybeBlocking: Rule = (data) => {
 };
 
 // Driver resolves from npm but Appium doesn't list it → APPIUM_HOME mismatch.
-// Only meaningful when the extensions manifest was actually read — without
-// it, "not registered" is unknown, not a finding (a missing manifest would
-// otherwise false-flag every resolvable driver).
+// `registered === false` is the only firing case: `null` (manifest unread)
+// means registration is unknown, not a finding — a missing manifest must not
+// false-flag every resolvable driver.
 const driverNotRegistered: Rule = (data) => {
-  const registrationKnown = Boolean(
-    data.appium?.extensionsManifestPresent && !data.appium?.manifestError
-  );
-  if (!registrationKnown) return null;
   const stranded = (data.appium?.drivers || []).filter(
-    (d) => d.npmResolvable && !d.registered
+    (d) => d.npmResolvable && d.registered === false
   );
   if (stranded.length === 0) return null;
   return {

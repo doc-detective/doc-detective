@@ -578,22 +578,20 @@ function renderAppiumSection(a: AppiumDiagnostics): Section {
   if (a.manifestError) {
     lines.push(`  ! could not read extensions.yaml: ${a.manifestError}`);
   }
-  // Registration is only KNOWN when the manifest was read successfully;
-  // without it, a resolvable driver's registration is genuinely unknown —
-  // don't claim "not registered".
-  const registrationKnown =
-    a.extensionsManifestPresent && !a.manifestError;
   lines.push("");
   lines.push("  drivers:");
   if (a.drivers.length === 0) lines.push("    <none>");
   for (const d of a.drivers) {
-    const classification = d.registered
-      ? "registered"
-      : !d.npmResolvable
-      ? "missing"
-      : registrationKnown
-      ? "resolvable but not registered"
-      : "resolvable (registration unknown — no manifest)";
+    // registered === null means the manifest wasn't read — registration is
+    // unknown, not confirmed-absent.
+    const classification =
+      d.registered === true
+        ? "registered"
+        : !d.npmResolvable
+        ? "missing"
+        : d.registered === false
+        ? "resolvable but not registered"
+        : "resolvable (registration unknown — no manifest)";
     lines.push(`    ${d.name.padEnd(24)} ${classification}`);
   }
   return renderSection("Appium registration", lines);

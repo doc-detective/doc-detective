@@ -30,8 +30,11 @@ const KNOWN_DRIVERS = ["appium-chromium-driver", "appium-geckodriver"];
 export interface AppiumDriverStatus {
   // npm package name.
   name: string;
-  // pkgName appears in extensions.yaml under `drivers:`.
-  registered: boolean;
+  // Whether pkgName appears in extensions.yaml under `drivers:`. `null` when
+  // the manifest wasn't read (absent / unreadable / APPIUM_HOME unset) — i.e.
+  // registration is genuinely unknown, NOT confirmed-absent. Kept tri-state
+  // so the JSON dump can't be misread as "confirmed not registered".
+  registered: boolean | null;
   // resolveHeavyDepPath finds the package (shim or cache).
   npmResolvable: boolean;
 }
@@ -101,17 +104,19 @@ export function collectAppiumDiagnostics(config: any): AppiumDiagnostics {
     }
   }
 
-  const appiumEntry = resolveHeavyDepPath("appium", ctx);
+  // Registration is only KNOWN when the manifest was read successfully;
+  // otherwise every driver's `registered` is null (unknown), not false.
+  const registrationKnown = extensionsManifestPresent && !manifestError;
   const registeredSet = new Set(registeredDrivers);
   const drivers: AppiumDriverStatus[] = KNOWN_DRIVERS.map((name) => ({
     name,
     npmResolvable: Boolean(resolveHeavyDepPath(name, ctx)),
-    registered: registeredSet.has(name),
+    registered: registrationKnown ? registeredSet.has(name) : null,
   }));
 
   return {
     appiumHome,
-    appiumInstalled: Boolean(appiumEntry),
+    appiumInstalled: Boolean(resolveHeavyDepPath("appium", ctx)),
     extensionsManifestPath,
     extensionsManifestPresent,
     manifestError,
