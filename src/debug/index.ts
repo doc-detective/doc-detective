@@ -36,8 +36,8 @@ import {
   renderDocument,
   type Section,
 } from "./render.js";
-import { getInstalledRecordPath } from "../runtime/cacheDir.js";
-import { status, type StatusRow } from "../runtime/installer.js";
+import { type StatusRow } from "../runtime/installer.js";
+import { collectInstallStatus, type InstallData } from "./install.js";
 import { collectCacheStatus, type CacheStatus } from "./cache.js";
 import { collectNetworkConfig, type NetworkConfig } from "./network.js";
 import { collectProvenance, type Provenance } from "./provenance.js";
@@ -143,12 +143,6 @@ interface ConfigData {
   redacted: unknown;
 }
 
-interface InstallData {
-  recordPath?: string;
-  rows?: StatusRow[];
-  error?: string;
-}
-
 export interface DebugData {
   generatedAt: string;
   system: SystemInfo;
@@ -203,17 +197,6 @@ async function collectDebugData(opts: PrintDebugOptions): Promise<DebugData> {
   };
   data.findings = computeFindings(data);
   return data;
-}
-
-// Diff installed.json against declared/expected versions. Wrapped so a
-// missing/corrupt cache degrades to an `error` marker instead of crashing.
-function collectInstallStatus(config: any): InstallData {
-  try {
-    const ctx = { cacheDir: config?.cacheDir };
-    return { recordPath: getInstalledRecordPath(ctx), rows: status(ctx) };
-  } catch (err: any) {
-    return { error: err?.message || String(err) };
-  }
 }
 
 // collectAppiumDiagnostics reads extensions.yaml (no subprocess) and guards

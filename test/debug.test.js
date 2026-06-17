@@ -1300,6 +1300,31 @@ describe("debug/findings", function () {
     expect(chrome.fix).to.equal("doc-detective install runtime");
   });
 
+  it("tailors the Chrome-unavailable detail to the driver's known state", function () {
+    const chromeDown = (driver) =>
+      computeFindings(
+        baseData({
+          browsers: {
+            browsers: [{ name: "chrome", supported: true, available: false }],
+          },
+          appium: { extensionsManifestPresent: true, drivers: driver ? [driver] : [] },
+        })
+      ).find((f) => /Chrome is not available/.test(f.title));
+
+    // Missing driver (not resolvable).
+    expect(
+      chromeDown({ name: "appium-chromium-driver", registered: false, npmResolvable: false }).detail
+    ).to.match(/is missing/);
+    // Installed but confirmed unregistered.
+    expect(
+      chromeDown({ name: "appium-chromium-driver", registered: false, npmResolvable: true }).detail
+    ).to.match(/installed but not registered/);
+    // Installed, registration unknown (manifest absent → registered null).
+    expect(
+      chromeDown({ name: "appium-chromium-driver", registered: null, npmResolvable: true }).detail
+    ).to.match(/registration is unknown/);
+  });
+
   it("does NOT flag Chrome when it is available", function () {
     const findings = computeFindings(
       baseData({

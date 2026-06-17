@@ -45,7 +45,10 @@ export function collectNetworkConfig(
     if (typeof env[key] === "string") names.add(key);
   }
   // Sweep every npm_config_* var present (registry, proxy, strict-ssl,
-  // cafile, per-registry _authToken, …). Redaction handles the auth ones.
+  // cafile, per-registry _authToken, …). The prefix match is lowercased so
+  // uppercase variants (NPM_CONFIG_*) are caught too; keys keep their original
+  // casing, and redactValue/isSecretName are case-insensitive, so an
+  // _authToken key still redacts. Redaction handles the auth ones.
   for (const key of Object.keys(env)) {
     if (key.toLowerCase().startsWith("npm_config_")) names.add(key);
   }

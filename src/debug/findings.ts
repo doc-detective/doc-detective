@@ -35,14 +35,22 @@ const chromeUnavailable: Rule = (data) => {
   const chrome = findBrowser(data, "chrome");
   if (!chrome || !chrome.supported || chrome.available) return null;
   const driver = findDriver(data, "appium-chromium-driver");
-  // Only fire when the driver is actually the likely cause — suppress when
-  // it's confirmed resolvable AND registered.
+  // Suppress only when the driver is confirmed resolvable AND registered.
   if (driver && driver.npmResolvable && driver.registered === true) return null;
+  // Tailor the detail to what we actually know: a missing driver, a confirmed
+  // unregistered one, and an unknown-registration one (manifest absent) are
+  // distinct — saying "missing or not registered" for the unknown case would
+  // be wrong (the package resolved fine; only its registration is unverified).
+  const detail =
+    !driver || !driver.npmResolvable
+      ? "Chrome shows NOT AVAILABLE and its Appium driver (appium-chromium-driver) is missing, so browser tests can't run."
+      : driver.registered === false
+      ? "Chrome shows NOT AVAILABLE and appium-chromium-driver is installed but not registered under the active APPIUM_HOME."
+      : "Chrome shows NOT AVAILABLE. appium-chromium-driver is installed, but its registration is unknown (Appium manifest missing or unreadable).";
   return {
     severity: "error",
     title: "Chrome is not available",
-    detail:
-      "Chrome shows NOT AVAILABLE and its Appium driver (appium-chromium-driver) is missing or not registered, so browser tests can't run.",
+    detail,
     fix: "doc-detective install runtime",
   };
 };

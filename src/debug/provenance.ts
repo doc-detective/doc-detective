@@ -52,9 +52,13 @@ function commaListPresent(value: unknown): boolean {
 // `present` guard mirrors the exact check in the corresponding setConfig
 // override block so this report can't claim an override setConfig skipped.
 //
-// This is a curated mirror of the override section of setConfig in
-// src/utils.ts — when a new user-facing flag is wired there, add it here too.
-// `test/debug.test.js` pins the flag list so any change is deliberate.
+// NOTE: this list must be kept in sync with the override blocks in setConfig()
+// (src/utils.ts). `test/debug.test.js` pins the full set, but it only asserts
+// that the recognized flags fire correctly — it does NOT cross-reference
+// setConfig, so a new override added there without an entry here will silently
+// omit from provenance. Adding a setConfig override means adding it here AND
+// updating that pinned-list assertion. (CLAUDE.md's TDD-per-flag steps include
+// this.)
 const OVERRIDE_SPECS: Array<{
   flag: string;
   argKey: string;
