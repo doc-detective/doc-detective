@@ -1598,4 +1598,9 @@ describe("matchesExpectedOutput", function () {
     expect(matchesExpectedOutput("a.b.c", "a.b.c")).to.equal(true);
     expect(matchesExpectedOutput("axbxc", "a.b.c")).to.equal(false);
   });
+
+  it("returns false (no throw) for a malformed /regex/ pattern", function () {
+    expect(() => matchesExpectedOutput("anything", "/(unclosed/")).to.not.throw();
+    expect(matchesExpectedOutput("anything", "/(unclosed/")).to.equal(false);
+  });
 });

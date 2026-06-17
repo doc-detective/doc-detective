@@ -66,6 +66,7 @@
         "timeout": {
           "type": "integer",
           "description": "Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.",
+          "minimum": 1,
           "default": 60000
         }
       },
@@ -137,6 +138,7 @@
           "timeout": {
             "type": "integer",
             "description": "Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.",
+            "minimum": 1,
             "default": 60000
           }
         },

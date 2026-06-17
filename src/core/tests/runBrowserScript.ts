@@ -105,49 +105,57 @@ async function runBrowserScript({
     }
   }
 
-  // Check if the return value is saved to a file.
+  // Check if the return value is saved to a file. Wrap the filesystem work so a
+  // permissions error, bad path, full disk, or a file deleted mid-run returns a
+  // deterministic FAIL instead of throwing out of the runner.
   if (step.runBrowserScript.path) {
-    const dir = path.dirname(step.runBrowserScript.path);
-    // If `dir` doesn't exist, create it
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    const filePath = step.runBrowserScript.path;
-    log(config, "debug", `Saving script result to file: ${filePath}`);
-
-    if (!fs.existsSync(filePath)) {
-      // Doesn't exist, save output to file
-      fs.writeFileSync(filePath, serialized);
-    } else {
-      if (step.runBrowserScript.overwrite == "false") {
-        result.description += ` Didn't save output. File already exists.`;
+    try {
+      const dir = path.dirname(step.runBrowserScript.path);
+      // If `dir` doesn't exist, create it
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
       }
+      const filePath = step.runBrowserScript.path;
+      log(config, "debug", `Saving script result to file: ${filePath}`);
 
-      const existingFile = fs.readFileSync(filePath, "utf8");
-      const fractionalDiff = calculateFractionalDifference(
-        existingFile,
-        serialized
-      );
-      log(config, "debug", `Fractional difference: ${fractionalDiff}`);
+      if (!fs.existsSync(filePath)) {
+        // Doesn't exist, save output to file
+        fs.writeFileSync(filePath, serialized);
+      } else {
+        if (step.runBrowserScript.overwrite == "false") {
+          result.description += ` Didn't save output. File already exists.`;
+        }
 
-      if (fractionalDiff > step.runBrowserScript.maxVariation) {
-        if (step.runBrowserScript.overwrite == "aboveVariation") {
+        const existingFile = fs.readFileSync(filePath, "utf8");
+        const fractionalDiff = calculateFractionalDifference(
+          existingFile,
+          serialized
+        );
+        log(config, "debug", `Fractional difference: ${fractionalDiff}`);
+
+        if (fractionalDiff > step.runBrowserScript.maxVariation) {
+          if (step.runBrowserScript.overwrite == "aboveVariation") {
+            fs.writeFileSync(filePath, serialized);
+            result.description += ` Saved output to file.`;
+          }
+          result.status = "WARNING";
+          result.description += ` The difference between the existing output and the new output (${fractionalDiff.toFixed(
+            2
+          )}) is greater than the max accepted variation (${
+            step.runBrowserScript.maxVariation
+          }).`;
+          return result;
+        }
+
+        if (step.runBrowserScript.overwrite == "true") {
           fs.writeFileSync(filePath, serialized);
           result.description += ` Saved output to file.`;
         }
-        result.status = "WARNING";
-        result.description += ` The difference between the existing output and the new output (${fractionalDiff.toFixed(
-          2
-        )}) is greater than the max accepted variation (${
-          step.runBrowserScript.maxVariation
-        }).`;
-        return result;
       }
-
-      if (step.runBrowserScript.overwrite == "true") {
-        fs.writeFileSync(filePath, serialized);
-        result.description += ` Saved output to file.`;
-      }
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't persist script output at ${step.runBrowserScript.path}: ${error.message}`;
+      return result;
     }
   }
 

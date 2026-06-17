@@ -827,8 +827,14 @@ function serializeBrowserResult(value: unknown): string {
  */
 function matchesExpectedOutput(serialized: string, expected: string): boolean {
   if (expected.startsWith("/") && expected.endsWith("/")) {
-    const regex = new RegExp(expected.slice(1, -1));
-    return regex.test(serialized);
+    try {
+      const regex = new RegExp(expected.slice(1, -1));
+      return regex.test(serialized);
+    } catch {
+      // Malformed regex pattern — treat as a normal mismatch instead of
+      // letting the SyntaxError abort the step.
+      return false;
+    }
   }
   return serialized.includes(expected);
 }

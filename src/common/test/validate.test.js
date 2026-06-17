@@ -669,6 +669,19 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
         expect(result.errors.length).to.be.greaterThan(0);
       });
+
+      it("should reject a non-positive timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", timeout: 0 },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
     });
 
     describe("invalid objects", function () {
