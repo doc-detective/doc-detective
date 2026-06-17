@@ -29,7 +29,116 @@ export {
   startXvfb,
   XVFB_SCREEN_SIZE,
   detectX11ScreenSize,
+  isRecordingActive,
+  recordStepName,
+  stopRecordTargetName,
+  selectRecordingToStop,
+  detectRecordingNameConflict,
 };
+
+// True when the driver has at least one in-progress recording. Recordings now
+// live in `driver.state.recordings` (an array of handles); this keeps the many
+// "is a recording running?" reads (cursor handling, per-key typing, etc.) a
+// one-liner that's robust to a missing/uninitialized state.
+function isRecordingActive(driver: any): boolean {
+  return (
+    Array.isArray(driver?.state?.recordings) &&
+    driver.state.recordings.length > 0
+  );
+}
+
+// Pull the optional `name` off a `record` step value. Only the detailed-object
+// form carries a name; boolean/string shorthands are anonymous (undefined).
+function recordStepName(record: any): string | undefined {
+  if (record && typeof record === "object" && typeof record.name === "string") {
+    const trimmed = record.name.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  return undefined;
+}
+
+// Pull the optional target name off a `stopRecord` step value. A string is the
+// name directly; an object carries `{ name }`. boolean/null are untargeted
+// (LIFO) and return undefined.
+function stopRecordTargetName(stopRecord: any): string | undefined {
+  if (typeof stopRecord === "string") {
+    const trimmed = stopRecord.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (
+    stopRecord &&
+    typeof stopRecord === "object" &&
+    typeof stopRecord.name === "string"
+  ) {
+    const trimmed = stopRecord.name.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  return undefined;
+}
+
+// Choose which active recording a `stopRecord` step should stop.
+// - A targeted stop (`stopRecord: "name"` / `{ name }`) returns the active
+//   recording with that name, searched across the whole set (overlap need not
+//   be nested). The Phase-1 preflight guarantees names are unique among
+//   simultaneously-active recordings, so a first match is unambiguous.
+// - An untargeted stop (`true`/`null`) is LIFO: the most-recently-started
+//   active recording. By default it skips the synthetic autoRecord recording
+//   so a stray user `stopRecord` can't prematurely end the full-context
+//   capture; end-of-context cleanup passes `includeSynthetic` to drain
+//   everything (including the synthetic one).
+// Returns the handle to stop, or undefined when nothing matches.
+function selectRecordingToStop(
+  recordings: any[],
+  stopRecord: any,
+  { includeSynthetic = false }: { includeSynthetic?: boolean } = {}
+): any {
+  if (!Array.isArray(recordings) || recordings.length === 0) return undefined;
+  const target = stopRecordTargetName(stopRecord);
+  if (target !== undefined) {
+    return recordings.find((r) => r && r.name === target);
+  }
+  for (let i = recordings.length - 1; i >= 0; i--) {
+    const r = recordings[i];
+    if (includeSynthetic || !r?.synthetic) return r;
+  }
+  return undefined;
+}
+
+// Statically simulate the set of active named recordings across a test's steps
+// to catch an ambiguous overlap: a `record` step that (re)uses a `name` while a
+// recording with that same name is still active. Sequential reuse (record "a",
+// stopRecord "a", record "a") is fine — the name is freed by the stop.
+// Anonymous recordings never conflict. Returns the first conflicting name, or
+// null when there is no conflict. Pure — used by the Phase-1 preflight to skip
+// (and warn about) the offending test before any step runs.
+function detectRecordingNameConflict(steps: any[]): string | null {
+  if (!Array.isArray(steps)) return null;
+  // Stack of active recordings (names; undefined for anonymous), LIFO.
+  const active: Array<string | undefined> = [];
+  for (const step of steps) {
+    if (!step || typeof step !== "object") continue;
+    const isStart =
+      typeof step.record !== "undefined" && step.record !== false;
+    // `stopRecord: false` is a no-op (see stopRecording), so it doesn't free a
+    // name in the simulation.
+    const isStop =
+      typeof step.stopRecord !== "undefined" && step.stopRecord !== false;
+    if (isStart) {
+      const name = recordStepName(step.record);
+      if (name !== undefined && active.includes(name)) return name;
+      active.push(name);
+    } else if (isStop) {
+      const target = stopRecordTargetName(step.stopRecord);
+      if (target !== undefined) {
+        const idx = active.lastIndexOf(target);
+        if (idx !== -1) active.splice(idx, 1);
+      } else if (active.length > 0) {
+        active.pop();
+      }
+    }
+  }
+  return null;
+}
 
 // The browser engine drives getDisplayMedia's auto-select via a per-context
 // window title and downloads the .webm to a per-context dir. tests.ts (which
@@ -257,12 +366,48 @@ async function resolveCropGeometry({
   return null;
 }
 
+// True when a context will run at least one ffmpeg capture — either an
+// explicit ffmpeg-engine recording, or a browser-engine recording that will
+// fall back to ffmpeg at runtime because another browser recording is already
+// active (only one browser-engine recording can run per context). Simulating
+// the record/stopRecord sequence here keeps the concurrency planner in sync
+// with startRecording's runtime fallback, so a fallback ffmpeg capture still
+// gets the serial/Xvfb safeguards. Pure read — context browsers are already
+// coerced before this runs.
 function jobIsFfmpegRecording(job: any): boolean {
-  const steps = Array.isArray(job?.context?.steps) ? job.context.steps : [];
-  return steps.some((s: any) => {
-    if (!s?.record) return false; // skip undefined / `record: false`
-    return resolveRecordPlan({ step: s, context: job.context }).name === "ffmpeg";
-  });
+  const context = job?.context;
+  const steps = Array.isArray(context?.steps) ? context.steps : [];
+  // Names of active browser-engine recordings (LIFO), to detect overlap.
+  const activeBrowser: Array<string | undefined> = [];
+  for (const s of steps) {
+    const isStop =
+      typeof s?.stopRecord !== "undefined" && s.stopRecord !== false;
+    if (isStop) {
+      const target = stopRecordTargetName(s.stopRecord);
+      if (target !== undefined) {
+        const idx = activeBrowser.lastIndexOf(target);
+        if (idx !== -1) activeBrowser.splice(idx, 1);
+      } else if (activeBrowser.length > 0) {
+        activeBrowser.pop();
+      }
+      continue;
+    }
+    if (!s?.record || s.record === false) continue; // not a start
+    const plan = resolveRecordPlan({ step: s, context });
+    if (plan.name === "ffmpeg") return true;
+    // plan.name === "browser": an explicit browser-engine record on a context
+    // that can't run one (headless or non-Chrome) is SKIPPED by startRecording,
+    // so it neither occupies the single browser slot nor falls back to ffmpeg —
+    // don't let it force serial/Xvfb. (Auto-engine on such contexts already
+    // resolves to ffmpeg above.)
+    const supportsBrowser =
+      context?.browser?.name === "chrome" && !context?.browser?.headless;
+    if (!supportsBrowser) continue;
+    // A second concurrent browser-engine recording falls back to ffmpeg.
+    if (activeBrowser.length > 0) return true;
+    activeBrowser.push(recordStepName(s.record));
+  }
+  return false;
 }
 
 // Decide the effective worker-pool limit given recording constraints. ffmpeg
@@ -275,21 +420,45 @@ function computeEffectiveConcurrency({
   jobs,
   platform,
   xvfbAvailable,
+  allowOverlappingCaptures = false,
 }: {
   requestedLimit: number;
   jobs: any[];
   platform: string;
   xvfbAvailable: boolean;
-}): { limit: number; xvfbContexts: any[]; forcedSerial: boolean } {
+  // When true (autoRecord runs), don't force the run serial on a shared
+  // display — let ffmpeg captures overlap. Each concurrent context then
+  // captures the same screen (duplicate/overlapping video), which the
+  // autoRecord caller has opted into. Without it, the safe default below
+  // forces serial so explicit-record users never silently get overlapping
+  // captures.
+  allowOverlappingCaptures?: boolean;
+}): {
+  limit: number;
+  xvfbContexts: any[];
+  forcedSerial: boolean;
+  overlappingCaptures?: boolean;
+} {
   const ffmpegJobs = (jobs || []).filter(jobIsFfmpegRecording);
   if (ffmpegJobs.length === 0) {
     return { limit: requestedLimit, xvfbContexts: [], forcedSerial: false };
   }
   if (platform === "linux" && xvfbAvailable) {
+    // Each runner records its own Xvfb display → truly isolated, real parallel.
     return {
       limit: requestedLimit,
       xvfbContexts: ffmpegJobs.map((j) => j.context),
       forcedSerial: false,
+    };
+  }
+  if (allowOverlappingCaptures) {
+    // "Parallel anyway": keep the requested limit even though captures share
+    // the physical display and will overlap.
+    return {
+      limit: requestedLimit,
+      xvfbContexts: [],
+      forcedSerial: false,
+      overlappingCaptures: true,
     };
   }
   return { limit: 1, xvfbContexts: [], forcedSerial: requestedLimit > 1 };

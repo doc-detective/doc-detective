@@ -7115,6 +7115,14 @@
                                                               "false"
                                                             ]
                                                           },
+                                                          "name": {
+                                                            "type": "string",
+                                                            "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                                            "pattern": "\\S",
+                                                            "transform": [
+                                                              "trim"
+                                                            ]
+                                                          },
                                                           "engine": {
                                                             "title": "Recording engine",
                                                             "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
@@ -7208,6 +7216,14 @@
                                                               "enum": [
                                                                 "true",
                                                                 "false"
+                                                              ]
+                                                            },
+                                                            "name": {
+                                                              "type": "string",
+                                                              "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                                              "pattern": "\\S",
+                                                              "transform": [
+                                                                "trim"
                                                               ]
                                                             },
                                                             "engine": {
@@ -7445,13 +7461,52 @@
                                                   "stopRecord": {
                                                     "$schema": "http://json-schema.org/draft-07/schema#",
                                                     "title": "stopRecord",
-                                                    "description": "Stop the current recording.",
-                                                    "type": [
-                                                      "boolean",
-                                                      "null"
+                                                    "description": "Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: \"<name>\"`) or an object (`stopRecord: { name: \"<name>\" }`).",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean",
+                                                        "title": "stopRecord (boolean)",
+                                                        "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
+                                                      },
+                                                      {
+                                                        "type": "null",
+                                                        "title": "stopRecord (null)",
+                                                        "description": "Stops the most recently started active recording (LIFO)."
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "title": "stopRecord (name)",
+                                                        "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                                        "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "title": "stopRecord (detailed)",
+                                                        "additionalProperties": false,
+                                                        "required": [
+                                                          "name"
+                                                        ],
+                                                        "properties": {
+                                                          "name": {
+                                                            "type": "string",
+                                                            "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                                            "pattern": "\\S",
+                                                            "transform": [
+                                                              "trim"
+                                                            ]
+                                                          }
+                                                        }
+                                                      }
                                                     ],
                                                     "examples": [
-                                                      true
+                                                      true,
+                                                      "demo",
+                                                      {
+                                                        "name": "demo"
+                                                      }
                                                     ]
                                                   }
                                                 },
@@ -9745,6 +9800,11 @@
         },
         "autoScreenshot": {
           "description": "If `true`, captures a screenshot after every step that runs in a browser, in addition to any explicit `screenshot` steps. Images are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.",
+          "type": "boolean",
+          "default": false
+        },
+        "autoRecord": {
+          "description": "If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs (for example, `recordings/<specId>/<testId>/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.",
           "type": "boolean",
           "default": false
         },
@@ -16155,6 +16215,14 @@
                                                 "false"
                                               ]
                                             },
+                                            "name": {
+                                              "type": "string",
+                                              "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                              "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ]
+                                            },
                                             "engine": {
                                               "title": "Recording engine",
                                               "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
@@ -16248,6 +16316,14 @@
                                                 "enum": [
                                                   "true",
                                                   "false"
+                                                ]
+                                              },
+                                              "name": {
+                                                "type": "string",
+                                                "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                                "pattern": "\\S",
+                                                "transform": [
+                                                  "trim"
                                                 ]
                                               },
                                               "engine": {
@@ -16485,13 +16561,52 @@
                                     "stopRecord": {
                                       "$schema": "http://json-schema.org/draft-07/schema#",
                                       "title": "stopRecord",
-                                      "description": "Stop the current recording.",
-                                      "type": [
-                                        "boolean",
-                                        "null"
+                                      "description": "Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: \"<name>\"`) or an object (`stopRecord: { name: \"<name>\" }`).",
+                                      "anyOf": [
+                                        {
+                                          "type": "boolean",
+                                          "title": "stopRecord (boolean)",
+                                          "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
+                                        },
+                                        {
+                                          "type": "null",
+                                          "title": "stopRecord (null)",
+                                          "description": "Stops the most recently started active recording (LIFO)."
+                                        },
+                                        {
+                                          "type": "string",
+                                          "title": "stopRecord (name)",
+                                          "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "title": "stopRecord (detailed)",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "name": {
+                                              "type": "string",
+                                              "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                              "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ]
+                                            }
+                                          }
+                                        }
                                       ],
                                       "examples": [
-                                        true
+                                        true,
+                                        "demo",
+                                        {
+                                          "name": "demo"
+                                        }
                                       ]
                                     }
                                   },
@@ -18981,6 +19096,10 @@
                 "type": "boolean",
                 "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
               },
+              "autoRecord": {
+                "type": "boolean",
+                "description": "If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level."
+              },
               "tests": {
                 "description": "[Tests](test) to perform.",
                 "type": "array",
@@ -19013,6 +19132,10 @@
                         "autoScreenshot": {
                           "type": "boolean",
                           "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
+                        },
+                        "autoRecord": {
+                          "type": "boolean",
+                          "description": "If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level."
                         },
                         "runOn": {
                           "type": "array",
@@ -25870,6 +25993,14 @@
                                                   "false"
                                                 ]
                                               },
+                                              "name": {
+                                                "type": "string",
+                                                "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                                "pattern": "\\S",
+                                                "transform": [
+                                                  "trim"
+                                                ]
+                                              },
                                               "engine": {
                                                 "title": "Recording engine",
                                                 "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
@@ -25963,6 +26094,14 @@
                                                   "enum": [
                                                     "true",
                                                     "false"
+                                                  ]
+                                                },
+                                                "name": {
+                                                  "type": "string",
+                                                  "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                                  "pattern": "\\S",
+                                                  "transform": [
+                                                    "trim"
                                                   ]
                                                 },
                                                 "engine": {
@@ -26200,13 +26339,52 @@
                                       "stopRecord": {
                                         "$schema": "http://json-schema.org/draft-07/schema#",
                                         "title": "stopRecord",
-                                        "description": "Stop the current recording.",
-                                        "type": [
-                                          "boolean",
-                                          "null"
+                                        "description": "Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: \"<name>\"`) or an object (`stopRecord: { name: \"<name>\" }`).",
+                                        "anyOf": [
+                                          {
+                                            "type": "boolean",
+                                            "title": "stopRecord (boolean)",
+                                            "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
+                                          },
+                                          {
+                                            "type": "null",
+                                            "title": "stopRecord (null)",
+                                            "description": "Stops the most recently started active recording (LIFO)."
+                                          },
+                                          {
+                                            "type": "string",
+                                            "title": "stopRecord (name)",
+                                            "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "title": "stopRecord (detailed)",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "name"
+                                            ],
+                                            "properties": {
+                                              "name": {
+                                                "type": "string",
+                                                "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                                "pattern": "\\S",
+                                                "transform": [
+                                                  "trim"
+                                                ]
+                                              }
+                                            }
+                                          }
                                         ],
                                         "examples": [
-                                          true
+                                          true,
+                                          "demo",
+                                          {
+                                            "name": "demo"
+                                          }
                                         ]
                                       }
                                     },
@@ -34344,6 +34522,14 @@
                                                         "false"
                                                       ]
                                                     },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                                      "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ]
+                                                    },
                                                     "engine": {
                                                       "title": "Recording engine",
                                                       "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
@@ -34437,6 +34623,14 @@
                                                         "enum": [
                                                           "true",
                                                           "false"
+                                                        ]
+                                                      },
+                                                      "name": {
+                                                        "type": "string",
+                                                        "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+                                                        "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
                                                         ]
                                                       },
                                                       "engine": {
@@ -34674,13 +34868,52 @@
                                             "stopRecord": {
                                               "$schema": "http://json-schema.org/draft-07/schema#",
                                               "title": "stopRecord",
-                                              "description": "Stop the current recording.",
-                                              "type": [
-                                                "boolean",
-                                                "null"
+                                              "description": "Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: \"<name>\"`) or an object (`stopRecord: { name: \"<name>\" }`).",
+                                              "anyOf": [
+                                                {
+                                                  "type": "boolean",
+                                                  "title": "stopRecord (boolean)",
+                                                  "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
+                                                },
+                                                {
+                                                  "type": "null",
+                                                  "title": "stopRecord (null)",
+                                                  "description": "Stops the most recently started active recording (LIFO)."
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "title": "stopRecord (name)",
+                                                  "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                                  "pattern": "\\S",
+                                                  "transform": [
+                                                    "trim"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "title": "stopRecord (detailed)",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "name"
+                                                  ],
+                                                  "properties": {
+                                                    "name": {
+                                                      "type": "string",
+                                                      "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+                                                      "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
                                               ],
                                               "examples": [
-                                                true
+                                                true,
+                                                "demo",
+                                                {
+                                                  "name": "demo"
+                                                }
                                               ]
                                             }
                                           },

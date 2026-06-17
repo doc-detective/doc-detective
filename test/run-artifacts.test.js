@@ -1,7 +1,12 @@
 import { getRunOutputDir, runArchivesArtifacts } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
-import { resolveAutoScreenshot, runSpecs } from "../dist/core/tests.js";
+import {
+  resolveAutoScreenshot,
+  resolveAutoRecord,
+  buildAutoRecordStep,
+  runSpecs,
+} from "../dist/core/tests.js";
 import { getEnvironment } from "../dist/core/config.js";
 import { reporters } from "../dist/utils.js";
 import { buildHtml } from "../dist/reporters/htmlReporter.js";
@@ -190,6 +195,31 @@ describe("runArchivesArtifacts", function () {
     expect(
       runArchivesArtifacts({ reporters: ["terminal"] }, [
         { tests: [{ autoScreenshot: false }, {}] },
+      ])
+    ).to.equal(false);
+  });
+
+  it("is true when autoRecord is on even without the runFolder reporter", function () {
+    // autoRecord videos land in the run folder, so it must be archived too.
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoRecord: true })
+    ).to.equal(true);
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { autoRecord: true, tests: [{}] },
+      ])
+    ).to.equal(true);
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { tests: [{ autoRecord: true }] },
+      ])
+    ).to.equal(true);
+  });
+
+  it("respects a test-level autoRecord:false override of a global true", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoRecord: true }, [
+        { tests: [{ autoRecord: false }] },
       ])
     ).to.equal(false);
   });
@@ -588,6 +618,86 @@ describe("resolveAutoScreenshot precedence", function () {
         test: { autoScreenshot: false },
       })
     ).to.equal(false);
+  });
+});
+
+describe("resolveAutoRecord precedence", function () {
+  it("defers down the chain when levels are unset (test > spec > config)", function () {
+    expect(
+      resolveAutoRecord({ config: { autoRecord: true }, spec: {}, test: {} })
+    ).to.equal(true);
+    expect(resolveAutoRecord({ config: {}, spec: {}, test: {} })).to.equal(false);
+    // Spec overrides config.
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: false },
+        spec: { autoRecord: true },
+        test: {},
+      })
+    ).to.equal(true);
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: true },
+        spec: { autoRecord: false },
+        test: {},
+      })
+    ).to.equal(false);
+    // Test overrides spec and config.
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: false },
+        spec: { autoRecord: false },
+        test: { autoRecord: true },
+      })
+    ).to.equal(true);
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: true },
+        spec: { autoRecord: true },
+        test: { autoRecord: false },
+      })
+    ).to.equal(false);
+  });
+});
+
+describe("buildAutoRecordStep", function () {
+  // getRunOutputDir() creates the run folder, so give it a temp output to keep
+  // artifacts out of the repo CWD.
+  let tempOutput;
+  let config;
+  const spec = { specId: "docs/guide.md" };
+  const test = { testId: "docs/guide.md~abc123" };
+
+  beforeEach(function () {
+    tempOutput = fs.mkdtempSync(path.join(os.tmpdir(), "dd-auto-record-"));
+    config = { logLevel: "silent", output: tempOutput };
+  });
+
+  afterEach(function () {
+    fs.rmSync(tempOutput, { recursive: true, force: true });
+  });
+
+  it("builds a synthetic ffmpeg record step with a deterministic path for a driver context", function () {
+    const context = {
+      contextId: "windows-chrome",
+      steps: [{ goTo: { url: "https://example.com" } }],
+    };
+    const step = buildAutoRecordStep({ config, spec, test, context });
+    expect(step, "expected a synthetic step").to.not.equal(null);
+    expect(step.record.engine).to.equal("ffmpeg");
+    expect(step.record.overwrite).to.equal("true");
+    expect(step.__autoRecord).to.equal(true);
+    // Deterministic path ending in recordings/<spec>/<test>/<context>.mp4.
+    const normalized = step.record.path.split(path.sep).join("/");
+    expect(normalized).to.match(/recordings\/.+\/.+\/windows-chrome\.mp4$/);
+  });
+
+  it("returns null when the context has no driver-required steps", function () {
+    const context = {
+      contextId: "default",
+      steps: [{ httpRequest: { url: "https://api.example.com" } }],
+    };
+    expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
   });
 });
 

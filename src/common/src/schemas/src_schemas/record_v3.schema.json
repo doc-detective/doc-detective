@@ -52,6 +52,14 @@
               "false"
             ]
           },
+          "name": {
+            "type": "string",
+            "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ]
+          },
           "engine": {
             "$ref": "#/components/schemas/engine"
           }

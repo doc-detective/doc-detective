@@ -38,6 +38,10 @@ export interface RecordDetailed {
    * If `true`, overwrites the existing recording at `path` if it exists.
    */
   overwrite?: "true" | "false";
+  /**
+   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
+   */
+  name?: string;
   engine?: RecordingEngine;
   [k: string]: unknown;
 }
