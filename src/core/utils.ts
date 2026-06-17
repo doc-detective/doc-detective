@@ -695,7 +695,12 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
       .map((reporter) => reporter.trim())
       .filter((reporter) => reporter.length > 0);
     if (normalized.length > 0) {
-      return normalized.some((reporter) => reporter.toLowerCase() === "runfolder");
+      // Match both the `runFolder` shorthand and the internal
+      // `runFolderReporter` key, since outputResults honors either.
+      return normalized.some((reporter) => {
+        const name = reporter.toLowerCase();
+        return name === "runfolder" || name === "runfolderreporter";
+      });
     }
   }
   return true;

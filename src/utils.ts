@@ -441,21 +441,28 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 
 // Resolve the directory the runFolder reporter's `.doc-detective/` archive
 // root sits under, from its `output`. `output` is normally a directory, but
-// the reporter also accepts a file path (e.g. `results.json` or any other
-// file), in which case the run folder belongs *beside* the file, not inside
-// it. An existing path is classified by its real filesystem type; a
-// not-yet-created path is treated as a file when it carries an extension
-// (e.g. `out/results.csv`) and as a directory otherwise (e.g. `out/results`).
-// Scoped to the runFolder reporter — the shared getRunOutputDir keeps its own
-// (report-extension) handling so autoScreenshot and report stamping are
-// unaffected.
+// the reporter also accepts a file path (e.g. `results.json`), in which case
+// the run folder belongs *beside* the file, not inside it.
+//
+// An existing path is authoritative — a real file (any extension) archives
+// beside it, a real directory (even a dotted one like `reports.v1`) archives
+// inside it. A not-yet-created path is ambiguous, so it mirrors
+// getRunOutputDir's report-extension allow-list rather than guessing from any
+// extension: this keeps the archive root from diverging from the stamped
+// runDir (a divergence would reject the stamp and break runId/runDir
+// correlation with autoScreenshots), and leaves a dotted directory name like
+// `reports.v1` classified as a directory. Scoped to the runFolder reporter —
+// the shared getRunOutputDir is unchanged, so autoScreenshot and report
+// stamping are unaffected.
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
   try {
     return fs.statSync(base).isDirectory() ? base : path.dirname(base);
   } catch {
-    // Path doesn't exist yet — a trailing extension implies a file.
-    return path.extname(base) ? path.dirname(base) : base;
+    const reportFileExtensions = [".json", ".html", ".htm"];
+    return reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))
+      ? path.dirname(base)
+      : base;
   }
 }
 

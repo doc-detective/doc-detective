@@ -128,6 +128,16 @@ describe("runArchivesArtifacts", function () {
     );
   });
 
+  it("recognizes the internal runFolderReporter key, not just the shorthand", function () {
+    // outputResults honors both names, so the gate must too.
+    expect(runArchivesArtifacts({ reporters: ["runFolderReporter"] })).to.equal(
+      true
+    );
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal", " runFolderReporter "] })
+    ).to.equal(true);
+  });
+
   it("is true when autoScreenshot is on even without the runFolder reporter", function () {
     expect(
       runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: true })
@@ -370,25 +380,37 @@ describe("runFolder reporter", function () {
     ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 
-  it("archives beside a file-path output, not inside it (any extension)", async function () {
+  it("archives beside an existing file-path output, not inside it (any extension)", async function () {
     // The runFolder reporter accepts a file path — not just a directory — and
-    // not just report extensions. The archive belongs next to the file.
+    // an existing file of any extension archives next to it, not inside a
+    // directory named after it.
     const fileOutput = path.join(tempBase, "results.log");
+    fs.writeFileSync(fileOutput, "x");
     const written = await reporters.runFolderReporter(
       {},
       fileOutput,
       { summary: {}, specs: [] },
       { command: "runTests" }
     );
-    // Written under <tempBase>/.doc-detective/, i.e. beside the file —
-    // never inside a `results.log/` directory.
     expect(
       path.relative(path.resolve(tempBase, ".doc-detective"), written)
     ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
-    expect(written).to.not.include(`results.log${path.sep}`);
-    expect(fs.existsSync(path.join(tempBase, "results.log", ".doc-detective"))).to.equal(
-      false
+  });
+
+  it("treats a non-existent dotted output as a directory (matches getRunOutputDir)", async function () {
+    // A not-yet-created path like `reports.v1` must stay a directory, so the
+    // archive root agrees with the stamped runDir / autoScreenshot folder
+    // instead of diverging to the parent.
+    const dirOutput = path.join(tempBase, "reports.v1");
+    const written = await reporters.runFolderReporter(
+      {},
+      dirOutput,
+      { summary: {}, specs: [] },
+      { command: "runTests" }
     );
+    expect(
+      path.relative(path.resolve(dirOutput, ".doc-detective"), written)
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 
   it("also writes an HTML report beside the JSON in the run folder", async function () {
