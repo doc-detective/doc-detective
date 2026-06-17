@@ -1,5 +1,6 @@
 {
   "logLevel": "debug",
+  "concurrentRunners": true,
   "telemetry": {
     "send": false
   }

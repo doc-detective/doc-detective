@@ -15,7 +15,7 @@ describe("Run tests successfully", function () {
     // This starts Appium once and runs all specs within that session.
     it("All core spec files pass", async () => {
       const config_tests = JSON.parse(JSON.stringify(config_base));
-      config_tests.runTests.input = artifactPath;
+      config_tests.input = artifactPath;
       const result = await runTests(config_tests);
       if (result === null) assert.fail("Expected result to be non-null");
       const failedSpecs = result.specs.filter((s) => s.result === "FAIL");
