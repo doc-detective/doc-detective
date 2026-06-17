@@ -15,7 +15,7 @@ You can specify the `runBrowserScript` action using either a string or an object
 - **String format:** The JavaScript to evaluate. Use `return` to capture a value.
 - **Object format:**
   - `script`: (Required) The JavaScript to evaluate in the page. Supports `return`. The script reads values passed in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
-  - `args`: (Optional) An array of strings passed positionally to the script.
+  - `args`: (Optional) An array of values passed positionally to the script. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
   - `output`: (Optional) A string or regular expression to validate against the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^https?:\/\//`).
   - *Output Saving:* You can also save the serialized return value using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runBrowserScript`](/reference/schemas/runbrowserscript) reference for details.
 

@@ -11,7 +11,7 @@ title: "Run browser script (detailed)"
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 script | string | Required. JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on). | 
-args | array of string | Optional. Arguments passed positionally to the script. Available inside the script via the `arguments` object. | ``[]``
+args | array | Optional. Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts. | ``[]``
 output | string | Optional. Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`. | 
 path | string | Optional. File path to save the script's serialized return value, relative to `directory`. | 
 directory | string | Optional. Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory. | 

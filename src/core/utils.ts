@@ -795,10 +795,11 @@ function calculateFractionalDifference(text1: string, text2: string) {
 
 /**
  * Serialize the value returned by a browser script into a string for assertion
- * and snapshotting. Strings pass through unchanged; everything else is
- * JSON-serialized. Values JSON can't represent (`undefined`, functions,
- * circular references) fall back to `String(value)` so the result is always a
- * usable string.
+ * and snapshotting. Strings pass through unchanged; other primitives and `null`
+ * go through `String(value)` (preserving `NaN`/`Infinity`/`BigInt`, which JSON
+ * would coerce or throw on); objects and arrays are JSON-serialized, falling
+ * back to `String(value)` for circular or otherwise unserializable structures
+ * so the result is always a usable string.
  *
  * @param {unknown} value - The raw return value from `driver.execute`.
  * @returns {string} A string representation suitable for substring/regex
