@@ -2,7 +2,7 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { getRunOutputDir } from "./core/utils.js";
+import { getRunOutputDir, runOutputBaseDir } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -519,18 +519,10 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // path's `.doc-detective/` root. Results can originate outside the local
     // process (e.g. API runs), and a garbled or malicious runDir must not
     // redirect the write elsewhere. Otherwise derive a fresh run folder.
-    const expectedRunsRoot = (() => {
-      let base = outputPath || config.output || ".";
-      const reportFileExtensions = [".json", ".html", ".htm"];
-      if (
-        reportFileExtensions.some((ext) =>
-          String(base).toLowerCase().endsWith(ext)
-        )
-      ) {
-        base = path.dirname(base);
-      }
-      return path.resolve(base, ".doc-detective");
-    })();
+    const expectedRunsRoot = path.resolve(
+      runOutputBaseDir(outputPath || config.output || "."),
+      ".doc-detective"
+    );
     const stampedRunDir =
       typeof results?.runDir === "string" && results.runDir.length > 0
         ? path.resolve(results.runDir)

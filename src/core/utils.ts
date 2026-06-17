@@ -14,6 +14,7 @@ export {
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
+  runOutputBaseDir,
   runArchivesArtifacts,
   replaceEnvs,
   spawnCommand,
@@ -587,34 +588,52 @@ function getOrInitRunTimestamp(config: any): string {
   return config.__runTimestamp;
 }
 
+// Resolve the directory the `.doc-detective/` run-artifact root sits under,
+// from a configured `output`. `output` is normally a directory, but reporters
+// also accept a file path (e.g. `results.json`), in which case the run folder
+// belongs *beside* the file, not inside it. An existing path is classified by
+// its real filesystem type; a not-yet-created path is treated as a file when
+// it carries an extension (e.g. `out/results.csv`) and as a directory
+// otherwise (e.g. `out/results`). Coerces defensively: a programmatic caller
+// could hand a non-string output (e.g. a PathLike).
+function runOutputBaseDir(output: any): string {
+  const base = String(output ?? ".") || ".";
+  try {
+    return fs.statSync(base).isDirectory() ? base : path.dirname(base);
+  } catch {
+    // Path doesn't exist yet — a trailing extension implies a file.
+    return path.extname(base) ? path.dirname(base) : base;
+  }
+}
+
 // Per-run artifact directory: `<output>/.doc-detective/run-<runId>/`, where
 // runId is the run timestamp — plus an ordinal suffix (`-2`, `-3`, …) on the
 // rare same-millisecond collision, so the effective runId stamped in the
 // report can carry that suffix. Memoized on the config object so auto
 // screenshots and the runFolder reporter all land in the same folder for the
-// duration of a run. If `config.output` points at a report file (reporters
-// accept `.json`/`.html` paths), the run folder is created next to it.
-// Creation is atomic (non-recursive mkdir, EEXIST → ordinal suffix) so two
-// runs starting in the same millisecond each get their own folder instead of
-// silently merging artifacts.
+// duration of a run. If `output` points at a file (see runOutputBaseDir), the
+// run folder is created next to it.
+//
+// When `create` is true, creation is atomic (non-recursive mkdir, EEXIST →
+// ordinal suffix) so two runs starting in the same millisecond each reserve
+// their own folder instead of silently merging artifacts. `create: false`
+// only resolves and memoizes the path without touching disk — used by runs
+// that won't write any artifacts (see runArchivesArtifacts / runSpecs). Any
+// run that *does* write reserves the folder atomically on its first call here,
+// so the non-atomic memoized branch below is never the one racing.
 function getRunOutputDir(
   config: any,
   { create = true }: { create?: boolean } = {}
 ): string {
   if (config?.__runOutputDir) {
-    // The path was decided on a prior call. If that call deferred creation
-    // (create: false) and this one writes, materialize the folder now.
+    // The path was decided (and, if a writer asked, atomically reserved) on a
+    // prior call. A recursive mkdir here is safe: either the folder already
+    // exists, or this is the first writer after a non-writing run deferred
+    // creation — in which case nothing else is racing this path.
     if (create) fs.mkdirSync(config.__runOutputDir, { recursive: true });
     return config.__runOutputDir;
   }
-  // Coerce defensively: a programmatic caller could hand us a non-string
-  // output (e.g. a PathLike), and the extension check / path ops below assume
-  // a string. Mirrors the String() coercion in runFolderReporter.
-  let base = String(config?.output || ".");
-  const reportFileExtensions = [".json", ".html", ".htm"];
-  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
-    base = path.dirname(base);
-  }
+  const base = runOutputBaseDir(config?.output);
   const runsRoot = path.resolve(base, ".doc-detective");
   const runId = getOrInitRunTimestamp(config);
   let dir = path.join(runsRoot, `run-${runId}`);
@@ -648,12 +667,25 @@ function getRunOutputDir(
 // (`<output>/.doc-detective/run-<id>/`). The folder only holds runFolder
 // reporter archives and autoScreenshot images, so when neither is active the
 // runner skips creating it (see runSpecs) instead of leaving an empty folder
-// behind. An unset `reporters` falls back to the schema default
+// behind.
+//
+// autoScreenshot can be set globally on the config or per spec/test, so the
+// optional `specs` lets the runner account for the resolved test plan; the
+// test > spec > config precedence here mirrors resolveAutoScreenshot. Reporter
+// selection mirrors outputResults: only a *non-empty* `reporters` array is an
+// override — an empty or unset array falls back to the schema default
 // (`["terminal", "json", "runFolder"]`), which archives.
-function runArchivesArtifacts(config: any = {}): boolean {
+function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   if (config?.autoScreenshot === true) return true;
+  for (const spec of specs ?? []) {
+    for (const test of spec?.tests ?? []) {
+      const resolved =
+        test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot;
+      if (resolved === true) return true;
+    }
+  }
   const reporters = config?.reporters;
-  if (Array.isArray(reporters)) {
+  if (Array.isArray(reporters) && reporters.length > 0) {
     return reporters.some(
       (reporter) =>
         typeof reporter === "string" && reporter.toLowerCase() === "runfolder"
