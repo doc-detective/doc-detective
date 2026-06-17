@@ -1,3 +1,10 @@
+## [4.12.1](https://github.com/doc-detective/doc-detective/compare/v4.12.0...v4.12.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **runner:** skip run-folder creation when no artifacts are written ([#348](https://github.com/doc-detective/doc-detective/issues/348)) ([341b9c5](https://github.com/doc-detective/doc-detective/commit/341b9c5cd01569698901394785351b03f5aaf291))
+
 # [4.12.0](https://github.com/doc-detective/doc-detective/compare/v4.11.1...v4.12.0) (2026-06-17)
 
 
