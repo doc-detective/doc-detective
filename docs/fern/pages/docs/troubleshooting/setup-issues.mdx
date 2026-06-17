@@ -31,12 +31,31 @@ DOC_DETECTIVE_DEBUG=true doc-detective
 
 The diagnostic dump reports:
 
+- **Findings / next steps**: Likely causes of detected problems, each with a `fix:` command where one applies
 - **System info**: OS, platform, architecture, CPU, memory, and whether you're running in a container
 - **Doc Detective version**: Installed version plus dependency versions
 - **Tool versions**: Node.js, npm, Python, Java, Git, Docker, ffmpeg, and Appium
 - **Detected browsers**: Available browsers and their Appium drivers
+- **Install status**: Installed npm packages and browsers, compared against the versions Doc Detective expects
+- **Appium registration**: Whether each Appium driver is both resolvable from npm and registered with Appium
+- **Cache & runtime**: Resolved cache, runtime, and browser directories, with whether each exists, is writable, and how much disk space is free
+- **Proxy / npm network**: Your proxy and `npm_config_*` environment variables, with credentials redacted
 - **Referenced environment variables**: Variables your config and documentation files reference via `$VAR` syntax
+- **Config provenance**: Where your effective config came from, including the config file path, applied environment variables, and CLI flag overrides
 - **Effective config**: Your merged configuration after file and environment processing
+
+## Start with the findings
+
+The dump opens with a **Findings / next steps** section. Instead of leaving you to interpret the raw data below it, Doc Detective evaluates what it collected and surfaces the likely cause of each problem along with the command that resolves it. Each finding has a severity (`ERROR`, `WARNING`, or `INFO`), a description of what's wrong, and, where one applies, a `fix:` command you can run directly. When nothing looks wrong, the section reports `No problems detected.`
+
+```
+-- Findings / next steps --------------------------------------------
+  [ERROR] Chrome is not available
+    Chrome shows NOT AVAILABLE and its Appium driver
+    (appium-chromium-driver) is missing or not registered, so browser
+    tests can't run.
+    fix: doc-detective install runtime
+```
 
 ## Include full environment variables
 
@@ -128,6 +147,85 @@ export API_KEY=your-key-here
 ```
 
 Or add it to your `.env` file and reference it with `loadVariables` in your config.
+
+### Cache directory is not writable
+
+Doc Detective installs browsers and runtime packages into its cache directory on demand. If that directory isn't writable, those installs have nowhere to go. The **Cache & runtime** section reports `writable: false` for the affected path, and a matching finding points you to the fix:
+
+```
+-- Cache & runtime --------------------------------------------------
+  cacheDir:
+    path:     /opt/doc-detective-cache
+    exists:   true
+    writable: false
+```
+
+Point Doc Detective at a writable cache location with the `DOC_DETECTIVE_CACHE_DIR` environment variable:
+
+```bash
+export DOC_DETECTIVE_CACHE_DIR=~/.doc-detective-cache
+```
+
+### Stale or outdated install
+
+The **Install status** section compares your installed npm packages and browsers against the versions Doc Detective expects and flags any that are `OUTDATED`. A stale or mismatched install is a common source of failures that are otherwise hard to explain:
+
+```
+-- Install status ---------------------------------------------------
+  npm packages:
+    webdriverio              installed  8.39.0  expected 9.2.1  OUTDATED
+```
+
+Reinstall the runtime to bring everything back in sync:
+
+```bash
+doc-detective install runtime
+```
+
+### Appium driver installed but not registered
+
+The **Appium registration** section reconciles the drivers that resolve from npm against the drivers Appium has actually registered, read from its `extensions.yaml` manifest. A driver that resolves from npm but isn't registered usually means `APPIUM_HOME` points at the wrong `node_modules`:
+
+```
+-- Appium registration ----------------------------------------------
+  drivers:
+    appium-chromium-driver   resolvable but not registered
+```
+
+Reinstall the runtime so the driver is registered under the active `APPIUM_HOME`:
+
+```bash
+doc-detective install runtime
+```
+
+When the manifest is missing, Doc Detective reports registration as unknown rather than flagging the drivers, so a fresh environment won't trigger a false alarm.
+
+### Lazy install fails behind a proxy
+
+The **Proxy / npm network** section surfaces your proxy and `npm_config_*` environment variables, the most common silent cause of failed on-demand installs. Credentials embedded in proxy or registry URLs are redacted:
+
+```
+-- Proxy / npm network ----------------------------------------------
+  HTTPS_PROXY = http://proxy.example:8080
+  npm_config_registry = https://registry.example/
+```
+
+If installs fail behind a proxy, confirm the proxy and registry are reachable and that `proxy-agent` is available for browser downloads.
+
+### Effective config isn't what you expect
+
+When your merged configuration doesn't match what you intended, the **Config provenance** section shows where each piece came from: the resolved config file path, whether `DOC_DETECTIVE_CONFIG` or `DOC_DETECTIVE_API` were applied, and which CLI flags overrode the validated config.
+
+```
+-- Config provenance ------------------------------------------------
+  config file:          /repo/.doc-detective.json
+  DOC_DETECTIVE_CONFIG: applied (overrides file)
+  DOC_DETECTIVE_API:    not set
+
+  CLI overrides (override file + env):
+    --input → config.input
+    --dryRun → config.dryRun
+```
 
 ## Share diagnostics in bug reports
 
