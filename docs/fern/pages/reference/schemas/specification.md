@@ -13,6 +13,7 @@ specPath | string | Optional. Path to the test specification. |
 contentPath | string | Optional. Path to the content that the specification is associated with. | 
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | 
 openApi | array of unknown | Optional. No description provided. | 
+autoRecord | boolean | Optional. If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level. | 
 tests | array of object([test](/reference/schemas/test)) | Required. [Tests](test) to perform. | 
 
 ## Examples

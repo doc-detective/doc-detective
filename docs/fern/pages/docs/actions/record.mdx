@@ -14,6 +14,7 @@ You can specify the recording action in several ways:
   - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
   - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
   - `overwrite`: (Optional) Set to `true` to overwrite an existing file at the target path. Defaults to `false`.
+  - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
 
 **Stopping the Recording:** You *must* include a `stopRecord` step later in your test to finalize and save the video file.
@@ -37,6 +38,58 @@ Set `engine` as a string to select an engine with its defaults (for example, `"e
 
 - **Windows and macOS:** When a run includes an `ffmpeg` record step, Doc Detective forces the run to execute serially, even if `concurrentRunners` is greater than 1. To keep concurrency while recording, use the `browser` engine instead.
 - **Linux:** Each runner records its own virtual display using Xvfb, so `ffmpeg` recording stays concurrent and works headless. Install Xvfb to enable this.
+
+## Multiple overlapping recordings
+
+A single context can run more than one recording at once. For example, you can capture a full test alongside a shorter clip of one workflow inside it. Give each `record` step a `name` so a later `stopRecord` step can target the right one:
+
+- An untargeted `stopRecord` (`true` or `null`) stops the most recently started recording that's still active (last in, first out).
+- To stop a specific recording, target it by `name`, either as a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`). This works for any active recording, not just the most recent one.
+
+Names must be unique among recordings that are active at the same time. If a `record` step reuses the `name` of a recording that's still active, Doc Detective catches the conflict before the run starts and skips that test in every context with a warning, rather than failing partway through.
+
+When two recordings overlap and both would use the `browser` engine, the second one falls back to the `ffmpeg` engine with a `viewport` target and emits a warning, because the `browser` engine can own only one recorder per context. See [Recording engines](#recording-engines) for how engines are selected.
+
+## Automatic recordings
+
+To record every browser-based test context from start to finish, enable the `autoRecord` option. It captures each context end-to-end without explicit `record` steps, which is useful for:
+
+- Building a video archive of every run
+- Replaying exactly what happened when a test fails
+- Comparing behavior from one run to the next
+
+Enable it at the config, spec, or test level (test overrides spec, which overrides config):
+
+```json
+{
+  "autoRecord": true,
+  "output": "./test-results"
+}
+```
+
+Or use the CLI flag:
+
+```bash
+doc-detective --auto-record
+```
+
+Use `--no-auto-record` to override a config file that enables it.
+
+Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Videos are saved in the per-run artifact folder (`<output>/.doc-detective/run-<runId>/`) at paths derived from the spec, test, and context IDs, so the same context lands on the same relative path in every run's folder:
+
+```
+.doc-detective/run-<runId>/
+└── recordings/
+    └── <specId>/
+        └── <testId>/
+            └── <contextId>.mp4
+```
+
+An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. Doc Detective finalizes it during end-of-context cleanup.
+
+<Note>
+On Linux, each runner records its own virtual display with Xvfb, so automatic recordings stay isolated even when runs are concurrent. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
+</Note>
 
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 
@@ -152,6 +205,51 @@ Records the screen with ffmpeg so the recording isn't limited to Chrome.
         {
           "description": "Stop recording.",
           "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Overlapping recordings targeted by name
+
+Captures a full session while also recording a shorter clip of one step, stopping each by name.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the full session.",
+          "record": {
+            "path": "session.mp4",
+            "name": "session"
+          }
+        },
+        {
+          "description": "Start a clip of the login step.",
+          "record": {
+            "path": "login.mp4",
+            "name": "login"
+          }
+        },
+        {
+          "description": "...",
+          "find": "Login"
+        },
+        {
+          "description": "Stop the login clip.",
+          "stopRecord": "login"
+        },
+        {
+          "description": "...",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Stop the full session.",
+          "stopRecord": { "name": "session" }
         }
       ]
     }

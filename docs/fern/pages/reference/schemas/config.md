@@ -33,6 +33,7 @@ integrations | object([Integrations options](/reference/schemas/integrations-opt
 telemetry | object([Telemetry options](/reference/schemas/telemetry-options)) | Optional. Options around sending telemetry for Doc Detective usage. | ``{"send":true}``
 concurrentRunners | integer,boolean | Optional. Number of concurrent test runners. Set to true to use CPU core count (capped at 4).<br/><br/>Minimum: 1 | `1`
 environment | object([Environment details](/reference/schemas/environment-details)) | ReadOnly. Environment information for the system running Doc Detective. | 
+autoRecord | boolean | Optional. If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs (for example, `recordings/<specId>/<testId>/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI. | `false`
 debug | one of:<br/>- boolean<br/>- string | Optional. Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging. | `false`
 dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inline-test extraction, config merge, schema validation) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI. Useful for validating test configuration without running actual tests. | `false`
 
@@ -199,5 +200,12 @@ dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inl
 {
   "testFilter": ["smoke", "login"],
   "specFilter": ["auth"]
+}
+```
+
+```json
+{
+  "autoRecord": true,
+  "output": "./test-results"
 }
 ```

@@ -16,6 +16,7 @@ testId | string | Optional. Unique identifier for the test. |
 description | string | Optional. Description of the test. | 
 contentPath | string | Optional. Path to the content that the test is associated with. | 
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on markup regex. | `true`
+autoRecord | boolean | Optional. If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level. | 
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | 
 openApi | array of unknown | Optional. No description provided. | 
 before | string | Optional. Path to a test specification to perform before this test, while maintaining this test's context. Useful for setting up testing environments. Only the `steps` property is used from the first test in the setup spec. | 
