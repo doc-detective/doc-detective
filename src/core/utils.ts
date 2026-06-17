@@ -14,6 +14,7 @@ export {
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
+  runArchivesArtifacts,
   replaceEnvs,
   spawnCommand,
   inContainer,
@@ -596,8 +597,16 @@ function getOrInitRunTimestamp(config: any): string {
 // Creation is atomic (non-recursive mkdir, EEXIST → ordinal suffix) so two
 // runs starting in the same millisecond each get their own folder instead of
 // silently merging artifacts.
-function getRunOutputDir(config: any): string {
-  if (config?.__runOutputDir) return config.__runOutputDir;
+function getRunOutputDir(
+  config: any,
+  { create = true }: { create?: boolean } = {}
+): string {
+  if (config?.__runOutputDir) {
+    // The path was decided on a prior call. If that call deferred creation
+    // (create: false) and this one writes, materialize the folder now.
+    if (create) fs.mkdirSync(config.__runOutputDir, { recursive: true });
+    return config.__runOutputDir;
+  }
   // Coerce defensively: a programmatic caller could hand us a non-string
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
@@ -607,24 +616,50 @@ function getRunOutputDir(config: any): string {
     base = path.dirname(base);
   }
   const runsRoot = path.resolve(base, ".doc-detective");
-  fs.mkdirSync(runsRoot, { recursive: true });
   const runId = getOrInitRunTimestamp(config);
   let dir = path.join(runsRoot, `run-${runId}`);
-  let suffix = 2;
-  // Non-recursive mkdir is the reservation: it throws EEXIST if another
-  // process already claimed the name, closing the check-then-create race an
-  // existsSync loop would leave open.
-  for (;;) {
-    try {
-      fs.mkdirSync(dir);
-      break;
-    } catch (error: any) {
-      if (error?.code !== "EEXIST") throw error;
-      dir = path.join(runsRoot, `run-${runId}-${suffix++}`);
+  // create: false just resolves and memoizes the path — no folder is left on
+  // disk. A run that neither archives results (runFolder reporter) nor writes
+  // auto screenshots has nothing to put here, so creating it would only leave
+  // an empty `.doc-detective/run-<id>/` behind. The eager-creation branch
+  // below still runs for the writers, and a later create:true call (via the
+  // memoized branch above) materializes the folder if a write does occur.
+  if (create) {
+    fs.mkdirSync(runsRoot, { recursive: true });
+    let suffix = 2;
+    // Non-recursive mkdir is the reservation: it throws EEXIST if another
+    // process already claimed the name, closing the check-then-create race an
+    // existsSync loop would leave open.
+    for (;;) {
+      try {
+        fs.mkdirSync(dir);
+        break;
+      } catch (error: any) {
+        if (error?.code !== "EEXIST") throw error;
+        dir = path.join(runsRoot, `run-${runId}-${suffix++}`);
+      }
     }
   }
   if (config) config.__runOutputDir = dir;
   return dir;
+}
+
+// Whether a run will write anything into its per-run artifact folder
+// (`<output>/.doc-detective/run-<id>/`). The folder only holds runFolder
+// reporter archives and autoScreenshot images, so when neither is active the
+// runner skips creating it (see runSpecs) instead of leaving an empty folder
+// behind. An unset `reporters` falls back to the schema default
+// (`["terminal", "json", "runFolder"]`), which archives.
+function runArchivesArtifacts(config: any = {}): boolean {
+  if (config?.autoScreenshot === true) return true;
+  const reporters = config?.reporters;
+  if (Array.isArray(reporters)) {
+    return reporters.some(
+      (reporter) =>
+        typeof reporter === "string" && reporter.toLowerCase() === "runfolder"
+    );
+  }
+  return true;
 }
 
 // Perform a native command in the current working directory.

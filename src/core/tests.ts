@@ -21,6 +21,7 @@ import {
   rollUpResults,
   createAppiumPool,
   getRunOutputDir,
+  runArchivesArtifacts,
   sanitizeFilesystemName,
 } from "./utils.js";
 import axios from "axios";
@@ -571,7 +572,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // reporter archives results beside any auto screenshots from the same run,
   // and so consumers can correlate results over time. Created after the
   // filter short-circuit above so a run that matched nothing leaves no folder.
-  const runDir = getRunOutputDir(config);
+  // Only create the folder when something will actually write into it (the
+  // runFolder reporter or autoScreenshot) — otherwise just resolve the path
+  // for the report stamp and leave no empty `.doc-detective/run-<id>/` behind.
+  const runDir = getRunOutputDir(config, {
+    create: runArchivesArtifacts(config),
+  });
   const runId = path.basename(runDir).replace(/^run-/, "");
   const report: any = {
     runId,

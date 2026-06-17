@@ -1,7 +1,8 @@
-import { getRunOutputDir } from "../dist/core/utils.js";
+import { getRunOutputDir, runArchivesArtifacts } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
-import { resolveAutoScreenshot } from "../dist/core/tests.js";
+import { resolveAutoScreenshot, runSpecs } from "../dist/core/tests.js";
+import { getEnvironment } from "../dist/core/config.js";
 import { reporters } from "../dist/utils.js";
 import { buildHtml } from "../dist/reporters/htmlReporter.js";
 import path from "node:path";
@@ -69,6 +70,118 @@ describe("getRunOutputDir", function () {
       path.resolve(tempBase, ".doc-detective")
     );
     expect(fs.existsSync(dir)).to.equal(true);
+  });
+
+  it("returns the run folder path without creating it when create is false", function () {
+    const config = { output: tempBase };
+    const dir = getRunOutputDir(config, { create: false });
+    expect(path.dirname(dir)).to.equal(
+      path.resolve(tempBase, ".doc-detective")
+    );
+    expect(path.basename(dir)).to.match(RUN_ID_RE);
+    // No folder — not even the .doc-detective root — should touch disk.
+    expect(fs.existsSync(path.resolve(tempBase, ".doc-detective"))).to.equal(
+      false
+    );
+  });
+
+  it("creates the memoized folder when a later create:true call writes", function () {
+    const config = { output: tempBase };
+    const lazy = getRunOutputDir(config, { create: false });
+    expect(fs.existsSync(lazy)).to.equal(false);
+    const eager = getRunOutputDir(config);
+    expect(eager).to.equal(lazy);
+    expect(fs.existsSync(eager)).to.equal(true);
+  });
+});
+
+describe("runArchivesArtifacts", function () {
+  it("is true when reporters include runFolder (case-insensitive)", function () {
+    expect(runArchivesArtifacts({ reporters: ["terminal", "runFolder"] })).to.equal(
+      true
+    );
+    expect(runArchivesArtifacts({ reporters: ["RUNFOLDER"] })).to.equal(true);
+  });
+
+  it("is false when reporters are set but exclude runFolder", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal", "json", "html"] })
+    ).to.equal(false);
+  });
+
+  it("is true when autoScreenshot is on even without the runFolder reporter", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: true })
+    ).to.equal(true);
+  });
+
+  it("is true when reporters are unset (the default set includes runFolder)", function () {
+    expect(runArchivesArtifacts({})).to.equal(true);
+    expect(runArchivesArtifacts()).to.equal(true);
+  });
+});
+
+describe("runSpecs run-folder creation", function () {
+  this.timeout(120000);
+  let tempBase;
+
+  beforeEach(function () {
+    tempBase = fs.mkdtempSync(path.join(os.tmpdir(), "dd-run-create-"));
+  });
+
+  afterEach(function () {
+    fs.rmSync(tempBase, { recursive: true, force: true });
+  });
+
+  // One spec / test / context with a single non-driver step so no browser or
+  // Appium server is needed.
+  function fixture(extraConfig = {}) {
+    return {
+      config: {
+        logLevel: "silent",
+        telemetry: { send: false },
+        environment: getEnvironment(),
+        concurrentRunners: 1,
+        output: tempBase,
+        ...extraConfig,
+      },
+      specs: [
+        {
+          specId: "spec-1",
+          tests: [
+            {
+              testId: "spec-1-test-1",
+              contexts: [
+                {
+                  contextId: "spec-1-test-1-context-1",
+                  steps: [{ stepId: "s1", runShell: "echo hi" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  it("does not create a run folder when the runFolder reporter is deselected", async function () {
+    await runSpecs({
+      resolvedTests: fixture({ reporters: ["terminal", "json"] }),
+    });
+    expect(fs.existsSync(path.resolve(tempBase, ".doc-detective"))).to.equal(
+      false
+    );
+  });
+
+  it("creates a run folder when the runFolder reporter is active", async function () {
+    await runSpecs({
+      resolvedTests: fixture({ reporters: ["terminal", "json", "runFolder"] }),
+    });
+    const runsRoot = path.resolve(tempBase, ".doc-detective");
+    expect(fs.existsSync(runsRoot)).to.equal(true);
+    expect(
+      fs.readdirSync(runsRoot).some((name) => name.startsWith("run-"))
+    ).to.equal(true);
   });
 });
 
