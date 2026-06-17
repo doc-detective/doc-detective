@@ -8,11 +8,14 @@ const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 
 describe("Run tests successfully", function () {
-  // 30 minutes for the combined core test suite (runs all specs in one Appium session)
+  // 30 minutes for the combined core test suite (all specs in one runTests() call)
   this.timeout(1800000);
   describe("Core test suite", function () {
     // Run all spec files in a single runTests() call to avoid repeated Appium restarts.
-    // This starts Appium once and runs all specs within that session.
+    // With concurrentRunners set, the runner starts a small pool of Appium
+    // servers (one per concurrent runner, capped by the number of driver
+    // contexts) and distributes specs across them, rather than restarting
+    // Appium for every spec.
     it("All core spec files pass", async () => {
       const config_tests = JSON.parse(JSON.stringify(config_base));
       config_tests.input = artifactPath;
