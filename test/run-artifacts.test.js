@@ -1,11 +1,13 @@
-import { getRunOutputDir } from "../dist/core/utils.js";
+import { getRunOutputDir, runArchivesArtifacts } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
 import {
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
+  runSpecs,
 } from "../dist/core/tests.js";
+import { getEnvironment } from "../dist/core/config.js";
 import { reporters } from "../dist/utils.js";
 import { buildHtml } from "../dist/reporters/htmlReporter.js";
 import path from "node:path";
@@ -73,6 +75,225 @@ describe("getRunOutputDir", function () {
       path.resolve(tempBase, ".doc-detective")
     );
     expect(fs.existsSync(dir)).to.equal(true);
+  });
+
+  it("returns the run folder path without creating it when create is false", function () {
+    const config = { output: tempBase };
+    const dir = getRunOutputDir(config, { create: false });
+    expect(path.dirname(dir)).to.equal(
+      path.resolve(tempBase, ".doc-detective")
+    );
+    expect(path.basename(dir)).to.match(RUN_ID_RE);
+    // No folder — not even the .doc-detective root — should touch disk.
+    expect(fs.existsSync(path.resolve(tempBase, ".doc-detective"))).to.equal(
+      false
+    );
+  });
+
+  it("creates the memoized folder when a later create:true call writes", function () {
+    const config = { output: tempBase };
+    const lazy = getRunOutputDir(config, { create: false });
+    expect(fs.existsSync(lazy)).to.equal(false);
+    const eager = getRunOutputDir(config);
+    expect(eager).to.equal(lazy);
+    expect(fs.existsSync(eager)).to.equal(true);
+  });
+});
+
+describe("runArchivesArtifacts", function () {
+  it("is true when reporters include runFolder (case-insensitive)", function () {
+    expect(runArchivesArtifacts({ reporters: ["terminal", "runFolder"] })).to.equal(
+      true
+    );
+    expect(runArchivesArtifacts({ reporters: ["RUNFOLDER"] })).to.equal(true);
+  });
+
+  it("is false when reporters are set but exclude runFolder", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal", "json", "html"] })
+    ).to.equal(false);
+  });
+
+  it("is true for an empty reporters array (mirrors the default fallback)", function () {
+    // outputResults falls back to the default reporter set (which includes
+    // runFolder) when reporters is empty, so this helper must agree.
+    expect(runArchivesArtifacts({ reporters: [] })).to.equal(true);
+  });
+
+  it("matches reporter tokens verbatim like outputResults (no trimming)", function () {
+    // outputResults matches tokens as-is, so a padded `" runFolder "` runs no
+    // reporter — the gate must agree, or it would reserve an empty folder.
+    expect(runArchivesArtifacts({ reporters: [" runFolder "] })).to.equal(false);
+    expect(runArchivesArtifacts({ reporters: ["runFolder"] })).to.equal(true);
+    // A non-empty list with only blank/non-matching tokens is still an
+    // override that excludes runFolder.
+    expect(runArchivesArtifacts({ reporters: ["", "  "] })).to.equal(false);
+  });
+
+  it("does not treat a function reporter as the runFolder reporter", function () {
+    // outputResults runs function reporters as-is; none of them is the
+    // runFolder reporter, so a function-only override must not gate a folder.
+    expect(runArchivesArtifacts({ reporters: [() => {}] })).to.equal(false);
+  });
+
+  it("recognizes the internal runFolderReporter key verbatim, not just the shorthand", function () {
+    // outputResults resolves the exact `runFolderReporter` key via its default
+    // branch, but only verbatim — a padded or mis-cased variant runs nothing.
+    expect(runArchivesArtifacts({ reporters: ["runFolderReporter"] })).to.equal(
+      true
+    );
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal", " runFolderReporter "] })
+    ).to.equal(false);
+  });
+
+  it("is true when autoScreenshot is on even without the runFolder reporter", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: true })
+    ).to.equal(true);
+  });
+
+  it("is true when a spec enables autoScreenshot and runFolder is off", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { autoScreenshot: true, tests: [{}] },
+      ])
+    ).to.equal(true);
+  });
+
+  it("is true when a test enables autoScreenshot and runFolder is off", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { tests: [{ autoScreenshot: true }] },
+      ])
+    ).to.equal(true);
+  });
+
+  it("respects a test-level autoScreenshot:false override of a global true", function () {
+    // resolveAutoScreenshot is test > spec > config, so a per-test false
+    // disables screenshots even when config.autoScreenshot is true — the run
+    // writes nothing, so it must not eagerly create the folder.
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: true }, [
+        { tests: [{ autoScreenshot: false }] },
+      ])
+    ).to.equal(false);
+  });
+
+  it("Boolean-coerces a truthy non-boolean autoScreenshot (API callers)", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: "true" })
+    ).to.equal(true);
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { tests: [{ autoScreenshot: "yes" }] },
+      ])
+    ).to.equal(true);
+  });
+
+  it("is false when no spec/test enables autoScreenshot and runFolder is off", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { tests: [{ autoScreenshot: false }, {}] },
+      ])
+    ).to.equal(false);
+  });
+
+  it("is true when reporters are unset (the default set includes runFolder)", function () {
+    expect(runArchivesArtifacts({})).to.equal(true);
+    expect(runArchivesArtifacts()).to.equal(true);
+  });
+});
+
+describe("runSpecs run-folder creation", function () {
+  this.timeout(120000);
+  let tempBase;
+
+  beforeEach(function () {
+    tempBase = fs.mkdtempSync(path.join(os.tmpdir(), "dd-run-create-"));
+  });
+
+  afterEach(function () {
+    fs.rmSync(tempBase, { recursive: true, force: true });
+  });
+
+  // One spec / test / context with a single non-driver step so no browser or
+  // Appium server is needed.
+  function fixture(extraConfig = {}) {
+    return {
+      config: {
+        logLevel: "silent",
+        telemetry: { send: false },
+        environment: getEnvironment(),
+        concurrentRunners: 1,
+        output: tempBase,
+        ...extraConfig,
+      },
+      specs: [
+        {
+          specId: "spec-1",
+          tests: [
+            {
+              testId: "spec-1-test-1",
+              contexts: [
+                {
+                  contextId: "spec-1-test-1-context-1",
+                  steps: [{ stepId: "s1", runShell: "echo hi" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  it("does not create a run folder when the runFolder reporter is deselected", async function () {
+    await runSpecs({
+      resolvedTests: fixture({ reporters: ["terminal", "json"] }),
+    });
+    expect(fs.existsSync(path.resolve(tempBase, ".doc-detective"))).to.equal(
+      false
+    );
+  });
+
+  it("creates a run folder when the runFolder reporter is active", async function () {
+    await runSpecs({
+      resolvedTests: fixture({ reporters: ["terminal", "json", "runFolder"] }),
+    });
+    const runsRoot = path.resolve(tempBase, ".doc-detective");
+    expect(fs.existsSync(runsRoot)).to.equal(true);
+    expect(
+      fs.readdirSync(runsRoot).some((name) => name.startsWith("run-"))
+    ).to.equal(true);
+  });
+
+  it("does not create a run folder when a test disables autoScreenshot despite a global true", async function () {
+    // config.autoScreenshot:true but the only test overrides to false → no
+    // screenshots fire, and with runFolder off nothing should be archived.
+    const resolved = fixture({
+      reporters: ["terminal", "json"],
+      autoScreenshot: true,
+    });
+    resolved.specs[0].tests[0].autoScreenshot = false;
+    await runSpecs({ resolvedTests: resolved });
+    expect(fs.existsSync(path.resolve(tempBase, ".doc-detective"))).to.equal(
+      false
+    );
+  });
+
+  it("creates the run folder when a test enables autoScreenshot but runFolder is off", async function () {
+    // Per-spec/test autoScreenshot must still reserve the folder up front
+    // (atomic creation), even when global config.autoScreenshot is unset and
+    // the runFolder reporter is deselected.
+    const resolved = fixture({ reporters: ["terminal", "json"] });
+    resolved.specs[0].tests[0].autoScreenshot = true;
+    await runSpecs({ resolvedTests: resolved });
+    const runsRoot = path.resolve(tempBase, ".doc-detective");
+    expect(fs.existsSync(runsRoot)).to.equal(true);
+    expect(
+      fs.readdirSync(runsRoot).some((name) => name.startsWith("run-"))
+    ).to.equal(true);
   });
 });
 
@@ -165,6 +386,60 @@ describe("runFolder reporter", function () {
     expect(written).to.match(/testResults\.json$/);
     expect(
       path.relative(path.resolve(tempBase, ".doc-detective"), written)
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+  });
+
+  it("archives beside an existing file-path output, not inside it (any extension)", async function () {
+    // The runFolder reporter accepts a file path — not just a directory — and
+    // an existing file of any extension archives next to it, not inside a
+    // directory named after it.
+    const fileOutput = path.join(tempBase, "results.log");
+    fs.writeFileSync(fileOutput, "x");
+    const written = await reporters.runFolderReporter(
+      {},
+      fileOutput,
+      { summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    expect(
+      path.relative(path.resolve(tempBase, ".doc-detective"), written)
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+  });
+
+  it("keeps a report-extension output beside its parent even if it exists as a directory", async function () {
+    // A directory oddly named `reports.json` must resolve the same way
+    // getRunOutputDir does (strip the extension → parent), so the reporter's
+    // confinement root never diverges from the stamped runDir.
+    const dirOutput = path.join(tempBase, "reports.json");
+    fs.mkdirSync(dirOutput);
+    const written = await reporters.runFolderReporter(
+      {},
+      dirOutput,
+      { summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    // Archived beside `reports.json`, i.e. under <tempBase>/.doc-detective.
+    expect(
+      path.relative(path.resolve(tempBase, ".doc-detective"), written)
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+    expect(
+      fs.existsSync(path.join(dirOutput, ".doc-detective"))
+    ).to.equal(false);
+  });
+
+  it("treats a non-existent dotted output as a directory (matches getRunOutputDir)", async function () {
+    // A not-yet-created path like `reports.v1` must stay a directory, so the
+    // archive root agrees with the stamped runDir / autoScreenshot folder
+    // instead of diverging to the parent.
+    const dirOutput = path.join(tempBase, "reports.v1");
+    const written = await reporters.runFolderReporter(
+      {},
+      dirOutput,
+      { summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    expect(
+      path.relative(path.resolve(dirOutput, ".doc-detective"), written)
     ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 

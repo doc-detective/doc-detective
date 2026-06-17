@@ -447,6 +447,35 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   return config;
 }
 
+// Resolve the directory the runFolder reporter's `.doc-detective/` archive
+// root sits under, from its `output`. `output` is normally a directory, but
+// the reporter also accepts a file path (e.g. `results.json`), in which case
+// the run folder belongs *beside* the file, not inside it.
+//
+// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
+// parent, matching getRunOutputDir exactly — even for an existing directory
+// oddly named `reports.json` — so the archive root never diverges from the
+// stamped runDir (a divergence would reject the stamp and break runId/runDir
+// correlation with autoScreenshot). Any other path is then resolved by real
+// filesystem type: an existing file (any extension) archives beside it, an
+// existing or not-yet-created directory (including a dotted name like
+// `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
+// shared getRunOutputDir is unchanged, so autoScreenshot and report stamping
+// are unaffected.
+function runFolderBaseDir(output: any): string {
+  const base = String(output ?? ".") || ".";
+  const reportFileExtensions = [".json", ".html", ".htm"];
+  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+    return path.dirname(base);
+  }
+  try {
+    return fs.statSync(base).isDirectory() ? base : path.dirname(base);
+  } catch {
+    // Not created yet — treat as a directory (matches getRunOutputDir).
+    return base;
+  }
+}
+
 // Internal reporters
 const reporters: Record<string, (config: any, outputPath: any, results: any, options: any) => Promise<any>> = {
   // HTML reporter: outputs results as a self-contained HTML file
@@ -527,18 +556,11 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // path's `.doc-detective/` root. Results can originate outside the local
     // process (e.g. API runs), and a garbled or malicious runDir must not
     // redirect the write elsewhere. Otherwise derive a fresh run folder.
-    const expectedRunsRoot = (() => {
-      let base = outputPath || config.output || ".";
-      const reportFileExtensions = [".json", ".html", ".htm"];
-      if (
-        reportFileExtensions.some((ext) =>
-          String(base).toLowerCase().endsWith(ext)
-        )
-      ) {
-        base = path.dirname(base);
-      }
-      return path.resolve(base, ".doc-detective");
-    })();
+    // Resolve the output to a base directory once (file paths → parent), then
+    // both the confinement root and the fresh-folder fallback below derive
+    // from the same base, so a file-path output archives beside the file.
+    const baseDir = runFolderBaseDir(outputPath || config.output || ".");
+    const expectedRunsRoot = path.resolve(baseDir, ".doc-detective");
     const stampedRunDir =
       typeof results?.runDir === "string" && results.runDir.length > 0
         ? path.resolve(results.runDir)
@@ -562,9 +584,12 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         useStampedRunDir = false;
       }
     }
+    // Pass the already-resolved directory so getRunOutputDir creates the run
+    // folder under it directly (it's a directory, so its report-extension
+    // handling is a no-op) — keeping the fallback consistent with baseDir.
     const runDir = useStampedRunDir
       ? stampedRunDir!
-      : getRunOutputDir({ output: outputPath || config.output || "." });
+      : getRunOutputDir({ output: baseDir });
     // When we reject the stamped runDir and write to a fresh folder, rewrite
     // runDir/runId in the archived JSON so the report describes the folder it
     // actually sits beside — otherwise consumers resolve `autoScreenshot`
