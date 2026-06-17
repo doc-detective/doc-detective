@@ -990,3 +990,348 @@ describe("debug CLI smoke test", function () {
     }
   });
 });
+
+describe("debug/network", function () {
+  let collectNetworkConfig;
+  before(async function () {
+    ({ collectNetworkConfig } = await import("../dist/debug/network.js"));
+  });
+
+  it("lists proxy and npm_config_* vars, sorted", function () {
+    const out = collectNetworkConfig({
+      HTTPS_PROXY: "http://proxy.example:8080",
+      npm_config_registry: "https://registry.example/",
+      npm_config_strict_ssl: "true",
+      UNRELATED: "ignored",
+    });
+    const names = out.variables.map((v) => v.name);
+    expect(names).to.deep.equal([
+      "HTTPS_PROXY",
+      "npm_config_registry",
+      "npm_config_strict_ssl",
+    ]);
+    expect(names).to.not.include("UNRELATED");
+  });
+
+  it("redacts a registry URL that embeds credentials", function () {
+    const out = collectNetworkConfig({
+      npm_config_registry: "https://user:s3cr3t@registry.example/",
+    });
+    const reg = out.variables.find((v) => v.name === "npm_config_registry");
+    expect(reg.value).to.match(/\*{3}redacted/);
+    expect(reg.value).to.not.include("s3cr3t");
+  });
+
+  it("redacts a per-registry _authToken by name", function () {
+    const out = collectNetworkConfig({
+      "npm_config_//registry.example/:_authToken": "abc123tokenvalue",
+    });
+    expect(out.variables[0].value).to.match(/\*{3}redacted/);
+    expect(out.variables[0].value).to.not.include("abc123tokenvalue");
+  });
+
+  it("returns an empty list when no network vars are set", function () {
+    expect(collectNetworkConfig({}).variables).to.deep.equal([]);
+  });
+});
+
+describe("debug/provenance", function () {
+  let collectCliOverrides, collectProvenance;
+  before(async function () {
+    ({ collectCliOverrides, collectProvenance } = await import(
+      "../dist/debug/provenance.js"
+    ));
+  });
+
+  it("reports only the CLI flags actually present, mapped to config keys", function () {
+    const overrides = collectCliOverrides({
+      input: "docs",
+      test: "smoke,api",
+      dryRun: true,
+      // absent / empty values must NOT be reported
+      output: undefined,
+      spec: "",
+      logLevel: "",
+    });
+    const flags = overrides.map((o) => o.flag);
+    expect(flags).to.have.members(["input", "test", "dryRun"]);
+    expect(flags).to.not.include("output");
+    expect(flags).to.not.include("spec");
+    expect(flags).to.not.include("logLevel");
+    const testOverride = overrides.find((o) => o.flag === "test");
+    expect(testOverride.configKey).to.equal("testFilter");
+  });
+
+  it("returns [] for non-object args", function () {
+    expect(collectCliOverrides(undefined)).to.deep.equal([]);
+    expect(collectCliOverrides(null)).to.deep.equal([]);
+  });
+
+  it("reflects DOC_DETECTIVE_CONFIG / DOC_DETECTIVE_API and configPath", function () {
+    const applied = collectProvenance({
+      configPath: "/abs/.doc-detective.json",
+      args: { input: "x" },
+      env: { DOC_DETECTIVE_CONFIG: "{}", DOC_DETECTIVE_API: "{}" },
+    });
+    expect(applied.configPath).to.equal("/abs/.doc-detective.json");
+    expect(applied.docDetectiveConfigApplied).to.equal(true);
+    expect(applied.docDetectiveApiApplied).to.equal(true);
+    expect(applied.cliOverrides.map((o) => o.flag)).to.deep.equal(["input"]);
+
+    const none = collectProvenance({ configPath: null, args: {}, env: {} });
+    expect(none.configPath).to.equal(null);
+    expect(none.docDetectiveConfigApplied).to.equal(false);
+    expect(none.docDetectiveApiApplied).to.equal(false);
+    expect(none.cliOverrides).to.deep.equal([]);
+  });
+});
+
+describe("debug/cache", function () {
+  let collectCacheStatus;
+  let prevCacheEnv;
+  before(async function () {
+    ({ collectCacheStatus } = await import("../dist/debug/cache.js"));
+  });
+  beforeEach(function () {
+    // getCacheDir prefers DOC_DETECTIVE_CACHE_DIR over the passed config —
+    // clear it so the config.cacheDir under test is honored.
+    prevCacheEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+    delete process.env.DOC_DETECTIVE_CACHE_DIR;
+  });
+  afterEach(function () {
+    if (prevCacheEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+    else process.env.DOC_DETECTIVE_CACHE_DIR = prevCacheEnv;
+  });
+
+  it("reports path / exists / writable for the resolved cache dirs", function () {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-status-"));
+    try {
+      const status = collectCacheStatus({ cacheDir: tmp });
+      const labels = status.entries.map((e) => e.label);
+      expect(labels).to.include.members([
+        "cacheDir",
+        "runtimeDir",
+        "browsersDir",
+        "installed.json",
+        "APPIUM_HOME",
+      ]);
+      const cacheDir = status.entries.find((e) => e.label === "cacheDir");
+      // getCacheDir created it, under the temp root, and it's writable.
+      expect(cacheDir.path).to.equal(tmp);
+      expect(cacheDir.exists).to.equal(true);
+      expect(cacheDir.writable).to.equal(true);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("reports writable=false for a non-writable cache dir (POSIX)", function () {
+    if (process.platform === "win32") this.skip();
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-ro-"));
+    try {
+      fs.chmodSync(tmp, 0o500); // r-x, no write
+      const status = collectCacheStatus({ cacheDir: tmp });
+      const cacheDir = status.entries.find((e) => e.label === "cacheDir");
+      expect(cacheDir.writable).to.equal(false);
+    } finally {
+      fs.chmodSync(tmp, 0o700);
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("debug/appium", function () {
+  let registeredDriverPkgNames, collectAppiumDiagnostics;
+  before(async function () {
+    ({ registeredDriverPkgNames, collectAppiumDiagnostics } = await import(
+      "../dist/debug/appium.js"
+    ));
+  });
+
+  it("extracts driver pkgNames from an extensions.yaml manifest", function () {
+    const manifest = [
+      "drivers:",
+      "  gecko:",
+      "    pkgName: appium-geckodriver",
+      "    version: 2.2.6",
+      "  chromium:",
+      "    pkgName: appium-chromium-driver",
+      "    version: 2.2.5",
+      "plugins: {}",
+    ].join("\n");
+    const names = registeredDriverPkgNames(manifest);
+    expect(names).to.have.members([
+      "appium-geckodriver",
+      "appium-chromium-driver",
+    ]);
+  });
+
+  it("falls back to the short key when an entry omits pkgName", function () {
+    const names = registeredDriverPkgNames("drivers:\n  chromium:\n    version: 1");
+    expect(names).to.deep.equal(["chromium"]);
+  });
+
+  it("returns [] for a manifest with no drivers map", function () {
+    expect(registeredDriverPkgNames("plugins: {}")).to.deep.equal([]);
+  });
+
+  it("returns a drivers array and degrades cleanly when appium is absent", function () {
+    // No subprocess any more — pure fs reads against a cacheDir with no
+    // appium install; must not throw and must classify each known driver.
+    const diag = collectAppiumDiagnostics({
+      cacheDir: path.join(os.tmpdir(), "dd-no-appium-xyz"),
+    });
+    expect(diag.drivers.map((d) => d.name)).to.include.members([
+      "appium-chromium-driver",
+      "appium-geckodriver",
+    ]);
+    for (const d of diag.drivers) {
+      expect(d).to.have.property("registered").that.is.a("boolean");
+      expect(d).to.have.property("npmResolvable").that.is.a("boolean");
+    }
+    expect(diag).to.have.property("registeredDrivers").that.is.an("array");
+  });
+});
+
+describe("debug/findings", function () {
+  let computeFindings;
+  before(async function () {
+    ({ computeFindings } = await import("../dist/debug/findings.js"));
+  });
+
+  // Minimal DebugData skeleton; each test overrides only what its rule reads.
+  function baseData(overrides) {
+    return {
+      browsers: { browsers: [] },
+      appium: { drivers: [] },
+      install: { rows: [] },
+      cache: { entries: [] },
+      network: { variables: [] },
+      docDetective: {},
+      ...overrides,
+    };
+  }
+
+  it("flags Chrome unavailable with a missing chromium driver", function () {
+    const findings = computeFindings(
+      baseData({
+        browsers: {
+          browsers: [{ name: "chrome", supported: true, available: false }],
+        },
+        appium: {
+          drivers: [
+            { name: "appium-chromium-driver", registered: false, npmResolvable: false },
+          ],
+        },
+      })
+    );
+    const chrome = findings.find((f) => /Chrome is not available/.test(f.title));
+    expect(chrome).to.not.equal(undefined);
+    expect(chrome.severity).to.equal("error");
+    expect(chrome.fix).to.equal("doc-detective install runtime");
+  });
+
+  it("does NOT flag Chrome when it is available", function () {
+    const findings = computeFindings(
+      baseData({
+        browsers: {
+          browsers: [{ name: "chrome", supported: true, available: true }],
+        },
+      })
+    );
+    expect(findings.find((f) => /Chrome/.test(f.title))).to.equal(undefined);
+  });
+
+  it("flags an outdated install and an unregistered-but-resolvable driver", function () {
+    const findings = computeFindings(
+      baseData({
+        install: {
+          rows: [{ assetId: "webdriverio", kind: "npm", installed: true, outdated: true }],
+        },
+        appium: {
+          // Registration is only KNOWN when the manifest was read.
+          extensionsManifestPresent: true,
+          drivers: [
+            { name: "appium-geckodriver", registered: false, npmResolvable: true },
+          ],
+        },
+      })
+    );
+    expect(findings.find((f) => /stale/i.test(f.title))).to.not.equal(undefined);
+    const stranded = findings.find((f) => /not registered/i.test(f.title));
+    expect(stranded).to.not.equal(undefined);
+    expect(stranded.fix).to.equal("doc-detective install runtime");
+  });
+
+  it("does NOT flag unregistered drivers when the manifest is absent", function () {
+    // This is the regression that prompted the rewrite: a missing/unreadable
+    // manifest must not be treated as "not registered".
+    const findings = computeFindings(
+      baseData({
+        appium: {
+          extensionsManifestPresent: false,
+          drivers: [
+            { name: "appium-geckodriver", registered: false, npmResolvable: true },
+            { name: "appium-chromium-driver", registered: false, npmResolvable: true },
+          ],
+        },
+      })
+    );
+    expect(findings.find((f) => /not registered/i.test(f.title))).to.equal(
+      undefined
+    );
+  });
+
+  it("flags a non-writable cacheDir", function () {
+    const findings = computeFindings(
+      baseData({
+        cache: { entries: [{ label: "cacheDir", path: "/ro", writable: false }] },
+      })
+    );
+    const finding = findings.find((f) => /not writable/i.test(f.title));
+    expect(finding).to.not.equal(undefined);
+    expect(finding.fix).to.match(/DOC_DETECTIVE_CACHE_DIR/);
+  });
+
+  it("returns no findings for clean data", function () {
+    const findings = computeFindings(
+      baseData({
+        browsers: {
+          browsers: [{ name: "chrome", supported: true, available: true }],
+        },
+      })
+    );
+    expect(findings).to.deep.equal([]);
+  });
+});
+
+describe("debug/printDebug new sections end-to-end", function () {
+  let printDebug;
+  before(async function () {
+    ({ printDebug } = await import("../dist/debug/index.js"));
+  });
+
+  it("renders the new sections, with Findings first", async function () {
+    this.timeout(60000);
+    const out = [];
+    await printDebug({
+      config: { input: ".", logLevel: "info", environment: { platform: "linux" } },
+      configPath: null,
+      args: { input: ".", dryRun: true },
+      print: (line) => out.push(line),
+    });
+    const text = out.join("\n");
+    expect(text).to.include("-- Findings / next steps ");
+    expect(text).to.include("-- Install status ");
+    expect(text).to.include("-- Appium registration ");
+    expect(text).to.include("-- Cache & runtime ");
+    expect(text).to.include("-- Proxy / npm network ");
+    expect(text).to.include("-- Config provenance ");
+    // Findings is the first section, before System.
+    expect(text.indexOf("-- Findings / next steps ")).to.be.lessThan(
+      text.indexOf("-- System ")
+    );
+    // Provenance reflects the args we passed.
+    expect(text).to.match(/--dryRun → config\.dryRun/);
+  });
+});
