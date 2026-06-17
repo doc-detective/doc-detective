@@ -657,20 +657,31 @@ function getRunOutputDir(
 // runner skips creating it (see runSpecs) instead of leaving an empty folder
 // behind.
 //
-// autoScreenshot can be set globally on the config or per spec/test, so the
-// optional `specs` lets the runner account for the resolved test plan; the
-// test > spec > config precedence here mirrors resolveAutoScreenshot. Reporter
-// selection mirrors outputResults: only a *non-empty* `reporters` array is an
-// override — an empty or unset array falls back to the schema default
-// (`["terminal", "json", "runFolder"]`), which archives.
+// autoScreenshot can be set globally on the config or per spec/test. When the
+// resolved `specs` are available, decide exactly as resolveAutoScreenshot does
+// — `Boolean(test ?? spec ?? config)`, test > spec > config — for *each*
+// selected test, so a per-test `false` that overrides a global `true` is
+// respected (no eager folder for a run where every test disables screenshots)
+// and a truthy non-boolean from an API caller still counts. Without specs
+// (programmatic/early callers), fall back to the global flag, Boolean-coerced.
+// Reporter selection mirrors outputResults: only a *non-empty* `reporters`
+// array is an override — an empty or unset array falls back to the schema
+// default (`["terminal", "json", "runFolder"]`), which archives.
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
-  if (config?.autoScreenshot === true) return true;
-  for (const spec of specs ?? []) {
-    for (const test of spec?.tests ?? []) {
-      const resolved =
-        test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot;
-      if (resolved === true) return true;
-    }
+  const list = Array.isArray(specs) ? specs : [];
+  if (list.length > 0) {
+    const writesScreenshot = list.some((spec: any) =>
+      (spec?.tests ?? []).some((test: any) =>
+        Boolean(
+          test?.autoScreenshot ??
+            spec?.autoScreenshot ??
+            config?.autoScreenshot
+        )
+      )
+    );
+    if (writesScreenshot) return true;
+  } else if (Boolean(config?.autoScreenshot)) {
+    return true;
   }
   const reporters = config?.reporters;
   if (Array.isArray(reporters)) {

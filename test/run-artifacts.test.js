@@ -150,6 +150,28 @@ describe("runArchivesArtifacts", function () {
     ).to.equal(true);
   });
 
+  it("respects a test-level autoScreenshot:false override of a global true", function () {
+    // resolveAutoScreenshot is test > spec > config, so a per-test false
+    // disables screenshots even when config.autoScreenshot is true — the run
+    // writes nothing, so it must not eagerly create the folder.
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: true }, [
+        { tests: [{ autoScreenshot: false }] },
+      ])
+    ).to.equal(false);
+  });
+
+  it("Boolean-coerces a truthy non-boolean autoScreenshot (API callers)", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: "true" })
+    ).to.equal(true);
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { tests: [{ autoScreenshot: "yes" }] },
+      ])
+    ).to.equal(true);
+  });
+
   it("is false when no spec/test enables autoScreenshot and runFolder is off", function () {
     expect(
       runArchivesArtifacts({ reporters: ["terminal"] }, [
@@ -225,6 +247,20 @@ describe("runSpecs run-folder creation", function () {
     expect(
       fs.readdirSync(runsRoot).some((name) => name.startsWith("run-"))
     ).to.equal(true);
+  });
+
+  it("does not create a run folder when a test disables autoScreenshot despite a global true", async function () {
+    // config.autoScreenshot:true but the only test overrides to false → no
+    // screenshots fire, and with runFolder off nothing should be archived.
+    const resolved = fixture({
+      reporters: ["terminal", "json"],
+      autoScreenshot: true,
+    });
+    resolved.specs[0].tests[0].autoScreenshot = false;
+    await runSpecs({ resolvedTests: resolved });
+    expect(fs.existsSync(path.resolve(tempBase, ".doc-detective"))).to.equal(
+      false
+    );
   });
 
   it("creates the run folder when a test enables autoScreenshot but runFolder is off", async function () {
