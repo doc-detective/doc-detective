@@ -15,6 +15,26 @@ Always use **red → green** test-driven development. For every behavior change:
 
 Don't write implementation code before the failing test exists, and don't batch many changes behind a single test. The ["TDD cycle per flag"](#tdd-cycle-per-flag) section below shows the canonical red→green sequence applied to a new CLI flag.
 
+## Feature fixtures (required)
+
+Unit tests are necessary but not sufficient. When you add or change a **user-facing feature** (a new step type, action option, config/CLI flag, engine, output format, etc.), also author **Doc Detective fixtures** that exercise the feature end-to-end through the real runner — and cover **every permutation** of it, not just the happy path.
+
+"Every permutation" means each meaningfully distinct shape the feature can take, for example:
+
+- Each value form a field accepts (boolean / string / object), including the disabling/no-op form (`false`).
+- Each enumerated option (every engine, target, format, mode).
+- Each precedence level (config vs. spec vs. test overrides).
+- The interaction with related features (overlap, fallback, conflict, skip paths).
+- The graceful-degradation / guard paths (unsupported platform, headless, missing dependency).
+
+Fixtures live in [test/core-artifacts/](test/core-artifacts) as `*.spec.json` files and run inside the single combined `runTests()` pass driven by [test/core-core.test.js](test/core-core.test.js), which asserts no spec **fails**. So every fixture must resolve to **PASS** or **SKIPPED** (never FAIL):
+
+- Gate display/engine-specific permutations with `runOn` (platforms + headed/headless) so each runs only where it can succeed, and lands as `SKIPPED` elsewhere. Recording fixtures are the worked example: ffmpeg permutations run on Windows/macOS/Linux headed; browser-engine permutations only on headed Chrome (Windows/macOS).
+- Permutations that are *meant* to be skipped or guarded (headless skip, name conflict, `record: false`) belong in fixtures too — assert the SKIPPED behavior, don't omit it.
+- When a behavior needs a precise assertion the "no spec fails" gate can't express (e.g. a preflight that must skip a test for a specific reason), add a focused `it(...)` in `test/core-core.test.js` alongside the fixture.
+
+See [test/core-artifacts/recording.spec.json](test/core-artifacts/recording.spec.json), [recording-permutations.spec.json](test/core-artifacts/recording-permutations.spec.json), and [autorecord.spec.json](test/core-artifacts/autorecord.spec.json) for the canonical pattern (one spec per feature; one test per permutation; `runOn`-gated; PASS/SKIPPED only).
+
 ## Commit messages (required)
 
 All commits must follow [Conventional Commits](https://www.conventionalcommits.org/). This is enforced locally by a husky `commit-msg` hook and on PRs by [.github/workflows/commitlint.yml](.github/workflows/commitlint.yml). Non-conforming commits are rejected.
