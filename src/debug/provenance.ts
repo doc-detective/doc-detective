@@ -25,8 +25,12 @@ export interface Provenance {
   cliOverrides: CliOverride[];
 }
 
-// Replicates setConfig's reporters guard: `if (args.reporters != null)` then
-// only overrides when the normalized list is non-empty.
+// Replicates setConfig's reporters guard exactly: `if (args.reporters != null)`
+// then override only when `reporterList.length > 0`. Note setConfig does NOT
+// drop empty-string entries here (unlike --test / --spec), so `[""]` length 1
+// DOES override — `reportersPresent([""])` must return true to stay faithful.
+// Don't be tempted to filter empties: that would make provenance claim
+// "no override" while setConfig actually overrides with `[""]`.
 function reportersPresent(reporters: unknown): boolean {
   if (reporters == null) return false;
   const list = Array.isArray(reporters) ? reporters : [reporters];

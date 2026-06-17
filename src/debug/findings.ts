@@ -92,8 +92,13 @@ const cacheNotWritable: Rule = (data) => {
 // the proxy as a likely lazy-install blocker (we don't probe reachability;
 // that's the opt-in --check-network work).
 const proxyMaybeBlocking: Rule = (data) => {
-  const hasProxy = (data.network?.variables || []).some((v) =>
-    /^(https?_proxy|all_proxy)$/i.test(v.name)
+  // Catch both the standard proxy env vars (HTTP(S)_PROXY / ALL_PROXY) and a
+  // proxy configured purely through npm (`npm config set proxy=…`), which
+  // surfaces in the network section as npm_config_proxy / npm_config_https_proxy.
+  const hasProxy = (data.network?.variables || []).some(
+    (v) =>
+      /^(https?_proxy|all_proxy)$/i.test(v.name) ||
+      /^npm_config_(https?_)?proxy$/i.test(v.name)
   );
   if (!hasProxy) return null;
   const missingNpm = (data.install?.rows || []).some(

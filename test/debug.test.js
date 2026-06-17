@@ -1377,6 +1377,18 @@ describe("debug/findings", function () {
     );
   });
 
+  it("flags an npm-only proxy (npm_config_proxy) with missing runtime packages", function () {
+    const findings = computeFindings(
+      baseData({
+        network: { variables: [{ name: "npm_config_proxy", value: "http://p:8080" }] },
+        install: {
+          rows: [{ assetId: "webdriverio", kind: "npm", installed: false, outdated: false }],
+        },
+      })
+    );
+    expect(findings.find((f) => /proxy/i.test(f.title))).to.not.equal(undefined);
+  });
+
   it("flags a non-writable cacheDir", function () {
     const findings = computeFindings(
       baseData({

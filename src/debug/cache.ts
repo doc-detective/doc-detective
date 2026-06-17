@@ -126,7 +126,10 @@ export function collectCacheStatus(config: any): CacheStatus {
     });
 
     // APPIUM_HOME is resolved by mutating process.env (setAppiumHome returns
-    // void), then read back. May be left unset if nothing resolves.
+    // void), then read back. May be left unset if nothing resolves. This is
+    // idempotent and resolved independently here (the appium collector calls
+    // it too) so each collector is correct standalone and in any order — the
+    // second call in a full dump is a cheap no-op, not an ordering dependency.
     try {
       setAppiumHome(ctx);
     } catch {

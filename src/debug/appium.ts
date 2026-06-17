@@ -71,6 +71,9 @@ export function registeredDriverPkgNames(manifestText: string): string[] {
 
 export function collectAppiumDiagnostics(config: any): AppiumDiagnostics {
   const ctx = { cacheDir: config?.cacheDir };
+  // Resolve APPIUM_HOME independently (the cache collector also does this in a
+  // full dump). Idempotent, so order doesn't matter — this collector is
+  // correct whether called standalone or after collectCacheStatus.
   try {
     setAppiumHome(ctx);
   } catch {
