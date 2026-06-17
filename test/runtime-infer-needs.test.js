@@ -53,6 +53,7 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect([...needs.browsers]).to.deep.equal(["chrome"]);
     expect(needs.npmPackages.has("webdriverio")).to.equal(true);
     expect(needs.npmPackages.has("appium")).to.equal(true);
+    expect(needs.npmPackages.has("@puppeteer/browsers")).to.equal(true);
     expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
   });
 
