@@ -147,6 +147,45 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("autoRecord/record name conflict skips the whole test before any step runs", async function () {
+    // A `record` step that reuses a recording `name` while one with that name
+    // is still active is caught by the static Phase-1 preflight, which skips
+    // the test (all contexts) with a clear reason — no driver is started, so
+    // this is deterministic on every platform.
+    const conflictSpec = {
+      tests: [
+        {
+          testId: "dup-name-conflict",
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { record: { path: "dup-1.mp4", name: "dup", engine: "ffmpeg", overwrite: "true" } },
+            { record: { path: "dup-2.mp4", name: "dup", engine: "ffmpeg", overwrite: "true" } },
+            { stopRecord: "dup" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-record-name-conflict.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(conflictSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0, "conflict must not fail the spec");
+      assert.ok(result.summary.tests.skipped >= 1, "the conflicting test should be skipped");
+      assert.equal(result.summary.tests.pass, 0, "the conflicting test must not pass");
+      const ctx = result.specs[0].tests[0].contexts[0];
+      assert.equal(ctx.result, "SKIPPED");
+      assert.match(
+        ctx.resultDescription,
+        /recording name 'dup'/,
+        `expected the skip reason to name the conflict, got: ${ctx.resultDescription}`
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("runShell regression test returns WARNING when variation exceeds threshold", async () => {
     // Create a test file path
     const outputFilePath = path.resolve("./test/temp-regression-output.txt");
