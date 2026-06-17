@@ -50,6 +50,17 @@ function commaListPresent(value: unknown): boolean {
   );
 }
 
+// Replicates setConfig's --concurrent-runners guard: the bare flag ("") and
+// "true" select CPU-count mode, otherwise the value must parse to a positive
+// integer; anything else (e.g. "abc", "0") logs a warning and does NOT
+// override, so it must not be reported.
+function concurrentRunnersPresent(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  if (value === "" || value.toLowerCase() === "true") return true;
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 1;
+}
+
 // The CLI overrides setConfig() applies. `flag` is the declared yargs option
 // name (what the user types); `argKey` is the camelCased property yargs
 // exposes on argv; `configKey` is where it lands after validation. The
@@ -110,7 +121,7 @@ const OVERRIDE_SPECS: Array<{
     flag: "concurrent-runners",
     argKey: "concurrentRunners",
     configKey: "concurrentRunners",
-    present: (a) => typeof a.concurrentRunners === "string",
+    present: (a) => concurrentRunnersPresent(a.concurrentRunners),
   },
 ];
 

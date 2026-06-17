@@ -1079,6 +1079,19 @@ describe("debug/provenance", function () {
     expect(collectCliOverrides({ spec: "," }).map((o) => o.flag)).to.not.include(
       "spec"
     );
+    // concurrent-runners: "" / "true" / positive int override; "abc"/"0" don't.
+    for (const v of ["", "true", "TRUE", "4"]) {
+      expect(
+        collectCliOverrides({ concurrentRunners: v }).map((o) => o.flag),
+        `value ${JSON.stringify(v)}`
+      ).to.include("concurrent-runners");
+    }
+    for (const v of ["abc", "0", "-1", "1.5"]) {
+      expect(
+        collectCliOverrides({ concurrentRunners: v }).map((o) => o.flag),
+        `value ${JSON.stringify(v)}`
+      ).to.not.include("concurrent-runners");
+    }
   });
 
   it("pins the full set of recognized override flags (keep in sync with setConfig)", function () {
