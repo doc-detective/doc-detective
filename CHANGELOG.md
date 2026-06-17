@@ -1,3 +1,10 @@
+# [4.12.0](https://github.com/doc-detective/doc-detective/compare/v4.11.1...v4.12.0) (2026-06-17)
+
+
+### Features
+
+* **debug:** cache, install, network, appium, provenance & findings sections for the diagnostic dump ([#347](https://github.com/doc-detective/doc-detective/issues/347)) ([5a9344c](https://github.com/doc-detective/doc-detective/commit/5a9344c5d4f180d595ada13bcfda3a9b02449ea1)), closes [#2](https://github.com/doc-detective/doc-detective/issues/2) [#6](https://github.com/doc-detective/doc-detective/issues/6) [#1](https://github.com/doc-detective/doc-detective/issues/1) [#5](https://github.com/doc-detective/doc-detective/issues/5) [#4](https://github.com/doc-detective/doc-detective/issues/4) [#3](https://github.com/doc-detective/doc-detective/issues/3)
+
 ## [4.11.1](https://github.com/doc-detective/doc-detective/compare/v4.11.0...v4.11.1) (2026-06-16)
 
 
