@@ -293,6 +293,38 @@ describe("ffmpegRecorder", function () {
       expect(jobIsFfmpegRecording(none)).to.equal(false);
       expect(jobIsFfmpegRecording(disabled)).to.equal(false);
     });
+
+    it("counts a context whose second browser recording will fall back to ffmpeg", function () {
+      // Two overlapping browser-engine recordings: the second falls back to
+      // ffmpeg at runtime, so the planner must treat the context as ffmpeg.
+      const overlap = {
+        context: {
+          browser: { name: "chrome", headless: false },
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { record: { name: "b", engine: "browser" } },
+            { stopRecord: "b" },
+            { stopRecord: "a" },
+          ],
+        },
+      };
+      expect(jobIsFfmpegRecording(overlap)).to.equal(true);
+    });
+
+    it("does not count sequential (non-overlapping) browser recordings as ffmpeg", function () {
+      const sequential = {
+        context: {
+          browser: { name: "chrome", headless: false },
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { stopRecord: "a" },
+            { record: { name: "b", engine: "browser" } },
+            { stopRecord: "b" },
+          ],
+        },
+      };
+      expect(jobIsFfmpegRecording(sequential)).to.equal(false);
+    });
   });
 
   describe("computeEffectiveConcurrency", function () {
@@ -509,6 +541,16 @@ describe("ffmpegRecorder", function () {
     it("returns null for non-array / empty input", function () {
       expect(detectRecordingNameConflict(undefined)).to.equal(null);
       expect(detectRecordingNameConflict([])).to.equal(null);
+    });
+
+    it("does not treat stopRecord: false as freeing the name", function () {
+      // stopRecord: false is a no-op, so the first "dup" is still active.
+      const steps = [
+        { record: { path: "a.mp4", name: "dup" } },
+        { stopRecord: false },
+        { record: { path: "b.mp4", name: "dup" } },
+      ];
+      expect(detectRecordingNameConflict(steps)).to.equal("dup");
     });
   });
 

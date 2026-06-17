@@ -119,7 +119,10 @@ function detectRecordingNameConflict(steps: any[]): string | null {
     if (!step || typeof step !== "object") continue;
     const isStart =
       typeof step.record !== "undefined" && step.record !== false;
-    const isStop = typeof step.stopRecord !== "undefined";
+    // `stopRecord: false` is a no-op (see stopRecording), so it doesn't free a
+    // name in the simulation.
+    const isStop =
+      typeof step.stopRecord !== "undefined" && step.stopRecord !== false;
     if (isStart) {
       const name = recordStepName(step.record);
       if (name !== undefined && active.includes(name)) return name;
@@ -363,12 +366,40 @@ async function resolveCropGeometry({
   return null;
 }
 
+// True when a context will run at least one ffmpeg capture — either an
+// explicit ffmpeg-engine recording, or a browser-engine recording that will
+// fall back to ffmpeg at runtime because another browser recording is already
+// active (only one browser-engine recording can run per context). Simulating
+// the record/stopRecord sequence here keeps the concurrency planner in sync
+// with startRecording's runtime fallback, so a fallback ffmpeg capture still
+// gets the serial/Xvfb safeguards. Pure read — context browsers are already
+// coerced before this runs.
 function jobIsFfmpegRecording(job: any): boolean {
-  const steps = Array.isArray(job?.context?.steps) ? job.context.steps : [];
-  return steps.some((s: any) => {
-    if (!s?.record) return false; // skip undefined / `record: false`
-    return resolveRecordPlan({ step: s, context: job.context }).name === "ffmpeg";
-  });
+  const context = job?.context;
+  const steps = Array.isArray(context?.steps) ? context.steps : [];
+  // Names of active browser-engine recordings (LIFO), to detect overlap.
+  const activeBrowser: Array<string | undefined> = [];
+  for (const s of steps) {
+    const isStop =
+      typeof s?.stopRecord !== "undefined" && s.stopRecord !== false;
+    if (isStop) {
+      const target = stopRecordTargetName(s.stopRecord);
+      if (target !== undefined) {
+        const idx = activeBrowser.lastIndexOf(target);
+        if (idx !== -1) activeBrowser.splice(idx, 1);
+      } else if (activeBrowser.length > 0) {
+        activeBrowser.pop();
+      }
+      continue;
+    }
+    if (!s?.record || s.record === false) continue; // not a start
+    const plan = resolveRecordPlan({ step: s, context });
+    if (plan.name === "ffmpeg") return true;
+    // A second concurrent browser-engine recording falls back to ffmpeg.
+    if (activeBrowser.length > 0) return true;
+    activeBrowser.push(recordStepName(s.record));
+  }
+  return false;
 }
 
 // Decide the effective worker-pool limit given recording constraints. ffmpeg

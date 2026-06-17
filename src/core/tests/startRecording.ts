@@ -13,6 +13,7 @@ import {
   detectX11ScreenSize,
 } from "./ffmpegRecorder.js";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -80,6 +81,23 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     // File already exists
     result.status = "SKIPPED";
     result.description = `File already exists: ${filePath}`;
+    return result;
+  }
+
+  // With overlapping recordings, two could target the same output before
+  // either file exists (the existsSync check above can't catch that). Refuse to
+  // start a recording whose target is already claimed by an active one.
+  const normalizedTarget = path.resolve(filePath);
+  if (
+    Array.isArray(driver?.state?.recordings) &&
+    driver.state.recordings.some(
+      (r: any) =>
+        typeof r?.targetPath === "string" &&
+        path.resolve(r.targetPath) === normalizedTarget
+    )
+  ) {
+    result.status = "SKIPPED";
+    result.description = `Recording target is already in use by an active recording: ${filePath}`;
     return result;
   }
 
@@ -301,9 +319,12 @@ async function startRecording({ config, context, step, driver }: { config: any; 
 
   const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+  // A short unique suffix keeps two same-context recordings that share a
+  // baseName (e.g. overlapping ffmpeg captures) from writing/transcoding/
+  // deleting the same intermediate .mkv.
   const tempPath = path.join(
     tempDir,
-    `${safeContextId(context.contextId)}-${baseName}.mkv`
+    `${safeContextId(context.contextId)}-${baseName}-${randomUUID().slice(0, 8)}.mkv`
   );
 
   let ffmpegPath: string;

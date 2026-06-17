@@ -27,6 +27,15 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     return result;
   }
 
+  // `stopRecord: false` is an explicit no-op (mirrors `record: false`): it must
+  // not stop anything. Runtime dispatch keys on property presence, so guard the
+  // value here rather than in the schema (the boolean form stays valid).
+  if (step.stopRecord === false) {
+    result.status = "SKIPPED";
+    result.description = "Recording stop is disabled (stopRecord: false).";
+    return result;
+  }
+
   // Resolve which active recording to stop. Recordings are per-context (they
   // live on driver.state.recordings), so concurrent contexts can't see each
   // other's recordings. `__stopAny` (set by end-of-context cleanup) lets a

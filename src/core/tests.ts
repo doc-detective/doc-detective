@@ -714,8 +714,13 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         if (resolveAutoRecord({ config, spec, test })) {
           const autoStep = buildAutoRecordStep({ config, spec, test, context });
           if (autoStep) {
-            if (!Array.isArray(context.steps)) context.steps = [];
-            context.steps.unshift(autoStep);
+            // Idempotent: strip any prior synthetic step before prepending, so a
+            // resolved context that's reused (e.g. runSpecs invoked twice) can't
+            // accumulate duplicate autoRecord captures targeting the same file.
+            const authored = Array.isArray(context.steps)
+              ? context.steps.filter((s: any) => !s?.__autoRecord)
+              : [];
+            context.steps = [autoStep, ...authored];
             autoRecordInjected = true;
           }
         }

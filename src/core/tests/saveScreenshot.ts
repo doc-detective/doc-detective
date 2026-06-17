@@ -347,21 +347,19 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     await driver.pause(100);
   }
 
+  // Hide the synthetic cursor during capture so it isn't baked into the image,
+  // then always restore it in `finally` — otherwise a capture failure mid-way
+  // would leave the pointer hidden for every later step in a recording.
+  const recordingActive = isRecordingActive(driver);
   try {
-    // If recording is true, hide cursor
-    if (isRecordingActive(driver)) {
+    if (recordingActive) {
       await driver.execute(() => {
-        (document.querySelector("dd-mouse-pointer") as any).style.display = "none";
+        const pointer = document.querySelector("dd-mouse-pointer") as any;
+        if (pointer) pointer.style.display = "none";
       });
     }
     // Save screenshot
     await driver.saveScreenshot(filePath);
-    // If recording is true, show cursor
-    if (isRecordingActive(driver)) {
-      await driver.execute(() => {
-        (document.querySelector("dd-mouse-pointer") as any).style.display = "block";
-      });
-    }
   } catch (error) {
     // Couldn't save screenshot
     result.status = "FAIL";
@@ -371,6 +369,13 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       fs.unlinkSync(filePath);
     }
     return result;
+  } finally {
+    if (recordingActive) {
+      await driver.execute(() => {
+        const pointer = document.querySelector("dd-mouse-pointer") as any;
+        if (pointer) pointer.style.display = "block";
+      });
+    }
   }
 
   // If crop is set, found bounds of element and crop image

@@ -361,9 +361,21 @@ describe("resolveAutoRecord precedence", function () {
 });
 
 describe("buildAutoRecordStep", function () {
-  const config = { logLevel: "silent" };
+  // getRunOutputDir() creates the run folder, so give it a temp output to keep
+  // artifacts out of the repo CWD.
+  let tempOutput;
+  let config;
   const spec = { specId: "docs/guide.md" };
   const test = { testId: "docs/guide.md~abc123" };
+
+  beforeEach(function () {
+    tempOutput = fs.mkdtempSync(path.join(os.tmpdir(), "dd-auto-record-"));
+    config = { logLevel: "silent", output: tempOutput };
+  });
+
+  afterEach(function () {
+    fs.rmSync(tempOutput, { recursive: true, force: true });
+  });
 
   it("builds a synthetic ffmpeg record step with a deterministic path for a driver context", function () {
     const context = {
