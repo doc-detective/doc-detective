@@ -444,25 +444,27 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // the reporter also accepts a file path (e.g. `results.json`), in which case
 // the run folder belongs *beside* the file, not inside it.
 //
-// An existing path is authoritative — a real file (any extension) archives
-// beside it, a real directory (even a dotted one like `reports.v1`) archives
-// inside it. A not-yet-created path is ambiguous, so it mirrors
-// getRunOutputDir's report-extension allow-list rather than guessing from any
-// extension: this keeps the archive root from diverging from the stamped
-// runDir (a divergence would reject the stamp and break runId/runDir
-// correlation with autoScreenshots), and leaves a dotted directory name like
-// `reports.v1` classified as a directory. Scoped to the runFolder reporter —
-// the shared getRunOutputDir is unchanged, so autoScreenshot and report
-// stamping are unaffected.
+// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
+// parent, matching getRunOutputDir exactly — even for an existing directory
+// oddly named `reports.json` — so the archive root never diverges from the
+// stamped runDir (a divergence would reject the stamp and break runId/runDir
+// correlation with autoScreenshots). Any other path is then resolved by real
+// filesystem type: an existing file (any extension) archives beside it, an
+// existing or not-yet-created directory (including a dotted name like
+// `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
+// shared getRunOutputDir is unchanged, so autoScreenshot and report stamping
+// are unaffected.
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
+  const reportFileExtensions = [".json", ".html", ".htm"];
+  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+    return path.dirname(base);
+  }
   try {
     return fs.statSync(base).isDirectory() ? base : path.dirname(base);
   } catch {
-    const reportFileExtensions = [".json", ".html", ".htm"];
-    return reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))
-      ? path.dirname(base)
-      : base;
+    // Not created yet — treat as a directory (matches getRunOutputDir).
+    return base;
   }
 }
 

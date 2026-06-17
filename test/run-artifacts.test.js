@@ -397,6 +397,27 @@ describe("runFolder reporter", function () {
     ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 
+  it("keeps a report-extension output beside its parent even if it exists as a directory", async function () {
+    // A directory oddly named `reports.json` must resolve the same way
+    // getRunOutputDir does (strip the extension → parent), so the reporter's
+    // confinement root never diverges from the stamped runDir.
+    const dirOutput = path.join(tempBase, "reports.json");
+    fs.mkdirSync(dirOutput);
+    const written = await reporters.runFolderReporter(
+      {},
+      dirOutput,
+      { summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    // Archived beside `reports.json`, i.e. under <tempBase>/.doc-detective.
+    expect(
+      path.relative(path.resolve(tempBase, ".doc-detective"), written)
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+    expect(
+      fs.existsSync(path.join(dirOutput, ".doc-detective"))
+    ).to.equal(false);
+  });
+
   it("treats a non-existent dotted output as a directory (matches getRunOutputDir)", async function () {
     // A not-yet-created path like `reports.v1` must stay a directory, so the
     // archive root agrees with the stamped runDir / autoScreenshot folder
