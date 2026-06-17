@@ -14,7 +14,6 @@ export {
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
-  runOutputBaseDir,
   runArchivesArtifacts,
   replaceEnvs,
   spawnCommand,
@@ -588,31 +587,13 @@ function getOrInitRunTimestamp(config: any): string {
   return config.__runTimestamp;
 }
 
-// Resolve the directory the `.doc-detective/` run-artifact root sits under,
-// from a configured `output`. `output` is normally a directory, but reporters
-// also accept a file path (e.g. `results.json`), in which case the run folder
-// belongs *beside* the file, not inside it. An existing path is classified by
-// its real filesystem type; a not-yet-created path is treated as a file when
-// it carries an extension (e.g. `out/results.csv`) and as a directory
-// otherwise (e.g. `out/results`). Coerces defensively: a programmatic caller
-// could hand a non-string output (e.g. a PathLike).
-function runOutputBaseDir(output: any): string {
-  const base = String(output ?? ".") || ".";
-  try {
-    return fs.statSync(base).isDirectory() ? base : path.dirname(base);
-  } catch {
-    // Path doesn't exist yet — a trailing extension implies a file.
-    return path.extname(base) ? path.dirname(base) : base;
-  }
-}
-
 // Per-run artifact directory: `<output>/.doc-detective/run-<runId>/`, where
 // runId is the run timestamp — plus an ordinal suffix (`-2`, `-3`, …) on the
 // rare same-millisecond collision, so the effective runId stamped in the
 // report can carry that suffix. Memoized on the config object so auto
 // screenshots and the runFolder reporter all land in the same folder for the
-// duration of a run. If `output` points at a file (see runOutputBaseDir), the
-// run folder is created next to it.
+// duration of a run. If `config.output` points at a report file (reporters
+// accept `.json`/`.html` paths), the run folder is created next to it.
 //
 // When `create` is true, creation is atomic (non-recursive mkdir, EEXIST →
 // ordinal suffix) so two runs starting in the same millisecond each reserve
@@ -633,7 +614,14 @@ function getRunOutputDir(
     if (create) fs.mkdirSync(config.__runOutputDir, { recursive: true });
     return config.__runOutputDir;
   }
-  const base = runOutputBaseDir(config?.output);
+  // Coerce defensively: a programmatic caller could hand us a non-string
+  // output (e.g. a PathLike), and the extension check / path ops below assume
+  // a string. Mirrors the String() coercion in runFolderReporter.
+  let base = String(config?.output || ".");
+  const reportFileExtensions = [".json", ".html", ".htm"];
+  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+    base = path.dirname(base);
+  }
   const runsRoot = path.resolve(base, ".doc-detective");
   const runId = getOrInitRunTimestamp(config);
   let dir = path.join(runsRoot, `run-${runId}`);

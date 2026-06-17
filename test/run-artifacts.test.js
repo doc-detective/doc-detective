@@ -1,8 +1,4 @@
-import {
-  getRunOutputDir,
-  runArchivesArtifacts,
-  runOutputBaseDir,
-} from "../dist/core/utils.js";
+import { getRunOutputDir, runArchivesArtifacts } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
 import { resolveAutoScreenshot, runSpecs } from "../dist/core/tests.js";
@@ -65,16 +61,6 @@ describe("getRunOutputDir", function () {
     );
   });
 
-  it("creates the run folder next to any file-path output, not just reports", function () {
-    // Generalized file detection: a non-report extension is still a file, so
-    // the run folder belongs beside it, not inside it.
-    const config = { output: path.join(tempBase, "results.txt") };
-    const dir = getRunOutputDir(config);
-    expect(path.dirname(dir)).to.equal(
-      path.resolve(tempBase, ".doc-detective")
-    );
-  });
-
   it("coerces a non-string output instead of throwing", function () {
     // A programmatic caller could hand a PathLike; the extension check and
     // path ops assume a string, so it must be coerced defensively.
@@ -106,44 +92,6 @@ describe("getRunOutputDir", function () {
     const eager = getRunOutputDir(config);
     expect(eager).to.equal(lazy);
     expect(fs.existsSync(eager)).to.equal(true);
-  });
-});
-
-describe("runOutputBaseDir", function () {
-  let tempBase;
-
-  beforeEach(function () {
-    tempBase = fs.mkdtempSync(path.join(os.tmpdir(), "dd-base-dir-"));
-  });
-
-  afterEach(function () {
-    fs.rmSync(tempBase, { recursive: true, force: true });
-  });
-
-  it("returns an existing directory unchanged", function () {
-    expect(runOutputBaseDir(tempBase)).to.equal(tempBase);
-  });
-
-  it("returns the parent of an existing file", function () {
-    const file = path.join(tempBase, "results.log");
-    fs.writeFileSync(file, "x");
-    expect(runOutputBaseDir(file)).to.equal(tempBase);
-  });
-
-  it("treats a non-existent path with an extension as a file (uses parent)", function () {
-    // Generalizes beyond the old .json/.html/.htm allow-list.
-    const file = path.join(tempBase, "nested", "out.csv");
-    expect(runOutputBaseDir(file)).to.equal(path.join(tempBase, "nested"));
-  });
-
-  it("treats a non-existent extension-less path as a directory", function () {
-    const dir = path.join(tempBase, "nested", "results");
-    expect(runOutputBaseDir(dir)).to.equal(dir);
-  });
-
-  it("defaults to '.' for empty/undefined output", function () {
-    expect(runOutputBaseDir(undefined)).to.equal(".");
-    expect(runOutputBaseDir("")).to.equal(".");
   });
 });
 
@@ -384,6 +332,27 @@ describe("runFolder reporter", function () {
     expect(
       path.relative(path.resolve(tempBase, ".doc-detective"), written)
     ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+  });
+
+  it("archives beside a file-path output, not inside it (any extension)", async function () {
+    // The runFolder reporter accepts a file path — not just a directory — and
+    // not just report extensions. The archive belongs next to the file.
+    const fileOutput = path.join(tempBase, "results.log");
+    const written = await reporters.runFolderReporter(
+      {},
+      fileOutput,
+      { summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    // Written under <tempBase>/.doc-detective/, i.e. beside the file —
+    // never inside a `results.log/` directory.
+    expect(
+      path.relative(path.resolve(tempBase, ".doc-detective"), written)
+    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+    expect(written).to.not.include(`results.log${path.sep}`);
+    expect(fs.existsSync(path.join(tempBase, "results.log", ".doc-detective"))).to.equal(
+      false
+    );
   });
 
   it("also writes an HTML report beside the JSON in the run folder", async function () {
