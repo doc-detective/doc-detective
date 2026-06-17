@@ -1205,7 +1205,15 @@ describe("debug/cache", function () {
   });
 
   it("reports writable=false for a non-writable cache dir (POSIX)", function () {
-    if (process.platform === "win32") this.skip();
+    // Root bypasses the directory write-bit, so a 0500 dir still passes
+    // W_OK under UID 0 (common in CI containers) — skip there to keep the
+    // test implementation-dependent rather than environment-dependent.
+    if (
+      process.platform === "win32" ||
+      (typeof process.getuid === "function" && process.getuid() === 0)
+    ) {
+      this.skip();
+    }
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-ro-"));
     try {
       fs.chmodSync(tmp, 0o500); // r-x, no write
