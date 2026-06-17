@@ -1,0 +1,84 @@
+{
+  "specId": "runBrowserScript",
+  "description": "Execute arbitrary JavaScript in the browser page context. Covers the string and object forms, args passthrough, plain-string and regex output assertions, serialized object return values, the outputs.result -> variables plumbing, and the unsafe-step skip path. Inherits the default firefox-headless contexts from config.json.",
+  "tests": [
+    {
+      "testId": "runBrowserScript-happy-paths",
+      "description": "Permutations that should all PASS in a real browser.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "description": "Simple string form runs and captures a return value (no assertion).",
+          "runBrowserScript": "return document.title;"
+        },
+        {
+          "description": "Object form with a computed return value and a plain-string output assertion.",
+          "runBrowserScript": {
+            "script": "return 1 + 2;",
+            "output": "3"
+          }
+        },
+        {
+          "description": "Arguments are passed positionally and exposed via the arguments object.",
+          "runBrowserScript": {
+            "script": "return arguments[0] + arguments[1];",
+            "args": [
+              "foo",
+              "bar"
+            ],
+            "output": "foobar"
+          }
+        },
+        {
+          "description": "Regex output assertion against the serialized return value.",
+          "runBrowserScript": {
+            "script": "return window.location.href;",
+            "output": "/^https?:\\/\\//"
+          }
+        },
+        {
+          "description": "Object return values are JSON-serialized before matching.",
+          "runBrowserScript": {
+            "script": "return { ready: document.readyState };",
+            "output": "complete"
+          }
+        },
+        {
+          "description": "Capture the return value into an environment variable via outputs.result.",
+          "runBrowserScript": "return 'token123';",
+          "variables": {
+            "MY_TOKEN": "$$result"
+          }
+        },
+        {
+          "description": "Consume the variable set above; it is substituted into args before execution.",
+          "runBrowserScript": {
+            "script": "return arguments[0];",
+            "args": [
+              "$MY_TOKEN"
+            ],
+            "output": "token123"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "runBrowserScript-unsafe-skipped",
+      "description": "An unsafe runBrowserScript step is skipped when unsafe steps aren't allowed (default).",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "description": "Marked unsafe; skipped because allowUnsafeSteps is false.",
+          "unsafe": true,
+          "runBrowserScript": {
+            "script": "return 'should not run';"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -610,6 +610,25 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useRunBrowserScriptStep (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useRunBrowserScriptStep",
+    priority: 40,
+    markdown: [
+      "Need to read computed page state or seed the app from a test? `runBrowserScript` runs JavaScript in the page and captures the return value:",
+      "",
+      "```json",
+      "{ \"runBrowserScript\": { \"script\": \"return document.title;\", \"output\": \"Welcome\" } }",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      ctx.usedStepTypes.has("find") &&
+      !ctx.usedStepTypes.has("runBrowserScript"),
+  },
+
+  // ------------------------------------------------------------------
   // useRunCodeStep (feature discovery)
   // ------------------------------------------------------------------
   {

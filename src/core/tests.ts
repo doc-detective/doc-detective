@@ -11,6 +11,8 @@ import {
   ensureBrowserInstalled,
   type BrowserAssetName,
 } from "../runtime/browsers.js";
+// Single source of truth for browser/driver-requiring step keys.
+import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
 import os from "node:os";
 import {
   log,
@@ -55,6 +57,7 @@ import { loadCookie } from "./tests/loadCookie.js";
 import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
+import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -94,20 +97,6 @@ export {
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
-
-// Doc Detective actions that require a driver.
-const driverActions = [
-  "click",
-  "dragAndDrop",
-  "stopRecord",
-  "find",
-  "goTo",
-  "loadCookie",
-  "record",
-  "saveCookie",
-  "screenshot",
-  "type",
-];
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
@@ -1970,6 +1959,12 @@ async function runStep({
     }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step });
+  } else if (typeof step.runBrowserScript !== "undefined") {
+    actionResult = await runBrowserScript({
+      config: config,
+      step: step,
+      driver: driver,
+    });
   } else if (typeof step.runShell !== "undefined") {
     actionResult = await runShell({ config: config, step: step });
   } else if (typeof step.screenshot !== "undefined") {

@@ -4,6 +4,8 @@ import {
   compileFilter,
   matchesFilter,
   selectSpecsForRun,
+  serializeBrowserResult,
+  matchesExpectedOutput,
 } from "../dist/core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -1551,3 +1553,49 @@ function deepObjectExpect(actual, expected) {
     }
   });
 }
+
+describe("serializeBrowserResult", function () {
+  it("passes strings through unchanged", function () {
+    expect(serializeBrowserResult("hello")).to.equal("hello");
+    expect(serializeBrowserResult("")).to.equal("");
+  });
+
+  it("JSON-serializes objects and arrays", function () {
+    expect(serializeBrowserResult({ a: 1, b: "x" })).to.equal('{"a":1,"b":"x"}');
+    expect(serializeBrowserResult([1, 2, 3])).to.equal("[1,2,3]");
+  });
+
+  it("serializes numbers, booleans, and null", function () {
+    expect(serializeBrowserResult(42)).to.equal("42");
+    expect(serializeBrowserResult(true)).to.equal("true");
+    expect(serializeBrowserResult(null)).to.equal("null");
+  });
+
+  it("falls back to String() for undefined and unserializable values", function () {
+    expect(serializeBrowserResult(undefined)).to.equal("undefined");
+    const circular = {};
+    circular.self = circular;
+    expect(serializeBrowserResult(circular)).to.equal("[object Object]");
+  });
+});
+
+describe("matchesExpectedOutput", function () {
+  it("matches a literal substring", function () {
+    expect(matchesExpectedOutput("hello world", "lo wo")).to.equal(true);
+    expect(matchesExpectedOutput("hello world", "absent")).to.equal(false);
+  });
+
+  it("matches a /regex/ pattern", function () {
+    expect(matchesExpectedOutput("https://example.com", "/^https?:\\/\\//")).to.equal(
+      true
+    );
+    expect(matchesExpectedOutput("ftp://example.com", "/^https?:\\/\\//")).to.equal(
+      false
+    );
+  });
+
+  it("treats a plain string with no surrounding slashes as a substring", function () {
+    expect(matchesExpectedOutput("a.b.c", "a.b.c")).to.equal(true);
+    expect(matchesExpectedOutput("axbxc", "a.b.c")).to.equal(false);
+  });
+});

@@ -15,15 +15,16 @@ export type Step =
   | (Common4 & HttpRequest)
   | (Common5 & RunShell)
   | (Common6 & RunCode)
-  | (Common7 & Type)
-  | (Common8 & Screenshot)
-  | (Common9 & SaveCookie)
-  | (Common10 & Record)
-  | (Common11 & StopRecord)
-  | (Common12 & LoadVariables)
-  | (Common13 & DragAndDrop)
-  | (Common14 & LoadCookie)
-  | (Common15 & Wait);
+  | (Common7 & RunBrowserScript)
+  | (Common8 & Type)
+  | (Common9 & Screenshot)
+  | (Common10 & SaveCookie)
+  | (Common11 & Record)
+  | (Common12 & StopRecord)
+  | (Common13 & LoadVariables)
+  | (Common14 & DragAndDrop)
+  | (Common15 & LoadCookie)
+  | (Common16 & Wait);
 export type CheckLink1 = CheckLinkDetailed | CheckLinkDetailed1;
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
@@ -84,6 +85,14 @@ export type RunShellCommandSimple = string;
  * Assemble and run code.
  */
 export type RunCode1 = RunCodeDetailed;
+/**
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. The script's return value is captured in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ */
+export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetailed;
+/**
+ * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
+ */
+export type RunBrowserScriptSimple = string;
 /**
  * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
  */
@@ -968,46 +977,44 @@ export interface SourceLocation7 {
    */
   endIndex: number;
 }
-export interface Type {
-  type: TypeKeys;
+export interface RunBrowserScript {
+  runBrowserScript: RunBrowserScript1;
   [k: string]: unknown;
 }
-export interface TypeKeysDetailed {
-  keys: TypeKeysSimple1;
+export interface RunBrowserScriptDetailed {
   /**
-   * Delay in milliseconds between each key press during a recording
+   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. Arguments supplied in `args` are available via the `arguments` object (`arguments[0]`, `arguments[1]`, ...).
    */
-  inputDelay?: number;
+  script: string;
   /**
-   * Selector for the element to type into. If not specified, the typing occurs in the active element.
+   * Arguments passed positionally to the script. Available inside the script via the `arguments` object.
    */
-  selector?: string;
+  args?: string[];
   /**
-   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
+   * Content expected in the script's serialized return value. Non-string return values are serialized to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
-  elementText?: string;
+  output?: string;
   /**
-   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * File path to save the script's serialized return value, relative to `directory`.
    */
-  elementId?: string;
+  path?: string;
   /**
-   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
    */
-  elementTestId?: string;
+  directory?: string;
   /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
    */
-  elementClass?: string | string[];
+  maxVariation?: number;
   /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   * If `true`, overwrites the existing output at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
    */
-  elementAttribute?: {
-    [k: string]: string | number | boolean;
-  };
+  overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   * Max time in milliseconds the script is allowed to run. If the script runs longer than this, the step fails.
    */
-  elementAria?: string;
+  timeout?: number;
 }
 export interface Common8 {
   /**
@@ -1080,52 +1087,46 @@ export interface SourceLocation8 {
    */
   endIndex: number;
 }
-export interface Screenshot {
-  screenshot: Screenshot1;
+export interface Type {
+  type: TypeKeys;
   [k: string]: unknown;
 }
-export interface CaptureScreenshotDetailed {
-  path?: ScreenshotSimple1;
+export interface TypeKeysDetailed {
+  keys: TypeKeysSimple1;
   /**
-   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
+   * Delay in milliseconds between each key press during a recording
    */
-  directory?: string;
+  inputDelay?: number;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Selector for the element to type into. If not specified, the typing occurs in the active element.
    */
-  maxVariation?: number;
+  selector?: string;
   /**
-   * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
    */
-  overwrite?: "true" | "false" | "aboveVariation";
-  crop?: CropByElementSimple | CropByElementDetailed;
-  sourceIntegration?: SourceIntegration;
-}
-/**
- * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
- */
-export interface SourceIntegration {
+  elementText?: string;
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  type: "heretto";
+  elementId?: string;
   /**
-   * The name of the integration configuration in the config file. Used to look up authentication credentials.
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  integrationName: string;
+  elementTestId?: string;
   /**
-   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
    */
-  fileId?: string;
+  elementClass?: string | string[];
   /**
-   * The path of the file in the source CMS. Used for lookup if fileId is not available.
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
-  filePath?: string;
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
   /**
-   * The local path to the file that references this source. Used for resolving relative paths.
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  contentPath?: string;
+  elementAria?: string;
 }
 export interface Common9 {
   /**
@@ -1198,9 +1199,52 @@ export interface SourceLocation9 {
    */
   endIndex: number;
 }
-export interface SaveCookie {
-  saveCookie: SaveCookie1;
+export interface Screenshot {
+  screenshot: Screenshot1;
   [k: string]: unknown;
+}
+export interface CaptureScreenshotDetailed {
+  path?: ScreenshotSimple1;
+  /**
+   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
+   */
+  directory?: string;
+  /**
+   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   */
+  maxVariation?: number;
+  /**
+   * If `true`, overwrites the existing screenshot at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   */
+  overwrite?: "true" | "false" | "aboveVariation";
+  crop?: CropByElementSimple | CropByElementDetailed;
+  sourceIntegration?: SourceIntegration;
+}
+/**
+ * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
+ */
+export interface SourceIntegration {
+  /**
+   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   */
+  type: "heretto";
+  /**
+   * The name of the integration configuration in the config file. Used to look up authentication credentials.
+   */
+  integrationName: string;
+  /**
+   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
+   */
+  fileId?: string;
+  /**
+   * The path of the file in the source CMS. Used for lookup if fileId is not available.
+   */
+  filePath?: string;
+  /**
+   * The local path to the file that references this source. Used for resolving relative paths.
+   */
+  contentPath?: string;
 }
 export interface Common10 {
   /**
@@ -1273,43 +1317,9 @@ export interface SourceLocation10 {
    */
   endIndex: number;
 }
-export interface Record {
-  record: Record1;
+export interface SaveCookie {
+  saveCookie: SaveCookie1;
   [k: string]: unknown;
-}
-export interface RecordDetailed {
-  /**
-   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
-   */
-  path?: string;
-  /**
-   * Directory of the file. If the directory doesn't exist, creates the directory.
-   */
-  directory?: string;
-  /**
-   * If `true`, overwrites the existing recording at `path` if it exists.
-   */
-  overwrite?: "true" | "false";
-  /**
-   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
-   */
-  name?: string;
-  engine?: RecordingEngine;
-  [k: string]: unknown;
-}
-export interface RecordingEngineDetailed {
-  /**
-   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
-   */
-  name: "browser" | "ffmpeg";
-  /**
-   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
-   */
-  target?: "display" | "window" | "viewport";
-  /**
-   * Capture frame rate for the `ffmpeg` engine.
-   */
-  fps?: number;
 }
 export interface Common11 {
   /**
@@ -1382,15 +1392,43 @@ export interface SourceLocation11 {
    */
   endIndex: number;
 }
-export interface StopRecord {
-  stopRecord: StopRecord1;
+export interface Record {
+  record: Record1;
   [k: string]: unknown;
 }
-export interface StopRecordDetailed {
+export interface RecordDetailed {
   /**
-   * Name of the recording to stop. Matches the `name` given to a `record` step.
+   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
-  name: string;
+  path?: string;
+  /**
+   * Directory of the file. If the directory doesn't exist, creates the directory.
+   */
+  directory?: string;
+  /**
+   * If `true`, overwrites the existing recording at `path` if it exists.
+   */
+  overwrite?: "true" | "false";
+  /**
+   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
+   */
+  name?: string;
+  engine?: RecordingEngine;
+  [k: string]: unknown;
+}
+export interface RecordingEngineDetailed {
+  /**
+   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   */
+  name: "browser" | "ffmpeg";
+  /**
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   */
+  target?: "display" | "window" | "viewport";
+  /**
+   * Capture frame rate for the `ffmpeg` engine.
+   */
+  fps?: number;
 }
 export interface Common12 {
   /**
@@ -1463,9 +1501,15 @@ export interface SourceLocation12 {
    */
   endIndex: number;
 }
-export interface LoadVariables {
-  loadVariables: LoadVariables1;
+export interface StopRecord {
+  stopRecord: StopRecord1;
   [k: string]: unknown;
+}
+export interface StopRecordDetailed {
+  /**
+   * Name of the recording to stop. Matches the `name` given to a `record` step.
+   */
+  name: string;
 }
 export interface Common13 {
   /**
@@ -1538,26 +1582,8 @@ export interface SourceLocation13 {
    */
   endIndex: number;
 }
-export interface DragAndDrop {
-  dragAndDrop: DragAndDrop1;
-  [k: string]: unknown;
-}
-/**
- * Drag and drop an element from source to target.
- */
-export interface DragAndDrop1 {
-  /**
-   * The element to drag.
-   */
-  source: ElementSimple | ElementDetailed;
-  /**
-   * The target location to drop the element.
-   */
-  target: ElementSimple1 | ElementDetailed1;
-  /**
-   * Duration of the drag operation in milliseconds.
-   */
-  duration?: number;
+export interface LoadVariables {
+  loadVariables: LoadVariables1;
   [k: string]: unknown;
 }
 export interface Common14 {
@@ -1631,8 +1657,26 @@ export interface SourceLocation14 {
    */
   endIndex: number;
 }
-export interface LoadCookie {
-  loadCookie: LoadCookie1;
+export interface DragAndDrop {
+  dragAndDrop: DragAndDrop1;
+  [k: string]: unknown;
+}
+/**
+ * Drag and drop an element from source to target.
+ */
+export interface DragAndDrop1 {
+  /**
+   * The element to drag.
+   */
+  source: ElementSimple | ElementDetailed;
+  /**
+   * The target location to drop the element.
+   */
+  target: ElementSimple1 | ElementDetailed1;
+  /**
+   * Duration of the drag operation in milliseconds.
+   */
+  duration?: number;
   [k: string]: unknown;
 }
 export interface Common15 {
@@ -1693,6 +1737,81 @@ export interface VariablesStep15 {
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation15 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface LoadCookie {
+  loadCookie: LoadCookie1;
+  [k: string]: unknown;
+}
+export interface Common16 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep16;
+  variables?: VariablesStep16;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  location?: SourceLocation16;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep16 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep16`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep16 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep16`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation16 {
   /**
    * 1-indexed line number in the source file where the step was detected.
    */

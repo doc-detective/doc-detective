@@ -396,6 +396,101 @@ describe("Run tests successfully", function () {
       }
     }
   });
+
+  it("runBrowserScript: unsafe step runs when allowed, output mismatch FAILs, timeout FAILs", async function () {
+    this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
+    const spec = {
+      tests: [
+        {
+          // Test 0: an unsafe runBrowserScript runs when allowUnsafeSteps is true.
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { unsafe: true, runBrowserScript: { script: "return 1 + 1;", output: "2" } },
+          ],
+        },
+        {
+          // Test 1: an output assertion that can't match -> FAIL.
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { runBrowserScript: { script: "return 'actual';", output: "expected-but-absent" } },
+          ],
+        },
+        {
+          // Test 2: a script that runs past its timeout -> FAIL.
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              runBrowserScript: {
+                script: "const start = Date.now(); while (Date.now() - start < 4000) {} return true;",
+                timeout: 1000,
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-runbrowserscript-edge.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent", allowUnsafeSteps: true };
+    try {
+      const result = await runTests(config);
+      const tests = result.specs[0].tests;
+      // Unsafe step ran (not skipped) and passed.
+      assert.equal(tests[0].contexts[0].steps[1].result, "PASS");
+      // Output mismatch failed.
+      assert.equal(tests[1].contexts[0].steps[1].result, "FAIL");
+      // Timeout failed.
+      assert.equal(tests[2].contexts[0].steps[1].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("runBrowserScript snapshot returns WARNING when variation exceeds threshold and rewrites the file", async function () {
+    this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
+    const outputFilePath = path.resolve("./test/temp-rbs-snapshot.txt");
+    fs.writeFileSync(outputFilePath, "initial content");
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              runBrowserScript: {
+                script: "return 'completely different return value';",
+                path: outputFilePath,
+                maxVariation: 0.1,
+                overwrite: "aboveVariation",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-rbs-snapshot-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.steps.warning, 1);
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(
+        result.specs[0].tests[0].contexts[0].steps[1].result,
+        "WARNING"
+      );
+      // overwrite: "aboveVariation" should have rewritten the file.
+      assert.equal(
+        fs.readFileSync(outputFilePath, "utf8"),
+        "completely different return value"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(outputFilePath)) {
+        fs.unlinkSync(outputFilePath);
+      }
+    }
+  });
 });
 
 describe("Intelligent goTo behavior", function () {

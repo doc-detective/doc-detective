@@ -1,0 +1,50 @@
+/* eslint-disable */
+/**
+ * Auto-generated from runBrowserScript_v3.schema.json
+ * Do not edit manually
+ */
+
+/**
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. The script's return value is captured in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ */
+export type RunBrowserScript = RunBrowserScriptSimple | RunBrowserScriptDetailed;
+/**
+ * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
+ */
+export type RunBrowserScriptSimple = string;
+
+export interface RunBrowserScriptDetailed {
+  /**
+   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. Arguments supplied in `args` are available via the `arguments` object (`arguments[0]`, `arguments[1]`, ...).
+   */
+  script: string;
+  /**
+   * Arguments passed positionally to the script. Available inside the script via the `arguments` object.
+   */
+  args?: string[];
+  /**
+   * Content expected in the script's serialized return value. Non-string return values are serialized to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   */
+  output?: string;
+  /**
+   * File path to save the script's serialized return value, relative to `directory`.
+   */
+  path?: string;
+  /**
+   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   */
+  directory?: string;
+  /**
+   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   */
+  maxVariation?: number;
+  /**
+   * If `true`, overwrites the existing output at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
+   */
+  overwrite?: "true" | "false" | "aboveVariation";
+  /**
+   * Max time in milliseconds the script is allowed to run. If the script runs longer than this, the step fails.
+   */
+  timeout?: number;
+}
