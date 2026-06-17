@@ -280,7 +280,7 @@ export type RecordBoolean = boolean;
  */
 export type StopRecord1 = StopRecordBoolean | StopRecordNull | StopRecordName | StopRecordDetailed;
 /**
- * If `true`, stops the most recently started active recording (LIFO).
+ * If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
  */
 export type StopRecordBoolean = boolean;
 /**
@@ -594,7 +594,7 @@ export type RecordBoolean1 = boolean;
  */
 export type StopRecord3 = StopRecordBoolean1 | StopRecordNull1 | StopRecordName1 | StopRecordDetailed1;
 /**
- * If `true`, stops the most recently started active recording (LIFO).
+ * If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
  */
 export type StopRecordBoolean1 = boolean;
 /**

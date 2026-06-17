@@ -7466,7 +7466,7 @@
                                                       {
                                                         "type": "boolean",
                                                         "title": "stopRecord (boolean)",
-                                                        "description": "If `true`, stops the most recently started active recording (LIFO)."
+                                                        "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
                                                       },
                                                       {
                                                         "type": "null",
@@ -16566,7 +16566,7 @@
                                         {
                                           "type": "boolean",
                                           "title": "stopRecord (boolean)",
-                                          "description": "If `true`, stops the most recently started active recording (LIFO)."
+                                          "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
                                         },
                                         {
                                           "type": "null",
@@ -26344,7 +26344,7 @@
                                           {
                                             "type": "boolean",
                                             "title": "stopRecord (boolean)",
-                                            "description": "If `true`, stops the most recently started active recording (LIFO)."
+                                            "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
                                           },
                                           {
                                             "type": "null",
@@ -34873,7 +34873,7 @@
                                                 {
                                                   "type": "boolean",
                                                   "title": "stopRecord (boolean)",
-                                                  "description": "If `true`, stops the most recently started active recording (LIFO)."
+                                                  "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
                                                 },
                                                 {
                                                   "type": "null",
