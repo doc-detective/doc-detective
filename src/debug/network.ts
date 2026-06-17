@@ -50,7 +50,12 @@ export function collectNetworkConfig(
   // casing, and redactValue/isSecretName are case-insensitive, so an
   // _authToken key still redacts. Redaction handles the auth ones.
   for (const key of Object.keys(env)) {
-    if (key.toLowerCase().startsWith("npm_config_")) names.add(key);
+    // Guard on a string value (same as the proxy loop) so a key present with
+    // an undefined value — e.g. a partial env object passed by a caller —
+    // doesn't surface as a misleading `npm_config_x = <unset>` entry.
+    if (typeof env[key] === "string" && key.toLowerCase().startsWith("npm_config_")) {
+      names.add(key);
+    }
   }
   const sorted = Array.from(names).sort();
   return {

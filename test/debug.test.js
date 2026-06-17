@@ -1033,6 +1033,14 @@ describe("debug/network", function () {
   it("returns an empty list when no network vars are set", function () {
     expect(collectNetworkConfig({}).variables).to.deep.equal([]);
   });
+
+  it("ignores npm_config_* keys whose value is undefined", function () {
+    const out = collectNetworkConfig({
+      npm_config_registry: undefined,
+      npm_config_proxy: "http://p:8080",
+    });
+    expect(out.variables.map((v) => v.name)).to.deep.equal(["npm_config_proxy"]);
+  });
 });
 
 describe("debug/provenance", function () {
