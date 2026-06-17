@@ -664,9 +664,16 @@ function getRunOutputDir(
 // respected (no eager folder for a run where every test disables screenshots)
 // and a truthy non-boolean from an API caller still counts. Without specs
 // (programmatic/early callers), fall back to the global flag, Boolean-coerced.
-// Reporter selection mirrors outputResults: only a *non-empty* `reporters`
-// array is an override — an empty or unset array falls back to the schema
-// default (`["terminal", "json", "runFolder"]`), which archives.
+//
+// The reporter gate mirrors outputResults *exactly* so the gate never reserves
+// a folder the reporter won't write to (which would leave it empty). Like
+// outputResults: a non-empty `reporters` array is the override, otherwise the
+// default set (`["terminal", "json", "runFolder"]`) applies; tokens are matched
+// verbatim (no trimming — outputResults doesn't trim, so a padded `" runFolder "`
+// runs no reporter); the `runFolder` shorthand matches case-insensitively (its
+// switch lowercases) and the internal `runFolderReporter` key matches verbatim
+// (its default branch passes the token straight to the reporters map);
+// non-string (e.g. function) reporters are not the runFolder reporter.
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   const list = Array.isArray(specs) ? specs : [];
   if (list.length > 0) {
@@ -683,27 +690,16 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   } else if (Boolean(config?.autoScreenshot)) {
     return true;
   }
-  const reporters = config?.reporters;
-  if (Array.isArray(reporters)) {
-    // Defense-in-depth: trim and drop empty entries before matching, so an
-    // env/CLI value that slipped past setConfig (e.g. [" runFolder ", ""])
-    // still resolves correctly. After normalizing, a non-empty list that
-    // omits runFolder is a genuine override; an empty (or all-blank) list
-    // falls through to the default set, which archives.
-    const normalized = reporters
-      .filter((reporter) => typeof reporter === "string")
-      .map((reporter) => reporter.trim())
-      .filter((reporter) => reporter.length > 0);
-    if (normalized.length > 0) {
-      // Match both the `runFolder` shorthand and the internal
-      // `runFolderReporter` key, since outputResults honors either.
-      return normalized.some((reporter) => {
-        const name = reporter.toLowerCase();
-        return name === "runfolder" || name === "runfolderreporter";
-      });
-    }
-  }
-  return true;
+  const active =
+    Array.isArray(config?.reporters) && config.reporters.length > 0
+      ? config.reporters
+      : ["terminal", "json", "runFolder"];
+  return active.some(
+    (reporter: any) =>
+      typeof reporter === "string" &&
+      (reporter.toLowerCase() === "runfolder" ||
+        reporter === "runFolderReporter")
+  );
 }
 
 // Perform a native command in the current working directory.

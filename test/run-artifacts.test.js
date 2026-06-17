@@ -115,27 +115,31 @@ describe("runArchivesArtifacts", function () {
     expect(runArchivesArtifacts({ reporters: [] })).to.equal(true);
   });
 
-  it("trims and drops empty reporter tokens before matching", function () {
-    // Defense-in-depth against an env/CLI value that bypassed setConfig.
-    expect(runArchivesArtifacts({ reporters: [" runFolder ", ""] })).to.equal(
-      true
-    );
-    // An all-blank list normalizes to empty → default fallback (archives).
-    expect(runArchivesArtifacts({ reporters: ["", "  "] })).to.equal(true);
-    // A non-empty list that omits runFolder after trimming is still an override.
-    expect(runArchivesArtifacts({ reporters: [" terminal ", ""] })).to.equal(
-      false
-    );
+  it("matches reporter tokens verbatim like outputResults (no trimming)", function () {
+    // outputResults matches tokens as-is, so a padded `" runFolder "` runs no
+    // reporter — the gate must agree, or it would reserve an empty folder.
+    expect(runArchivesArtifacts({ reporters: [" runFolder "] })).to.equal(false);
+    expect(runArchivesArtifacts({ reporters: ["runFolder"] })).to.equal(true);
+    // A non-empty list with only blank/non-matching tokens is still an
+    // override that excludes runFolder.
+    expect(runArchivesArtifacts({ reporters: ["", "  "] })).to.equal(false);
   });
 
-  it("recognizes the internal runFolderReporter key, not just the shorthand", function () {
-    // outputResults honors both names, so the gate must too.
+  it("does not treat a function reporter as the runFolder reporter", function () {
+    // outputResults runs function reporters as-is; none of them is the
+    // runFolder reporter, so a function-only override must not gate a folder.
+    expect(runArchivesArtifacts({ reporters: [() => {}] })).to.equal(false);
+  });
+
+  it("recognizes the internal runFolderReporter key verbatim, not just the shorthand", function () {
+    // outputResults resolves the exact `runFolderReporter` key via its default
+    // branch, but only verbatim — a padded or mis-cased variant runs nothing.
     expect(runArchivesArtifacts({ reporters: ["runFolderReporter"] })).to.equal(
       true
     );
     expect(
       runArchivesArtifacts({ reporters: ["terminal", " runFolderReporter "] })
-    ).to.equal(true);
+    ).to.equal(false);
   });
 
   it("is true when autoScreenshot is on even without the runFolder reporter", function () {

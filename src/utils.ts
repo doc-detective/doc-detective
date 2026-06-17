@@ -448,7 +448,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // parent, matching getRunOutputDir exactly — even for an existing directory
 // oddly named `reports.json` — so the archive root never diverges from the
 // stamped runDir (a divergence would reject the stamp and break runId/runDir
-// correlation with autoScreenshots). Any other path is then resolved by real
+// correlation with autoScreenshot). Any other path is then resolved by real
 // filesystem type: an existing file (any extension) archives beside it, an
 // existing or not-yet-created directory (including a dotted name like
 // `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
