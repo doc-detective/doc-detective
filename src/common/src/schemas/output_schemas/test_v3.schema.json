@@ -5374,14 +5374,8 @@
                           },
                           "args": {
                             "type": "array",
-                            "description": "Arguments passed positionally to the script. Available inside the script via the `arguments` object.",
-                            "items": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                }
-                              ]
-                            },
+                            "description": "Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.",
+                            "items": {},
                             "default": []
                           },
                           "output": {
@@ -5446,14 +5440,8 @@
                             },
                             "args": {
                               "type": "array",
-                              "description": "Arguments passed positionally to the script. Available inside the script via the `arguments` object.",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  }
-                                ]
-                              },
+                              "description": "Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.",
+                              "items": {},
                               "default": []
                             },
                             "output": {
@@ -14206,14 +14194,8 @@
                                 },
                                 "args": {
                                   "type": "array",
-                                  "description": "Arguments passed positionally to the script. Available inside the script via the `arguments` object.",
-                                  "items": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      }
-                                    ]
-                                  },
+                                  "description": "Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.",
+                                  "items": {},
                                   "default": []
                                 },
                                 "output": {
@@ -14278,14 +14260,8 @@
                                   },
                                   "args": {
                                     "type": "array",
-                                    "description": "Arguments passed positionally to the script. Available inside the script via the `arguments` object.",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        }
-                                      ]
-                                    },
+                                    "description": "Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.",
+                                    "items": {},
                                     "default": []
                                   },
                                   "output": {

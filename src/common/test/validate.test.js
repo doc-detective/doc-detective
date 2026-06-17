@@ -633,6 +633,27 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         ]);
       });
 
+      it("should accept non-string args (numbers, booleans)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: {
+              script: "return arguments[0];",
+              args: [42, true, "x", null],
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript.args).to.deep.equal([
+          42,
+          true,
+          "x",
+          null,
+        ]);
+      });
+
       it("should reject the object form when script is missing", function () {
         const result = validate({
           schemaKey: "step_v3",

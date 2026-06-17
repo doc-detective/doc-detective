@@ -1606,9 +1606,9 @@ export interface RunBrowserScriptDetailed {
    */
   script: string;
   /**
-   * Arguments passed positionally to the script. Available inside the script via the `arguments` object.
+   * Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
    */
-  args?: string[];
+  args?: unknown[];
   /**
    * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
@@ -3298,9 +3298,9 @@ export interface RunBrowserScriptDetailed1 {
    */
   script: string;
   /**
-   * Arguments passed positionally to the script. Available inside the script via the `arguments` object.
+   * Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
    */
-  args?: string[];
+  args?: unknown[];
   /**
    * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */

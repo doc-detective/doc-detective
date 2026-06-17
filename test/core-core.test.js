@@ -446,6 +446,51 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("runBrowserScript honors `directory` for the snapshot path", async function () {
+    this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
+    const dir = path.resolve("./test/temp-rbs-dir");
+    fs.rmSync(dir, { recursive: true, force: true });
+    const strayAtCwd = path.resolve("./rbs-dir-output.txt");
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              runBrowserScript: {
+                script: "return 'dir-test-value';",
+                path: "rbs-dir-output.txt",
+                directory: dir,
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-rbs-dir-spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 0);
+      // The output lands under `directory` (resolved upstream in files.ts), not cwd.
+      assert.equal(
+        fs.existsSync(path.join(dir, "rbs-dir-output.txt")),
+        true,
+        "snapshot should be written under `directory`"
+      );
+      assert.equal(
+        fs.existsSync(strayAtCwd),
+        false,
+        "snapshot should not be written to the working directory"
+      );
+    } finally {
+      fs.rmSync(tempFilePath, { force: true });
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(strayAtCwd, { force: true });
+    }
+  });
+
   it("runBrowserScript snapshot returns WARNING when variation exceeds threshold and rewrites the file", async function () {
     this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
     const outputFilePath = path.resolve("./test/temp-rbs-snapshot.txt");

@@ -122,10 +122,6 @@ async function runBrowserScript({
         // Doesn't exist, save output to file
         fs.writeFileSync(filePath, serialized);
       } else {
-        if (step.runBrowserScript.overwrite == "false") {
-          result.description += ` Didn't save output. File already exists.`;
-        }
-
         const existingFile = fs.readFileSync(filePath, "utf8");
         const fractionalDiff = calculateFractionalDifference(
           existingFile,
@@ -134,9 +130,14 @@ async function runBrowserScript({
         log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
         if (fractionalDiff > step.runBrowserScript.maxVariation) {
-          if (step.runBrowserScript.overwrite == "aboveVariation") {
+          if (
+            step.runBrowserScript.overwrite == "aboveVariation" ||
+            step.runBrowserScript.overwrite == "true"
+          ) {
             fs.writeFileSync(filePath, serialized);
             result.description += ` Saved output to file.`;
+          } else {
+            result.description += ` Didn't overwrite the existing file.`;
           }
           result.status = "WARNING";
           result.description += ` The difference between the existing output and the new output (${fractionalDiff.toFixed(
@@ -147,6 +148,8 @@ async function runBrowserScript({
           return result;
         }
 
+        // Within variation: only "true" forces a rewrite; otherwise the
+        // existing file is left as-is and the step passes without a note.
         if (step.runBrowserScript.overwrite == "true") {
           fs.writeFileSync(filePath, serialized);
           result.description += ` Saved output to file.`;
