@@ -69,6 +69,12 @@ async function runBrowserScript({
     step.runBrowserScript.script,
     ...step.runBrowserScript.args
   );
+  // If the timeout wins the race, `scriptPromise` is left without a consumer.
+  // Attach a no-op catch so a later rejection (JS error, closed session) is
+  // handled instead of surfacing as an unhandled promise rejection. This extra
+  // handler doesn't affect the race: a pre-timeout rejection still propagates
+  // to `Promise.race` and is reported as a FAIL below.
+  scriptPromise.catch(() => {});
   let timeoutId: any;
   const timeoutPromise = new Promise<any>((resolve, reject) => {
     timeoutId = setTimeout(() => {
