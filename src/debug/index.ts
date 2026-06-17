@@ -36,6 +36,16 @@ import {
   renderDocument,
   type Section,
 } from "./render.js";
+import { type StatusRow } from "../runtime/installer.js";
+import { collectInstallStatus, type InstallData } from "./install.js";
+import { collectCacheStatus, type CacheStatus } from "./cache.js";
+import { collectNetworkConfig, type NetworkConfig } from "./network.js";
+import { collectProvenance, type Provenance } from "./provenance.js";
+import {
+  collectAppiumDiagnostics,
+  type AppiumDiagnostics,
+} from "./appium.js";
+import { computeFindings, type Finding } from "./findings.js";
 
 export interface PrintDebugOptions {
   config: any;
@@ -60,6 +70,12 @@ export interface PrintDebugOptions {
    * omit it so calling `printDebug` never writes a file as a side effect.
    */
   outDir?: string;
+  /**
+   * The raw parsed CLI args (yargs argv). Used only by the Config provenance
+   * section to report which flags overrode the validated config. Optional so
+   * unit tests can call `printDebug` without synthesizing argv.
+   */
+  args?: any;
   print?: (line: string) => void;
 }
 
@@ -133,9 +149,15 @@ export interface DebugData {
   docDetective: DocDetectiveData;
   tools: ToolResult[];
   browsers: BrowsersData;
+  install: InstallData;
+  appium: AppiumDiagnostics;
+  cache: CacheStatus;
   container: ContainerInfo;
+  network: NetworkConfig;
   environment: EnvData;
+  provenance: Provenance;
   config: ConfigData;
+  findings: Finding[];
 }
 
 // Secondary cap on browser-detection latency. Detection reads
@@ -149,20 +171,51 @@ const BROWSER_DETECTION_TIMEOUT_MS = 5000;
 
 async function collectDebugData(opts: PrintDebugOptions): Promise<DebugData> {
   const system = collectSystemInfo();
-  return {
+  const data: DebugData = {
     generatedAt: system.wallclockIso,
     system,
     docDetective: collectDocDetective(),
     tools: await probeAllTools(opts.config?.cacheDir),
     browsers: await collectBrowsers(opts.config),
+    install: collectInstallStatus(opts.config),
+    appium: collectAppiumStatus(opts.config),
+    cache: collectCacheStatus(opts.config),
     container: detectContainer(),
+    network: collectNetworkConfig(),
     environment: collectEnvVars(opts),
+    provenance: collectProvenance({
+      configPath: opts.configPath ?? null,
+      args: opts.args,
+    }),
     config: {
       configPath: opts.configPath ?? null,
       configError: opts.configError?.message,
       redacted: safeRedactConfig(opts.config),
     },
+    // Computed last: the Findings layer interprets the data sections above.
+    findings: [],
   };
+  data.findings = computeFindings(data);
+  return data;
+}
+
+// collectAppiumDiagnostics reads extensions.yaml (no subprocess) and guards
+// each step, but wrap the whole call so an unforeseen throw can't abort the
+// dump.
+function collectAppiumStatus(config: any): AppiumDiagnostics {
+  try {
+    return collectAppiumDiagnostics(config);
+  } catch (err: any) {
+    return {
+      appiumHome: null,
+      appiumInstalled: false,
+      extensionsManifestPath: null,
+      extensionsManifestPresent: false,
+      manifestError: err?.message || String(err),
+      registeredDrivers: [],
+      drivers: [],
+    };
+  }
 }
 
 function collectDocDetective(): DocDetectiveData {
@@ -416,15 +469,167 @@ function writeFileSafe(
 
 function renderText(data: DebugData, opts: PrintDebugOptions): string {
   const sections: Section[] = [
+    // Findings first — it's the summary a support engineer reads before
+    // scrolling into the raw data sections below.
+    renderFindingsSection(data.findings),
     renderSystemSection(data.system),
     renderDocDetectiveSection(data.docDetective),
     renderToolsSection(data.tools),
     renderBrowsersSection(data.browsers),
+    renderInstallSection(data.install),
+    renderAppiumSection(data.appium),
+    renderCacheSection(data.cache),
     renderContainerSection(data.container),
+    renderNetworkSection(data.network),
     renderEnvSection(data.environment),
+    renderProvenanceSection(data.provenance),
     renderConfigSection(data.config, opts.configError ?? null),
   ];
   return renderDocument(sections, data.generatedAt);
+}
+
+function renderFindingsSection(findings: Finding[]): Section {
+  if (findings.length === 0) {
+    return renderSection("Findings / next steps", ["  No problems detected."]);
+  }
+  const lines: string[] = [];
+  for (const f of findings) {
+    lines.push(`  [${f.severity.toUpperCase()}] ${f.title}`);
+    lines.push(`    ${f.detail}`);
+    if (f.fix) lines.push(`    fix: ${f.fix}`);
+    lines.push("");
+  }
+  if (lines[lines.length - 1] === "") lines.pop();
+  return renderSection("Findings / next steps", lines);
+}
+
+// Bytes → a compact human figure (MiB / GiB) for the cache free-space rows.
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return "<unknown>";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const rounded = unit === 0 ? value : Math.round(value * 10) / 10;
+  return `${rounded} ${units[unit]}`;
+}
+
+function formatInstallRow(r: StatusRow): string {
+  const state = r.installed ? "installed" : "missing  ";
+  const version = r.installedVersion || "—";
+  const parts = [`${r.assetId.padEnd(24)} ${state}  ${version}`];
+  if (r.expectedVersion) parts.push(`expected ${r.expectedVersion}`);
+  if (r.latestKnownVersion) parts.push(`latest ${r.latestKnownVersion}`);
+  if (r.outdated) parts.push("OUTDATED");
+  return parts.join("  ");
+}
+
+function renderInstallSection(install: InstallData): Section {
+  if (install.error) {
+    return renderSection("Install status", [
+      `  <install status failed: ${install.error}>`,
+    ]);
+  }
+  const rows = install.rows || [];
+  const npm = rows.filter((r) => r.kind === "npm");
+  const browsers = rows.filter((r) => r.kind === "browser");
+  const lines: string[] = [];
+  lines.push(`  record: ${install.recordPath || "<unknown>"}`);
+  lines.push("");
+  lines.push("  npm packages:");
+  if (npm.length === 0) lines.push("    <none>");
+  for (const r of npm) lines.push(`    ${formatInstallRow(r)}`);
+  lines.push("");
+  lines.push("  browsers:");
+  if (browsers.length === 0) lines.push("    <none>");
+  for (const r of browsers) lines.push(`    ${formatInstallRow(r)}`);
+  return renderSection("Install status", lines);
+}
+
+function renderAppiumSection(a: AppiumDiagnostics): Section {
+  const lines: string[] = [];
+  lines.push(`  APPIUM_HOME:      ${a.appiumHome ?? "<unset>"}`);
+  lines.push(`  appium installed: ${a.appiumInstalled}`);
+  const manifest = a.extensionsManifestPresent ? "present" : "absent";
+  const manifestPath = a.extensionsManifestPath
+    ? `  (${a.extensionsManifestPath})`
+    : "";
+  lines.push(`  extensions.yaml:  ${manifest}${manifestPath}`);
+  if (a.manifestError) {
+    lines.push(`  ! could not read extensions.yaml: ${a.manifestError}`);
+  }
+  lines.push("");
+  lines.push("  drivers:");
+  if (a.drivers.length === 0) lines.push("    <none>");
+  // registered === null means the manifest wasn't read — registration is
+  // unknown, not confirmed-absent. That covers two distinct cases: the
+  // manifest is absent, or it's present but unreadable/unparsable.
+  const unknownReason = a.manifestError ? "manifest unreadable" : "no manifest";
+  for (const d of a.drivers) {
+    const classification =
+      d.registered === true
+        ? "registered"
+        : !d.npmResolvable
+        ? "missing"
+        : d.registered === false
+        ? "resolvable but not registered"
+        : `resolvable (registration unknown — ${unknownReason})`;
+    lines.push(`    ${d.name.padEnd(24)} ${classification}`);
+  }
+  return renderSection("Appium registration", lines);
+}
+
+function renderCacheSection(cache: CacheStatus): Section {
+  const lines: string[] = [];
+  if (cache.error) lines.push(`  ! cache probe error: ${cache.error}`);
+  for (const e of cache.entries) {
+    lines.push(`  ${e.label}:`);
+    lines.push(`    path:     ${e.path ?? "<unset>"}`);
+    lines.push(`    exists:   ${e.exists}`);
+    if (e.writable !== null) lines.push(`    writable: ${e.writable}`);
+    if (e.freeBytes !== null) {
+      lines.push(`    free:     ${formatBytes(e.freeBytes)}`);
+    }
+  }
+  return renderSection("Cache & runtime", lines);
+}
+
+function renderNetworkSection(net: NetworkConfig): Section {
+  const lines: string[] = [];
+  if (net.variables.length === 0) {
+    lines.push("  <no proxy / npm network env vars set>");
+  } else {
+    for (const { name, value } of net.variables) {
+      lines.push(`  ${name} = ${value}`);
+    }
+  }
+  return renderSection("Proxy / npm network", lines);
+}
+
+function renderProvenanceSection(p: Provenance): Section {
+  const lines: string[] = [];
+  lines.push(`  config file:          ${p.configPath || "<none>"}`);
+  lines.push(
+    `  DOC_DETECTIVE_CONFIG: ${
+      p.docDetectiveConfigApplied ? "applied (overrides file)" : "not set"
+    }`
+  );
+  lines.push(
+    `  DOC_DETECTIVE_API:    ${p.docDetectiveApiApplied ? "applied" : "not set"}`
+  );
+  lines.push("");
+  if (p.cliOverrides.length === 0) {
+    lines.push("  CLI overrides: <none>");
+  } else {
+    lines.push("  CLI overrides (override file + env):");
+    for (const o of p.cliOverrides) {
+      lines.push(`    --${o.flag} → config.${o.configKey}`);
+    }
+  }
+  return renderSection("Config provenance", lines);
 }
 
 function renderSystemSection(info: SystemInfo): Section {
