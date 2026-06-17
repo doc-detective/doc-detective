@@ -652,10 +652,10 @@ function getRunOutputDir(
 }
 
 // Whether a run will write anything into its per-run artifact folder
-// (`<output>/.doc-detective/run-<id>/`). The folder only holds runFolder
-// reporter archives and autoScreenshot images, so when neither is active the
-// runner skips creating it (see runSpecs) instead of leaving an empty folder
-// behind.
+// (`<output>/.doc-detective/run-<id>/`). The folder holds runFolder reporter
+// archives, autoScreenshot images, and autoRecord videos, so when none is
+// active the runner skips creating it (see runSpecs) instead of leaving an
+// empty folder behind.
 //
 // autoScreenshot can be set globally on the config or per spec/test. When the
 // resolved `specs` are available, decide exactly as resolveAutoScreenshot does
@@ -677,17 +677,23 @@ function getRunOutputDir(
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   const list = Array.isArray(specs) ? specs : [];
   if (list.length > 0) {
-    const writesScreenshot = list.some((spec: any) =>
-      (spec?.tests ?? []).some((test: any) =>
-        Boolean(
-          test?.autoScreenshot ??
-            spec?.autoScreenshot ??
-            config?.autoScreenshot
-        )
+    // autoScreenshot images and autoRecord videos both land in the run folder.
+    // Resolve each exactly as resolveAutoScreenshot/resolveAutoRecord do
+    // (test > spec > config) per selected test, so a per-test `false` that
+    // overrides a global `true` is respected.
+    const writesArtifact = list.some((spec: any) =>
+      (spec?.tests ?? []).some(
+        (test: any) =>
+          Boolean(
+            test?.autoScreenshot ??
+              spec?.autoScreenshot ??
+              config?.autoScreenshot
+          ) ||
+          Boolean(test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord)
       )
     );
-    if (writesScreenshot) return true;
-  } else if (Boolean(config?.autoScreenshot)) {
+    if (writesArtifact) return true;
+  } else if (Boolean(config?.autoScreenshot) || Boolean(config?.autoRecord)) {
     return true;
   }
   const active =

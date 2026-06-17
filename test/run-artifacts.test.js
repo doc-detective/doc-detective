@@ -199,6 +199,31 @@ describe("runArchivesArtifacts", function () {
     ).to.equal(false);
   });
 
+  it("is true when autoRecord is on even without the runFolder reporter", function () {
+    // autoRecord videos land in the run folder, so it must be archived too.
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoRecord: true })
+    ).to.equal(true);
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { autoRecord: true, tests: [{}] },
+      ])
+    ).to.equal(true);
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { tests: [{ autoRecord: true }] },
+      ])
+    ).to.equal(true);
+  });
+
+  it("respects a test-level autoRecord:false override of a global true", function () {
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"], autoRecord: true }, [
+        { tests: [{ autoRecord: false }] },
+      ])
+    ).to.equal(false);
+  });
+
   it("is true when reporters are unset (the default set includes runFolder)", function () {
     expect(runArchivesArtifacts({})).to.equal(true);
     expect(runArchivesArtifacts()).to.equal(true);
