@@ -49,9 +49,15 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
   if (!recording) {
     result.status = "SKIPPED";
     const target = stopRecordTargetName(step.stopRecord);
-    result.description = target
-      ? `No active recording named '${target}'.`
-      : `Recording isn't started.`;
+    if (target !== undefined) {
+      result.description = `No active recording named '${target}'.`;
+    } else if (recordings.length > 0) {
+      // An untargeted stop found only the synthetic autoRecord recording, which
+      // it deliberately skips — say so rather than the misleading "isn't started".
+      result.description = `No user-stoppable recording is active; an automatic (autoRecord) recording is still running and stops at the end of the context.`;
+    } else {
+      result.description = `Recording isn't started.`;
+    }
     return result;
   }
 

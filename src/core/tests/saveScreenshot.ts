@@ -371,10 +371,17 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     return result;
   } finally {
     if (recordingActive) {
-      await driver.execute(() => {
-        const pointer = document.querySelector("dd-mouse-pointer") as any;
-        if (pointer) pointer.style.display = "block";
-      });
+      // Best-effort: a throw here (e.g. an unstable session) must not override a
+      // successful screenshot result or mask the caught error above — exceptions
+      // in `finally` take precedence over returns.
+      try {
+        await driver.execute(() => {
+          const pointer = document.querySelector("dd-mouse-pointer") as any;
+          if (pointer) pointer.style.display = "block";
+        });
+      } catch {
+        /* cursor restore is non-essential */
+      }
     }
   }
 
