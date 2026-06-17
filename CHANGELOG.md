@@ -1,3 +1,10 @@
+# [4.13.0](https://github.com/doc-detective/doc-detective/compare/v4.12.1...v4.13.0) (2026-06-17)
+
+
+### Features
+
+* **record:** autoRecord + multiple overlapping recordings ([#349](https://github.com/doc-detective/doc-detective/issues/349)) ([189d197](https://github.com/doc-detective/doc-detective/commit/189d1979319825bc43e10ad43e18bd293c19ece7)), closes [#348](https://github.com/doc-detective/doc-detective/issues/348) [#348](https://github.com/doc-detective/doc-detective/issues/348)
+
 ## [4.12.1](https://github.com/doc-detective/doc-detective/compare/v4.12.0...v4.12.1) (2026-06-17)
 
 
