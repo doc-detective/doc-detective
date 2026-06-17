@@ -23,7 +23,7 @@ export interface RunBrowserScriptDetailed {
    */
   args?: string[];
   /**
-   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the expected content can't be found, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
   output?: string;
   /**
@@ -35,7 +35,7 @@ export interface RunBrowserScriptDetailed {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step fails. If no output exists at `path`, Doc Detective ignores this value.
    */
   maxVariation?: number;
   /**
@@ -44,7 +44,7 @@ export interface RunBrowserScriptDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the script is allowed to run. If the script runs longer than this, the step fails.
+   * Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.
    */
   timeout?: number;
 }
