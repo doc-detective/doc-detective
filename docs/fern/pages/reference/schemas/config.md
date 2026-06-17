@@ -33,7 +33,7 @@ integrations | object([Integrations options](/reference/schemas/integrations-opt
 telemetry | object([Telemetry options](/reference/schemas/telemetry-options)) | Optional. Options around sending telemetry for Doc Detective usage. | ``{"send":true}``
 concurrentRunners | integer,boolean | Optional. Number of concurrent test runners. Set to true to use CPU core count (capped at 4).<br/><br/>Minimum: 1 | `1`
 environment | object([Environment details](/reference/schemas/environment-details)) | ReadOnly. Environment information for the system running Doc Detective. | 
-debug | one of:<br/>- boolean<br/>- string | **Deprecated.** This field is ignored. For diagnostic output, run `doc-detective debug` or set the `DOC_DETECTIVE_DEBUG` environment variable. See [Troubleshooting setup issues](/docs/troubleshooting/setup-issues). |
+debug | one of:<br/>- boolean<br/>- string | **Deprecated.** Doc Detective ignores this field. For diagnostic output, run `doc-detective debug` or set the `DOC_DETECTIVE_DEBUG` environment variable. See [Troubleshooting setup issues](/docs/troubleshooting/setup-issues). |
 dryRun | boolean | Optional. If `true`, fully resolve tests (file detection, inline-test extraction, config merge, schema validation) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI. Useful for validating test configuration without running actual tests. | `false`
 
 ## Examples

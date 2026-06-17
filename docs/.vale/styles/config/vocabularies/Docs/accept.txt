@@ -156,3 +156,6 @@ Heretto
 DITA
 CMS
 CCMS
+Appium
+ffmpeg
+subcommand

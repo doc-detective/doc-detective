@@ -197,6 +197,7 @@ navigation:
         contents:
           - page: Setup issues
             path: pages/docs/troubleshooting/setup-issues.mdx
+            slug: setup-issues
 
       - section: Contribute
         contents:
