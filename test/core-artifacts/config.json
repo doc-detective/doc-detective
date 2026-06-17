@@ -1,5 +1,5 @@
 {
-  "input": "./dev/doc-content.md",
+  "input": "./doc-content.md",
   "output": ".",
   "recursive": true,
   "logLevel": "debug",
