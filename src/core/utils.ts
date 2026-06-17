@@ -685,11 +685,19 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
     }
   }
   const reporters = config?.reporters;
-  if (Array.isArray(reporters) && reporters.length > 0) {
-    return reporters.some(
-      (reporter) =>
-        typeof reporter === "string" && reporter.toLowerCase() === "runfolder"
-    );
+  if (Array.isArray(reporters)) {
+    // Defense-in-depth: trim and drop empty entries before matching, so an
+    // env/CLI value that slipped past setConfig (e.g. [" runFolder ", ""])
+    // still resolves correctly. After normalizing, a non-empty list that
+    // omits runFolder is a genuine override; an empty (or all-blank) list
+    // falls through to the default set, which archives.
+    const normalized = reporters
+      .filter((reporter) => typeof reporter === "string")
+      .map((reporter) => reporter.trim())
+      .filter((reporter) => reporter.length > 0);
+    if (normalized.length > 0) {
+      return normalized.some((reporter) => reporter.toLowerCase() === "runfolder");
+    }
   }
   return true;
 }

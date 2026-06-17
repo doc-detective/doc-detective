@@ -167,6 +167,19 @@ describe("runArchivesArtifacts", function () {
     expect(runArchivesArtifacts({ reporters: [] })).to.equal(true);
   });
 
+  it("trims and drops empty reporter tokens before matching", function () {
+    // Defense-in-depth against an env/CLI value that bypassed setConfig.
+    expect(runArchivesArtifacts({ reporters: [" runFolder ", ""] })).to.equal(
+      true
+    );
+    // An all-blank list normalizes to empty → default fallback (archives).
+    expect(runArchivesArtifacts({ reporters: ["", "  "] })).to.equal(true);
+    // A non-empty list that omits runFolder after trimming is still an override.
+    expect(runArchivesArtifacts({ reporters: [" terminal ", ""] })).to.equal(
+      false
+    );
+  });
+
   it("is true when autoScreenshot is on even without the runFolder reporter", function () {
     expect(
       runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: true })
