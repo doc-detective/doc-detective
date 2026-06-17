@@ -262,9 +262,11 @@ async function transcode({
   });
 }
 
-// Wait for a file to exist and stop growing (size unchanged across two reads
-// ~500ms apart), up to `maxSeconds`. Returns true once stable, false on
-// timeout. Guards against transcoding a download that's still being written.
+// Wait for a file to exist and stop growing (size unchanged across three reads
+// ~500ms apart, i.e. ~1s of stability), up to `maxSeconds`. Returns true once
+// stable, false on timeout. Guards against transcoding a download that's still
+// being written — concurrent recordings make a mid-write size plateau (the OS
+// flushing in chunks) more likely, so a single agreeing read isn't enough.
 async function waitForStableFile(
   filePath: string,
   maxSeconds: number
@@ -283,7 +285,7 @@ async function waitForStableFile(
     // before writing data, and transcoding an empty file fails.
     if (size > 0 && size === lastSize) {
       stableReads++;
-      if (stableReads >= 1) return true;
+      if (stableReads >= 2) return true;
     } else {
       stableReads = 0;
     }

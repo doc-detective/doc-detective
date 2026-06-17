@@ -753,13 +753,27 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   if (anyFfmpegRecording && process.platform === "linux") {
     xvfbAvailable = await checkSystemBinary("Xvfb");
   }
+  // "Parallel anyway" is an autoRecord-only opt-in: only bypass the forced-serial
+  // safeguard when every ffmpeg recording in the run is a synthetic autoRecord
+  // capture. If any explicit (author-written) record step would run as ffmpeg,
+  // keep the safe serial default so those recordings aren't silently
+  // parallelized (which would clobber each other on a shared display).
+  const hasExplicitFfmpegRecording = jobs.some((job: any) =>
+    jobIsFfmpegRecording({
+      context: {
+        ...job.context,
+        steps: Array.isArray(job.context?.steps)
+          ? job.context.steps.filter((s: any) => !s?.__autoRecord)
+          : [],
+      },
+    })
+  );
   const concurrency = computeEffectiveConcurrency({
     requestedLimit: limit,
     jobs,
     platform: process.platform,
     xvfbAvailable,
-    // autoRecord runs opt into overlapping captures rather than forced-serial.
-    allowOverlappingCaptures: autoRecordInjected,
+    allowOverlappingCaptures: autoRecordInjected && !hasExplicitFfmpegRecording,
   });
   limit = concurrency.limit;
   if (concurrency.forcedSerial) {
@@ -1777,6 +1791,9 @@ async function runContext({
     // this is a no-op. Best-effort: a stop failure here must not mask the
     // original error.
     try {
+      // On the normal path the step loop above already drained every recording,
+      // so this is a no-op; it only does work when the context threw before the
+      // in-loop sweep, finalizing recordings before deleteSession kills them.
       await stopAllRecordings({ config, context, driver, contextReport });
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
