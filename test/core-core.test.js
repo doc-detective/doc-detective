@@ -172,7 +172,7 @@ describe("Run tests successfully", function () {
     try {
       result = await runTests(config);
       assert.equal(result.summary.specs.fail, 0, "conflict must not fail the spec");
-      assert.ok(result.summary.tests.skipped >= 1, "the conflicting test should be skipped");
+      assert.equal(result.summary.tests.skipped, 1, "exactly the one conflicting test should be skipped");
       assert.equal(result.summary.tests.pass, 0, "the conflicting test must not pass");
       const ctx = result.specs[0].tests[0].contexts[0];
       assert.equal(ctx.result, "SKIPPED");
@@ -180,6 +180,77 @@ describe("Run tests successfully", function () {
         ctx.resultDescription,
         /recording name 'dup'/,
         `expected the skip reason to name the conflict, got: ${ctx.resultDescription}`
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  // autoRecord precedence (config > spec > test) end-to-end through runTests.
+  // The synthetic full-context recording carries this exact description, so its
+  // presence/absence in the executed steps proves whether autoRecord resolved
+  // true for the context. Headless here: the ffmpeg capture itself SKIPs without
+  // a display, but the synthetic step is still injected and reported, which is
+  // all these assertions need.
+  const AUTO_RECORD_DESC = "Automatic full-context recording";
+  const hasSyntheticRecord = (result) => {
+    const steps = result?.specs?.[0]?.tests?.[0]?.contexts?.[0]?.steps || [];
+    return steps.some(
+      (s) => s.description === AUTO_RECORD_DESC && typeof s.record !== "undefined"
+    );
+  };
+
+  it("autoRecord config-level injects a synthetic recording end-to-end", async function () {
+    this.retries(2); // browser startup between sequential runTests calls can be flaky
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { find: { selector: "body", timeout: 5000 } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-autorecord-config.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    // autoRecord set ONLY at the config level (no spec/test fields).
+    const config = { input: tempFilePath, logLevel: "silent", autoRecord: true };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      assert.ok(
+        hasSyntheticRecord(result),
+        "config-level autoRecord should inject the synthetic recording step"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("autoRecord test-level false overrides spec-level true end-to-end", async function () {
+    this.retries(2);
+    const spec = {
+      autoRecord: true, // spec level on
+      tests: [
+        {
+          autoRecord: false, // test level wins → no synthetic recording
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { find: { selector: "body", timeout: 5000 } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-autorecord-precedence.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      assert.ok(
+        !hasSyntheticRecord(result),
+        "test-level autoRecord:false should override spec-level true (no synthetic recording)"
       );
     } finally {
       fs.unlinkSync(tempFilePath);

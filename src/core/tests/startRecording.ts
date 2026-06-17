@@ -87,13 +87,21 @@ async function startRecording({ config, context, step, driver }: { config: any; 
   // With overlapping recordings, two could target the same output before
   // either file exists (the existsSync check above can't catch that). Refuse to
   // start a recording whose target is already claimed by an active one.
-  const normalizedTarget = path.resolve(filePath);
+  // Case-fold on case-insensitive filesystems (Windows/macOS) so `out.mp4` and
+  // `Out.mp4` — which resolve to the same file — are caught by this guard.
+  const normalizeActiveTarget = (p: string) => {
+    const resolved = path.resolve(p);
+    return process.platform === "win32" || process.platform === "darwin"
+      ? resolved.toLowerCase()
+      : resolved;
+  };
+  const normalizedTarget = normalizeActiveTarget(filePath);
   if (
     Array.isArray(driver?.state?.recordings) &&
     driver.state.recordings.some(
       (r: any) =>
         typeof r?.targetPath === "string" &&
-        path.resolve(r.targetPath) === normalizedTarget
+        normalizeActiveTarget(r.targetPath) === normalizedTarget
     )
   ) {
     result.status = "SKIPPED";

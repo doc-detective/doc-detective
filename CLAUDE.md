@@ -21,7 +21,7 @@ Unit tests are necessary but not sufficient. When you add or change a **user-fac
 
 "Every permutation" means each meaningfully distinct shape the feature can take, for example:
 
-- Each value form a field accepts (boolean / string / object), including the disabling/no-op form (`false`).
+- Each shape a field's value can take (boolean / string / object), including the disabling / no-op form (`false`).
 - Each enumerated option (every engine, target, format, mode).
 - Each precedence level (config vs. spec vs. test overrides).
 - The interaction with related features (overlap, fallback, conflict, skip paths).
