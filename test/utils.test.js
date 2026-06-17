@@ -1571,6 +1571,12 @@ describe("serializeBrowserResult", function () {
     expect(serializeBrowserResult(null)).to.equal("null");
   });
 
+  it("preserves non-JSON primitives (NaN, Infinity) rather than coercing to null", function () {
+    expect(serializeBrowserResult(NaN)).to.equal("NaN");
+    expect(serializeBrowserResult(Infinity)).to.equal("Infinity");
+    expect(serializeBrowserResult(-Infinity)).to.equal("-Infinity");
+  });
+
   it("falls back to String() for undefined and unserializable values", function () {
     expect(serializeBrowserResult(undefined)).to.equal("undefined");
     const circular = {};

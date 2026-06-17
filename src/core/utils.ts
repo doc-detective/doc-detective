@@ -806,7 +806,12 @@ function calculateFractionalDifference(text1: string, text2: string) {
  */
 function serializeBrowserResult(value: unknown): string {
   if (typeof value === "string") return value;
-  if (value === undefined) return "undefined";
+  // Primitives (number, boolean, bigint, symbol, undefined) and null go through
+  // String(): it preserves values like NaN/Infinity/BigInt that JSON.stringify
+  // would coerce to "null", drop to undefined, or throw on.
+  if (value === null || typeof value !== "object") return String(value);
+  // Objects and arrays serialize to JSON, falling back to String() for
+  // circular or otherwise unserializable structures.
   try {
     const json = JSON.stringify(value);
     return json === undefined ? String(value) : json;
