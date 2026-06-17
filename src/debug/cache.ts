@@ -113,23 +113,26 @@ export function collectCacheStatus(config: any): CacheStatus {
     entries.push(probeDir("runtimeDir", getRuntimeDir(ctx)));
     entries.push(probeDir("browsersDir", getBrowsersDir(ctx)));
 
-    // installed.json is a file, not a dir — report existence + whether its
-    // parent is writable (so "can the installer record here?" is answered),
-    // but no free-space figure.
+    // installed.json is a file, not a dir — report existence + whether the
+    // installer could write the record here. writeInstalledRecord() writes via
+    // tmp-file + rename, which depends on the *directory* being writable (not
+    // the file), so probe the parent dir explicitly rather than the file path.
     const recordPath = getInstalledRecordPath(ctx);
     entries.push({
       label: "installed.json",
       path: recordPath,
       exists: safeExists(recordPath),
-      writable: isWritable(recordPath),
+      writable: isWritable(path.dirname(recordPath)),
       freeBytes: null,
     });
 
     // APPIUM_HOME is resolved by mutating process.env (setAppiumHome returns
-    // void), then read back. May be left unset if nothing resolves. This is
-    // idempotent and resolved independently here (the appium collector calls
-    // it too) so each collector is correct standalone and in any order — the
-    // second call in a full dump is a cheap no-op, not an ordering dependency.
+    // void), then read back. setAppiumHome always assigns a value (its legacy
+    // fallback sets one unconditionally), so the unset branch below only fires
+    // if the call threw and was swallowed above. Resolution is idempotent and
+    // done independently here (the appium collector calls it too) so each
+    // collector is correct standalone and in any order — the second call in a
+    // full dump is a cheap no-op, not an ordering dependency.
     try {
       setAppiumHome(ctx);
     } catch {

@@ -564,9 +564,11 @@ function renderAppiumSection(a: AppiumDiagnostics): Section {
   lines.push("");
   lines.push("  drivers:");
   if (a.drivers.length === 0) lines.push("    <none>");
+  // registered === null means the manifest wasn't read — registration is
+  // unknown, not confirmed-absent. That covers two distinct cases: the
+  // manifest is absent, or it's present but unreadable/unparsable.
+  const unknownReason = a.manifestError ? "manifest unreadable" : "no manifest";
   for (const d of a.drivers) {
-    // registered === null means the manifest wasn't read — registration is
-    // unknown, not confirmed-absent.
     const classification =
       d.registered === true
         ? "registered"
@@ -574,7 +576,7 @@ function renderAppiumSection(a: AppiumDiagnostics): Section {
         ? "missing"
         : d.registered === false
         ? "resolvable but not registered"
-        : "resolvable (registration unknown — no manifest)";
+        : `resolvable (registration unknown — ${unknownReason})`;
     lines.push(`    ${d.name.padEnd(24)} ${classification}`);
   }
   return renderSection("Appium registration", lines);
