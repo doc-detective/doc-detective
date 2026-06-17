@@ -154,9 +154,21 @@ export type RecordingEngineSimple = "browser" | "ffmpeg";
  */
 export type RecordBoolean = boolean;
 /**
- * Stop the current recording.
+ * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
  */
-export type StopRecord1 = boolean | null;
+export type StopRecord1 = StopRecordBoolean | StopRecordNull | StopRecordName | StopRecordDetailed;
+/**
+ * If `true`, stops the most recently started active recording (LIFO).
+ */
+export type StopRecordBoolean = boolean;
+/**
+ * Stops the most recently started active recording (LIFO).
+ */
+export type StopRecordNull = null;
+/**
+ * Name of the recording to stop. Matches the `name` given to a `record` step.
+ */
+export type StopRecordName = string;
 /**
  * Load environment variables from the specified `.env` file.
  */
@@ -1278,6 +1290,10 @@ export interface RecordDetailed {
    * If `true`, overwrites the existing recording at `path` if it exists.
    */
   overwrite?: "true" | "false";
+  /**
+   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
+   */
+  name?: string;
   engine?: RecordingEngine;
   [k: string]: unknown;
 }
@@ -1369,6 +1385,12 @@ export interface SourceLocation11 {
 export interface StopRecord {
   stopRecord: StopRecord1;
   [k: string]: unknown;
+}
+export interface StopRecordDetailed {
+  /**
+   * Name of the recording to stop. Matches the `name` given to a `record` step.
+   */
+  name: string;
 }
 export interface Common12 {
   /**

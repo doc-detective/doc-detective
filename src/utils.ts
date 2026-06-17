@@ -127,6 +127,11 @@ function buildYargs(args: any): any {
         "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs plus each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
       type: "boolean",
     })
+    .option("auto-record", {
+      description:
+        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
+      type: "boolean",
+    })
     .option("auto-update", {
       description:
         "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
@@ -394,6 +399,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   }
   if (typeof args.autoScreenshot === "boolean") {
     config.autoScreenshot = args.autoScreenshot;
+  }
+  if (typeof args.autoRecord === "boolean") {
+    config.autoRecord = args.autoRecord;
   }
   if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
     // Assignment-only per the documented setConfig contract (the standard

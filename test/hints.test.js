@@ -1402,12 +1402,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 29 active hints. `useFileTypesForRst` is commented out in the
+    // 30 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(29);
+    expect(HINTS.length).to.equal(30);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1688,6 +1688,51 @@ describe("hints/hints (registry)", function () {
           producedScreenshots: false,
           producedAutoScreenshots: true,
           config: {},
+        })
+      )
+    ).to.equal(false);
+  });
+
+  it("enableAutoRecord: fires for browser runs with no recordings and autoRecord off", function () {
+    const h = findHint("enableAutoRecord");
+    expect(h.priority).to.equal(40);
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          producedRecordings: false,
+          config: {},
+        })
+      )
+    ).to.equal(true);
+    // Negative: no browser contexts in the run.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(),
+          producedRecordings: false,
+          config: {},
+        })
+      )
+    ).to.equal(false);
+    // Negative: the run already produced a recording (incl. an autoRecord one,
+    // which lands as a real record step → producedRecordings true).
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          producedRecordings: true,
+          config: {},
+        })
+      )
+    ).to.equal(false);
+    // Negative: autoRecord is already enabled.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          producedRecordings: false,
+          config: { autoRecord: true },
         })
       )
     ).to.equal(false);

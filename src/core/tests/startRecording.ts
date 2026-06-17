@@ -86,7 +86,24 @@ async function startRecording({ config, context, step, driver }: { config: any; 
   // Resolve which engine to use. The context's browser is already coerced by
   // the runner (headed Chrome preferred when nothing was specified), so this
   // is a pure read.
-  const plan = resolveRecordPlan({ step, context });
+  let plan = resolveRecordPlan({ step, context });
+
+  // The browser engine owns a dedicated recorder tab and switches the active
+  // window, so only one browser-engine recording can run per context. If one
+  // is already active and this would be a second, don't fail — fall back to
+  // the ffmpeg engine with a `viewport` target (cropped to the browser content
+  // area, approximating the browser-engine capture) and warn.
+  const hasActiveBrowserRecording =
+    Array.isArray(driver?.state?.recordings) &&
+    driver.state.recordings.some((r: any) => r?.type === "MediaRecorder");
+  if (plan.name === "browser" && hasActiveBrowserRecording) {
+    log(
+      config,
+      "warning",
+      "A browser-engine recording is already active in this context; recording this one with the ffmpeg engine (viewport target) instead, since only one browser-engine recording can run at a time."
+    );
+    plan = { name: "ffmpeg", target: "viewport", fps: plan.fps };
+  }
 
   if (plan.name === "browser") {
     // Browser engine: capture the Chrome viewport via getDisplayMedia +

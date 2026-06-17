@@ -7,6 +7,7 @@ import {
 import { typeKeys } from "./typeKeys.js";
 import { moveTo } from "./moveTo.js";
 import { wait } from "./wait.js";
+import { isRecordingActive } from "./ffmpegRecorder.js";
 
 export { findElement };
 
@@ -147,7 +148,7 @@ async function findElement({ config, step, driver, click }: { config: any; step:
   }
 
   // If recording, wait until page is loaded and instantiate cursor
-  if (driver?.state?.recording) {
+  if (isRecordingActive(driver)) {
     await wait({ config: config, step: { wait: 2000 }, driver: driver });
   }
   // PASS

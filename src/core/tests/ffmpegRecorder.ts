@@ -29,7 +29,113 @@ export {
   startXvfb,
   XVFB_SCREEN_SIZE,
   detectX11ScreenSize,
+  isRecordingActive,
+  recordStepName,
+  stopRecordTargetName,
+  selectRecordingToStop,
+  detectRecordingNameConflict,
 };
+
+// True when the driver has at least one in-progress recording. Recordings now
+// live in `driver.state.recordings` (an array of handles); this keeps the many
+// "is a recording running?" reads (cursor handling, per-key typing, etc.) a
+// one-liner that's robust to a missing/uninitialized state.
+function isRecordingActive(driver: any): boolean {
+  return (
+    Array.isArray(driver?.state?.recordings) &&
+    driver.state.recordings.length > 0
+  );
+}
+
+// Pull the optional `name` off a `record` step value. Only the detailed-object
+// form carries a name; boolean/string shorthands are anonymous (undefined).
+function recordStepName(record: any): string | undefined {
+  if (record && typeof record === "object" && typeof record.name === "string") {
+    const trimmed = record.name.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  return undefined;
+}
+
+// Pull the optional target name off a `stopRecord` step value. A string is the
+// name directly; an object carries `{ name }`. boolean/null are untargeted
+// (LIFO) and return undefined.
+function stopRecordTargetName(stopRecord: any): string | undefined {
+  if (typeof stopRecord === "string") {
+    const trimmed = stopRecord.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (
+    stopRecord &&
+    typeof stopRecord === "object" &&
+    typeof stopRecord.name === "string"
+  ) {
+    const trimmed = stopRecord.name.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  return undefined;
+}
+
+// Choose which active recording a `stopRecord` step should stop.
+// - A targeted stop (`stopRecord: "name"` / `{ name }`) returns the active
+//   recording with that name, searched across the whole set (overlap need not
+//   be nested). The Phase-1 preflight guarantees names are unique among
+//   simultaneously-active recordings, so a first match is unambiguous.
+// - An untargeted stop (`true`/`null`) is LIFO: the most-recently-started
+//   active recording. By default it skips the synthetic autoRecord recording
+//   so a stray user `stopRecord` can't prematurely end the full-context
+//   capture; end-of-context cleanup passes `includeSynthetic` to drain
+//   everything (including the synthetic one).
+// Returns the handle to stop, or undefined when nothing matches.
+function selectRecordingToStop(
+  recordings: any[],
+  stopRecord: any,
+  { includeSynthetic = false }: { includeSynthetic?: boolean } = {}
+): any {
+  if (!Array.isArray(recordings) || recordings.length === 0) return undefined;
+  const target = stopRecordTargetName(stopRecord);
+  if (target !== undefined) {
+    return recordings.find((r) => r && r.name === target);
+  }
+  for (let i = recordings.length - 1; i >= 0; i--) {
+    const r = recordings[i];
+    if (includeSynthetic || !r?.synthetic) return r;
+  }
+  return undefined;
+}
+
+// Statically simulate the set of active named recordings across a test's steps
+// to catch an ambiguous overlap: a `record` step that (re)uses a `name` while a
+// recording with that same name is still active. Sequential reuse (record "a",
+// stopRecord "a", record "a") is fine — the name is freed by the stop.
+// Anonymous recordings never conflict. Returns the first conflicting name, or
+// null when there is no conflict. Pure — used by the Phase-1 preflight to skip
+// (and warn about) the offending test before any step runs.
+function detectRecordingNameConflict(steps: any[]): string | null {
+  if (!Array.isArray(steps)) return null;
+  // Stack of active recordings (names; undefined for anonymous), LIFO.
+  const active: Array<string | undefined> = [];
+  for (const step of steps) {
+    if (!step || typeof step !== "object") continue;
+    const isStart =
+      typeof step.record !== "undefined" && step.record !== false;
+    const isStop = typeof step.stopRecord !== "undefined";
+    if (isStart) {
+      const name = recordStepName(step.record);
+      if (name !== undefined && active.includes(name)) return name;
+      active.push(name);
+    } else if (isStop) {
+      const target = stopRecordTargetName(step.stopRecord);
+      if (target !== undefined) {
+        const idx = active.lastIndexOf(target);
+        if (idx !== -1) active.splice(idx, 1);
+      } else if (active.length > 0) {
+        active.pop();
+      }
+    }
+  }
+  return null;
+}
 
 // The browser engine drives getDisplayMedia's auto-select via a per-context
 // window title and downloads the .webm to a per-context dir. tests.ts (which
@@ -275,21 +381,45 @@ function computeEffectiveConcurrency({
   jobs,
   platform,
   xvfbAvailable,
+  allowOverlappingCaptures = false,
 }: {
   requestedLimit: number;
   jobs: any[];
   platform: string;
   xvfbAvailable: boolean;
-}): { limit: number; xvfbContexts: any[]; forcedSerial: boolean } {
+  // When true (autoRecord runs), don't force the run serial on a shared
+  // display — let ffmpeg captures overlap. Each concurrent context then
+  // captures the same screen (duplicate/overlapping video), which the
+  // autoRecord caller has opted into. Without it, the safe default below
+  // forces serial so explicit-record users never silently get overlapping
+  // captures.
+  allowOverlappingCaptures?: boolean;
+}): {
+  limit: number;
+  xvfbContexts: any[];
+  forcedSerial: boolean;
+  overlappingCaptures?: boolean;
+} {
   const ffmpegJobs = (jobs || []).filter(jobIsFfmpegRecording);
   if (ffmpegJobs.length === 0) {
     return { limit: requestedLimit, xvfbContexts: [], forcedSerial: false };
   }
   if (platform === "linux" && xvfbAvailable) {
+    // Each runner records its own Xvfb display → truly isolated, real parallel.
     return {
       limit: requestedLimit,
       xvfbContexts: ffmpegJobs.map((j) => j.context),
       forcedSerial: false,
+    };
+  }
+  if (allowOverlappingCaptures) {
+    // "Parallel anyway": keep the requested limit even though captures share
+    // the physical display and will overlap.
+    return {
+      limit: requestedLimit,
+      xvfbContexts: [],
+      forcedSerial: false,
+      overlappingCaptures: true,
     };
   }
   return { limit: 1, xvfbContexts: [], forcedSerial: requestedLimit > 1 };

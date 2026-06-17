@@ -44,6 +44,9 @@ import {
   xvfbDisplay,
   startXvfb,
   XVFB_SCREEN_SIZE,
+  isRecordingActive,
+  recordStepName,
+  detectRecordingNameConflict,
 } from "./tests/ffmpegRecorder.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
@@ -84,6 +87,8 @@ export {
   getDefaultBrowser,
   isSupportedContext,
   resolveAutoScreenshot,
+  resolveAutoRecord,
+  buildAutoRecordStep,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -616,6 +621,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // matches input order, no matter what order concurrent contexts finish in.
   log(config, "info", "Running test specs.");
   const jobs: any[] = [];
+  // Set when at least one context gets a synthetic autoRecord (ffmpeg) step.
+  // It opts the run into overlapping ffmpeg captures (parallel anyway) rather
+  // than the safe-serial default reserved for explicit-only ffmpeg recordings.
+  let autoRecordInjected = false;
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
     // Create-if-missing: specIds (and testIds) aren't guaranteed unique
@@ -640,6 +649,26 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
+      // Preflight: a `record` step that reuses a recording `name` while one is
+      // still active makes a later `stopRecord: "<name>"` ambiguous. Catch it
+      // statically and skip the whole test (across all its contexts) with a
+      // warning, rather than failing mid-run. Scan every context's authored
+      // steps (runOn overrides can differ) and skip if any conflicts.
+      let recordingNameConflict: string | null = null;
+      for (const c of test.contexts) {
+        const conflict = detectRecordingNameConflict(c?.steps);
+        if (conflict) {
+          recordingNameConflict = conflict;
+          break;
+        }
+      }
+      if (recordingNameConflict) {
+        log(
+          config,
+          "warning",
+          `Skipping test '${test.testId}': recording name '${recordingNameConflict}' is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
+        );
+      }
       // Track contextIds within this test so the deterministic fallback below
       // can suffix collisions, mirroring resolveTests' deriveContextId.
       const usedContextIds = new Set<string>(
@@ -665,6 +694,30 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           }
           usedContextIds.add(id);
           context.contextId = id;
+        }
+        // Preflight conflict: record a SKIPPED context and don't enqueue a job.
+        if (recordingNameConflict) {
+          testReport.contexts[slot] = {
+            contextId: context.contextId,
+            platform: context.platform,
+            browser: context.browser,
+            result: "SKIPPED",
+            resultDescription: `Skipped — recording name '${recordingNameConflict}' is reused while still active; names must be unique among overlapping recordings.`,
+            steps: [],
+          };
+          return;
+        }
+        // autoRecord: prepend a synthetic full-context ffmpeg recording step
+        // (even when the author also has explicit record steps — overlapping is
+        // intended). Done before the concurrency calc below so the synthetic
+        // ffmpeg recording is counted by jobIsFfmpegRecording.
+        if (resolveAutoRecord({ config, spec, test })) {
+          const autoStep = buildAutoRecordStep({ config, spec, test, context });
+          if (autoStep) {
+            if (!Array.isArray(context.steps)) context.steps = [];
+            context.steps.unshift(autoStep);
+            autoRecordInjected = true;
+          }
         }
         // Auto-resolution: when a record step has no explicit engine and the
         // user never chose a browser, prefer the concurrency-safe browser
@@ -700,6 +753,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     jobs,
     platform: process.platform,
     xvfbAvailable,
+    // autoRecord runs opt into overlapping captures rather than forced-serial.
+    allowOverlappingCaptures: autoRecordInjected,
   });
   limit = concurrency.limit;
   if (concurrency.forcedSerial) {
@@ -709,6 +764,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       "Recording with the ffmpeg engine needs exclusive use of the display, so this run is executing serially (concurrentRunners=1). To record concurrently, use the Chrome browser engine (record: { engine: \"browser\" }) or, on Linux, install Xvfb."
     );
     report.recordingForcedSerial = true;
+  } else if (concurrency.overlappingCaptures && limit > 1) {
+    log(
+      config,
+      "warning",
+      "autoRecord is running ffmpeg recordings concurrently on a shared display, so the captured videos will overlap (each context records the whole screen). For isolated concurrent recordings, run on Linux with Xvfb installed."
+    );
   }
 
   // Start one Appium server per concurrent runner that will actually use a
@@ -1119,6 +1180,60 @@ function resolveAutoScreenshot({
   return Boolean(
     test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot
   );
+}
+
+// Effective autoRecord setting for a test: same precedence as autoScreenshot
+// (test > spec > config; unset levels defer down the chain).
+function resolveAutoRecord({
+  config,
+  spec,
+  test,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+}): boolean {
+  return Boolean(test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord);
+}
+
+// Build the synthetic full-context recording step for an autoRecord run, or
+// null when the context shouldn't be recorded (no driver-required authored
+// steps). Always uses the ffmpeg engine, and a deterministic path under the
+// run's artifact folder (recordings/<specId>/<testId>/<contextId>.mp4) so the
+// same context lands on the same relative path every run for comparison. The
+// `__autoRecord` marker tags the started handle as synthetic so an untargeted
+// user `stopRecord` won't end it (only end-of-context cleanup does).
+function buildAutoRecordStep({
+  config,
+  spec,
+  test,
+  context,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+  context: any;
+}): any | null {
+  if (!isDriverRequired({ test: context })) return null;
+  const runDir = getRunOutputDir(config);
+  const fileName = `${capPathSegment(
+    sanitizeFilesystemName(String(context.contextId ?? ""), "context")
+  )}.mp4`;
+  const recordPath = path.join(
+    runDir,
+    "recordings",
+    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
+    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
+    fileName
+  );
+  return {
+    record: { path: recordPath, overwrite: "true", engine: "ffmpeg" },
+    description: "Automatic full-context recording",
+    stepId: `${sanitizeFilesystemName(String(test.testId ?? ""), "test")}~autorecord`,
+    // Internal marker — the runStep record dispatch flags the started handle as
+    // synthetic so it survives untargeted stopRecord and is swept by cleanup.
+    __autoRecord: true,
+  };
 }
 
 // Directory/file segments built from IDs are capped so deeply nested doc
@@ -1645,35 +1760,22 @@ async function runContext({
       }
     }
 
-    // If recording, stop recording
-    if (driver?.state?.recording) {
-      const stopRecordStep = {
-        stopRecord: true,
-        description: "Stopping recording",
-        stepId: randomUUID(),
-      };
-      const stepResult = await runStep({
-        config: config,
-        context: context,
-        step: stopRecordStep,
-        driver: driver,
-        options: {
-          openApiDefinitions: context.openApi || [],
-        },
-      });
-      stepResult.result = stepResult.status;
-      stepResult.resultDescription = stepResult.description;
-      delete stepResult.status;
-      delete stepResult.description;
-
-      // Add step result to report
-      const stepReport = {
-        ...stopRecordStep,
-        ...stepResult,
-      };
-      contextReport.steps.push(stepReport);
-    }
+    // Stop every recording still active at the end of the context (the
+    // synthetic autoRecord capture plus any explicit record steps the author
+    // didn't stop). Each produces an ordered stopRecord step report.
+    await stopAllRecordings({ config, context, driver, contextReport });
   } finally {
+    // Safety net: if the context threw before the normal sweep above, recordings
+    // are still active. Stop them now — while the driver session is still alive
+    // (the deleteSession below would otherwise kill the browser/ffmpeg capture
+    // and leak the process). On the normal path the set is already empty, so
+    // this is a no-op. Best-effort: a stop failure here must not mask the
+    // original error.
+    try {
+      await stopAllRecordings({ config, context, driver, contextReport });
+    } catch (error: any) {
+      clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
+    }
     // Close driver. In a finally so an unexpected throw can't leak a session
     // while sibling contexts keep running.
     if (driver) {
@@ -1693,6 +1795,64 @@ async function runContext({
 
   contextReport.result = rollUpResults(contextReport.steps);
   return contextReport;
+}
+
+// Stop every recording still active on the driver, pushing an ordered
+// stopRecord step report for each. Drains the per-context stack (LIFO) by
+// synthesizing `{ stopRecord: true, __stopAny: true }` steps — `__stopAny`
+// lets the generic stop also end the synthetic autoRecord recording (a plain
+// user `stopRecord: true` deliberately skips it). Each stop removes its handle
+// even on failure, so the loop always makes progress; an explicit iteration
+// cap is a belt-and-suspenders guard against a handle that somehow refuses to
+// drop. Each synthesized stop is isolated so one failure doesn't abort the
+// rest. Safe to call when nothing is active (no-op).
+async function stopAllRecordings({
+  config,
+  context,
+  driver,
+  contextReport,
+}: {
+  config: any;
+  context: any;
+  driver: any;
+  contextReport: any;
+}): Promise<void> {
+  if (!Array.isArray(driver?.state?.recordings)) return;
+  let guard = driver.state.recordings.length + 1;
+  while (driver.state.recordings.length > 0 && guard-- > 0) {
+    const stopRecordStep: any = {
+      stopRecord: true,
+      __stopAny: true,
+      description: "Stopping recording",
+      stepId: randomUUID(),
+    };
+    try {
+      const stepResult = await runStep({
+        config,
+        context,
+        step: stopRecordStep,
+        driver,
+        options: { openApiDefinitions: context.openApi || [] },
+      });
+      stepResult.result = stepResult.status;
+      stepResult.resultDescription = stepResult.description;
+      delete stepResult.status;
+      delete stepResult.description;
+      // Don't leak the internal routing marker into the report.
+      delete stopRecordStep.__stopAny;
+      contextReport.steps.push({ ...stopRecordStep, ...stepResult });
+    } catch (error: any) {
+      // A throw from runStep would otherwise strand the remaining handles.
+      // Drop the top handle so the loop can't spin, and record the failure.
+      delete stopRecordStep.__stopAny;
+      driver.state.recordings.pop();
+      contextReport.steps.push({
+        ...stopRecordStep,
+        result: "FAIL",
+        resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+      });
+    }
+  }
 }
 
 // Run a specific step
@@ -1761,7 +1921,17 @@ async function runStep({
       step: step,
       driver: driver,
     });
-    driver.state.recording = actionResult.recording ?? null;
+    // Push the started recording onto the per-context stack so several can
+    // overlap. Carry the step's `id`/`name` so a later stopRecord can target
+    // it (by name) and end-of-context cleanup can identify the synthetic one.
+    if (actionResult.recording) {
+      if (!Array.isArray(driver.state.recordings)) driver.state.recordings = [];
+      const handle = actionResult.recording;
+      handle.id = handle.id ?? randomUUID();
+      handle.name = handle.name ?? recordStepName(step.record);
+      if (step.__autoRecord) handle.synthetic = true;
+      driver.state.recordings.push(handle);
+    }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step });
   } else if (typeof step.runShell !== "undefined") {
@@ -1787,7 +1957,7 @@ async function runStep({
     };
   }
   // If recording, wait until browser is loaded, then instantiate cursor
-  if (driver?.state?.recording) {
+  if (isRecordingActive(driver)) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
@@ -1922,9 +2092,12 @@ async function driverStart(
         connectionRetryTimeout: 120000, // 2 minutes
         waitforTimeout: 120000, // 2 minutes
       });
-      // Per-context mutable state. `recording` lives here (not on config)
-      // so concurrent contexts can't clobber each other's recordings.
-      driver.state = { url: "", x: null, y: null, recording: null };
+      // Per-context mutable state. `recordings` lives here (not on config)
+      // so concurrent contexts can't clobber each other's recordings. It is a
+      // stack of active recording handles (LIFO) so several can overlap within
+      // one context (e.g. an autoRecord full-context capture plus an explicit
+      // record/stopRecord sub-section).
+      driver.state = { url: "", x: null, y: null, recordings: [] };
       return driver;
     } catch (err: any) {
       lastError = err;

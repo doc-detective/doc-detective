@@ -77,6 +77,10 @@ export interface Specification {
    */
   autoScreenshot?: boolean;
   /**
+   * If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level.
+   */
+  autoRecord?: boolean;
+  /**
    * [Tests](test) to perform.
    *
    * @minItems 1

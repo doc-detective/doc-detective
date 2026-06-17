@@ -1,7 +1,11 @@
 import { getRunOutputDir } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
-import { resolveAutoScreenshot } from "../dist/core/tests.js";
+import {
+  resolveAutoScreenshot,
+  resolveAutoRecord,
+  buildAutoRecordStep,
+} from "../dist/core/tests.js";
 import { reporters } from "../dist/utils.js";
 import { buildHtml } from "../dist/reporters/htmlReporter.js";
 import path from "node:path";
@@ -314,6 +318,74 @@ describe("resolveAutoScreenshot precedence", function () {
         test: { autoScreenshot: false },
       })
     ).to.equal(false);
+  });
+});
+
+describe("resolveAutoRecord precedence", function () {
+  it("defers down the chain when levels are unset (test > spec > config)", function () {
+    expect(
+      resolveAutoRecord({ config: { autoRecord: true }, spec: {}, test: {} })
+    ).to.equal(true);
+    expect(resolveAutoRecord({ config: {}, spec: {}, test: {} })).to.equal(false);
+    // Spec overrides config.
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: false },
+        spec: { autoRecord: true },
+        test: {},
+      })
+    ).to.equal(true);
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: true },
+        spec: { autoRecord: false },
+        test: {},
+      })
+    ).to.equal(false);
+    // Test overrides spec and config.
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: false },
+        spec: { autoRecord: false },
+        test: { autoRecord: true },
+      })
+    ).to.equal(true);
+    expect(
+      resolveAutoRecord({
+        config: { autoRecord: true },
+        spec: { autoRecord: true },
+        test: { autoRecord: false },
+      })
+    ).to.equal(false);
+  });
+});
+
+describe("buildAutoRecordStep", function () {
+  const config = { logLevel: "silent" };
+  const spec = { specId: "docs/guide.md" };
+  const test = { testId: "docs/guide.md~abc123" };
+
+  it("builds a synthetic ffmpeg record step with a deterministic path for a driver context", function () {
+    const context = {
+      contextId: "windows-chrome",
+      steps: [{ goTo: { url: "https://example.com" } }],
+    };
+    const step = buildAutoRecordStep({ config, spec, test, context });
+    expect(step, "expected a synthetic step").to.not.equal(null);
+    expect(step.record.engine).to.equal("ffmpeg");
+    expect(step.record.overwrite).to.equal("true");
+    expect(step.__autoRecord).to.equal(true);
+    // Deterministic path ending in recordings/<spec>/<test>/<context>.mp4.
+    const normalized = step.record.path.split(path.sep).join("/");
+    expect(normalized).to.match(/recordings\/.+\/.+\/windows-chrome\.mp4$/);
+  });
+
+  it("returns null when the context has no driver-required steps", function () {
+    const context = {
+      contextId: "default",
+      steps: [{ httpRequest: { url: "https://api.example.com" } }],
+    };
+    expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
   });
 });
 

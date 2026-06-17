@@ -1118,6 +1118,7 @@ describe("debug/provenance", function () {
       hints: true,
       autoUpdate: true,
       autoScreenshot: true,
+      autoRecord: true,
       cacheDir: "z",
       concurrentRunners: "2",
     });
@@ -1133,6 +1134,7 @@ describe("debug/provenance", function () {
       "hints",
       "auto-update",
       "auto-screenshot",
+      "auto-record",
       "cache-dir",
       "concurrent-runners",
     ]);

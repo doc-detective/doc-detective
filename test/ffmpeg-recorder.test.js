@@ -12,6 +12,11 @@ import {
   parseMacScreenIndex,
   checkSystemBinary,
   xvfbDisplay,
+  isRecordingActive,
+  recordStepName,
+  stopRecordTargetName,
+  selectRecordingToStop,
+  detectRecordingNameConflict,
 } from "../dist/core/tests/ffmpegRecorder.js";
 
 describe("ffmpegRecorder", function () {
@@ -357,6 +362,153 @@ describe("ffmpegRecorder", function () {
       });
       expect(r.limit).to.equal(1);
       expect(r.forcedSerial).to.equal(false);
+    });
+
+    it("allows overlapping captures (parallel anyway) when opted in on win/mac", function () {
+      for (const platform of ["win32", "darwin"]) {
+        const r = computeEffectiveConcurrency({
+          requestedLimit: 4,
+          jobs: [ffmpegJob, plainJob],
+          platform,
+          xvfbAvailable: false,
+          allowOverlappingCaptures: true,
+        });
+        expect(r.limit, platform).to.equal(4);
+        expect(r.forcedSerial, platform).to.equal(false);
+        expect(r.overlappingCaptures, platform).to.equal(true);
+      }
+    });
+
+    it("still forces serial for ffmpeg without the overlap opt-in (no regression)", function () {
+      const r = computeEffectiveConcurrency({
+        requestedLimit: 4,
+        jobs: [ffmpegJob],
+        platform: "win32",
+        xvfbAvailable: false,
+        allowOverlappingCaptures: false,
+      });
+      expect(r.limit).to.equal(1);
+      expect(r.forcedSerial).to.equal(true);
+    });
+
+    it("prefers Xvfb isolation over overlap even when overlap is allowed", function () {
+      const r = computeEffectiveConcurrency({
+        requestedLimit: 4,
+        jobs: [ffmpegJob],
+        platform: "linux",
+        xvfbAvailable: true,
+        allowOverlappingCaptures: true,
+      });
+      expect(r.limit).to.equal(4);
+      expect(r.forcedSerial).to.equal(false);
+      expect(r.xvfbContexts.length).to.equal(1);
+      expect(r.overlappingCaptures).to.equal(undefined);
+    });
+  });
+
+  describe("isRecordingActive", function () {
+    it("is false for missing/empty recordings and true for >=1", function () {
+      expect(isRecordingActive(undefined)).to.equal(false);
+      expect(isRecordingActive({})).to.equal(false);
+      expect(isRecordingActive({ state: {} })).to.equal(false);
+      expect(isRecordingActive({ state: { recordings: [] } })).to.equal(false);
+      expect(isRecordingActive({ state: { recordings: [{ id: "a" }] } })).to.equal(
+        true
+      );
+    });
+  });
+
+  describe("recordStepName / stopRecordTargetName", function () {
+    it("reads record name only from the detailed object form", function () {
+      expect(recordStepName(true)).to.equal(undefined);
+      expect(recordStepName("out.mp4")).to.equal(undefined);
+      expect(recordStepName({ path: "out.mp4" })).to.equal(undefined);
+      expect(recordStepName({ name: "demo" })).to.equal("demo");
+      expect(recordStepName({ name: "  demo  " })).to.equal("demo");
+      expect(recordStepName({ name: "   " })).to.equal(undefined);
+    });
+
+    it("reads stopRecord target from a string or { name }", function () {
+      expect(stopRecordTargetName(true)).to.equal(undefined);
+      expect(stopRecordTargetName(null)).to.equal(undefined);
+      expect(stopRecordTargetName("demo")).to.equal("demo");
+      expect(stopRecordTargetName({ name: "demo" })).to.equal("demo");
+      expect(stopRecordTargetName({ name: "" })).to.equal(undefined);
+    });
+  });
+
+  describe("selectRecordingToStop", function () {
+    const synth = { id: "s", synthetic: true };
+    const a = { id: "a", name: "a" };
+    const b = { id: "b", name: "b" };
+
+    it("LIFO returns the most-recent non-synthetic recording", function () {
+      expect(selectRecordingToStop([synth, a, b], true)).to.equal(b);
+      expect(selectRecordingToStop([synth, a], null)).to.equal(a);
+    });
+
+    it("LIFO skips the synthetic recording (returns undefined when only synthetic)", function () {
+      expect(selectRecordingToStop([synth], true)).to.equal(undefined);
+    });
+
+    it("includeSynthetic lets LIFO stop the synthetic recording (cleanup path)", function () {
+      expect(
+        selectRecordingToStop([synth], true, { includeSynthetic: true })
+      ).to.equal(synth);
+    });
+
+    it("targets a recording by name anywhere in the set", function () {
+      expect(selectRecordingToStop([synth, a, b], "a")).to.equal(a);
+      expect(selectRecordingToStop([synth, a, b], { name: "b" })).to.equal(b);
+      expect(selectRecordingToStop([synth, a, b], "missing")).to.equal(undefined);
+    });
+
+    it("returns undefined for an empty set", function () {
+      expect(selectRecordingToStop([], true)).to.equal(undefined);
+    });
+  });
+
+  describe("detectRecordingNameConflict", function () {
+    it("flags a name reused while still active", function () {
+      const steps = [
+        { record: { path: "a.mp4", name: "demo" } },
+        { record: { path: "b.mp4", name: "demo" } },
+      ];
+      expect(detectRecordingNameConflict(steps)).to.equal("demo");
+    });
+
+    it("allows sequential reuse once the first is stopped", function () {
+      const steps = [
+        { record: { path: "a.mp4", name: "demo" } },
+        { stopRecord: "demo" },
+        { record: { path: "b.mp4", name: "demo" } },
+      ];
+      expect(detectRecordingNameConflict(steps)).to.equal(null);
+    });
+
+    it("allows overlapping recordings with distinct names", function () {
+      const steps = [
+        { record: { path: "a.mp4", name: "a" } },
+        { record: { path: "b.mp4", name: "b" } },
+        { stopRecord: "a" },
+        { stopRecord: "b" },
+      ];
+      expect(detectRecordingNameConflict(steps)).to.equal(null);
+    });
+
+    it("never conflicts on anonymous recordings, and LIFO stop frees the stack", function () {
+      const steps = [
+        { record: true },
+        { record: true },
+        { stopRecord: true },
+        { record: true },
+      ];
+      expect(detectRecordingNameConflict(steps)).to.equal(null);
+    });
+
+    it("returns null for non-array / empty input", function () {
+      expect(detectRecordingNameConflict(undefined)).to.equal(null);
+      expect(detectRecordingNameConflict([])).to.equal(null);
     });
   });
 

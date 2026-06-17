@@ -92,6 +92,27 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // enableAutoRecord (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "enableAutoRecord",
+    priority: 40,
+    markdown: [
+      "Want a video of every run? Enable `--auto-record` to record each browser context end-to-end with the ffmpeg engine.",
+      "",
+      "Videos are archived per run under `.doc-detective/run-<runId>/` alongside test results, so you can replay exactly what happened.",
+      "",
+      "```bash",
+      "doc-detective --auto-record",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      !ctx.producedRecordings &&
+      !ctx.config?.autoRecord,
+  },
+
+  // ------------------------------------------------------------------
   // enableAutoScreenshot (feature discovery)
   // ------------------------------------------------------------------
   {

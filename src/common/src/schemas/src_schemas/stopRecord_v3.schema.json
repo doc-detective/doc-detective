@@ -1,9 +1,51 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "stopRecord",
-  "description": "Stop the current recording.",
-  "type": ["boolean", "null"],
+  "description": "Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: \"<name>\"`) or an object (`stopRecord: { name: \"<name>\" }`).",
+  "anyOf": [
+    {
+      "type": "boolean",
+      "title": "stopRecord (boolean)",
+      "description": "If `true`, stops the most recently started active recording (LIFO)."
+    },
+    {
+      "type": "null",
+      "title": "stopRecord (null)",
+      "description": "Stops the most recently started active recording (LIFO)."
+    },
+    {
+      "type": "string",
+      "title": "stopRecord (name)",
+      "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ]
+    },
+    {
+      "type": "object",
+      "title": "stopRecord (detailed)",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the recording to stop. Matches the `name` given to a `record` step.",
+          "pattern": "\\S",
+          "transform": [
+            "trim"
+          ]
+        }
+      }
+    }
+  ],
   "examples": [
-    true
+    true,
+    "demo",
+    {
+      "name": "demo"
+    }
   ]
 }

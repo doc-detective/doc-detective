@@ -3,7 +3,11 @@ import { log } from "../utils.js";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
-import { getFfmpegPath } from "./ffmpegRecorder.js";
+import {
+  getFfmpegPath,
+  selectRecordingToStop,
+  stopRecordTargetName,
+} from "./ffmpegRecorder.js";
 
 export { stopRecording };
 
@@ -23,15 +27,32 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     return result;
   }
 
-  // Skip if recording is not started. Recording state is per-context (it
-  // lives on driver.state), so concurrent contexts can't see each other's
-  // recordings.
-  const recording = driver?.state?.recording;
+  // Resolve which active recording to stop. Recordings are per-context (they
+  // live on driver.state.recordings), so concurrent contexts can't see each
+  // other's recordings. `__stopAny` (set by end-of-context cleanup) lets a
+  // generic stop also drain the synthetic autoRecord recording.
+  const recordings: any[] = Array.isArray(driver?.state?.recordings)
+    ? driver.state.recordings
+    : [];
+  const recording = selectRecordingToStop(recordings, step.stopRecord, {
+    includeSynthetic: step?.__stopAny === true,
+  });
   if (!recording) {
     result.status = "SKIPPED";
-    result.description = `Recording isn't started.`;
+    const target = stopRecordTargetName(step.stopRecord);
+    result.description = target
+      ? `No active recording named '${target}'.`
+      : `Recording isn't started.`;
     return result;
   }
+
+  // Remove this specific handle from the active set regardless of how the stop
+  // below resolves — a failed stop must not leave a dead handle that the
+  // end-of-context cleanup would retry forever.
+  const dropHandle = () => {
+    const idx = recordings.indexOf(recording);
+    if (idx !== -1) recordings.splice(idx, 1);
+  };
 
   try {
     if (recording.type === "MediaRecorder") {
@@ -56,7 +77,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         if (remainingHandles.length > 0) {
           await driver.switchToWindow(remainingHandles[0]);
         }
-        driver.state.recording = null;
+        dropHandle();
         return result;
       }
 
@@ -74,7 +95,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         result.description = "Recording download timed out.";
         // Clear the state so the auto-stop in runContext doesn't re-invoke
         // a doomed second stop (the recorder was already told to stop).
-        driver.state.recording = null;
+        dropHandle();
         return result;
       }
       // Close recording tab and switch back to the original content tab
@@ -94,7 +115,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         targetPath: recording.targetPath,
         deleteSource: true,
       });
-      driver.state.recording = null;
+      dropHandle();
     } else if (recording.type === "ffmpeg") {
       // ffmpeg engine. Stop the capture gracefully (write "q" to stdin so the
       // container is finalized), then transcode the temp .mkv into the target
@@ -145,15 +166,15 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         deleteSource: true,
         crop: recording.crop,
       });
-      driver.state.recording = null;
+      dropHandle();
     }
   } catch (error) {
     // Couldn't stop recording
     result.status = "FAIL";
     result.description = `Couldn't stop recording. ${error}`;
-    // Clear the state so the auto-stop in runContext doesn't re-invoke a
+    // Drop the handle so the auto-stop in runContext doesn't re-invoke a
     // doomed second stop.
-    driver.state.recording = null;
+    dropHandle();
     return result;
   }
 

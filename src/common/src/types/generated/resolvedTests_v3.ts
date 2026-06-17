@@ -188,6 +188,10 @@ export interface Config {
    */
   autoScreenshot?: boolean;
   /**
+   * If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs (for example, `recordings/<specId>/<testId>/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.
+   */
+  autoRecord?: boolean;
+  /**
    * If `true` (default), the CLI checks for a newer published `doc-detective` on startup and self-updates before running tests. Updates happen for global (`npm i -g`) and `npx` installs only — local installs (where `doc-detective` is a project dep) get an informational message instead, since auto-updating would mutate the user's lockfile. CI environments and the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` env var also skip the check. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI.
    */
   autoUpdate?: boolean;
@@ -515,6 +519,10 @@ export interface Specification {
    * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
    */
   autoScreenshot?: boolean;
+  /**
+   * If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level.
+   */
+  autoRecord?: boolean;
   /**
    * [Tests](test) to perform.
    *

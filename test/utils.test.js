@@ -375,6 +375,34 @@ describe("Util tests", function () {
     expect(configAbsent.autoScreenshot).to.equal(false);
   });
 
+  it("Yargs parses --auto-record / --no-auto-record as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--auto-record"]);
+    expect(on.autoRecord).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-auto-record"]);
+    expect(off.autoRecord).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.autoRecord).to.equal(undefined);
+  });
+
+  it("setConfig stores --auto-record on config.autoRecord and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--auto-record"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.autoRecord).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-auto-record"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.autoRecord).to.equal(false);
+
+    // Schema default is false; absent flag yields false via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.autoRecord).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.autoRecord).to.equal(false);
+  });
+
   it("Yargs parses --cache-dir as a string", function () {
     const set = setArgs(["node", "runTests.js", "--cache-dir", "/tmp/ddc"]);
     expect(set.cacheDir).to.equal("/tmp/ddc");

@@ -10,6 +10,7 @@ import {
 import path from "node:path";
 import fs from "node:fs";
 import { loadHeavyDep } from "../../runtime/loader.js";
+import { isRecordingActive } from "./ffmpegRecorder.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -348,7 +349,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
 
   try {
     // If recording is true, hide cursor
-    if (driver?.state?.recording) {
+    if (isRecordingActive(driver)) {
       await driver.execute(() => {
         (document.querySelector("dd-mouse-pointer") as any).style.display = "none";
       });
@@ -356,7 +357,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     // Save screenshot
     await driver.saveScreenshot(filePath);
     // If recording is true, show cursor
-    if (driver?.state?.recording) {
+    if (isRecordingActive(driver)) {
       await driver.execute(() => {
         (document.querySelector("dd-mouse-pointer") as any).style.display = "block";
       });
