@@ -1,8 +1,19 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams } from "../utils.js";
+import { isRelativeUrl, appendQueryParams, rollUpResults } from "../utils.js";
 import axios from "axios";
 
 export { checkLink };
+
+// One articulated assertion record. See runShell.ts and
+// docs/design/dynamic-routing-roadmap.md ("Assertions") for the locked shape.
+interface AssertionRecord {
+  statement: string;
+  source: "implicit" | "custom";
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  expected?: any;
+  actual?: any;
+  description?: string;
+}
 
 const DEFAULT_HEADERS: Record<string, string> = {
   "User-Agent":
@@ -124,7 +135,7 @@ async function attemptRequest(
 }
 
 async function checkLink({ config, step }: { config: any; step: any }) {
-  let result = { status: "PASS", description: "Checked link." };
+  let result: any = { status: "PASS", description: "Checked link." };
 
   // Resolve to object
   if (typeof step.checkLink === "string") {
@@ -227,22 +238,39 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     }
   }
 
+  // Unresolvable URL is an EXECUTION error (no status came back), not an
+  // assertion: return FAIL with no assertion records (per the locked ruling),
+  // mirroring runShell's treatment of timeouts/spawn failures.
   if (last.statusCode === null) {
     result.status = "FAIL";
     result.description = `Invalid or unresolvable URL: ${url}`;
     return result;
   }
 
-  // Compare status codes
-  if (step.checkLink.statusCodes.indexOf(last.statusCode) >= 0) {
-    result.status = "PASS";
-    result.description = `Returned ${last.statusCode}`;
-  } else {
-    result.status = "FAIL";
-    result.description = `Returned ${last.statusCode}. Expected one of ${JSON.stringify(
-      step.checkLink.statusCodes
-    )}`;
-  }
+  // Implicit assertion: statusCode ∈ statusCodes. Always applicable (statusCodes
+  // is defaulted), always evaluated (a status came back), so there's no
+  // all-SKIPPED ambiguity. The step result is the roll-up of the emitted
+  // assertions.
+  const assertions: AssertionRecord[] = [];
+  const statusCodePass =
+    step.checkLink.statusCodes.indexOf(last.statusCode) >= 0;
+  const statusCodeDescription = statusCodePass
+    ? `Returned ${last.statusCode}`
+    : `Returned ${last.statusCode}. Expected one of ${JSON.stringify(
+        step.checkLink.statusCodes
+      )}`;
+  assertions.push({
+    statement: `statusCode in ${JSON.stringify(step.checkLink.statusCodes)}`,
+    source: "implicit",
+    result: statusCodePass ? "PASS" : "FAIL",
+    expected: step.checkLink.statusCodes,
+    actual: last.statusCode,
+    description: statusCodeDescription,
+  });
+
+  result.assertions = assertions;
+  result.status = rollUpResults(assertions);
+  result.description = statusCodeDescription;
 
   return result;
 }

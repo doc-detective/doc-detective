@@ -242,9 +242,17 @@ Everything is additive and opt-in:
   - **Rollout caveat for 4a.2:** actions lacking an always-evaluated leading check (unlike runShell's
     exitCode) can roll up all-SKIPPED → SKIPPED, or zero-records → PASS — decide the intended rollup
     per action.
-- **Phase 4a.2 (fan-out) — pending.** Apply the exemplar pattern to httpRequest, checkLink, runCode,
-  runBrowserScript, find (+ element-existence in click/type/dragAndDrop), screenshot; fix bug #1
-  (runCode drops its own `exitCodes`) and #3 (dead/inconsistent `scroll`).
+- **Phase 4a.2a (non-driver actions) — done, committed.** `httpRequest` (8 checks mapped in original
+  order; total network failure = execution error), `checkLink` (statusCode; unresolvable URL =
+  execution error), `runCode` (delegates to runShell; **bug #1 fixed** — now forwards
+  exitCodes/stdio/maxVariation/overwrite/timeout/workingDirectory/path and propagates assertions).
+  Sanctioned fix #2: a passing STRING `response.body` no longer short-circuits the response-headers /
+  `path`-save checks (an old inconsistency; locked with tests + a code comment). Reviewed GO;
+  backward-compat preserved; runCode bug-#1 E2E fixture added; `tests.ts` untouched.
+- **Phase 4a.2b (driver/element actions) — pending.** Apply the pattern to `find` (+ element-existence
+  in `click`/`type`/`dragAndDrop`), `screenshot`, `runBrowserScript`. Mind the rollup caveat (these
+  lack an always-evaluated leading check, so all-SKIPPED → SKIPPED / zero-records → PASS must be
+  decided per action). Bug #3 (dead `scroll`): confirm unreachable; cleanup optional.
 
 ## Implicit-assertion inventory (Phase 4a — classifications locked)
 

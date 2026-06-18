@@ -5,9 +5,25 @@ import path from "node:path";
 import _Ajv from "ajv";
 const Ajv = _Ajv as unknown as typeof _Ajv.default;
 import { getOperation, loadDescription } from "../openapi.js";
-import { log, calculateFractionalDifference, replaceEnvs } from "../utils.js";
+import {
+  log,
+  calculateFractionalDifference,
+  replaceEnvs,
+  rollUpResults,
+} from "../utils.js";
 
 export { httpRequest };
+
+// One articulated assertion record. See runShell.ts and
+// docs/design/dynamic-routing-roadmap.md ("Assertions") for the locked shape.
+interface AssertionRecord {
+  statement: string;
+  source: "implicit" | "custom";
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  expected?: any;
+  actual?: any;
+  description?: string;
+}
 
 async function httpRequest({ config, step, openApiDefinitions = [] }: { config: any; step: any; openApiDefinitions?: any[] }) {
   let result: any = { status: "", description: "", outputs: {} };
@@ -230,13 +246,39 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     timeout: step.httpRequest.timeout,
   };
 
-  // Validate request payload against OpenAPI definition
+  // ---------------------------------------------------------------------------
+  // Articulated implicit assertions.
+  //
+  // The runner emits one AssertionRecord per verification check, IN THEIR
+  // ORIGINAL ORDER, preserving the prior short-circuit/early-return behavior and
+  // exact PASS/FAIL/WARNING outcomes. Once a check FAILs we stop *evaluating*
+  // successors (their inputs may not be meaningful) but still REPORT each
+  // applicable-but-not-reached check as a SKIPPED record. A check is APPLICABLE
+  // only when its feature is configured; non-applicable checks are omitted.
+  // The step result is the roll-up of the emitted assertions
+  // (FAIL > WARNING > all-SKIPPED > PASS). The leading statusCode check is
+  // always applicable and always evaluated when a status came back, so an
+  // all-SKIPPED roll-up can't happen on a normal request.
+  //
+  // Execution errors (NOT assertions) still return FAIL with NO records:
+  //   - invalid step / OpenAPI resolution failures (handled above);
+  //   - request-body schema validation failure (no request is made);
+  //   - total network failure with no response at all (no status came back).
+  // ---------------------------------------------------------------------------
+  const assertions: AssertionRecord[] = [];
+  let shortCircuited = false;
+  const descriptions: string[] = [];
+
+  // (1) Request body matches OpenAPI schema. APPLICABLE only when
+  // validateAgainstSchema is request/both and a request schema exists. This runs
+  // BEFORE the request is made, so a failure here is an execution error: no
+  // request is performed and no response/outputs exist -> FAIL, no records
+  // (preserves the prior early return).
   if (
     (step.httpRequest.openApi?.validateAgainstSchema === "request" ||
       step.httpRequest.openApi?.validateAgainstSchema === "both") &&
     operation.schemas.request
   ) {
-    // Validate request payload against OpenAPI definition
     const ajv = new Ajv({
       strictSchema: false,
       useDefaults: true,
@@ -247,8 +289,15 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     const validateFn = ajv.compile(operation.schemas.request);
     const valid = validateFn(step.httpRequest.request.body);
     if (valid) {
-      result.description = ` Request body matched the OpenAPI schema.`;
+      assertions.push({
+        statement: "request body matches OpenAPI schema",
+        source: "implicit",
+        result: "PASS",
+        description: `Request body matched the OpenAPI schema.`,
+      });
+      descriptions.push(`Request body matched the OpenAPI schema.`);
     } else {
+      // Preserve prior behavior: execution error, FAIL, no assertion records.
       result.status = "FAIL";
       result.description = ` Request body didn't match the OpenAPI schema. ${JSON.stringify(
         validateFn.errors,
@@ -270,6 +319,21 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         return { error };
       });
     if (response?.error?.response) response = response.error.response;
+    // Total network failure: no response object came back at all (e.g. DNS
+    // failure, connection refused). Per the locked ruling this is an EXECUTION
+    // error, not an assertion -> FAIL, no records. Only run the statusCode
+    // assertion when a status actually came back (including 4xx/5xx via
+    // error.response).
+    if (typeof response.status === "undefined") {
+      result.outputs.response = {
+        body: response.data,
+        statusCode: response.status,
+        headers: response.headers,
+      };
+      result.status = "FAIL";
+      result.description = `Request to ${step.httpRequest.url} failed: no response received.`;
+      return result;
+    }
     result.outputs.response = {
       body: response.data,
       statusCode: response.status,
@@ -294,147 +358,292 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     response.headers = step.httpRequest?.response?.headers;
   }
 
-  // Compare status codes
+  // (2) statusCode ∈ statusCodes. Always applicable (statusCodes is defaulted)
+  // and always evaluated (a status came back).
   if (step.httpRequest.statusCodes) {
-    if (step.httpRequest.statusCodes.indexOf(response.status) >= 0) {
-      result.status = "PASS";
-      result.description = `Returned ${response.status}.`;
-    } else {
-      result.status = "FAIL";
-      result.description = `Returned ${
-        response.status
-      }. Expected one of ${JSON.stringify(step.httpRequest.statusCodes)}.`;
-    }
+    const statusPass =
+      step.httpRequest.statusCodes.indexOf(response.status) >= 0;
+    const statusDescription = statusPass
+      ? `Returned ${response.status}.`
+      : `Returned ${response.status}. Expected one of ${JSON.stringify(
+          step.httpRequest.statusCodes
+        )}.`;
+    assertions.push({
+      statement: `statusCode in ${JSON.stringify(step.httpRequest.statusCodes)}`,
+      source: "implicit",
+      result: statusPass ? "PASS" : "FAIL",
+      expected: step.httpRequest.statusCodes,
+      actual: response.status,
+      description: statusDescription,
+    });
+    descriptions.push(statusDescription);
+    if (!statusPass) shortCircuited = true;
   }
 
-  // Validate required fields in response
+  // (3) Required response fields present. APPLICABLE only when
+  // response.required is non-empty.
   if (step.httpRequest.response?.required?.length > 0) {
-    const missingFields: string[] = [];
-
-    for (const fieldPath of step.httpRequest.response.required) {
-      if (!fieldExistsAtPath(response.data, fieldPath)) {
-        missingFields.push(fieldPath);
+    const requiredStatement = `response fields present: ${JSON.stringify(
+      step.httpRequest.response.required
+    )}`;
+    if (shortCircuited) {
+      assertions.push({
+        statement: requiredStatement,
+        source: "implicit",
+        result: "SKIPPED",
+        expected: step.httpRequest.response.required,
+      });
+    } else {
+      const missingFields: string[] = [];
+      for (const fieldPath of step.httpRequest.response.required) {
+        if (!fieldExistsAtPath(response.data, fieldPath)) {
+          missingFields.push(fieldPath);
+        }
+      }
+      if (missingFields.length > 0) {
+        const desc = `Missing required fields: ${missingFields.join(", ")}`;
+        assertions.push({
+          statement: requiredStatement,
+          source: "implicit",
+          result: "FAIL",
+          expected: step.httpRequest.response.required,
+          description: desc,
+        });
+        descriptions.push(desc);
+        shortCircuited = true;
+      } else {
+        assertions.push({
+          statement: requiredStatement,
+          source: "implicit",
+          result: "PASS",
+          expected: step.httpRequest.response.required,
+        });
       }
     }
-
-    if (missingFields.length > 0) {
-      result.status = "FAIL";
-      result.description += ` Missing required fields: ${missingFields.join(
-        ", "
-      )}`;
-      return result;
-    }
   }
 
-  // Validate response payload against OpenAPI definition
+  // (4) Response body matches OpenAPI schema. APPLICABLE only when
+  // validateAgainstSchema is response/both and a response schema exists.
   if (
     (step.httpRequest.openApi?.validateAgainstSchema === "response" ||
       step.httpRequest.openApi?.validateAgainstSchema === "both") &&
     operation.schemas.response
   ) {
-    // Validate request payload against OpenAPI definition
-    const ajv = new Ajv({
-      strictSchema: false,
-      useDefaults: true,
-      allErrors: true,
-      allowUnionTypes: true,
-      coerceTypes: false,
-    });
-    const validateFn = ajv.compile(operation.schemas.response);
-    const valid = validateFn(response.data);
-    if (valid) {
-      result.description += ` Response data matched the OpenAPI schema.`;
+    const responseSchemaStatement = "response body matches OpenAPI schema";
+    if (shortCircuited) {
+      assertions.push({
+        statement: responseSchemaStatement,
+        source: "implicit",
+        result: "SKIPPED",
+      });
     } else {
-      result.status = "FAIL";
-      result.description += ` Response data didn't match the OpenAPI schema. ${JSON.stringify(
-        validateFn.errors,
-        null,
-        2
-      )}`;
-      return result;
-    }
-  }
-
-  // Compare response.body
-  if (!step.httpRequest.allowAdditionalFields) {
-    // Do a deep comparison
-    const dataComparison = objectExistsInObject(
-      step.httpRequest.response.body,
-      response.data
-    );
-    if (dataComparison.result.status === "FAIL") {
-      result.status = "FAIL";
-      result.description += " Response contained unexpected fields.";
-      return result;
-    }
-  }
-
-  if (typeof step.httpRequest.response?.body !== "undefined") {
-    // Check if response body is the same type
-    if (
-      typeof step.httpRequest.response.body !== typeof response.data ||
-      (typeof step.httpRequest.response.body === "object" &&
-        Array.isArray(step.httpRequest.response.body) !==
-          Array.isArray(response.data))
-    ) {
-      result.status = "FAIL";
-      result.description += ` Expected response body type didn't match actual response body type.`;
-      return result;
-    }
-    // Check if response body is a string or object
-    if (typeof step.httpRequest.response.body === "string") {
-      if (step.httpRequest.response.body !== response.data) {
-        result.status = "FAIL";
-        result.description += ` Expected response body didn't match actual response body.`;
+      const ajv = new Ajv({
+        strictSchema: false,
+        useDefaults: true,
+        allErrors: true,
+        allowUnionTypes: true,
+        coerceTypes: false,
+      });
+      const validateFn = ajv.compile(operation.schemas.response);
+      const valid = validateFn(response.data);
+      if (valid) {
+        assertions.push({
+          statement: responseSchemaStatement,
+          source: "implicit",
+          result: "PASS",
+          description: `Response data matched the OpenAPI schema.`,
+        });
+        descriptions.push(`Response data matched the OpenAPI schema.`);
+      } else {
+        const desc = `Response data didn't match the OpenAPI schema. ${JSON.stringify(
+          validateFn.errors,
+          null,
+          2
+        )}`;
+        assertions.push({
+          statement: responseSchemaStatement,
+          source: "implicit",
+          result: "FAIL",
+          description: desc,
+        });
+        descriptions.push(desc);
+        shortCircuited = true;
       }
-      return result;
-    } else if (typeof step.httpRequest.response.body === "object") {
+    }
+  }
+
+  // (5) No unexpected fields. APPLICABLE only when allowAdditionalFields is
+  // false.
+  if (!step.httpRequest.allowAdditionalFields) {
+    const noExtraStatement = "no unexpected response fields";
+    if (shortCircuited) {
+      assertions.push({
+        statement: noExtraStatement,
+        source: "implicit",
+        result: "SKIPPED",
+      });
+    } else {
       const dataComparison = objectExistsInObject(
         step.httpRequest.response.body,
         response.data
       );
-      if (dataComparison.result.status === "PASS") {
-        if (result.status != "FAIL") result.status = "PASS";
-        result.description += ` Expected response body was present in actual response body.`;
+      if (dataComparison.result.status === "FAIL") {
+        const desc = `Response contained unexpected fields.`;
+        assertions.push({
+          statement: noExtraStatement,
+          source: "implicit",
+          result: "FAIL",
+          description: desc,
+        });
+        descriptions.push(desc);
+        shortCircuited = true;
       } else {
-        result.status = "FAIL";
-        result.description =
-          result.description + " " + dataComparison.result.description;
-        return result;
+        assertions.push({
+          statement: noExtraStatement,
+          source: "implicit",
+          result: "PASS",
+        });
       }
     }
   }
 
-  // Compare response.headers
+  // (6) Response body type matches + body match. APPLICABLE only when
+  // response.body is defined.
+  if (typeof step.httpRequest.response?.body !== "undefined") {
+    const bodyStatement = "response.body matches expected";
+    if (shortCircuited) {
+      assertions.push({
+        statement: bodyStatement,
+        source: "implicit",
+        result: "SKIPPED",
+        expected: step.httpRequest.response.body,
+      });
+    } else {
+      // Check if response body is the same type
+      if (
+        typeof step.httpRequest.response.body !== typeof response.data ||
+        (typeof step.httpRequest.response.body === "object" &&
+          Array.isArray(step.httpRequest.response.body) !==
+            Array.isArray(response.data))
+      ) {
+        const desc = `Expected response body type didn't match actual response body type.`;
+        assertions.push({
+          statement: bodyStatement,
+          source: "implicit",
+          result: "FAIL",
+          expected: step.httpRequest.response.body,
+          actual: response.data,
+          description: desc,
+        });
+        descriptions.push(desc);
+        shortCircuited = true;
+      } else if (typeof step.httpRequest.response.body === "string") {
+        // SANCTIONED (Phase 4a.2a): a matching string body used to `return result`
+        // here, short-circuiting the response.headers check and `path` file save.
+        // That early return was intentionally removed so those checks run too.
+        const bodyPass = step.httpRequest.response.body === response.data;
+        const desc = bodyPass
+          ? undefined
+          : `Expected response body didn't match actual response body.`;
+        assertions.push({
+          statement: bodyStatement,
+          source: "implicit",
+          result: bodyPass ? "PASS" : "FAIL",
+          expected: step.httpRequest.response.body,
+          actual: response.data,
+          ...(desc ? { description: desc } : {}),
+        });
+        if (desc) {
+          descriptions.push(desc);
+          shortCircuited = true;
+        }
+      } else if (typeof step.httpRequest.response.body === "object") {
+        const dataComparison = objectExistsInObject(
+          step.httpRequest.response.body,
+          response.data
+        );
+        if (dataComparison.result.status === "PASS") {
+          const desc = `Expected response body was present in actual response body.`;
+          assertions.push({
+            statement: bodyStatement,
+            source: "implicit",
+            result: "PASS",
+            expected: step.httpRequest.response.body,
+            description: desc,
+          });
+          descriptions.push(desc);
+        } else {
+          assertions.push({
+            statement: bodyStatement,
+            source: "implicit",
+            result: "FAIL",
+            expected: step.httpRequest.response.body,
+            actual: response.data,
+            description: dataComparison.result.description,
+          });
+          descriptions.push(dataComparison.result.description);
+          shortCircuited = true;
+        }
+      }
+    }
+  }
+
+  // (7) Response headers subset. APPLICABLE only when response.headers is
+  // non-empty.
   if (
     typeof step.httpRequest.response?.headers !== "undefined" &&
     JSON.stringify(step.httpRequest.response?.headers) != "{}"
   ) {
-    // Preprocess headers to lowercase
-    const headers: any = {};
-    Object.keys(step.httpRequest.response.headers).forEach((key: any) => {
-      headers[key.toLowerCase()] = step.httpRequest.response.headers[key];
-    });
-    const responseHeaders: any = {};
-    Object.keys(response.headers).forEach((key: any) => {
-      responseHeaders[key.toLowerCase()] = response.headers[key];
-    });
-    // Perform comparison
-    const dataComparison = objectExistsInObject(headers, responseHeaders);
-    // Check if headers are present in actual response
-    if (dataComparison.result.status === "PASS") {
-      if (result.status != "FAIL") result.status = "PASS";
-      result.description += ` Expected response headers were present in actual response headers.`;
+    const headersStatement = "response.headers contains expected";
+    if (shortCircuited) {
+      assertions.push({
+        statement: headersStatement,
+        source: "implicit",
+        result: "SKIPPED",
+        expected: step.httpRequest.response.headers,
+      });
     } else {
-      result.status = "FAIL";
-      result.description =
-        result.description + " " + dataComparison.result.description;
-      return result;
+      // Preprocess headers to lowercase
+      const headers: any = {};
+      Object.keys(step.httpRequest.response.headers).forEach((key: any) => {
+        headers[key.toLowerCase()] = step.httpRequest.response.headers[key];
+      });
+      const responseHeaders: any = {};
+      Object.keys(response.headers).forEach((key: any) => {
+        responseHeaders[key.toLowerCase()] = response.headers[key];
+      });
+      const dataComparison = objectExistsInObject(headers, responseHeaders);
+      if (dataComparison.result.status === "PASS") {
+        const desc = `Expected response headers were present in actual response headers.`;
+        assertions.push({
+          statement: headersStatement,
+          source: "implicit",
+          result: "PASS",
+          expected: step.httpRequest.response.headers,
+          description: desc,
+        });
+        descriptions.push(desc);
+      } else {
+        assertions.push({
+          statement: headersStatement,
+          source: "implicit",
+          result: "FAIL",
+          expected: step.httpRequest.response.headers,
+          description: dataComparison.result.description,
+        });
+        descriptions.push(dataComparison.result.description);
+        shortCircuited = true;
+      }
     }
   }
 
-  // Check if command output is saved to a file
+  // (8) Saved-file variation ≤ maxVariation. APPLICABLE only when path is set.
+  // Exceeding the tolerance is a WARNING (not a FAIL). The file-write/overwrite
+  // side effects are preserved exactly as before and run whenever the file
+  // exists, regardless of short-circuit; only the *assertion record* honors
+  // short-circuit (applicable-but-not-reached -> SKIPPED).
   if (step.httpRequest.path) {
+    const variationStatement = `saved-file variation <= ${step.httpRequest.maxVariation}`;
     const dir = path.dirname(step.httpRequest.path);
     // If `dir` doesn't exist, create it
     if (!fs.existsSync(dir)) {
@@ -451,11 +660,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         filePath,
         JSON.stringify(response.data, null, 2)
       );
-      result.description += ` Saved output to file.`;
+      descriptions.push(`Saved output to file.`);
     } else {
       if (step.httpRequest.overwrite == "false") {
         // File already exists
-        result.description += ` Didn't save output. File already exists.`;
+        descriptions.push(`Didn't save output. File already exists.`);
       }
 
       // Read existing file
@@ -475,26 +684,60 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
             filePath,
             JSON.stringify(response.data, null, 2)
           );
-          result.description += ` Saved response to file.`;
+          descriptions.push(`Saved response to file.`);
         }
-        result.status = "WARNING";
-        result.description += ` The difference between the existing saved response and the new response (${fractionalDiff.toFixed(
+        const desc = `The difference between the existing saved response and the new response (${fractionalDiff.toFixed(
           2
         )}) is greater than the max accepted variation (${
           step.httpRequest.maxVariation
         }).`;
-        return result;
-      }
-
-      if (step.httpRequest.overwrite == "true") {
-        // Overwrite file
-        fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
-        result.description += ` Saved response to file.`;
+        if (shortCircuited) {
+          assertions.push({
+            statement: variationStatement,
+            source: "implicit",
+            result: "SKIPPED",
+            expected: step.httpRequest.maxVariation,
+          });
+        } else {
+          assertions.push({
+            statement: variationStatement,
+            source: "implicit",
+            result: "WARNING",
+            expected: step.httpRequest.maxVariation,
+            actual: fractionalDiff,
+            description: desc,
+          });
+          descriptions.push(desc);
+        }
+      } else {
+        if (step.httpRequest.overwrite == "true") {
+          // Overwrite file
+          fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+          descriptions.push(`Saved response to file.`);
+        }
+        if (shortCircuited) {
+          assertions.push({
+            statement: variationStatement,
+            source: "implicit",
+            result: "SKIPPED",
+            expected: step.httpRequest.maxVariation,
+          });
+        } else {
+          assertions.push({
+            statement: variationStatement,
+            source: "implicit",
+            result: "PASS",
+            expected: step.httpRequest.maxVariation,
+            actual: fractionalDiff,
+          });
+        }
       }
     }
   }
 
-  result.description = result.description.trim();
+  result.assertions = assertions;
+  result.status = rollUpResults(assertions);
+  result.description = descriptions.join(" ").trim();
   return result;
 }
 
