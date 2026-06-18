@@ -213,6 +213,16 @@ Everything is additive and opt-in:
     is a separate, potentially-breaking change — deferred.
   - **Build note:** schema edits require BOTH `src/common` build AND root `npm run compile` +
     `copy:schemas` (the runner reads root `dist/common`).
+- **Phase 2 (expression operators) — done, committed.** `src/core/expressions.ts`: comparison
+  (`== != >= <= > <`) + membership (`contains`/`oneOf`/`matches`) operators re-enabled, **gated
+  behind an `allowOperators` flag (default false)** so `step.variables` + `{{ }}` interpolation stay
+  byte-identical; only `evaluateAssertion` passes `true` (still no runtime caller → dormant). Removed
+  the dot-escape bug (decimals/regex dots); made `preprocessExpression` quote-aware (string values
+  with spaces/operators no longer mangled); fail-closed on unresolved `$$` tokens (condition path
+  only, detected at resolution, not by output-scan); fixed a latent `String.replace` `$`-in-value
+  corruption in `replaceMetaValues`. 42 expression unit tests pass.
+  - **Documented in-code limitations (out of scope):** bare-bracket regex `matches [a-c]+` — use the
+    `/regex/` slash form; `oneOf` must be the last operator in a single-condition expression.
 
 ## Implicit-assertion inventory (Phase 4a — classifications locked)
 
