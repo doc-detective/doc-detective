@@ -251,6 +251,23 @@
         },
         {
           "type": "object",
+          "required": ["runBrowserScript"],
+          "properties": {
+            "runBrowserScript": {
+              "$ref": "runBrowserScript_v3.schema.json#"
+            }
+          },
+          "title": "runBrowserScript"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
           "required": ["type"],
           "properties": {
             "type": {
@@ -664,6 +681,16 @@
         "target": {
           "selector": "#targetElement"
         }
+      }
+    },
+    {
+      "runBrowserScript": "return document.title;"
+    },
+    {
+      "runBrowserScript": {
+        "script": "return arguments[0] + arguments[1];",
+        "args": ["foo", "bar"],
+        "output": "foobar"
       }
     }
   ]

@@ -591,6 +591,120 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("runBrowserScript step", function () {
+      it("should validate the simple string form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runBrowserScript: "return document.title;" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript).to.equal(
+          "return document.title;"
+        );
+      });
+
+      it("should validate the detailed object form with all fields", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: {
+              script: "return arguments[0] + arguments[1];",
+              args: ["foo", "bar"],
+              output: "foobar",
+              path: "result.json",
+              directory: "output",
+              maxVariation: 0.1,
+              overwrite: "aboveVariation",
+              timeout: 5000,
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript.script).to.equal(
+          "return arguments[0] + arguments[1];"
+        );
+        expect(result.object.runBrowserScript.args).to.deep.equal([
+          "foo",
+          "bar",
+        ]);
+      });
+
+      it("should accept non-string args (numbers, booleans)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: {
+              script: "return arguments[0];",
+              args: [42, true, "x", null],
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript.args).to.deep.equal([
+          42,
+          true,
+          "x",
+          null,
+        ]);
+      });
+
+      it("should reject the object form when script is missing", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runBrowserScript: { args: ["foo"] } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject maxVariation outside the 0-1 range", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", maxVariation: 2 },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject unknown properties on the object form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", bogus: true },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject a non-positive timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", timeout: 0 },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+    });
+
     describe("invalid objects", function () {
       it("should return error for invalid step_v3 object", function () {
         const result = validate({

@@ -72,15 +72,16 @@ export type Step =
   | (Common4 & HttpRequest)
   | (Common5 & RunShell)
   | (Common6 & RunCode)
-  | (Common7 & Type)
-  | (Common8 & Screenshot)
-  | (Common9 & SaveCookie)
-  | (Common10 & Record)
-  | (Common11 & StopRecord)
-  | (Common12 & LoadVariables)
-  | (Common13 & DragAndDrop)
-  | (Common14 & LoadCookie)
-  | (Common15 & Wait);
+  | (Common7 & RunBrowserScript)
+  | (Common8 & Type)
+  | (Common9 & Screenshot)
+  | (Common10 & SaveCookie)
+  | (Common11 & Record)
+  | (Common12 & StopRecord)
+  | (Common13 & LoadVariables)
+  | (Common14 & DragAndDrop)
+  | (Common15 & LoadCookie)
+  | (Common16 & Wait);
 export type CheckLink1 = CheckLinkDetailed | CheckLinkDetailed1;
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
@@ -183,6 +184,14 @@ export type RunShellCommandSimple = string;
  * Assemble and run code.
  */
 export type RunCode1 = RunCodeDetailed;
+/**
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ */
+export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetailed;
+/**
+ * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
+ */
+export type RunBrowserScriptSimple = string;
 /**
  * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
  */
@@ -379,22 +388,23 @@ export type OpenApi1 = {
  * A step in a test.
  */
 export type Step1 =
-  | (Common16 & CheckLink2)
-  | (Common17 & Click2)
-  | (Common18 & Find2)
-  | (Common19 & GoTo2)
-  | (Common20 & HttpRequest2)
-  | (Common21 & RunShell2)
-  | (Common22 & RunCode2)
-  | (Common23 & Type1)
-  | (Common24 & Screenshot2)
-  | (Common25 & SaveCookie2)
-  | (Common26 & Record2)
-  | (Common27 & StopRecord2)
-  | (Common28 & LoadVariables2)
-  | (Common29 & DragAndDrop2)
-  | (Common30 & LoadCookie2)
-  | (Common31 & Wait2);
+  | (Common17 & CheckLink2)
+  | (Common18 & Click2)
+  | (Common19 & Find2)
+  | (Common20 & GoTo2)
+  | (Common21 & HttpRequest2)
+  | (Common22 & RunShell2)
+  | (Common23 & RunCode2)
+  | (Common24 & RunBrowserScript2)
+  | (Common25 & Type1)
+  | (Common26 & Screenshot2)
+  | (Common27 & SaveCookie2)
+  | (Common28 & Record2)
+  | (Common29 & StopRecord2)
+  | (Common30 & LoadVariables2)
+  | (Common31 & DragAndDrop2)
+  | (Common32 & LoadCookie2)
+  | (Common33 & Wait2);
 export type CheckLink3 = CheckLinkDetailed2 | CheckLinkDetailed3;
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
@@ -497,6 +507,14 @@ export type RunShellCommandSimple1 = string;
  * Assemble and run code.
  */
 export type RunCode3 = RunCodeDetailed1;
+/**
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ */
+export type RunBrowserScript3 = RunBrowserScriptSimple1 | RunBrowserScriptDetailed1;
+/**
+ * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
+ */
+export type RunBrowserScriptSimple1 = string;
 /**
  * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
  */
@@ -1578,46 +1596,44 @@ export interface SourceLocation7 {
    */
   endIndex: number;
 }
-export interface Type {
-  type: TypeKeys;
+export interface RunBrowserScript {
+  runBrowserScript: RunBrowserScript1;
   [k: string]: unknown;
 }
-export interface TypeKeysDetailed {
-  keys: TypeKeysSimple1;
+export interface RunBrowserScriptDetailed {
   /**
-   * Delay in milliseconds between each key press during a recording
+   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
-  inputDelay?: number;
+  script: string;
   /**
-   * Selector for the element to type into. If not specified, the typing occurs in the active element.
+   * Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
    */
-  selector?: string;
+  args?: unknown[];
   /**
-   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
+   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
-  elementText?: string;
+  output?: string;
   /**
-   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * File path to save the script's serialized return value, relative to `directory`.
    */
-  elementId?: string;
+  path?: string;
   /**
-   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
    */
-  elementTestId?: string;
+  directory?: string;
   /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step returns a warning. If no output exists at `path`, Doc Detective ignores this value.
    */
-  elementClass?: string | string[];
+  maxVariation?: number;
   /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   * If `true`, overwrites the existing output at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
    */
-  elementAttribute?: {
-    [k: string]: string | number | boolean;
-  };
+  overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   * Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.
    */
-  elementAria?: string;
+  timeout?: number;
 }
 export interface Common8 {
   /**
@@ -1690,52 +1706,46 @@ export interface SourceLocation8 {
    */
   endIndex: number;
 }
-export interface Screenshot {
-  screenshot: Screenshot1;
+export interface Type {
+  type: TypeKeys;
   [k: string]: unknown;
 }
-export interface CaptureScreenshotDetailed {
-  path?: ScreenshotSimple1;
+export interface TypeKeysDetailed {
+  keys: TypeKeysSimple1;
   /**
-   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
+   * Delay in milliseconds between each key press during a recording
    */
-  directory?: string;
+  inputDelay?: number;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Selector for the element to type into. If not specified, the typing occurs in the active element.
    */
-  maxVariation?: number;
+  selector?: string;
   /**
-   * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
    */
-  overwrite?: "true" | "false" | "aboveVariation";
-  crop?: CropByElementSimple | CropByElementDetailed;
-  sourceIntegration?: SourceIntegration;
-}
-/**
- * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
- */
-export interface SourceIntegration {
+  elementText?: string;
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  type: "heretto";
+  elementId?: string;
   /**
-   * The name of the integration configuration in the config file. Used to look up authentication credentials.
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  integrationName: string;
+  elementTestId?: string;
   /**
-   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
    */
-  fileId?: string;
+  elementClass?: string | string[];
   /**
-   * The path of the file in the source CMS. Used for lookup if fileId is not available.
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
-  filePath?: string;
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
   /**
-   * The local path to the file that references this source. Used for resolving relative paths.
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  contentPath?: string;
+  elementAria?: string;
 }
 export interface Common9 {
   /**
@@ -1808,9 +1818,52 @@ export interface SourceLocation9 {
    */
   endIndex: number;
 }
-export interface SaveCookie {
-  saveCookie: SaveCookie1;
+export interface Screenshot {
+  screenshot: Screenshot1;
   [k: string]: unknown;
+}
+export interface CaptureScreenshotDetailed {
+  path?: ScreenshotSimple1;
+  /**
+   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
+   */
+  directory?: string;
+  /**
+   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   */
+  maxVariation?: number;
+  /**
+   * If `true`, overwrites the existing screenshot at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   */
+  overwrite?: "true" | "false" | "aboveVariation";
+  crop?: CropByElementSimple | CropByElementDetailed;
+  sourceIntegration?: SourceIntegration;
+}
+/**
+ * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
+ */
+export interface SourceIntegration {
+  /**
+   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   */
+  type: "heretto";
+  /**
+   * The name of the integration configuration in the config file. Used to look up authentication credentials.
+   */
+  integrationName: string;
+  /**
+   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
+   */
+  fileId?: string;
+  /**
+   * The path of the file in the source CMS. Used for lookup if fileId is not available.
+   */
+  filePath?: string;
+  /**
+   * The local path to the file that references this source. Used for resolving relative paths.
+   */
+  contentPath?: string;
 }
 export interface Common10 {
   /**
@@ -1883,43 +1936,9 @@ export interface SourceLocation10 {
    */
   endIndex: number;
 }
-export interface Record {
-  record: Record1;
+export interface SaveCookie {
+  saveCookie: SaveCookie1;
   [k: string]: unknown;
-}
-export interface RecordDetailed {
-  /**
-   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
-   */
-  path?: string;
-  /**
-   * Directory of the file. If the directory doesn't exist, creates the directory.
-   */
-  directory?: string;
-  /**
-   * If `true`, overwrites the existing recording at `path` if it exists.
-   */
-  overwrite?: "true" | "false";
-  /**
-   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
-   */
-  name?: string;
-  engine?: RecordingEngine;
-  [k: string]: unknown;
-}
-export interface RecordingEngineDetailed {
-  /**
-   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
-   */
-  name: "browser" | "ffmpeg";
-  /**
-   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
-   */
-  target?: "display" | "window" | "viewport";
-  /**
-   * Capture frame rate for the `ffmpeg` engine.
-   */
-  fps?: number;
 }
 export interface Common11 {
   /**
@@ -1992,15 +2011,43 @@ export interface SourceLocation11 {
    */
   endIndex: number;
 }
-export interface StopRecord {
-  stopRecord: StopRecord1;
+export interface Record {
+  record: Record1;
   [k: string]: unknown;
 }
-export interface StopRecordDetailed {
+export interface RecordDetailed {
   /**
-   * Name of the recording to stop. Matches the `name` given to a `record` step.
+   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
-  name: string;
+  path?: string;
+  /**
+   * Directory of the file. If the directory doesn't exist, creates the directory.
+   */
+  directory?: string;
+  /**
+   * If `true`, overwrites the existing recording at `path` if it exists.
+   */
+  overwrite?: "true" | "false";
+  /**
+   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
+   */
+  name?: string;
+  engine?: RecordingEngine;
+  [k: string]: unknown;
+}
+export interface RecordingEngineDetailed {
+  /**
+   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   */
+  name: "browser" | "ffmpeg";
+  /**
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   */
+  target?: "display" | "window" | "viewport";
+  /**
+   * Capture frame rate for the `ffmpeg` engine.
+   */
+  fps?: number;
 }
 export interface Common12 {
   /**
@@ -2073,9 +2120,15 @@ export interface SourceLocation12 {
    */
   endIndex: number;
 }
-export interface LoadVariables {
-  loadVariables: LoadVariables1;
+export interface StopRecord {
+  stopRecord: StopRecord1;
   [k: string]: unknown;
+}
+export interface StopRecordDetailed {
+  /**
+   * Name of the recording to stop. Matches the `name` given to a `record` step.
+   */
+  name: string;
 }
 export interface Common13 {
   /**
@@ -2148,26 +2201,8 @@ export interface SourceLocation13 {
    */
   endIndex: number;
 }
-export interface DragAndDrop {
-  dragAndDrop: DragAndDrop1;
-  [k: string]: unknown;
-}
-/**
- * Drag and drop an element from source to target.
- */
-export interface DragAndDrop1 {
-  /**
-   * The element to drag.
-   */
-  source: ElementSimple | ElementDetailed;
-  /**
-   * The target location to drop the element.
-   */
-  target: ElementSimple1 | ElementDetailed1;
-  /**
-   * Duration of the drag operation in milliseconds.
-   */
-  duration?: number;
+export interface LoadVariables {
+  loadVariables: LoadVariables1;
   [k: string]: unknown;
 }
 export interface Common14 {
@@ -2241,8 +2276,26 @@ export interface SourceLocation14 {
    */
   endIndex: number;
 }
-export interface LoadCookie {
-  loadCookie: LoadCookie1;
+export interface DragAndDrop {
+  dragAndDrop: DragAndDrop1;
+  [k: string]: unknown;
+}
+/**
+ * Drag and drop an element from source to target.
+ */
+export interface DragAndDrop1 {
+  /**
+   * The element to drag.
+   */
+  source: ElementSimple | ElementDetailed;
+  /**
+   * The target location to drop the element.
+   */
+  target: ElementSimple1 | ElementDetailed1;
+  /**
+   * Duration of the drag operation in milliseconds.
+   */
+  duration?: number;
   [k: string]: unknown;
 }
 export interface Common15 {
@@ -2303,6 +2356,81 @@ export interface VariablesStep15 {
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation15 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface LoadCookie {
+  loadCookie: LoadCookie1;
+  [k: string]: unknown;
+}
+export interface Common16 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep16;
+  variables?: VariablesStep16;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  location?: SourceLocation16;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep16 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep16`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep16 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep16`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation16 {
   /**
    * 1-indexed line number in the source file where the step was detected.
    */
@@ -2379,114 +2507,6 @@ export interface BrowserViewport2 {
 export interface OpenAPIDescriptionTest1 {
   [k: string]: unknown;
 }
-export interface Common16 {
-  /**
-   * JSON Schema for this object.
-   */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
-  /**
-   * ID of the step.
-   */
-  stepId?: string;
-  /**
-   * Description of the step.
-   */
-  description?: string;
-  /**
-   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
-   */
-  unsafe?: boolean;
-  outputs?: OutputsStep16;
-  variables?: VariablesStep16;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
-  location?: SourceLocation16;
-  /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
-   */
-  autoScreenshot?: string;
-  [k: string]: unknown;
-}
-/**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
- */
-export interface OutputsStep16 {
-  /**
-   * Runtime expression for a user-defined output value.
-   *
-   * This interface was referenced by `OutputsStep16`'s JSON-Schema definition
-   * via the `patternProperty` "^[A-Za-z0-9_]+$".
-   */
-  [k: string]: string;
-}
-/**
- * Environment variables to set from user-defined expressions.
- */
-export interface VariablesStep16 {
-  /**
-   * Runtime expression for a user-defined output value.
-   *
-   * This interface was referenced by `VariablesStep16`'s JSON-Schema definition
-   * via the `patternProperty` "^[A-Za-z0-9_]+$".
-   */
-  [k: string]: string;
-}
-/**
- * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
- */
-export interface SourceLocation16 {
-  /**
-   * 1-indexed line number in the source file where the step was detected.
-   */
-  line: number;
-  /**
-   * 0-indexed character offset from the start of the source file where the step begins.
-   */
-  startIndex: number;
-  /**
-   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
-   */
-  endIndex: number;
-}
-export interface CheckLink2 {
-  checkLink: CheckLink3;
-  [k: string]: unknown;
-}
-/**
- * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
- */
-export interface CheckLinkDetailed3 {
-  /**
-   * URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.
-   */
-  url: string;
-  /**
-   * Protocol and domain to navigate to. Prepended to `url`.
-   */
-  origin?: string;
-  /**
-   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
-   */
-  params?: {
-    [k: string]: string;
-  };
-  /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
-   */
-  statusCodes?: number | number[];
-  /**
-   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
-   */
-  headers?: RequestHeadersObject1 | RequestHeadersString1;
-}
-/**
- * Headers to include in the HTTP request, in key/value format. Values must be strings.
- */
-export interface RequestHeadersObject1 {
-  [k: string]: string;
-}
 export interface Common17 {
   /**
    * JSON Schema for this object.
@@ -2558,9 +2578,42 @@ export interface SourceLocation17 {
    */
   endIndex: number;
 }
-export interface Click2 {
-  click: Click3;
+export interface CheckLink2 {
+  checkLink: CheckLink3;
   [k: string]: unknown;
+}
+/**
+ * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
+ */
+export interface CheckLinkDetailed3 {
+  /**
+   * URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.
+   */
+  url: string;
+  /**
+   * Protocol and domain to navigate to. Prepended to `url`.
+   */
+  origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   */
+  statusCodes?: number | number[];
+  /**
+   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+   */
+  headers?: RequestHeadersObject1 | RequestHeadersString1;
+}
+/**
+ * Headers to include in the HTTP request, in key/value format. Values must be strings.
+ */
+export interface RequestHeadersObject1 {
+  [k: string]: string;
 }
 export interface Common18 {
   /**
@@ -2633,8 +2686,8 @@ export interface SourceLocation18 {
    */
   endIndex: number;
 }
-export interface Find2 {
-  find: Find3;
+export interface Click2 {
+  click: Click3;
   [k: string]: unknown;
 }
 export interface Common19 {
@@ -2695,6 +2748,81 @@ export interface VariablesStep19 {
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation19 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface Find2 {
+  find: Find3;
+  [k: string]: unknown;
+}
+export interface Common20 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep20;
+  variables?: VariablesStep20;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  location?: SourceLocation20;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep20 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep20`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep20 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep20`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation20 {
   /**
    * 1-indexed line number in the source file where the step was detected.
    */
@@ -2773,81 +2901,6 @@ export interface GoToURLDetailed1 {
         };
   };
 }
-export interface Common20 {
-  /**
-   * JSON Schema for this object.
-   */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
-  /**
-   * ID of the step.
-   */
-  stepId?: string;
-  /**
-   * Description of the step.
-   */
-  description?: string;
-  /**
-   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
-   */
-  unsafe?: boolean;
-  outputs?: OutputsStep20;
-  variables?: VariablesStep20;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
-  location?: SourceLocation20;
-  /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
-   */
-  autoScreenshot?: string;
-  [k: string]: unknown;
-}
-/**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
- */
-export interface OutputsStep20 {
-  /**
-   * Runtime expression for a user-defined output value.
-   *
-   * This interface was referenced by `OutputsStep20`'s JSON-Schema definition
-   * via the `patternProperty` "^[A-Za-z0-9_]+$".
-   */
-  [k: string]: string;
-}
-/**
- * Environment variables to set from user-defined expressions.
- */
-export interface VariablesStep20 {
-  /**
-   * Runtime expression for a user-defined output value.
-   *
-   * This interface was referenced by `VariablesStep20`'s JSON-Schema definition
-   * via the `patternProperty` "^[A-Za-z0-9_]+$".
-   */
-  [k: string]: string;
-}
-/**
- * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
- */
-export interface SourceLocation20 {
-  /**
-   * 1-indexed line number in the source file where the step was detected.
-   */
-  line: number;
-  /**
-   * 0-indexed character offset from the start of the source file where the step begins.
-   */
-  startIndex: number;
-  /**
-   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
-   */
-  endIndex: number;
-}
-export interface HttpRequest2 {
-  httpRequest: HttpRequest3;
-  [k: string]: unknown;
-}
 export interface Common21 {
   /**
    * JSON Schema for this object.
@@ -2919,52 +2972,9 @@ export interface SourceLocation21 {
    */
   endIndex: number;
 }
-export interface RunShell2 {
-  runShell: RunShell3;
+export interface HttpRequest2 {
+  httpRequest: HttpRequest3;
   [k: string]: unknown;
-}
-export interface RunShellCommandDetailed1 {
-  /**
-   * Command to perform in the machine's default shell.
-   */
-  command: string;
-  /**
-   * Arguments for the command.
-   */
-  args?: string[];
-  /**
-   * Working directory for the command.
-   */
-  workingDirectory?: string;
-  /**
-   * Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.
-   */
-  exitCodes?: number[];
-  /**
-   * Content expected in the command's stdout or stderr. If the expected content can't be found in the command's stdout or stderr, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
-   */
-  stdio?: string;
-  /**
-   * File path to save the command's output, relative to `directory`.
-   */
-  path?: string;
-  /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
-   */
-  directory?: string;
-  /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
-   */
-  maxVariation?: number;
-  /**
-   * If `true`, overwrites the existing output at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
-   */
-  overwrite?: "true" | "false" | "aboveVariation";
-  /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
-   */
-  timeout?: number;
 }
 export interface Common22 {
   /**
@@ -3037,19 +3047,15 @@ export interface SourceLocation22 {
    */
   endIndex: number;
 }
-export interface RunCode2 {
-  runCode: RunCode3;
+export interface RunShell2 {
+  runShell: RunShell3;
   [k: string]: unknown;
 }
-export interface RunCodeDetailed1 {
+export interface RunShellCommandDetailed1 {
   /**
-   * Language of the code to run.
+   * Command to perform in the machine's default shell.
    */
-  language: "python" | "bash" | "javascript";
-  /**
-   * Code to run.
-   */
-  code: string;
+  command: string;
   /**
    * Arguments for the command.
    */
@@ -3063,7 +3069,7 @@ export interface RunCodeDetailed1 {
    */
   exitCodes?: number[];
   /**
-   * Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   * Content expected in the command's stdout or stderr. If the expected content can't be found in the command's stdout or stderr, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
   stdio?: string;
   /**
@@ -3087,7 +3093,6 @@ export interface RunCodeDetailed1 {
    * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
    */
   timeout?: number;
-  [k: string]: unknown;
 }
 export interface Common23 {
   /**
@@ -3160,46 +3165,57 @@ export interface SourceLocation23 {
    */
   endIndex: number;
 }
-export interface Type1 {
-  type: TypeKeys1;
+export interface RunCode2 {
+  runCode: RunCode3;
   [k: string]: unknown;
 }
-export interface TypeKeysDetailed1 {
-  keys: TypeKeysSimple3;
+export interface RunCodeDetailed1 {
   /**
-   * Delay in milliseconds between each key press during a recording
+   * Language of the code to run.
    */
-  inputDelay?: number;
+  language: "python" | "bash" | "javascript";
   /**
-   * Selector for the element to type into. If not specified, the typing occurs in the active element.
+   * Code to run.
    */
-  selector?: string;
+  code: string;
   /**
-   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
+   * Arguments for the command.
    */
-  elementText?: string;
+  args?: string[];
   /**
-   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * Working directory for the command.
    */
-  elementId?: string;
+  workingDirectory?: string;
   /**
-   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.
    */
-  elementTestId?: string;
+  exitCodes?: number[];
   /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   * Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
-  elementClass?: string | string[];
+  stdio?: string;
   /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   * File path to save the command's output, relative to `directory`.
    */
-  elementAttribute?: {
-    [k: string]: string | number | boolean;
-  };
+  path?: string;
   /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
    */
-  elementAria?: string;
+  directory?: string;
+  /**
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   */
+  maxVariation?: number;
+  /**
+   * If `true`, overwrites the existing output at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
+   */
+  overwrite?: "true" | "false" | "aboveVariation";
+  /**
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   */
+  timeout?: number;
+  [k: string]: unknown;
 }
 export interface Common24 {
   /**
@@ -3272,52 +3288,44 @@ export interface SourceLocation24 {
    */
   endIndex: number;
 }
-export interface Screenshot2 {
-  screenshot: Screenshot3;
+export interface RunBrowserScript2 {
+  runBrowserScript: RunBrowserScript3;
   [k: string]: unknown;
 }
-export interface CaptureScreenshotDetailed1 {
-  path?: ScreenshotSimple3;
+export interface RunBrowserScriptDetailed1 {
   /**
-   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
+   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
+   */
+  script: string;
+  /**
+   * Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
+   */
+  args?: unknown[];
+  /**
+   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   */
+  output?: string;
+  /**
+   * File path to save the script's serialized return value, relative to `directory`.
+   */
+  path?: string;
+  /**
+   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step returns a warning. If no output exists at `path`, Doc Detective ignores this value.
    */
   maxVariation?: number;
   /**
-   * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   * If `true`, overwrites the existing output at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
    */
   overwrite?: "true" | "false" | "aboveVariation";
-  crop?: CropByElementSimple1 | CropByElementDetailed1;
-  sourceIntegration?: SourceIntegration1;
-}
-/**
- * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
- */
-export interface SourceIntegration1 {
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.
    */
-  type: "heretto";
-  /**
-   * The name of the integration configuration in the config file. Used to look up authentication credentials.
-   */
-  integrationName: string;
-  /**
-   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
-   */
-  fileId?: string;
-  /**
-   * The path of the file in the source CMS. Used for lookup if fileId is not available.
-   */
-  filePath?: string;
-  /**
-   * The local path to the file that references this source. Used for resolving relative paths.
-   */
-  contentPath?: string;
+  timeout?: number;
 }
 export interface Common25 {
   /**
@@ -3390,9 +3398,46 @@ export interface SourceLocation25 {
    */
   endIndex: number;
 }
-export interface SaveCookie2 {
-  saveCookie: SaveCookie3;
+export interface Type1 {
+  type: TypeKeys1;
   [k: string]: unknown;
+}
+export interface TypeKeysDetailed1 {
+  keys: TypeKeysSimple3;
+  /**
+   * Delay in milliseconds between each key press during a recording
+   */
+  inputDelay?: number;
+  /**
+   * Selector for the element to type into. If not specified, the typing occurs in the active element.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
 }
 export interface Common26 {
   /**
@@ -3465,43 +3510,52 @@ export interface SourceLocation26 {
    */
   endIndex: number;
 }
-export interface Record2 {
-  record: Record3;
+export interface Screenshot2 {
+  screenshot: Screenshot3;
   [k: string]: unknown;
 }
-export interface RecordDetailed1 {
+export interface CaptureScreenshotDetailed1 {
+  path?: ScreenshotSimple3;
   /**
-   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
-   */
-  path?: string;
-  /**
-   * Directory of the file. If the directory doesn't exist, creates the directory.
+   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
    */
   directory?: string;
   /**
-   * If `true`, overwrites the existing recording at `path` if it exists.
+   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
    */
-  overwrite?: "true" | "false";
+  maxVariation?: number;
   /**
-   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
+   * If `true`, overwrites the existing screenshot at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
    */
-  name?: string;
-  engine?: RecordingEngine1;
-  [k: string]: unknown;
+  overwrite?: "true" | "false" | "aboveVariation";
+  crop?: CropByElementSimple1 | CropByElementDetailed1;
+  sourceIntegration?: SourceIntegration1;
 }
-export interface RecordingEngineDetailed1 {
+/**
+ * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
+ */
+export interface SourceIntegration1 {
   /**
-   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
    */
-  name: "browser" | "ffmpeg";
+  type: "heretto";
   /**
-   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   * The name of the integration configuration in the config file. Used to look up authentication credentials.
    */
-  target?: "display" | "window" | "viewport";
+  integrationName: string;
   /**
-   * Capture frame rate for the `ffmpeg` engine.
+   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
    */
-  fps?: number;
+  fileId?: string;
+  /**
+   * The path of the file in the source CMS. Used for lookup if fileId is not available.
+   */
+  filePath?: string;
+  /**
+   * The local path to the file that references this source. Used for resolving relative paths.
+   */
+  contentPath?: string;
 }
 export interface Common27 {
   /**
@@ -3574,15 +3628,9 @@ export interface SourceLocation27 {
    */
   endIndex: number;
 }
-export interface StopRecord2 {
-  stopRecord: StopRecord3;
+export interface SaveCookie2 {
+  saveCookie: SaveCookie3;
   [k: string]: unknown;
-}
-export interface StopRecordDetailed1 {
-  /**
-   * Name of the recording to stop. Matches the `name` given to a `record` step.
-   */
-  name: string;
 }
 export interface Common28 {
   /**
@@ -3655,9 +3703,43 @@ export interface SourceLocation28 {
    */
   endIndex: number;
 }
-export interface LoadVariables2 {
-  loadVariables: LoadVariables3;
+export interface Record2 {
+  record: Record3;
   [k: string]: unknown;
+}
+export interface RecordDetailed1 {
+  /**
+   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
+   */
+  path?: string;
+  /**
+   * Directory of the file. If the directory doesn't exist, creates the directory.
+   */
+  directory?: string;
+  /**
+   * If `true`, overwrites the existing recording at `path` if it exists.
+   */
+  overwrite?: "true" | "false";
+  /**
+   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
+   */
+  name?: string;
+  engine?: RecordingEngine1;
+  [k: string]: unknown;
+}
+export interface RecordingEngineDetailed1 {
+  /**
+   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   */
+  name: "browser" | "ffmpeg";
+  /**
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   */
+  target?: "display" | "window" | "viewport";
+  /**
+   * Capture frame rate for the `ffmpeg` engine.
+   */
+  fps?: number;
 }
 export interface Common29 {
   /**
@@ -3730,27 +3812,15 @@ export interface SourceLocation29 {
    */
   endIndex: number;
 }
-export interface DragAndDrop2 {
-  dragAndDrop: DragAndDrop3;
+export interface StopRecord2 {
+  stopRecord: StopRecord3;
   [k: string]: unknown;
 }
-/**
- * Drag and drop an element from source to target.
- */
-export interface DragAndDrop3 {
+export interface StopRecordDetailed1 {
   /**
-   * The element to drag.
+   * Name of the recording to stop. Matches the `name` given to a `record` step.
    */
-  source: ElementSimple2 | ElementDetailed2;
-  /**
-   * The target location to drop the element.
-   */
-  target: ElementSimple3 | ElementDetailed3;
-  /**
-   * Duration of the drag operation in milliseconds.
-   */
-  duration?: number;
-  [k: string]: unknown;
+  name: string;
 }
 export interface Common30 {
   /**
@@ -3823,8 +3893,8 @@ export interface SourceLocation30 {
    */
   endIndex: number;
 }
-export interface LoadCookie2 {
-  loadCookie: LoadCookie3;
+export interface LoadVariables2 {
+  loadVariables: LoadVariables3;
   [k: string]: unknown;
 }
 export interface Common31 {
@@ -3885,6 +3955,174 @@ export interface VariablesStep31 {
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation31 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface DragAndDrop2 {
+  dragAndDrop: DragAndDrop3;
+  [k: string]: unknown;
+}
+/**
+ * Drag and drop an element from source to target.
+ */
+export interface DragAndDrop3 {
+  /**
+   * The element to drag.
+   */
+  source: ElementSimple2 | ElementDetailed2;
+  /**
+   * The target location to drop the element.
+   */
+  target: ElementSimple3 | ElementDetailed3;
+  /**
+   * Duration of the drag operation in milliseconds.
+   */
+  duration?: number;
+  [k: string]: unknown;
+}
+export interface Common32 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep32;
+  variables?: VariablesStep32;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  location?: SourceLocation32;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep32 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep32`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep32 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep32`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation32 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface LoadCookie2 {
+  loadCookie: LoadCookie3;
+  [k: string]: unknown;
+}
+export interface Common33 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep33;
+  variables?: VariablesStep33;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  location?: SourceLocation33;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep33 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep33`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep33 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep33`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation33 {
   /**
    * 1-indexed line number in the source file where the step was detected.
    */

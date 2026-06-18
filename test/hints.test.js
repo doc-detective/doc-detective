@@ -1402,12 +1402,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 30 active hints. `useFileTypesForRst` is commented out in the
+    // 31 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(30);
+    expect(HINTS.length).to.equal(31);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1818,6 +1818,32 @@ describe("hints/hints (registry)", function () {
           hasNodeOrPythonInRunShell: true,
         })
       )
+    ).to.equal(false);
+  });
+
+  it("useRunBrowserScriptStep: fires on browser + find when runBrowserScript isn't used", function () {
+    const h = findHint("useRunBrowserScriptStep");
+    // Positive: browser test that inspects the DOM via find, no runBrowserScript yet.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          usedStepTypes: new Set(["goTo", "find"]),
+        })
+      )
+    ).to.equal(true);
+    // Already using runBrowserScript -> skip.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          usedStepTypes: new Set(["goTo", "find", "runBrowserScript"]),
+        })
+      )
+    ).to.equal(false);
+    // No browser context -> skip.
+    expect(
+      h.when(fakeCtx({ usedStepTypes: new Set(["find"]) }))
     ).to.equal(false);
   });
 
