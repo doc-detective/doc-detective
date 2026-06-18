@@ -43,6 +43,37 @@
     "openApi": {
       "$ref": "#/components/schemas/openApi"
     },
+    "if": {
+      "$ref": "routing_v3.schema.json#/components/schemas/condition"
+    },
+    "onPass": {
+      "description": "Routing entries evaluated when this test passes. Phase 1: validated but ignored at runtime.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
+    },
+    "onFail": {
+      "description": "Routing entries evaluated when this test fails. Phase 1: validated but ignored at runtime.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
+    },
+    "onWarning": {
+      "description": "Routing entries evaluated when this test produces a warning. Phase 1: validated but ignored at runtime.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
+    },
+    "onSkip": {
+      "description": "Routing entries evaluated when this test is skipped. Phase 1: validated but ignored at runtime.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
+    },
     "before": {
       "type": "string",
       "description": "Path to a test specification to perform before this test, while maintaining this test's context. Useful for setting up testing environments. Only the `steps` property is used from the first test in the setup spec."

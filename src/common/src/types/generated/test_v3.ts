@@ -39,6 +39,23 @@ export type Test = {
    */
   runOn?: Context[];
   openApi?: (OpenApi & OpenAPIDescriptionTest)[];
+  if?: Condition;
+  /**
+   * Routing entries evaluated when this test passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing[];
+  /**
+   * Routing entries evaluated when this test fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing1[];
+  /**
+   * Routing entries evaluated when this test produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing2[];
+  /**
+   * Routing entries evaluated when this test is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing3[];
   /**
    * Path to a test specification to perform before this test, while maintaining this test's context. Useful for setting up testing environments. Only the `steps` property is used from the first test in the setup spec.
    */
@@ -62,6 +79,34 @@ export type OpenApi = {
   [k: string]: unknown;
 };
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing = {
+  [k: string]: unknown;
+};
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing1 = {
+  [k: string]: unknown;
+};
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing2 = {
+  [k: string]: unknown;
+};
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing3 = {
+  [k: string]: unknown;
+};
+/**
  * A step in a test.
  */
 export type Step =
@@ -82,6 +127,90 @@ export type Step =
   | (Common14 & DragAndDrop)
   | (Common15 & LoadCookie)
   | (Common16 & Wait);
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition1 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition2 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing4 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing5 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing6 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing7 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 export type CheckLink1 = CheckLinkDetailed | CheckLinkDetailed1;
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
@@ -92,6 +221,90 @@ export type CheckLinkDetailed = string;
  * Authorization: Bearer token`.
  */
 export type RequestHeadersString = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition3 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition4 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing8 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing9 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing10 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing11 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Click or tap an element.
  */
@@ -107,6 +320,90 @@ export type ClickElementDetailed =
   | {
       [k: string]: unknown;
     }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition5 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition6 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing12 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing13 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing14 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing15 =
   | {
       [k: string]: unknown;
     }
@@ -152,11 +449,179 @@ export type FindElementDetailed =
   | {
       [k: string]: unknown;
     };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition7 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition8 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing16 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing17 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing18 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing19 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 export type GoTo1 = GoToURLSimple | GoToURLDetailed;
 /**
  * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
  */
 export type GoToURLSimple = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition9 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition10 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing20 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing21 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing22 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing23 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Perform a generic HTTP request, for example to an API.
  */
@@ -173,6 +638,90 @@ export type HTTPRequestDetailed =
       [k: string]: unknown;
     };
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition11 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition12 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing24 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing25 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing26 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing27 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Perform a native shell command.
  */
 export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
@@ -181,9 +730,177 @@ export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
  */
 export type RunShellCommandSimple = string;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition13 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition14 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing28 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing29 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing30 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing31 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Assemble and run code.
  */
 export type RunCode1 = RunCodeDetailed;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition15 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition16 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing32 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing33 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing34 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing35 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
  */
@@ -192,6 +909,90 @@ export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetaile
  * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
  */
 export type RunBrowserScriptSimple = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition17 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition18 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing36 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing37 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing38 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing39 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
  */
@@ -204,6 +1005,90 @@ export type TypeKeysSimple = string | string[];
  * Sequence of keys to enter.
  */
 export type TypeKeysSimple1 = string | string[];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition19 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition20 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing40 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing41 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing42 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing43 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Takes a screenshot in PNG format.
  */
@@ -250,6 +1135,90 @@ export type CropByElementDetailed =
  */
 export type CaptureScreenshot = boolean;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition21 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition22 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing44 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing45 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing46 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing47 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Save a specific browser cookie to a file or environment variable for later reuse.
  */
 export type SaveCookie1 = CookieName | SaveCookieDetailed;
@@ -258,6 +1227,90 @@ export type SaveCookie1 = CookieName | SaveCookieDetailed;
  */
 export type CookieName = string;
 export type SaveCookieDetailed =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition23 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition24 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing48 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing49 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing50 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing51 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
@@ -285,6 +1338,90 @@ export type RecordingEngineSimple = "browser" | "ffmpeg";
  */
 export type RecordBoolean = boolean;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition25 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition26 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing52 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing53 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing54 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing55 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
  */
 export type StopRecord1 = StopRecordBoolean | StopRecordNull | StopRecordName | StopRecordDetailed;
@@ -301,9 +1438,177 @@ export type StopRecordNull = null;
  */
 export type StopRecordName = string;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition27 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition28 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing56 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing57 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing58 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing59 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Load environment variables from the specified `.env` file.
  */
 export type LoadVariables1 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition29 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition30 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing60 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing61 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing62 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing63 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
@@ -357,6 +1662,90 @@ export type ElementDetailed1 =
       [k: string]: unknown;
     };
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition31 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition32 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing64 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing65 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing66 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing67 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Load a specific cookie from a file or environment variable into the browser.
  */
 export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
@@ -365,6 +1754,90 @@ export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
  */
 export type CookieNameOrFilePath = string;
 export type LoadCookieDetailed =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition33 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition34 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing68 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing69 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing70 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing71 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
@@ -405,6 +1878,90 @@ export type Step1 =
   | (Common31 & DragAndDrop2)
   | (Common32 & LoadCookie2)
   | (Common33 & Wait2);
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition35 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition36 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing72 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing73 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing74 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing75 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 export type CheckLink3 = CheckLinkDetailed2 | CheckLinkDetailed3;
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
@@ -415,6 +1972,90 @@ export type CheckLinkDetailed2 = string;
  * Authorization: Bearer token`.
  */
 export type RequestHeadersString1 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition37 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition38 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing76 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing77 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing78 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing79 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Click or tap an element.
  */
@@ -430,6 +2071,90 @@ export type ClickElementDetailed1 =
   | {
       [k: string]: unknown;
     }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition39 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition40 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing80 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing81 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing82 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing83 =
   | {
       [k: string]: unknown;
     }
@@ -475,11 +2200,179 @@ export type FindElementDetailed1 =
   | {
       [k: string]: unknown;
     };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition41 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition42 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing84 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing85 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing86 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing87 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 export type GoTo3 = GoToURLSimple1 | GoToURLDetailed1;
 /**
  * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
  */
 export type GoToURLSimple1 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition43 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition44 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing88 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing89 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing90 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing91 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Perform a generic HTTP request, for example to an API.
  */
@@ -496,6 +2389,90 @@ export type HTTPRequestDetailed1 =
       [k: string]: unknown;
     };
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition45 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition46 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing92 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing93 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing94 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing95 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Perform a native shell command.
  */
 export type RunShell3 = RunShellCommandSimple1 | RunShellCommandDetailed1;
@@ -504,9 +2481,177 @@ export type RunShell3 = RunShellCommandSimple1 | RunShellCommandDetailed1;
  */
 export type RunShellCommandSimple1 = string;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition47 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition48 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing96 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing97 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing98 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing99 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Assemble and run code.
  */
 export type RunCode3 = RunCodeDetailed1;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition49 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition50 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing100 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing101 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing102 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing103 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
  */
@@ -515,6 +2660,90 @@ export type RunBrowserScript3 = RunBrowserScriptSimple1 | RunBrowserScriptDetail
  * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
  */
 export type RunBrowserScriptSimple1 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition51 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition52 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing104 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing105 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing106 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing107 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
  */
@@ -527,6 +2756,90 @@ export type TypeKeysSimple2 = string | string[];
  * Sequence of keys to enter.
  */
 export type TypeKeysSimple3 = string | string[];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition53 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition54 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing108 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing109 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing110 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing111 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Takes a screenshot in PNG format.
  */
@@ -573,6 +2886,90 @@ export type CropByElementDetailed1 =
  */
 export type CaptureScreenshot1 = boolean;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition55 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition56 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing112 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing113 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing114 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing115 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Save a specific browser cookie to a file or environment variable for later reuse.
  */
 export type SaveCookie3 = CookieName1 | SaveCookieDetailed1;
@@ -581,6 +2978,90 @@ export type SaveCookie3 = CookieName1 | SaveCookieDetailed1;
  */
 export type CookieName1 = string;
 export type SaveCookieDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition57 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition58 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing116 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing117 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing118 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing119 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
@@ -608,6 +3089,90 @@ export type RecordingEngineSimple1 = "browser" | "ffmpeg";
  */
 export type RecordBoolean1 = boolean;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition59 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition60 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing120 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing121 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing122 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing123 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
  */
 export type StopRecord3 = StopRecordBoolean1 | StopRecordNull1 | StopRecordName1 | StopRecordDetailed1;
@@ -624,9 +3189,177 @@ export type StopRecordNull1 = null;
  */
 export type StopRecordName1 = string;
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition61 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition62 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing124 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing125 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing126 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing127 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Load environment variables from the specified `.env` file.
  */
 export type LoadVariables3 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition63 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition64 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing128 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing129 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing130 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing131 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
@@ -680,6 +3413,90 @@ export type ElementDetailed3 =
       [k: string]: unknown;
     };
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition65 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition66 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing132 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing133 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing134 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing135 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * Load a specific cookie from a file or environment variable into the browser.
  */
 export type LoadCookie3 = CookieNameOrFilePath1 | LoadCookieDetailed1;
@@ -688,6 +3505,90 @@ export type LoadCookie3 = CookieNameOrFilePath1 | LoadCookieDetailed1;
  */
 export type CookieNameOrFilePath1 = string;
 export type LoadCookieDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition67 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition68 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing136 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing137 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing138 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.
+ */
+export type Routing139 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
@@ -838,6 +3739,24 @@ export interface Common {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition1;
+  assertions?: Condition2;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing4[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing5[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing6[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing7[];
   location?: SourceLocation;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -946,6 +3865,24 @@ export interface Common1 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition3;
+  assertions?: Condition4;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing8[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing9[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing10[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing11[];
   location?: SourceLocation1;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1021,6 +3958,24 @@ export interface Common2 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition5;
+  assertions?: Condition6;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing12[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing13[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing14[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing15[];
   location?: SourceLocation2;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1096,6 +4051,24 @@ export interface Common3 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition7;
+  assertions?: Condition8;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing16[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing17[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing18[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing19[];
   location?: SourceLocation3;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1232,6 +4205,24 @@ export interface Common4 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition9;
+  assertions?: Condition10;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing20[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing21[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing22[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing23[];
   location?: SourceLocation4;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1307,6 +4298,24 @@ export interface Common5 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition11;
+  assertions?: Condition12;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing24[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing25[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing26[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing27[];
   location?: SourceLocation5;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1425,6 +4434,24 @@ export interface Common6 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition13;
+  assertions?: Condition14;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing28[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing29[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing30[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing31[];
   location?: SourceLocation6;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1548,6 +4575,24 @@ export interface Common7 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition15;
+  assertions?: Condition16;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing32[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing33[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing34[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing35[];
   location?: SourceLocation7;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1658,6 +4703,24 @@ export interface Common8 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition17;
+  assertions?: Condition18;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing36[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing37[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing38[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing39[];
   location?: SourceLocation8;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1770,6 +4833,24 @@ export interface Common9 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition19;
+  assertions?: Condition20;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing40[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing41[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing42[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing43[];
   location?: SourceLocation9;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1888,6 +4969,24 @@ export interface Common10 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition21;
+  assertions?: Condition22;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing44[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing45[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing46[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing47[];
   location?: SourceLocation10;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -1963,6 +5062,24 @@ export interface Common11 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition23;
+  assertions?: Condition24;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing48[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing49[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing50[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing51[];
   location?: SourceLocation11;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2072,6 +5189,24 @@ export interface Common12 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition25;
+  assertions?: Condition26;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing52[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing53[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing54[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing55[];
   location?: SourceLocation12;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2153,6 +5288,24 @@ export interface Common13 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition27;
+  assertions?: Condition28;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing56[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing57[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing58[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing59[];
   location?: SourceLocation13;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2228,6 +5381,24 @@ export interface Common14 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition29;
+  assertions?: Condition30;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing60[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing61[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing62[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing63[];
   location?: SourceLocation14;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2321,6 +5492,24 @@ export interface Common15 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition31;
+  assertions?: Condition32;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing64[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing65[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing66[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing67[];
   location?: SourceLocation15;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2396,6 +5585,24 @@ export interface Common16 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition33;
+  assertions?: Condition34;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing68[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing69[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing70[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing71[];
   location?: SourceLocation16;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2530,6 +5737,24 @@ export interface Common17 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition35;
+  assertions?: Condition36;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing72[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing73[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing74[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing75[];
   location?: SourceLocation17;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2638,6 +5863,24 @@ export interface Common18 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition37;
+  assertions?: Condition38;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing76[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing77[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing78[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing79[];
   location?: SourceLocation18;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2713,6 +5956,24 @@ export interface Common19 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition39;
+  assertions?: Condition40;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing80[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing81[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing82[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing83[];
   location?: SourceLocation19;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2788,6 +6049,24 @@ export interface Common20 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition41;
+  assertions?: Condition42;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing84[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing85[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing86[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing87[];
   location?: SourceLocation20;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2924,6 +6203,24 @@ export interface Common21 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition43;
+  assertions?: Condition44;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing88[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing89[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing90[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing91[];
   location?: SourceLocation21;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -2999,6 +6296,24 @@ export interface Common22 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition45;
+  assertions?: Condition46;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing92[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing93[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing94[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing95[];
   location?: SourceLocation22;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3117,6 +6432,24 @@ export interface Common23 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition47;
+  assertions?: Condition48;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing96[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing97[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing98[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing99[];
   location?: SourceLocation23;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3240,6 +6573,24 @@ export interface Common24 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition49;
+  assertions?: Condition50;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing100[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing101[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing102[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing103[];
   location?: SourceLocation24;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3350,6 +6701,24 @@ export interface Common25 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition51;
+  assertions?: Condition52;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing104[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing105[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing106[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing107[];
   location?: SourceLocation25;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3462,6 +6831,24 @@ export interface Common26 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition53;
+  assertions?: Condition54;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing108[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing109[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing110[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing111[];
   location?: SourceLocation26;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3580,6 +6967,24 @@ export interface Common27 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition55;
+  assertions?: Condition56;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing112[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing113[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing114[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing115[];
   location?: SourceLocation27;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3655,6 +7060,24 @@ export interface Common28 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition57;
+  assertions?: Condition58;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing116[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing117[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing118[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing119[];
   location?: SourceLocation28;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3764,6 +7187,24 @@ export interface Common29 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition59;
+  assertions?: Condition60;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing120[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing121[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing122[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing123[];
   location?: SourceLocation29;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3845,6 +7286,24 @@ export interface Common30 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition61;
+  assertions?: Condition62;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing124[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing125[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing126[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing127[];
   location?: SourceLocation30;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -3920,6 +7379,24 @@ export interface Common31 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition63;
+  assertions?: Condition64;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing128[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing129[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing130[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing131[];
   location?: SourceLocation31;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -4013,6 +7490,24 @@ export interface Common32 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition65;
+  assertions?: Condition66;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing132[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing133[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing134[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing135[];
   location?: SourceLocation32;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
@@ -4088,6 +7583,24 @@ export interface Common33 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
+  if?: Condition67;
+  assertions?: Condition68;
+  /**
+   * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
+   */
+  onPass?: Routing136[];
+  /**
+   * Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.
+   */
+  onFail?: Routing137[];
+  /**
+   * Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.
+   */
+  onWarning?: Routing138[];
+  /**
+   * Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.
+   */
+  onSkip?: Routing139[];
   location?: SourceLocation33;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
