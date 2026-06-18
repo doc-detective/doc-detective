@@ -1,3 +1,10 @@
+# [4.14.0](https://github.com/doc-detective/doc-detective/compare/v4.13.0...v4.14.0) (2026-06-18)
+
+
+### Features
+
+* **runner:** add runBrowserScript action to execute JavaScript in the browser context ([#352](https://github.com/doc-detective/doc-detective/issues/352)) ([f010c67](https://github.com/doc-detective/doc-detective/commit/f010c67dbd35e790df1bb8dcd3ae0db054c5e11b))
+
 # [4.13.0](https://github.com/doc-detective/doc-detective/compare/v4.12.1...v4.13.0) (2026-06-17)
 
 
