@@ -223,6 +223,13 @@ Everything is additive and opt-in:
   corruption in `replaceMetaValues`. 42 expression unit tests pass.
   - **Documented in-code limitations (out of scope):** bare-bracket regex `matches [a-c]+` — use the
     `/regex/` slash form; `oneOf` must be the last operator in a single-condition expression.
+- **Phase 3 (meta values + outputs) — done, committed.** Pure helper
+  `buildConditionContext({platform, outputs, steps})` in new `src/core/routing.ts` (future home of
+  `resolveRoute`/`nextRetryDelay`), producing the object conditions evaluate against. Validated
+  through the real `evaluateAssertion` that the locked namespace resolves: `$$platform`,
+  `$$outputs.*` (incl. nested `stdio.stdout` / `response.statusCode`), and cross-step
+  `$$steps.<id>.outputs.*`, with fail-closed for missing refs. 16 unit tests; no runner/schema
+  change — Phase 5 wires it into the step loop with a per-step outputs accumulator.
 
 ## Implicit-assertion inventory (Phase 4a — classifications locked)
 
