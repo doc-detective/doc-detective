@@ -230,6 +230,21 @@ Everything is additive and opt-in:
   `$$outputs.*` (incl. nested `stdio.stdout` / `response.statusCode`), and cross-step
   `$$steps.<id>.outputs.*`, with fail-closed for missing refs. 16 unit tests; no runner/schema
   change — Phase 5 wires it into the step loop with a per-step outputs accumulator.
+- **Phase 4a.1 (assertion foundation + runShell exemplar) — done, committed.** New `assertion_v3`
+  record schema (`{statement, source: implicit|custom, result: PASS|FAIL|WARNING|SKIPPED, expected?,
+  actual?, description?}`); `step_v3.assertions` is `anyOf:[condition (custom input, string|string[]),
+  Assertion[] (report records)]` (the report reuses step_v3, hence the overload). `runShell` refactored
+  to emit implicit records (exitCode; stdio if set; saved-file variation → WARNING if path set),
+  short-circuit at first FAIL but emit applicable-but-not-reached checks as **SKIPPED**;
+  `status = rollUpResults(assertions)`; records reach the report via the existing spread —
+  **`tests.ts` untouched**. Sanctioned bug fix: FAIL+WARNING → FAIL. Reviewed GO (canary green; no
+  description-string test broken; anyOf has no false accept/reject).
+  - **Rollout caveat for 4a.2:** actions lacking an always-evaluated leading check (unlike runShell's
+    exitCode) can roll up all-SKIPPED → SKIPPED, or zero-records → PASS — decide the intended rollup
+    per action.
+- **Phase 4a.2 (fan-out) — pending.** Apply the exemplar pattern to httpRequest, checkLink, runCode,
+  runBrowserScript, find (+ element-existence in click/type/dragAndDrop), screenshot; fix bug #1
+  (runCode drops its own `exitCodes`) and #3 (dead/inconsistent `scroll`).
 
 ## Implicit-assertion inventory (Phase 4a — classifications locked)
 

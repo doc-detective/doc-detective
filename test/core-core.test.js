@@ -304,6 +304,51 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("runShell carries articulated assertion records into the report", async function () {
+    // Phase 4a.1: a successful runShell step emits implicit assertion records
+    // (exitCode, stdio) that the runner rolls up into the step result and the
+    // existing report spread carries through under `step.assertions`.
+    const assertionSpec = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: {
+                command: "echo",
+                args: ["needle-in-haystack"],
+                exitCodes: [0],
+                stdio: "needle",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-runshell-assertions.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(assertionSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(result.summary.steps.pass, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "PASS");
+      assert.ok(Array.isArray(step.assertions), "step should carry assertions");
+      const exit = step.assertions.find((a) => a.statement.startsWith("exitCode"));
+      assert.ok(exit, "expected an exitCode assertion record");
+      assert.equal(exit.source, "implicit");
+      assert.equal(exit.result, "PASS");
+      assert.deepEqual(exit.expected, [0]);
+      assert.equal(exit.actual, 0);
+      const stdio = step.assertions.find((a) => a.statement.startsWith("stdio"));
+      assert.ok(stdio, "expected a stdio assertion record");
+      assert.equal(stdio.result, "PASS");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("screenshot regression test returns WARNING when variation exceeds threshold", async function () {
     this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
     // Create a test screenshot path

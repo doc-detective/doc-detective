@@ -81,21 +81,109 @@
             ]
           },
           "assertions": {
-            "title": "Condition",
-            "description": "A condition expression, or an array of expressions combined with logical AND.",
-            "oneOf": [
+            "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+            "anyOf": [
               {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S"
+                "title": "Condition",
+                "description": "A condition expression, or an array of expressions combined with logical AND.",
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    }
+                  }
+                ]
               },
               {
                 "type": "array",
-                "minItems": 1,
                 "items": {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "assertion",
+                  "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "statement",
+                    "source",
+                    "result"
+                  ],
+                  "properties": {
+                    "statement": {
+                      "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    "source": {
+                      "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                      "type": "string",
+                      "enum": [
+                        "implicit",
+                        "custom"
+                      ]
+                    },
+                    "result": {
+                      "description": "Outcome of evaluating the assertion.",
+                      "type": "string",
+                      "enum": [
+                        "PASS",
+                        "FAIL",
+                        "WARNING",
+                        "SKIPPED"
+                      ]
+                    },
+                    "expected": {
+                      "description": "The value (or values) the assertion expected. Optional."
+                    },
+                    "actual": {
+                      "description": "The value actually observed. Optional."
+                    },
+                    "description": {
+                      "description": "Human-readable explanation of the outcome. Optional.",
+                      "type": "string"
+                    }
+                  },
+                  "examples": [
+                    {
+                      "statement": "exitCode in [0]",
+                      "source": "implicit",
+                      "result": "PASS",
+                      "expected": [
+                        0
+                      ],
+                      "actual": 0,
+                      "description": "Returned exit code 0."
+                    },
+                    {
+                      "statement": "exitCode in [0]",
+                      "source": "implicit",
+                      "result": "FAIL",
+                      "expected": [
+                        0
+                      ],
+                      "actual": 1,
+                      "description": "Returned exit code 1. Expected one of [0]."
+                    },
+                    {
+                      "statement": "saved-file variation <= 0.1",
+                      "source": "implicit",
+                      "result": "WARNING"
+                    },
+                    {
+                      "statement": "$$outputs.exitCode == 0",
+                      "source": "custom",
+                      "result": "SKIPPED"
+                    }
+                  ]
                 }
               }
             ]
@@ -836,21 +924,109 @@
         ]
       },
       "assertions": {
-        "title": "Condition",
-        "description": "A condition expression, or an array of expressions combined with logical AND.",
-        "oneOf": [
+        "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+        "anyOf": [
           {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "\\S"
+            "title": "Condition",
+            "description": "A condition expression, or an array of expressions combined with logical AND.",
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                }
+              }
+            ]
           },
           {
             "type": "array",
-            "minItems": 1,
             "items": {
-              "type": "string",
-              "minLength": 1,
-              "pattern": "\\S"
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "title": "assertion",
+              "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "statement",
+                "source",
+                "result"
+              ],
+              "properties": {
+                "statement": {
+                  "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "source": {
+                  "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                  "type": "string",
+                  "enum": [
+                    "implicit",
+                    "custom"
+                  ]
+                },
+                "result": {
+                  "description": "Outcome of evaluating the assertion.",
+                  "type": "string",
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "WARNING",
+                    "SKIPPED"
+                  ]
+                },
+                "expected": {
+                  "description": "The value (or values) the assertion expected. Optional."
+                },
+                "actual": {
+                  "description": "The value actually observed. Optional."
+                },
+                "description": {
+                  "description": "Human-readable explanation of the outcome. Optional.",
+                  "type": "string"
+                }
+              },
+              "examples": [
+                {
+                  "statement": "exitCode in [0]",
+                  "source": "implicit",
+                  "result": "PASS",
+                  "expected": [
+                    0
+                  ],
+                  "actual": 0,
+                  "description": "Returned exit code 0."
+                },
+                {
+                  "statement": "exitCode in [0]",
+                  "source": "implicit",
+                  "result": "FAIL",
+                  "expected": [
+                    0
+                  ],
+                  "actual": 1,
+                  "description": "Returned exit code 1. Expected one of [0]."
+                },
+                {
+                  "statement": "saved-file variation <= 0.1",
+                  "source": "implicit",
+                  "result": "WARNING"
+                },
+                {
+                  "statement": "$$outputs.exitCode == 0",
+                  "source": "custom",
+                  "result": "SKIPPED"
+                }
+              ]
             }
           }
         ]
@@ -1697,21 +1873,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -2728,21 +2992,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -3803,21 +4155,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -5975,21 +6415,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -7240,21 +7768,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -9057,21 +9673,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -10116,21 +10820,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -11161,21 +11953,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -12155,21 +13035,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -13222,21 +14190,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -14732,21 +15788,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -15800,21 +16944,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -16899,21 +18131,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -17773,21 +19093,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -18605,21 +20013,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -19924,21 +21420,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]
@@ -20975,21 +22559,109 @@
               ]
             },
             "assertions": {
-              "title": "Condition",
-              "description": "A condition expression, or an array of expressions combined with logical AND.",
-              "oneOf": [
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
                 {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S"
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional."
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional."
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
                   }
                 }
               ]

@@ -3740,7 +3740,10 @@ export interface Common {
    */
   breakpoint?: boolean;
   if?: Condition1;
-  assertions?: Condition2;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition2 | Assertion[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -3787,6 +3790,39 @@ export interface VariablesStep {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -3866,7 +3902,10 @@ export interface Common1 {
    */
   breakpoint?: boolean;
   if?: Condition3;
-  assertions?: Condition4;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition4 | Assertion1[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -3915,6 +3954,39 @@ export interface VariablesStep1 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion1 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation1 {
@@ -3959,7 +4031,10 @@ export interface Common2 {
    */
   breakpoint?: boolean;
   if?: Condition5;
-  assertions?: Condition6;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition6 | Assertion2[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4008,6 +4083,39 @@ export interface VariablesStep2 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion2 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation2 {
@@ -4052,7 +4160,10 @@ export interface Common3 {
    */
   breakpoint?: boolean;
   if?: Condition7;
-  assertions?: Condition8;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition8 | Assertion3[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4099,6 +4210,39 @@ export interface VariablesStep3 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion3 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -4206,7 +4350,10 @@ export interface Common4 {
    */
   breakpoint?: boolean;
   if?: Condition9;
-  assertions?: Condition10;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition10 | Assertion4[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4255,6 +4402,39 @@ export interface VariablesStep4 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion4 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation4 {
@@ -4299,7 +4479,10 @@ export interface Common5 {
    */
   breakpoint?: boolean;
   if?: Condition11;
-  assertions?: Condition12;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition12 | Assertion5[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4346,6 +4529,39 @@ export interface VariablesStep5 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion5 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -4435,7 +4651,10 @@ export interface Common6 {
    */
   breakpoint?: boolean;
   if?: Condition13;
-  assertions?: Condition14;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition14 | Assertion6[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4482,6 +4701,39 @@ export interface VariablesStep6 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion6 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -4576,7 +4828,10 @@ export interface Common7 {
    */
   breakpoint?: boolean;
   if?: Condition15;
-  assertions?: Condition16;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition16 | Assertion7[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4623,6 +4878,39 @@ export interface VariablesStep7 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion7 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -4704,7 +4992,10 @@ export interface Common8 {
    */
   breakpoint?: boolean;
   if?: Condition17;
-  assertions?: Condition18;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition18 | Assertion8[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4751,6 +5042,39 @@ export interface VariablesStep8 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion8 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -4834,7 +5158,10 @@ export interface Common9 {
    */
   breakpoint?: boolean;
   if?: Condition19;
-  assertions?: Condition20;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition20 | Assertion9[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -4881,6 +5208,39 @@ export interface VariablesStep9 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion9 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -4970,7 +5330,10 @@ export interface Common10 {
    */
   breakpoint?: boolean;
   if?: Condition21;
-  assertions?: Condition22;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition22 | Assertion10[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5019,6 +5382,39 @@ export interface VariablesStep10 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion10 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation10 {
@@ -5063,7 +5459,10 @@ export interface Common11 {
    */
   breakpoint?: boolean;
   if?: Condition23;
-  assertions?: Condition24;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition24 | Assertion11[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5110,6 +5509,39 @@ export interface VariablesStep11 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion11 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -5190,7 +5622,10 @@ export interface Common12 {
    */
   breakpoint?: boolean;
   if?: Condition25;
-  assertions?: Condition26;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition26 | Assertion12[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5237,6 +5672,39 @@ export interface VariablesStep12 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion12 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -5289,7 +5757,10 @@ export interface Common13 {
    */
   breakpoint?: boolean;
   if?: Condition27;
-  assertions?: Condition28;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition28 | Assertion13[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5338,6 +5809,39 @@ export interface VariablesStep13 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion13 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation13 {
@@ -5382,7 +5886,10 @@ export interface Common14 {
    */
   breakpoint?: boolean;
   if?: Condition29;
-  assertions?: Condition30;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition30 | Assertion14[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5429,6 +5936,39 @@ export interface VariablesStep14 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion14 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -5493,7 +6033,10 @@ export interface Common15 {
    */
   breakpoint?: boolean;
   if?: Condition31;
-  assertions?: Condition32;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition32 | Assertion15[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5542,6 +6085,39 @@ export interface VariablesStep15 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion15 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation15 {
@@ -5586,7 +6162,10 @@ export interface Common16 {
    */
   breakpoint?: boolean;
   if?: Condition33;
-  assertions?: Condition34;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition34 | Assertion16[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5633,6 +6212,39 @@ export interface VariablesStep16 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion16 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -5738,7 +6350,10 @@ export interface Common17 {
    */
   breakpoint?: boolean;
   if?: Condition35;
-  assertions?: Condition36;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition36 | Assertion17[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5785,6 +6400,39 @@ export interface VariablesStep17 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion17 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -5864,7 +6512,10 @@ export interface Common18 {
    */
   breakpoint?: boolean;
   if?: Condition37;
-  assertions?: Condition38;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition38 | Assertion18[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -5913,6 +6564,39 @@ export interface VariablesStep18 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion18 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation18 {
@@ -5957,7 +6641,10 @@ export interface Common19 {
    */
   breakpoint?: boolean;
   if?: Condition39;
-  assertions?: Condition40;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition40 | Assertion19[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6006,6 +6693,39 @@ export interface VariablesStep19 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion19 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation19 {
@@ -6050,7 +6770,10 @@ export interface Common20 {
    */
   breakpoint?: boolean;
   if?: Condition41;
-  assertions?: Condition42;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition42 | Assertion20[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6097,6 +6820,39 @@ export interface VariablesStep20 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion20 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -6204,7 +6960,10 @@ export interface Common21 {
    */
   breakpoint?: boolean;
   if?: Condition43;
-  assertions?: Condition44;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition44 | Assertion21[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6253,6 +7012,39 @@ export interface VariablesStep21 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion21 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation21 {
@@ -6297,7 +7089,10 @@ export interface Common22 {
    */
   breakpoint?: boolean;
   if?: Condition45;
-  assertions?: Condition46;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition46 | Assertion22[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6344,6 +7139,39 @@ export interface VariablesStep22 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion22 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -6433,7 +7261,10 @@ export interface Common23 {
    */
   breakpoint?: boolean;
   if?: Condition47;
-  assertions?: Condition48;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition48 | Assertion23[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6480,6 +7311,39 @@ export interface VariablesStep23 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion23 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -6574,7 +7438,10 @@ export interface Common24 {
    */
   breakpoint?: boolean;
   if?: Condition49;
-  assertions?: Condition50;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition50 | Assertion24[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6621,6 +7488,39 @@ export interface VariablesStep24 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion24 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -6702,7 +7602,10 @@ export interface Common25 {
    */
   breakpoint?: boolean;
   if?: Condition51;
-  assertions?: Condition52;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition52 | Assertion25[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6749,6 +7652,39 @@ export interface VariablesStep25 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion25 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -6832,7 +7768,10 @@ export interface Common26 {
    */
   breakpoint?: boolean;
   if?: Condition53;
-  assertions?: Condition54;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition54 | Assertion26[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -6879,6 +7818,39 @@ export interface VariablesStep26 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion26 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -6968,7 +7940,10 @@ export interface Common27 {
    */
   breakpoint?: boolean;
   if?: Condition55;
-  assertions?: Condition56;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition56 | Assertion27[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -7017,6 +7992,39 @@ export interface VariablesStep27 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion27 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation27 {
@@ -7061,7 +8069,10 @@ export interface Common28 {
    */
   breakpoint?: boolean;
   if?: Condition57;
-  assertions?: Condition58;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition58 | Assertion28[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -7108,6 +8119,39 @@ export interface VariablesStep28 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion28 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -7188,7 +8232,10 @@ export interface Common29 {
    */
   breakpoint?: boolean;
   if?: Condition59;
-  assertions?: Condition60;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition60 | Assertion29[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -7235,6 +8282,39 @@ export interface VariablesStep29 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion29 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -7287,7 +8367,10 @@ export interface Common30 {
    */
   breakpoint?: boolean;
   if?: Condition61;
-  assertions?: Condition62;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition62 | Assertion30[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -7336,6 +8419,39 @@ export interface VariablesStep30 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion30 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation30 {
@@ -7380,7 +8496,10 @@ export interface Common31 {
    */
   breakpoint?: boolean;
   if?: Condition63;
-  assertions?: Condition64;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition64 | Assertion31[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -7427,6 +8546,39 @@ export interface VariablesStep31 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion31 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -7491,7 +8643,10 @@ export interface Common32 {
    */
   breakpoint?: boolean;
   if?: Condition65;
-  assertions?: Condition66;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition66 | Assertion32[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -7540,6 +8695,39 @@ export interface VariablesStep32 {
   [k: string]: string;
 }
 /**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion32 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation32 {
@@ -7584,7 +8772,10 @@ export interface Common33 {
    */
   breakpoint?: boolean;
   if?: Condition67;
-  assertions?: Condition68;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition68 | Assertion33[];
   /**
    * Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.
    */
@@ -7631,6 +8822,39 @@ export interface VariablesStep33 {
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
   [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion33 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?: {
+    [k: string]: unknown;
+  };
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.

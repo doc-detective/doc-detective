@@ -2101,4 +2101,127 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid, result.errors).to.be.true;
       });
     });
+
+    // Phase 4a.1: articulated assertion records emitted by the runner into the
+    // step result. A reusable `assertion_v3` record shape, plus step_v3 now
+    // accepting an array of those records under `assertions` (the report shape),
+    // while still accepting the custom-input condition string|string[].
+    describe("assertion records (Phase 4a.1)", function () {
+      it("validates a minimal assertion record", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a full assertion record", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            expected: [0],
+            actual: 0,
+            description: "Returned exit code 0.",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects an assertion record with an unknown result", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "BOGUS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record with an unknown source", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "runner",
+            result: "PASS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record missing required statement", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            source: "implicit",
+            result: "PASS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record with additional properties", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            severity: "fail",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("validates step_v3 assertions as an array of records (report shape)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "echo hi" },
+            assertions: [
+              {
+                statement: "exitCode in [0]",
+                source: "implicit",
+                result: "PASS",
+                expected: [0],
+                actual: 0,
+                description: "Returned exit code 0.",
+              },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("still validates step_v3 assertions as a condition string (custom input)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: "$$outputs.exitCode == 0",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects step_v3 assertions as an array of malformed records", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "echo hi" },
+            assertions: [{ source: "implicit", result: "PASS" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+    });
   });

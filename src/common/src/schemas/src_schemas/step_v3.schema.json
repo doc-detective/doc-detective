@@ -63,7 +63,18 @@
         "$ref": "routing_v3.schema.json#/components/schemas/condition"
       },
       "assertions": {
-        "$ref": "routing_v3.schema.json#/components/schemas/condition"
+        "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+        "anyOf": [
+          {
+            "$ref": "routing_v3.schema.json#/components/schemas/condition"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "assertion_v3.schema.json#"
+            }
+          }
+        ]
       },
       "onPass": {
         "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
