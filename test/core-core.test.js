@@ -335,15 +335,21 @@ describe("Run tests successfully", function () {
       const step = result.specs[0].tests[0].contexts[0].steps[0];
       assert.equal(step.result, "PASS");
       assert.ok(Array.isArray(step.assertions), "step should carry assertions");
-      const exit = step.assertions.find((a) => a.statement.startsWith("exitCode"));
+      // Unified model: statements are runtime $$ expressions evaluated by the
+      // shared engine; expected/actual are vestigial and omitted.
+      const exit = step.assertions.find((a) =>
+        a.statement.includes("exitCode")
+      );
       assert.ok(exit, "expected an exitCode assertion record");
       assert.equal(exit.source, "implicit");
       assert.equal(exit.result, "PASS");
-      assert.deepEqual(exit.expected, [0]);
-      assert.equal(exit.actual, 0);
-      const stdio = step.assertions.find((a) => a.statement.startsWith("stdio"));
+      assert.equal(exit.statement, "$$outputs.exitCode oneOf [0]");
+      const stdio = step.assertions.find((a) =>
+        a.statement.includes("stdioMatched")
+      );
       assert.ok(stdio, "expected a stdio assertion record");
       assert.equal(stdio.result, "PASS");
+      assert.equal(stdio.statement, "$$outputs.stdioMatched == true");
     } finally {
       fs.unlinkSync(tempFilePath);
     }

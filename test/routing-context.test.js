@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { evaluateAssertion } from "../dist/core/expressions.js";
-import { buildConditionContext } from "../dist/core/routing.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../dist/core/routing.js";
 
 // Phase 3: prove the locked $$ meta-value namespace ($$platform, $$outputs.*,
 // $$steps.<id>.outputs.*) resolves through the REAL evaluateAssertion against a
@@ -146,5 +149,69 @@ describe("routing: buildConditionContext + meta-value resolution", function () {
       await evaluateAssertion("$$steps.build.outputs.exitCode == 0", empty),
       false
     );
+  });
+});
+
+// Shared mechanism: evaluate an ordered list of applicable implicit-assertion
+// specs against a condition context, in order, with FAIL short-circuit and a
+// FAIL>WARNING>SKIPPED>PASS roll-up.
+describe("routing: evaluateImplicitAssertions", function () {
+  const ctx = buildConditionContext({
+    outputs: {
+      exitCode: 0,
+      stdioMatched: true,
+      variation: 0.02,
+    },
+  });
+
+  it("empty specs -> [] and status PASS", async function () {
+    const { assertions, status } = await evaluateImplicitAssertions([], ctx);
+    assert.deepEqual(assertions, []);
+    assert.equal(status, "PASS");
+  });
+
+  it("a passing chain -> all PASS, status PASS", async function () {
+    const specs = [
+      { statement: "$$outputs.exitCode oneOf [0]", severity: "fail" },
+      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+      { statement: "$$outputs.variation <= 0.05", severity: "warning" },
+    ];
+    const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+    assert.equal(status, "PASS");
+    assert.equal(assertions.length, 3);
+    assert.ok(assertions.every((a) => a.result === "PASS"));
+    assert.ok(assertions.every((a) => a.source === "implicit"));
+    assert.equal(assertions[0].statement, "$$outputs.exitCode oneOf [0]");
+  });
+
+  it("a FAIL then a later applicable check -> [FAIL, SKIPPED], status FAIL", async function () {
+    const specs = [
+      { statement: "$$outputs.exitCode oneOf [1]", severity: "fail" },
+      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+    ];
+    const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+    assert.equal(status, "FAIL");
+    assert.equal(assertions.length, 2);
+    assert.equal(assertions[0].result, "FAIL");
+    assert.equal(assertions[1].result, "SKIPPED");
+  });
+
+  it("a WARNING-severity false -> WARNING, does not short-circuit a later PASS", async function () {
+    const specs = [
+      { statement: "$$outputs.variation <= 0.01", severity: "warning" },
+      { statement: "$$outputs.exitCode oneOf [0]", severity: "fail" },
+    ];
+    const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+    assert.equal(status, "WARNING");
+    assert.equal(assertions.length, 2);
+    assert.equal(assertions[0].result, "WARNING");
+    assert.equal(assertions[1].result, "PASS");
+  });
+
+  it("severity defaults to fail when omitted", async function () {
+    const specs = [{ statement: "$$outputs.exitCode oneOf [1]" }];
+    const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+    assert.equal(status, "FAIL");
+    assert.equal(assertions[0].result, "FAIL");
   });
 });

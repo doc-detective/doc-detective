@@ -3,24 +3,16 @@ import {
   spawnCommand,
   log,
   calculateFractionalDifference,
-  rollUpResults,
 } from "../utils.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 import fs from "node:fs";
 import path from "node:path";
 
 export { runShell };
-
-// One articulated assertion record. The runner emits these for each verification
-// check; the step result is the roll-up of their `result` fields. See
-// docs/design/dynamic-routing-roadmap.md ("Assertions") for the locked shape.
-interface AssertionRecord {
-  statement: string;
-  source: "implicit" | "custom";
-  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  expected?: any;
-  actual?: any;
-  description?: string;
-}
 
 // Run a shell command.
 async function runShell({ config, step }: { config: any; step: any }) {
@@ -91,107 +83,81 @@ async function runShell({ config, step }: { config: any; step: any }) {
     return result;
   }
 
-  // Build implicit assertion records in order, with short-circuit: stop
-  // *evaluating* checks once an assertion FAILs (its successors' inputs may not
-  // be meaningful), but still REPORT the full applicable checklist:
-  //   - An assertion that is applicable but not reached (because an earlier one
-  //     FAILed) is emitted with `result: "SKIPPED"`, carrying its `statement`,
-  //     `source: "implicit"`, and `expected` where known. `actual`/`description`
-  //     are omitted because it was never evaluated.
-  //   - An assertion that is not applicable (its feature isn't configured) is
-  //     omitted entirely — no SKIPPED record.
+  // Unified assertion model: every implicit check is a `$$` runtime EXPRESSION
+  // evaluated by the shared engine (`evaluateImplicitAssertions`). We do NOT
+  // compute PASS/FAIL inline here — instead we (1) compute any derived inputs
+  // the expressions reference and EXPOSE them as outputs, (2) build the ordered
+  // list of APPLICABLE specs, then (3) hand them to the shared engine which
+  // performs the in-order evaluation, FAIL short-circuit (later applicable
+  // checks become SKIPPED), and the FAIL > WARNING > SKIPPED > PASS roll-up.
+  //
   // For runShell the applicable set is: exitCode (always); stdio (only when
   // `step.runShell.stdio` is set); saved-file variation (only when
-  // `step.runShell.path` is set). The step result is the roll-up of the
-  // emitted assertions (FAIL > WARNING > all-SKIPPED > PASS). Side effects
-  // (file writes/overwrite) are preserved exactly as before; only the
-  // result-precedence is corrected (a late maxVariation WARNING no longer
-  // clobbers an earlier FAIL).
-  const assertions: AssertionRecord[] = [];
+  // `step.runShell.path` is set AND there is an existing file to compare).
+  // Side effects (file writes/overwrite) are preserved exactly and run
+  // unconditionally whenever `path` is set, independent of the assertion model.
+  const specs: ImplicitAssertionSpec[] = [];
   const descriptions: string[] = [];
 
-  // (a) Exit code ∈ exitCodes.
-  const exitCodePass = step.runShell.exitCodes.includes(result.outputs.exitCode);
-  const exitCodeDescription = exitCodePass
-    ? `Returned exit code ${result.outputs.exitCode}.`
-    : `Returned exit code ${result.outputs.exitCode}. Expected one of ${JSON.stringify(
-        step.runShell.exitCodes
-      )}`;
-  assertions.push({
-    statement: `exitCode in ${JSON.stringify(step.runShell.exitCodes)}`,
-    source: "implicit",
-    result: exitCodePass ? "PASS" : "FAIL",
-    expected: step.runShell.exitCodes,
-    actual: result.outputs.exitCode,
-    description: exitCodeDescription,
+  // (a) Exit code ∈ exitCodes (always applicable).
+  specs.push({
+    statement: `$$outputs.exitCode oneOf ${JSON.stringify(
+      step.runShell.exitCodes
+    )}`,
+    severity: "fail",
   });
-  descriptions.push(exitCodeDescription);
+  descriptions.push(
+    step.runShell.exitCodes.includes(result.outputs.exitCode)
+      ? `Returned exit code ${result.outputs.exitCode}.`
+      : `Returned exit code ${result.outputs.exitCode}. Expected one of ${JSON.stringify(
+          step.runShell.exitCodes
+        )}`
+  );
 
   // (b) stdio substring / regex match — APPLICABLE only when `stdio` is set.
-  // If applicable but a prior assertion already FAILed, report it as SKIPPED
-  // (not reached) rather than evaluating it. If not applicable, emit nothing.
+  // The existing "expected found in stdout OR stderr" semantics (substring, or
+  // regex when wrapped in /.../) are computed here and EXPOSED as a new boolean
+  // output, `result.outputs.stdioMatched`, so the spec is a simple equality
+  // (`$$outputs.stdioMatched == true`) — no OR operator needed, and users can
+  // reference `$$outputs.stdioMatched` in conditions / custom assertions.
   if (step.runShell.stdio) {
     const isRegex =
       step.runShell.stdio.startsWith("/") && step.runShell.stdio.endsWith("/");
-    const stdioStatement = isRegex
-      ? `stdio matches ${step.runShell.stdio}`
-      : `stdio contains ${JSON.stringify(step.runShell.stdio)}`;
-    if (assertions.some((a) => a.result === "FAIL")) {
-      // Applicable but not reached: emit a SKIPPED record. `actual`/`description`
-      // are omitted because the check was never evaluated.
-      assertions.push({
-        statement: stdioStatement,
-        source: "implicit",
-        result: "SKIPPED",
-        expected: step.runShell.stdio,
-      });
+    let stdioMatched: boolean;
+    if (isRegex) {
+      const regex = new RegExp(step.runShell.stdio.slice(1, -1));
+      stdioMatched =
+        regex.test(result.outputs.stdio.stdout) ||
+        regex.test(result.outputs.stdio.stderr);
     } else {
-      let stdioPass: boolean;
-      if (isRegex) {
-        const regex = new RegExp(step.runShell.stdio.slice(1, -1));
-        stdioPass =
-          regex.test(result.outputs.stdio.stdout) ||
-          regex.test(result.outputs.stdio.stderr);
-      } else {
-        stdioPass =
-          result.outputs.stdio.stdout.includes(step.runShell.stdio) ||
-          result.outputs.stdio.stderr.includes(step.runShell.stdio);
-      }
-      const stdioDescription = stdioPass
+      stdioMatched =
+        result.outputs.stdio.stdout.includes(step.runShell.stdio) ||
+        result.outputs.stdio.stderr.includes(step.runShell.stdio);
+    }
+    result.outputs.stdioMatched = stdioMatched;
+    specs.push({
+      statement: `$$outputs.stdioMatched == true`,
+      severity: "fail",
+    });
+    descriptions.push(
+      stdioMatched
         ? `Found expected output (${step.runShell.stdio}) in stdio.`
         : isRegex
         ? `Couldn't find expected output (${step.runShell.stdio}) in actual output (stdout or stderr).`
-        : `Couldn't find expected output (${step.runShell.stdio}) in stdio (stdout or stderr).`;
-      assertions.push({
-        statement: stdioStatement,
-        source: "implicit",
-        result: stdioPass ? "PASS" : "FAIL",
-        expected: step.runShell.stdio,
-        description: stdioDescription,
-      });
-      descriptions.push(stdioDescription);
-    }
+        : `Couldn't find expected output (${step.runShell.stdio}) in stdio (stdout or stderr).`
+    );
   }
 
   // (c) Saved-file variation ≤ maxVariation — APPLICABLE only when `path` is
-  // set. The file-write/overwrite side effects are preserved exactly as before
-  // and run unconditionally whenever `path` is set; only the *assertion record*
-  // honors short-circuit. What changed: when a prior assertion has FAILed, the
-  // (applicable) variation check is no longer evaluated — it is reported as a
-  // single SKIPPED record (not reached) carrying `expected: maxVariation`. When
-  // not short-circuited, an exceeded variation produces a WARNING record and a
-  // within-tolerance variation a PASS record, both rolled up.
+  // set AND an existing file is being compared against. The file-write /
+  // overwrite side effects are preserved exactly as before and run
+  // unconditionally whenever `path` is set; the assertion is gated on there
+  // being a prior file (the "file didn't exist yet → write, NO variation
+  // assertion" path emits no variation spec). When applicable, the computed
+  // `fractionalDiff` is EXPOSED as `result.outputs.variation` and the spec is
+  // `$$outputs.variation <= maxVariation` at WARNING severity. Users can also
+  // reference `$$outputs.variation` in conditions / custom assertions.
   if (step.runShell.path) {
-    const shortCircuited = assertions.some((a) => a.result === "FAIL");
-    const variationStatement = `saved-file variation <= ${step.runShell.maxVariation}`;
-    if (shortCircuited) {
-      assertions.push({
-        statement: variationStatement,
-        source: "implicit",
-        result: "SKIPPED",
-        expected: step.runShell.maxVariation,
-      });
-    }
     const dir = path.dirname(step.runShell.path);
     // If `dir` doesn't exist, create it
     if (!fs.existsSync(dir)) {
@@ -203,7 +169,8 @@ async function runShell({ config, step }: { config: any; step: any }) {
 
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
-      // Doesn't exist, save output to file
+      // Doesn't exist, save output to file. No prior content to compare against,
+      // so there is NO variation assertion in this branch.
       fs.writeFileSync(filePath, result.outputs.stdio.stdout);
     } else {
       if (step.runShell.overwrite == "false") {
@@ -221,55 +188,48 @@ async function runShell({ config, step }: { config: any; step: any }) {
       );
       log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
+      // Expose the computed variation as an output the expression references.
+      result.outputs.variation = fractionalDiff;
+      specs.push({
+        statement: `$$outputs.variation <= ${step.runShell.maxVariation}`,
+        severity: "warning",
+      });
+
+      // File side effects (write/overwrite) are unchanged from prior behavior.
       if (fractionalDiff > step.runShell.maxVariation) {
         if (step.runShell.overwrite == "aboveVariation") {
           // Overwrite file
           fs.writeFileSync(filePath, result.outputs.stdio.stdout);
           descriptions.push(`Saved output to file.`);
         }
-        const variationDescription = `The difference between the existing output and the new output (${fractionalDiff.toFixed(
-          2
-        )}) is greater than the max accepted variation (${
-          step.runShell.maxVariation
-        }).`;
-        // Short-circuit: omit the variation assertion if a prior assertion
-        // already FAILed (the verdict is already decided). The file side
-        // effects above still ran, preserving prior behavior.
-        if (!shortCircuited) {
-          assertions.push({
-            statement: `saved-file variation <= ${step.runShell.maxVariation}`,
-            source: "implicit",
-            result: "WARNING",
-            expected: step.runShell.maxVariation,
-            actual: fractionalDiff,
-            description: variationDescription,
-          });
-          descriptions.push(variationDescription);
-        }
+        descriptions.push(
+          `The difference between the existing output and the new output (${fractionalDiff.toFixed(
+            2
+          )}) is greater than the max accepted variation (${
+            step.runShell.maxVariation
+          }).`
+        );
       } else {
         if (step.runShell.overwrite == "true") {
           // Overwrite file
           fs.writeFileSync(filePath, result.outputs.stdio.stdout);
           descriptions.push(`Saved output to file.`);
         }
-        if (!shortCircuited) {
-          assertions.push({
-            statement: `saved-file variation <= ${step.runShell.maxVariation}`,
-            source: "implicit",
-            result: "PASS",
-            expected: step.runShell.maxVariation,
-            actual: fractionalDiff,
-            description: `Saved-file variation (${fractionalDiff.toFixed(
-              2
-            )}) is within the max accepted variation (${step.runShell.maxVariation}).`,
-          });
-        }
+        descriptions.push(
+          `Saved-file variation (${fractionalDiff.toFixed(
+            2
+          )}) is within the max accepted variation (${step.runShell.maxVariation}).`
+        );
       }
     }
   }
 
+  // Evaluate the applicable specs through the shared engine against the current
+  // step's outputs (including the derived `stdioMatched` / `variation`).
+  const ctx = buildConditionContext({ outputs: result.outputs });
+  const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
   result.assertions = assertions;
-  result.status = rollUpResults(assertions);
+  result.status = status;
   result.description = descriptions.join(" ");
   return result;
 }

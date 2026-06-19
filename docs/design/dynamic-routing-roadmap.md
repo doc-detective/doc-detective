@@ -249,10 +249,51 @@ Everything is additive and opt-in:
   Sanctioned fix #2: a passing STRING `response.body` no longer short-circuits the response-headers /
   `path`-save checks (an old inconsistency; locked with tests + a code comment). Reviewed GO;
   backward-compat preserved; runCode bug-#1 E2E fixture added; `tests.ts` untouched.
-- **Phase 4a.2b (driver/element actions) — pending.** Apply the pattern to `find` (+ element-existence
-  in `click`/`type`/`dragAndDrop`), `screenshot`, `runBrowserScript`. Mind the rollup caveat (these
-  lack an always-evaluated leading check, so all-SKIPPED → SKIPPED / zero-records → PASS must be
-  decided per action). Bug #3 (dead `scroll`): confirm unreachable; cleanup optional.
+- **Phase 4a.2b-1 (find + runBrowserScript) — done, uncommitted** (prose-statement form; superseded by
+  the pivot below). `find` emits one `element exists` assertion; `runBrowserScript` mirrors runShell.
+
+### DESIGN PIVOT (locked) — full unification: assertions ARE runtime expressions, evaluated by the engine
+
+Every assertion (implicit + custom) is now a `$$` runtime expression evaluated by `evaluateAssertion`
+against `buildConditionContext({platform, outputs, steps})` — **one evaluation path** for implicit and
+custom. An action's flow becomes: execute → expose outputs → **generate** its implicit assertion
+expressions → hand them to a shared evaluator (short-circuit on FAIL, SKIPPED for not-reached, severity
+→ PASS/FAIL/WARNING, rollUp).
+
+- **Simple value checks generate direct expressions:** `$$outputs.exitCode oneOf [0]`,
+  `$$outputs.response.statusCode oneOf [200,201]`, `$$outputs.result matches /…/`.
+- **Structurally-complex / compound checks expose a COMPUTED OUTPUT and assert a simple expression over
+  it** (the chosen realization — keeps engine risk low and hands users the computed values too):
+  `$$outputs.responseSchemaValid == true`, `$$outputs.bodyMatches == true`,
+  `$$outputs.headersMatch == true`, `$$outputs.variation <= 0.05`, `$$outputs.aspectRatioMatch == true`,
+  `$$outputs.found == true`, runShell stdout-OR-stderr → `$$outputs.stdioMatched == true`, and checkLink
+  exposes `$$outputs.statusCode`.
+- **Minimal engine additions:** prefer none — exposed outputs + existing operators (`oneOf`/`contains`/
+  `matches`/`==`/`<=`) cover everything; avoid `subset`/`matchesSchema`/`||` operators (and the
+  preprocessor-hardening they'd need) by pushing complexity into computed outputs. Optional `in` alias
+  for `oneOf` deferred.
+- **expected/actual** on the record become largely vestigial (the expression encodes "expected"; the
+  report's `outputs` carry "actual"); keep optional.
+- **Shared mechanism:** `evaluateImplicitAssertions(specs, context)` + `rollUpAssertions` in
+  `src/core/routing.ts`/`utils.ts`.
+
+**Rework consequence:** the committed 4a.1 (runShell) + 4a.2a (httpRequest/checkLink/runCode) and the
+uncommitted 4a.2b-1 (find/runBrowserScript) — all prose-statement + hard-coded-compute — are reworked
+to this model (exemplar-first: rebuild runShell, review, then fan out). Prior commits are intermediate
+(squashed at promotion); the record shape / short-circuit / SKIPPED / rollUp all carry over. Custom
+assertions (Phase 4b) then fall out of the same path. `tests.ts` stays untouched.
+
+**Progress (unified model):**
+- **Unified foundation + runShell exemplar — done, committed.** `evaluateImplicitAssertions(specs,
+  context)` (routing.ts) + `rollUpAssertions` (utils.ts); `runShell` generates `$$` expression
+  assertions (`$$outputs.exitCode oneOf […]`, `$$outputs.stdioMatched == true`,
+  `$$outputs.variation <= …`) and evaluates them via the shared engine + `buildConditionContext`.
+  New user-referenceable outputs `stdioMatched` / `variation`. Reviewed GO — byte-faithful
+  backward-compat (signal-kill, stderr-only/regex stdio, first-write-no-variation, FAIL>WARNING
+  precedence). NOTE: a find+runBrowserScript subagent over-reached and articulated the whole element
+  family in the OLD prose model (unreviewed); that work was reverted and will be redone unified.
+- **Remaining unified conversions — pending.** Rework committed prose-model httpRequest/checkLink/
+  runCode; freshly convert find/click/type/dragAndDrop/runBrowserScript/screenshot.
 
 ## Implicit-assertion inventory (Phase 4a — classifications locked)
 
