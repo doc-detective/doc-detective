@@ -1,3 +1,10 @@
+# [4.15.0-next.4](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.3...v4.15.0-next.4) (2026-06-19)
+
+
+### Features
+
+* **assertions:** evaluate author-written custom assertions at runtime ([97431ce](https://github.com/doc-detective/doc-detective/commit/97431ce20dc6f8eb89c6dd1e1964b4a71a807a5e))
+
 # [4.15.0-next.3](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.2...v4.15.0-next.3) (2026-06-19)
 
 
