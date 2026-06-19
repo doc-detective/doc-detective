@@ -23,10 +23,12 @@
       "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"]
     },
     "expected": {
-      "description": "The value (or values) the assertion expected. Optional."
+      "description": "The value (or values) the assertion expected. Optional.",
+      "type": ["array", "boolean", "integer", "null", "number", "object", "string"]
     },
     "actual": {
-      "description": "The value actually observed. Optional."
+      "description": "The value actually observed. Optional.",
+      "type": ["array", "boolean", "integer", "null", "number", "object", "string"]
     },
     "description": {
       "description": "Human-readable explanation of the outcome. Optional.",

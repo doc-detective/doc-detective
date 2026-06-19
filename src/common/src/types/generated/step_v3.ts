@@ -853,15 +853,27 @@ export interface Assertion {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -1015,15 +1027,27 @@ export interface Assertion1 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -1144,15 +1168,27 @@ export interface Assertion2 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -1273,15 +1309,27 @@ export interface Assertion3 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -1444,15 +1492,27 @@ export interface Assertion4 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -1573,15 +1633,27 @@ export interface Assertion5 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -1745,15 +1817,27 @@ export interface Assertion6 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -1922,15 +2006,27 @@ export interface Assertion7 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -2086,15 +2182,27 @@ export interface Assertion8 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -2252,15 +2360,27 @@ export interface Assertion9 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -2424,15 +2544,27 @@ export interface Assertion10 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -2553,15 +2685,27 @@ export interface Assertion11 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -2716,15 +2860,27 @@ export interface Assertion12 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -2851,15 +3007,27 @@ export interface Assertion13 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -2980,15 +3148,27 @@ export interface Assertion14 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -3127,15 +3307,27 @@ export interface Assertion15 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
@@ -3256,15 +3448,27 @@ export interface Assertion16 {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */
