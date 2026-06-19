@@ -158,6 +158,28 @@ async function evaluateImplicitAssertions(
 }
 
 /**
+ * The CURRENT step as seen by the custom-assertion helper. Only `assertions` is
+ * read here; it is the author condition form (string | string[]). An
+ * array-of-objects (the report shape) is tolerated by the type but ignored at
+ * runtime — it is not author input.
+ */
+interface CustomAssertionStep {
+  assertions?: string | string[] | unknown[];
+}
+
+/**
+ * The action's result the helper folds custom records into (and mutates).
+ * `status` is the rolled-up verdict; `assertions` holds any prior (implicit)
+ * records; `outputs` is the per-action computed-output bag conditions read.
+ */
+interface CustomAssertionActionResult {
+  status: string;
+  assertions?: ImplicitAssertionRecord[];
+  outputs?: any;
+  [key: string]: any;
+}
+
+/**
  * Evaluate the author-written `step.assertions` (the "custom" condition form)
  * AFTER an action has run, folding the results into `actionResult`.
  *
@@ -168,17 +190,17 @@ async function evaluateImplicitAssertions(
  *   - Only the condition form is evaluated: a string or an array of strings
  *     (AND across the array). An array-of-objects (the report shape) is IGNORED
  *     — it is not author input.
- *   - If the action produced no assertable result — i.e. it was deliberately
- *     SKIPPED (e.g. `wait: false`), or it returned FAIL with NO implicit
- *     assertion records (an execution-error early return) — the custom
- *     assertions are emitted as SKIPPED, NOT evaluated, and the original status
- *     is preserved (no re-roll).
- *   - Otherwise, when an existing implicit record already FAILed, the custom
- *     records continue that short-circuit (all SKIPPED).
+ *   - Custom assertions are EVALUATED (and the status re-rolled) ONLY when the
+ *     action's status is PASS or WARNING. For ANY other status (FAIL for any
+ *     reason — execution error, an implicit FAIL record, etc. — or SKIPPED) the
+ *     custom checks are emitted as SKIPPED, NOT evaluated, and the action's
+ *     original status is PRESERVED (no re-roll). This guarantees custom
+ *     assertions can only ADD a failure to a passing/warning step, never
+ *     rescue/upgrade a failing or skipped one.
  *   - Custom assertions are FAIL-only (no WARNING). An unresolvable `$$` fails
  *     closed to FAIL (via `evaluateAssertion`).
- *   - Custom records are appended to `actionResult.assertions` and
- *     `actionResult.status` is re-rolled across ALL records.
+ *   - Custom records are appended to `actionResult.assertions` and, when
+ *     evaluated, `actionResult.status` is re-rolled across ALL records.
  *
  * Cross-step `$$steps.*` in custom assertions is DEFERRED: `steps` is passed as
  * `{}` here (resolution would fail closed to FAIL today).
@@ -188,11 +210,11 @@ async function evaluateImplicitAssertions(
  * @returns The same (mutated) `actionResult`, for convenience.
  */
 async function evaluateCustomAssertions(args: {
-  step: any;
-  actionResult: any;
+  step?: CustomAssertionStep;
+  actionResult?: CustomAssertionActionResult;
   platform?: string;
-}): Promise<any> {
-  const { step, actionResult, platform } = args || ({} as any);
+}): Promise<CustomAssertionActionResult | undefined> {
+  const { step, actionResult, platform } = args;
   if (!step || !actionResult) return actionResult;
 
   // Normalize the author condition form. Only string | string[] is user input;
@@ -216,28 +238,17 @@ async function evaluateCustomAssertions(args: {
     ? actionResult.assertions
     : [];
 
-  // No assertable result: either a deliberately-skipped step (status SKIPPED,
-  // e.g. `wait: false`) or an execution-error early return (the action FAILed
-  // before producing any implicit records). In both cases there is nothing
-  // meaningful to assert on, so the custom checks are SKIPPED (not evaluated)
-  // and the action's original status is PRESERVED (no re-roll that could flip
-  // SKIPPED -> PASS/FAIL or demote FAIL -> SKIPPED).
-  const noAssertableResult =
-    actionResult.status === "SKIPPED" ||
-    (actionResult.status === "FAIL" && existing.length === 0);
-
-  // Continue an implicit short-circuit when an implicit check already FAILed.
-  const implicitFailed = existing.some((a) => a.result === "FAIL");
-
   const specs: ImplicitAssertionSpec[] = statements.map((statement) => ({
     statement,
     severity: "fail",
   }));
 
-  if (noAssertableResult) {
-    // Nothing meaningful to assert on: emit SKIPPED custom records but PRESERVE
-    // the action's original (SKIPPED or FAIL) status — a re-roll over a lone
-    // SKIPPED record would wrongly flip SKIPPED -> PASS / demote FAIL -> SKIPPED.
+  // Custom assertions may only ADD a failure to a passing/warning step. For any
+  // other status (FAIL for any reason — execution error or an existing implicit
+  // FAIL record — or SKIPPED) there is nothing meaningful to assert on: emit
+  // SKIPPED custom records and PRESERVE the original status (no re-roll, which
+  // could otherwise upgrade a FAIL to PASS or flip a SKIPPED).
+  if (actionResult.status !== "PASS" && actionResult.status !== "WARNING") {
     const customRecords: ImplicitAssertionRecord[] = specs.map((spec) => ({
       statement: spec.statement,
       source: "custom",
@@ -255,7 +266,7 @@ async function evaluateCustomAssertions(args: {
   const { assertions: customRecords } = await evaluateImplicitAssertions(
     specs,
     ctx,
-    { source: "custom", startFailed: implicitFailed }
+    { source: "custom" }
   );
 
   actionResult.assertions = [...existing, ...customRecords];
@@ -275,4 +286,6 @@ export type {
   ImplicitAssertionSpec,
   ImplicitAssertionRecord,
   EvaluateAssertionsOptions,
+  CustomAssertionStep,
+  CustomAssertionActionResult,
 };

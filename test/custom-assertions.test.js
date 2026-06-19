@@ -149,6 +149,28 @@ describe("routing: evaluateCustomAssertions", function () {
     assert.equal(custom[0].result, "SKIPPED");
   });
 
+  it("execution-error action (FAIL, but all-PASS implicit records) + passing custom -> custom SKIPPED, status STAYS FAIL (no upgrade)", async function () {
+    // An execution failure that occurred AFTER implicit assertions were emitted:
+    // status is FAIL but every existing record is PASS. Custom assertions must
+    // NOT be evaluated and the FAIL must NOT be upgraded to PASS by a re-roll.
+    const actionResult = {
+      status: "FAIL",
+      description: "boom after implicit checks passed",
+      outputs: { exitCode: 0 },
+      assertions: [
+        { statement: "$$outputs.exitCode oneOf [0]", source: "implicit", result: "PASS" },
+      ],
+    };
+    await evaluateCustomAssertions({
+      step: { assertions: "$$outputs.exitCode == 0" }, // would PASS if evaluated
+      actionResult,
+    });
+    assert.equal(actionResult.status, "FAIL");
+    const custom = actionResult.assertions.filter((a) => a.source === "custom");
+    assert.equal(custom.length, 1);
+    assert.equal(custom[0].result, "SKIPPED");
+  });
+
   it("SKIPPED-status action (no records) + custom -> custom SKIPPED, status stays SKIPPED (not flipped)", async function () {
     // A deliberately-skipped step (e.g. `wait: false`) returns status SKIPPED
     // with no assertion records. Custom assertions must NOT be evaluated and
