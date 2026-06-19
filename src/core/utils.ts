@@ -34,6 +34,7 @@ export {
   findFreePort,
   runConcurrent,
   rollUpResults,
+  rollUpAssertions,
   createAppiumPool,
 };
 
@@ -95,6 +96,20 @@ function rollUpResults(children: Array<{ result?: string }>): string {
   if (children.some((child) => child.result === "WARNING")) return "WARNING";
   if (children.every((child) => child.result === "SKIPPED")) return "SKIPPED";
   return "PASS";
+}
+
+// Roll up an action's verification ASSERTIONS to a step status. Unlike
+// `rollUpResults`, an empty (or falsy) assertion set rolls up to PASS, not
+// SKIPPED: zero applicable assertions plus successful EXECUTION is a PASS (the
+// action did its work, there was simply nothing to verify). Use this — not
+// `rollUpResults` — wherever an action's `assertions` array may legitimately be
+// empty (click/type/dragAndDrop/runBrowserScript). Actions that always emit at
+// least one record stay on `rollUpResults`.
+function rollUpAssertions(
+  assertions?: Array<{ result?: string }> | null
+): string {
+  if (!assertions || assertions.length === 0) return "PASS";
+  return rollUpResults(assertions);
 }
 
 // Bind a temp listener to port 0, capture the OS-assigned port, and release

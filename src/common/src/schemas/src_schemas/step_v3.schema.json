@@ -32,6 +32,24 @@
           "breakpoint": {
             "$ref": "#/components/schemas/breakpoint"
           },
+          "if": {
+            "$ref": "#/components/schemas/if"
+          },
+          "assertions": {
+            "$ref": "#/components/schemas/assertions"
+          },
+          "onPass": {
+            "$ref": "#/components/schemas/onPass"
+          },
+          "onFail": {
+            "$ref": "#/components/schemas/onFail"
+          },
+          "onWarning": {
+            "$ref": "#/components/schemas/onWarning"
+          },
+          "onSkip": {
+            "$ref": "#/components/schemas/onSkip"
+          },
           "location": {
             "$ref": "#/components/schemas/location"
           },
@@ -40,6 +58,51 @@
           }
         },
         "title": "Common"
+      },
+      "if": {
+        "$ref": "routing_v3.schema.json#/components/schemas/condition"
+      },
+      "assertions": {
+        "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+        "anyOf": [
+          {
+            "$ref": "routing_v3.schema.json#/components/schemas/condition"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "assertion_v3.schema.json#"
+            }
+          }
+        ]
+      },
+      "onPass": {
+        "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
+      },
+      "onFail": {
+        "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
+      },
+      "onWarning": {
+        "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
+      },
+      "onSkip": {
+        "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
       },
       "$schema": {
         "description": "JSON Schema for this object.",

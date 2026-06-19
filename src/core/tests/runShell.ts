@@ -4,6 +4,11 @@ import {
   log,
   calculateFractionalDifference,
 } from "../utils.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -12,7 +17,7 @@ export { runShell };
 // Run a shell command.
 async function runShell({ config, step }: { config: any; step: any }) {
   // Promisify and execute command
-  const result = {
+  const result: any = {
     status: "PASS",
     description: "Executed command.",
     outputs: {
@@ -78,41 +83,80 @@ async function runShell({ config, step }: { config: any; step: any }) {
     return result;
   }
 
-  // Evaluate exit code
-  if (!step.runShell.exitCodes.includes(result.outputs.exitCode)) {
-    result.status = "FAIL";
-    result.description = `Returned exit code ${
-      result.outputs.exitCode
-    }. Expected one of ${JSON.stringify(step.runShell.exitCodes)}`;
-  }
+  // Unified assertion model: every implicit check is a `$$` runtime EXPRESSION
+  // evaluated by the shared engine (`evaluateImplicitAssertions`). We do NOT
+  // compute PASS/FAIL inline here — instead we (1) compute any derived inputs
+  // the expressions reference and EXPOSE them as outputs, (2) build the ordered
+  // list of APPLICABLE specs, then (3) hand them to the shared engine which
+  // performs the in-order evaluation, FAIL short-circuit (later applicable
+  // checks become SKIPPED), and the FAIL > WARNING > SKIPPED > PASS roll-up.
+  //
+  // For runShell the applicable set is: exitCode (always); stdio (only when
+  // `step.runShell.stdio` is set); saved-file variation (only when
+  // `step.runShell.path` is set AND there is an existing file to compare).
+  // Side effects (file writes/overwrite) are preserved exactly and run
+  // unconditionally whenever `path` is set, independent of the assertion model.
+  const specs: ImplicitAssertionSpec[] = [];
+  const descriptions: string[] = [];
 
-  // Evaluate stdout and stderr
-  // If step.runShell.stdio starts and ends with `/`, treat it as a regex
+  // (a) Exit code ∈ exitCodes (always applicable).
+  specs.push({
+    statement: `$$outputs.exitCode oneOf ${JSON.stringify(
+      step.runShell.exitCodes
+    )}`,
+    severity: "fail",
+  });
+  descriptions.push(
+    step.runShell.exitCodes.includes(result.outputs.exitCode)
+      ? `Returned exit code ${result.outputs.exitCode}.`
+      : `Returned exit code ${result.outputs.exitCode}. Expected one of ${JSON.stringify(
+          step.runShell.exitCodes
+        )}`
+  );
+
+  // (b) stdio substring / regex match — APPLICABLE only when `stdio` is set.
+  // The existing "expected found in stdout OR stderr" semantics (substring, or
+  // regex when wrapped in /.../) are computed here and EXPOSED as a new boolean
+  // output, `result.outputs.stdioMatched`, so the spec is a simple equality
+  // (`$$outputs.stdioMatched == true`) — no OR operator needed, and users can
+  // reference `$$outputs.stdioMatched` in conditions / custom assertions.
   if (step.runShell.stdio) {
-    if (
-      step.runShell.stdio.startsWith("/") &&
-      step.runShell.stdio.endsWith("/")
-    ) {
+    const isRegex =
+      step.runShell.stdio.startsWith("/") && step.runShell.stdio.endsWith("/");
+    let stdioMatched: boolean;
+    if (isRegex) {
       const regex = new RegExp(step.runShell.stdio.slice(1, -1));
-      if (
-        !regex.test(result.outputs.stdio.stdout) &&
-        !regex.test(result.outputs.stdio.stderr)
-      ) {
-        result.status = "FAIL";
-        result.description = `Couldn't find expected output (${step.runShell.stdio}) in actual output (stdout or stderr).`;
-      }
+      stdioMatched =
+        regex.test(result.outputs.stdio.stdout) ||
+        regex.test(result.outputs.stdio.stderr);
     } else {
-      if (
-        !result.outputs.stdio.stdout.includes(step.runShell.stdio) &&
-        !result.outputs.stdio.stderr.includes(step.runShell.stdio)
-      ) {
-        result.status = "FAIL";
-        result.description = `Couldn't find expected output (${step.runShell.stdio}) in stdio (stdout or stderr).`;
-      }
+      stdioMatched =
+        result.outputs.stdio.stdout.includes(step.runShell.stdio) ||
+        result.outputs.stdio.stderr.includes(step.runShell.stdio);
     }
+    result.outputs.stdioMatched = stdioMatched;
+    specs.push({
+      statement: `$$outputs.stdioMatched == true`,
+      severity: "fail",
+    });
+    descriptions.push(
+      stdioMatched
+        ? `Found expected output (${step.runShell.stdio}) in stdio.`
+        : isRegex
+        ? `Couldn't find expected output (${step.runShell.stdio}) in actual output (stdout or stderr).`
+        : `Couldn't find expected output (${step.runShell.stdio}) in stdio (stdout or stderr).`
+    );
   }
 
-  // Check if command output is saved to a file
+  // (c) Saved-file variation ≤ maxVariation — APPLICABLE only when `path` is
+  // set AND an existing file is being compared against. The file-write /
+  // overwrite side effects are preserved exactly as before and run
+  // unconditionally whenever `path` is set; the assertion is gated on there
+  // being a prior file (the "file didn't exist yet → write, NO variation
+  // assertion" path emits no variation spec). When applicable, the computed
+  // `fractionalDiff` is EXPOSED as `result.outputs.variation` and the spec is
+  // `$$outputs.variation <= maxVariation` at WARNING severity. Users can also
+  // reference `$$outputs.variation` in conditions / custom assertions.
   if (step.runShell.path) {
     const dir = path.dirname(step.runShell.path);
     // If `dir` doesn't exist, create it
@@ -125,13 +169,13 @@ async function runShell({ config, step }: { config: any; step: any }) {
 
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
-      // Doesn't exist, save output to file
+      // Doesn't exist, save output to file. No prior content to compare against,
+      // so there is NO variation assertion in this branch.
       fs.writeFileSync(filePath, result.outputs.stdio.stdout);
     } else {
       if (step.runShell.overwrite == "false") {
         // File already exists
-        result.description =
-          result.description + ` Didn't save output. File already exists.`;
+        descriptions.push(`Didn't save output. File already exists.`);
       }
 
       // Read existing file
@@ -144,30 +188,48 @@ async function runShell({ config, step }: { config: any; step: any }) {
       );
       log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
+      // Expose the computed variation as an output the expression references.
+      result.outputs.variation = fractionalDiff;
+      specs.push({
+        statement: `$$outputs.variation <= ${step.runShell.maxVariation}`,
+        severity: "warning",
+      });
+
+      // File side effects (write/overwrite) are unchanged from prior behavior.
       if (fractionalDiff > step.runShell.maxVariation) {
         if (step.runShell.overwrite == "aboveVariation") {
           // Overwrite file
           fs.writeFileSync(filePath, result.outputs.stdio.stdout);
-          result.description += ` Saved output to file.`;
+          descriptions.push(`Saved output to file.`);
         }
-        result.status = "WARNING";
-        result.description =
-          result.description +
-          ` The difference between the existing output and the new output (${fractionalDiff.toFixed(
+        descriptions.push(
+          `The difference between the existing output and the new output (${fractionalDiff.toFixed(
             2
           )}) is greater than the max accepted variation (${
             step.runShell.maxVariation
-          }).`;
-        return result;
-      }
-
-      if (step.runShell.overwrite == "true") {
-        // Overwrite file
-        fs.writeFileSync(filePath, result.outputs.stdio.stdout);
-        result.description += ` Saved output to file.`;
+          }).`
+        );
+      } else {
+        if (step.runShell.overwrite == "true") {
+          // Overwrite file
+          fs.writeFileSync(filePath, result.outputs.stdio.stdout);
+          descriptions.push(`Saved output to file.`);
+        }
+        descriptions.push(
+          `Saved-file variation (${fractionalDiff.toFixed(
+            2
+          )}) is within the max accepted variation (${step.runShell.maxVariation}).`
+        );
       }
     }
   }
 
+  // Evaluate the applicable specs through the shared engine against the current
+  // step's outputs (including the derived `stdioMatched` / `variation`).
+  const ctx = buildConditionContext({ outputs: result.outputs });
+  const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+  result.assertions = assertions;
+  result.status = status;
+  result.description = descriptions.join(" ");
   return result;
 }

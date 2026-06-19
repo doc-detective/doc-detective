@@ -1740,4 +1740,488 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         ).to.throw(/Invalid object/);
       });
     });
+
+    describe("dynamic routing (Phase 1 schema foundation)", function () {
+      // Positive cases — must validate.
+      it("validates a step with onFail conditional goToTest + unconditional stop", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [
+              { if: "$$platform == windows", goToTest: "x" },
+              { stop: "test" },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with onPass continue:true", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onPass: [{ continue: true }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with onFail retry (full) and a retry with only limit", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [
+              { retry: { limit: 3, delay: 1000, backoff: "exponential" } },
+              { retry: { limit: 1 } },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with onWarning and onSkip arrays", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onWarning: [{ continue: true }],
+            onSkip: [{ goToStep: "next-step" }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with if as a string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: "$$platform == linux",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with if as an array (logical AND)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: ["a", "b"],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with assertions as a string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: "$$outputs.exitCode == 0",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with assertions as an array", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: ["$$outputs.exitCode == 0", "$$outputs.x == 1"],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a test with onFail and if", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            steps: [{ goTo: { url: "https://example.com" } }],
+            onFail: [{ stop: "spec" }],
+            if: "$$platform == mac",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a spec with if", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+            if: "$$platform == linux",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      // Negative cases — must reject.
+      it("rejects a routing entry with two action keys", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ continue: true, stop: "test" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects a routing entry with an unknown key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ foo: true }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects a routing entry with no action key (if only)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ if: "x" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects goToStep empty string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ goToStep: "" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects goToTest whitespace-only string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ goToTest: "   " }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects stop with an invalid enum value", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ stop: "galaxy" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects retry with limit:0", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 0 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects retry with limit:-1", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: -1 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects retry with limit:1.5", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1.5 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects continue:false in a routing entry", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ continue: false }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects a retry entry with no limit", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: {} }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if:null (non-coercible to string)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: null,
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an object (non-coercible to string)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: {},
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an empty array (minItems)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: [],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an array with an empty-string item (pattern)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: [""],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an array with a whitespace-only item (pattern)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: ["  "],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // Level-scoping: test_v3 sets additionalProperties:false, so assertions
+      // (a step-level field) is not allowed at the test level.
+      it("rejects test-level assertions (not a test field)", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            testId: "t",
+            assertions: "$$outputs.exitCode == 0",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // Coercion-by-design regression guards (bug fix): bare numbers/booleans
+      // coerce to strings under the global coerceTypes:true, so string-looking
+      // conditions like "123"/"0"/"true"/"1.5" must validate, not reject.
+      it("validates if as a numeric-looking string", function () {
+        for (const v of ["123", "0", "true", "1.5"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              goTo: { url: "https://example.com" },
+              if: v,
+            },
+          });
+          expect(result.valid, `${v}: ${result.errors}`).to.be.true;
+        }
+      });
+
+      it("validates if:123 (coerced to string by design)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: 123,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates if:true (coerced to string by design)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: true,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates assertions as a numeric-looking string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: "0",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+    });
+
+    // Phase 4a.1: articulated assertion records emitted by the runner into the
+    // step result. A reusable `assertion_v3` record shape, plus step_v3 now
+    // accepting an array of those records under `assertions` (the report shape),
+    // while still accepting the custom-input condition string|string[].
+    describe("assertion records (Phase 4a.1)", function () {
+      it("validates a minimal assertion record", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a full assertion record", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            expected: [0],
+            actual: 0,
+            description: "Returned exit code 0.",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects an assertion record with an unknown result", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "BOGUS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record with an unknown source", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "runner",
+            result: "PASS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record missing required statement", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            source: "implicit",
+            result: "PASS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record with additional properties", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            severity: "fail",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("validates step_v3 assertions as an array of records (report shape)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "echo hi" },
+            assertions: [
+              {
+                statement: "exitCode in [0]",
+                source: "implicit",
+                result: "PASS",
+                expected: [0],
+                actual: 0,
+                description: "Returned exit code 0.",
+              },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("still validates step_v3 assertions as a condition string (custom input)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: "$$outputs.exitCode == 0",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects step_v3 assertions as an array of malformed records", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "echo hi" },
+            assertions: [{ source: "implicit", result: "PASS" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+    });
   });

@@ -26,6 +26,7 @@ async function dereferenceSchemas() {
   // These files should be present in the input directory
   const files = [
     // v3 schemas
+    "assertion_v3.schema.json",
     "checkLink_v3.schema.json",
     "click_v3.schema.json",
     "config_v3.schema.json",
@@ -40,6 +41,7 @@ async function dereferenceSchemas() {
     "record_v3.schema.json",
     "resolvedTests_v3.schema.json",
     "report_v3.schema.json",
+    "routing_v3.schema.json",
     "runBrowserScript_v3.schema.json",
     "runCode_v3.schema.json",
     "runShell_v3.schema.json",
