@@ -16,6 +16,7 @@ testId | string | Optional. Unique identifier for the test. |
 description | string | Optional. Description of the test. | 
 contentPath | string | Optional. Path to the content that the test is associated with. | 
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on markup regex. | `true`
+if | string or array | Optional. Condition that decides whether this test runs. A single condition expression or an array of expressions combined with logical AND. If the condition evaluates to false, every context of the test is marked SKIPPED instead of running. Test-level conditions can reference `$$platform`. An unresolvable condition fails closed (the test is skipped). | 
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | 
 openApi | array of unknown | Optional. No description provided. | 
 before | string | Optional. Path to a test specification to perform before this test, while maintaining this test's context. Useful for setting up testing environments. Only the `steps` property is used from the first test in the setup spec. | 
