@@ -1,3 +1,10 @@
+# [4.15.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.14.0...v4.15.0-next.1) (2026-06-19)
+
+
+### Features
+
+* dynamic-routing & assertions foundation (schema, expression engine, unified assertions) ([d9e5d67](https://github.com/doc-detective/doc-detective/commit/d9e5d67211541eaf8bf89459fc31d3bb4d6be46c))
+
 # [4.14.0](https://github.com/doc-detective/doc-detective/compare/v4.13.0...v4.14.0) (2026-06-18)
 
 
