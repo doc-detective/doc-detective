@@ -23,7 +23,7 @@ When using the object format, you can specify:
 - `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to click. If combined with `elementText`, the element must match both the text and the selector.
 - `elementText`: (Optional) Display text of the element to click. If combined with `selector`, the element must match both the text and the selector.
 
-**Outputs:** when you target an element by text or selector, the action exposes `outputs.found`, a boolean indicating whether the element was located. Reference it with the `$$outputs.*` namespace as `$$outputs.found`.
+**Outputs:** when you target an element by text or selector, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.
 
 > For comprehensive options, see the full [`click`](/reference/schemas/click) reference.
 

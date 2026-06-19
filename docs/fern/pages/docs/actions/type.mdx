@@ -14,7 +14,7 @@ You can specify the keys to type in several ways:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
   - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible.
 
-**Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located, which you reference with the `$$outputs.*` namespace as `$$outputs.found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
+**Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
 
 > For comprehensive options, see the [`type`](/reference/schemas/type) reference.
 

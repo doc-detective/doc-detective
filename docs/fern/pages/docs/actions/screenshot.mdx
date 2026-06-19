@@ -31,12 +31,12 @@ You can specify the screenshot action in several ways:
 URL paths must end in `.png` (or `.PNG`) and can include query strings for signed URLs. The step fails if the URL is unreachable or returns invalid image data.
 </Note>
 
-**Outputs:** depending on which options you configure, the action exposes the following values in its `outputs` object, which you reference with the `$$outputs.*` namespace. Each output is present only when its check applies:
+**Outputs:** depending on which options you configure, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Each output is present only when its check applies:
 
-- `$$outputs.cropElementFound`: whether the element to crop to was located (when `crop` is set).
-- `$$outputs.fitsViewport`: whether the cropped element fits within the viewport (when `crop` is set).
-- `$$outputs.aspectRatioMatch`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).
-- `$$outputs.variation`: the fractional difference between the new capture and the reference image (when comparing against a reference image).
+- `$$cropElementFound`: whether the element to crop to was located (when `crop` is set).
+- `$$fitsViewport`: whether the cropped element fits within the viewport (when `crop` is set).
+- `$$aspectRatioMatch`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).
+- `$$variation`: the fractional difference between the new capture and the reference image (when comparing against a reference image).
 
 > For comprehensive options, see the [`screenshot`](/reference/schemas/screenshot) reference.
 

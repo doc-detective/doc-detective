@@ -22,7 +22,7 @@ You can specify the target element directly using a string (for basic text or se
 
 **Setting Variables:** to capture a found element's attributes into variables for later steps, use the step-level `variables` object. You can assign values based on the element using expressions like `$$element.text`.
 
-**Outputs:** the action also exposes `outputs.found`, a boolean indicating whether an element matching your criteria was located. Reference it with the `$$outputs.*` namespace as `$$outputs.found`.
+**Outputs:** the action also exposes `outputs.found`, a boolean indicating whether an element matching your criteria was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.
 
 > For comprehensive options, see the [`find`](/reference/schemas/find) reference.
 
