@@ -1,3 +1,10 @@
+# [4.15.0-next.2](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.1...v4.15.0-next.2) (2026-06-19)
+
+
+### Features
+
+* **assertions:** convert all step actions to the unified expression model ([6646466](https://github.com/doc-detective/doc-detective/commit/664646673e31e394caf3747b1ecd2e4e164732f6)), closes [#355](https://github.com/doc-detective/doc-detective/issues/355)
+
 # [4.15.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.14.0...v4.15.0-next.1) (2026-06-19)
 
 
