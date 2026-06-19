@@ -65,6 +65,7 @@ import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
+import { evaluateCustomAssertions } from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -1998,6 +1999,20 @@ async function runStep({
   // Clean up actionResult outputs
   if (actionResult?.outputs?.rawElement) {
     delete actionResult.outputs.rawElement;
+  }
+
+  // Evaluate author-written custom assertions (`step.assertions`). Strictly
+  // additive: with no usable `assertions` field this is a no-op and the
+  // actionResult is byte-identical. Folds custom records into
+  // actionResult.assertions and re-rolls actionResult.status. See
+  // evaluateCustomAssertions for the execution-error -> SKIPPED and
+  // implicit-FAIL short-circuit semantics.
+  if (step.assertions && actionResult) {
+    await evaluateCustomAssertions({
+      step,
+      actionResult,
+      platform: context?.platform,
+    });
   }
 
   // If variables are defined, resolve and set them
