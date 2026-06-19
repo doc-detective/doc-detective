@@ -58,6 +58,73 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("Custom assertion FAIL fails the step and skips the rest of the test", async () => {
+    // An action that EXECUTES fine (exit 0) but whose custom assertion is false.
+    // The custom-assertion FAIL must fail the step, and the existing step-loop
+    // FAIL handling must then skip the remaining step.
+    const customFailTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(0)\"",
+              assertions: "$$outputs.exitCode == 1",
+            },
+            {
+              runShell: "node -e \"process.exit(0)\"",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-custom-fail-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(customFailTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      assert.equal(result.summary.steps.skipped, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("Custom assertion records are SKIPPED when an implicit check already FAILed", async () => {
+    // Exit code 1 with exitCodes [0] makes the IMPLICIT check FAIL. The custom
+    // assertion must then be SKIPPED (not evaluated), and the step stays FAIL.
+    const implicitFailTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: { command: "node -e \"process.exit(1)\"", exitCodes: [0] },
+              assertions: "$$outputs.exitCode == 1",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-implicit-fail-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(implicitFailTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      const custom = (step.assertions || []).filter((a) => a.source === "custom");
+      assert.equal(custom.length, 1);
+      assert.equal(custom[0].result, "SKIPPED");
+      const implicit = (step.assertions || []).filter(
+        (a) => a.source === "implicit"
+      );
+      assert.ok(implicit.some((a) => a.result === "FAIL"));
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Test skips when unsafe and unsafe is disallowed", async () => {
     const unsafeTest = {
       tests: [
