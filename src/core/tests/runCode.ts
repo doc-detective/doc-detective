@@ -110,22 +110,41 @@ async function runCode({ config, step }: { config: any; step: any }) {
       return result;
     }
 
-    // Prepare shell command using the resolved command
-    const shellStep: any = {
-      runShell: {
-        command,
-        args: [scriptPath, ...step.runCode.args],
-      },
+    // Prepare shell command using the resolved command.
+    // BUG #1 FIX: previously only {command,args} were forwarded, so the
+    // runCode-level exitCodes/stdio/maxVariation/overwrite/path/timeout/
+    // workingDirectory options were silently DROPPED (e.g. `exitCodes:[1]` had
+    // no effect and the step FAILed on a non-zero exit). Forward every option
+    // runShell honors so they actually take effect. `directory` (runCode-only)
+    // is resolved into the single `path` runShell expects.
+    const runShellOptions: any = {
+      command,
+      args: [scriptPath, ...step.runCode.args],
+      exitCodes: step.runCode.exitCodes,
+      workingDirectory: step.runCode.workingDirectory,
+      maxVariation: step.runCode.maxVariation,
+      overwrite: step.runCode.overwrite,
+      timeout: step.runCode.timeout,
     };
-    delete shellStep.runCode;
+    if (typeof step.runCode.stdio !== "undefined")
+      runShellOptions.stdio = step.runCode.stdio;
+    if (typeof step.runCode.path !== "undefined") {
+      runShellOptions.path = step.runCode.directory
+        ? path.join(step.runCode.directory, step.runCode.path)
+        : step.runCode.path;
+    }
+    const shellStep: any = { runShell: runShellOptions };
 
     // Execute script using runShell
     const shellResult = await runShell({ config: config, step: shellStep });
 
-    // Copy results
+    // Copy results, including the articulated assertion records so runCode
+    // reports the same implicit assertions runShell produces.
     result.status = shellResult.status;
     result.description = shellResult.description;
     result.outputs = {...result.outputs, ...shellResult.outputs};
+    if (typeof shellResult.assertions !== "undefined")
+      result.assertions = shellResult.assertions;
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;

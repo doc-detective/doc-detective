@@ -35,6 +35,10 @@ export type OpenApi = {
  */
 export type HerettoCMSIntegrations = HerettoCMSIntegration[];
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition = string | [string, ...string[]];
+/**
  * OpenAPI description and configuration.
  */
 export type OpenApi1 =
@@ -510,6 +514,7 @@ export interface Specification {
    * Path to the content that the specification is associated with.
    */
   contentPath?: string;
+  if?: Condition;
   /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.
    */
