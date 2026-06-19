@@ -30,7 +30,7 @@ You must specify the `runCode` action using an object format with the following 
 
 This allows tests to continue while flagging output changes that exceed your acceptable variation threshold.
 
-**Setting Variables:** To capture output into variables for later steps, use the step-level `variables` object. You can assign values based on the code's output using expressions like `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`.
+**Setting Variables:** To capture output into variables for later steps, use the step-level `variables` object. You can assign values based on the code's output using expressions like `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`. When you set `stdio`, the action also exposes `$$stdioMatched`, a boolean indicating whether the expected output was found in stdout or stderr. When you save output with `path` and a reference file already exists, the action exposes `$$variation`, the fractional difference between the new output and the reference file.
 
 > For comprehensive options, see the [`runCode`](/reference/schemas/runcode) reference.
 
