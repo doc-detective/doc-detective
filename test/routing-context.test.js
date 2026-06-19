@@ -19,6 +19,10 @@ describe("routing: buildConditionContext + meta-value resolution", function () {
   const steps = {
     build: { outputs: { exitCode: 0, stdio: { stdout: "built", stderr: "" } } },
     fetch: { outputs: { response: { statusCode: 200, body: {} } } },
+    // Realistic default stepId: testId~sHASH and UUIDs are hyphenated; the
+    // tilde-derived form contains "~". The meta-value token class must allow
+    // both so these ids resolve.
+    "my-test~s3f2a-1": { outputs: { exitCode: 0 } },
   };
 
   function ctx(overrides = {}) {
@@ -123,6 +127,37 @@ describe("routing: buildConditionContext + meta-value resolution", function () {
         ctx()
       ),
       true
+    );
+  });
+
+  // --- hyphenated / tilde stepIds (default stepId shape) ---
+  it("$$steps.<hyphenated-tilde-id>.outputs.exitCode == 0 -> true", async function () {
+    assert.equal(
+      await evaluateAssertion(
+        "$$steps.my-test~s3f2a-1.outputs.exitCode == 0",
+        ctx()
+      ),
+      true
+    );
+  });
+  it("$$steps.<hyphenated-tilde-id>.outputs.exitCode == 0 -> false when 1", async function () {
+    assert.equal(
+      await evaluateAssertion(
+        "$$steps.my-test~s3f2a-1.outputs.exitCode == 0",
+        ctx({
+          steps: { ...steps, "my-test~s3f2a-1": { outputs: { exitCode: 1 } } },
+        })
+      ),
+      false
+    );
+  });
+  it("$$steps.<hyphenated-id>.outputs.missing unresolved -> false (fail closed)", async function () {
+    assert.equal(
+      await evaluateAssertion(
+        "$$steps.my-test~s3f2a-1.outputs.missing == 0",
+        ctx()
+      ),
+      false
     );
   });
 

@@ -5,6 +5,26 @@ import { log } from "./utils.js";
 import jq from "jq-web";
 
 /**
+ * Shared pattern source for a $$ meta-value token (the part after "$$"),
+ * with an optional trailing JSON pointer (#/...). Used by BOTH replaceMetaValues
+ * and hasUnresolvedMetaReference so the two regexes can never drift.
+ *
+ * The token character class is [\w.\[\]\-~] = [A-Za-z0-9_.\[\]\-~]. The `-` and
+ * `~` are included so DEFAULT stepIds resolve: a default stepId is the
+ * UUID/`testId~sHASH` form, which is hyphenated and may contain "~". With the
+ * old `\w`-only class, a token like `$$steps.my-test~s3f2a-1.outputs.exitCode`
+ * matched only up to the first `-`, breaking resolution. The `-` is placed at
+ * the END of the class so it is a literal, not a range.
+ *
+ * Edge note: because `-` is now a valid token char, a spaced subtraction like
+ * `$$x - 1` is unaffected (the space separates `-` from the token, so only
+ * `$$x` is captured). But `$$x-1` (no spaces) would now capture `x-1` as the
+ * token. This is acceptable: conditions use spaced comparison/word operators,
+ * so a token-adjacent `-` is intended to be part of the id, not subtraction.
+ */
+const META_TOKEN_SOURCE = "\\$\\$([\\w.\\[\\]\\-~]+(?:#\\/[\\w\\/\\[\\]]+)*)";
+
+/**
  * Resolves runtime expressions that may contain meta values and operators.
  * Can handle both standalone expressions and strings with embedded expressions.
  * @param {string} expression - The expression to resolve.
@@ -63,8 +83,9 @@ async function resolveExpression({ expression, context, allowOperators = false }
  * @returns {*} - The expression with meta values replaced.
  */
 function replaceMetaValues(expression: string, context: any, allowOperators: boolean = false): any {
-  // Regular expression to match meta values with optional JSON pointer
-  const metaValueRegex = /\$\$([\w\.\[\]]+(?:#\/[\w\/\[\]]+)*)/g;
+  // Regular expression to match meta values with optional JSON pointer.
+  // Shares META_TOKEN_SOURCE with hasUnresolvedMetaReference so they can't drift.
+  const metaValueRegex = new RegExp(META_TOKEN_SOURCE, "g");
 
   let result: any = expression;
   let match;
@@ -127,7 +148,7 @@ function hasUnresolvedMetaReference(expression: string, context: any): boolean {
     /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
     " "
   );
-  const metaValueRegex = /\$\$([\w\.\[\]]+(?:#\/[\w\/\[\]]+)*)/g;
+  const metaValueRegex = new RegExp(META_TOKEN_SOURCE, "g");
   let match;
   while ((match = metaValueRegex.exec(skeleton)) !== null) {
     if (getMetaValue(match[1]!, context) === undefined) {
