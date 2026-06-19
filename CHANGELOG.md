@@ -1,3 +1,10 @@
+# [4.15.0-next.3](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.2...v4.15.0-next.3) (2026-06-19)
+
+
+### Bug Fixes
+
+* **schema:** bound retry.delay and type assertion expected/actual ([36f75cb](https://github.com/doc-detective/doc-detective/commit/36f75cb133cd3a2dea43b9ca2a34b862eb50c3c0))
+
 # [4.15.0-next.2](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.1...v4.15.0-next.2) (2026-06-19)
 
 
