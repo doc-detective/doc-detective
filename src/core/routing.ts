@@ -79,12 +79,29 @@ interface ImplicitAssertionSpec {
 /**
  * One emitted assertion record. `statement` is the runtime expression that was
  * (or would have been) evaluated. Under the unified model `expected`/`actual`
- * are vestigial and omitted here.
+ * are vestigial and omitted here. `source` distinguishes engine-emitted
+ * ("implicit") records from author-written ("custom") `step.assertions`.
  */
 interface ImplicitAssertionRecord {
   statement: string;
-  source: "implicit";
+  source: "implicit" | "custom";
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+}
+
+/**
+ * Options for the shared evaluator. Defaults reproduce the original
+ * implicit-only behavior so the 8 existing call sites are untouched.
+ */
+interface EvaluateAssertionsOptions {
+  /** Stamped onto every emitted record's `source`. Defaults to "implicit". */
+  source?: "implicit" | "custom";
+  /**
+   * When true, the evaluator starts in the short-circuited state: the FIRST
+   * spec (and every later one) is recorded SKIPPED without evaluation. Used by
+   * custom assertions to CONTINUE an implicit short-circuit — when an implicit
+   * check already FAILed, the custom checks are not meaningful to assert on.
+   */
+  startFailed?: boolean;
 }
 
 /**
@@ -98,22 +115,27 @@ interface ImplicitAssertionRecord {
  *
  * @param specs - Ordered, already-applicable specs.
  * @param context - A `buildConditionContext(...)` output.
+ * @param options - Optional `{ source, startFailed }` (see
+ *   `EvaluateAssertionsOptions`). Defaults reproduce implicit-only behavior.
  * @returns `{ assertions, status }`.
  */
 async function evaluateImplicitAssertions(
   specs: ImplicitAssertionSpec[],
-  context: ConditionContext
+  context: ConditionContext,
+  options: EvaluateAssertionsOptions = {}
 ): Promise<{ assertions: ImplicitAssertionRecord[]; status: string }> {
+  const source = options.source ?? "implicit";
   const records: ImplicitAssertionRecord[] = [];
-  let failed = false;
+  let failed = options.startFailed === true;
 
   for (const spec of specs) {
     if (failed) {
-      // Short-circuit: an earlier assertion FAILed, so this applicable check is
-      // not evaluated — report it as SKIPPED.
+      // Short-circuit: an earlier assertion FAILed (or the chain was started in
+      // the failed state), so this applicable check is not evaluated — report
+      // it as SKIPPED.
       records.push({
         statement: spec.statement,
-        source: "implicit",
+        source,
         result: "SKIPPED",
       });
       continue;
@@ -129,17 +151,141 @@ async function evaluateImplicitAssertions(
       result = "FAIL";
     }
     if (result === "FAIL") failed = true;
-    records.push({ statement: spec.statement, source: "implicit", result });
+    records.push({ statement: spec.statement, source, result });
   }
 
   return { assertions: records, status: rollUpAssertions(records) };
 }
 
-export { buildConditionContext, evaluateImplicitAssertions };
+/**
+ * The CURRENT step as seen by the custom-assertion helper. Only `assertions` is
+ * read here; it is the author condition form (string | string[]). An
+ * array-of-objects (the report shape) is tolerated by the type but ignored at
+ * runtime — it is not author input.
+ */
+interface CustomAssertionStep {
+  assertions?: string | string[] | unknown[];
+}
+
+/**
+ * The action's result the helper folds custom records into (and mutates).
+ * `status` is the rolled-up verdict; `assertions` holds any prior (implicit)
+ * records; `outputs` is the per-action computed-output bag conditions read.
+ */
+interface CustomAssertionActionResult {
+  status: string;
+  assertions?: ImplicitAssertionRecord[];
+  outputs?: any;
+  [key: string]: any;
+}
+
+/**
+ * Evaluate the author-written `step.assertions` (the "custom" condition form)
+ * AFTER an action has run, folding the results into `actionResult`.
+ *
+ * This is the runner-facing helper for custom assertions. It is strictly
+ * additive: a step with no usable `assertions` field is left byte-identical.
+ *
+ * Contract:
+ *   - Only the condition form is evaluated: a string or an array of strings
+ *     (AND across the array). An array-of-objects (the report shape) is IGNORED
+ *     — it is not author input.
+ *   - Custom assertions are EVALUATED (and the status re-rolled) ONLY when the
+ *     action's status is PASS or WARNING. For ANY other status (FAIL for any
+ *     reason — execution error, an implicit FAIL record, etc. — or SKIPPED) the
+ *     custom checks are emitted as SKIPPED, NOT evaluated, and the action's
+ *     original status is PRESERVED (no re-roll). This guarantees custom
+ *     assertions can only ADD a failure to a passing/warning step, never
+ *     rescue/upgrade a failing or skipped one.
+ *   - Custom assertions are FAIL-only (no WARNING). An unresolvable `$$` fails
+ *     closed to FAIL (via `evaluateAssertion`).
+ *   - Custom records are appended to `actionResult.assertions` and, when
+ *     evaluated, `actionResult.status` is re-rolled across ALL records.
+ *
+ * Cross-step `$$steps.*` in custom assertions is DEFERRED: `steps` is passed as
+ * `{}` here (resolution would fail closed to FAIL today).
+ *
+ * @param args - `{ step, actionResult, platform }`. `platform` is the mapped
+ *   `context.platform` value (or undefined).
+ * @returns The same (mutated) `actionResult`, for convenience.
+ */
+async function evaluateCustomAssertions(args: {
+  step?: CustomAssertionStep;
+  actionResult?: CustomAssertionActionResult;
+  platform?: string;
+}): Promise<CustomAssertionActionResult | undefined> {
+  const { step, actionResult, platform } = args;
+  if (!step || !actionResult) return actionResult;
+
+  // Normalize the author condition form. Only string | string[] is user input;
+  // an array-of-objects is the report shape and is ignored.
+  const raw = step.assertions;
+  let statements: string[] | null = null;
+  if (typeof raw === "string") {
+    statements = [raw];
+  } else if (
+    Array.isArray(raw) &&
+    raw.length > 0 &&
+    raw.every((s) => typeof s === "string")
+  ) {
+    statements = raw as string[];
+  }
+  if (!statements || statements.length === 0) return actionResult;
+
+  const existing: ImplicitAssertionRecord[] = Array.isArray(
+    actionResult.assertions
+  )
+    ? actionResult.assertions
+    : [];
+
+  const specs: ImplicitAssertionSpec[] = statements.map((statement) => ({
+    statement,
+    severity: "fail",
+  }));
+
+  // Custom assertions may only ADD a failure to a passing/warning step. For any
+  // other status (FAIL for any reason — execution error or an existing implicit
+  // FAIL record — or SKIPPED) there is nothing meaningful to assert on: emit
+  // SKIPPED custom records and PRESERVE the original status (no re-roll, which
+  // could otherwise upgrade a FAIL to PASS or flip a SKIPPED).
+  if (actionResult.status !== "PASS" && actionResult.status !== "WARNING") {
+    const customRecords: ImplicitAssertionRecord[] = specs.map((spec) => ({
+      statement: spec.statement,
+      source: "custom",
+      result: "SKIPPED",
+    }));
+    actionResult.assertions = [...existing, ...customRecords];
+    return actionResult;
+  }
+
+  const ctx = buildConditionContext({
+    platform,
+    outputs: actionResult.outputs,
+    steps: {},
+  });
+  const { assertions: customRecords } = await evaluateImplicitAssertions(
+    specs,
+    ctx,
+    { source: "custom" }
+  );
+
+  actionResult.assertions = [...existing, ...customRecords];
+  actionResult.status = rollUpAssertions(actionResult.assertions);
+  return actionResult;
+}
+
+export {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+  evaluateCustomAssertions,
+};
 export type {
   BuildConditionContextArgs,
   ConditionContext,
   StepContextEntry,
   ImplicitAssertionSpec,
   ImplicitAssertionRecord,
+  EvaluateAssertionsOptions,
+  CustomAssertionStep,
+  CustomAssertionActionResult,
 };
