@@ -4,8 +4,11 @@ import { checkLink } from "../dist/core/tests/checkLink.js";
 
 const config = { logLevel: "silent" };
 
-function findAssertion(assertions, prefix) {
-  return (assertions || []).find((a) => a.statement.startsWith(prefix));
+// Unified model: implicit assertions carry a $$ runtime-expression statement
+// (e.g. "$$outputs.statusCode oneOf [200,301,302,307,308]"), so match on a
+// substring of the statement rather than a prose prefix.
+function findAssertion(assertions, token) {
+  return (assertions || []).find((a) => a.statement.includes(token));
 }
 
 let server;
@@ -43,8 +46,10 @@ describe("checkLink articulated assertions (Phase 4a.2a)", function () {
     assert.ok(sc, "expected a statusCode assertion");
     assert.equal(sc.source, "implicit");
     assert.equal(sc.result, "PASS");
-    assert.deepEqual(sc.expected, [200, 301, 302, 307, 308]);
-    assert.equal(sc.actual, 200);
+    // Unified model: a $$ runtime expression over the exposed output.
+    assert.match(sc.statement, /\$\$outputs\.statusCode oneOf/);
+    // checkLink now exposes a computed statusCode output.
+    assert.equal(result.outputs.statusCode, 200);
   });
 
   it("emits a FAIL statusCode assertion and FAIL status for an unaccepted code", async () => {
@@ -61,8 +66,8 @@ describe("checkLink articulated assertions (Phase 4a.2a)", function () {
     const sc = findAssertion(result.assertions, "statusCode");
     assert.ok(sc);
     assert.equal(sc.result, "FAIL");
-    assert.deepEqual(sc.expected, [200]);
-    assert.equal(sc.actual, 404);
+    assert.match(sc.statement, /\$\$outputs\.statusCode oneOf/);
+    assert.equal(result.outputs.statusCode, 404);
   });
 
   it("returns FAIL with no assertions for an unresolvable URL (execution error)", async () => {

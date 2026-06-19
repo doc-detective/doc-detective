@@ -4,6 +4,11 @@ import {
 } from "./findStrategies.js";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 
 export { typeKeys };
 
@@ -90,8 +95,25 @@ async function getSpecialKeyMap(
 }
 
 // Type a sequence of keys in the active element.
+//
+// Unified assertion model: when the step targets a specific element (any
+// element criterion present), element EXISTENCE is the single implicit
+// verification — exposed as `outputs.found` and asserted via the trivial
+// `$$outputs.found == true` expression through the shared engine. The focus
+// (`element.click`) + `driver.keys` typing are EXECUTION: a failure there sets
+// FAIL with NO extra assertion record. When NO element criteria are present the
+// step types into the ACTIVE element, so there is no existence check at all —
+// zero applicable specs roll up to PASS with empty `assertions`.
 async function typeKeys({ config, step, driver }: { config: any; step: any; driver: any }) {
-  let result = { status: "PASS", description: "Typed keys." };
+  // `assertions` starts empty: the no-criteria (active-element) path types into
+  // the focused element with no existence check, so zero applicable specs roll
+  // up to PASS with an empty assertions array. The criteria path overwrites it.
+  let result: any = {
+    status: "PASS",
+    description: "Typed keys.",
+    outputs: {},
+    assertions: [],
+  };
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
@@ -149,14 +171,27 @@ async function typeKeys({ config, step, driver }: { config: any; step: any; driv
       driver,
     });
 
+    // Compute the existence output and evaluate the implicit assertion through
+    // the shared engine: found→PASS, not-found→FAIL.
+    result.outputs.found = !!foundElement;
+    const specs: ImplicitAssertionSpec[] = [
+      { statement: "$$outputs.found == true", severity: "fail" },
+    ];
+    const { assertions, status } = await evaluateImplicitAssertions(
+      specs,
+      buildConditionContext({ outputs: result.outputs })
+    );
+    result.assertions = assertions;
+    result.status = status;
+
     if (!foundElement) {
-      result.status = "FAIL";
       result.description = error || `Couldn't find element to type into.`;
       return result;
     }
     element = foundElement;
 
-    // Focus on the element before typing
+    // Focus on the element before typing. This is EXECUTION: a failure sets
+    // FAIL with no extra assertion record (the found assertion stays PASS).
     try {
       await element.click();
     } catch (error: any) {

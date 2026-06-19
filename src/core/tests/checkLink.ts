@@ -1,19 +1,13 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams, rollUpResults } from "../utils.js";
+import { isRelativeUrl, appendQueryParams } from "../utils.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 import axios from "axios";
 
 export { checkLink };
-
-// One articulated assertion record. See runShell.ts and
-// docs/design/dynamic-routing-roadmap.md ("Assertions") for the locked shape.
-interface AssertionRecord {
-  statement: string;
-  source: "implicit" | "custom";
-  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  expected?: any;
-  actual?: any;
-  description?: string;
-}
 
 const DEFAULT_HEADERS: Record<string, string> = {
   "User-Agent":
@@ -247,11 +241,17 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     return result;
   }
 
-  // Implicit assertion: statusCode ∈ statusCodes. Always applicable (statusCodes
-  // is defaulted), always evaluated (a status came back), so there's no
-  // all-SKIPPED ambiguity. The step result is the roll-up of the emitted
-  // assertions.
-  const assertions: AssertionRecord[] = [];
+  // Unified assertion model: the single implicit check is a `$$` runtime
+  // EXPRESSION evaluated by the shared engine (see runShell.ts for the
+  // exemplar). checkLink exposes the resolved status code as a computed output
+  // so the spec is a trivial expression over it — and so `$$outputs.statusCode`
+  // is referenceable in conditions / custom assertions.
+  //
+  // statusCode ∈ statusCodes is always applicable (statusCodes is defaulted)
+  // and always evaluated (a status came back), so there's no all-SKIPPED
+  // ambiguity. The step result is the roll-up the shared engine returns.
+  result.outputs = { statusCode: last.statusCode };
+
   const statusCodePass =
     step.checkLink.statusCodes.indexOf(last.statusCode) >= 0;
   const statusCodeDescription = statusCodePass
@@ -259,17 +259,20 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     : `Returned ${last.statusCode}. Expected one of ${JSON.stringify(
         step.checkLink.statusCodes
       )}`;
-  assertions.push({
-    statement: `statusCode in ${JSON.stringify(step.checkLink.statusCodes)}`,
-    source: "implicit",
-    result: statusCodePass ? "PASS" : "FAIL",
-    expected: step.checkLink.statusCodes,
-    actual: last.statusCode,
-    description: statusCodeDescription,
-  });
 
+  const specs: ImplicitAssertionSpec[] = [
+    {
+      statement: `$$outputs.statusCode oneOf ${JSON.stringify(
+        step.checkLink.statusCodes
+      )}`,
+      severity: "fail",
+    },
+  ];
+
+  const ctx = buildConditionContext({ outputs: result.outputs });
+  const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
   result.assertions = assertions;
-  result.status = rollUpResults(assertions);
+  result.status = status;
   result.description = statusCodeDescription;
 
   return result;
