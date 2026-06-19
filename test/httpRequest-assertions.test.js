@@ -7,8 +7,12 @@ import { httpRequest } from "../dist/core/tests/httpRequest.js";
 
 const config = { logLevel: "silent" };
 
-function findAssertion(assertions, prefix) {
-  return (assertions || []).find((a) => a.statement.startsWith(prefix));
+// Unified model: implicit assertions carry a $$ runtime-expression statement
+// (e.g. "$$outputs.response.statusCode oneOf [200]",
+// "$$outputs.bodyMatches == true"), so match on a substring of the statement
+// rather than a prose prefix.
+function findAssertion(assertions, token) {
+  return (assertions || []).find((a) => a.statement.includes(token));
 }
 
 let server;
@@ -64,7 +68,7 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
     assert.ok(sc, "expected a statusCode assertion");
     assert.equal(sc.source, "implicit");
     assert.equal(sc.result, "PASS");
-    assert.equal(sc.actual, 200);
+    assert.match(sc.statement, /\$\$outputs\.response\.statusCode oneOf/);
     // outputs preserved
     assert.equal(result.outputs.response.statusCode, 200);
   });
@@ -83,8 +87,8 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
     assert.equal(result.status, "FAIL");
     const sc = findAssertion(result.assertions, "statusCode");
     assert.equal(sc.result, "FAIL");
-    assert.deepEqual(sc.expected, [200]);
-    assert.equal(sc.actual, 404);
+    assert.match(sc.statement, /\$\$outputs\.response\.statusCode oneOf/);
+    assert.equal(result.outputs.response.statusCode, 404);
   });
 
   it("required-fields check: present -> PASS", async () => {
@@ -100,9 +104,11 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
       },
     });
     assert.equal(result.status, "PASS", result.description);
-    const req = findAssertion(result.assertions, "response fields present");
+    const req = findAssertion(result.assertions, "requiredFieldsPresent");
     assert.ok(req, "expected a required-fields assertion");
     assert.equal(req.result, "PASS");
+    assert.match(req.statement, /\$\$outputs\.requiredFieldsPresent == true/);
+    assert.equal(result.outputs.requiredFieldsPresent, true);
   });
 
   it("status PASS but body type mismatch FAILs, with no leaked status", async () => {
@@ -120,9 +126,11 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
     assert.equal(result.status, "FAIL");
     const sc = findAssertion(result.assertions, "statusCode");
     assert.equal(sc.result, "PASS");
-    const body = findAssertion(result.assertions, "response.body");
-    assert.ok(body, "expected a response.body assertion");
+    const body = findAssertion(result.assertions, "bodyMatches");
+    assert.ok(body, "expected a bodyMatches assertion");
     assert.equal(body.result, "FAIL");
+    assert.match(body.statement, /\$\$outputs\.bodyMatches == true/);
+    assert.equal(result.outputs.bodyMatches, false);
   });
 
   it("short-circuits: a FAIL early leaves later applicable checks SKIPPED", async () => {
@@ -141,7 +149,7 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
     assert.equal(result.status, "FAIL");
     const sc = findAssertion(result.assertions, "statusCode");
     assert.equal(sc.result, "FAIL");
-    const body = findAssertion(result.assertions, "response.body");
+    const body = findAssertion(result.assertions, "bodyMatches");
     assert.ok(body, "applicable-but-not-reached body assertion must be present");
     assert.equal(body.result, "SKIPPED");
     assert.equal(body.source, "implicit");
@@ -166,9 +174,11 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
         },
       });
       assert.equal(result.status, "WARNING", result.description);
-      const v = findAssertion(result.assertions, "saved-file variation");
+      const v = findAssertion(result.assertions, "outputs.variation");
       assert.ok(v, "expected a saved-file variation assertion");
       assert.equal(v.result, "WARNING");
+      assert.match(v.statement, /\$\$outputs\.variation <=/);
+      assert.equal(typeof result.outputs.variation, "number");
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -224,9 +234,10 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
       },
     });
     assert.equal(result.status, "PASS", result.description);
-    const body = findAssertion(result.assertions, "response.body");
-    assert.ok(body, "expected a response.body assertion");
+    const body = findAssertion(result.assertions, "bodyMatches");
+    assert.ok(body, "expected a bodyMatches assertion");
     assert.equal(body.result, "PASS");
+    assert.equal(result.outputs.bodyMatches, true);
   });
 
   it("string response.body MATCH + headers MISMATCH -> FAIL (headers now evaluated, not short-circuited)", async () => {
@@ -247,12 +258,13 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
     // Old behavior: PASS (headers check skipped after the body matched).
     // New behavior: FAIL (the headers check now runs).
     assert.equal(result.status, "FAIL", result.description);
-    const body = findAssertion(result.assertions, "response.body");
-    assert.ok(body, "expected a response.body assertion");
+    const body = findAssertion(result.assertions, "bodyMatches");
+    assert.ok(body, "expected a bodyMatches assertion");
     assert.equal(body.result, "PASS", "the string body itself still matches");
-    const headers = findAssertion(result.assertions, "response.headers");
+    const headers = findAssertion(result.assertions, "headersMatch");
     assert.ok(headers, "headers assertion must be evaluated, not skipped");
     assert.equal(headers.result, "FAIL");
+    assert.equal(result.outputs.headersMatch, false);
   });
 
   it("string response.body MATCH + path set -> file IS written (save no longer short-circuited)", async () => {
@@ -272,7 +284,7 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
         },
       });
       assert.equal(result.status, "PASS", result.description);
-      const body = findAssertion(result.assertions, "response.body");
+      const body = findAssertion(result.assertions, "bodyMatches");
       assert.equal(body.result, "PASS");
       // The save side effect must run even though the string body already
       // matched (the old early return skipped it entirely).
