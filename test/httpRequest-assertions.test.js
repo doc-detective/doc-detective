@@ -91,6 +91,52 @@ describe("httpRequest articulated assertions (Phase 4a.2a)", function () {
     assert.equal(result.outputs.response.statusCode, 404);
   });
 
+  it("allowAdditionalFields:false with UNSET response.body -> noUnexpectedFields PASS (no crash)", async () => {
+    // response.body is not provided, so the expected body defaults to {} (no
+    // keys). With no expected fields there are no unexpected fields to flag, so
+    // the noUnexpectedFields check must PASS and never pass undefined into the
+    // object comparison helper.
+    const result = await httpRequest({
+      config,
+      step: {
+        httpRequest: {
+          url: `http://localhost:${serverPort}/200`,
+          method: "get",
+          statusCodes: [200],
+          allowAdditionalFields: false,
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const noExtra = findAssertion(result.assertions, "noUnexpectedFields");
+    assert.ok(noExtra, "expected a noUnexpectedFields assertion");
+    assert.equal(noExtra.result, "PASS");
+    assert.match(noExtra.statement, /\$\$outputs\.noUnexpectedFields == true/);
+    assert.equal(result.outputs.noUnexpectedFields, true);
+  });
+
+  it("allowAdditionalFields:false with expected body subset present -> noUnexpectedFields PASS", async () => {
+    // The server returns {status, name, items}. Expecting that exact superset
+    // as the body means no unexpected fields relative to it -> PASS.
+    const result = await httpRequest({
+      config,
+      step: {
+        httpRequest: {
+          url: `http://localhost:${serverPort}/200`,
+          method: "get",
+          statusCodes: [200],
+          allowAdditionalFields: false,
+          response: { body: { status: 200, name: "John", items: [1, 2] } },
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const noExtra = findAssertion(result.assertions, "noUnexpectedFields");
+    assert.ok(noExtra, "expected a noUnexpectedFields assertion");
+    assert.equal(noExtra.result, "PASS");
+    assert.equal(result.outputs.noUnexpectedFields, true);
+  });
+
   it("required-fields check: present -> PASS", async () => {
     const result = await httpRequest({
       config,

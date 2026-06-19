@@ -399,32 +399,30 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       step.httpRequest.openApi?.validateAgainstSchema === "both") &&
     operation.schemas.response
   ) {
-    {
-      const ajv = new Ajv({
-        strictSchema: false,
-        useDefaults: true,
-        allErrors: true,
-        allowUnionTypes: true,
-        coerceTypes: false,
-      });
-      const validateFn = ajv.compile(operation.schemas.response);
-      const valid = validateFn(response.data);
-      result.outputs.responseSchemaValid = !!valid;
-      specs.push({
-        statement: `$$outputs.responseSchemaValid == true`,
-        severity: "fail",
-      });
-      if (valid) {
-        descriptions.push(`Response data matched the OpenAPI schema.`);
-      } else {
-        descriptions.push(
-          `Response data didn't match the OpenAPI schema. ${JSON.stringify(
-            validateFn.errors,
-            null,
-            2
-          )}`
-        );
-      }
+    const ajv = new Ajv({
+      strictSchema: false,
+      useDefaults: true,
+      allErrors: true,
+      allowUnionTypes: true,
+      coerceTypes: false,
+    });
+    const validateFn = ajv.compile(operation.schemas.response);
+    const valid = validateFn(response.data);
+    result.outputs.responseSchemaValid = !!valid;
+    specs.push({
+      statement: `$$outputs.responseSchemaValid == true`,
+      severity: "fail",
+    });
+    if (valid) {
+      descriptions.push(`Response data matched the OpenAPI schema.`);
+    } else {
+      descriptions.push(
+        `Response data didn't match the OpenAPI schema. ${JSON.stringify(
+          validateFn.errors,
+          null,
+          2
+        )}`
+      );
     }
   }
 
@@ -432,11 +430,19 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   // false. Structurally-complex check -> compute the boolean, EXPOSE it as
   // `outputs.noUnexpectedFields`, assert a trivial expression over it.
   if (!step.httpRequest.allowAdditionalFields) {
-    const dataComparison = objectExistsInObject(
-      step.httpRequest.response.body,
-      response.data
-    );
-    const noUnexpectedFields = dataComparison.result.status !== "FAIL";
+    // `response.body` normally defaults to `{}` via the response-default spread
+    // above, but a step that explicitly sets `response.body` to undefined/null
+    // (or a non-object) would let undefined reach objectExistsInObject, whose
+    // `Object.keys(expected)` would throw. With no expected fields there are no
+    // unexpected fields to flag, so treat that as a PASS (noUnexpectedFields =
+    // true) — matching the prior outcome (FAIL only when there ARE unexpected
+    // fields).
+    const expectedBody = step.httpRequest.response?.body;
+    const noUnexpectedFields =
+      expectedBody && typeof expectedBody === "object"
+        ? objectExistsInObject(expectedBody, response.data).result.status !==
+          "FAIL"
+        : true;
     result.outputs.noUnexpectedFields = noUnexpectedFields;
     specs.push({
       statement: `$$outputs.noUnexpectedFields == true`,

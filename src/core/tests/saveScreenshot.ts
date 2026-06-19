@@ -297,6 +297,11 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         // File already exists
         result.status = "SKIPPED";
         result.description = `File already exists: ${filePath}`;
+        // No verification specs were gathered (we short-circuit before capture
+        // and comparison), but keep the `assertions` shape consistent with every
+        // other return path — an empty array rather than undefined. The SKIPPED
+        // status itself is unchanged.
+        result.assertions = [];
         return result;
       } else {
         // Set temp file path

@@ -276,7 +276,10 @@ describeIfSharp("saveScreenshot unified assertions", function () {
       driver: fakeDriver(buf),
     });
     assert.equal(result.status, "SKIPPED");
-    assert.equal(result.assertions, undefined);
+    // The SKIPPED early-return carries an empty assertions array so the result
+    // shape is consistent with every other return path (no comparison specs
+    // were gathered, but the field is never left undefined).
+    assert.deepEqual(result.assertions, []);
   });
 
   it("overwrite:true with existing reference -> PASS, no comparison assertion, file overwritten", async function () {

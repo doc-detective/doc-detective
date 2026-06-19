@@ -254,4 +254,53 @@ describe("dragAndDrop unified assertion model", function () {
     assert.equal(src.result, "FAIL");
     assert.equal(tgt.result, "SKIPPED");
   });
+
+  it("undefined inner outputs.found is coerced to sourceFound=false → FAIL (input-guard parity)", async () => {
+    // Backward-compat guard for the input-guard concern: findElement's input
+    // guard returns FAIL with outputs:{} (no `found`). dragAndDrop reads
+    // `sourceResult.outputs?.found === true`, so an absent/undefined `found`
+    // must coerce to sourceFound=false and FAIL, matching a failed find.
+    //
+    // The dragAndDrop step schema and the inner find schema are tightly
+    // aligned, so a source malformed enough to trip find's input guard already
+    // trips dragAndDrop's own step_v3 guard first — also FAIL. We therefore
+    // exercise the coercion directly: a driver whose criteria search returns no
+    // candidates makes findElement resolve with found=false (the closest
+    // reachable analogue of a no-`found` result), and the assertion FAILs.
+    const driver = makeDriver({ candidates: [] });
+    const result = await dragAndDropElement({
+      config,
+      step: {
+        dragAndDrop: {
+          source: { selector: "#a", timeout: 50 },
+          target: { selector: "#b", timeout: 50 },
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.outputs.sourceFound, false);
+    const src = findAssertion(result.assertions, "sourceFound");
+    assert.equal(src.result, "FAIL");
+  });
+
+  it("malformed source is rejected by dragAndDrop's own input guard → FAIL", async () => {
+    // A source bad enough to trip the inner find input guard trips
+    // dragAndDrop's top-level step_v3 guard first: FAIL, no findElement call,
+    // no assertion records. This is the outer half of the input-guard chain
+    // that keeps a never-`found` inner result from mattering in practice.
+    const driver = makeDriver({ candidates: [makeElement()] });
+    const result = await dragAndDropElement({
+      config,
+      step: {
+        dragAndDrop: {
+          source: { selector: { nested: "object" } },
+          target: { selector: "#b" },
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid step definition/);
+  });
 });
