@@ -1877,7 +1877,10 @@ async function runContext({
 
       // Record this step's outputs so later steps' guard `if` conditions can
       // read them via `$$steps.<stepId>.outputs.*`. Shaped as the
-      // buildConditionContext `steps` entry ({ outputs }).
+      // buildConditionContext `steps` entry ({ outputs }). Only reached for
+      // steps that actually ran — a guard-skipped step `continue`s before
+      // here, so its stepId is never recorded, and a downstream guard
+      // referencing it fails closed (and is itself skipped).
       if (step.stepId) {
         stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
       }

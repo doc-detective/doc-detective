@@ -274,28 +274,30 @@ async function evaluateCustomAssertions(args: {
 }
 
 /**
- * The author form of a step-level guard `if`: a single condition string, or an
- * array of condition strings that are AND-ed together (all must be truthy).
+ * The author form of a guard `if`: a single condition string, or an array of
+ * condition strings that are AND-ed together (all must be truthy).
  */
 type GuardCondition = string | string[];
 
 /**
- * Evaluate a step-level guard `if` against a condition context.
+ * Evaluate a guard `if` against a condition context.
  *
- * The guard decides whether a step's action runs at all (it is evaluated BEFORE
- * the action). Semantics:
+ * Used at spec, test, and step scope. The guard decides whether the unit runs
+ * at all (it is evaluated BEFORE the unit). Semantics:
  *   - `undefined`/empty (no usable conditions) -> `true` (guard absent; run).
  *   - A single string -> the truthiness of that one condition.
  *   - An array of strings -> AND across all of them: `true` only if EVERY
  *     condition is truthy. Evaluation short-circuits on the first falsy one.
  *   - Each condition is evaluated through `evaluateAssertion`, which fails
  *     CLOSED: an unresolvable `$$` reference resolves to `false` (so a guard
- *     that references a not-yet-available value blocks the step rather than
+ *     that references a not-yet-available value blocks the unit rather than
  *     throwing).
  *
- * Non-string array entries are ignored (filtered out) — only string conditions
- * are author input. If filtering leaves no conditions, the guard is treated as
- * absent (`true`).
+ * Non-string array entries are ignored (filtered out), and string entries are
+ * trimmed with empty/whitespace-only ones dropped — only non-empty string
+ * conditions are author input. If normalization leaves no conditions, the
+ * guard is treated as absent (`true`). So `""`, `"   "`, and `["", "  "]` all
+ * mean "guard absent", not "a falsy condition".
  *
  * @param ifValue - The author `if` value (`string | string[]` or undefined).
  * @param context - A `buildConditionContext(...)` output.
@@ -305,15 +307,20 @@ async function evaluateGuard(
   ifValue: GuardCondition | undefined | null,
   context: ConditionContext
 ): Promise<boolean> {
-  // Normalize to a string array; drop anything that isn't a string.
-  let conditions: string[];
+  // Normalize to a string array; drop anything that isn't a string, then trim
+  // and drop empty/whitespace-only entries (an empty condition is "no
+  // condition", not a falsy one — treat it as guard-absent).
+  let raw: string[];
   if (typeof ifValue === "string") {
-    conditions = [ifValue];
+    raw = [ifValue];
   } else if (Array.isArray(ifValue)) {
-    conditions = ifValue.filter((c): c is string => typeof c === "string");
+    raw = ifValue.filter((c): c is string => typeof c === "string");
   } else {
-    conditions = [];
+    raw = [];
   }
+  const conditions = raw
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
 
   // No usable conditions -> guard absent -> run.
   if (conditions.length === 0) return true;

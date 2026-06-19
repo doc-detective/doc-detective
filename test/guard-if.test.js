@@ -74,6 +74,38 @@ describe("routing: evaluateGuard", function () {
   it("array of only non-strings -> true (no usable conditions)", async function () {
     assert.equal(await evaluateGuard([{}, 1], ctx), true);
   });
+  it("empty string -> true (guard absent)", async function () {
+    assert.equal(await evaluateGuard("", ctx), true);
+  });
+  it("whitespace-only string -> true (guard absent)", async function () {
+    assert.equal(await evaluateGuard("   ", ctx), true);
+  });
+  it("array of only empty/whitespace strings -> true (no usable conditions)", async function () {
+    assert.equal(await evaluateGuard(["", "   "], ctx), true);
+  });
+  it("array with empty entries dropped -> AND of the rest", async function () {
+    // The empty/whitespace entries are dropped; only the real condition counts.
+    assert.equal(
+      await evaluateGuard(["", "$$platform == windows", "  "], ctx),
+      true
+    );
+    assert.equal(
+      await evaluateGuard(["", "$$platform == linux"], ctx),
+      false
+    );
+  });
+
+  // --- guard referencing a guard-skipped prior step (fail closed) ---
+  it("$$steps.<id> for a guard-skipped step -> false (fail closed)", async function () {
+    // A guard-skipped step never writes its stepId into stepOutputsById, so a
+    // downstream guard referencing it resolves against an empty steps map and
+    // fails closed (the downstream step is also skipped).
+    const emptyCtx = buildConditionContext({ platform: "windows", steps: {} });
+    assert.equal(
+      await evaluateGuard("$$steps.a.outputs.exitCode == 0", emptyCtx),
+      false
+    );
+  });
 
   // --- cross-step accumulator semantics ---
   it("$$steps.a.outputs.exitCode == 0 -> true (prior step output)", async function () {
