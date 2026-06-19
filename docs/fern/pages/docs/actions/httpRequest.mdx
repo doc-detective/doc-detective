@@ -33,6 +33,15 @@ You can specify a basic GET request using a string shorthand or use an object fo
 
 **Setting Variables:** To capture parts of the response for later steps, use the step-level `variables` object. You can assign values based on the response using expressions like `$$response.body`, `$$response.headers`, `$$response.status`, etc. You can use dot notation for nested JSON fields (for example, `$$response.body.user.id`).
 
+Depending on which validations you configure, the action also exposes the result of each check as a boolean you can reference. Each output is present only when its check applies:
+
+- `$$requiredFieldsPresent`: whether every field in `response.required` was found (when `response.required` is set).
+- `$$bodyMatches`: whether the response body matched `response.body` (when `response.body` is set).
+- `$$headersMatch`: whether the expected `response.headers` were present (when `response.headers` is set).
+- `$$noUnexpectedFields`: whether the response contained only expected fields (when `allowAdditionalFields` is `false`).
+- `$$responseSchemaValid`: whether the response matched the OpenAPI schema (when validating the response against an OpenAPI definition).
+- `$$variation`: the fractional difference between the new response and the reference file (when you save the response with `path` and a reference file already exists).
+
 > For comprehensive options, see the [`httpRequest`](/reference/schemas/httprequest) reference.
 
 ## Examples

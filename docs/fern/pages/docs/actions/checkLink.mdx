@@ -14,6 +14,8 @@ You can specify the target URL directly as a string, or use an object for more o
 - `headers`: (Optional) Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Accepts either a key/value object or a newline-separated string. Useful for sites that allowlist specific headers or bypass tokens. Defaults to `{}`.
 - `params`: (Optional) Query parameters to append to the resolved URL. Merged with config-level `originParams`. Values support environment variable substitution with `$VAR` syntax. Defaults to `{}`.
 
+**Setting Variables:** To capture the result for later steps, use the step-level `variables` object. The action exposes `$$statusCode`, the HTTP status code returned by the request.
+
 > For comprehensive options, see the [`checkLink`](/reference/schemas/checklink) reference.
 
 ## Behavior
