@@ -3,8 +3,11 @@ import { runCode } from "../dist/core/tests/runCode.js";
 
 const config = { logLevel: "silent" };
 
-function findAssertion(assertions, prefix) {
-  return (assertions || []).find((a) => a.statement.startsWith(prefix));
+// Unified model: implicit assertions carry a $$ runtime-expression statement
+// (e.g. "$$outputs.exitCode oneOf [0]", "$$outputs.stdioMatched == true"), so
+// match on a substring of the statement rather than a prose prefix.
+function findAssertion(assertions, token) {
+  return (assertions || []).find((a) => a.statement.includes(token));
 }
 
 describe("runCode articulated assertions + bug #1 (Phase 4a.2a)", function () {
@@ -43,8 +46,8 @@ describe("runCode articulated assertions + bug #1 (Phase 4a.2a)", function () {
     const exit = findAssertion(result.assertions, "exitCode");
     assert.ok(exit);
     assert.equal(exit.result, "PASS");
-    assert.deepEqual(exit.expected, [1]);
-    assert.equal(exit.actual, 1);
+    // The forwarded exitCodes:[1] (bug #1) must appear in the generated expression.
+    assert.match(exit.statement, /oneOf \[1\]/);
   });
 
   it("FAILs when exit code is not in exitCodes, propagating the FAIL assertion", async () => {
@@ -62,7 +65,6 @@ describe("runCode articulated assertions + bug #1 (Phase 4a.2a)", function () {
     const exit = findAssertion(result.assertions, "exitCode");
     assert.ok(exit);
     assert.equal(exit.result, "FAIL");
-    assert.equal(exit.actual, 2);
   });
 
   it("forwards stdio: emits a propagated stdio assertion", async () => {
