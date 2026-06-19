@@ -1,10 +1,9 @@
-// Dynamic routing (Phase 3): the condition-context builder.
-//
-// This module is the cohesive home for the routing/condition primitives of the
-// dynamic-routing feature. Phase 3 ships only `buildConditionContext`; later
-// phases will add `resolveRoute` / `nextRetryDelay` here. Nothing in the runner
-// calls this yet — it is additive and dormant until Phase 5 wires it into the
-// step loop.
+// Dynamic routing: the cohesive home for the routing/condition primitives of the
+// dynamic-routing feature — `buildConditionContext`, the implicit/custom
+// assertion evaluators, and `evaluateGuard` for conditional execution. These are
+// wired into the runner (custom assertions in runStep; step-level guard `if` in
+// the runContext step loop). Later phases will add `resolveRoute` /
+// `nextRetryDelay` here for routing handlers and retries.
 
 import { evaluateAssertion } from "./expressions.js";
 import { rollUpAssertions } from "./utils.js";
@@ -274,10 +273,64 @@ async function evaluateCustomAssertions(args: {
   return actionResult;
 }
 
+/**
+ * The author form of a step-level guard `if`: a single condition string, or an
+ * array of condition strings that are AND-ed together (all must be truthy).
+ */
+type GuardCondition = string | string[];
+
+/**
+ * Evaluate a step-level guard `if` against a condition context.
+ *
+ * The guard decides whether a step's action runs at all (it is evaluated BEFORE
+ * the action). Semantics:
+ *   - `undefined`/empty (no usable conditions) -> `true` (guard absent; run).
+ *   - A single string -> the truthiness of that one condition.
+ *   - An array of strings -> AND across all of them: `true` only if EVERY
+ *     condition is truthy. Evaluation short-circuits on the first falsy one.
+ *   - Each condition is evaluated through `evaluateAssertion`, which fails
+ *     CLOSED: an unresolvable `$$` reference resolves to `false` (so a guard
+ *     that references a not-yet-available value blocks the step rather than
+ *     throwing).
+ *
+ * Non-string array entries are ignored (filtered out) — only string conditions
+ * are author input. If filtering leaves no conditions, the guard is treated as
+ * absent (`true`).
+ *
+ * @param ifValue - The author `if` value (`string | string[]` or undefined).
+ * @param context - A `buildConditionContext(...)` output.
+ * @returns `true` if the step should run, `false` if it should be skipped.
+ */
+async function evaluateGuard(
+  ifValue: GuardCondition | undefined | null,
+  context: ConditionContext
+): Promise<boolean> {
+  // Normalize to a string array; drop anything that isn't a string.
+  let conditions: string[];
+  if (typeof ifValue === "string") {
+    conditions = [ifValue];
+  } else if (Array.isArray(ifValue)) {
+    conditions = ifValue.filter((c): c is string => typeof c === "string");
+  } else {
+    conditions = [];
+  }
+
+  // No usable conditions -> guard absent -> run.
+  if (conditions.length === 0) return true;
+
+  // AND across all conditions; short-circuit on the first falsy one.
+  for (const condition of conditions) {
+    const ok = await evaluateAssertion(condition, context);
+    if (!ok) return false;
+  }
+  return true;
+}
+
 export {
   buildConditionContext,
   evaluateImplicitAssertions,
   evaluateCustomAssertions,
+  evaluateGuard,
 };
 export type {
   BuildConditionContextArgs,
@@ -288,4 +341,5 @@ export type {
   EvaluateAssertionsOptions,
   CustomAssertionStep,
   CustomAssertionActionResult,
+  GuardCondition,
 };

@@ -65,7 +65,11 @@ import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
-import { evaluateCustomAssertions } from "./routing.js";
+import {
+  evaluateCustomAssertions,
+  evaluateGuard,
+  buildConditionContext,
+} from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -1673,6 +1677,11 @@ async function runContext({
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
+    // Per-step outputs accumulator: maps each completed step's stepId to its
+    // computed `outputs` bag, so later steps' guard `if` conditions can read a
+    // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
+    // bookkeeping local to this context — it does not change any existing path.
+    const stepOutputsById: Record<string, any> = {};
     for (const [stepIndex, step] of context.steps.entries()) {
       // Set step id if not defined. Derived from the test ID and a hash of
       // the step's authored definition so the same step keeps the same ID
@@ -1718,6 +1727,30 @@ async function runContext({
         };
         contextReport.steps.push(stepReport);
         continue;
+      }
+
+      // Step-level guard `if`: evaluated BEFORE the action runs. The guard sees
+      // `$$platform` and prior steps' outputs via `$$steps.<stepId>.outputs.*`
+      // (the current step's own `$$outputs.*` is NOT available — it hasn't run
+      // yet). `if` is `string | string[]` (array = AND, all must be truthy) and
+      // fails CLOSED (an unresolvable `$$` -> false). When the guard is not all
+      // true the step is SKIPPED: the action is NOT run, and this does NOT trip
+      // `stepExecutionFailed`, so later steps still run.
+      if (step.if) {
+        const guardContext = buildConditionContext({
+          platform: context.platform,
+          steps: stepOutputsById,
+        });
+        const guardPassed = await evaluateGuard(step.if, guardContext);
+        if (!guardPassed) {
+          const stepReport = {
+            ...step,
+            result: "SKIPPED",
+            resultDescription: "Skipped: guard `if` condition not met.",
+          };
+          contextReport.steps.push(stepReport);
+          continue;
+        }
       }
 
       // Set meta values
@@ -1776,6 +1809,13 @@ async function runContext({
       }
 
       contextReport.steps.push(stepReport);
+
+      // Record this step's outputs so later steps' guard `if` conditions can
+      // read them via `$$steps.<stepId>.outputs.*`. Shaped as the
+      // buildConditionContext `steps` entry ({ outputs }).
+      if (step.stepId) {
+        stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
+      }
 
       // If this step failed, set flag to skip remaining steps
       if (stepReport.result === "FAIL") {

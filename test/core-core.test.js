@@ -58,6 +58,50 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("A guard `if` false skips the step (with the guard reason) and does NOT skip the following non-guarded step", async () => {
+    // Step 1 has an always-false guard -> SKIPPED with the guard reason, action
+    // NOT run, stepExecutionFailed NOT tripped. Step 2 has no guard -> still
+    // runs and PASSes (proving a guard-skip doesn't cascade like a FAIL).
+    const guardTest = {
+      tests: [
+        {
+          steps: [
+            {
+              if: "$$platform == nonexistentos",
+              runShell: "node -e \"process.exit(0)\"",
+            },
+            {
+              runShell: "node -e \"process.exit(0)\"",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-guard-if-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      // Step 1: SKIPPED for the guard reason, action not run.
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.match(
+        steps[0].resultDescription,
+        /guard `if` condition not met/
+      );
+      // Step 2: ran (not affected by the guard-skip) and PASSed.
+      assert.equal(steps[1].result, "PASS");
+      assert.equal(result.summary.steps.skipped, 1);
+      assert.equal(result.summary.steps.pass, 1);
+      assert.equal(result.summary.steps.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Custom assertion FAIL fails the step and skips the rest of the test", async () => {
     // An action that EXECUTES fine (exit 0) but whose custom assertion is false.
     // The custom-assertion FAIL must fail the step, and the existing step-loop
