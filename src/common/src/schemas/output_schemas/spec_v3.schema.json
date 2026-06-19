@@ -1301,7 +1301,8 @@
                         "delay": {
                           "description": "Delay in milliseconds before each retry.",
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "maximum": 3600000
                         },
                         "backoff": {
                           "description": "Backoff strategy applied to the delay between retries.",
@@ -1470,7 +1471,8 @@
                         "delay": {
                           "description": "Delay in milliseconds before each retry.",
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "maximum": 3600000
                         },
                         "backoff": {
                           "description": "Backoff strategy applied to the delay between retries.",
@@ -1639,7 +1641,8 @@
                         "delay": {
                           "description": "Delay in milliseconds before each retry.",
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "maximum": 3600000
                         },
                         "backoff": {
                           "description": "Backoff strategy applied to the delay between retries.",
@@ -1808,7 +1811,8 @@
                         "delay": {
                           "description": "Delay in milliseconds before each retry.",
                           "type": "integer",
-                          "minimum": 0
+                          "minimum": 0,
+                          "maximum": 3600000
                         },
                         "backoff": {
                           "description": "Backoff strategy applied to the delay between retries.",
@@ -2074,10 +2078,28 @@
                                       ]
                                     },
                                     "expected": {
-                                      "description": "The value (or values) the assertion expected. Optional."
+                                      "description": "The value (or values) the assertion expected. Optional.",
+                                      "type": [
+                                        "array",
+                                        "boolean",
+                                        "integer",
+                                        "null",
+                                        "number",
+                                        "object",
+                                        "string"
+                                      ]
                                     },
                                     "actual": {
-                                      "description": "The value actually observed. Optional."
+                                      "description": "The value actually observed. Optional.",
+                                      "type": [
+                                        "array",
+                                        "boolean",
+                                        "integer",
+                                        "null",
+                                        "number",
+                                        "object",
+                                        "string"
+                                      ]
                                     },
                                     "description": {
                                       "description": "Human-readable explanation of the outcome. Optional.",
@@ -2179,7 +2201,8 @@
                                     "delay": {
                                       "description": "Delay in milliseconds before each retry.",
                                       "type": "integer",
-                                      "minimum": 0
+                                      "minimum": 0,
+                                      "maximum": 3600000
                                     },
                                     "backoff": {
                                       "description": "Backoff strategy applied to the delay between retries.",
@@ -2348,7 +2371,8 @@
                                     "delay": {
                                       "description": "Delay in milliseconds before each retry.",
                                       "type": "integer",
-                                      "minimum": 0
+                                      "minimum": 0,
+                                      "maximum": 3600000
                                     },
                                     "backoff": {
                                       "description": "Backoff strategy applied to the delay between retries.",
@@ -2517,7 +2541,8 @@
                                     "delay": {
                                       "description": "Delay in milliseconds before each retry.",
                                       "type": "integer",
-                                      "minimum": 0
+                                      "minimum": 0,
+                                      "maximum": 3600000
                                     },
                                     "backoff": {
                                       "description": "Backoff strategy applied to the delay between retries.",
@@ -2686,7 +2711,8 @@
                                     "delay": {
                                       "description": "Delay in milliseconds before each retry.",
                                       "type": "integer",
-                                      "minimum": 0
+                                      "minimum": 0,
+                                      "maximum": 3600000
                                     },
                                     "backoff": {
                                       "description": "Backoff strategy applied to the delay between retries.",
@@ -2917,10 +2943,28 @@
                                   ]
                                 },
                                 "expected": {
-                                  "description": "The value (or values) the assertion expected. Optional."
+                                  "description": "The value (or values) the assertion expected. Optional.",
+                                  "type": [
+                                    "array",
+                                    "boolean",
+                                    "integer",
+                                    "null",
+                                    "number",
+                                    "object",
+                                    "string"
+                                  ]
                                 },
                                 "actual": {
-                                  "description": "The value actually observed. Optional."
+                                  "description": "The value actually observed. Optional.",
+                                  "type": [
+                                    "array",
+                                    "boolean",
+                                    "integer",
+                                    "null",
+                                    "number",
+                                    "object",
+                                    "string"
+                                  ]
                                 },
                                 "description": {
                                   "description": "Human-readable explanation of the outcome. Optional.",
@@ -3022,7 +3066,8 @@
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
                                   "type": "integer",
-                                  "minimum": 0
+                                  "minimum": 0,
+                                  "maximum": 3600000
                                 },
                                 "backoff": {
                                   "description": "Backoff strategy applied to the delay between retries.",
@@ -3191,7 +3236,8 @@
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
                                   "type": "integer",
-                                  "minimum": 0
+                                  "minimum": 0,
+                                  "maximum": 3600000
                                 },
                                 "backoff": {
                                   "description": "Backoff strategy applied to the delay between retries.",
@@ -3360,7 +3406,8 @@
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
                                   "type": "integer",
-                                  "minimum": 0
+                                  "minimum": 0,
+                                  "maximum": 3600000
                                 },
                                 "backoff": {
                                   "description": "Backoff strategy applied to the delay between retries.",
@@ -3529,7 +3576,8 @@
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
                                   "type": "integer",
-                                  "minimum": 0
+                                  "minimum": 0,
+                                  "maximum": 3600000
                                 },
                                 "backoff": {
                                   "description": "Backoff strategy applied to the delay between retries.",
@@ -3866,10 +3914,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -3971,7 +4037,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -4140,7 +4207,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -4309,7 +4377,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -4478,7 +4547,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -4985,10 +5055,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -5090,7 +5178,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -5259,7 +5348,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -5428,7 +5518,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -5597,7 +5688,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -6148,10 +6240,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -6253,7 +6363,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -6422,7 +6533,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -6591,7 +6703,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -6760,7 +6873,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -8408,10 +8522,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -8513,7 +8645,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -8682,7 +8815,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -8851,7 +8985,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -9020,7 +9155,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -9761,10 +9897,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -9866,7 +10020,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -10035,7 +10190,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -10204,7 +10360,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -10373,7 +10530,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -11666,10 +11824,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -11771,7 +11947,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -11940,7 +12117,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -12109,7 +12287,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -12278,7 +12457,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -12813,10 +12993,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -12918,7 +13116,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -13087,7 +13286,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -13256,7 +13456,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -13425,7 +13626,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -13946,10 +14148,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -14051,7 +14271,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -14220,7 +14441,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -14389,7 +14611,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -14558,7 +14781,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -15028,10 +15252,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -15133,7 +15375,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -15302,7 +15545,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -15471,7 +15715,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -15640,7 +15885,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -16183,10 +16429,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -16288,7 +16552,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -16457,7 +16722,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -16626,7 +16892,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -16795,7 +17062,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -17781,10 +18049,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -17886,7 +18172,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -18055,7 +18342,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -18224,7 +18512,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -18393,7 +18682,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -18937,10 +19227,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -19042,7 +19350,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -19211,7 +19520,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -19380,7 +19690,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -19549,7 +19860,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -20124,10 +20436,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -20229,7 +20559,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -20398,7 +20729,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -20567,7 +20899,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -20736,7 +21069,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -21086,10 +21420,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -21191,7 +21543,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -21360,7 +21713,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -21529,7 +21883,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -21698,7 +22053,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -22006,10 +22362,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -22111,7 +22485,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -22280,7 +22655,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -22449,7 +22825,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -22618,7 +22995,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -23413,10 +23791,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -23518,7 +23914,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -23687,7 +24084,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -23856,7 +24254,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -24025,7 +24424,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -24552,10 +24952,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -24657,7 +25075,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -24826,7 +25245,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -24995,7 +25415,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -25164,7 +25585,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -26170,10 +26592,28 @@
                                             ]
                                           },
                                           "expected": {
-                                            "description": "The value (or values) the assertion expected. Optional."
+                                            "description": "The value (or values) the assertion expected. Optional.",
+                                            "type": [
+                                              "array",
+                                              "boolean",
+                                              "integer",
+                                              "null",
+                                              "number",
+                                              "object",
+                                              "string"
+                                            ]
                                           },
                                           "actual": {
-                                            "description": "The value actually observed. Optional."
+                                            "description": "The value actually observed. Optional.",
+                                            "type": [
+                                              "array",
+                                              "boolean",
+                                              "integer",
+                                              "null",
+                                              "number",
+                                              "object",
+                                              "string"
+                                            ]
                                           },
                                           "description": {
                                             "description": "Human-readable explanation of the outcome. Optional.",
@@ -26275,7 +26715,8 @@
                                           "delay": {
                                             "description": "Delay in milliseconds before each retry.",
                                             "type": "integer",
-                                            "minimum": 0
+                                            "minimum": 0,
+                                            "maximum": 3600000
                                           },
                                           "backoff": {
                                             "description": "Backoff strategy applied to the delay between retries.",
@@ -26444,7 +26885,8 @@
                                           "delay": {
                                             "description": "Delay in milliseconds before each retry.",
                                             "type": "integer",
-                                            "minimum": 0
+                                            "minimum": 0,
+                                            "maximum": 3600000
                                           },
                                           "backoff": {
                                             "description": "Backoff strategy applied to the delay between retries.",
@@ -26613,7 +27055,8 @@
                                           "delay": {
                                             "description": "Delay in milliseconds before each retry.",
                                             "type": "integer",
-                                            "minimum": 0
+                                            "minimum": 0,
+                                            "maximum": 3600000
                                           },
                                           "backoff": {
                                             "description": "Backoff strategy applied to the delay between retries.",
@@ -26782,7 +27225,8 @@
                                           "delay": {
                                             "description": "Delay in milliseconds before each retry.",
                                             "type": "integer",
-                                            "minimum": 0
+                                            "minimum": 0,
+                                            "maximum": 3600000
                                           },
                                           "backoff": {
                                             "description": "Backoff strategy applied to the delay between retries.",
@@ -27013,10 +27457,28 @@
                                         ]
                                       },
                                       "expected": {
-                                        "description": "The value (or values) the assertion expected. Optional."
+                                        "description": "The value (or values) the assertion expected. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "actual": {
-                                        "description": "The value actually observed. Optional."
+                                        "description": "The value actually observed. Optional.",
+                                        "type": [
+                                          "array",
+                                          "boolean",
+                                          "integer",
+                                          "null",
+                                          "number",
+                                          "object",
+                                          "string"
+                                        ]
                                       },
                                       "description": {
                                         "description": "Human-readable explanation of the outcome. Optional.",
@@ -27118,7 +27580,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -27287,7 +27750,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -27456,7 +27920,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -27625,7 +28090,8 @@
                                       "delay": {
                                         "description": "Delay in milliseconds before each retry.",
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 0,
+                                        "maximum": 3600000
                                       },
                                       "backoff": {
                                         "description": "Backoff strategy applied to the delay between retries.",
@@ -27962,10 +28428,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -28067,7 +28551,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -28236,7 +28721,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -28405,7 +28891,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -28574,7 +29061,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -29081,10 +29569,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -29186,7 +29692,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -29355,7 +29862,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -29524,7 +30032,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -29693,7 +30202,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -30244,10 +30754,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -30349,7 +30877,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -30518,7 +31047,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -30687,7 +31217,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -30856,7 +31387,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -32504,10 +33036,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -32609,7 +33159,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -32778,7 +33329,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -32947,7 +33499,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -33116,7 +33669,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -33857,10 +34411,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -33962,7 +34534,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -34131,7 +34704,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -34300,7 +34874,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -34469,7 +35044,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -35762,10 +36338,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -35867,7 +36461,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -36036,7 +36631,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -36205,7 +36801,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -36374,7 +36971,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -36909,10 +37507,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -37014,7 +37630,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -37183,7 +37800,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -37352,7 +37970,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -37521,7 +38140,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -38042,10 +38662,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -38147,7 +38785,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -38316,7 +38955,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -38485,7 +39125,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -38654,7 +39295,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -39124,10 +39766,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -39229,7 +39889,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -39398,7 +40059,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -39567,7 +40229,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -39736,7 +40399,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -40279,10 +40943,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -40384,7 +41066,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -40553,7 +41236,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -40722,7 +41406,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -40891,7 +41576,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -41877,10 +42563,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -41982,7 +42686,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -42151,7 +42856,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -42320,7 +43026,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -42489,7 +43196,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -43033,10 +43741,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -43138,7 +43864,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -43307,7 +44034,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -43476,7 +44204,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -43645,7 +44374,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -44220,10 +44950,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -44325,7 +45073,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -44494,7 +45243,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -44663,7 +45413,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -44832,7 +45583,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -45182,10 +45934,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -45287,7 +46057,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -45456,7 +46227,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -45625,7 +46397,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -45794,7 +46567,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -46102,10 +46876,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -46207,7 +46999,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -46376,7 +47169,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -46545,7 +47339,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -46714,7 +47509,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -47509,10 +48305,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -47614,7 +48428,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -47783,7 +48598,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -47952,7 +48768,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -48121,7 +48938,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -48648,10 +49466,28 @@
                                               ]
                                             },
                                             "expected": {
-                                              "description": "The value (or values) the assertion expected. Optional."
+                                              "description": "The value (or values) the assertion expected. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "actual": {
-                                              "description": "The value actually observed. Optional."
+                                              "description": "The value actually observed. Optional.",
+                                              "type": [
+                                                "array",
+                                                "boolean",
+                                                "integer",
+                                                "null",
+                                                "number",
+                                                "object",
+                                                "string"
+                                              ]
                                             },
                                             "description": {
                                               "description": "Human-readable explanation of the outcome. Optional.",
@@ -48753,7 +49589,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -48922,7 +49759,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -49091,7 +49929,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",
@@ -49260,7 +50099,8 @@
                                             "delay": {
                                               "description": "Delay in milliseconds before each retry.",
                                               "type": "integer",
-                                              "minimum": 0
+                                              "minimum": 0,
+                                              "maximum": 3600000
                                             },
                                             "backoff": {
                                               "description": "Backoff strategy applied to the delay between retries.",

@@ -23,15 +23,27 @@ export interface Assertion {
   /**
    * The value (or values) the assertion expected. Optional.
    */
-  expected?: {
-    [k: string]: unknown;
-  };
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * The value actually observed. Optional.
    */
-  actual?: {
-    [k: string]: unknown;
-  };
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
   /**
    * Human-readable explanation of the outcome. Optional.
    */

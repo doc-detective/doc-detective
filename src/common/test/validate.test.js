@@ -1961,6 +1961,39 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("validates retry with delay:0", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1, delay: 0 } }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates retry with delay at the maximum (3600000)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1, delay: 3600000 } }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects retry with delay above the maximum (3600001)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1, delay: 3600001 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
       it("rejects continue:false in a routing entry", function () {
         const result = validate({
           schemaKey: "step_v3",
@@ -2132,6 +2165,47 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           },
         });
         expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates an assertion record with array expected and number actual", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            expected: [0],
+            actual: 0,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates an assertion record with string expected and boolean actual (permissive)", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "value matches",
+            source: "custom",
+            result: "PASS",
+            expected: "x",
+            actual: true,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects an assertion record with permissive expected/actual but missing required result", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "value matches",
+            source: "custom",
+            expected: "x",
+            actual: true,
+          },
+        });
+        expect(result.valid).to.be.false;
       });
 
       it("rejects an assertion record with an unknown result", function () {

@@ -54,7 +54,8 @@
         "delay": {
           "description": "Delay in milliseconds before each retry.",
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 3600000
         },
         "backoff": {
           "description": "Backoff strategy applied to the delay between retries.",
