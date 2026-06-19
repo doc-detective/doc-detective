@@ -169,6 +169,78 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("A spec-level guard `if` false skips every test/context in the spec (SKIPPED, 0 fail)", async () => {
+    // Spec-level guard is false everywhere ($$platform is never nonexistentos).
+    // Every test in the spec must be SKIPPED across all contexts, no job runs,
+    // and nothing fails.
+    const guardSpec = {
+      if: "$$platform == nonexistentos",
+      tests: [
+        { steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+        { steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-guard-if-spec-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      for (const test of tests) {
+        assert.ok(test.contexts.length >= 1);
+        for (const ctx of test.contexts) {
+          assert.equal(ctx.result, "SKIPPED");
+          assert.match(ctx.resultDescription, /spec guard `if` condition not met/);
+          assert.deepEqual(ctx.steps, []);
+        }
+      }
+      // No steps ran (every context was skipped before enqueue).
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(result.summary.steps.pass, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A test-level guard `if` false skips that test while its sibling runs", async () => {
+    // First test has an always-false test guard -> SKIPPED across contexts.
+    // Sibling test has no guard -> runs and PASSes. Proves test-level isolation.
+    const guardSpec = {
+      tests: [
+        {
+          if: "$$platform == nonexistentos",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+        },
+        { steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-guard-if-test-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      // First test: every context SKIPPED for the test-guard reason, no steps.
+      for (const ctx of tests[0].contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /test guard `if` condition not met/);
+        assert.deepEqual(ctx.steps, []);
+      }
+      // Sibling test: ran and PASSed.
+      assert.ok(tests[1].contexts.some((c) => c.result === "PASS"));
+      assert.ok(tests[1].contexts.some((c) => (c.steps || []).length > 0));
+      assert.equal(result.summary.steps.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Test skips when unsafe and unsafe is disallowed", async () => {
     const unsafeTest = {
       tests: [

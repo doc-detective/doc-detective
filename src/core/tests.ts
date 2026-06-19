@@ -634,6 +634,21 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // across the run, and all registration now happens up front — an
     // overwrite here would wipe an earlier spec's registered tests.
     metaValues.specs[spec.specId] ??= { tests: {} };
+    // Spec-level guard `if`: evaluated once against the host platform. Tests
+    // aren't sequenced relative to each other, so cross-test `$$outputs`/
+    // `$$steps` are not meaningful here — only `$$platform` (plus any meta
+    // `buildConditionContext` exposes). Fails CLOSED (unresolvable -> false).
+    // When false, every test/context in this spec is recorded SKIPPED below and
+    // no job is enqueued. Fully gated on `spec.if` presence: a spec with no
+    // `if` is byte-identical (no evaluation, `specGuardSkip` stays false).
+    let specGuardSkip = false;
+    if (spec.if) {
+      const guardPassed = await evaluateGuard(
+        spec.if,
+        buildConditionContext({ platform })
+      );
+      specGuardSkip = !guardPassed;
+    }
     const specReport: any = {
       specId: spec.specId,
       description: spec.description,
@@ -652,17 +667,37 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
+      // Test-level guard `if`: evaluated once against the host platform, same
+      // semantics as the spec-level guard (only `$$platform`/meta meaningful;
+      // fails CLOSED). When false, every context of this test is recorded
+      // SKIPPED below and no job is enqueued. Skipped entirely when the spec
+      // guard already skips this spec (a spec-guard skip subsumes all its
+      // tests). Fully gated on `test.if` presence: a test with no `if` is
+      // byte-identical (no evaluation, `testGuardSkip` stays false).
+      let testGuardSkip = false;
+      if (!specGuardSkip && test.if) {
+        const guardPassed = await evaluateGuard(
+          test.if,
+          buildConditionContext({ platform })
+        );
+        testGuardSkip = !guardPassed;
+      }
       // Preflight: a `record` step that reuses a recording `name` while one is
       // still active makes a later `stopRecord: "<name>"` ambiguous. Catch it
       // statically and skip the whole test (across all its contexts) with a
       // warning, rather than failing mid-run. Scan every context's authored
       // steps (runOn overrides can differ) and skip if any conflicts.
+      // Skip the scan when a guard already skips this test/spec — the test
+      // won't run, and the guard skip takes precedence over the conflict skip
+      // (so we also suppress the conflict warning for a guarded-out test).
       let recordingNameConflict: string | null = null;
-      for (const c of test.contexts) {
-        const conflict = detectRecordingNameConflict(c?.steps);
-        if (conflict) {
-          recordingNameConflict = conflict;
-          break;
+      if (!specGuardSkip && !testGuardSkip) {
+        for (const c of test.contexts) {
+          const conflict = detectRecordingNameConflict(c?.steps);
+          if (conflict) {
+            recordingNameConflict = conflict;
+            break;
+          }
         }
       }
       if (recordingNameConflict) {
@@ -697,6 +732,36 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           }
           usedContextIds.add(id);
           context.contextId = id;
+        }
+        // Spec-level guard skip: record a SKIPPED context and don't enqueue a
+        // job. Highest precedence — a false spec guard subsumes test guards and
+        // the recording-name preflight (no test in the spec runs).
+        if (specGuardSkip) {
+          testReport.contexts[slot] = {
+            contextId: context.contextId,
+            platform: context.platform,
+            browser: context.browser,
+            result: "SKIPPED",
+            resultDescription:
+              "Skipped: spec guard `if` condition not met.",
+            steps: [],
+          };
+          return;
+        }
+        // Test-level guard skip: record a SKIPPED context and don't enqueue a
+        // job. Takes precedence over the recording-name preflight (the test is
+        // skipped wholesale regardless of its step contents).
+        if (testGuardSkip) {
+          testReport.contexts[slot] = {
+            contextId: context.contextId,
+            platform: context.platform,
+            browser: context.browser,
+            result: "SKIPPED",
+            resultDescription:
+              "Skipped: test guard `if` condition not met.",
+            steps: [],
+          };
+          return;
         }
         // Preflight conflict: record a SKIPPED context and don't enqueue a job.
         if (recordingNameConflict) {
