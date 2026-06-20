@@ -1507,6 +1507,44 @@ describe("getRunner() function", function () {
     }
   });
 
+  it("onSkip goToStep to an unknown target emits FAIL marker and rolls up FAIL", async () => {
+    // A guard-skipped step with a typo'd goToStep must fail-safe identically to
+    // the run-path: push a FAIL marker so the verdict is FAIL, not silent green.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "a",
+              if: "$$platform == nonexistentos", // always false -> SKIPPED
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ goToStep: "typo" }],
+            },
+            { stepId: "b", runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-onskip-unknown.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      // FAIL marker pushes verdict to FAIL — typo'd target must not silently pass.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+      assert.equal(result.summary.specs.fail, 1);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // step a (SKIPPED) + FAIL marker; step b never reached.
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.equal(steps[1].result, "FAIL");
+      assert.match(steps[1].resultDescription, /does not exist/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("onSkip goToStep jumps from an unsafe-blocked step", async () => {
     // Step a is unsafe-skipped (allowUnsafeSteps:false) and its onSkip routes
     // goToStep "c" -> step b is never run; step c runs and PASSes. Exercises the

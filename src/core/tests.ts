@@ -1866,9 +1866,15 @@ async function runContext({
         const target = indexByStepId.get(decision.stepId);
         if (target === undefined) {
           clog(
-            "warning",
+            "error",
             `Routing goToStep target '${decision.stepId}' not found in this test; stopping.`
           );
+          // An unknown target is a routing misconfiguration. Push a FAIL marker
+          // so the verdict reflects the broken routing — mirrors the run-path.
+          pushStepReport({
+            result: "FAIL",
+            resultDescription: `Routing goToStep target '${decision.stepId}' does not exist.`,
+          });
           stepExecutionFailed = true;
           stopReason = `Skipped because routing goToStep target '${decision.stepId}' does not exist.`;
           return false;
