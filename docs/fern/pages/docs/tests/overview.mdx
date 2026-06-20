@@ -268,6 +268,87 @@ Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that
 - A false spec condition skips every test and context in the spec. A false test condition skips every context of that test. A false step condition skips only that step.
 - `if` and [contexts](/docs/configuration/contexts) are separate layers. `runOn` selects which platform and browser combinations a unit needs, while `if` decides whether to run a unit at all. Either one can skip a unit.
 
+## Routing handlers
+
+By default, a step's result decides what happens next: a step that passes—or produces a WARNING, or is SKIPPED—continues to the next step, while a step that fails stops the test. Routing handlers let you override that decision per step. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a step to control whether the test keeps running after that step's result. A step without routing handlers behaves exactly as it does today, so adding handlers never changes existing behavior.
+
+Each handler is an array of routing entries. An entry has an optional `if` condition plus exactly one action. When the step's result selects a handler, Doc Detective evaluates the entries in order, and the first entry whose `if` matches wins. An entry with no `if` always matches. The `if` condition uses the same expressions as [conditional execution](#conditional-execution) and [custom assertions](#custom-assertions): set it to a single expression or to an array of expressions that must all be true (logical AND). An unresolvable condition fails closed, so the entry doesn't match.
+
+This phase supports two actions:
+
+- **`continue`**: Run the next step. Set `continue` to `true`.
+- **`stop`**: Stop the test. Set `stop` to the scope at which to stop execution.
+
+The following step keeps the test running after a failure instead of stopping it:
+
+```json
+{
+  "steps": [
+    {
+      "description": "Run a command, but don't stop the test if it fails.",
+      "runShell": {
+        "command": "./optional-check.sh"
+      },
+      "onFail": [
+        {
+          "continue": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+The handler that fires depends on the step's result:
+
+- A step that runs fires `onPass`, `onFail`, or `onWarning`, depending on its result.
+- A step that's reached but skipped—because it's an unsafe step that isn't allowed, or because its [`if` condition](#conditional-execution) is false—fires `onSkip`.
+- A step that's never reached, because an earlier step stopped the test, fires no handler.
+
+### Routing controls flow, not the verdict
+
+Routing decides whether later steps run; it never changes a step's result. A step that fails and routes `continue` stays FAIL, the steps after it still run, and the test still rolls up to FAIL. Likewise, a passing step that routes `stop` stays PASS, and the rest of the test is marked SKIPPED. Use routing to shape execution flow, and use [custom assertions](#custom-assertions) to change a step's result.
+
+### Defaults and matching order
+
+When a handler is absent, empty, or has no matching entry, the step falls back to the default for its result:
+
+- **PASS**, **WARNING**, and **SKIPPED** continue to the next step.
+- **FAIL** stops the test.
+
+These defaults reproduce Doc Detective's standard behavior, so a step with no routing handlers runs identically to one written before routing existed.
+
+Because the first matching entry wins, order your entries from most specific to least specific. List entries with an `if` condition first, and an unconditional fallback last:
+
+```json
+{
+  "steps": [
+    {
+      "runShell": {
+        "command": "./deploy.sh"
+      },
+      "onFail": [
+        {
+          "if": "$$platform == windows",
+          "stop": "test"
+        },
+        {
+          "continue": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Stop scope
+
+At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but propagating those scopes to skip later tests or specs isn't supported yet. For now, a step-level `stop` stops only the current test, regardless of the scope you set.
+
+<Note>
+The `retry`, `goToStep`, and `goToTest` actions are valid in routing entries but aren't active yet. A matching entry that uses one of them falls back to the default for the step's result, so it behaves as if no handler matched.
+</Note>
+
 ## Define a test
 
 You can define test specs in multiple ways:
