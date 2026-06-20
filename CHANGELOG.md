@@ -1,3 +1,10 @@
+# [4.15.0-next.7](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.6...v4.15.0-next.7) (2026-06-20)
+
+
+### Features
+
+* **routing:** step retry action (limit/delay/backoff) ([#366](https://github.com/doc-detective/doc-detective/issues/366)) ([118c2a0](https://github.com/doc-detective/doc-detective/commit/118c2a0bf2b2e08cf870bbcc8d91ce226bd6a533))
+
 # [4.15.0-next.6](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.5...v4.15.0-next.6) (2026-06-20)
 
 
