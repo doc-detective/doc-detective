@@ -77,28 +77,28 @@
         ]
       },
       "onPass": {
-        "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
         }
       },
       "onFail": {
-        "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
         }
       },
       "onWarning": {
-        "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
         }
       },
       "onSkip": {
-        "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"

@@ -207,12 +207,12 @@
             ]
           },
           "onPass": {
-            "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+            "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
             "type": "array",
             "items": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "routing",
-              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
@@ -377,12 +377,12 @@
             }
           },
           "onFail": {
-            "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+            "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
             "type": "array",
             "items": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "routing",
-              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
@@ -547,12 +547,12 @@
             }
           },
           "onWarning": {
-            "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+            "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
             "type": "array",
             "items": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "routing",
-              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
@@ -717,12 +717,12 @@
             }
           },
           "onSkip": {
-            "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+            "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
             "type": "array",
             "items": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "routing",
-              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+              "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
@@ -1072,12 +1072,12 @@
         ]
       },
       "onPass": {
-        "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "title": "routing",
-          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -1242,12 +1242,12 @@
         }
       },
       "onFail": {
-        "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "title": "routing",
-          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -1412,12 +1412,12 @@
         }
       },
       "onWarning": {
-        "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "title": "routing",
-          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -1582,12 +1582,12 @@
         }
       },
       "onSkip": {
-        "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "title": "routing",
-          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+          "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -2043,12 +2043,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -2213,12 +2213,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -2383,12 +2383,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -2553,12 +2553,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -3184,12 +3184,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -3354,12 +3354,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -3524,12 +3524,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -3694,12 +3694,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -4369,12 +4369,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -4539,12 +4539,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -4709,12 +4709,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -4879,12 +4879,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -6651,12 +6651,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -6821,12 +6821,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -6991,12 +6991,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -7161,12 +7161,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -8026,12 +8026,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -8196,12 +8196,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -8366,12 +8366,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -8536,12 +8536,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -9953,12 +9953,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -10123,12 +10123,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -10293,12 +10293,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -10463,12 +10463,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -11122,12 +11122,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -11292,12 +11292,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -11462,12 +11462,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -11632,12 +11632,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -12277,12 +12277,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -12447,12 +12447,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -12617,12 +12617,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -12787,12 +12787,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -13381,12 +13381,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -13551,12 +13551,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -13721,12 +13721,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -13891,12 +13891,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -14558,12 +14558,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -14728,12 +14728,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -14898,12 +14898,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -15068,12 +15068,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -16178,12 +16178,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -16348,12 +16348,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -16518,12 +16518,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -16688,12 +16688,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -17356,12 +17356,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -17526,12 +17526,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -17696,12 +17696,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -17866,12 +17866,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -18565,12 +18565,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -18735,12 +18735,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -18905,12 +18905,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -19075,12 +19075,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -19549,12 +19549,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -19719,12 +19719,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -19889,12 +19889,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -20059,12 +20059,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -20491,12 +20491,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -20661,12 +20661,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -20831,12 +20831,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -21001,12 +21001,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -21920,12 +21920,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -22090,12 +22090,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -22260,12 +22260,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -22430,12 +22430,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -23081,12 +23081,12 @@
               ]
             },
             "onPass": {
-              "description": "Routing entries evaluated when this step passes. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -23251,12 +23251,12 @@
               }
             },
             "onFail": {
-              "description": "Routing entries evaluated when this step fails. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -23421,12 +23421,12 @@
               }
             },
             "onWarning": {
-              "description": "Routing entries evaluated when this step produces a warning. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -23591,12 +23591,12 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped. Phase 1: validated but ignored at runtime.",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
               "type": "array",
               "items": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "routing",
-                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). Phase 1: validated everywhere, ignored at runtime.",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
