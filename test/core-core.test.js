@@ -1192,4 +1192,105 @@ describe("getRunner() function", function () {
       fs.unlinkSync(tempFilePath);
     }
   });
+
+  // --- Routing: retry action ---
+
+  it("onFail retry recovers a transient failure (fails once, passes on retry)", async () => {
+    // A counter-file step exits 1 on its first run and 0 on the second.
+    // onFail:[{retry:{limit:2}}] re-runs it; the retry passes, so the step is
+    // PASS with attempts === 2 (verdict reflects the final attempt).
+    const counterFile = path
+      .join(os.tmpdir(), `dd-retry-counter-${process.pid}-${Math.floor(performance.now())}.txt`)
+      .replace(/\\/g, "/");
+    if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    const cmd =
+      `node -e "const fs=require('fs');const f='${counterFile}';` +
+      `let n=fs.existsSync(f)?Number(fs.readFileSync(f,'utf8')):0;n++;` +
+      `fs.writeFileSync(f,String(n));process.exit(n>=2?0:1)"`;
+    const t = {
+      tests: [
+        { steps: [{ runShell: cmd, onFail: [{ retry: { limit: 2 } }] }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-retry-recover.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "PASS");
+      assert.equal(step.attempts, 2); // 1 initial + 1 retry
+    } finally {
+      fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    }
+  });
+
+  it("onFail retry exhausted -> the default (stop) applies", async () => {
+    // An always-failing step with retry:{limit:2} runs 3 times total (1 + 2
+    // retries), stays FAIL, then the exhausted retry falls to the onFail
+    // default (stop) -> the next step is SKIPPED.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(1)\"",
+              onFail: [{ retry: { limit: 2 } }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-retry-exhaust.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps[0].result, "FAIL");
+      assert.equal(steps[0].attempts, 3); // 1 initial + 2 retries
+      assert.equal(steps[1].result, "SKIPPED"); // default stop after exhaustion
+      assert.match(steps[1].resultDescription, /previous failure/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onFail [{retry},{continue}] retries then continues when still failing", async () => {
+    // After retries are exhausted and the step still FAILs, the trailing
+    // {continue:true} entry applies -> the next step still runs.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(1)\"",
+              onFail: [{ retry: { limit: 1 } }, { continue: true }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-retry-continue.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps[0].result, "FAIL");
+      assert.equal(steps[0].attempts, 2); // 1 initial + 1 retry
+      assert.equal(steps[1].result, "PASS"); // continued past the failure
+      // flow != verdict: the test still FAILs.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
 });

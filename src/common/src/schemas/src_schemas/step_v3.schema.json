@@ -55,6 +55,12 @@
           },
           "autoScreenshot": {
             "$ref": "#/components/schemas/autoScreenshot"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 2,
+            "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
+            "readOnly": true
           }
         },
         "title": "Common"
@@ -77,28 +83,28 @@
         ]
       },
       "onPass": {
-        "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
+        "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
         }
       },
       "onFail": {
-        "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
+        "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
         }
       },
       "onWarning": {
-        "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
+        "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
         }
       },
       "onSkip": {
-        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.",
+        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
@@ -158,6 +164,12 @@
         "minLength": 1,
         "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
         "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+        "readOnly": true
+      },
+      "attempts": {
+        "type": "integer",
+        "minimum": 2,
+        "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
         "readOnly": true
       },
       "location": {
