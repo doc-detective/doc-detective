@@ -359,12 +359,112 @@ function guardReferencesSteps(
   );
 }
 
+/**
+ * A step's result status, used to select the matching routing handler.
+ */
+type StepRoutingStatus = "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+
+/**
+ * The control-flow decision produced by resolving a step's routing handler.
+ * `continue` runs the next step; `stop` halts the unit at the given scope.
+ * (Other actions — retry/goToStep/goToTest — are deferred to later phases.)
+ */
+type RoutingDecision =
+  | { action: "continue" }
+  | { action: "stop"; scope: "test" | "spec" | "run" };
+
+// One routing entry as authored: an optional `if` selector plus exactly one
+// action. Only `continue`/`stop` are acted on this phase.
+interface RoutingEntry {
+  if?: GuardCondition;
+  continue?: true;
+  stop?: "test" | "spec" | "run";
+  retry?: unknown;
+  goToStep?: string;
+  goToTest?: string;
+}
+
+// The handler key and default decision for each result status. Defaults
+// reproduce today's hardcoded behavior exactly: a FAIL stops the test, every
+// other status continues — so a step with no routing fields is byte-identical
+// to the pre-routing runner.
+const ROUTING_BY_STATUS: Record<
+  StepRoutingStatus,
+  { key: "onPass" | "onFail" | "onWarning" | "onSkip"; default: RoutingDecision }
+> = {
+  PASS: { key: "onPass", default: { action: "continue" } },
+  FAIL: { key: "onFail", default: { action: "stop", scope: "test" } },
+  WARNING: { key: "onWarning", default: { action: "continue" } },
+  SKIPPED: { key: "onSkip", default: { action: "continue" } },
+};
+
+/**
+ * Resolve a step's routing handler for a given result status into a
+ * control-flow decision.
+ *
+ * Selects the handler array for the status (`onPass`/`onFail`/`onWarning`/
+ * `onSkip`), then returns the FIRST entry whose `if` selector matches (an entry
+ * with no `if` always matches; `if` is evaluated by `evaluateGuard`, which AND-s
+ * an array and fails CLOSED). The matched entry maps to a decision:
+ *   - `{ continue: true }` -> `{ action: "continue" }`
+ *   - `{ stop: <scope> }`  -> `{ action: "stop", scope }`
+ *   - retry/goToStep/goToTest (not implemented this phase) -> the status default
+ *
+ * If the handler is absent/empty or no entry matches, the status DEFAULT is
+ * returned. Defaults reproduce today's behavior (FAIL stops the test; PASS,
+ * WARNING, and SKIPPED continue), so an unrouted step is byte-identical to the
+ * pre-routing runner. flow != verdict: this only chooses control flow, never
+ * the step's result.
+ *
+ * @param args.status - The step's result status.
+ * @param args.step - The step (read for `onPass`/`onFail`/`onWarning`/`onSkip`).
+ * @param args.context - A `buildConditionContext(...)` output for `if` selectors.
+ * @returns The control-flow decision.
+ */
+async function resolveStepRouting(args: {
+  status: StepRoutingStatus;
+  step: {
+    onPass?: RoutingEntry[];
+    onFail?: RoutingEntry[];
+    onWarning?: RoutingEntry[];
+    onSkip?: RoutingEntry[];
+  };
+  context: ConditionContext;
+}): Promise<RoutingDecision> {
+  const { status, step, context } = args;
+  const { key, default: fallback } = ROUTING_BY_STATUS[status];
+  const handlers = step?.[key];
+  if (!Array.isArray(handlers) || handlers.length === 0) return fallback;
+
+  for (const entry of handlers) {
+    if (!entry || typeof entry !== "object") continue;
+    // An entry with no `if` always matches; otherwise it matches when its
+    // condition(s) evaluate truthy (evaluateGuard: absent -> true, array ->
+    // AND, fails closed).
+    const matches =
+      entry.if === undefined || (await evaluateGuard(entry.if, context));
+    if (!matches) continue;
+
+    if (entry.continue === true) return { action: "continue" };
+    if (typeof entry.stop === "string") {
+      return { action: "stop", scope: entry.stop };
+    }
+    // Matched, but the action isn't implemented this phase
+    // (retry/goToStep/goToTest). Treat as the status default and stop scanning
+    // — a later entry must not override an already-matched selector.
+    return fallback;
+  }
+  // No entry matched.
+  return fallback;
+}
+
 export {
   buildConditionContext,
   evaluateImplicitAssertions,
   evaluateCustomAssertions,
   evaluateGuard,
   guardReferencesSteps,
+  resolveStepRouting,
 };
 export type {
   BuildConditionContextArgs,
@@ -376,4 +476,7 @@ export type {
   CustomAssertionStep,
   CustomAssertionActionResult,
   GuardCondition,
+  StepRoutingStatus,
+  RoutingDecision,
+  RoutingEntry,
 };

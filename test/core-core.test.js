@@ -1029,4 +1029,119 @@ describe("getRunner() function", function () {
     // Requires mocking driverStart - skipping
     this.skip();
   });
+
+  // --- Routing handlers: onPass/onFail/onWarning/onSkip + continue/stop ---
+  // These exercise FAIL/stop control-flow paths the "no spec fails" gate can't
+  // express as PASS/SKIPPED fixtures. flow != verdict throughout.
+
+  it("onFail [{continue:true}] runs the next step after a failure (verdict still FAIL)", async () => {
+    // Step 1 fails but routes continue -> step 2 still runs and passes. The
+    // step stays FAILed, so the test verdict rolls up to FAIL (routing changes
+    // flow, never the result).
+    const routingTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(1)\"", // fails (exitCode 1)
+              onFail: [{ continue: true }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" }, // should still run
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-onfail-continue.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(routingTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "FAIL");
+      assert.equal(steps[1].result, "PASS"); // ran despite the prior failure
+      assert.equal(result.summary.steps.fail, 1);
+      assert.equal(result.summary.steps.pass, 1);
+      assert.equal(result.summary.steps.skipped, 0);
+      // flow != verdict: the test still FAILs.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onPass [{stop:'test'}] halts the test after a passing step", async () => {
+    // Step 1 passes but routes stop -> step 2 is SKIPPED with the routing
+    // reason (not a failure reason). With a PASS present the test rolls up PASS.
+    const routingTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(0)\"",
+              onPass: [{ stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" }, // should be skipped
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-onpass-stop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(routingTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "PASS");
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.match(steps[1].resultDescription, /routing/);
+      assert.equal(result.summary.steps.skipped, 1);
+      assert.equal(result.summary.steps.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onSkip [{stop:'test'}] after a guard-skipped step halts the rest", async () => {
+    // Step 1 is guard-`if` false -> SKIPPED, and its onSkip routes stop -> step
+    // 2 is SKIPPED for the routing reason (not the guard reason). All steps
+    // SKIPPED -> the test rolls up SKIPPED. Proves a reached-but-skipped step's
+    // onSkip handler fires.
+    const routingTest = {
+      tests: [
+        {
+          steps: [
+            {
+              if: "$$platform == nonexistentos", // always false -> SKIPPED
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" }, // should be skipped
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-onskip-stop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(routingTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.match(steps[0].resultDescription, /guard `if` condition not met/);
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.match(steps[1].resultDescription, /routing/);
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(result.summary.steps.pass, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
 });
