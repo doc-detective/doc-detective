@@ -343,7 +343,7 @@ Because the first matching entry wins, order your entries from most specific to 
 
 ### Stop scope
 
-At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but propagating those scopes to skip later tests or specs isn't supported yet. For now, a step-level `stop` stops only the current test, regardless of the scope you set.
+At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but propagating those scopes to skip later tests or specs isn't supported yet. If you set `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test.
 
 <Note>
 The `retry`, `goToStep`, and `goToTest` actions are valid in routing entries but aren't active yet. A matching entry that uses one of them falls back to the default for the step's result, so it behaves as if no handler matched.
