@@ -1,10 +1,9 @@
-// Dynamic routing (Phase 3): the condition-context builder.
-//
-// This module is the cohesive home for the routing/condition primitives of the
-// dynamic-routing feature. Phase 3 ships only `buildConditionContext`; later
-// phases will add `resolveRoute` / `nextRetryDelay` here. Nothing in the runner
-// calls this yet — it is additive and dormant until Phase 5 wires it into the
-// step loop.
+// Dynamic routing: the cohesive home for the routing/condition primitives of the
+// dynamic-routing feature — `buildConditionContext`, the implicit/custom
+// assertion evaluators, and `evaluateGuard` for conditional execution. These are
+// wired into the runner (custom assertions in runStep; step-level guard `if` in
+// the runContext step loop). Later phases will add `resolveRoute` /
+// `nextRetryDelay` here for routing handlers and retries.
 
 import { evaluateAssertion } from "./expressions.js";
 import { rollUpAssertions } from "./utils.js";
@@ -274,10 +273,98 @@ async function evaluateCustomAssertions(args: {
   return actionResult;
 }
 
+/**
+ * The author form of a guard `if`: a single condition string, or an array of
+ * condition strings that are AND-ed together (all must be truthy).
+ */
+type GuardCondition = string | string[];
+
+/**
+ * Evaluate a guard `if` against a condition context.
+ *
+ * Used at spec, test, and step scope. The guard decides whether the unit runs
+ * at all (it is evaluated BEFORE the unit). Semantics:
+ *   - `undefined`/empty (no usable conditions) -> `true` (guard absent; run).
+ *   - A single string -> the truthiness of that one condition.
+ *   - An array of strings -> AND across all of them: `true` only if EVERY
+ *     condition is truthy. Evaluation short-circuits on the first falsy one.
+ *   - Each condition is evaluated through `evaluateAssertion`, which fails
+ *     CLOSED: an unresolvable `$$` reference resolves to `false` (so a guard
+ *     that references a not-yet-available value blocks the unit rather than
+ *     throwing).
+ *
+ * Non-string array entries are ignored (filtered out), and string entries are
+ * trimmed with empty/whitespace-only ones dropped — only non-empty string
+ * conditions are author input. If normalization leaves no conditions, the
+ * guard is treated as absent (`true`). So `""`, `"   "`, and `["", "  "]` all
+ * mean "guard absent", not "a falsy condition".
+ *
+ * @param ifValue - The author `if` value (`string | string[]` or undefined).
+ * @param context - A `buildConditionContext(...)` output.
+ * @returns `true` if the unit should run, `false` if it should be skipped.
+ */
+async function evaluateGuard(
+  ifValue: GuardCondition | undefined | null,
+  context: ConditionContext
+): Promise<boolean> {
+  // Normalize to a string array; drop anything that isn't a string, then trim
+  // and drop empty/whitespace-only entries (an empty condition is "no
+  // condition", not a falsy one — treat it as guard-absent).
+  let raw: string[];
+  if (typeof ifValue === "string") {
+    raw = [ifValue];
+  } else if (Array.isArray(ifValue)) {
+    raw = ifValue.filter((c): c is string => typeof c === "string");
+  } else {
+    raw = [];
+  }
+  const conditions = raw
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+
+  // No usable conditions -> guard absent -> run.
+  if (conditions.length === 0) return true;
+
+  // AND across all conditions; short-circuit on the first falsy one.
+  for (const condition of conditions) {
+    const ok = await evaluateAssertion(condition, context);
+    if (!ok) return false;
+  }
+  return true;
+}
+
+/**
+ * Authoring-time detector: does a guard `if` value reference `$$steps.*`?
+ *
+ * `$$steps.<id>.outputs.*` is only populated at STEP scope (the per-step
+ * accumulator in `runContext`). A spec- or test-level guard that references it
+ * resolves against an empty `steps` map and fails closed — so the unit is
+ * always skipped. Callers use this to emit an authoring warning rather than
+ * letting the misuse silently swallow the unit. Non-string entries are ignored.
+ *
+ * @param ifValue - The author `if` value (`string | string[]` or undefined).
+ * @returns `true` if any string condition references `$$steps.`.
+ */
+function guardReferencesSteps(
+  ifValue: GuardCondition | undefined | null
+): boolean {
+  const conditions =
+    typeof ifValue === "string"
+      ? [ifValue]
+      : Array.isArray(ifValue)
+        ? ifValue
+        : [];
+  return conditions.some(
+    (c) => typeof c === "string" && c.includes("$$steps.")
+  );
+}
+
 export {
   buildConditionContext,
   evaluateImplicitAssertions,
   evaluateCustomAssertions,
+  evaluateGuard,
+  guardReferencesSteps,
 };
 export type {
   BuildConditionContextArgs,
@@ -288,4 +375,5 @@ export type {
   EvaluateAssertionsOptions,
   CustomAssertionStep,
   CustomAssertionActionResult,
+  GuardCondition,
 };
