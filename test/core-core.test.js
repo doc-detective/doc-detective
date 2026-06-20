@@ -1535,11 +1535,12 @@ describe("getRunner() function", function () {
       assert.equal(result.specs[0].tests[0].result, "FAIL");
       assert.equal(result.summary.specs.fail, 1);
       const steps = result.specs[0].tests[0].contexts[0].steps;
-      // step a (SKIPPED) + FAIL marker; step b never reached.
-      assert.equal(steps.length, 2);
+      // step a (SKIPPED) + FAIL marker + step b (SKIPPED downstream of the stop).
+      assert.equal(steps.length, 3);
       assert.equal(steps[0].result, "SKIPPED");
       assert.equal(steps[1].result, "FAIL");
       assert.match(steps[1].resultDescription, /does not exist/);
+      assert.equal(steps[2].result, "SKIPPED");
     } finally {
       fs.unlinkSync(tempFilePath);
     }
