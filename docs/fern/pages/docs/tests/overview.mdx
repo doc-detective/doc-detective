@@ -258,6 +258,10 @@ Step-level conditions can also read earlier steps' outputs through the `$$steps.
 
 A step-level condition can't read its own step's `$$outputs.*`, because Doc Detective evaluates `if` before the step's action runs.
 
+<Note>
+Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that references `$$steps.*` can't resolve and fails closed, so the spec or test is always skipped. Doc Detective logs a warning when it detects this so you can catch the mistake.
+</Note>
+
 ### How conditions resolve
 
 - A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it.
