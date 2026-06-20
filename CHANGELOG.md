@@ -1,3 +1,10 @@
+# [4.15.0-next.5](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.4...v4.15.0-next.5) (2026-06-20)
+
+
+### Features
+
+* **routing:** spec-, test-, and step-level guard `if` conditional execution ([#362](https://github.com/doc-detective/doc-detective/issues/362)) ([b478d2b](https://github.com/doc-detective/doc-detective/commit/b478d2bb9f2bda78e2ba9a0314cd894abfa30425))
+
 # [4.15.0-next.4](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.3...v4.15.0-next.4) (2026-06-19)
 
 
