@@ -457,7 +457,7 @@ The following passing step jumps ahead to a cleanup step, skipping the steps in 
 
 As with every routing action, `goToStep` controls flow only and never changes a step's result. A step that fails and routes `goToStep` stays FAIL, the jump still happens, and the test still rolls up to FAIL. An `onSkip` handler can use `goToStep` too, so a step that's reached but skipped can still jump.
 
-If `goToStep` names a `stepId` that doesn't exist in the test, Doc Detective fails safe: it stops the test with a reason that names the missing step instead of skipping the jump silently. Backward jumps are bounded by a per-test limit on how many steps a context can run, so a `goToStep` loop that never makes progress stops with a clear reason instead of hanging.
+If `goToStep` names a `stepId` that doesn't exist in the test, Doc Detective treats it as a routing error instead of skipping the jump silently. It records a FAIL step report that names the missing step and stops the test, so the test rolls up to FAIL. This happens whether the jump comes from an `onPass`, `onFail`, `onWarning`, or `onSkip` handler. Backward jumps are bounded by a per-context limit on how many steps a test can run. If a `goToStep` loop never makes progress and reaches that limit, Doc Detective records a FAIL step report that describes the loop and stops, so a runaway loop fails the test instead of hanging or reporting a passing result.
 
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number—`2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
