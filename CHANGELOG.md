@@ -1,3 +1,10 @@
+# [4.15.0-next.9](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.8...v4.15.0-next.9) (2026-06-20)
+
+
+### Bug Fixes
+
+* **build:** decouple compile-time type from optional webdriverio dep ([#369](https://github.com/doc-detective/doc-detective/issues/369)) ([74f3f26](https://github.com/doc-detective/doc-detective/commit/74f3f26fef7726308234b48eb000de7ce13deab1))
+
 # [4.15.0-next.8](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.7...v4.15.0-next.8) (2026-06-20)
 
 
