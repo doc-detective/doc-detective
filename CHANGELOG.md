@@ -1,3 +1,10 @@
+# [4.15.0-next.10](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.9...v4.15.0-next.10) (2026-06-20)
+
+
+### Features
+
+* **routing:** step goToStep action (index-driven step loop) ([#370](https://github.com/doc-detective/doc-detective/issues/370)) ([1a6f7be](https://github.com/doc-detective/doc-detective/commit/1a6f7be70a2f77a53b10df24d815994e209a1ac1))
+
 # [4.15.0-next.9](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.8...v4.15.0-next.9) (2026-06-20)
 
 
