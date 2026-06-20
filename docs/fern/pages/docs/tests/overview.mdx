@@ -274,10 +274,11 @@ By default, a step's result decides what happens next: a step that passes—or p
 
 Each handler is an array of routing entries. An entry has an optional `if` condition plus exactly one action. When the step's result selects a handler, Doc Detective evaluates the entries in order, and the first entry whose `if` matches wins. An entry with no `if` always matches. The `if` condition uses the same expressions as [conditional execution](#conditional-execution) and [custom assertions](#custom-assertions): set it to a single expression or to an array of expressions that must all be true (logical AND). An unresolvable condition fails closed, so the entry doesn't match.
 
-This phase supports two actions:
+Routing entries support these actions:
 
 - **`continue`**: Run the next step. Set `continue` to `true`.
 - **`stop`**: Stop the test. Set `stop` to the scope at which to stop execution.
+- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. See [Retry a step](#retry-a-step).
 
 The following step keeps the test running after a failure instead of stopping it:
 
@@ -345,8 +346,78 @@ Because the first matching entry wins, order your entries from most specific to 
 
 At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but propagating those scopes to skip later tests or specs isn't supported yet. If you set `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test.
 
+### Retry a step
+
+The `retry` action re-runs a step when its result matches the handler. Use it for steps that can fail for transient reasons—a slow page load, a flaky network call, an element that isn't ready yet—so a temporary failure can recover instead of stopping the test.
+
+Set `retry` to an object with a `limit`, plus an optional `delay` and `backoff`:
+
+- **`limit`**: The maximum number of retries. This counts re-runs after the first attempt, so a `limit` of `2` allows up to three runs in total. Required, and must be at least `1`.
+- **`delay`**: How long to wait before each retry, in milliseconds. Defaults to `0` (no wait), with a maximum of `3600000` (one hour).
+- **`backoff`**: How the delay grows between retries. Set it to `fixed` to wait the same `delay` before every retry, or `exponential` to double the wait each time (`delay`, then `delay × 2`, then `delay × 4`, and so on). Defaults to `fixed`.
+
+When the result matches, Doc Detective re-runs the whole step—including its assertions—up to `limit` times, waiting `delay` between attempts. It stops as soon as the result no longer matches the handler. If a retry passes, the step passes.
+
+The following step retries a flaky command up to three times, waiting one second between attempts:
+
+```json
+{
+  "steps": [
+    {
+      "description": "Retry a flaky check until it succeeds.",
+      "runShell": {
+        "command": "./flaky-check.sh"
+      },
+      "onFail": [
+        {
+          "retry": {
+            "limit": 3,
+            "delay": 1000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Once the retries are used up and the step still matches the handler, Doc Detective resolves routing again with `retry` entries skipped to find the terminal action. The step falls through to the next matching entry, or to the default for its result if no other entry matches. For example:
+
+- `onFail` with a single `retry` entry retries the step, then stops the test (the FAIL default) once retries are exhausted.
+- `onFail` with a `retry` entry followed by a `continue` entry retries the step, then continues to the next step.
+
+This step retries a failed deploy check twice, then continues instead of stopping the test:
+
+```json
+{
+  "steps": [
+    {
+      "runShell": {
+        "command": "./deploy-check.sh"
+      },
+      "onFail": [
+        {
+          "retry": {
+            "limit": 2,
+            "delay": 500,
+            "backoff": "exponential"
+          }
+        },
+        {
+          "continue": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+As with every routing action, `retry` controls flow only and never changes the verdict. The step's reported result is the result of its final attempt, so a step that fails every attempt and then continues still leaves the test FAIL.
+
+When a step is retried, its result includes an `attempts` field with the total number of runs—the first attempt plus every retry. The field is omitted for steps that weren't retried, so reports for those steps are unchanged.
+
 <Note>
-The `retry`, `goToStep`, and `goToTest` actions are valid in routing entries but aren't active yet. A matching entry that uses one of them falls back to the default for the step's result, so it behaves as if no handler matched.
+The `goToStep` and `goToTest` actions are valid in routing entries but aren't active yet. A matching entry that uses one of them falls back to the default for the step's result, so it behaves as if no handler matched.
 </Note>
 
 ## Define a test
