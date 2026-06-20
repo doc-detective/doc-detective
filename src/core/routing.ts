@@ -432,7 +432,12 @@ async function resolveStepRouting(args: {
   context: ConditionContext;
 }): Promise<RoutingDecision> {
   const { status, step, context } = args;
-  const { key, default: fallback } = ROUTING_BY_STATUS[status];
+  const config = ROUTING_BY_STATUS[status];
+  // An unknown status has no handler family; default to continue (never halt
+  // execution on a status we don't understand). runStep only emits the four
+  // known statuses today, so this is defensive.
+  if (!config) return { action: "continue" };
+  const { key, default: fallback } = config;
   const handlers = step?.[key];
   if (!Array.isArray(handlers) || handlers.length === 0) return fallback;
 

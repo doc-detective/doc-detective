@@ -1821,9 +1821,16 @@ async function runContext({
           resultDescription: "Skipped because unsafe steps aren't allowed.",
         };
         contextReport.steps.push(stepReport);
-        // This is a REACHED-but-skipped step, so its onSkip handler fires
-        // (default continue; an explicit `stop` halts the rest of the test).
-        if (await stepSkipStops(step, context.platform, stepOutputsById)) {
+        // onSkip fires only for a REACHED step. The unsafe check precedes the
+        // `stepExecutionFailed` gate below, so an unsafe step DOWNSTREAM of a
+        // prior stop reaches here too — but it is not reached, so its onSkip
+        // must NOT fire (the `!stepExecutionFailed` guard). For a genuinely
+        // reached unsafe-skip, onSkip runs (default continue; explicit `stop`
+        // halts the test).
+        if (
+          !stepExecutionFailed &&
+          (await stepSkipStops(step, context.platform, stepOutputsById))
+        ) {
           stepExecutionFailed = true;
           stopReason =
             "Skipped because a prior step stopped execution (routing).";
@@ -1865,7 +1872,14 @@ async function runContext({
           };
           contextReport.steps.push(stepReport);
           // Reached-but-skipped: the onSkip handler fires (default continue).
-          if (await stepSkipStops(step, context.platform, stepOutputsById)) {
+          // This branch is already past the `stepExecutionFailed` gate above,
+          // so it is unreachable when stopped; the `!stepExecutionFailed` guard
+          // keeps the "not reached -> no routing" invariant explicit and robust
+          // if the branch order ever changes.
+          if (
+            !stepExecutionFailed &&
+            (await stepSkipStops(step, context.platform, stepOutputsById))
+          ) {
             stepExecutionFailed = true;
             stopReason =
               "Skipped because a prior step stopped execution (routing).";
@@ -1966,6 +1980,12 @@ async function runContext({
         // Halt the remaining steps in this context. Propagating a `spec`/`run`
         // scope to skip later tests/specs is deferred to the test-routing
         // phase; at the step level a stop halts the current test's steps.
+        if (routingDecision.scope !== "test") {
+          clog(
+            "warning",
+            `Routing stop scope '${routingDecision.scope}' is not yet propagated beyond the current test; it currently behaves as 'test'. Later tests/specs are not skipped.`
+          );
+        }
         stepExecutionFailed = true;
         // Preserve the historical wording when a FAIL stops the test (the
         // default onFail:stop); otherwise record that routing stopped it.

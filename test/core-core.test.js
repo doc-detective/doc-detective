@@ -1144,4 +1144,52 @@ describe("getRunner() function", function () {
       fs.unlinkSync(tempFilePath);
     }
   });
+
+  it("an unsafe step DOWNSTREAM of a stop does NOT fire its onSkip routing", async () => {
+    // Invariant: a step that is not reached (downstream of a prior stop) fires
+    // NO routing. Step 1 fails -> the test stops (default onFail). Step 2 is
+    // unsafe AND carries onSkip:[{stop:'test'}]; because it is downstream of the
+    // stop its onSkip must NOT fire. Proof: step 3's skip reason stays the
+    // original failure reason ("previous failure"), not the routing reason — if
+    // step 2's onSkip had fired it would have overwritten the stop reason.
+    const t = {
+      tests: [
+        {
+          steps: [
+            { runShell: "node -e \"process.exit(1)\"" }, // FAIL -> stop
+            {
+              unsafe: true,
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-unsafe-after-stop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = {
+      input: tempFilePath,
+      logLevel: "debug",
+      allowUnsafeSteps: false,
+    };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 3);
+      assert.equal(steps[0].result, "FAIL");
+      // Step 2: skipped for being unsafe (its pre-existing reason), NOT routing.
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.match(steps[1].resultDescription, /unsafe/);
+      // Step 3: still carries the ORIGINAL failure stop reason — proving step 2's
+      // onSkip never fired (it would have rewritten the reason to "...routing").
+      assert.equal(steps[2].result, "SKIPPED");
+      assert.match(steps[2].resultDescription, /previous failure/);
+      assert.doesNotMatch(steps[2].resultDescription, /routing/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
 });
