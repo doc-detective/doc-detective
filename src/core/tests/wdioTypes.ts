@@ -15,8 +15,10 @@
 // webdriverio is installed, while runtime behavior is unchanged (the real module
 // is still dynamically loaded and used when present). This mirrors the existing
 // `loadHeavyDep<any>(...)` treatment of the other optional heavy deps (sharp,
-// pixelmatch) in saveScreenshot.ts, but keeps just enough typing to guard the
-// `Key.*` sentinel lookups in typeKeys.ts.
+// pixelmatch) in saveScreenshot.ts, but still types the `Key.*` sentinel lookups
+// in typeKeys.ts as string-valued. The `Key` surface is a permissive index
+// signature: it asserts `Key` exists and its members are strings, NOT that any
+// particular member name is valid (it does not catch a misspelled `Key.Ctrll`).
 
 // The webdriverio `Key` enum: a map of named special-key sentinels to the
 // platform-interpreted strings that `driver.keys()` understands. We only read
