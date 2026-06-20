@@ -378,7 +378,9 @@ interface RetrySpec {
  * `continue` runs the next step; `stop` halts the unit at the given scope;
  * `retry` re-runs the step (the runtime loops, then re-resolves with
  * `skipRetry` to get the terminal decision); `goToStep` jumps execution to the
- * step with the given stepId. (`goToTest` is deferred to a later phase.)
+ * step with the given stepId; `goToTest` jumps execution to the test with the
+ * given testId (test-scope jumps are deferred to a later phase, but the variant
+ * is in the union now so resolvers can name it).
  */
 type RoutingDecision =
   | { action: "continue" }
@@ -389,7 +391,8 @@ type RoutingDecision =
       delay: number;
       backoff: "fixed" | "exponential";
     }
-  | { action: "goToStep"; stepId: string };
+  | { action: "goToStep"; stepId: string }
+  | { action: "goToTest"; testId: string };
 
 // One routing entry as authored: an optional `if` selector plus exactly one
 // action.
@@ -510,6 +513,83 @@ async function resolveStepRouting(args: {
   return fallback;
 }
 
+/**
+ * Resolve a TEST's routing handler for a given rolled-up status into a
+ * control-flow decision, used by the routed-spec sequencer to decide what
+ * happens AFTER a test finishes.
+ *
+ * Mirrors `resolveStepRouting` but reads the test's `onPass`/`onFail`/
+ * `onWarning`/`onSkip` handlers and the test's rolled-up status, and uses the
+ * same `ROUTING_BY_STATUS` defaults (FAIL -> stop(test); PASS/WARNING/SKIPPED ->
+ * continue). The selector context is a `buildConditionContext(...)` output; only
+ * `$$platform` is meaningful at test scope (tests aren't sequenced relative to
+ * each other, so cross-test `$$outputs`/`$$steps` carry no data).
+ *
+ * Action mapping at test scope:
+ *   - `{ continue: true }` -> `{ action: "continue" }`
+ *   - `{ stop: <scope> }`  -> `{ action: "stop", scope }`
+ *       The sequencer interprets these scopes: `stop:test` is a NO-OP (the test
+ *       already finished), `stop:spec` stops the spec's remaining tests, and
+ *       `stop:run` is deferred (warned once and treated as `spec` this phase).
+ *   - `{ goToTest: <id> }` -> DEFERRED this phase: behaves as a non-implemented
+ *       action — return the status default and STOP scanning (a later entry must
+ *       not override an already-matched selector). PR-B wires the jump.
+ *   - `{ retry }` / `{ goToStep }` -> not applicable at test scope; treated as a
+ *       matched-but-unhandled action -> the status default (stop scanning).
+ *
+ * If the handler is absent/empty or no entry matches, the status DEFAULT is
+ * returned, so a test with no routing fields resolves to the same decision the
+ * pre-routing flat pool implied. flow != verdict: this only chooses control
+ * flow, never the test's result.
+ *
+ * @param args.status - The test's rolled-up result status.
+ * @param args.test - The test (read for `onPass`/`onFail`/`onWarning`/`onSkip`).
+ * @param args.context - A `buildConditionContext(...)` output for `if` selectors.
+ * @returns The control-flow decision.
+ */
+async function resolveTestRouting(args: {
+  status: StepRoutingStatus;
+  test: {
+    onPass?: RoutingEntry[];
+    onFail?: RoutingEntry[];
+    onWarning?: RoutingEntry[];
+    onSkip?: RoutingEntry[];
+  };
+  context: ConditionContext;
+}): Promise<RoutingDecision> {
+  const { status, test, context } = args;
+  const config = ROUTING_BY_STATUS[status];
+  // An unknown status has no handler family; default to continue (never halt the
+  // spec on a status we don't understand). Defensive — tests roll up to one of
+  // the four known statuses today.
+  if (!config) return { action: "continue" };
+  const { key, default: fallback } = config;
+  const handlers = test?.[key];
+  if (!Array.isArray(handlers) || handlers.length === 0) return fallback;
+
+  for (const entry of handlers) {
+    if (!entry || typeof entry !== "object") continue;
+    // An entry with no `if` always matches; otherwise it matches when its
+    // condition(s) evaluate truthy (evaluateGuard: absent -> true, array ->
+    // AND, fails closed).
+    const matches =
+      entry.if === undefined || (await evaluateGuard(entry.if, context));
+    if (!matches) continue;
+
+    if (entry.continue === true) return { action: "continue" };
+    if (typeof entry.stop === "string") {
+      return { action: "stop", scope: entry.stop };
+    }
+    // goToTest is deferred this phase; retry/goToStep are not applicable at test
+    // scope. Any of them counts as a matched selector whose action we don't
+    // execute here -> return the status default and STOP scanning (a later entry
+    // must not override an already-matched selector).
+    return fallback;
+  }
+  // No entry matched.
+  return fallback;
+}
+
 // The largest retry wait we will actually sleep, mirroring the schema's
 // `retry.delay` maximum. Caps an exponential series so it can't exceed
 // setTimeout's 2^31-1 ms range (beyond which Node clamps to 1ms, silently
@@ -545,6 +625,7 @@ export {
   evaluateGuard,
   guardReferencesSteps,
   resolveStepRouting,
+  resolveTestRouting,
   computeRetryDelay,
 };
 export type {
