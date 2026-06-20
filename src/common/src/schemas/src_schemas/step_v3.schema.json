@@ -55,6 +55,12 @@
           },
           "autoScreenshot": {
             "$ref": "#/components/schemas/autoScreenshot"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 2,
+            "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
+            "readOnly": true
           }
         },
         "title": "Common"
@@ -158,6 +164,12 @@
         "minLength": 1,
         "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
         "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+        "readOnly": true
+      },
+      "attempts": {
+        "type": "integer",
+        "minimum": 2,
+        "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
         "readOnly": true
       },
       "location": {

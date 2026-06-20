@@ -1994,6 +1994,19 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("accepts a step result carrying the system-populated attempts field", function () {
+        // `attempts` is a result-only, documented step field (like
+        // `autoScreenshot`). The top-level step schema is permissive (anyOf,
+        // no top-level additionalProperties), so this asserts the field is
+        // accepted on a result object — its purpose is schema documentation +
+        // generated types, not a runtime constraint.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { goTo: { url: "https://example.com" }, attempts: 2 },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
       it("validates retry with delay at the maximum (3600000)", function () {
         const result = validate({
           schemaKey: "step_v3",
