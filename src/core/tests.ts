@@ -69,6 +69,7 @@ import {
   evaluateCustomAssertions,
   evaluateGuard,
   guardReferencesSteps,
+  resolveStepRouting,
   buildConditionContext,
 } from "./routing.js";
 import {
@@ -1284,6 +1285,26 @@ function resolveAutoScreenshot({
   );
 }
 
+/**
+ * Whether a REACHED-but-skipped step (unsafe-blocked or guard-`if`-false) routes
+ * `stop` via its `onSkip` handler. Default onSkip is continue, so this returns
+ * false unless the author set an `onSkip` stop entry — keeping today's behavior
+ * for unrouted steps. The selector context has no own `$$outputs.*` (the step
+ * didn't run) but can read prior steps via `$$steps.<id>.outputs.*`.
+ */
+async function stepSkipStops(
+  step: any,
+  platform: string | undefined,
+  stepOutputsById: Record<string, any>
+): Promise<boolean> {
+  const decision = await resolveStepRouting({
+    status: "SKIPPED",
+    step,
+    context: buildConditionContext({ platform, steps: stepOutputsById }),
+  });
+  return decision.action === "stop";
+}
+
 // Effective autoRecord setting for a test: same precedence as autoScreenshot
 // (test > spec > config; unset levels defer down the chain).
 function resolveAutoRecord({
@@ -1754,6 +1775,11 @@ async function runContext({
 
     // Iterates steps
     let stepExecutionFailed = false;
+    // The reason recorded on steps skipped after execution stopped. Defaults to
+    // the failure wording (the only way execution stopped before routing); a
+    // non-failure routing `stop` (e.g. onPass/onSkip stop) overwrites it with an
+    // accurate message so a passing step's stop isn't mislabeled as a failure.
+    let stopReason = "Skipped due to previous failure in context.";
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
@@ -1795,15 +1821,31 @@ async function runContext({
           resultDescription: "Skipped because unsafe steps aren't allowed.",
         };
         contextReport.steps.push(stepReport);
+        // onSkip fires only for a REACHED step. The unsafe check precedes the
+        // `stepExecutionFailed` gate below, so an unsafe step DOWNSTREAM of a
+        // prior stop reaches here too — but it is not reached, so its onSkip
+        // must NOT fire (the `!stepExecutionFailed` guard). For a genuinely
+        // reached unsafe-skip, onSkip runs (default continue; explicit `stop`
+        // halts the test).
+        if (
+          !stepExecutionFailed &&
+          (await stepSkipStops(step, context.platform, stepOutputsById))
+        ) {
+          stepExecutionFailed = true;
+          stopReason =
+            "Skipped because a prior step stopped execution (routing).";
+        }
         continue;
       }
 
       if (stepExecutionFailed) {
-        // Mark as skipped
+        // Mark as skipped. These steps are NOT reached (downstream of a stop),
+        // so no routing fires for them. The reason reflects why execution
+        // stopped (a prior failure, or a non-failure routing `stop`).
         const stepReport = {
           ...step,
           result: "SKIPPED",
-          resultDescription: "Skipped due to previous failure in context.",
+          resultDescription: stopReason,
         };
         contextReport.steps.push(stepReport);
         continue;
@@ -1829,6 +1871,19 @@ async function runContext({
             resultDescription: "Skipped: guard `if` condition not met.",
           };
           contextReport.steps.push(stepReport);
+          // Reached-but-skipped: the onSkip handler fires (default continue).
+          // This branch is already past the `stepExecutionFailed` gate above,
+          // so it is unreachable when stopped; the `!stepExecutionFailed` guard
+          // keeps the "not reached -> no routing" invariant explicit and robust
+          // if the branch order ever changes.
+          if (
+            !stepExecutionFailed &&
+            (await stepSkipStops(step, context.platform, stepOutputsById))
+          ) {
+            stepExecutionFailed = true;
+            stopReason =
+              "Skipped because a prior step stopped execution (routing).";
+          }
           continue;
         }
       }
@@ -1904,9 +1959,40 @@ async function runContext({
         stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
       }
 
-      // If this step failed, set flag to skip remaining steps
-      if (stepReport.result === "FAIL") {
+      // Routing: resolve the step's onPass/onFail/onWarning/onSkip handler for
+      // its result into a control-flow decision. Defaults reproduce today's
+      // behavior exactly — a FAIL stops the test, every other status continues
+      // — so an unrouted step is byte-identical. flow != verdict: the decision
+      // only chooses whether later steps run; the step's result is unchanged
+      // (a FAILed step routed `continue` still leaves the test FAILed via
+      // rollUpResults). The selector context sees the just-run step's own
+      // `$$outputs.*` plus prior steps' `$$steps.<id>.outputs.*`.
+      const routingDecision = await resolveStepRouting({
+        status: stepReport.result,
+        step,
+        context: buildConditionContext({
+          platform: context.platform,
+          outputs: stepReport.outputs,
+          steps: stepOutputsById,
+        }),
+      });
+      if (routingDecision.action === "stop") {
+        // Halt the remaining steps in this context. Propagating a `spec`/`run`
+        // scope to skip later tests/specs is deferred to the test-routing
+        // phase; at the step level a stop halts the current test's steps.
+        if (routingDecision.scope !== "test") {
+          clog(
+            "warning",
+            `Routing stop scope '${routingDecision.scope}' is not yet propagated beyond the current test; it currently behaves as 'test'. Later tests/specs are not skipped.`
+          );
+        }
         stepExecutionFailed = true;
+        // Preserve the historical wording when a FAIL stops the test (the
+        // default onFail:stop); otherwise record that routing stopped it.
+        stopReason =
+          stepReport.result === "FAIL"
+            ? "Skipped due to previous failure in context."
+            : "Skipped because a prior step stopped execution (routing).";
       }
     }
 
