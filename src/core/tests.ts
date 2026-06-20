@@ -1291,29 +1291,31 @@ function resolveAutoScreenshot({
 }
 
 /**
- * Whether a REACHED-but-skipped step (unsafe-blocked or guard-`if`-false) routes
- * `stop` via its `onSkip` handler. Default onSkip is continue, so this returns
- * false unless the author set an `onSkip` stop entry — keeping today's behavior
- * for unrouted steps. The selector context has no own `$$outputs.*` (the step
- * didn't run) but can read prior steps via `$$steps.<id>.outputs.*`.
+ * Resolve the `onSkip` routing decision for a REACHED-but-skipped step
+ * (unsafe-blocked or guard-`if`-false). Default onSkip is continue, so an
+ * unrouted step resolves to `{ action: "continue" }` — keeping today's behavior.
+ * The selector context has no own `$$outputs.*` (the step didn't run) but can
+ * read prior steps via `$$steps.<id>.outputs.*`.
  *
- * Only `stop` is honored here. A `continue` decision is the no-op default, and
- * `retry` is meaningless for a step that never ran (there is nothing to re-run),
- * so both leave execution flowing. (An in-runner SKIPPED *result* from a step
- * that DID run — e.g. a no-op action — goes through the normal retry loop, where
- * its onSkip `retry` would re-run it.)
+ * `stop` and `goToStep` are the meaningful decisions for a skipped step; the
+ * caller applies them. `continue` is the no-op default, and `retry` is
+ * meaningless for a step that never ran (there is nothing to re-run) — both
+ * leave execution flowing. (An in-runner SKIPPED *result* from a step that DID
+ * run — e.g. a no-op action — goes through the normal retry loop, where its
+ * onSkip `retry` would re-run it.) `skipRetry` is passed so a `retry` entry is
+ * treated as a non-match and a later `goToStep`/`stop` entry can apply.
  */
-async function stepSkipStops(
+async function resolveStepSkipRouting(
   step: any,
   platform: string | undefined,
   stepOutputsById: Record<string, any>
-): Promise<boolean> {
-  const decision = await resolveStepRouting({
+): Promise<RoutingDecision> {
+  return await resolveStepRouting({
     status: "SKIPPED",
     step,
     context: buildConditionContext({ platform, steps: stepOutputsById }),
+    skipRetry: true,
   });
-  return decision.action === "stop";
 }
 
 // Effective autoRecord setting for a test: same precedence as autoScreenshot
@@ -1794,17 +1796,17 @@ async function runContext({
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
-    // Per-step outputs accumulator: maps each completed step's stepId to its
-    // computed `outputs` bag, so later steps' guard `if` conditions can read a
-    // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
-    // bookkeeping local to this context — it does not change any existing path.
-    const stepOutputsById: Record<string, any> = {};
-    for (const [stepIndex, step] of context.steps.entries()) {
-      // Set step id if not defined. Derived from the test ID and a hash of
-      // the step's authored definition so the same step keeps the same ID
-      // (and any `screenshot: true` default filename) across runs.
-      // Sanitized because the ID doubles as a screenshot filename; identical
-      // steps in one test get an ordinal suffix.
+    // Pre-assign stepIds for every step BEFORE the loop. `goToStep` routing
+    // needs a stepId -> index map up front so a jump can target a not-yet-run
+    // step. Safe because the same derivation + order-preserving de-dup is used
+    // as the (previous) in-loop assignment, and `contentHash` excludes `stepId`
+    // (stepId is in detectTests' HASH_EXCLUDED_KEYS) — so existing specs get
+    // byte-identical ids. Derived from the test ID and a hash of the step's
+    // authored definition so the same step keeps the same ID (and any
+    // `screenshot: true` default filename) across runs. Sanitized because the
+    // ID doubles as a screenshot filename; identical steps in one test get an
+    // ordinal suffix.
+    for (const step of context.steps as any[]) {
       if (!step.stepId) {
         const baseId = sanitizeFilesystemName(
           `${test.testId}~s${contentHash(step)}`,
@@ -1818,6 +1820,98 @@ async function runContext({
         step.stepId = stepId;
       }
       usedStepIds.add(step.stepId);
+    }
+    // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
+    // so a duplicated stepId routes to the earliest one).
+    const indexByStepId = new Map<string, number>();
+    context.steps.forEach((s: any, idx: number) => {
+      if (s.stepId && !indexByStepId.has(s.stepId)) {
+        indexByStepId.set(s.stepId, idx);
+      }
+    });
+    // Tracks how many times each stepId's report has been produced, so a step
+    // re-run by a backward `goToStep` jump can record its visit number.
+    const visitCountById = new Map<string, number>();
+    // Push a step report, stamping `visit` (1-based count of times this stepId
+    // has been recorded) once a goToStep loop produces more than one. Additive:
+    // a single-visit report omits `visit` and stays byte-identical (mirrors
+    // `attempts`). Used for EVERY step-report push in the loop — ran, skipped,
+    // and routing-error markers — so re-visited steps are stamped consistently.
+    const pushStepReport = (rep: any) => {
+      if (rep.stepId) {
+        const n = (visitCountById.get(rep.stepId) ?? 0) + 1;
+        visitCountById.set(rep.stepId, n);
+        if (n > 1) rep.visit = n;
+      }
+      contextReport.steps.push(rep);
+    };
+    // Per-step outputs accumulator: maps each completed step's stepId to its
+    // computed `outputs` bag, so later steps' guard `if` conditions can read a
+    // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
+    // bookkeeping local to this context — it does not change any existing path.
+    const stepOutputsById: Record<string, any> = {};
+    // Apply an onSkip routing decision for a reached-but-skipped step (unsafe or
+    // guard-`if` false). Returns true when it JUMPED (goToStep moved the cursor)
+    // so the caller `continue`s without `i++`; returns false otherwise (the
+    // caller advances normally). `stop` and an unknown-target `goToStep` both
+    // fail-safe to stopping execution.
+    const applySkipRouting = (decision: RoutingDecision): boolean => {
+      if (decision.action === "stop") {
+        stepExecutionFailed = true;
+        stopReason =
+          "Skipped because a prior step stopped execution (routing).";
+        return false;
+      }
+      if (decision.action === "goToStep") {
+        const target = indexByStepId.get(decision.stepId);
+        if (target === undefined) {
+          clog(
+            "error",
+            `Routing goToStep target '${decision.stepId}' not found in this test; stopping.`
+          );
+          // An unknown target is a routing misconfiguration. Push a FAIL marker
+          // so the verdict reflects the broken routing — mirrors the run-path.
+          pushStepReport({
+            result: "FAIL",
+            resultDescription: `Routing goToStep target '${decision.stepId}' does not exist.`,
+          });
+          stepExecutionFailed = true;
+          stopReason = `Skipped because routing goToStep target '${decision.stepId}' does not exist.`;
+          return false;
+        }
+        i = target; // JUMP (no stepExecutionFailed — flow != verdict)
+        return true;
+      }
+      // continue / retry (no-op for a never-run step): advance normally.
+      return false;
+    };
+    // Indexed loop (not for…of) so `goToStep` routing can move the cursor.
+    // `totalVisits` + `MAX_TOTAL_VISITS` is a fail-safe against a goToStep loop:
+    // linear execution can never reach the cap, but a backward jump that never
+    // makes progress would, and we stop rather than hang.
+    let i = 0;
+    let totalVisits = 0;
+    const MAX_TOTAL_VISITS = context.steps.length * 1000 + 1000;
+    while (i < context.steps.length) {
+      const stepIndex = i; // keep this name (autoScreenshot reads it)
+      const step = context.steps[i];
+
+      totalVisits++;
+      if (totalVisits > MAX_TOTAL_VISITS) {
+        clog(
+          "error",
+          `Routing exceeded ${MAX_TOTAL_VISITS} step executions in this context; stopping (possible goToStep loop).`
+        );
+        // Surface the runaway as a FAIL so the verdict reflects the abnormal
+        // termination — a force-terminated goToStep cycle must not report green.
+        pushStepReport({
+          result: "FAIL",
+          resultDescription: `Routing exceeded the maximum of ${MAX_TOTAL_VISITS} step executions in this context (possible goToStep loop).`,
+        });
+        stepExecutionFailed = true;
+        break;
+      }
+
       clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
@@ -1831,21 +1925,23 @@ async function runContext({
           result: "SKIPPED",
           resultDescription: "Skipped because unsafe steps aren't allowed.",
         };
-        contextReport.steps.push(stepReport);
+        pushStepReport(stepReport);
         // onSkip fires only for a REACHED step. The unsafe check precedes the
         // `stepExecutionFailed` gate below, so an unsafe step DOWNSTREAM of a
         // prior stop reaches here too — but it is not reached, so its onSkip
         // must NOT fire (the `!stepExecutionFailed` guard). For a genuinely
-        // reached unsafe-skip, onSkip runs (default continue; explicit `stop`
-        // halts the test).
-        if (
-          !stepExecutionFailed &&
-          (await stepSkipStops(step, context.platform, stepOutputsById))
-        ) {
-          stepExecutionFailed = true;
-          stopReason =
-            "Skipped because a prior step stopped execution (routing).";
+        // reached unsafe-skip, onSkip runs (default continue; `stop` halts the
+        // test; `goToStep` jumps).
+        if (!stepExecutionFailed) {
+          const decision = await resolveStepSkipRouting(
+            step,
+            context.platform,
+            stepOutputsById
+          );
+          const jumped = applySkipRouting(decision);
+          if (jumped) continue; // goToStep moved the cursor — don't i++
         }
+        i++;
         continue;
       }
 
@@ -1858,7 +1954,8 @@ async function runContext({
           result: "SKIPPED",
           resultDescription: stopReason,
         };
-        contextReport.steps.push(stepReport);
+        pushStepReport(stepReport);
+        i++;
         continue;
       }
 
@@ -1881,20 +1978,23 @@ async function runContext({
             result: "SKIPPED",
             resultDescription: "Skipped: guard `if` condition not met.",
           };
-          contextReport.steps.push(stepReport);
-          // Reached-but-skipped: the onSkip handler fires (default continue).
-          // This branch is already past the `stepExecutionFailed` gate above,
-          // so it is unreachable when stopped; the `!stepExecutionFailed` guard
-          // keeps the "not reached -> no routing" invariant explicit and robust
-          // if the branch order ever changes.
-          if (
-            !stepExecutionFailed &&
-            (await stepSkipStops(step, context.platform, stepOutputsById))
-          ) {
-            stepExecutionFailed = true;
-            stopReason =
-              "Skipped because a prior step stopped execution (routing).";
+          pushStepReport(stepReport);
+          // Reached-but-skipped: the onSkip handler fires (default continue;
+          // `stop` halts; `goToStep` jumps). This branch is already past the
+          // `stepExecutionFailed` gate above, so it is unreachable when stopped;
+          // the `!stepExecutionFailed` guard keeps the "not reached -> no
+          // routing" invariant explicit and robust if the branch order ever
+          // changes.
+          if (!stepExecutionFailed) {
+            const decision = await resolveStepSkipRouting(
+              step,
+              context.platform,
+              stepOutputsById
+            );
+            const jumped = applySkipRouting(decision);
+            if (jumped) continue; // goToStep moved the cursor — don't i++
           }
+          i++;
           continue;
         }
       }
@@ -1991,6 +2091,9 @@ async function runContext({
       // only). Applies to browser steps (explicit `screenshot` steps already
       // produce an image); failed steps are captured too — the failure frame is
       // often the most useful. A capture failure logs a warning, never fails.
+      // Note: the filename derives from `stepIndex`, so a backward `goToStep`
+      // re-visit of the same step overwrites the prior visit's image
+      // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
       if (
         autoScreenshotEnabled &&
         driver &&
@@ -2010,13 +2113,14 @@ async function runContext({
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
 
-      contextReport.steps.push(stepReport);
+      pushStepReport(stepReport);
 
       // Apply the terminal routing decision. `continue` runs the next step; a
       // `stop` halts the remaining steps in this context (`spec`/`run` scope —
-      // skipping later tests/specs — is deferred to the test-routing phase).
-      // flow != verdict: a FAILed step routed `continue` still leaves the test
-      // FAILed via rollUpResults.
+      // skipping later tests/specs — is deferred to the test-routing phase);
+      // `goToStep` jumps the cursor to the target step. flow != verdict: a
+      // FAILed step routed `continue`/`goToStep` still leaves the test FAILed
+      // via rollUpResults.
       if (routingDecision.action === "stop") {
         if (routingDecision.scope !== "test") {
           clog(
@@ -2031,6 +2135,29 @@ async function runContext({
           stepReport.result === "FAIL"
             ? "Skipped due to previous failure in context."
             : "Skipped because a prior step stopped execution (routing).";
+        i++;
+      } else if (routingDecision.action === "goToStep") {
+        const target = indexByStepId.get(routingDecision.stepId);
+        if (target === undefined) {
+          clog(
+            "error",
+            `Routing goToStep target '${routingDecision.stepId}' not found in this test; stopping.`
+          );
+          // An unknown target is a routing misconfiguration (e.g. a typo'd
+          // stepId). Surface a FAIL so it can't silently report green, then
+          // stop the rest of the context.
+          pushStepReport({
+            result: "FAIL",
+            resultDescription: `Routing goToStep target '${routingDecision.stepId}' does not exist.`,
+          });
+          stepExecutionFailed = true;
+          stopReason = `Skipped because routing goToStep target '${routingDecision.stepId}' does not exist.`;
+          i++;
+        } else {
+          i = target; // JUMP (no stepExecutionFailed — flow != verdict)
+        }
+      } else {
+        i++; // continue
       }
     }
 

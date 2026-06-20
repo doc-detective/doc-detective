@@ -135,15 +135,16 @@ describe("routing: resolveStepRouting", function () {
       { action: "continue" }
     );
   });
-  it("deferred actions (goToStep/goToTest) -> default for the status", async function () {
-    // Not implemented in this phase: behave as if no handler matched.
+  it("goToStep -> goToStep decision; deferred goToTest -> default for the status", async function () {
+    // goToStep is now live; goToTest is still deferred (behaves as if no handler
+    // matched -> the status default).
     assert.deepEqual(
       await resolveStepRouting({
         status: "FAIL",
-        step: { onFail: [{ goToStep: "x" }] },
+        step: { onFail: [{ goToStep: "cleanup" }] },
         context: ctx,
       }),
-      { action: "stop", scope: "test" }
+      { action: "goToStep", stepId: "cleanup" }
     );
     assert.deepEqual(
       await resolveStepRouting({
@@ -154,14 +155,100 @@ describe("routing: resolveStepRouting", function () {
       { action: "continue" }
     );
   });
-  it("a matched deferred-action entry stops scanning (a later entry can't override it)", async function () {
-    // The first entry matches (no `if`) but its action (goToStep) is deferred ->
-    // return the status default and STOP scanning, so the trailing
-    // `{continue:true}` must NOT take effect. FAIL default is stop:test.
+  it("a matched goToStep entry stops scanning (a later entry can't override it)", async function () {
+    // The first entry matches (no `if`) -> goToStep, and the trailing
+    // `{continue:true}` must NOT take effect.
     assert.deepEqual(
       await resolveStepRouting({
         status: "FAIL",
         step: { onFail: [{ goToStep: "x" }, { continue: true }] },
+        context: ctx,
+      }),
+      { action: "goToStep", stepId: "x" }
+    );
+  });
+  it("a matched deferred goToTest entry stops scanning (a later entry can't override it)", async function () {
+    // goToTest is still deferred: the first entry matches but its action is not
+    // implemented -> return the status default and STOP scanning, so the
+    // trailing `{continue:true}` must NOT take effect. FAIL default is stop:test.
+    assert.deepEqual(
+      await resolveStepRouting({
+        status: "FAIL",
+        step: { onFail: [{ goToTest: "x" }, { continue: true }] },
+        context: ctx,
+      }),
+      { action: "stop", scope: "test" }
+    );
+  });
+
+  // --- goToStep action ---
+  it("onFail [{goToStep:'cleanup'}] -> goToStep decision", async function () {
+    assert.deepEqual(
+      await resolveStepRouting({
+        status: "FAIL",
+        step: { onFail: [{ goToStep: "cleanup" }] },
+        context: ctx,
+      }),
+      { action: "goToStep", stepId: "cleanup" }
+    );
+  });
+  it("goToStep is honored on all four handlers", async function () {
+    for (const [status, key] of [
+      ["PASS", "onPass"],
+      ["FAIL", "onFail"],
+      ["WARNING", "onWarning"],
+      ["SKIPPED", "onSkip"],
+    ]) {
+      assert.deepEqual(
+        await resolveStepRouting({
+          status,
+          step: { [key]: [{ goToStep: "target" }] },
+          context: ctx,
+        }),
+        { action: "goToStep", stepId: "target" }
+      );
+    }
+  });
+  it("goToStep honors its `if` selector (non-match -> default)", async function () {
+    // exitCode is 0 in ctx outputs, so this goToStep `if` does not match ->
+    // FAIL default (stop test).
+    assert.deepEqual(
+      await resolveStepRouting({
+        status: "FAIL",
+        step: { onFail: [{ if: "$$outputs.exitCode == 1", goToStep: "x" }] },
+        context: ctx,
+      }),
+      { action: "stop", scope: "test" }
+    );
+  });
+  it("goToStep honors its `if` selector (match -> goToStep)", async function () {
+    assert.deepEqual(
+      await resolveStepRouting({
+        status: "FAIL",
+        step: { onFail: [{ if: "$$outputs.exitCode == 0", goToStep: "x" }] },
+        context: ctx,
+      }),
+      { action: "goToStep", stepId: "x" }
+    );
+  });
+  it("onFail [{retry},{goToStep}] + skipRetry -> goToStep", async function () {
+    // After retries are exhausted, the retry entry is skipped and resolution
+    // falls to the goToStep entry.
+    assert.deepEqual(
+      await resolveStepRouting({
+        status: "FAIL",
+        step: { onFail: [{ retry: { limit: 2 } }, { goToStep: "x" }] },
+        context: ctx,
+        skipRetry: true,
+      }),
+      { action: "goToStep", stepId: "x" }
+    );
+  });
+  it("a whitespace-only goToStep falls through to the default", async function () {
+    assert.deepEqual(
+      await resolveStepRouting({
+        status: "FAIL",
+        step: { onFail: [{ goToStep: "   " }] },
         context: ctx,
       }),
       { action: "stop", scope: "test" }
