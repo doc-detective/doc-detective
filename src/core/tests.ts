@@ -68,6 +68,7 @@ import { resolveExpression } from "./expressions.js";
 import {
   evaluateCustomAssertions,
   evaluateGuard,
+  guardReferencesSteps,
   buildConditionContext,
 } from "./routing.js";
 import {
@@ -643,6 +644,13 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // `if` is byte-identical (no evaluation, `specGuardSkip` stays false).
     let specGuardSkip = false;
     if (spec.if) {
+      if (guardReferencesSteps(spec.if)) {
+        log(
+          config,
+          "warning",
+          `Spec '${spec.specId}': 'if' references '$$steps.*', which is not available at spec scope — the guard will always fail closed (the spec is always skipped). Use '$$steps.*' only in step-level 'if'.`
+        );
+      }
       const guardPassed = await evaluateGuard(
         spec.if,
         buildConditionContext({ platform })
@@ -676,6 +684,13 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       // byte-identical (no evaluation, `testGuardSkip` stays false).
       let testGuardSkip = false;
       if (!specGuardSkip && test.if) {
+        if (guardReferencesSteps(test.if)) {
+          log(
+            config,
+            "warning",
+            `Test '${test.testId}': 'if' references '$$steps.*', which is not available at test scope — the guard will always fail closed (the test is always skipped). Use '$$steps.*' only in step-level 'if'.`
+          );
+        }
         const guardPassed = await evaluateGuard(
           test.if,
           buildConditionContext({ platform })
@@ -1880,7 +1895,11 @@ async function runContext({
       // buildConditionContext `steps` entry ({ outputs }). Only reached for
       // steps that actually ran — a guard-skipped step `continue`s before
       // here, so its stepId is never recorded, and a downstream guard
-      // referencing it fails closed (and is itself skipped).
+      // referencing it fails closed (and is itself skipped). A FAILed step's
+      // outputs ARE recorded here (this runs before the stepExecutionFailed
+      // flag is set), but that is harmless: stepExecutionFailed makes every
+      // subsequent step short-circuit before its guard, so no downstream guard
+      // ever reads them.
       if (step.stepId) {
         stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
       }

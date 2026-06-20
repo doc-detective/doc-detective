@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   buildConditionContext,
   evaluateGuard,
+  guardReferencesSteps,
 } from "../dist/core/routing.js";
 
 // Step-level guard `if`: evaluated BEFORE a step runs. `string | string[]`
@@ -72,6 +73,8 @@ describe("routing: evaluateGuard", function () {
     assert.equal(await evaluateGuard([], ctx), true);
   });
   it("array of only non-strings -> true (no usable conditions)", async function () {
+    // Intentionally passes values outside the GuardCondition (string|string[])
+    // type to exercise the defensive non-string filter in normalization.
     assert.equal(await evaluateGuard([{}, 1], ctx), true);
   });
   it("empty string -> true (guard absent)", async function () {
@@ -119,5 +122,36 @@ describe("routing: evaluateGuard", function () {
       await evaluateGuard("$$steps.b.outputs.exitCode == 0", ctx),
       false
     );
+  });
+});
+
+// guardReferencesSteps: authoring-time detector for spec/test `if` that
+// reference `$$steps.*` (only available at step scope) — used to warn that the
+// guard will always fail closed at spec/test scope.
+describe("routing: guardReferencesSteps", function () {
+  it("string referencing $$steps. -> true", function () {
+    assert.equal(
+      guardReferencesSteps("$$steps.a.outputs.exitCode == 0"),
+      true
+    );
+  });
+  it("array with a $$steps. entry -> true", function () {
+    assert.equal(
+      guardReferencesSteps(["$$platform == windows", "$$steps.a.outputs.x == 1"]),
+      true
+    );
+  });
+  it("string without $$steps. -> false", function () {
+    assert.equal(guardReferencesSteps("$$platform == windows"), false);
+  });
+  it("array without $$steps. -> false", function () {
+    assert.equal(
+      guardReferencesSteps(["$$platform == windows", "$$outputs.x == 1"]),
+      false
+    );
+  });
+  it("undefined / non-string entries -> false", function () {
+    assert.equal(guardReferencesSteps(undefined), false);
+    assert.equal(guardReferencesSteps([{}, 1]), false);
   });
 });

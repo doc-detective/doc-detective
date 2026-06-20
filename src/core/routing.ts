@@ -301,7 +301,7 @@ type GuardCondition = string | string[];
  *
  * @param ifValue - The author `if` value (`string | string[]` or undefined).
  * @param context - A `buildConditionContext(...)` output.
- * @returns `true` if the step should run, `false` if it should be skipped.
+ * @returns `true` if the unit should run, `false` if it should be skipped.
  */
 async function evaluateGuard(
   ifValue: GuardCondition | undefined | null,
@@ -333,11 +333,38 @@ async function evaluateGuard(
   return true;
 }
 
+/**
+ * Authoring-time detector: does a guard `if` value reference `$$steps.*`?
+ *
+ * `$$steps.<id>.outputs.*` is only populated at STEP scope (the per-step
+ * accumulator in `runContext`). A spec- or test-level guard that references it
+ * resolves against an empty `steps` map and fails closed — so the unit is
+ * always skipped. Callers use this to emit an authoring warning rather than
+ * letting the misuse silently swallow the unit. Non-string entries are ignored.
+ *
+ * @param ifValue - The author `if` value (`string | string[]` or undefined).
+ * @returns `true` if any string condition references `$$steps.`.
+ */
+function guardReferencesSteps(
+  ifValue: GuardCondition | undefined | null
+): boolean {
+  const conditions =
+    typeof ifValue === "string"
+      ? [ifValue]
+      : Array.isArray(ifValue)
+        ? ifValue
+        : [];
+  return conditions.some(
+    (c) => typeof c === "string" && c.includes("$$steps.")
+  );
+}
+
 export {
   buildConditionContext,
   evaluateImplicitAssertions,
   evaluateCustomAssertions,
   evaluateGuard,
+  guardReferencesSteps,
 };
 export type {
   BuildConditionContextArgs,
