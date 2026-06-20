@@ -39,7 +39,7 @@ export type Condition = string | [string, ...string[]];
  */
 export interface Retry {
   /**
-   * Maximum number of retry attempts.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
    */
   limit: number;
   /**

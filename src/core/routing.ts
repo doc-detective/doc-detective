@@ -365,21 +365,38 @@ function guardReferencesSteps(
 type StepRoutingStatus = "PASS" | "FAIL" | "WARNING" | "SKIPPED";
 
 /**
+ * A retry spec as authored on a routing entry.
+ */
+interface RetrySpec {
+  limit: number;
+  delay?: number;
+  backoff?: "fixed" | "exponential";
+}
+
+/**
  * The control-flow decision produced by resolving a step's routing handler.
- * `continue` runs the next step; `stop` halts the unit at the given scope.
- * (Other actions — retry/goToStep/goToTest — are deferred to later phases.)
+ * `continue` runs the next step; `stop` halts the unit at the given scope;
+ * `retry` re-runs the step (the runtime loops, then re-resolves with
+ * `skipRetry` to get the terminal decision). (`goToStep`/`goToTest` are
+ * deferred to later phases.)
  */
 type RoutingDecision =
   | { action: "continue" }
-  | { action: "stop"; scope: "test" | "spec" | "run" };
+  | { action: "stop"; scope: "test" | "spec" | "run" }
+  | {
+      action: "retry";
+      limit: number;
+      delay: number;
+      backoff: "fixed" | "exponential";
+    };
 
 // One routing entry as authored: an optional `if` selector plus exactly one
-// action. Only `continue`/`stop` are acted on this phase.
+// action.
 interface RoutingEntry {
   if?: GuardCondition;
   continue?: true;
   stop?: "test" | "spec" | "run";
-  retry?: unknown;
+  retry?: RetrySpec;
   goToStep?: string;
   goToTest?: string;
 }
@@ -408,7 +425,9 @@ const ROUTING_BY_STATUS: Record<
  * an array and fails CLOSED). The matched entry maps to a decision:
  *   - `{ continue: true }` -> `{ action: "continue" }`
  *   - `{ stop: <scope> }`  -> `{ action: "stop", scope }`
- *   - retry/goToStep/goToTest (not implemented this phase) -> the status default
+ *   - `{ retry: {...} }`   -> `{ action: "retry", limit, delay, backoff }`
+ *                             (delay defaults to 0, backoff to "fixed")
+ *   - goToStep/goToTest (not implemented this phase) -> the status default
  *
  * If the handler is absent/empty or no entry matches, the status DEFAULT is
  * returned. Defaults reproduce today's behavior (FAIL stops the test; PASS,
@@ -416,9 +435,16 @@ const ROUTING_BY_STATUS: Record<
  * pre-routing runner. flow != verdict: this only chooses control flow, never
  * the step's result.
  *
+ * `skipRetry` makes a matched `retry` entry behave as a non-match (skip to the
+ * next entry / fall to the default). The runtime uses it once retries are
+ * exhausted to find the terminal action — so `onFail:[{retry},{continue}]`
+ * means "retry, then continue", and `onFail:[{retry}]` means "retry, then the
+ * default (stop)".
+ *
  * @param args.status - The step's result status.
  * @param args.step - The step (read for `onPass`/`onFail`/`onWarning`/`onSkip`).
  * @param args.context - A `buildConditionContext(...)` output for `if` selectors.
+ * @param args.skipRetry - Treat `retry` entries as non-matching (post-exhaustion).
  * @returns The control-flow decision.
  */
 async function resolveStepRouting(args: {
@@ -430,8 +456,9 @@ async function resolveStepRouting(args: {
     onSkip?: RoutingEntry[];
   };
   context: ConditionContext;
+  skipRetry?: boolean;
 }): Promise<RoutingDecision> {
-  const { status, step, context } = args;
+  const { status, step, context, skipRetry } = args;
   const config = ROUTING_BY_STATUS[status];
   // An unknown status has no handler family; default to continue (never halt
   // execution on a status we don't understand). runStep only emits the four
@@ -443,6 +470,10 @@ async function resolveStepRouting(args: {
 
   for (const entry of handlers) {
     if (!entry || typeof entry !== "object") continue;
+    const isRetry = entry.retry != null && typeof entry.retry === "object";
+    // When re-resolving after retries are exhausted, a retry entry is treated
+    // as a non-match so resolution can fall to a later entry or the default.
+    if (skipRetry && isRetry) continue;
     // An entry with no `if` always matches; otherwise it matches when its
     // condition(s) evaluate truthy (evaluateGuard: absent -> true, array ->
     // AND, fails closed).
@@ -454,13 +485,41 @@ async function resolveStepRouting(args: {
     if (typeof entry.stop === "string") {
       return { action: "stop", scope: entry.stop };
     }
+    if (isRetry) {
+      const retry = entry.retry as RetrySpec;
+      return {
+        action: "retry",
+        limit: retry.limit,
+        delay: retry.delay ?? 0,
+        backoff: retry.backoff ?? "fixed",
+      };
+    }
     // Matched, but the action isn't implemented this phase
-    // (retry/goToStep/goToTest). Treat as the status default and stop scanning
-    // — a later entry must not override an already-matched selector.
+    // (goToStep/goToTest). Treat as the status default and stop scanning — a
+    // later entry must not override an already-matched selector.
     return fallback;
   }
   // No entry matched.
   return fallback;
+}
+
+/**
+ * The wait (ms) before a retry attempt. `retryIndex` is 0-based (0 = first
+ * retry). `fixed` backoff waits `delay` every time; `exponential` waits
+ * `delay * 2^retryIndex`. Returns 0 when delay is 0/undefined.
+ *
+ * @param delay - Base delay in milliseconds.
+ * @param backoff - `"fixed"` or `"exponential"`.
+ * @param retryIndex - 0-based retry index.
+ * @returns The wait in milliseconds (>= 0).
+ */
+function computeRetryDelay(
+  delay: number,
+  backoff: "fixed" | "exponential",
+  retryIndex: number
+): number {
+  if (!delay || delay <= 0) return 0;
+  return backoff === "exponential" ? delay * Math.pow(2, retryIndex) : delay;
 }
 
 export {
@@ -470,6 +529,7 @@ export {
   evaluateGuard,
   guardReferencesSteps,
   resolveStepRouting,
+  computeRetryDelay,
 };
 export type {
   BuildConditionContextArgs,
@@ -484,4 +544,5 @@ export type {
   StepRoutingStatus,
   RoutingDecision,
   RoutingEntry,
+  RetrySpec,
 };
