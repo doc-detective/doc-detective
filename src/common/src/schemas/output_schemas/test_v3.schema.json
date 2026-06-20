@@ -667,7 +667,8 @@
               "limit": {
                 "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 100
               },
               "delay": {
                 "description": "Delay in milliseconds before each retry.",
@@ -837,7 +838,8 @@
               "limit": {
                 "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 100
               },
               "delay": {
                 "description": "Delay in milliseconds before each retry.",
@@ -1007,7 +1009,8 @@
               "limit": {
                 "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 100
               },
               "delay": {
                 "description": "Delay in milliseconds before each retry.",
@@ -1177,7 +1180,8 @@
               "limit": {
                 "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 100
               },
               "delay": {
                 "description": "Delay in milliseconds before each retry.",
@@ -1567,7 +1571,8 @@
                           "limit": {
                             "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                             "type": "integer",
-                            "minimum": 1
+                            "minimum": 1,
+                            "maximum": 100
                           },
                           "delay": {
                             "description": "Delay in milliseconds before each retry.",
@@ -1737,7 +1742,8 @@
                           "limit": {
                             "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                             "type": "integer",
-                            "minimum": 1
+                            "minimum": 1,
+                            "maximum": 100
                           },
                           "delay": {
                             "description": "Delay in milliseconds before each retry.",
@@ -1907,7 +1913,8 @@
                           "limit": {
                             "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                             "type": "integer",
-                            "minimum": 1
+                            "minimum": 1,
+                            "maximum": 100
                           },
                           "delay": {
                             "description": "Delay in milliseconds before each retry.",
@@ -2077,7 +2084,8 @@
                           "limit": {
                             "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                             "type": "integer",
-                            "minimum": 1
+                            "minimum": 1,
+                            "maximum": 100
                           },
                           "delay": {
                             "description": "Delay in milliseconds before each retry.",
@@ -2432,7 +2440,8 @@
                       "limit": {
                         "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                         "type": "integer",
-                        "minimum": 1
+                        "minimum": 1,
+                        "maximum": 100
                       },
                       "delay": {
                         "description": "Delay in milliseconds before each retry.",
@@ -2602,7 +2611,8 @@
                       "limit": {
                         "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                         "type": "integer",
-                        "minimum": 1
+                        "minimum": 1,
+                        "maximum": 100
                       },
                       "delay": {
                         "description": "Delay in milliseconds before each retry.",
@@ -2772,7 +2782,8 @@
                       "limit": {
                         "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                         "type": "integer",
-                        "minimum": 1
+                        "minimum": 1,
+                        "maximum": 100
                       },
                       "delay": {
                         "description": "Delay in milliseconds before each retry.",
@@ -2942,7 +2953,8 @@
                       "limit": {
                         "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                         "type": "integer",
-                        "minimum": 1
+                        "minimum": 1,
+                        "maximum": 100
                       },
                       "delay": {
                         "description": "Delay in milliseconds before each retry.",
@@ -3403,7 +3415,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -3573,7 +3586,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -3743,7 +3757,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -3913,7 +3928,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -4544,7 +4560,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -4714,7 +4731,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -4884,7 +4902,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -5054,7 +5073,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -5729,7 +5749,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -5899,7 +5920,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -6069,7 +6091,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -6239,7 +6262,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -8011,7 +8035,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -8181,7 +8206,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -8351,7 +8377,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -8521,7 +8548,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -9386,7 +9414,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -9556,7 +9585,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -9726,7 +9756,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -9896,7 +9927,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -11313,7 +11345,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -11483,7 +11516,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -11653,7 +11687,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -11823,7 +11858,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -12482,7 +12518,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -12652,7 +12689,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -12822,7 +12860,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -12992,7 +13031,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -13637,7 +13677,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -13807,7 +13848,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -13977,7 +14019,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -14147,7 +14190,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -14741,7 +14785,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -14911,7 +14956,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -15081,7 +15127,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -15251,7 +15298,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -15918,7 +15966,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -16088,7 +16137,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -16258,7 +16308,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -16428,7 +16479,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -17538,7 +17590,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -17708,7 +17761,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -17878,7 +17932,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -18048,7 +18103,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -18716,7 +18772,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -18886,7 +18943,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -19056,7 +19114,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -19226,7 +19285,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -19925,7 +19985,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -20095,7 +20156,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -20265,7 +20327,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -20435,7 +20498,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -20909,7 +20973,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -21079,7 +21144,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -21249,7 +21315,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -21419,7 +21486,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -21851,7 +21919,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -22021,7 +22090,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -22191,7 +22261,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -22361,7 +22432,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -23280,7 +23352,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -23450,7 +23523,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -23620,7 +23694,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -23790,7 +23865,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -24441,7 +24517,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -24611,7 +24688,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -24781,7 +24859,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -24951,7 +25030,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -26081,7 +26161,8 @@
                                 "limit": {
                                   "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                   "type": "integer",
-                                  "minimum": 1
+                                  "minimum": 1,
+                                  "maximum": 100
                                 },
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
@@ -26251,7 +26332,8 @@
                                 "limit": {
                                   "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                   "type": "integer",
-                                  "minimum": 1
+                                  "minimum": 1,
+                                  "maximum": 100
                                 },
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
@@ -26421,7 +26503,8 @@
                                 "limit": {
                                   "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                   "type": "integer",
-                                  "minimum": 1
+                                  "minimum": 1,
+                                  "maximum": 100
                                 },
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
@@ -26591,7 +26674,8 @@
                                 "limit": {
                                   "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                   "type": "integer",
-                                  "minimum": 1
+                                  "minimum": 1,
+                                  "maximum": 100
                                 },
                                 "delay": {
                                   "description": "Delay in milliseconds before each retry.",
@@ -26946,7 +27030,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -27116,7 +27201,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -27286,7 +27372,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -27456,7 +27543,8 @@
                             "limit": {
                               "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                               "type": "integer",
-                              "minimum": 1
+                              "minimum": 1,
+                              "maximum": 100
                             },
                             "delay": {
                               "description": "Delay in milliseconds before each retry.",
@@ -27917,7 +28005,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -28087,7 +28176,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -28257,7 +28347,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -28427,7 +28518,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -29058,7 +29150,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -29228,7 +29321,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -29398,7 +29492,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -29568,7 +29663,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -30243,7 +30339,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -30413,7 +30510,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -30583,7 +30681,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -30753,7 +30852,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -32525,7 +32625,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -32695,7 +32796,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -32865,7 +32967,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -33035,7 +33138,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -33900,7 +34004,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -34070,7 +34175,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -34240,7 +34346,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -34410,7 +34517,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -35827,7 +35935,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -35997,7 +36106,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -36167,7 +36277,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -36337,7 +36448,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -36996,7 +37108,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -37166,7 +37279,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -37336,7 +37450,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -37506,7 +37621,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -38151,7 +38267,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -38321,7 +38438,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -38491,7 +38609,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -38661,7 +38780,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -39255,7 +39375,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -39425,7 +39546,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -39595,7 +39717,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -39765,7 +39888,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -40432,7 +40556,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -40602,7 +40727,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -40772,7 +40898,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -40942,7 +41069,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -42052,7 +42180,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -42222,7 +42351,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -42392,7 +42522,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -42562,7 +42693,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -43230,7 +43362,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -43400,7 +43533,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -43570,7 +43704,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -43740,7 +43875,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -44439,7 +44575,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -44609,7 +44746,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -44779,7 +44917,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -44949,7 +45088,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -45423,7 +45563,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -45593,7 +45734,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -45763,7 +45905,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -45933,7 +46076,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -46365,7 +46509,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -46535,7 +46680,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -46705,7 +46851,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -46875,7 +47022,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -47794,7 +47942,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -47964,7 +48113,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -48134,7 +48284,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -48304,7 +48455,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -48955,7 +49107,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -49125,7 +49278,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -49295,7 +49449,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",
@@ -49465,7 +49620,8 @@
                                   "limit": {
                                     "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
                                     "type": "integer",
-                                    "minimum": 1
+                                    "minimum": 1,
+                                    "maximum": 100
                                   },
                                   "delay": {
                                     "description": "Delay in milliseconds before each retry.",

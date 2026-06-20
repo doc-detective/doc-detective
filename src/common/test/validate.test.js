@@ -1972,6 +1972,28 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid, result.errors).to.be.true;
       });
 
+      it("validates retry with limit:100 (boundary)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 100 } }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects retry with limit:101 (over maximum)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 101 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
       it("validates retry with delay at the maximum (3600000)", function () {
         const result = validate({
           schemaKey: "step_v3",

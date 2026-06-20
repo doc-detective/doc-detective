@@ -73,6 +73,7 @@ import {
   computeRetryDelay,
   buildConditionContext,
 } from "./routing.js";
+import type { RoutingDecision } from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -1925,7 +1926,8 @@ async function runContext({
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
-      // (up to `limit` attempts, waiting `delay` with `fixed`/`exponential`
+      // (up to `limit` retries — so `limit + 1` total runs — waiting `delay`
+      // with `fixed`/`exponential`
       // backoff) until the result no longer routes `retry` or the limit is hit;
       // once exhausted, routing is re-resolved with retry entries skipped to get
       // the terminal action (so `onFail:[{retry},{continue}]` = "retry then
@@ -1935,7 +1937,7 @@ async function runContext({
       // the step's reported result is the final attempt's.
       let stepReport = await runStepOnce();
       let attempts = 1;
-      let routingDecision: any;
+      let routingDecision: RoutingDecision;
       while (true) {
         // Record this attempt's outputs so the routing selector can read the
         // step's own `$$steps.<id>.outputs.*` (and so the FINAL value lands in

@@ -266,4 +266,10 @@ describe("routing: computeRetryDelay", function () {
     assert.equal(computeRetryDelay(1000, "exponential", 1), 2000);
     assert.equal(computeRetryDelay(1000, "exponential", 2), 4000);
   });
+  it("caps the computed delay at 3,600,000 ms (avoids setTimeout overflow->1ms)", function () {
+    // Without a cap, delay * 2^idx can exceed 2^31-1 ms, which setTimeout
+    // clamps to 1ms — silently turning long waits into near-instant re-runs.
+    assert.equal(computeRetryDelay(3_600_000, "exponential", 20), 3_600_000);
+    assert.equal(computeRetryDelay(3_600_000, "fixed", 0), 3_600_000);
+  });
 });

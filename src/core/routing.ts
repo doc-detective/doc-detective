@@ -503,23 +503,32 @@ async function resolveStepRouting(args: {
   return fallback;
 }
 
+// The largest retry wait we will actually sleep, mirroring the schema's
+// `retry.delay` maximum. Caps an exponential series so it can't exceed
+// setTimeout's 2^31-1 ms range (beyond which Node clamps to 1ms, silently
+// turning a long wait into a near-instant re-run).
+const MAX_RETRY_DELAY_MS = 3_600_000;
+
 /**
  * The wait (ms) before a retry attempt. `retryIndex` is 0-based (0 = first
  * retry). `fixed` backoff waits `delay` every time; `exponential` waits
- * `delay * 2^retryIndex`. Returns 0 when delay is 0/undefined.
+ * `delay * 2^retryIndex`. Returns 0 when delay is 0/undefined, and never
+ * exceeds `MAX_RETRY_DELAY_MS`.
  *
  * @param delay - Base delay in milliseconds.
  * @param backoff - `"fixed"` or `"exponential"`.
  * @param retryIndex - 0-based retry index.
- * @returns The wait in milliseconds (>= 0).
+ * @returns The wait in milliseconds (0 .. MAX_RETRY_DELAY_MS).
  */
 function computeRetryDelay(
-  delay: number,
+  delay: number | undefined,
   backoff: "fixed" | "exponential",
   retryIndex: number
 ): number {
   if (!delay || delay <= 0) return 0;
-  return backoff === "exponential" ? delay * Math.pow(2, retryIndex) : delay;
+  const raw =
+    backoff === "exponential" ? delay * Math.pow(2, retryIndex) : delay;
+  return Math.min(raw, MAX_RETRY_DELAY_MS);
 }
 
 export {
