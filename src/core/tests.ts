@@ -77,7 +77,7 @@ import {
   computeRetryDelay,
   buildConditionContext,
 } from "./routing.js";
-import type { RoutingDecision } from "./routing.js";
+import type { RoutingDecision, StepRoutingStatus } from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -1104,7 +1104,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
  *     next test. This is the FAIL default, so a FAILing test with no handler
  *     does NOT stop its siblings — exactly like the flat pool.
  *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
- *   - `stop:run`   -> deferred this phase: warn once and treat as `spec`.
+ *   - `stop:run`   -> deferred this phase: warn once per spec and treat as `spec`.
  *
  * goToTest is stubbed to the status default (resolveTestRouting returns it), so
  * a goToTest entry behaves as continue/stop-default this phase. The sequencer
@@ -1270,11 +1270,9 @@ async function runRoutedSpec({
     });
 
     // Roll the test up (flow != verdict: this result is final and never altered
-    // by routing) and resolve test-level routing for the next decision. Only
-    // `$$platform` is meaningful at test scope.
-    // Roll the test up (flow != verdict: this result is final and never altered
     // by routing). Phase-3 re-derives this identical value when tallying; we set
-    // it here so test-level routing can read the verdict.
+    // it here so test-level routing can read the verdict. Only `$$platform` is
+    // meaningful at test scope (tests aren't sequenced relative to each other).
     const testResult = rollUpResults(testReport.contexts.filter(Boolean));
     testReport.result = testResult;
     // Spec-guard skip SUBSUMES routing: a spec whose `if` was false never ran,
@@ -1284,8 +1282,8 @@ async function runRoutedSpec({
     if (!specGuardSkip) {
       const decision = await resolveTestRouting({
         // rollUpResults returns a plain string; resolveTestRouting handles an
-        // unknown status defensively (-> continue), so the cast is safe.
-        status: testResult as any,
+        // unknown status defensively (-> continue), so the narrowing cast is safe.
+        status: testResult as StepRoutingStatus,
         test,
         context: buildConditionContext({ platform }),
       });
