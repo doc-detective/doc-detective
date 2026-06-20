@@ -2007,6 +2007,17 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid, result.errors).to.be.true;
       });
 
+      it("accepts a step result carrying the system-populated visit field", function () {
+        // `visit` is a result-only, documented step field (like `attempts`) set
+        // when a routing goToStep re-ran the step. Asserts the field is accepted
+        // on a result object.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { goTo: { url: "https://example.com" }, visit: 2 },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
       it("validates retry with delay at the maximum (3600000)", function () {
         const result = validate({
           schemaKey: "step_v3",
