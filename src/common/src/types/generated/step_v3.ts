@@ -34,25 +34,25 @@ export type Condition = string | [string, ...string[]];
  */
 export type Condition1 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing1 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing2 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing3 = {
   [k: string]: unknown;
@@ -76,25 +76,25 @@ export type Condition2 = string | [string, ...string[]];
  */
 export type Condition3 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing4 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing5 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing6 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing7 = {
   [k: string]: unknown;
@@ -119,25 +119,25 @@ export type Condition4 = string | [string, ...string[]];
  */
 export type Condition5 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing8 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing9 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing10 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing11 = {
   [k: string]: unknown;
@@ -162,25 +162,25 @@ export type Condition6 = string | [string, ...string[]];
  */
 export type Condition7 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing12 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing13 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing14 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing15 = {
   [k: string]: unknown;
@@ -199,25 +199,25 @@ export type Condition8 = string | [string, ...string[]];
  */
 export type Condition9 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing16 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing17 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing18 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing19 = {
   [k: string]: unknown;
@@ -242,25 +242,25 @@ export type Condition10 = string | [string, ...string[]];
  */
 export type Condition11 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing20 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing21 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing22 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing23 = {
   [k: string]: unknown;
@@ -282,25 +282,25 @@ export type Condition12 = string | [string, ...string[]];
  */
 export type Condition13 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing24 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing25 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing26 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing27 = {
   [k: string]: unknown;
@@ -318,25 +318,25 @@ export type Condition14 = string | [string, ...string[]];
  */
 export type Condition15 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing28 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing29 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing30 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing31 = {
   [k: string]: unknown;
@@ -358,25 +358,25 @@ export type Condition16 = string | [string, ...string[]];
  */
 export type Condition17 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing32 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing33 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing34 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing35 = {
   [k: string]: unknown;
@@ -402,25 +402,25 @@ export type Condition18 = string | [string, ...string[]];
  */
 export type Condition19 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing36 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing37 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing38 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing39 = {
   [k: string]: unknown;
@@ -460,25 +460,25 @@ export type Condition20 = string | [string, ...string[]];
  */
 export type Condition21 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing40 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing41 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing42 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing43 = {
   [k: string]: unknown;
@@ -503,25 +503,25 @@ export type Condition22 = string | [string, ...string[]];
  */
 export type Condition23 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing44 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing45 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing46 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing47 = {
   [k: string]: unknown;
@@ -555,25 +555,25 @@ export type Condition24 = string | [string, ...string[]];
  */
 export type Condition25 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing48 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing49 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing50 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing51 = {
   [k: string]: unknown;
@@ -603,25 +603,25 @@ export type Condition26 = string | [string, ...string[]];
  */
 export type Condition27 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing52 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing53 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing54 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing55 = {
   [k: string]: unknown;
@@ -639,25 +639,25 @@ export type Condition28 = string | [string, ...string[]];
  */
 export type Condition29 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing56 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing57 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing58 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing59 = {
   [k: string]: unknown;
@@ -685,25 +685,25 @@ export type Condition30 = string | [string, ...string[]];
  */
 export type Condition31 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing60 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing61 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing62 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing63 = {
   [k: string]: unknown;
@@ -728,25 +728,25 @@ export type Condition32 = string | [string, ...string[]];
  */
 export type Condition33 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing64 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing65 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing66 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing67 = {
   [k: string]: unknown;
@@ -788,19 +788,19 @@ export interface Common {
    */
   assertions?: Condition1 | Assertion[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing1[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing2[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing3[];
   location?: SourceLocation;
@@ -966,19 +966,19 @@ export interface Common1 {
    */
   assertions?: Condition3 | Assertion1[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing4[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing5[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing6[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing7[];
   location?: SourceLocation1;
@@ -1111,19 +1111,19 @@ export interface Common2 {
    */
   assertions?: Condition5 | Assertion2[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing8[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing9[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing10[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing11[];
   location?: SourceLocation2;
@@ -1256,19 +1256,19 @@ export interface Common3 {
    */
   assertions?: Condition7 | Assertion3[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing12[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing13[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing14[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing15[];
   location?: SourceLocation3;
@@ -1443,19 +1443,19 @@ export interface Common4 {
    */
   assertions?: Condition9 | Assertion4[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing16[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing17[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing18[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing19[];
   location?: SourceLocation4;
@@ -1588,19 +1588,19 @@ export interface Common5 {
    */
   assertions?: Condition11 | Assertion5[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing20[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing21[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing22[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing23[];
   location?: SourceLocation5;
@@ -1776,19 +1776,19 @@ export interface Common6 {
    */
   assertions?: Condition13 | Assertion6[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing24[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing25[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing26[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing27[];
   location?: SourceLocation6;
@@ -1969,19 +1969,19 @@ export interface Common7 {
    */
   assertions?: Condition15 | Assertion7[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing28[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing29[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing30[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing31[];
   location?: SourceLocation7;
@@ -2149,19 +2149,19 @@ export interface Common8 {
    */
   assertions?: Condition17 | Assertion8[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing32[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing33[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing34[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing35[];
   location?: SourceLocation8;
@@ -2331,19 +2331,19 @@ export interface Common9 {
    */
   assertions?: Condition19 | Assertion9[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing36[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing37[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing38[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing39[];
   location?: SourceLocation9;
@@ -2519,19 +2519,19 @@ export interface Common10 {
    */
   assertions?: Condition21 | Assertion10[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing40[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing41[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing42[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing43[];
   location?: SourceLocation10;
@@ -2664,19 +2664,19 @@ export interface Common11 {
    */
   assertions?: Condition23 | Assertion11[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing44[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing45[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing46[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing47[];
   location?: SourceLocation11;
@@ -2843,19 +2843,19 @@ export interface Common12 {
    */
   assertions?: Condition25 | Assertion12[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing48[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing49[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing50[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing51[];
   location?: SourceLocation12;
@@ -2994,19 +2994,19 @@ export interface Common13 {
    */
   assertions?: Condition27 | Assertion13[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing52[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing53[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing54[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing55[];
   location?: SourceLocation13;
@@ -3139,19 +3139,19 @@ export interface Common14 {
    */
   assertions?: Condition29 | Assertion14[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing56[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing57[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing58[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing59[];
   location?: SourceLocation14;
@@ -3302,19 +3302,19 @@ export interface Common15 {
    */
   assertions?: Condition31 | Assertion15[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing60[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing61[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing62[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing63[];
   location?: SourceLocation15;
@@ -3447,19 +3447,19 @@ export interface Common16 {
    */
   assertions?: Condition33 | Assertion16[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onPass?: Routing64[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onFail?: Routing65[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, and `retry` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed.
    */
   onWarning?: Routing66[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed.
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue` and `stop` are honored at runtime; `goToStep` and `goToTest` are validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
   onSkip?: Routing67[];
   location?: SourceLocation16;
