@@ -1,0 +1,43 @@
+{
+  "specId": "routing-retry",
+  "description": "The retry routing action (onFail:[{retry:{limit,delay,backoff}}]). Only the no-op permutation is expressible as a PASS/SKIPPED fixture (a passing step never retries, proving retry is opt-in and additive). The stateful/FAIL-path behaviors — retry recovering a transient failure, retry exhausting to the default stop, and retry-then-continue — are asserted in focused it() tests in core-core.test.js, since they need a counter file or resolve to FAIL. Cross-platform via `node -e`.",
+  "tests": [
+    {
+      "testId": "routing-retry-noop-passing-step",
+      "description": "A passing step carrying onFail:[{retry:{limit:3,delay:0}}] never fails, so the retry never fires and the step PASSes exactly as if no handler were set (additive/byte-identical).",
+      "steps": [
+        {
+          "description": "Passes on the first attempt; retry is never reached.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onFail": [
+            {
+              "retry": {
+                "limit": 3,
+                "delay": 0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "routing-retry-noop-with-backoff",
+      "description": "Same no-op with an exponential-backoff retry spec, exercising schema validation of the full retry shape (limit + delay + backoff) on a passing step.",
+      "steps": [
+        {
+          "description": "Passes; the retry (exponential backoff) is never reached.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onFail": [
+            {
+              "retry": {
+                "limit": 2,
+                "delay": 1,
+                "backoff": "exponential"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -5,7 +5,7 @@
  */
 
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue` and `stop` are evaluated at runtime; `retry`, `goToStep`, and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, and `retry` are evaluated at runtime; `goToStep` and `goToTest` are validated but not yet executed. Test-level handlers are validated but not yet evaluated.
  */
 export type Routing = {
   if?: Condition;
@@ -39,7 +39,7 @@ export type Condition = string | [string, ...string[]];
  */
 export interface Retry {
   /**
-   * Maximum number of retry attempts.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
    */
   limit: number;
   /**

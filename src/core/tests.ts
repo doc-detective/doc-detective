@@ -70,8 +70,10 @@ import {
   evaluateGuard,
   guardReferencesSteps,
   resolveStepRouting,
+  computeRetryDelay,
   buildConditionContext,
 } from "./routing.js";
+import type { RoutingDecision } from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -1291,6 +1293,12 @@ function resolveAutoScreenshot({
  * false unless the author set an `onSkip` stop entry — keeping today's behavior
  * for unrouted steps. The selector context has no own `$$outputs.*` (the step
  * didn't run) but can read prior steps via `$$steps.<id>.outputs.*`.
+ *
+ * Only `stop` is honored here. A `continue` decision is the no-op default, and
+ * `retry` is meaningless for a step that never ran (there is nothing to re-run),
+ * so both leave execution flowing. (An in-runner SKIPPED *result* from a step
+ * that DID run — e.g. a no-op action — goes through the normal retry loop, where
+ * its onSkip `retry` would re-run it.)
  */
 async function stepSkipStops(
   step: any,
@@ -1893,37 +1901,93 @@ async function runContext({
         context.contextId
       ].steps[step.stepId] = {};
 
-      // Run step
-      const stepResult = await runStep({
-        config: config,
-        context: context,
-        step: step,
-        driver: driver,
-        metaValues: metaValues,
-        options: {
-          openApiDefinitions: context.openApi || [],
-        },
-      });
-      clog(
-        "debug",
-        `RESULT: ${stepResult.status}\n${JSON.stringify(stepResult, null, 2)}`
-      );
-
-      stepResult.result = stepResult.status;
-      stepResult.resultDescription = stepResult.description;
-      delete stepResult.status;
-      delete stepResult.description;
-
-      // Add step result to report
-      const stepReport = {
-        ...step,
-        ...stepResult,
+      // Run the step once: execute it, normalize the result, and build the
+      // step report. Used by the initial run and each retry attempt.
+      const runStepOnce = async () => {
+        const r = await runStep({
+          config: config,
+          context: context,
+          step: step,
+          driver: driver,
+          metaValues: metaValues,
+          options: {
+            openApiDefinitions: context.openApi || [],
+          },
+        });
+        clog(
+          "debug",
+          `RESULT: ${r.status}\n${JSON.stringify(r, null, 2)}`
+        );
+        r.result = r.status;
+        r.resultDescription = r.description;
+        delete r.status;
+        delete r.description;
+        return { ...step, ...r } as any;
       };
 
-      // Capture a post-step screenshot for autoScreenshot runs. Applies to
-      // browser steps (explicit `screenshot` steps already produce an image);
-      // failed steps are captured too — the failure frame is often the most
-      // useful. A capture failure logs a warning and never fails the step.
+      // Run the step, then resolve routing. A `retry` decision re-runs the step
+      // (up to `limit` retries — so `limit + 1` total runs — waiting `delay`
+      // with `fixed`/`exponential`
+      // backoff) until the result no longer routes `retry` or the limit is hit;
+      // once exhausted, routing is re-resolved with retry entries skipped to get
+      // the terminal action (so `onFail:[{retry},{continue}]` = "retry then
+      // continue"; `onFail:[{retry}]` = "retry then the default stop"). Each
+      // attempt re-runs the whole step (assertions included), so a transient
+      // failure can recover to PASS. flow != verdict: routing only chooses flow;
+      // the step's reported result is the final attempt's.
+      let stepReport = await runStepOnce();
+      let attempts = 1;
+      let routingDecision: RoutingDecision;
+      while (true) {
+        // Record this attempt's outputs so the routing selector can read the
+        // step's own `$$steps.<id>.outputs.*` (and so the FINAL value lands in
+        // the accumulator for later steps). Reached only for steps that ran.
+        if (step.stepId) {
+          stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
+        }
+        const routingContext = buildConditionContext({
+          platform: context.platform,
+          outputs: stepReport.outputs,
+          steps: stepOutputsById,
+        });
+        routingDecision = await resolveStepRouting({
+          status: stepReport.result,
+          step,
+          context: routingContext,
+        });
+        if (routingDecision.action !== "retry") break;
+        if (attempts > routingDecision.limit) {
+          // Retries exhausted: re-resolve ignoring retry entries to get the
+          // terminal action (a later entry, or the status default).
+          routingDecision = await resolveStepRouting({
+            status: stepReport.result,
+            step,
+            context: routingContext,
+            skipRetry: true,
+          });
+          break;
+        }
+        const waitMs = computeRetryDelay(
+          routingDecision.delay,
+          routingDecision.backoff,
+          attempts - 1
+        );
+        if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
+        clog(
+          "debug",
+          `Retrying step (attempt ${attempts + 1}, limit ${routingDecision.limit})`
+        );
+        attempts++;
+        stepReport = await runStepOnce();
+      }
+      // Record the total run count when the step was retried (additive — absent
+      // for an un-retried step, so its report is byte-identical).
+      if (attempts > 1) stepReport.attempts = attempts;
+
+      // Capture a post-step screenshot for autoScreenshot runs (final attempt
+      // only). Applies to browser steps (explicit `screenshot` steps already
+      // produce an image); failed steps are captured too — the failure frame is
+      // often the most useful. A capture failure logs a warning, never fails.
       if (
         autoScreenshotEnabled &&
         driver &&
@@ -1945,41 +2009,12 @@ async function runContext({
 
       contextReport.steps.push(stepReport);
 
-      // Record this step's outputs so later steps' guard `if` conditions can
-      // read them via `$$steps.<stepId>.outputs.*`. Shaped as the
-      // buildConditionContext `steps` entry ({ outputs }). Only reached for
-      // steps that actually ran — a guard-skipped step `continue`s before
-      // here, so its stepId is never recorded, and a downstream guard
-      // referencing it fails closed (and is itself skipped). A FAILed step's
-      // outputs ARE recorded here (this runs before the stepExecutionFailed
-      // flag is set), but that is harmless: stepExecutionFailed makes every
-      // subsequent step short-circuit before its guard, so no downstream guard
-      // ever reads them.
-      if (step.stepId) {
-        stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
-      }
-
-      // Routing: resolve the step's onPass/onFail/onWarning/onSkip handler for
-      // its result into a control-flow decision. Defaults reproduce today's
-      // behavior exactly — a FAIL stops the test, every other status continues
-      // — so an unrouted step is byte-identical. flow != verdict: the decision
-      // only chooses whether later steps run; the step's result is unchanged
-      // (a FAILed step routed `continue` still leaves the test FAILed via
-      // rollUpResults). The selector context sees the just-run step's own
-      // `$$outputs.*` plus prior steps' `$$steps.<id>.outputs.*`.
-      const routingDecision = await resolveStepRouting({
-        status: stepReport.result,
-        step,
-        context: buildConditionContext({
-          platform: context.platform,
-          outputs: stepReport.outputs,
-          steps: stepOutputsById,
-        }),
-      });
+      // Apply the terminal routing decision. `continue` runs the next step; a
+      // `stop` halts the remaining steps in this context (`spec`/`run` scope —
+      // skipping later tests/specs — is deferred to the test-routing phase).
+      // flow != verdict: a FAILed step routed `continue` still leaves the test
+      // FAILed via rollUpResults.
       if (routingDecision.action === "stop") {
-        // Halt the remaining steps in this context. Propagating a `spec`/`run`
-        // scope to skip later tests/specs is deferred to the test-routing
-        // phase; at the step level a stop halts the current test's steps.
         if (routingDecision.scope !== "test") {
           clog(
             "warning",
