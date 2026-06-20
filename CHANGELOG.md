@@ -1,3 +1,10 @@
+# [4.15.0-next.8](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.7...v4.15.0-next.8) (2026-06-20)
+
+
+### Bug Fixes
+
+* **runner:** clear self-kill watchdog when main() completes ([#368](https://github.com/doc-detective/doc-detective/issues/368)) ([acd347a](https://github.com/doc-detective/doc-detective/commit/acd347af2895b0688cea1ba2e395c95ecced8e20))
+
 # [4.15.0-next.7](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.6...v4.15.0-next.7) (2026-06-20)
 
 
