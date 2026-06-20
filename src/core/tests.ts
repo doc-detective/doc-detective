@@ -1832,6 +1832,19 @@ async function runContext({
     // Tracks how many times each stepId's report has been produced, so a step
     // re-run by a backward `goToStep` jump can record its visit number.
     const visitCountById = new Map<string, number>();
+    // Push a step report, stamping `visit` (1-based count of times this stepId
+    // has been recorded) once a goToStep loop produces more than one. Additive:
+    // a single-visit report omits `visit` and stays byte-identical (mirrors
+    // `attempts`). Used for EVERY step-report push in the loop — ran, skipped,
+    // and routing-error markers — so re-visited steps are stamped consistently.
+    const pushStepReport = (rep: any) => {
+      if (rep.stepId) {
+        const n = (visitCountById.get(rep.stepId) ?? 0) + 1;
+        visitCountById.set(rep.stepId, n);
+        if (n > 1) rep.visit = n;
+      }
+      contextReport.steps.push(rep);
+    };
     // Per-step outputs accumulator: maps each completed step's stepId to its
     // computed `outputs` bag, so later steps' guard `if` conditions can read a
     // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
@@ -1883,9 +1896,13 @@ async function runContext({
           "error",
           `Routing exceeded ${MAX_TOTAL_VISITS} step executions in this context; stopping (possible goToStep loop).`
         );
+        // Surface the runaway as a FAIL so the verdict reflects the abnormal
+        // termination — a force-terminated goToStep cycle must not report green.
+        pushStepReport({
+          result: "FAIL",
+          resultDescription: `Routing exceeded the maximum of ${MAX_TOTAL_VISITS} step executions in this context (possible goToStep loop).`,
+        });
         stepExecutionFailed = true;
-        stopReason =
-          "Skipped because routing exceeded the maximum step-execution count (possible goToStep loop).";
         break;
       }
 
@@ -1902,7 +1919,7 @@ async function runContext({
           result: "SKIPPED",
           resultDescription: "Skipped because unsafe steps aren't allowed.",
         };
-        contextReport.steps.push(stepReport);
+        pushStepReport(stepReport);
         // onSkip fires only for a REACHED step. The unsafe check precedes the
         // `stepExecutionFailed` gate below, so an unsafe step DOWNSTREAM of a
         // prior stop reaches here too — but it is not reached, so its onSkip
@@ -1931,7 +1948,7 @@ async function runContext({
           result: "SKIPPED",
           resultDescription: stopReason,
         };
-        contextReport.steps.push(stepReport);
+        pushStepReport(stepReport);
         i++;
         continue;
       }
@@ -1955,7 +1972,7 @@ async function runContext({
             result: "SKIPPED",
             resultDescription: "Skipped: guard `if` condition not met.",
           };
-          contextReport.steps.push(stepReport);
+          pushStepReport(stepReport);
           // Reached-but-skipped: the onSkip handler fires (default continue;
           // `stop` halts; `goToStep` jumps). This branch is already past the
           // `stepExecutionFailed` gate above, so it is unreachable when stopped;
@@ -2068,6 +2085,9 @@ async function runContext({
       // only). Applies to browser steps (explicit `screenshot` steps already
       // produce an image); failed steps are captured too — the failure frame is
       // often the most useful. A capture failure logs a warning, never fails.
+      // Note: the filename derives from `stepIndex`, so a backward `goToStep`
+      // re-visit of the same step overwrites the prior visit's image
+      // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
       if (
         autoScreenshotEnabled &&
         driver &&
@@ -2087,16 +2107,7 @@ async function runContext({
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
 
-      // Record which visit produced this report when a backward `goToStep`
-      // re-ran the step (additive — the first visit omits `visit`, so an
-      // unrouted step's report stays byte-identical, mirroring `attempts`).
-      if (step.stepId) {
-        const n = (visitCountById.get(step.stepId) ?? 0) + 1;
-        visitCountById.set(step.stepId, n);
-        if (n > 1) stepReport.visit = n;
-      }
-
-      contextReport.steps.push(stepReport);
+      pushStepReport(stepReport);
 
       // Apply the terminal routing decision. `continue` runs the next step; a
       // `stop` halts the remaining steps in this context (`spec`/`run` scope —
@@ -2123,9 +2134,16 @@ async function runContext({
         const target = indexByStepId.get(routingDecision.stepId);
         if (target === undefined) {
           clog(
-            "warning",
+            "error",
             `Routing goToStep target '${routingDecision.stepId}' not found in this test; stopping.`
           );
+          // An unknown target is a routing misconfiguration (e.g. a typo'd
+          // stepId). Surface a FAIL so it can't silently report green, then
+          // stop the rest of the context.
+          pushStepReport({
+            result: "FAIL",
+            resultDescription: `Routing goToStep target '${routingDecision.stepId}' does not exist.`,
+          });
           stepExecutionFailed = true;
           stopReason = `Skipped because routing goToStep target '${routingDecision.stepId}' does not exist.`;
           i++;

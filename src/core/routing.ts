@@ -497,7 +497,9 @@ async function resolveStepRouting(args: {
       };
     }
     if (typeof entry.goToStep === "string" && entry.goToStep.trim() !== "") {
-      return { action: "goToStep", stepId: entry.goToStep };
+      // Return the trimmed id so `goToStep: "target "` matches the step `target`
+      // rather than failing as an unknown target on incidental whitespace.
+      return { action: "goToStep", stepId: entry.goToStep.trim() };
     }
     // Matched, but the action isn't implemented this phase (goToTest). Treat as
     // the status default and stop scanning — a later entry must not override an

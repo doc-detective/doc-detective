@@ -1383,9 +1383,11 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("goToStep unknown target -> remaining steps SKIPPED with a 'does not exist' reason (no hang)", async () => {
-    // Step a routes goToStep to a nonexistent stepId -> fail-safe stop. Step b
-    // is SKIPPED with the unknown-target reason. Verdict rolls up FAIL.
+  it("goToStep unknown target -> FAIL marker + remaining steps SKIPPED, verdict FAIL (no hang)", async () => {
+    // Step a routes goToStep to a nonexistent stepId. This is a routing
+    // misconfiguration, so the runner emits a FAIL marker (so it can't silently
+    // report green), stops, and SKIPs step b with the unknown-target reason.
+    // Verdict rolls up FAIL.
     const t = {
       tests: [
         {
@@ -1407,19 +1409,26 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       const steps = result.specs[0].tests[0].contexts[0].steps;
-      assert.equal(steps.length, 2);
+      // a PASS, then the FAIL marker, then b SKIPPED.
+      assert.equal(steps.length, 3);
       assert.equal(steps[0].result, "PASS");
-      assert.equal(steps[1].result, "SKIPPED");
+      assert.equal(steps[1].result, "FAIL");
       assert.match(steps[1].resultDescription, /does not exist/);
+      assert.equal(steps[2].result, "SKIPPED");
+      assert.match(steps[2].resultDescription, /does not exist/);
+      // A typo'd goToStep must NOT silently report green.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+      assert.equal(result.summary.specs.fail, 1);
     } finally {
       fs.unlinkSync(tempFilePath);
     }
   });
 
-  it("goToStep infinite loop is bounded by the visit cap (terminates)", async () => {
+  it("goToStep infinite loop is bounded by the visit cap (terminates, verdict FAIL)", async () => {
     // A single step that unconditionally jumps to itself. The fail-safe cap
     // (steps.length * 1000 + 1000 = 2000 for one step) stops it rather than
-    // hanging; the last produced report is SKIPPED with the loop reason.
+    // hanging, and emits a final FAIL marker so the force-terminated cycle
+    // reports FAIL instead of green.
     const t = {
       tests: [
         {
@@ -1443,15 +1452,17 @@ describe("getRunner() function", function () {
       result = await runTests(config);
       const steps = result.specs[0].tests[0].contexts[0].steps;
       // The cap (steps.length * 1000 + 1000 = 2000 for one step) bounds the
-      // executed visits. The cap-exceed check breaks at the top of the next
-      // iteration BEFORE running/reporting, so exactly MAX_TOTAL_VISITS reports
-      // are produced (no extra SKIPPED report) — the point is that it
-      // terminates rather than hanging.
-      assert.equal(steps.length, 2000);
+      // executed visits: 2000 PASS reports, then a final FAIL marker emitted
+      // when the cap trips (2001 total). The point is it terminates rather than
+      // hanging — and reports FAIL, not green.
+      assert.equal(steps.length, 2001);
       assert.ok(
-        steps.every((s) => s.result === "PASS"),
+        steps.slice(0, 2000).every((s) => s.result === "PASS"),
         "every executed visit PASSes"
       );
+      assert.equal(steps[2000].result, "FAIL");
+      assert.match(steps[2000].resultDescription, /maximum|loop/);
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
     } finally {
       fs.unlinkSync(tempFilePath);
     }
@@ -1489,6 +1500,46 @@ describe("getRunner() function", function () {
       assert.equal(steps[0].stepId, "a");
       assert.equal(steps[0].result, "SKIPPED");
       assert.match(steps[0].resultDescription, /guard `if` condition not met/);
+      assert.equal(steps[1].stepId, "c");
+      assert.equal(steps[1].result, "PASS");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onSkip goToStep jumps from an unsafe-blocked step", async () => {
+    // Step a is unsafe-skipped (allowUnsafeSteps:false) and its onSkip routes
+    // goToStep "c" -> step b is never run; step c runs and PASSes. Exercises the
+    // unsafe-branch onSkip path (shares applySkipRouting with the guard path).
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "a",
+              unsafe: true,
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ goToStep: "c" }],
+            },
+            { stepId: "b", runShell: "node -e \"process.exit(0)\"" },
+            { stepId: "c", runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-unsafe-onskip.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug", allowUnsafeSteps: false };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // a (SKIPPED, unsafe) then c (PASS) — b jumped over.
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].stepId, "a");
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.match(steps[0].resultDescription, /unsafe/);
       assert.equal(steps[1].stepId, "c");
       assert.equal(steps[1].result, "PASS");
     } finally {
