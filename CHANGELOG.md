@@ -1,3 +1,10 @@
+# [4.15.0-next.6](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.5...v4.15.0-next.6) (2026-06-20)
+
+
+### Features
+
+* **routing:** step-level onPass/onFail/onWarning/onSkip handlers (continue/stop) ([#364](https://github.com/doc-detective/doc-detective/issues/364)) ([873b9ac](https://github.com/doc-detective/doc-detective/commit/873b9acafd5b35bd013766676c271f23e88a9efa))
+
 # [4.15.0-next.5](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.4...v4.15.0-next.5) (2026-06-20)
 
 
