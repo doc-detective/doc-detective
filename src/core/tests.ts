@@ -1165,14 +1165,26 @@ async function runRoutedSpec({
     // A prior test stopped the spec: record every context SKIPPED with the
     // routing reason and move on without running anything.
     if (stopRest) {
+      // Mirror prepareContextSlot's contextId derivation INCLUDING the
+      // collision-suffix loop, so two contexts with the same base ("linux",
+      // no browser) don't get duplicate ids. (In practice the sizing pass has
+      // already assigned every contextId via prepareContextSlot, so the
+      // `if (!context.contextId)` guard rarely fires — but keep it consistent.)
+      const usedContextIds = new Set<string>(
+        test.contexts.map((c: any) => c.contextId).filter(Boolean)
+      );
       test.contexts.forEach((context: any, slot: number) => {
         if (!context.contextId) {
-          // Derive a stable id even for a skipped context so the report is
-          // comparable run-over-run (mirrors prepareContextSlot's derivation).
           const base =
             [context.platform, context.browser?.name].filter(Boolean).join("-") ||
             "default";
-          context.contextId = base;
+          let id = base;
+          let suffix = 2;
+          while (usedContextIds.has(id)) {
+            id = `${base}-${suffix++}`;
+          }
+          usedContextIds.add(id);
+          context.contextId = id;
         }
         testReport.contexts[slot] = {
           contextId: context.contextId,
@@ -1260,33 +1272,45 @@ async function runRoutedSpec({
     // Roll the test up (flow != verdict: this result is final and never altered
     // by routing) and resolve test-level routing for the next decision. Only
     // `$$platform` is meaningful at test scope.
+    // Roll the test up (flow != verdict: this result is final and never altered
+    // by routing). Phase-3 re-derives this identical value when tallying; we set
+    // it here so test-level routing can read the verdict.
     const testResult = rollUpResults(testReport.contexts.filter(Boolean));
     testReport.result = testResult;
-    const decision = await resolveTestRouting({
-      status: testResult as any,
-      test,
-      context: buildConditionContext({ platform }),
-    });
+    // Spec-guard skip SUBSUMES routing: a spec whose `if` was false never ran,
+    // so its tests are SKIPPED with the spec-guard reason and their onSkip
+    // handlers must NOT change flow (no stopRest, no deferred stop:run warning).
+    // Only evaluate test-level routing for a reached spec.
+    if (!specGuardSkip) {
+      const decision = await resolveTestRouting({
+        // rollUpResults returns a plain string; resolveTestRouting handles an
+        // unknown status defensively (-> continue), so the cast is safe.
+        status: testResult as any,
+        test,
+        context: buildConditionContext({ platform }),
+      });
 
-    if (decision.action === "stop") {
-      if (decision.scope === "spec") {
-        stopRest = true;
-      } else if (decision.scope === "run") {
-        // DEFER a true run-stop this phase: warn once and treat as spec.
-        if (!warnedRunStop) {
-          log(
-            config,
-            "warning",
-            `Test '${test.testId}': routing requested 'stop: run', which is not yet implemented at test scope — treating it as 'stop: spec' (stopping this spec's remaining tests).`
-          );
-          warnedRunStop = true;
+      if (decision.action === "stop") {
+        if (decision.scope === "spec") {
+          stopRest = true;
+        } else if (decision.scope === "run") {
+          // DEFER a true run-stop this phase: warn once PER SPEC (the flag is
+          // scoped to this runRoutedSpec call) and treat as spec.
+          if (!warnedRunStop) {
+            log(
+              config,
+              "warning",
+              `Test '${test.testId}': routing requested 'stop: run', which is not yet implemented at test scope — treating it as 'stop: spec' (stopping this spec's remaining tests).`
+            );
+            warnedRunStop = true;
+          }
+          stopRest = true;
         }
-        stopRest = true;
+        // scope === "test": no-op — the test already finished; continue to the
+        // next test (this is the FAIL default, byte-identical to the flat path).
       }
-      // scope === "test": no-op — the test already finished; continue to the
-      // next test (this is the FAIL default, byte-identical to the flat path).
+      // continue (and stubbed goToTest -> default) just advance to the next test.
     }
-    // continue (and stubbed goToTest -> default) just advance to the next test.
     i++;
   }
 }
@@ -1593,7 +1617,8 @@ type ContextSlotResult =
  * Mutates `context` in place (contextId, steps, browser) exactly as the original
  * inline code did — idempotent, so the routed sequencer can call it per visit.
  * `onAutoRecord` is invoked when a synthetic autoRecord step is injected (the
- * caller flips the run-level `autoRecordInjected` flag used for sizing).
+ * caller uses it — via `markAutoRecord` — to set the run-level
+ * `autoRecordFlag.injected` used for ffmpeg-overlap sizing).
  */
 function prepareContextSlot({
   config,

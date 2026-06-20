@@ -1706,4 +1706,72 @@ describe("getRunner() function", function () {
       fs.unlinkSync(tempFilePath);
     }
   });
+
+  it("spec-guard skip subsumes test routing (onSkip stop does NOT fire)", async () => {
+    // A ROUTED spec (testA has onSkip) whose spec-level guard is false. The spec
+    // never runs, so test routing must NOT be evaluated: every test is SKIPPED
+    // with the SPEC-GUARD reason, not the routing "a prior test stopped" reason.
+    const guardSpec = {
+      if: "$$platform == nonexistentos", // always false -> spec-guard skip
+      tests: [
+        {
+          testId: "a",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+          onSkip: [{ stop: "spec" }],
+        },
+        { testId: "b", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-test-specguard.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      for (const test of tests) {
+        for (const ctx of test.contexts) {
+          assert.equal(ctx.result, "SKIPPED");
+          // Spec-guard reason, NOT the routing stop reason.
+          assert.match(ctx.resultDescription, /spec guard `if` condition not met/);
+          assert.doesNotMatch(ctx.resultDescription, /prior test stopped/);
+        }
+      }
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("test-level stop:run is deferred -> treated as stop:spec (remaining tests SKIPPED)", async () => {
+    // stop:run is not yet implemented at test scope; it warns once and halts the
+    // spec's remaining tests (same as stop:spec). testA FAILs+stop:run -> testB
+    // SKIPPED with the routing reason; verdict FAIL.
+    const t = {
+      tests: [
+        {
+          testId: "a",
+          steps: [{ runShell: "node -e \"process.exit(1)\"" }],
+          onFail: [{ stop: "run" }],
+        },
+        { testId: "b", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-test-stoprun.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      assert.equal(tests[0].result, "FAIL");
+      assert.equal(tests[1].result, "SKIPPED");
+      assert.match(tests[1].contexts[0].resultDescription, /prior test stopped the spec/);
+      assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
 });
