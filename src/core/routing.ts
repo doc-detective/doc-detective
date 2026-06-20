@@ -377,8 +377,8 @@ interface RetrySpec {
  * The control-flow decision produced by resolving a step's routing handler.
  * `continue` runs the next step; `stop` halts the unit at the given scope;
  * `retry` re-runs the step (the runtime loops, then re-resolves with
- * `skipRetry` to get the terminal decision). (`goToStep`/`goToTest` are
- * deferred to later phases.)
+ * `skipRetry` to get the terminal decision); `goToStep` jumps execution to the
+ * step with the given stepId. (`goToTest` is deferred to a later phase.)
  */
 type RoutingDecision =
   | { action: "continue" }
@@ -388,7 +388,8 @@ type RoutingDecision =
       limit: number;
       delay: number;
       backoff: "fixed" | "exponential";
-    };
+    }
+  | { action: "goToStep"; stepId: string };
 
 // One routing entry as authored: an optional `if` selector plus exactly one
 // action.
@@ -427,7 +428,8 @@ const ROUTING_BY_STATUS: Record<
  *   - `{ stop: <scope> }`  -> `{ action: "stop", scope }`
  *   - `{ retry: {...} }`   -> `{ action: "retry", limit, delay, backoff }`
  *                             (delay defaults to 0, backoff to "fixed")
- *   - goToStep/goToTest (not implemented this phase) -> the status default
+ *   - `{ goToStep: <id> }` -> `{ action: "goToStep", stepId }`
+ *   - goToTest (not implemented this phase) -> the status default
  *
  * If the handler is absent/empty or no entry matches, the status DEFAULT is
  * returned. Defaults reproduce today's behavior (FAIL stops the test; PASS,
@@ -494,9 +496,14 @@ async function resolveStepRouting(args: {
         backoff: retry.backoff ?? "fixed",
       };
     }
-    // Matched, but the action isn't implemented this phase
-    // (goToStep/goToTest). Treat as the status default and stop scanning — a
-    // later entry must not override an already-matched selector.
+    if (typeof entry.goToStep === "string" && entry.goToStep.trim() !== "") {
+      // Return the trimmed id so `goToStep: "target "` matches the step `target`
+      // rather than failing as an unknown target on incidental whitespace.
+      return { action: "goToStep", stepId: entry.goToStep.trim() };
+    }
+    // Matched, but the action isn't implemented this phase (goToTest). Treat as
+    // the status default and stop scanning — a later entry must not override an
+    // already-matched selector.
     return fallback;
   }
   // No entry matched.
