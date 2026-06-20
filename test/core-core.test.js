@@ -8,14 +8,8 @@ const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 
 describe("Run tests successfully", function () {
-  // 60 minutes for the combined core test suite (runs all specs in one Appium
-  // session). Local runtime is ~9 min; slow CI runners (observed: macOS-latest
-  // node 22) run 2-3x slower with extra browser/Appium startup variance. The
-  // former 30-min cap left almost no margin and fired intermittently, killing
-  // the run mid-suite (surfaces as a timeout abort). 60 min is ~6x local
-  // runtime — comfortable headroom on a 3x-slow runner — and stays well under
-  // the 90-min GitHub job timeout-minutes backstop in .github/workflows/test.yml.
-  this.timeout(3600000);
+  // 30 minutes for the combined core test suite (runs all specs in one Appium session)
+  this.timeout(1800000);
   describe("Core test suite", function () {
     // Run all spec files in a single runTests() call to avoid repeated Appium restarts.
     // This starts Appium once and runs all specs within that session.
