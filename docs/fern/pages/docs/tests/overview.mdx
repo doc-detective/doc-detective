@@ -352,9 +352,9 @@ The `retry` action re-runs a step when its result matches the handler. Use it fo
 
 Set `retry` to an object with a `limit`, plus an optional `delay` and `backoff`:
 
-- **`limit`**: The maximum number of retries. This counts re-runs after the first attempt, so a `limit` of `2` allows up to three runs in total. Required, and must be at least `1`.
-- **`delay`**: How long to wait before each retry, in milliseconds. Defaults to `0` (no wait), with a maximum of `3600000` (one hour).
-- **`backoff`**: How the delay grows between retries. Set it to `fixed` to wait the same `delay` before every retry, or `exponential` to double the wait each time (`delay`, then `delay × 2`, then `delay × 4`, and so on). Defaults to `fixed`.
+- **`limit`**: The maximum number of retries. This counts re-runs after the first attempt, so a `limit` of `2` allows up to three runs total. Required, and must be between `1` and `100`.
+- **`delay`**: How long to wait before each retry, in milliseconds. Defaults to `0` (no wait), up to a maximum of `3600000` (one hour).
+- **`backoff`**: How the delay grows between retries. Use `fixed` to wait the same `delay` before every retry, or `exponential` to double the wait each time (`delay`, then `delay × 2`, then `delay × 4`, and so on). Defaults to `fixed`. No matter how many retries you allow, the computed wait never exceeds the one-hour maximum.
 
 When the result matches, Doc Detective re-runs the whole step—including its assertions—up to `limit` times, waiting `delay` between attempts. It stops as soon as the result no longer matches the handler. If a retry passes, the step passes.
 
