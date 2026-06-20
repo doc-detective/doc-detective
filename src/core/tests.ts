@@ -2,10 +2,13 @@ import kill from "tree-kill";
 // webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
 // site so the shim's CLI startup doesn't pay its ~50MB load cost when the
 // user is only running e.g. install-agents or install status. The type
-// reference uses `typeof import('webdriverio')` directly at the call site
-// so we don't carry a top-level `import type` whose `typeof` would refer
-// to a non-runtime identifier.
+// reference uses a minimal LOCAL declaration (WdioModule from ./tests/wdioTypes)
+// rather than `typeof import('webdriverio')`, so `tsc` does not require the
+// optional package on disk — webdriverio is an optionalDependency that npm may
+// skip on a CI runner, and a hard compile-time type reference would otherwise
+// turn that skipped install into an intermittent build failure.
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import type { WdioModule } from "./tests/wdioTypes.js";
 import {
   requiredBrowserAssets,
   ensureBrowserInstalled,
@@ -2334,10 +2337,7 @@ async function driverStart(
   // creation failure and propagates immediately.
   const TRANSIENT =
     /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
-  const wdio = await loadHeavyDep<typeof import("webdriverio")>(
-    "webdriverio",
-    { ctx }
-  );
+  const wdio = await loadHeavyDep<WdioModule>("webdriverio", { ctx });
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
