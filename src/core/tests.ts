@@ -65,7 +65,12 @@ import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
-import { evaluateCustomAssertions } from "./routing.js";
+import {
+  evaluateCustomAssertions,
+  evaluateGuard,
+  guardReferencesSteps,
+  buildConditionContext,
+} from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -630,6 +635,28 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // across the run, and all registration now happens up front — an
     // overwrite here would wipe an earlier spec's registered tests.
     metaValues.specs[spec.specId] ??= { tests: {} };
+    // Spec-level guard `if`: evaluated once against the host platform. Tests
+    // aren't sequenced relative to each other, so cross-test `$$outputs`/
+    // `$$steps` are not meaningful here — only `$$platform` (plus any meta
+    // `buildConditionContext` exposes). Fails CLOSED (unresolvable -> false).
+    // When false, every test/context in this spec is recorded SKIPPED below and
+    // no job is enqueued. Fully gated on `spec.if` presence: a spec with no
+    // `if` is byte-identical (no evaluation, `specGuardSkip` stays false).
+    let specGuardSkip = false;
+    if (spec.if) {
+      if (guardReferencesSteps(spec.if)) {
+        log(
+          config,
+          "warning",
+          `Spec '${spec.specId}': 'if' references '$$steps.*', which is not available at spec scope — the guard will always fail closed (the spec is always skipped). Use '$$steps.*' only in step-level 'if'.`
+        );
+      }
+      const guardPassed = await evaluateGuard(
+        spec.if,
+        buildConditionContext({ platform })
+      );
+      specGuardSkip = !guardPassed;
+    }
     const specReport: any = {
       specId: spec.specId,
       description: spec.description,
@@ -648,17 +675,44 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
+      // Test-level guard `if`: evaluated once against the host platform, same
+      // semantics as the spec-level guard (only `$$platform`/meta meaningful;
+      // fails CLOSED). When false, every context of this test is recorded
+      // SKIPPED below and no job is enqueued. Skipped entirely when the spec
+      // guard already skips this spec (a spec-guard skip subsumes all its
+      // tests). Fully gated on `test.if` presence: a test with no `if` is
+      // byte-identical (no evaluation, `testGuardSkip` stays false).
+      let testGuardSkip = false;
+      if (!specGuardSkip && test.if) {
+        if (guardReferencesSteps(test.if)) {
+          log(
+            config,
+            "warning",
+            `Test '${test.testId}': 'if' references '$$steps.*', which is not available at test scope — the guard will always fail closed (the test is always skipped). Use '$$steps.*' only in step-level 'if'.`
+          );
+        }
+        const guardPassed = await evaluateGuard(
+          test.if,
+          buildConditionContext({ platform })
+        );
+        testGuardSkip = !guardPassed;
+      }
       // Preflight: a `record` step that reuses a recording `name` while one is
       // still active makes a later `stopRecord: "<name>"` ambiguous. Catch it
       // statically and skip the whole test (across all its contexts) with a
       // warning, rather than failing mid-run. Scan every context's authored
       // steps (runOn overrides can differ) and skip if any conflicts.
+      // Skip the scan when a guard already skips this test/spec — the test
+      // won't run, and the guard skip takes precedence over the conflict skip
+      // (so we also suppress the conflict warning for a guarded-out test).
       let recordingNameConflict: string | null = null;
-      for (const c of test.contexts) {
-        const conflict = detectRecordingNameConflict(c?.steps);
-        if (conflict) {
-          recordingNameConflict = conflict;
-          break;
+      if (!specGuardSkip && !testGuardSkip) {
+        for (const c of test.contexts) {
+          const conflict = detectRecordingNameConflict(c?.steps);
+          if (conflict) {
+            recordingNameConflict = conflict;
+            break;
+          }
         }
       }
       if (recordingNameConflict) {
@@ -693,6 +747,36 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           }
           usedContextIds.add(id);
           context.contextId = id;
+        }
+        // Spec-level guard skip: record a SKIPPED context and don't enqueue a
+        // job. Highest precedence — a false spec guard subsumes test guards and
+        // the recording-name preflight (no test in the spec runs).
+        if (specGuardSkip) {
+          testReport.contexts[slot] = {
+            contextId: context.contextId,
+            platform: context.platform,
+            browser: context.browser,
+            result: "SKIPPED",
+            resultDescription:
+              "Skipped: spec guard `if` condition not met.",
+            steps: [],
+          };
+          return;
+        }
+        // Test-level guard skip: record a SKIPPED context and don't enqueue a
+        // job. Takes precedence over the recording-name preflight (the test is
+        // skipped wholesale regardless of its step contents).
+        if (testGuardSkip) {
+          testReport.contexts[slot] = {
+            contextId: context.contextId,
+            platform: context.platform,
+            browser: context.browser,
+            result: "SKIPPED",
+            resultDescription:
+              "Skipped: test guard `if` condition not met.",
+            steps: [],
+          };
+          return;
         }
         // Preflight conflict: record a SKIPPED context and don't enqueue a job.
         if (recordingNameConflict) {
@@ -1673,6 +1757,11 @@ async function runContext({
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
+    // Per-step outputs accumulator: maps each completed step's stepId to its
+    // computed `outputs` bag, so later steps' guard `if` conditions can read a
+    // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
+    // bookkeeping local to this context — it does not change any existing path.
+    const stepOutputsById: Record<string, any> = {};
     for (const [stepIndex, step] of context.steps.entries()) {
       // Set step id if not defined. Derived from the test ID and a hash of
       // the step's authored definition so the same step keeps the same ID
@@ -1718,6 +1807,30 @@ async function runContext({
         };
         contextReport.steps.push(stepReport);
         continue;
+      }
+
+      // Step-level guard `if`: evaluated BEFORE the action runs. The guard sees
+      // `$$platform` and prior steps' outputs via `$$steps.<stepId>.outputs.*`
+      // (the current step's own `$$outputs.*` is NOT available — it hasn't run
+      // yet). `if` is `string | string[]` (array = AND, all must be truthy) and
+      // fails CLOSED (an unresolvable `$$` -> false). When the guard is not all
+      // true the step is SKIPPED: the action is NOT run, and this does NOT trip
+      // `stepExecutionFailed`, so later steps still run.
+      if (step.if) {
+        const guardContext = buildConditionContext({
+          platform: context.platform,
+          steps: stepOutputsById,
+        });
+        const guardPassed = await evaluateGuard(step.if, guardContext);
+        if (!guardPassed) {
+          const stepReport = {
+            ...step,
+            result: "SKIPPED",
+            resultDescription: "Skipped: guard `if` condition not met.",
+          };
+          contextReport.steps.push(stepReport);
+          continue;
+        }
       }
 
       // Set meta values
@@ -1776,6 +1889,20 @@ async function runContext({
       }
 
       contextReport.steps.push(stepReport);
+
+      // Record this step's outputs so later steps' guard `if` conditions can
+      // read them via `$$steps.<stepId>.outputs.*`. Shaped as the
+      // buildConditionContext `steps` entry ({ outputs }). Only reached for
+      // steps that actually ran — a guard-skipped step `continue`s before
+      // here, so its stepId is never recorded, and a downstream guard
+      // referencing it fails closed (and is itself skipped). A FAILed step's
+      // outputs ARE recorded here (this runs before the stepExecutionFailed
+      // flag is set), but that is harmless: stepExecutionFailed makes every
+      // subsequent step short-circuit before its guard, so no downstream guard
+      // ever reads them.
+      if (step.stepId) {
+        stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
+      }
 
       // If this step failed, set flag to skip remaining steps
       if (stepReport.result === "FAIL") {
