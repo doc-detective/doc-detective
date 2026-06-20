@@ -19,7 +19,11 @@ export { typeKeys };
 // saveScreenshot.ts. The modifier entries (Ctrl/Command/…) are webdriverio
 // sentinels that driver.keys() interprets per-platform — we must use the real
 // export, not hardcoded WebDriver code points.
-type WdioModule = typeof import("webdriverio");
+//
+// The type is a minimal LOCAL declaration (see wdioTypes.ts), not
+// `typeof import("webdriverio")`, so `tsc` does not require the optional package
+// on disk — the runtime still loads the real module via loadHeavyDep.
+import type { WdioModule } from "./wdioTypes.js";
 
 let _specialKeyMap: Record<string, string> | null = null;
 
