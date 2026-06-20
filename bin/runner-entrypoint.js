@@ -571,6 +571,17 @@ async function main() {
 	// .unref() — the timer alone shouldn't keep the event loop alive.
 	selfKill.unref();
 
+	// Track the currently-armed self-kill timer so we can disarm it on every
+	// exit path. The watchdog exists only to bound a *hung* run; once main()
+	// returns there is nothing left to bound, so the timer must be cleared.
+	// If we don't, an in-process caller (e.g. the test suite, which calls
+	// `await main()` directly) leaves an unref'd `process.exit(124)` pending.
+	// It's unref'd so it won't keep the loop alive on its own, but if the
+	// host process is still alive when it fires, it kills the whole process.
+	// The re-arm path below repoints this reference at the replacement timer.
+	let activeSelfKill = selfKill;
+	try {
+
 	let canceledBySignal = false;
 	let childRunning = false;
 	const onPreSpawnSigterm = async () => {
@@ -633,6 +644,9 @@ async function main() {
 			process.exit(124);
 		}, specTimeout * 1000);
 		respec.unref();
+		// Repoint the tracked reference so the finally below clears the
+		// timer that's actually armed, not the original (already-cleared) one.
+		activeSelfKill = respec;
 	}
 
 	const shipper = makeLogShipper(apiBase, runId, token);
@@ -724,6 +738,17 @@ async function main() {
 	}
 	await postFinalize(apiBase, runId, token, finalizeBody);
 	return exitCode;
+
+	} finally {
+		// Disarm the self-kill watchdog on every exit path (normal return or
+		// throw). main() has finished, so the run is no longer "hung" — there's
+		// nothing left for the watchdog to bound. Leaving it armed would let a
+		// pending process.exit(124) fire later inside any still-alive host
+		// process (notably the in-process test runner). Clearing here keeps
+		// production behavior identical: when run as a script the process exits
+		// immediately after main() resolves anyway.
+		clearTimeout(activeSelfKill);
+	}
 }
 
 // Module-import guard so the test file can `import` from this module
