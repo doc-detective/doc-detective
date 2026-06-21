@@ -147,6 +147,64 @@ The output JSON shows the WARNING status:
 
 This lets you catch and review unexpected changes while your test suite continues running.
 
+## Custom assertions
+
+Every step is already an implicit assertion: if its action fails, the step fails. To check more than the action's built-in result, add custom assertions with the step-level `assertions` field. Doc Detective evaluates them after the action runs and folds the results into the step's status.
+
+An assertion is a condition expression that resolves to true or false. Set `assertions` to a single expression or to an array of expressions. When you provide an array, every expression must pass (logical AND):
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Run a command and assert on its output.",
+          "runShell": {
+            "command": "node -e \"console.log('hello world')\""
+          },
+          "assertions": [
+            "$$outputs.exitCode == 0",
+            "$$outputs.stdio.stdout contains \"hello\""
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Reference the step's outputs
+
+Custom assertions read the current step's outputs through the `$$outputs.*` namespace, plus `$$platform` for the current operating system (`linux`, `mac`, or `windows`). The available outputs depend on the action. For example, `runShell` and `runCode` expose `$$outputs.exitCode` and `$$outputs.stdio`, while `checkLink` exposes `$$outputs.statusCode`. To find out what an action produces, see its reference.
+
+Expressions support the comparison operators `==`, `!=`, `>`, `>=`, `<`, and `<=`, along with the word operators `contains`, `oneOf`, and `matches`:
+
+```json
+{
+  "assertions": [
+    "$$outputs.exitCode oneOf [0, 1]",
+    "$$platform != windows"
+  ]
+}
+```
+
+<Note>
+Custom assertions use the `$$outputs.*` namespace, which is distinct from the bare `$$name` expressions you use to set the step-level `variables` and `outputs` objects.
+</Note>
+
+### How custom assertions affect step status
+
+A step passes only when both its implicit and custom assertions pass. Custom assertions can add a failure, but they can't rescue a step that already failed:
+
+- If the action's implicit check fails, Doc Detective skips the custom assertions and the step stays FAIL.
+- If the action produces no result to assert on—because it was deliberately skipped (for example, `wait: false`) or it errored before producing a result—Doc Detective skips the custom assertions and the step keeps its original status.
+- An expression that can't be resolved fails closed, so the assertion fails and the step fails.
+
+<Note>
+Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported yet. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
+</Note>
+
 ## Define a test
 
 You can define test specs in multiple ways:
