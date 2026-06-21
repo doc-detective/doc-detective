@@ -270,7 +270,7 @@ Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that
 
 ## Routing handlers
 
-By default, a step's result decides what happens next: a step that passes—or produces a WARNING, or is SKIPPED—continues to the next step, while a step that fails stops the test. Routing handlers let you override that decision per step. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a step to control whether the test keeps running after that step's result. A step without routing handlers behaves exactly as it does today, so adding handlers never changes existing behavior.
+By default, a step's result decides what happens next: a step that passes—or produces a WARNING, or is SKIPPED—continues to the next step, while a step that fails stops the test. Routing handlers let you override that decision. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a step to control whether the test keeps running after that step's result, or to a test to control whether the spec keeps running after that test's result. A step or test without routing handlers behaves exactly as it does today, so adding handlers never changes existing behavior. The sections below describe step-level routing; for test-level routing, see [Route between tests](#route-between-tests).
 
 Each handler is an array of routing entries. An entry has an optional `if` condition plus exactly one action. When the step's result selects a handler, Doc Detective evaluates the entries in order, and the first entry whose `if` matches wins. An entry with no `if` always matches. The `if` condition uses the same expressions as [conditional execution](#conditional-execution) and [custom assertions](#custom-assertions): set it to a single expression or to an array of expressions that must all be true (logical AND). An unresolvable condition fails closed, so the entry doesn't match.
 
@@ -345,7 +345,7 @@ Because the first matching entry wins, order your entries from most specific to 
 
 ### Stop scope
 
-At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but propagating those scopes to skip later tests or specs isn't supported yet. If you set `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test.
+At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` can't yet propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests).
 
 ### Retry a step
 
@@ -462,8 +462,58 @@ If `goToStep` names a `stepId` that doesn't exist in the test, Doc Detective tre
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number—`2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
 <Note>
-The `goToTest` action is valid in routing entries but isn't active yet. A matching entry that uses it falls back to the default for the step's result, so it behaves as if no handler matched.
+The `goToTest` action is valid in routing entries but isn't active yet, at either the step or test level. A matching entry that uses it falls back to the default for the result, so it behaves as if no handler matched.
 </Note>
+
+## Route between tests
+
+Routing handlers work at the test level too. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a test, and once that test finishes, Doc Detective evaluates the matching handler against the test's overall result to decide whether the spec keeps running. Test-level handlers use the same entry shape as step-level handlers—an array of entries, each with an optional `if` condition and exactly one action, where the first entry whose `if` matches wins. Because tests don't run in sequence relative to one another, only `$$platform` is meaningful in a test-level `if`.
+
+At the test level, the available actions are `continue` and `stop`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. `goToTest` is reserved for jumping to another test but isn't active yet, so it falls back to the default as well.
+
+`stop` behaves differently at the test level, because the test has already finished by the time its handler runs:
+
+- **`stop: test`** is a no-op. The test already completed, so there's nothing left to stop, and the spec continues with the next test. This is the default when a test fails, which is why a failing test doesn't stop its siblings.
+- **`stop: spec`** halts the spec's remaining tests. Doc Detective records each remaining test as SKIPPED and moves on without running it.
+- **`stop: run`** isn't supported yet. Doc Detective logs a warning and falls back to `stop: spec`, stopping the current spec's remaining tests.
+
+As with step-level routing, test-level routing controls flow only—it never changes a result. A test that fails and routes `continue` stays FAIL, the following tests still run, and the spec still rolls up to FAIL. Adding a routing handler to a test opts its spec into deterministic, in-order test execution; a spec whose tests have no routing handlers runs exactly as it does today.
+
+A spec-level `if` guard takes precedence over test-level routing. When a spec's `if` condition isn't met, Doc Detective skips the whole spec and records every test as SKIPPED without evaluating their routing handlers, so a test's `onSkip` handler doesn't run in that case.
+
+The following test stops the rest of its spec when it fails, skipping the tests that follow:
+
+```json
+{
+  "tests": [
+    {
+      "testId": "smoke",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./smoke-test.sh"
+          }
+        }
+      ],
+      "onFail": [
+        {
+          "stop": "spec"
+        }
+      ]
+    },
+    {
+      "testId": "regression",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./regression-suite.sh"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Define a test
 
