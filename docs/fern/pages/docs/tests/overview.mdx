@@ -479,6 +479,8 @@ At the test level, the available actions are `continue` and `stop`. The `retry` 
 
 As with step-level routing, test-level routing controls flow only—it never changes a result. A test that fails and routes `continue` stays FAIL, the following tests still run, and the spec still rolls up to FAIL. Adding a routing handler to a test opts its spec into deterministic, in-order test execution; a spec whose tests have no routing handlers runs exactly as it does today.
 
+A spec-level `if` guard takes precedence over test-level routing. When a spec's `if` condition isn't met, Doc Detective skips the whole spec and records every test as SKIPPED without evaluating their routing handlers, so a test's `onSkip` handler doesn't run in that case.
+
 The following test stops the rest of its spec when it fails, skipping the tests that follow:
 
 ```json
