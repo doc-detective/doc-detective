@@ -644,7 +644,7 @@ export const HINTS: Hint[] = [
       "{ \"httpRequest\": \"https://api.example.com/data\", \"onFail\": [{ \"retry\": { \"limit\": 3, \"delay\": 1000, \"backoff\": \"exponential\" } }] }",
       "```",
       "",
-      "Retry never changes the verdict — if the upstream is still erroring after the retries, the step still fails, so a real outage isn't masked.",
+      "The same `onFail` retry works on a `checkLink` step. Retry never changes the verdict — if the upstream is still erroring after the retries, the step still fails, so a real outage isn't masked.",
     ].join("\n"),
     when: (ctx) => ctx.failedTransientRequest && !ctx.usedRetry,
   },

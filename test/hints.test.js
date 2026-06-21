@@ -654,13 +654,16 @@ describe("hints/context", function () {
       expect(custom.usedCustomAssertions).to.equal(true);
     });
 
-    it("usedRetry is true when a routing handler carries a retry entry", function () {
-      const withRetry = walkResults({
-        specs: [{ tests: [{ contexts: [{ steps: [
-          { find: "Submit", onFail: [{ retry: { limit: 2 } }] },
-        ] }] }] }],
-      });
-      expect(withRetry.usedRetry).to.equal(true);
+    it("usedRetry is true when any routing handler carries a retry entry", function () {
+      // Detection iterates all four handler keys, not just onFail.
+      for (const key of ["onPass", "onFail", "onWarning", "onSkip"]) {
+        const data = walkResults({
+          specs: [{ tests: [{ contexts: [{ steps: [
+            { find: "Submit", [key]: [{ retry: { limit: 2 } }] },
+          ] }] }] }],
+        });
+        expect(data.usedRetry, `retry in ${key}`).to.equal(true);
+      }
       // A non-retry handler (continue/stop/goToStep) does not count.
       const noRetry = walkResults({
         specs: [{ tests: [{ contexts: [{ steps: [
