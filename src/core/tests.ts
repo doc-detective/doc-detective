@@ -73,10 +73,11 @@ import {
   evaluateGuard,
   guardReferencesSteps,
   resolveStepRouting,
+  resolveTestRouting,
   computeRetryDelay,
   buildConditionContext,
 } from "./routing.js";
-import type { RoutingDecision } from "./routing.js";
+import type { RoutingDecision, StepRoutingStatus } from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -105,6 +106,7 @@ export {
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
+  specIsRouted,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -631,10 +633,27 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // matches input order, no matter what order concurrent contexts finish in.
   log(config, "info", "Running test specs.");
   const jobs: any[] = [];
+  // ROUTED specs (any test carries a non-empty test-level routing handler) are
+  // executed by the sequential `runRoutedSpec` sequencer AFTER the flat pool,
+  // not via `jobs[]`. They are collected here in input order with their already
+  // pushed (empty) specReport and resolved spec-guard skip flag. NON-routed
+  // specs (every spec today) take the unchanged flat-pool path below, byte for
+  // byte. `routedSizingJobs` holds job-shaped descriptors for every routed
+  // context — used ONLY to size the Appium pool / recording concurrency / warm
+  // up alongside the flat jobs; the sequencer re-prepares each context at
+  // execution time and never runs these descriptors.
+  const routedSpecs: Array<{ spec: any; specReport: any; specGuardSkip: boolean }> =
+    [];
+  const routedSizingJobs: any[] = [];
   // Set when at least one context gets a synthetic autoRecord (ffmpeg) step.
   // It opts the run into overlapping ffmpeg captures (parallel anyway) rather
   // than the safe-serial default reserved for explicit-only ffmpeg recordings.
-  let autoRecordInjected = false;
+  // A holder object so the shared prepareContextSlot helper can flip it from
+  // either path.
+  const autoRecordFlag = { injected: false };
+  const markAutoRecord = () => {
+    autoRecordFlag.injected = true;
+  };
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
     // Create-if-missing: specIds (and testIds) aren't guaranteed unique
@@ -670,6 +689,54 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       tests: [],
     };
     report.specs.push(specReport);
+
+    const routed = specIsRouted(spec);
+    if (routed) {
+      // ROUTED spec: defer test execution to the sequencer. Phase-1 only
+      // registers the spec (order-preserving specReport pushed above) and sizes
+      // its contexts. The sequencer (runRoutedSpec) builds the per-test
+      // testReports, applies the same per-test/per-context preflight via the
+      // shared helpers, runs the contexts, and evaluates test-level routing
+      // between tests. specGuardSkip is carried so the sequencer can record
+      // spec-guard SKIPPED contexts without entering the routing loop.
+      routedSpecs.push({ spec, specReport, specGuardSkip });
+      // Sizing only: prepare each context (idempotent — the sequencer re-runs
+      // the identical helper at execution time) so the Appium pool, recording
+      // concurrency, and warm-up account for routed driver contexts too.
+      for (const test of spec.tests) {
+        const { testGuardSkip, recordingNameConflict, usedContextIds } =
+          await prepareTestPreflight({
+            config,
+            spec,
+            test,
+            specGuardSkip,
+            platform,
+          });
+        test.contexts.forEach((context: any, slot: number) => {
+          const result = prepareContextSlot({
+            config,
+            spec,
+            test,
+            context,
+            slot,
+            usedContextIds,
+            specGuardSkip,
+            testGuardSkip,
+            recordingNameConflict,
+            runnerDetails,
+            contexts: new Array(test.contexts.length),
+            onAutoRecord: markAutoRecord,
+          });
+          if (result.kind === "job") routedSizingJobs.push(result.job);
+        });
+      }
+      continue;
+    }
+
+    // NON-ROUTED spec: the unchanged flat-pool path. Builds testReports, runs
+    // the same per-test/per-context preflight via the shared helpers, and pushes
+    // runnable contexts to the flat `jobs[]`. Output is byte-identical to the
+    // pre-routing runner.
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.testId}`);
       metaValues.specs[spec.specId].tests[test.testId] ??= { contexts: {} };
@@ -681,149 +748,34 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
-      // Test-level guard `if`: evaluated once against the host platform, same
-      // semantics as the spec-level guard (only `$$platform`/meta meaningful;
-      // fails CLOSED). When false, every context of this test is recorded
-      // SKIPPED below and no job is enqueued. Skipped entirely when the spec
-      // guard already skips this spec (a spec-guard skip subsumes all its
-      // tests). Fully gated on `test.if` presence: a test with no `if` is
-      // byte-identical (no evaluation, `testGuardSkip` stays false).
-      let testGuardSkip = false;
-      if (!specGuardSkip && test.if) {
-        if (guardReferencesSteps(test.if)) {
-          log(
-            config,
-            "warning",
-            `Test '${test.testId}': 'if' references '$$steps.*', which is not available at test scope — the guard will always fail closed (the test is always skipped). Use '$$steps.*' only in step-level 'if'.`
-          );
-        }
-        const guardPassed = await evaluateGuard(
-          test.if,
-          buildConditionContext({ platform })
-        );
-        testGuardSkip = !guardPassed;
-      }
-      // Preflight: a `record` step that reuses a recording `name` while one is
-      // still active makes a later `stopRecord: "<name>"` ambiguous. Catch it
-      // statically and skip the whole test (across all its contexts) with a
-      // warning, rather than failing mid-run. Scan every context's authored
-      // steps (runOn overrides can differ) and skip if any conflicts.
-      // Skip the scan when a guard already skips this test/spec — the test
-      // won't run, and the guard skip takes precedence over the conflict skip
-      // (so we also suppress the conflict warning for a guarded-out test).
-      let recordingNameConflict: string | null = null;
-      if (!specGuardSkip && !testGuardSkip) {
-        for (const c of test.contexts) {
-          const conflict = detectRecordingNameConflict(c?.steps);
-          if (conflict) {
-            recordingNameConflict = conflict;
-            break;
-          }
-        }
-      }
-      if (recordingNameConflict) {
-        log(
+      const { testGuardSkip, recordingNameConflict, usedContextIds } =
+        await prepareTestPreflight({
           config,
-          "warning",
-          `Skipping test '${test.testId}': recording name '${recordingNameConflict}' is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
-        );
-      }
-      // Track contextIds within this test so the deterministic fallback below
-      // can suffix collisions, mirroring resolveTests' deriveContextId.
-      const usedContextIds = new Set<string>(
-        test.contexts.map((c: any) => c.contextId).filter(Boolean)
-      );
-      test.contexts.forEach((context: any, slot: number) => {
-        // Derive a stable contextId from platform/browser when unset (the
-        // resolver normally assigns one) so the same context keeps the same
-        // ID across runs for comparison — `default` when neither is known,
-        // with an ordinal suffix on collision. No randomness, so two
-        // otherwise-identical runs produce identical reports. Normalized onto
-        // the context so runContext's metaValues keys and the report all read
-        // the same value.
-        if (!context.contextId) {
-          const base =
-            [context.platform, context.browser?.name]
-              .filter(Boolean)
-              .join("-") || "default";
-          let id = base;
-          let suffix = 2;
-          while (usedContextIds.has(id)) {
-            id = `${base}-${suffix++}`;
-          }
-          usedContextIds.add(id);
-          context.contextId = id;
-        }
-        // Spec-level guard skip: record a SKIPPED context and don't enqueue a
-        // job. Highest precedence — a false spec guard subsumes test guards and
-        // the recording-name preflight (no test in the spec runs).
-        if (specGuardSkip) {
-          testReport.contexts[slot] = {
-            contextId: context.contextId,
-            platform: context.platform,
-            browser: context.browser,
-            result: "SKIPPED",
-            resultDescription:
-              "Skipped: spec guard `if` condition not met.",
-            steps: [],
-          };
-          return;
-        }
-        // Test-level guard skip: record a SKIPPED context and don't enqueue a
-        // job. Takes precedence over the recording-name preflight (the test is
-        // skipped wholesale regardless of its step contents).
-        if (testGuardSkip) {
-          testReport.contexts[slot] = {
-            contextId: context.contextId,
-            platform: context.platform,
-            browser: context.browser,
-            result: "SKIPPED",
-            resultDescription:
-              "Skipped: test guard `if` condition not met.",
-            steps: [],
-          };
-          return;
-        }
-        // Preflight conflict: record a SKIPPED context and don't enqueue a job.
-        if (recordingNameConflict) {
-          testReport.contexts[slot] = {
-            contextId: context.contextId,
-            platform: context.platform,
-            browser: context.browser,
-            result: "SKIPPED",
-            resultDescription: `Skipped — recording name '${recordingNameConflict}' is reused while still active; names must be unique among overlapping recordings.`,
-            steps: [],
-          };
-          return;
-        }
-        // autoRecord: prepend a synthetic full-context ffmpeg recording step
-        // (even when the author also has explicit record steps — overlapping is
-        // intended). Done before the concurrency calc below so the synthetic
-        // ffmpeg recording is counted by jobIsFfmpegRecording.
-        if (resolveAutoRecord({ config, spec, test })) {
-          const autoStep = buildAutoRecordStep({ config, spec, test, context });
-          if (autoStep) {
-            // Idempotent: strip any prior synthetic step before prepending, so a
-            // resolved context that's reused (e.g. runSpecs invoked twice) can't
-            // accumulate duplicate autoRecord captures targeting the same file.
-            const authored = Array.isArray(context.steps)
-              ? context.steps.filter((s: any) => !s?.__autoRecord)
-              : [];
-            context.steps = [autoStep, ...authored];
-            autoRecordInjected = true;
-          }
-        }
-        // Auto-resolution: when a record step has no explicit engine and the
-        // user never chose a browser, prefer the concurrency-safe browser
-        // engine by coercing to headed Chrome (when available). Done here,
-        // before the concurrency calc below, so each job's engine is settled.
-        // Non-record contexts keep runContext's normal browser defaulting.
-        const coercedBrowser = coerceRecordContextBrowser({
-          context,
-          availableApps: runnerDetails.availableApps,
+          spec,
+          test,
+          specGuardSkip,
+          platform,
         });
-        if (coercedBrowser) context.browser = coercedBrowser;
-        jobs.push({ spec, test, context, contexts: testReport.contexts, slot });
+      test.contexts.forEach((context: any, slot: number) => {
+        const result = prepareContextSlot({
+          config,
+          spec,
+          test,
+          context,
+          slot,
+          usedContextIds,
+          specGuardSkip,
+          testGuardSkip,
+          recordingNameConflict,
+          runnerDetails,
+          contexts: testReport.contexts,
+          onAutoRecord: markAutoRecord,
+        });
+        if (result.kind === "skipped") {
+          testReport.contexts[slot] = result.contextReport;
+        } else {
+          jobs.push(result.job);
+        }
       });
     }
   }
@@ -837,7 +789,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Only ffmpeg-engine recordings need Xvfb; a browser-engine-only run
   // shouldn't pay for an `Xvfb -help` spawn. Contexts are already coerced
   // above, so resolveRecordPlan reflects the engine that will actually run.
-  const anyFfmpegRecording = jobs.some(jobIsFfmpegRecording);
+  // Sizing view: the flat (non-routed) jobs PLUS every routed context. Routed
+  // contexts execute in the sequencer, not the flat pool, but they still need
+  // the Appium pool / recording concurrency / warm-up to account for them.
+  // Execution stays split; only sizing reads this combined list.
+  const sizingJobs = jobs.concat(routedSizingJobs);
+  const anyFfmpegRecording = sizingJobs.some(jobIsFfmpegRecording);
   let xvfbAvailable = false;
   if (anyFfmpegRecording && process.platform === "linux") {
     xvfbAvailable = await checkSystemBinary("Xvfb");
@@ -847,7 +804,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // capture. If any explicit (author-written) record step would run as ffmpeg,
   // keep the safe serial default so those recordings aren't silently
   // parallelized (which would clobber each other on a shared display).
-  const hasExplicitFfmpegRecording = jobs.some((job: any) =>
+  const hasExplicitFfmpegRecording = sizingJobs.some((job: any) =>
     jobIsFfmpegRecording({
       context: {
         ...job.context,
@@ -859,10 +816,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   );
   const concurrency = computeEffectiveConcurrency({
     requestedLimit: limit,
-    jobs,
+    jobs: sizingJobs,
     platform: process.platform,
     xvfbAvailable,
-    allowOverlappingCaptures: autoRecordInjected && !hasExplicitFfmpegRecording,
+    allowOverlappingCaptures:
+      autoRecordFlag.injected && !hasExplicitFfmpegRecording,
   });
   limit = concurrency.limit;
   if (concurrency.forcedSerial) {
@@ -885,7 +843,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // distinct port, so parallel contexts never create sessions on the same
   // server — that contention crashed ChromeDriver when every context shared
   // one server. Non-driver runs start none.
-  const driverJobCount = jobs.filter((job: any) =>
+  const driverJobCount = sizingJobs.filter((job: any) =>
     isDriverRequired({ test: job.context })
   ).length;
   let appiumServers: Array<{ port: number; process: any; display?: string }> =
@@ -980,7 +938,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // extra driver start, byte-identical to before.
     if (limit > 1 && appiumPool) {
       await warmUpContexts({
-        jobs,
+        jobs: sizingJobs,
         config,
         runnerDetails,
         appiumPool,
@@ -1027,6 +985,30 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         };
       }
     });
+
+    // Routed specs: run sequentially AFTER the flat pool, reusing the same
+    // appiumPool / portToDisplay / metaValues / memo maps, inside this same
+    // try/finally so teardown always reaches the servers. Each spec's tests run
+    // in order with test-level routing evaluated between them. The sequencer
+    // only pushes reports onto the already-registered specReport — it never
+    // touches the summary (Phase-3 below remains the sole tally site).
+    for (const { spec, specReport, specGuardSkip } of routedSpecs) {
+      await runRoutedSpec({
+        spec,
+        specReport,
+        specGuardSkip,
+        config,
+        runnerDetails,
+        appiumPool,
+        portToDisplay,
+        metaValues,
+        installAttempts,
+        warmUpResults,
+        platform,
+        markAutoRecord,
+        limit,
+      });
+    }
 
     // Phase 3: roll results up the tree and count the summary in one
     // deterministic pass after all contexts have finished.
@@ -1094,6 +1076,241 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   }
 
   return report;
+}
+
+/**
+ * Sequencer for a single ROUTED spec (one whose `specIsRouted` is true). Runs
+ * the spec's tests in input order, evaluating test-level routing between them.
+ *
+ * The flat pool can't do this: tests there are flattened into one concurrent
+ * context pool with no ordering or between-test decision point. So a routed spec
+ * is pulled out and run here, sequentially, reusing the SAME appiumPool /
+ * portToDisplay / metaValues / memo maps and the SAME `runContext` (verbatim) —
+ * only the per-spec test loop and the routing decision are new.
+ *
+ * Per test it:
+ *   - builds a fresh testReport (appended to specReport.tests so report order
+ *     matches input order), then registers the test's metaValues slot;
+ *   - runs the SAME per-test/per-context preflight as the flat path (via
+ *     prepareTestPreflight + prepareContextSlot) so SKIPPED wordings, contextId
+ *     derivation, autoRecord injection, and browser coercion are identical;
+ *   - runs the runnable contexts via the same runConcurrent + crash-isolation
+ *     shape as the flat pool;
+ *   - rolls the contexts up to the test result (rollUpResults — flow != verdict,
+ *     never altered by routing) and resolves test-level routing.
+ *
+ * Test-scope `stop` semantics (what makes the FAIL default byte-identical):
+ *   - `stop:test`  -> NO-OP: the test already finished; just continue to the
+ *     next test. This is the FAIL default, so a FAILing test with no handler
+ *     does NOT stop its siblings — exactly like the flat pool.
+ *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
+ *   - `stop:run`   -> deferred this phase: warn once per spec and treat as `spec`.
+ *
+ * goToTest is stubbed to the status default (resolveTestRouting returns it), so
+ * a goToTest entry behaves as continue/stop-default this phase. The sequencer
+ * NEVER touches the summary — Phase-3 in runSpecs remains the sole tally site;
+ * here we only push reports.
+ */
+async function runRoutedSpec({
+  spec,
+  specReport,
+  specGuardSkip,
+  config,
+  runnerDetails,
+  appiumPool,
+  portToDisplay,
+  metaValues,
+  installAttempts,
+  warmUpResults,
+  platform,
+  markAutoRecord,
+  limit,
+}: {
+  spec: any;
+  specReport: any;
+  specGuardSkip: boolean;
+  config: any;
+  runnerDetails: any;
+  appiumPool:
+    | { acquire(): Promise<number>; release(port: number): void }
+    | undefined;
+  portToDisplay?: Map<number, string>;
+  metaValues: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
+  platform: string | undefined;
+  markAutoRecord: () => void;
+  limit: number;
+}): Promise<void> {
+  // Set once a `stop:spec` (or deferred `stop:run`) decision halts the spec; the
+  // remaining tests are recorded SKIPPED with the stop reason and not executed.
+  let stopRest = false;
+  // Warn only once per spec if a deferred `stop:run` is encountered.
+  let warnedRunStop = false;
+
+  let i = 0;
+  while (i < spec.tests.length) {
+    const test = spec.tests[i];
+    log(config, "debug", `TEST: ${test.testId}`);
+    metaValues.specs[spec.specId].tests[test.testId] ??= { contexts: {} };
+    const testReport: any = {
+      testId: test.testId,
+      description: test.description,
+      contentPath: test.contentPath,
+      detectSteps: test.detectSteps,
+      contexts: new Array(test.contexts.length),
+    };
+    specReport.tests.push(testReport);
+
+    // A prior test stopped the spec: record every context SKIPPED with the
+    // routing reason and move on without running anything.
+    if (stopRest) {
+      // Mirror prepareContextSlot's contextId derivation INCLUDING the
+      // collision-suffix loop, so two contexts with the same base ("linux",
+      // no browser) don't get duplicate ids. (In practice the sizing pass has
+      // already assigned every contextId via prepareContextSlot, so the
+      // `if (!context.contextId)` guard rarely fires — but keep it consistent.)
+      const usedContextIds = new Set<string>(
+        test.contexts.map((c: any) => c.contextId).filter(Boolean)
+      );
+      test.contexts.forEach((context: any, slot: number) => {
+        if (!context.contextId) {
+          const base =
+            [context.platform, context.browser?.name].filter(Boolean).join("-") ||
+            "default";
+          let id = base;
+          let suffix = 2;
+          while (usedContextIds.has(id)) {
+            id = `${base}-${suffix++}`;
+          }
+          usedContextIds.add(id);
+          context.contextId = id;
+        }
+        testReport.contexts[slot] = {
+          contextId: context.contextId,
+          platform: context.platform,
+          browser: context.browser,
+          result: "SKIPPED",
+          resultDescription:
+            "Skipped: a prior test stopped the spec (routing).",
+          steps: [],
+        };
+      });
+      i++;
+      continue;
+    }
+
+    // Same per-test/per-context preflight as the flat path.
+    const { testGuardSkip, recordingNameConflict, usedContextIds } =
+      await prepareTestPreflight({
+        config,
+        spec,
+        test,
+        specGuardSkip,
+        platform,
+      });
+
+    const contextJobs: any[] = [];
+    test.contexts.forEach((context: any, slot: number) => {
+      const result = prepareContextSlot({
+        config,
+        spec,
+        test,
+        context,
+        slot,
+        usedContextIds,
+        specGuardSkip,
+        testGuardSkip,
+        recordingNameConflict,
+        runnerDetails,
+        contexts: testReport.contexts,
+        onAutoRecord: markAutoRecord,
+      });
+      if (result.kind === "skipped") {
+        testReport.contexts[slot] = result.contextReport;
+      } else {
+        contextJobs.push(result.job);
+      }
+    });
+
+    // Run the runnable contexts with the same concurrency + crash-isolation
+    // shape as the flat pool. runContext is reused verbatim.
+    await runConcurrent(contextJobs, limit, async (job: any) => {
+      try {
+        job.contexts[job.slot] = await runContext({
+          config,
+          spec: job.spec,
+          test: job.test,
+          context: job.context,
+          runnerDetails,
+          appiumPool,
+          portToDisplay,
+          metaValues,
+          installAttempts,
+          warmUpResults,
+          logPrefix:
+            limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
+        });
+      } catch (error: any) {
+        const detail = error?.message ?? String(error);
+        log(
+          config,
+          "error",
+          `Context '${job.context.contextId}' crashed: ${detail}`
+        );
+        job.contexts[job.slot] = {
+          contextId: job.context.contextId,
+          platform: job.context.platform,
+          browser: job.context.browser,
+          result: "FAIL",
+          resultDescription: `Unexpected error: ${detail}`,
+          steps: [],
+        };
+      }
+    });
+
+    // Roll the test up (flow != verdict: this result is final and never altered
+    // by routing). Phase-3 re-derives this identical value when tallying; we set
+    // it here so test-level routing can read the verdict. Only `$$platform` is
+    // meaningful at test scope (tests aren't sequenced relative to each other).
+    const testResult = rollUpResults(testReport.contexts.filter(Boolean));
+    testReport.result = testResult;
+    // Spec-guard skip SUBSUMES routing: a spec whose `if` was false never ran,
+    // so its tests are SKIPPED with the spec-guard reason and their onSkip
+    // handlers must NOT change flow (no stopRest, no deferred stop:run warning).
+    // Only evaluate test-level routing for a reached spec.
+    if (!specGuardSkip) {
+      const decision = await resolveTestRouting({
+        // rollUpResults returns a plain string; resolveTestRouting handles an
+        // unknown status defensively (-> continue), so the narrowing cast is safe.
+        status: testResult as StepRoutingStatus,
+        test,
+        context: buildConditionContext({ platform }),
+      });
+
+      if (decision.action === "stop") {
+        if (decision.scope === "spec") {
+          stopRest = true;
+        } else if (decision.scope === "run") {
+          // DEFER a true run-stop this phase: warn once PER SPEC (the flag is
+          // scoped to this runRoutedSpec call) and treat as spec.
+          if (!warnedRunStop) {
+            log(
+              config,
+              "warning",
+              `Test '${test.testId}': routing requested 'stop: run', which is not yet implemented at test scope — treating it as 'stop: spec' (stopping this spec's remaining tests).`
+            );
+            warnedRunStop = true;
+          }
+          stopRest = true;
+        }
+        // scope === "test": no-op — the test already finished; continue to the
+        // next test (this is the FAIL default, byte-identical to the flat path).
+      }
+      // continue (and stubbed goToTest -> default) just advance to the next test.
+    }
+    i++;
+  }
 }
 
 /**
@@ -1271,6 +1488,255 @@ async function warmUpContexts({
       appiumPool.release(port);
     }
   }
+}
+
+/**
+ * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
+ * tests has a non-empty `onPass`/`onFail`/`onWarning`/`onSkip` array. This is
+ * the switch between the runner's two execution paths:
+ *   - false (every spec today) -> the unchanged flat concurrent job pool; the
+ *     report is byte-identical to the pre-routing runner.
+ *   - true -> the sequential `runRoutedSpec` sequencer, which evaluates
+ *     test-level routing between tests.
+ *
+ * Step-level handlers (a step's own on*) and a guard `if` do NOT count — those
+ * are orthogonal features handled inside `runContext` and the guard preflight.
+ * An empty handler array (`onFail: []`) is "no routing" and stays on the flat
+ * path. Defensive against a missing/empty `tests` array.
+ */
+function specIsRouted(spec: any): boolean {
+  if (!spec || !Array.isArray(spec.tests)) return false;
+  const keys = ["onPass", "onFail", "onWarning", "onSkip"] as const;
+  return spec.tests.some((test: any) =>
+    keys.some((key) => Array.isArray(test?.[key]) && test[key].length > 0)
+  );
+}
+
+/**
+ * Per-test preflight shared by both paths: evaluates the test-level guard `if`
+ * (only when not already spec-guard-skipped), scans for a recording-name
+ * conflict, and builds the `usedContextIds` set for deterministic contextId
+ * derivation. A faithful extraction of the original inline per-test block, so
+ * the non-routed path stays byte-identical (same warnings, same precedence).
+ */
+async function prepareTestPreflight({
+  config,
+  spec,
+  test,
+  specGuardSkip,
+  platform,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+  specGuardSkip: boolean;
+  platform: string | undefined;
+}): Promise<{
+  testGuardSkip: boolean;
+  recordingNameConflict: string | null;
+  usedContextIds: Set<string>;
+}> {
+  // Test-level guard `if`: evaluated once against the host platform, same
+  // semantics as the spec-level guard (only `$$platform`/meta meaningful; fails
+  // CLOSED). When false, every context of this test is recorded SKIPPED and no
+  // job is enqueued. Skipped entirely when the spec guard already skips this
+  // spec (a spec-guard skip subsumes all its tests). Fully gated on `test.if`
+  // presence: a test with no `if` is byte-identical (no evaluation,
+  // `testGuardSkip` stays false).
+  let testGuardSkip = false;
+  if (!specGuardSkip && test.if) {
+    if (guardReferencesSteps(test.if)) {
+      log(
+        config,
+        "warning",
+        `Test '${test.testId}': 'if' references '$$steps.*', which is not available at test scope — the guard will always fail closed (the test is always skipped). Use '$$steps.*' only in step-level 'if'.`
+      );
+    }
+    const guardPassed = await evaluateGuard(
+      test.if,
+      buildConditionContext({ platform })
+    );
+    testGuardSkip = !guardPassed;
+  }
+  // Preflight: a `record` step that reuses a recording `name` while one is still
+  // active makes a later `stopRecord: "<name>"` ambiguous. Catch it statically
+  // and skip the whole test (across all its contexts) with a warning, rather
+  // than failing mid-run. Scan every context's authored steps (runOn overrides
+  // can differ) and skip if any conflicts. Skip the scan when a guard already
+  // skips this test/spec — the test won't run, and the guard skip takes
+  // precedence over the conflict skip (so we also suppress the conflict warning
+  // for a guarded-out test).
+  let recordingNameConflict: string | null = null;
+  if (!specGuardSkip && !testGuardSkip) {
+    for (const c of test.contexts) {
+      const conflict = detectRecordingNameConflict(c?.steps);
+      if (conflict) {
+        recordingNameConflict = conflict;
+        break;
+      }
+    }
+  }
+  if (recordingNameConflict) {
+    log(
+      config,
+      "warning",
+      `Skipping test '${test.testId}': recording name '${recordingNameConflict}' is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
+    );
+  }
+  // Track contextIds within this test so the deterministic fallback can suffix
+  // collisions, mirroring resolveTests' deriveContextId.
+  const usedContextIds = new Set<string>(
+    test.contexts.map((c: any) => c.contextId).filter(Boolean)
+  );
+  return { testGuardSkip, recordingNameConflict, usedContextIds };
+}
+
+/**
+ * The outcome of preparing one context slot: either a SKIPPED contextReport the
+ * caller writes into `testReport.contexts[slot]` (no job runs), or a runnable
+ * job descriptor the caller either pushes to the flat pool (non-routed) or runs
+ * in the sequencer (routed).
+ */
+type ContextSlotResult =
+  | { kind: "skipped"; contextReport: any }
+  | { kind: "job"; job: any };
+
+/**
+ * Per-context preflight shared by BOTH execution paths (flat pool + routed
+ * sequencer). It is a faithful extraction of the original per-context body in
+ * runSpecs' Phase-1 loop, so the non-routed path stays byte-identical:
+ *   1. Derive a stable `contextId` when unset (deterministic collision suffix).
+ *   2. Apply the three skip precedences (spec guard > test guard >
+ *      recording-name conflict), returning a SKIPPED contextReport with the
+ *      exact same wording as before.
+ *   3. Otherwise inject the synthetic autoRecord step (idempotent) and coerce a
+ *      record context's browser, then return a runnable job descriptor.
+ *
+ * Mutates `context` in place (contextId, steps, browser) exactly as the original
+ * inline code did — idempotent, so the routed sequencer can call it per visit.
+ * `onAutoRecord` is invoked when a synthetic autoRecord step is injected (the
+ * caller uses it — via `markAutoRecord` — to set the run-level
+ * `autoRecordFlag.injected` used for ffmpeg-overlap sizing).
+ */
+function prepareContextSlot({
+  config,
+  spec,
+  test,
+  context,
+  slot,
+  usedContextIds,
+  specGuardSkip,
+  testGuardSkip,
+  recordingNameConflict,
+  runnerDetails,
+  contexts,
+  onAutoRecord,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+  context: any;
+  slot: number;
+  usedContextIds: Set<string>;
+  specGuardSkip: boolean;
+  testGuardSkip: boolean;
+  recordingNameConflict: string | null;
+  runnerDetails: any;
+  contexts: any[];
+  onAutoRecord: () => void;
+}): ContextSlotResult {
+  // Derive a stable contextId from platform/browser when unset (the resolver
+  // normally assigns one) so the same context keeps the same ID across runs for
+  // comparison — `default` when neither is known, with an ordinal suffix on
+  // collision. No randomness, so two otherwise-identical runs produce identical
+  // reports. Normalized onto the context so runContext's metaValues keys and the
+  // report all read the same value.
+  if (!context.contextId) {
+    const base =
+      [context.platform, context.browser?.name].filter(Boolean).join("-") ||
+      "default";
+    let id = base;
+    let suffix = 2;
+    while (usedContextIds.has(id)) {
+      id = `${base}-${suffix++}`;
+    }
+    usedContextIds.add(id);
+    context.contextId = id;
+  }
+  // Spec-level guard skip: record a SKIPPED context and don't enqueue a job.
+  // Highest precedence — a false spec guard subsumes test guards and the
+  // recording-name preflight (no test in the spec runs).
+  if (specGuardSkip) {
+    return {
+      kind: "skipped",
+      contextReport: {
+        contextId: context.contextId,
+        platform: context.platform,
+        browser: context.browser,
+        result: "SKIPPED",
+        resultDescription: "Skipped: spec guard `if` condition not met.",
+        steps: [],
+      },
+    };
+  }
+  // Test-level guard skip: record a SKIPPED context and don't enqueue a job.
+  // Takes precedence over the recording-name preflight (the test is skipped
+  // wholesale regardless of its step contents).
+  if (testGuardSkip) {
+    return {
+      kind: "skipped",
+      contextReport: {
+        contextId: context.contextId,
+        platform: context.platform,
+        browser: context.browser,
+        result: "SKIPPED",
+        resultDescription: "Skipped: test guard `if` condition not met.",
+        steps: [],
+      },
+    };
+  }
+  // Preflight conflict: record a SKIPPED context and don't enqueue a job.
+  if (recordingNameConflict) {
+    return {
+      kind: "skipped",
+      contextReport: {
+        contextId: context.contextId,
+        platform: context.platform,
+        browser: context.browser,
+        result: "SKIPPED",
+        resultDescription: `Skipped — recording name '${recordingNameConflict}' is reused while still active; names must be unique among overlapping recordings.`,
+        steps: [],
+      },
+    };
+  }
+  // autoRecord: prepend a synthetic full-context ffmpeg recording step (even
+  // when the author also has explicit record steps — overlapping is intended).
+  // Done before the concurrency calc so the synthetic ffmpeg recording is
+  // counted by jobIsFfmpegRecording.
+  if (resolveAutoRecord({ config, spec, test })) {
+    const autoStep = buildAutoRecordStep({ config, spec, test, context });
+    if (autoStep) {
+      // Idempotent: strip any prior synthetic step before prepending, so a
+      // resolved context that's reused (e.g. runSpecs invoked twice) can't
+      // accumulate duplicate autoRecord captures targeting the same file.
+      const authored = Array.isArray(context.steps)
+        ? context.steps.filter((s: any) => !s?.__autoRecord)
+        : [];
+      context.steps = [autoStep, ...authored];
+      onAutoRecord();
+    }
+  }
+  // Auto-resolution: when a record step has no explicit engine and the user
+  // never chose a browser, prefer the concurrency-safe browser engine by
+  // coercing to headed Chrome (when available). Done here, before the
+  // concurrency calc, so each job's engine is settled. Non-record contexts keep
+  // runContext's normal browser defaulting.
+  const coercedBrowser = coerceRecordContextBrowser({
+    context,
+    availableApps: runnerDetails.availableApps,
+  });
+  if (coercedBrowser) context.browser = coercedBrowser;
+  return { kind: "job", job: { spec, test, context, contexts, slot } };
 }
 
 // Effective autoScreenshot setting for a test: the test level wins over the

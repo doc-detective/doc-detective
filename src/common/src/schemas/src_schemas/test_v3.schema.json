@@ -47,28 +47,28 @@
       "$ref": "routing_v3.schema.json#/components/schemas/condition"
     },
     "onPass": {
-      "description": "Routing entries evaluated when this test passes. Phase 1: validated but ignored at runtime.",
+      "description": "Routing entries evaluated after this test passes. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` is honored in a later phase; `retry` and `goToStep` are not applicable at test scope.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
       }
     },
     "onFail": {
-      "description": "Routing entries evaluated when this test fails. Phase 1: validated but ignored at runtime.",
+      "description": "Routing entries evaluated after this test fails. `continue` and `stop` are honored at runtime: `stop: test` (the default) is a no-op (the test already finished, so a failing test does not stop its siblings), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` is honored in a later phase; `retry` and `goToStep` are not applicable at test scope.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
       }
     },
     "onWarning": {
-      "description": "Routing entries evaluated when this test produces a warning. Phase 1: validated but ignored at runtime.",
+      "description": "Routing entries evaluated after this test produces a warning. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` is honored in a later phase; `retry` and `goToStep` are not applicable at test scope.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
       }
     },
     "onSkip": {
-      "description": "Routing entries evaluated when this test is skipped. Phase 1: validated but ignored at runtime.",
+      "description": "Routing entries evaluated after this test is skipped. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` is honored in a later phase; `retry` and `goToStep` are not applicable at test scope.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
