@@ -138,6 +138,9 @@ export async function buildHintContext(
     hasRelativeUrls: walkData.hasRelativeUrls,
     hasCurlInRunShell: walkData.hasCurlInRunShell,
     hasNodeOrPythonInRunShell: walkData.hasNodeOrPythonInRunShell,
+    usedCustomAssertions: walkData.usedCustomAssertions,
+    usedRetry: walkData.usedRetry,
+    failedTransientRequest: walkData.failedTransientRequest,
     agentDetections,
     hasPackageJson,
     hasDocDetectiveNpmScript,
@@ -382,6 +385,9 @@ interface WalkData {
   hasRelativeUrls: boolean;
   hasCurlInRunShell: boolean;
   hasNodeOrPythonInRunShell: boolean;
+  usedCustomAssertions: boolean;
+  usedRetry: boolean;
+  failedTransientRequest: boolean;
 }
 
 function emptyWalkData(): WalkData {
@@ -395,8 +401,14 @@ function emptyWalkData(): WalkData {
     hasRelativeUrls: false,
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
+    usedCustomAssertions: false,
+    usedRetry: false,
+    failedTransientRequest: false,
   };
 }
+
+// Test/step routing handler keys.
+const ROUTING_HANDLER_KEYS = ["onPass", "onFail", "onWarning", "onSkip"];
 
 export function walkResults(results: any): WalkData {
   const data = emptyWalkData();
@@ -433,6 +445,48 @@ function inspectStep(step: any, data: WalkData): void {
   if (!step || typeof step !== "object") return;
   for (const key of STEP_ACTION_KEYS) {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
+  }
+
+  // Custom assertions: under the unified model every step report carries an
+  // `assertions` array of records; a `source: "custom"` record means the user
+  // authored a `step.assertions` condition (implicit records have
+  // `source: "implicit"`). Powers `useAssertionsForOutputChecks`.
+  if (Array.isArray(step.assertions)) {
+    if (step.assertions.some((a: any) => a?.source === "custom")) {
+      data.usedCustomAssertions = true;
+    }
+  }
+  // Routing retry: the step report spreads the authored step, so its routing
+  // handlers (onPass/onFail/...) are present. A `retry` entry in any of them
+  // means the user already uses retry. Powers `useRetryForTransientErrors`.
+  for (const handlerKey of ROUTING_HANDLER_KEYS) {
+    const handler = step[handlerKey];
+    if (
+      Array.isArray(handler) &&
+      handler.some((e: any) => e && typeof e === "object" && e.retry != null)
+    ) {
+      data.usedRetry = true;
+    }
+  }
+  // A request step (httpRequest/checkLink) that FAILed with a TRANSIENT
+  // server-side status — a 429 (rate limit) or any 5xx — i.e. the kind of
+  // product-side error that routing retry-with-backoff is meant to ride out.
+  // A 4xx like 404 is NOT transient (retry won't help), so it's excluded.
+  // httpRequest exposes `outputs.response.statusCode`; checkLink exposes
+  // `outputs.statusCode`. Powers `useRetryForTransientErrors`.
+  if (step.result === "FAIL") {
+    let statusCode: unknown;
+    if (step.httpRequest !== undefined) {
+      statusCode = step.outputs?.response?.statusCode;
+    } else if (step.checkLink !== undefined) {
+      statusCode = step.outputs?.statusCode;
+    }
+    if (
+      typeof statusCode === "number" &&
+      (statusCode === 429 || statusCode >= 500)
+    ) {
+      data.failedTransientRequest = true;
+    }
   }
 
   // Find-step detection (selector vs stable identifier).
