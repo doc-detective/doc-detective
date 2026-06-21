@@ -34,25 +34,25 @@ export type Condition = string | [string, ...string[]];
  */
 export type Condition1 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing1 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing2 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing3 = {
   [k: string]: unknown;
@@ -76,25 +76,25 @@ export type Condition2 = string | [string, ...string[]];
  */
 export type Condition3 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing4 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing5 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing6 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing7 = {
   [k: string]: unknown;
@@ -119,25 +119,25 @@ export type Condition4 = string | [string, ...string[]];
  */
 export type Condition5 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing8 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing9 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing10 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing11 = {
   [k: string]: unknown;
@@ -162,25 +162,25 @@ export type Condition6 = string | [string, ...string[]];
  */
 export type Condition7 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing12 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing13 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing14 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing15 = {
   [k: string]: unknown;
@@ -199,25 +199,25 @@ export type Condition8 = string | [string, ...string[]];
  */
 export type Condition9 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing16 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing17 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing18 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing19 = {
   [k: string]: unknown;
@@ -242,25 +242,25 @@ export type Condition10 = string | [string, ...string[]];
  */
 export type Condition11 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing20 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing21 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing22 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing23 = {
   [k: string]: unknown;
@@ -282,25 +282,25 @@ export type Condition12 = string | [string, ...string[]];
  */
 export type Condition13 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing24 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing25 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing26 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing27 = {
   [k: string]: unknown;
@@ -318,25 +318,25 @@ export type Condition14 = string | [string, ...string[]];
  */
 export type Condition15 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing28 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing29 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing30 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing31 = {
   [k: string]: unknown;
@@ -358,25 +358,25 @@ export type Condition16 = string | [string, ...string[]];
  */
 export type Condition17 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing32 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing33 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing34 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing35 = {
   [k: string]: unknown;
@@ -402,25 +402,25 @@ export type Condition18 = string | [string, ...string[]];
  */
 export type Condition19 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing36 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing37 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing38 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing39 = {
   [k: string]: unknown;
@@ -460,25 +460,25 @@ export type Condition20 = string | [string, ...string[]];
  */
 export type Condition21 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing40 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing41 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing42 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing43 = {
   [k: string]: unknown;
@@ -503,25 +503,25 @@ export type Condition22 = string | [string, ...string[]];
  */
 export type Condition23 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing44 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing45 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing46 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing47 = {
   [k: string]: unknown;
@@ -555,25 +555,25 @@ export type Condition24 = string | [string, ...string[]];
  */
 export type Condition25 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing48 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing49 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing50 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing51 = {
   [k: string]: unknown;
@@ -603,25 +603,25 @@ export type Condition26 = string | [string, ...string[]];
  */
 export type Condition27 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing52 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing53 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing54 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing55 = {
   [k: string]: unknown;
@@ -639,25 +639,25 @@ export type Condition28 = string | [string, ...string[]];
  */
 export type Condition29 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing56 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing57 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing58 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing59 = {
   [k: string]: unknown;
@@ -685,25 +685,25 @@ export type Condition30 = string | [string, ...string[]];
  */
 export type Condition31 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing60 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing61 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing62 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing63 = {
   [k: string]: unknown;
@@ -728,25 +728,25 @@ export type Condition32 = string | [string, ...string[]];
  */
 export type Condition33 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing64 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing65 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing66 = {
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue` and `stop` are evaluated at runtime (test scope); `goToTest` is evaluated at test scope in a later phase, while `retry` and `goToStep` are not applicable at test scope.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing67 = {
   [k: string]: unknown;

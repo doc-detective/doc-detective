@@ -123,36 +123,45 @@ describe("routing: resolveTestRouting", function () {
   });
 
   // --- deferred / inapplicable actions -> status default (stop scanning) ---
-  it("goToTest entry -> deferred this phase: returns the status default", async function () {
-    // PASS default is continue.
+  it("goToTest entry -> goToTest decision (trimmed)", async function () {
     assert.deepEqual(
       await resolveTestRouting({
         status: "PASS",
         test: { onPass: [{ goToTest: "cleanup" }] },
         context: ctx,
       }),
-      { action: "continue" }
+      { action: "goToTest", testId: "cleanup" }
     );
-    // FAIL default is stop(test).
+    // Trailing/leading whitespace is trimmed.
     assert.deepEqual(
       await resolveTestRouting({
         status: "FAIL",
-        test: { onFail: [{ goToTest: "cleanup" }] },
+        test: { onFail: [{ goToTest: "  cleanup  " }] },
+        context: ctx,
+      }),
+      { action: "goToTest", testId: "cleanup" }
+    );
+  });
+  it("whitespace-only goToTest falls through to the default", async function () {
+    assert.deepEqual(
+      await resolveTestRouting({
+        status: "FAIL",
+        test: { onFail: [{ goToTest: "   " }] },
         context: ctx,
       }),
       { action: "stop", scope: "test" }
     );
   });
-  it("a matched deferred goToTest stops scanning (a later entry can't override it)", async function () {
-    // First entry matches (no `if`) -> deferred goToTest -> status default and
-    // STOP scanning, so the trailing {stop:'spec'} must NOT take effect.
+  it("a matched goToTest stops scanning (a later entry can't override it)", async function () {
+    // First entry matches (no `if`) -> goToTest, so the trailing {stop:'spec'}
+    // must NOT take effect.
     assert.deepEqual(
       await resolveTestRouting({
         status: "PASS",
         test: { onPass: [{ goToTest: "x" }, { stop: "spec" }] },
         context: ctx,
       }),
-      { action: "continue" }
+      { action: "goToTest", testId: "x" }
     );
   });
   it("retry at test scope -> not applicable, falls to default", async function () {
