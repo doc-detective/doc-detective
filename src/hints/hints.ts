@@ -423,7 +423,7 @@ export const HINTS: Hint[] = [
       "Steps like `runShell`, `httpRequest`, and `runCode` pass when they execute — but you can also assert on what they produced. Add an `assertions` expression over `$$outputs.*` to check a specific value:",
       "",
       "```json",
-      "{ \"runShell\": \"node --version\", \"assertions\": \"$$outputs.stdio contains v20\" }",
+      "{ \"runShell\": \"node --version\", \"assertions\": \"$$outputs.stdio.stdout contains v20\" }",
       "```",
       "",
       "A failed assertion fails the step (and the test) — turning \"it ran\" into \"it returned what I expected\". Pass an array of strings to require several.",
