@@ -279,6 +279,7 @@ Routing entries support these actions:
 - **`continue`**: Run the next step. Set `continue` to `true`.
 - **`stop`**: Stop the test. Set `stop` to the scope at which to stop execution.
 - **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. See [Retry a step](#retry-a-step).
+- **`goToStep`**: Jump to another step. Set `goToStep` to the `stepId` of the step to run next. See [Jump to another step](#jump-to-another-step).
 
 The following step keeps the test running after a failure instead of stopping it:
 
@@ -416,8 +417,52 @@ As with every routing action, `retry` controls flow only and never changes the v
 
 When a step is retried, its result includes an `attempts` field with the total number of runs—the first attempt plus every retry. The field is omitted for steps that weren't retried, so reports for those steps are unchanged.
 
+### Jump to another step
+
+The `goToStep` action jumps execution to another step instead of continuing in order. Set `goToStep` to the `stepId` of the step you want to run next, and Doc Detective continues from there. Because `stepId` is optional and otherwise generated automatically, give any step you want to jump to an explicit `stepId` so you can reference it reliably.
+
+A forward jump skips every step between the current step and the target: the skipped steps never run and produce no report. A backward jump returns to an earlier step and re-runs it along with the steps that follow, which lets you repeat part of a test.
+
+The following passing step jumps ahead to a cleanup step, skipping the steps in between:
+
+```json
+{
+  "steps": [
+    {
+      "stepId": "create-resource",
+      "runShell": {
+        "command": "./create-resource.sh"
+      },
+      "onPass": [
+        {
+          "goToStep": "cleanup"
+        }
+      ]
+    },
+    {
+      "stepId": "extra-checks",
+      "runShell": {
+        "command": "./extra-checks.sh"
+      }
+    },
+    {
+      "stepId": "cleanup",
+      "runShell": {
+        "command": "./cleanup.sh"
+      }
+    }
+  ]
+}
+```
+
+As with every routing action, `goToStep` controls flow only and never changes a step's result. A step that fails and routes `goToStep` stays FAIL, the jump still happens, and the test still rolls up to FAIL. An `onSkip` handler can use `goToStep` too, so a step that's reached but skipped can still jump.
+
+If `goToStep` names a `stepId` that doesn't exist in the test, Doc Detective treats it as a routing error instead of skipping the jump silently. It records a FAIL step report that names the missing step and stops the test, so the test rolls up to FAIL. This happens whether the jump comes from an `onPass`, `onFail`, `onWarning`, or `onSkip` handler. Backward jumps are bounded by a per-context limit on how many steps a test can run. If a `goToStep` loop never makes progress and reaches that limit, Doc Detective records a FAIL step report that describes the loop and stops, so a runaway loop fails the test instead of hanging or reporting a passing result.
+
+When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number—`2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
+
 <Note>
-The `goToStep` and `goToTest` actions are valid in routing entries but aren't active yet. A matching entry that uses one of them falls back to the default for the step's result, so it behaves as if no handler matched.
+The `goToTest` action is valid in routing entries but isn't active yet. A matching entry that uses it falls back to the default for the step's result, so it behaves as if no handler matched.
 </Note>
 
 ## Define a test
