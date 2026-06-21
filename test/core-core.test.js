@@ -1867,10 +1867,13 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       const tests = result.specs[0].tests;
-      // a PASS, then the FAIL marker; b SKIPPED downstream.
+      // a PASS, then the FAIL marker, then b SKIPPED downstream (stopRest).
+      assert.equal(tests.length, 3);
       assert.equal(tests[0].result, "PASS");
       assert.equal(tests[1].result, "FAIL");
       assert.match(tests[1].resultDescription, /does not exist/);
+      assert.equal(tests[2].testId, "b");
+      assert.equal(tests[2].result, "SKIPPED");
       assert.equal(result.summary.specs.fail, 1);
     } finally {
       fs.unlinkSync(tempFilePath);
@@ -1902,6 +1905,38 @@ describe("getRunner() function", function () {
       assert.equal(tests[200].result, "FAIL");
       assert.match(tests[200].resultDescription, /maximum|loop/);
       assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("two distinct tests with the same testId are NOT stamped as a re-visit", async () => {
+    // `visit` is keyed by test INDEX, not testId. testIds aren't unique within a
+    // spec, so two DISTINCT tests sharing an id must each be visit 1 (no stamp)
+    // — only a true goToTest re-run of the same index gets visit>1. The spec is
+    // routed (first test has a handler) so it runs in the sequencer.
+    const t = {
+      tests: [
+        {
+          testId: "dup",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+          onPass: [{ continue: true }],
+        },
+        { testId: "dup", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gototest-dupid.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      // Neither distinct test is stamped with a visit number.
+      assert.equal(tests[0].visit, undefined);
+      assert.equal(tests[1].visit, undefined);
     } finally {
       fs.unlinkSync(tempFilePath);
     }

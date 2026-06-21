@@ -18,10 +18,10 @@
     },
     {
       "testId": "middle",
-      "description": "Jumped over by the forward goToTest — never runs, absent from the report.",
+      "description": "Jumped over by the forward goToTest — never runs. Its step exits 1 ON PURPOSE: if the jump ever regresses to a no-op, `middle` runs and FAILs the spec, so this fixture actually enforces that the jump skips it (mirrors the routing-goToStep artifact).",
       "steps": [
         {
-          "runShell": "node -e \"process.exit(0)\""
+          "runShell": "node -e \"process.exit(1)\""
         }
       ]
     },

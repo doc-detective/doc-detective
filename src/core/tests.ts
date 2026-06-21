@@ -1163,15 +1163,22 @@ async function runRoutedSpec({
   // so a smaller multiplier than the step-loop cap.
   let totalTestVisits = 0;
   const MAX_TEST_VISITS = spec.tests.length * 100 + 100;
-  // Times each testId's report has been produced, so a test re-run by a backward
-  // `goToTest` jump can stamp its visit number (additive, like the step `visit`).
-  const testVisitById = new Map<string, number>();
+  // Times each test INDEX (cursor position) has been executed, so a test re-run
+  // by a backward `goToTest` jump can stamp its visit number. Keyed by index,
+  // NOT testId: testIds aren't guaranteed unique within a spec, so two distinct
+  // tests sharing an id must not be conflated into a single visit count (only a
+  // true re-execution of the same test instance — a jump back to the same index
+  // — should be stamped). Additive, like the step-level `visit`.
+  const testVisitByIndex = new Map<number, number>();
 
   let i = 0;
   while (i < spec.tests.length) {
     const test = spec.tests[i];
     // Cycle guard: a runaway goToTest loop stops with a FAIL marker (so it
     // can't silently report green) rather than hanging. Checked before any work.
+    // Unlike the unknown-target path (which sets `stopRest` so remaining tests
+    // are recorded SKIPPED), the cap `break`s — a runaway cycle is a total
+    // abort, so the not-yet-reached tests are simply absent from the report.
     totalTestVisits++;
     if (totalTestVisits > MAX_TEST_VISITS) {
       log(
@@ -1207,8 +1214,8 @@ async function runRoutedSpec({
     // Stamp the visit number when a backward goToTest re-ran this test (additive
     // — the first visit omits `visit`, so an unrouted/once-run report is
     // byte-identical, mirroring the step-level `visit`).
-    const visitN = (testVisitById.get(test.testId) ?? 0) + 1;
-    testVisitById.set(test.testId, visitN);
+    const visitN = (testVisitByIndex.get(i) ?? 0) + 1;
+    testVisitByIndex.set(i, visitN);
     if (visitN > 1) testReport.visit = visitN;
     specReport.tests.push(testReport);
 
