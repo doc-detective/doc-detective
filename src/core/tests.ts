@@ -1106,8 +1106,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
  *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
  *   - `stop:run`   -> deferred this phase: warn once per spec and treat as `spec`.
  *
- * goToTest is stubbed to the status default (resolveTestRouting returns it), so
- * a goToTest entry behaves as continue/stop-default this phase. The sequencer
+ * goToTest jumps the cursor to the target test within this spec (first-occurrence
+ * wins). An unknown target emits a FAIL marker and stops; a runaway cycle is
+ * bounded by a per-spec visit cap (also a FAIL marker). A re-run test's report
+ * is appended (append-per-visit) with an additive `visit` number. The sequencer
  * NEVER touches the summary — Phase-3 in runSpecs remains the sole tally site;
  * here we only push reports.
  */
@@ -1147,10 +1149,59 @@ async function runRoutedSpec({
   let stopRest = false;
   // Warn only once per spec if a deferred `stop:run` is encountered.
   let warnedRunStop = false;
+  // Map testId -> first index within this spec, for `goToTest` jumps.
+  // First-occurrence wins (testIds aren't guaranteed unique within a spec),
+  // mirroring the step loop's `indexByStepId`.
+  const indexByTestId = new Map<string, number>();
+  spec.tests.forEach((t: any, idx: number) => {
+    if (t?.testId && !indexByTestId.has(t.testId)) {
+      indexByTestId.set(t.testId, idx);
+    }
+  });
+  // Per-spec visit cap: a `goToTest` cycle is bounded so a self-referential jump
+  // stops with a FAIL marker instead of hanging. Tests are heavier than steps,
+  // so a smaller multiplier than the step-loop cap.
+  let totalTestVisits = 0;
+  const MAX_TEST_VISITS = spec.tests.length * 100 + 100;
+  // Times each test INDEX (cursor position) has been executed, so a test re-run
+  // by a backward `goToTest` jump can stamp its visit number. Keyed by index,
+  // NOT testId: testIds aren't guaranteed unique within a spec, so two distinct
+  // tests sharing an id must not be conflated into a single visit count (only a
+  // true re-execution of the same test instance — a jump back to the same index
+  // — should be stamped). Additive, like the step-level `visit`.
+  const testVisitByIndex = new Map<number, number>();
 
   let i = 0;
   while (i < spec.tests.length) {
     const test = spec.tests[i];
+    // Cycle guard: a runaway goToTest loop stops with a FAIL marker (so it
+    // can't silently report green) rather than hanging. Checked before any work.
+    // Unlike the unknown-target path (which sets `stopRest` so remaining tests
+    // are recorded SKIPPED), the cap `break`s — a runaway cycle is a total
+    // abort, so the not-yet-reached tests are simply absent from the report.
+    totalTestVisits++;
+    if (totalTestVisits > MAX_TEST_VISITS) {
+      log(
+        config,
+        "error",
+        `Routing exceeded ${MAX_TEST_VISITS} test executions in spec '${spec.specId}'; stopping (possible goToTest loop).`
+      );
+      // The marker carries a synthetic FAIL CONTEXT (not just a top-level
+      // result): Phase-3 re-derives testReport.result via
+      // rollUpResults(contexts), and rollUpResults([]) is SKIPPED — so an
+      // empty-contexts marker would be downgraded to SKIPPED. The FAIL context
+      // makes the rollup (and the spec verdict) FAIL.
+      const capReason = `Routing exceeded the maximum of ${MAX_TEST_VISITS} test executions in this spec (possible goToTest loop).`;
+      specReport.tests.push({
+        testId: test.testId,
+        result: "FAIL",
+        resultDescription: capReason,
+        contexts: [
+          { contextId: "routing", result: "FAIL", resultDescription: capReason, steps: [] },
+        ],
+      });
+      break;
+    }
     log(config, "debug", `TEST: ${test.testId}`);
     metaValues.specs[spec.specId].tests[test.testId] ??= { contexts: {} };
     const testReport: any = {
@@ -1160,6 +1211,12 @@ async function runRoutedSpec({
       detectSteps: test.detectSteps,
       contexts: new Array(test.contexts.length),
     };
+    // Stamp the visit number when a backward goToTest re-ran this test (additive
+    // — the first visit omits `visit`, so an unrouted/once-run report is
+    // byte-identical, mirroring the step-level `visit`).
+    const visitN = (testVisitByIndex.get(i) ?? 0) + 1;
+    testVisitByIndex.set(i, visitN);
+    if (visitN > 1) testReport.visit = visitN;
     specReport.tests.push(testReport);
 
     // A prior test stopped the spec: record every context SKIPPED with the
@@ -1306,8 +1363,39 @@ async function runRoutedSpec({
         }
         // scope === "test": no-op — the test already finished; continue to the
         // next test (this is the FAIL default, byte-identical to the flat path).
+      } else if (decision.action === "goToTest") {
+        const target = indexByTestId.get(decision.testId);
+        if (target === undefined) {
+          // Unknown target is a routing misconfiguration (e.g. a typo'd
+          // testId). Surface a FAIL marker so it can't silently report green,
+          // then stop the spec's remaining tests. (Cross-spec jumps are not
+          // supported — targets resolve within this spec only.)
+          log(
+            config,
+            "error",
+            `Routing goToTest target '${decision.testId}' not found in spec '${spec.specId}'; stopping.`
+          );
+          // Synthetic FAIL context so Phase-3's rollUpResults(contexts) yields
+          // FAIL (an empty-contexts marker would roll up to SKIPPED).
+          const unknownReason = `Routing goToTest target '${decision.testId}' does not exist.`;
+          specReport.tests.push({
+            testId: decision.testId,
+            result: "FAIL",
+            resultDescription: unknownReason,
+            contexts: [
+              { contextId: "routing", result: "FAIL", resultDescription: unknownReason, steps: [] },
+            ],
+          });
+          stopRest = true;
+        } else {
+          // JUMP: move the cursor to the target test and re-enter the loop
+          // without advancing (flow != verdict — no stepExecutionFailed-style
+          // state; the visited test's verdict already stands).
+          i = target;
+          continue;
+        }
       }
-      // continue (and stubbed goToTest -> default) just advance to the next test.
+      // continue (and a stop:test no-op) just advance to the next test.
     }
     i++;
   }

@@ -531,9 +531,9 @@ async function resolveStepRouting(args: {
  *       The sequencer interprets these scopes: `stop:test` is a NO-OP (the test
  *       already finished), `stop:spec` stops the spec's remaining tests, and
  *       `stop:run` is deferred (warned once and treated as `spec` this phase).
- *   - `{ goToTest: <id> }` -> DEFERRED this phase: behaves as a non-implemented
- *       action — return the status default and STOP scanning (a later entry must
- *       not override an already-matched selector). PR-B wires the jump.
+ *   - `{ goToTest: <id> }` -> `{ action: "goToTest", testId }` (trimmed). The
+ *       sequencer jumps to that test within the spec (unknown target -> a FAIL
+ *       marker + stop, bounded by a per-spec visit cap).
  *   - `{ retry }` / `{ goToStep }` -> not applicable at test scope; treated as a
  *       matched-but-unhandled action -> the status default (stop scanning).
  *
@@ -580,10 +580,14 @@ async function resolveTestRouting(args: {
     if (typeof entry.stop === "string") {
       return { action: "stop", scope: entry.stop };
     }
-    // goToTest is deferred this phase; retry/goToStep are not applicable at test
-    // scope. Any of them counts as a matched selector whose action we don't
-    // execute here -> return the status default and STOP scanning (a later entry
-    // must not override an already-matched selector).
+    if (typeof entry.goToTest === "string" && entry.goToTest.trim() !== "") {
+      // Return the trimmed id so `goToTest: "cleanup "` matches the test
+      // `cleanup` rather than failing as an unknown target on whitespace.
+      return { action: "goToTest", testId: entry.goToTest.trim() };
+    }
+    // retry/goToStep are not applicable at test scope. A matched selector whose
+    // action we don't execute here -> return the status default and STOP
+    // scanning (a later entry must not override an already-matched selector).
     return fallback;
   }
   // No entry matched.
