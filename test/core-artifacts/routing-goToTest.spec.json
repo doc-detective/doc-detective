@@ -1,0 +1,38 @@
+{
+  "specId": "routing-goToTest",
+  "description": "Test-level goToTest jumps (PR-B). Only the PASS-resolving forward-jump permutation is a combined-suite fixture; the FAIL-path behaviors (backward jump re-run, unknown-target FAIL marker, cycle cap) are asserted in focused it() tests in core-core.test.js since they resolve to FAIL. Cross-platform via node -e.",
+  "tests": [
+    {
+      "testId": "forward-source",
+      "description": "PASSes and routes goToTest to 'forward-target', jumping over 'middle'.",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ],
+      "onPass": [
+        {
+          "goToTest": "forward-target"
+        }
+      ]
+    },
+    {
+      "testId": "middle",
+      "description": "Jumped over by the forward goToTest — never runs, absent from the report.",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "forward-target",
+      "description": "Reached via the jump; runs and PASSes.",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}
