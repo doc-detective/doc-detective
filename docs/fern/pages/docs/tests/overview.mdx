@@ -45,6 +45,7 @@ Doc Detective skips tests when:
 - **Platform mismatch**: The context specifies a platform (Windows, macOS, or Linux) that doesn't match your current operating system.
 - **Browser unavailable**: The context specifies a browser that isn't installed or available on your system.
 - **All contexts skipped**: If all contexts for a test are skipped, the entire test is marked as SKIPPED (not PASS).
+- **Condition not met**: A spec, test, or step has an [`if` condition](#conditional-execution) that evaluates to false.
 
 When a test is skipped, the results show a SKIPPED status in the output JSON:
 
@@ -204,6 +205,68 @@ A step passes only when both its implicit and custom assertions pass. Custom ass
 <Note>
 Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported yet. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
 </Note>
+
+## Conditional execution
+
+Use the `if` field to run a spec, test, or step only when a condition is met. When the condition is true, the unit runs as usual. When it's false, Doc Detective marks the unit SKIPPED and doesn't run it. A spec, test, or step without an `if` always runs, so adding `if` never changes existing behavior.
+
+An `if` condition uses the same condition expressions as [custom assertions](#custom-assertions). Set `if` to a single expression or to an array of expressions, where every expression must be true (logical AND).
+
+The following step runs only on Linux and macOS. On Windows, Doc Detective skips it before its action runs:
+
+```json
+{
+  "steps": [
+    {
+      "description": "Install dependencies on Unix-like platforms only.",
+      "if": "$$platform != windows",
+      "runShell": {
+        "command": "./install.sh"
+      }
+    }
+  ]
+}
+```
+
+`if` decides whether a unit runs—it never changes a verdict. A skipped unit is SKIPPED, a reached-but-skipped status that's distinct from FAIL. A skipped step also doesn't stop the test, so the steps after it still run.
+
+### Reference values in conditions
+
+Spec- and test-level conditions can reference `$$platform` for the current operating system (`linux`, `mac`, or `windows`).
+
+Step-level conditions can also read earlier steps' outputs through the `$$steps.<stepId>.outputs.*` namespace, so you can gate a step on what a previous step produced. Give the earlier step a `stepId` to reference it:
+
+```json
+{
+  "steps": [
+    {
+      "stepId": "check",
+      "runShell": {
+        "command": "./preflight.sh"
+      }
+    },
+    {
+      "description": "Run only when the preflight step succeeded.",
+      "if": "$$steps.check.outputs.exitCode == 0",
+      "runShell": {
+        "command": "./deploy.sh"
+      }
+    }
+  ]
+}
+```
+
+A step-level condition can't read its own step's `$$outputs.*`, because Doc Detective evaluates `if` before the step's action runs.
+
+<Note>
+Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that references `$$steps.*` can't resolve and fails closed, so the spec or test is always skipped. Doc Detective logs a warning when it detects this so you can catch the mistake.
+</Note>
+
+### How conditions resolve
+
+- A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it.
+- A false spec condition skips every test and context in the spec. A false test condition skips every context of that test. A false step condition skips only that step.
+- `if` and [contexts](/docs/configuration/contexts) are separate layers. `runOn` selects which platform and browser combinations a unit needs, while `if` decides whether to run a unit at all. Either one can skip a unit.
 
 ## Define a test
 
