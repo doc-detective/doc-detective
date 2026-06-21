@@ -1,3 +1,10 @@
+# [4.15.0-next.11](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.10...v4.15.0-next.11) (2026-06-21)
+
+
+### Features
+
+* **routing:** test-level routing handlers (continue/stop) via non-breaking sequencer ([#372](https://github.com/doc-detective/doc-detective/issues/372)) ([fde12bf](https://github.com/doc-detective/doc-detective/commit/fde12bf81bd6d33710cfb98b6721e4d642f8406f))
+
 # [4.15.0-next.10](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.9...v4.15.0-next.10) (2026-06-20)
 
 
