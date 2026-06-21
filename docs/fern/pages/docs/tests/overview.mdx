@@ -462,14 +462,14 @@ If `goToStep` names a `stepId` that doesn't exist in the test, Doc Detective tre
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number—`2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
 <Note>
-The `goToTest` action is valid in routing entries but isn't active yet, at either the step or test level. A matching entry that uses it falls back to the default for the result, so it behaves as if no handler matched.
+At the step level, the `goToTest` action is valid in routing entries but isn't active yet. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active—see [Jump to another test](#jump-to-another-test).
 </Note>
 
 ## Route between tests
 
 Routing handlers work at the test level too. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a test, and once that test finishes, Doc Detective evaluates the matching handler against the test's overall result to decide whether the spec keeps running. Test-level handlers use the same entry shape as step-level handlers—an array of entries, each with an optional `if` condition and exactly one action, where the first entry whose `if` matches wins. Because tests don't run in sequence relative to one another, only `$$platform` is meaningful in a test-level `if`.
 
-At the test level, the available actions are `continue` and `stop`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. `goToTest` is reserved for jumping to another test but isn't active yet, so it falls back to the default as well.
+At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
 
 `stop` behaves differently at the test level, because the test has already finished by the time its handler runs:
 
@@ -514,6 +514,62 @@ The following test stops the rest of its spec when it fails, skipping the tests 
   ]
 }
 ```
+
+### Jump to another test
+
+The `goToTest` action jumps execution to another test in the spec instead of continuing to the next test in order. Set `goToTest` to the `testId` of the test you want to run next, and Doc Detective continues from there. Because `testId` is optional and otherwise generated automatically, give any test you want to jump to an explicit `testId` so you can reference it reliably.
+
+Targets resolve within the current spec only—`goToTest` can't jump to a test in another spec. If two tests share a `testId`, the jump lands on the first one.
+
+```json
+{
+  "tests": [
+    {
+      "testId": "setup",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./setup.sh"
+          }
+        }
+      ],
+      "onPass": [
+        {
+          "goToTest": "verify"
+        }
+      ]
+    },
+    {
+      "testId": "seed-data",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./seed-data.sh"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "verify",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./verify.sh"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+A forward jump skips the tests between the current test and the target: the skipped tests never run and produce no report. A backward jump re-runs the target test and continues from there.
+
+As with every routing action, `goToTest` controls flow only and never changes a test's result. A test that fails and routes `goToTest` stays FAIL, the jump still happens, and the spec still rolls up to FAIL. A backward jump whose earlier visit failed keeps the spec FAILed too.
+
+If `goToTest` names a `testId` that doesn't exist in the spec, Doc Detective treats it as a routing error instead of skipping the jump silently. It records a FAIL test report that names the missing test and stops the spec's remaining tests, so a typo can't quietly report a passing result. Backward jumps are bounded by a per-spec limit on how many tests a spec can run. If a `goToTest` loop never makes progress and reaches that limit, Doc Detective records a FAIL test report that describes the loop and stops, so a runaway loop fails the spec instead of hanging.
+
+When a backward `goToTest` re-runs a test, each report after the first records a `visit` field with the visit number—`2` for the second visit, `3` for the third, and so on. The field is omitted on a test's first visit, so reports for tests that aren't revisited are unchanged.
 
 ## Define a test
 
