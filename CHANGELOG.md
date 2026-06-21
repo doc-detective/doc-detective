@@ -1,3 +1,10 @@
+# [4.15.0-next.12](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.11...v4.15.0-next.12) (2026-06-21)
+
+
+### Features
+
+* **routing:** test-level goToTest action on the sequencer ([#374](https://github.com/doc-detective/doc-detective/issues/374)) ([b5bd704](https://github.com/doc-detective/doc-detective/commit/b5bd704365b3d08830b14b06aed3fb7184d4ae42))
+
 # [4.15.0-next.11](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.10...v4.15.0-next.11) (2026-06-21)
 
 
