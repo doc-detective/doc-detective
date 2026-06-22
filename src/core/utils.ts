@@ -31,6 +31,7 @@ export {
   selectSpecsForRun,
   findFreePort,
   runConcurrent,
+  runConcurrentByTest,
   rollUpResults,
   createAppiumPool,
 };
@@ -84,6 +85,88 @@ async function runConcurrent<T>(
     }
   });
   await Promise.all(workers);
+}
+
+// Run context jobs with at most `limit` calls to `fn` in flight, while
+// preserving each spec's test order: test i+1 of a spec never starts until
+// every context of test i (same spec) has settled. Contexts within a test run
+// concurrently, and different specs run concurrently — all bounded by the same
+// global `limit`, so the resource profile matches the flat `runConcurrent`
+// pool. This keeps specs whose tests have setup/cleanup ordering (e.g. a setup
+// test that starts a server later tests depend on) correct under concurrency,
+// which a flat per-context pool breaks.
+//
+// Jobs are grouped by `job.spec` then `job.test` using reference (or value)
+// identity; insertion order is preserved, so tests run in declaration order.
+// Like `runConcurrent`, `fn` should not reject — callers (runSpecs) catch
+// inside `fn`; a slot is still released on throw so one crash can't deadlock
+// the pool.
+async function runConcurrentByTest<T extends { spec: any; test: any }>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> {
+  // Group into specs, and within each spec into tests, preserving order.
+  const specOrder: any[] = [];
+  const bySpec = new Map<any, Map<any, T[]>>();
+  for (const item of items) {
+    let byTest = bySpec.get(item.spec);
+    if (!byTest) {
+      byTest = new Map();
+      bySpec.set(item.spec, byTest);
+      specOrder.push(item.spec);
+    }
+    let testItems = byTest.get(item.test);
+    if (!testItems) {
+      testItems = [];
+      byTest.set(item.test, testItems);
+    }
+    testItems.push(item);
+  }
+
+  // Global semaphore caps concurrent `fn` calls at `limit` (min 1), matching
+  // the flat pool's bound. Releasing hands the freed slot straight to the next
+  // waiter (FIFO) — single-threaded JS keeps the counter race-free.
+  const max = Math.max(1, Math.floor(limit) || 1);
+  let active = 0;
+  const waiters: Array<() => void> = [];
+  const acquire = (): Promise<void> => {
+    if (active < max) {
+      active++;
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      waiters.push(() => {
+        active++;
+        resolve();
+      });
+    });
+  };
+  const release = () => {
+    active--;
+    const next = waiters.shift();
+    if (next) next();
+  };
+  const runOne = async (item: T) => {
+    await acquire();
+    try {
+      await fn(item);
+    } finally {
+      release();
+    }
+  };
+
+  // Specs run concurrently; within a spec, tests run sequentially in order;
+  // within a test, contexts run concurrently. The semaphore enforces the
+  // global cap across all of it.
+  await Promise.all(
+    specOrder.map(async (spec) => {
+      const byTest = bySpec.get(spec) as Map<any, T[]>;
+      for (const testItems of byTest.values()) {
+        await Promise.all(testItems.map(runOne));
+      }
+    })
+  );
 }
 
 // Roll child results up to a parent result: FAIL > WARNING > all-SKIPPED >

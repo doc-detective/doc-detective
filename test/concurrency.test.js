@@ -1,5 +1,6 @@
 import {
   runConcurrent,
+  runConcurrentByTest,
   rollUpResults,
   createAppiumPool,
 } from "../dist/core/utils.js";
@@ -121,6 +122,105 @@ describe("runConcurrent", function () {
   it("resolves immediately for an empty item list", async function () {
     let calls = 0;
     await runConcurrent([], 4, async () => {
+      calls++;
+    });
+    expect(calls).to.equal(0);
+  });
+});
+
+describe("runConcurrentByTest", function () {
+  // Jobs carry { spec, test } identity (object reference or string). The
+  // scheduler runs specs concurrently, tests sequentially in order within a
+  // spec, and contexts concurrently within a test — capped at a global limit.
+  const job = (spec, test, ctx) => ({ spec, test, ctx });
+
+  it("runs a spec's tests in order: test i+1 waits for all of test i", async function () {
+    // Without ordering, the short t2 job would start (and could finish) before
+    // the longer t1 contexts end. With ordering, t2 must start after both.
+    const events = [];
+    const jobs = [
+      job("A", "t1", "c1"),
+      job("A", "t1", "c2"),
+      job("A", "t2", "c1"),
+    ];
+    await runConcurrentByTest(jobs, 4, async (j) => {
+      events.push(`start:${j.test}:${j.ctx}`);
+      await sleep(j.test === "t1" ? 40 : 5);
+      events.push(`end:${j.test}:${j.ctx}`);
+    });
+    const t2Start = events.indexOf("start:t2:c1");
+    expect(t2Start).to.be.greaterThan(events.indexOf("end:t1:c1"));
+    expect(t2Start).to.be.greaterThan(events.indexOf("end:t1:c2"));
+  });
+
+  it("runs contexts within a test concurrently", async function () {
+    let inFlight = 0;
+    let highWater = 0;
+    const jobs = [job("A", "t1", "c1"), job("A", "t1", "c2")];
+    await runConcurrentByTest(jobs, 4, async () => {
+      inFlight++;
+      highWater = Math.max(highWater, inFlight);
+      await sleep(20);
+      inFlight--;
+    });
+    expect(highWater).to.equal(2);
+  });
+
+  it("runs different specs concurrently", async function () {
+    let inFlight = 0;
+    let highWater = 0;
+    const jobs = [job("A", "t1", "c1"), job("B", "t1", "c1")];
+    await runConcurrentByTest(jobs, 4, async () => {
+      inFlight++;
+      highWater = Math.max(highWater, inFlight);
+      await sleep(20);
+      inFlight--;
+    });
+    expect(highWater).to.equal(2);
+  });
+
+  it("never exceeds the global limit across specs", async function () {
+    let inFlight = 0;
+    let highWater = 0;
+    const jobs = ["A", "B", "C", "D"].map((s) => job(s, "t1", "c1"));
+    await runConcurrentByTest(jobs, 2, async () => {
+      inFlight++;
+      highWater = Math.max(highWater, inFlight);
+      await sleep(15);
+      inFlight--;
+    });
+    expect(highWater).to.equal(2);
+  });
+
+  it("treats a limit below 1 as sequential", async function () {
+    let inFlight = 0;
+    let highWater = 0;
+    const jobs = [job("A", "t1", "c1"), job("B", "t1", "c1")];
+    await runConcurrentByTest(jobs, 0, async () => {
+      inFlight++;
+      highWater = Math.max(highWater, inFlight);
+      await sleep(15);
+      inFlight--;
+    });
+    expect(highWater).to.equal(1);
+  });
+
+  it("processes every job exactly once", async function () {
+    const seen = [];
+    const jobs = [
+      job("A", "t1", "c1"),
+      job("A", "t2", "c1"),
+      job("B", "t1", "c1"),
+    ];
+    await runConcurrentByTest(jobs, 2, async (j) => {
+      seen.push(`${j.spec}/${j.test}/${j.ctx}`);
+    });
+    expect(seen.sort()).to.deep.equal(["A/t1/c1", "A/t2/c1", "B/t1/c1"]);
+  });
+
+  it("resolves immediately for an empty job list", async function () {
+    let calls = 0;
+    await runConcurrentByTest([], 4, async () => {
       calls++;
     });
     expect(calls).to.equal(0);

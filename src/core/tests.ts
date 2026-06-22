@@ -18,6 +18,7 @@ import {
   selectSpecsForRun,
   findFreePort,
   runConcurrent,
+  runConcurrentByTest,
   rollUpResults,
   createAppiumPool,
   getRunOutputDir,
@@ -829,9 +830,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       });
     }
 
-    // Phase 2: run every context job through one flat worker pool. A limit of 1
-    // (the default) is strictly sequential in input order.
-    await runConcurrent(jobs, limit, async (job: any) => {
+    // Phase 2: run context jobs with a global cap of `limit` concurrent
+    // contexts, but preserve each spec's test order — test i+1 of a spec waits
+    // for all of test i's contexts. Contexts within a test still run
+    // concurrently, and different specs run concurrently. This keeps specs that
+    // rely on test ordering (e.g. a setup test that starts a server later tests
+    // depend on) correct under concurrency. A limit of 1 (the default) is
+    // strictly sequential in input order.
+    await runConcurrentByTest(jobs, limit, async (job: any) => {
       try {
         job.contexts[job.slot] = await runContext({
           config,
