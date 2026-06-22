@@ -226,4 +226,60 @@ describe("Advanced ordering under concurrentRunners", function () {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  // Locks the ADR's documented choice: phase failures do not abort later
+  // phases (beforeAny is run-everything; afterAll is cleanup and always runs).
+  it("a failing beforeAny spec does not abort main specs", async () => {
+    const dir = mkTempDir();
+    try {
+      const b = writeSpec(dir, "b.json", {
+        tests: [{ steps: [{ runShell: "exit 1" }] }],
+      });
+      const m = writeSpec(dir, "m.json", {
+        tests: [{ steps: [{ runShell: "echo main" }] }],
+      });
+      const result = await runTests({
+        beforeAny: [b],
+        input: [m],
+        logLevel: "error",
+      });
+      const before = result.specs.find(
+        (s) => path.basename(s.contentPath) === "b.json"
+      );
+      const main = result.specs.find(
+        (s) => path.basename(s.contentPath) === "m.json"
+      );
+      assert.equal(before.result, "FAIL"); // beforeAny failed
+      assert.equal(main.result, "PASS"); // main still ran
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("afterAll runs even when a main spec fails", async () => {
+    const dir = mkTempDir();
+    try {
+      const m = writeSpec(dir, "m.json", {
+        tests: [{ steps: [{ runShell: "exit 1" }] }],
+      });
+      const a = writeSpec(dir, "a.json", {
+        tests: [{ steps: [{ runShell: "echo after" }] }],
+      });
+      const result = await runTests({
+        input: [m],
+        afterAll: [a],
+        logLevel: "error",
+      });
+      const main = result.specs.find(
+        (s) => path.basename(s.contentPath) === "m.json"
+      );
+      const after = result.specs.find(
+        (s) => path.basename(s.contentPath) === "a.json"
+      );
+      assert.equal(main.result, "FAIL"); // main failed
+      assert.equal(after.result, "PASS"); // afterAll still ran
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

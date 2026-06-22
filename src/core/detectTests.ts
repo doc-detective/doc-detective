@@ -216,6 +216,11 @@ async function qualifyFiles({ config }: { config: any }) {
   // recorded in phaseByFile (keyed by resolved path, first-write-wins to match
   // the isValidSourceFile dedup) and stamped onto each spec as `_phase` in
   // parseTests.
+  //
+  // Call-order invariant: the map is published on `config._phaseByFile` (same
+  // side-channel pattern as `config._herettoPathMapping`). parseTests reads it
+  // from there, so qualifyFiles MUST run first; a parseTests call that bypasses
+  // qualifyFiles safely defaults every spec to phase "main".
   let sequence: Array<{ source: string; phase: string }> = [];
   const phaseByFile: Map<string, string> = new Map();
   config._phaseByFile = phaseByFile;
@@ -422,7 +427,11 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       if (!content.contentPath) content.contentPath = file;
       // Internal phase marker (beforeAny / main / afterAll) so runSpecs can gate
       // execution as barriers. Stripped before reporting; never in public schema.
-      content._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
+      // Captured here and re-stamped after the validate / resolvePaths transforms
+      // below (either of which could drop an unknown key), so a future schema
+      // tightening can't silently turn the barriers into a no-op.
+      const specPhase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
+      content._phase = specPhase;
       if (Array.isArray(content.tests)) {
         const usedTestIds = new Set(
           content.tests
@@ -530,9 +539,15 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Validate each step
       for (const test of content.tests) {
         test.steps = test.steps.filter((step: any) => {
+          // Exclude internal routing markers from the validated clone so a
+          // future strict (additionalProperties:false) step schema can't drop
+          // tagged setup/cleanup steps. The markers stay on the real `step`.
+          const stepForValidation = { ...step };
+          delete stepForValidation._fromBefore;
+          delete stepForValidation._fromAfter;
           const validation = validate({
             schemaKey: `step_v3`,
-            object: { ...step },
+            object: stepForValidation,
             addDefaults: false,
           });
           if (!validation.valid) {
@@ -566,6 +581,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         object: content,
         filePath: file,
       });
+      // Re-stamp the phase: neither `content = validation.object` nor
+      // resolvePaths is guaranteed to preserve unknown keys.
+      content._phase = specPhase;
 
       // Apply step locations after all validation/transformation (v2→v3 safe).
       // Compute offset from surviving before-steps (tagged with _fromBefore).
