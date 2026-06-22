@@ -947,9 +947,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       });
     }
 
-    // Phase 2: run every context job through one flat worker pool. A limit of 1
-    // (the default) is strictly sequential in input order.
-    await runConcurrent(jobs, limit, async (job: any) => {
+    // Phase 2: run context jobs through the worker pool, gated into three
+    // sequential phases. Config-level `beforeAny` specs all finish before any
+    // `main` test starts, and `afterAll` specs run only after every `main` test
+    // finishes. Within a phase, jobs still run concurrently up to `limit`.
+    // Warm-up / recording-concurrency / Appium-pool sizing above intentionally
+    // stay computed over the full `jobs[]`. Untagged jobs (programmatic callers
+    // that bypass detection) default to "main". With limit===1 this is identical
+    // ordering to a single pool over input-ordered jobs.
+    const runJob = async (job: any) => {
       try {
         job.contexts[job.slot] = await runContext({
           config,
@@ -984,30 +990,67 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           steps: [],
         };
       }
-    });
+    };
 
-    // Routed specs: run sequentially AFTER the flat pool, reusing the same
-    // appiumPool / portToDisplay / metaValues / memo maps, inside this same
+    const PHASES = ["beforeAny", "main", "afterAll"];
+    const jobsByPhase: { [phase: string]: any[] } = {
+      beforeAny: [],
+      main: [],
+      afterAll: [],
+    };
+    for (const job of jobs) {
+      // Constrain to the known set before indexing: a programmatic caller could
+      // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
+      // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw.
+      const phase = PHASES.includes(job.spec?._phase)
+        ? job.spec._phase
+        : "main";
+      jobsByPhase[phase].push(job);
+    }
+    // Routed specs are conceptually main-phase work too, so bucket them by the
+    // same `_phase` and run each phase's routed specs right after that phase's
+    // flat jobs. This keeps #377's ordering guarantee intact under routing: all
+    // `beforeAny` work (flat + routed) finishes before any `main` test, and all
+    // `afterAll` work runs after every `main` test — a routed main spec can't
+    // slip past the teardown. Within a phase, routed specs still run
+    // sequentially AFTER the flat jobs (unchanged relative order), reusing the
+    // same appiumPool / portToDisplay / metaValues / memo maps inside this same
     // try/finally so teardown always reaches the servers. Each spec's tests run
-    // in order with test-level routing evaluated between them. The sequencer
-    // only pushes reports onto the already-registered specReport — it never
-    // touches the summary (Phase-3 below remains the sole tally site).
-    for (const { spec, specReport, specGuardSkip } of routedSpecs) {
-      await runRoutedSpec({
-        spec,
-        specReport,
-        specGuardSkip,
-        config,
-        runnerDetails,
-        appiumPool,
-        portToDisplay,
-        metaValues,
-        installAttempts,
-        warmUpResults,
-        platform,
-        markAutoRecord,
-        limit,
-      });
+    // in order with test-level routing evaluated between them; the sequencer
+    // only pushes onto the already-registered specReport — it never touches the
+    // summary (Phase-3 below remains the sole tally site). With no
+    // beforeAny/afterAll specs (the common case) this is identical to running
+    // the main flat pool and then every routed spec.
+    const routedByPhase: { [phase: string]: typeof routedSpecs } = {
+      beforeAny: [],
+      main: [],
+      afterAll: [],
+    };
+    for (const entry of routedSpecs) {
+      const phase = PHASES.includes(entry.spec?._phase)
+        ? entry.spec._phase
+        : "main";
+      routedByPhase[phase].push(entry);
+    }
+    for (const phase of PHASES) {
+      await runConcurrent(jobsByPhase[phase], limit, runJob);
+      for (const { spec, specReport, specGuardSkip } of routedByPhase[phase]) {
+        await runRoutedSpec({
+          spec,
+          specReport,
+          specGuardSkip,
+          config,
+          runnerDetails,
+          appiumPool,
+          portToDisplay,
+          metaValues,
+          installAttempts,
+          warmUpResults,
+          platform,
+          markAutoRecord,
+          limit,
+        });
+      }
     }
 
     // Phase 3: roll results up the tree and count the summary in one
@@ -2397,6 +2440,10 @@ async function runContext({
         visitCountById.set(rep.stepId, n);
         if (n > 1) rep.visit = n;
       }
+      // The internal cleanup marker (`_fromAfter`) is non-enumerable, so a
+      // `{...step}` report spread already drops it; delete defensively here so
+      // it can never leak into a report through any push site.
+      delete rep._fromAfter;
       contextReport.steps.push(rep);
     };
     // Per-step outputs accumulator: maps each completed step's stepId to its
@@ -2485,7 +2532,9 @@ async function runContext({
         // prior stop reaches here too — but it is not reached, so its onSkip
         // must NOT fire (the `!stepExecutionFailed` guard). For a genuinely
         // reached unsafe-skip, onSkip runs (default continue; `stop` halts the
-        // test; `goToStep` jumps).
+        // test; `goToStep` jumps). The unsafe gate also precedes the cleanup
+        // (`_fromAfter`) exception below, so an unsafe cleanup step is still
+        // skipped — the safety gate wins over the hard-route.
         if (!stepExecutionFailed) {
           const decision = await resolveStepSkipRouting(
             step,
@@ -2499,10 +2548,12 @@ async function runContext({
         continue;
       }
 
-      if (stepExecutionFailed) {
-        // Mark as skipped. These steps are NOT reached (downstream of a stop),
-        // so no routing fires for them. The reason reflects why execution
-        // stopped (a prior failure, or a non-failure routing `stop`).
+      // Skip remaining steps once execution has stopped (downstream of a prior
+      // failure or a routing `stop`). These steps are NOT reached, so no routing
+      // fires for them, and the reason reflects why execution stopped.
+      // EXCEPTION: cleanup (`_fromAfter`) steps are hard-routed — they run after
+      // the test no matter what stopped execution, so they're not skipped here.
+      if (stepExecutionFailed && !step._fromAfter) {
         const stepReport = {
           ...step,
           result: "SKIPPED",
@@ -2674,8 +2725,10 @@ async function runContext({
       // skipping later tests/specs — is deferred to the test-routing phase);
       // `goToStep` jumps the cursor to the target step. flow != verdict: a
       // FAILed step routed `continue`/`goToStep` still leaves the test FAILed
-      // via rollUpResults.
-      if (routingDecision.action === "stop") {
+      // via rollUpResults. EXCEPTION: a cleanup (`_fromAfter`) step never stops
+      // execution — cleanup is best-effort and must not cascade-skip later
+      // cleanup steps; its FAIL still counts in the rollup so failures surface.
+      if (routingDecision.action === "stop" && !step._fromAfter) {
         if (routingDecision.scope !== "test") {
           clog(
             "warning",
