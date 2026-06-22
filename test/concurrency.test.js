@@ -225,6 +225,54 @@ describe("runConcurrentByTest", function () {
     });
     expect(calls).to.equal(0);
   });
+
+  it("never overlaps two exclusive jobs, even across specs", async function () {
+    // ffmpeg recordings need exclusive use of the display; flagged exclusive,
+    // no two may run at once regardless of the global limit.
+    let exclusiveInFlight = 0;
+    let exclusiveHighWater = 0;
+    const jobs = [
+      job("A", "t1", "c1"),
+      job("B", "t1", "c1"),
+      job("C", "t1", "c1"),
+    ].map((j) => ({ ...j, ffmpeg: true }));
+    await runConcurrentByTest(
+      jobs,
+      3,
+      async () => {
+        exclusiveInFlight++;
+        exclusiveHighWater = Math.max(exclusiveHighWater, exclusiveInFlight);
+        await sleep(20);
+        exclusiveInFlight--;
+      },
+      { exclusive: (j) => j.ffmpeg }
+    );
+    expect(exclusiveHighWater).to.equal(1);
+  });
+
+  it("still runs non-exclusive jobs concurrently alongside an exclusive one", async function () {
+    // An exclusive job must not throttle ordinary jobs: with limit 3 the two
+    // non-exclusive jobs plus the exclusive one should overlap.
+    let inFlight = 0;
+    let highWater = 0;
+    const jobs = [
+      { ...job("A", "t1", "c1"), ffmpeg: true },
+      { ...job("B", "t1", "c1"), ffmpeg: false },
+      { ...job("C", "t1", "c1"), ffmpeg: false },
+    ];
+    await runConcurrentByTest(
+      jobs,
+      3,
+      async () => {
+        inFlight++;
+        highWater = Math.max(highWater, inFlight);
+        await sleep(20);
+        inFlight--;
+      },
+      { exclusive: (j) => j.ffmpeg }
+    );
+    expect(highWater).to.be.greaterThan(1);
+  });
 });
 
 describe("rollUpResults", function () {

@@ -836,6 +836,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // rely on test ordering (e.g. a setup test that starts a server later tests
     // depend on) correct under concurrency. A limit of 1 (the default) is
     // strictly sequential in input order.
+    //
+    // ffmpeg recordings grab the whole display, so they're marked exclusive:
+    // no two overlap (across any specs), even though the per-runner Xvfb
+    // displays give each its own surface — concurrent ffmpeg + browser sessions
+    // under CI load were crashing sessions. Non-recording jobs are unaffected.
     await runConcurrentByTest(jobs, limit, async (job: any) => {
       try {
         job.contexts[job.slot] = await runContext({
@@ -871,7 +876,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           steps: [],
         };
       }
-    });
+    }, { exclusive: jobIsFfmpegRecording });
 
     // Phase 3: roll results up the tree and count the summary in one
     // deterministic pass after all contexts have finished.

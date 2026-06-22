@@ -101,10 +101,17 @@ async function runConcurrent<T>(
 // Like `runConcurrent`, `fn` should not reject — callers (runSpecs) catch
 // inside `fn`; a slot is still released on throw so one crash can't deadlock
 // the pool.
+//
+// `options.exclusive(item)` flags jobs that need sole use of a shared resource
+// (e.g. ffmpeg recordings, which grab the whole display): no two exclusive
+// jobs ever run at once, across all specs, while ordinary jobs keep running up
+// to the global cap. An exclusive job takes the exclusive lock *before* a
+// semaphore slot so it never pins an idle slot while waiting its turn.
 async function runConcurrentByTest<T extends { spec: any; test: any }>(
   items: T[],
   limit: number,
-  fn: (item: T) => Promise<void>
+  fn: (item: T) => Promise<void>,
+  options: { exclusive?: (item: T) => boolean } = {}
 ): Promise<void> {
   // Group into specs, and within each spec into tests, preserving order.
   const specOrder: any[] = [];
@@ -147,12 +154,37 @@ async function runConcurrentByTest<T extends { spec: any; test: any }>(
     const next = waiters.shift();
     if (next) next();
   };
+
+  // Exclusive lock: at most one exclusive job runs at a time, across every
+  // spec. Releasing hands the lock straight to the next waiter (FIFO) so it
+  // stays held during the handoff and two exclusive jobs can never overlap.
+  let exclusiveBusy = false;
+  const exclusiveWaiters: Array<() => void> = [];
+  const acquireExclusive = (): Promise<void> => {
+    if (!exclusiveBusy) {
+      exclusiveBusy = true;
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      exclusiveWaiters.push(resolve);
+    });
+  };
+  const releaseExclusive = () => {
+    const next = exclusiveWaiters.shift();
+    if (next) next();
+    else exclusiveBusy = false;
+  };
+
+  const isExclusive = options.exclusive;
   const runOne = async (item: T) => {
+    const exclusive = isExclusive ? isExclusive(item) : false;
+    if (exclusive) await acquireExclusive();
     await acquire();
     try {
       await fn(item);
     } finally {
       release();
+      if (exclusive) releaseExclusive();
     }
   };
 
