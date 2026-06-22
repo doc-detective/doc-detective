@@ -205,6 +205,25 @@ describe("runConcurrentByTest", function () {
     expect(highWater).to.equal(1);
   });
 
+  it("runs strictly in input order at limit 1, without interleaving specs", async function () {
+    // Decreasing durations would invert completion order if anything overlapped;
+    // interleaving across specs (spec B's test before spec A's second test)
+    // would reorder completions even when nothing runs in parallel.
+    const completed = [];
+    const jobs = [
+      job("A", "t1", "c1"),
+      job("A", "t2", "c1"),
+      job("B", "t1", "c1"),
+    ];
+    const ms = { "A/t1/c1": 30, "A/t2/c1": 20, "B/t1/c1": 10 };
+    await runConcurrentByTest(jobs, 1, async (j) => {
+      const key = `${j.spec}/${j.test}/${j.ctx}`;
+      await sleep(ms[key]);
+      completed.push(key);
+    });
+    expect(completed).to.deep.equal(["A/t1/c1", "A/t2/c1", "B/t1/c1"]);
+  });
+
   it("processes every job exactly once", async function () {
     const seen = [];
     const jobs = [

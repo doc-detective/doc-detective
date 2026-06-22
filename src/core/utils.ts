@@ -113,6 +113,20 @@ async function runConcurrentByTest<T extends { spec: any; test: any }>(
   fn: (item: T) => Promise<void>,
   options: { exclusive?: (item: T) => boolean } = {}
 ): Promise<void> {
+  const max = Math.max(1, Math.floor(limit) || 1);
+
+  // Effectively-sequential (the default, concurrentRunners=1): run jobs
+  // strictly in input order. The grouped scheduler below would otherwise
+  // interleave specs' first tests (every spec's test 0 enqueues before spec 0's
+  // test 1), changing cross-spec execution order — so short-circuit to the flat
+  // ordering callers expect when nothing actually runs in parallel.
+  if (max === 1) {
+    for (const item of items) {
+      await fn(item);
+    }
+    return;
+  }
+
   // Group into specs, and within each spec into tests, preserving order.
   const specOrder: any[] = [];
   const bySpec = new Map<any, Map<any, T[]>>();
@@ -131,10 +145,9 @@ async function runConcurrentByTest<T extends { spec: any; test: any }>(
     testItems.push(item);
   }
 
-  // Global semaphore caps concurrent `fn` calls at `limit` (min 1), matching
-  // the flat pool's bound. Releasing hands the freed slot straight to the next
-  // waiter (FIFO) — single-threaded JS keeps the counter race-free.
-  const max = Math.max(1, Math.floor(limit) || 1);
+  // Global semaphore caps concurrent `fn` calls at `limit`, matching the flat
+  // pool's bound. Releasing hands the freed slot straight to the next waiter
+  // (FIFO) — single-threaded JS keeps the counter race-free.
   let active = 0;
   const waiters: Array<() => void> = [];
   const acquire = (): Promise<void> => {
