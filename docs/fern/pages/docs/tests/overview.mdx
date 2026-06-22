@@ -182,7 +182,7 @@ Doc Detective uses only the `steps` from the first test in the referenced spec.
 
 ### Set up and tear down the whole run
 
-Set `beforeAny` and `afterAll` in your config to run setup and teardown specs around the entire run:
+Set `beforeAny` and `afterAll` in your config to run setup and cleanup specs around the entire run:
 
 - **`beforeAny`**: One or more paths to specifications that run before any other test starts. All `beforeAny` specs finish before the rest of the run begins.
 - **`afterAll`**: One or more paths to specifications that run after every test in every spec finishes. These specs run even if earlier tests failed.
@@ -196,7 +196,7 @@ Set `beforeAny` and `afterAll` in your config to run setup and teardown specs ar
 
 ### Execution order
 
-Doc Detective runs in three sequential phases: `beforeAny` specs first, then your `input` tests, then `afterAll` specs. Setup always finishes before your tests, and teardown always runs after them. Within each phase, tests still run concurrently up to your configured number of runners.
+Doc Detective runs in three sequential phases: `beforeAny` specs first, then your `input` tests, then `afterAll` specs. Setup always finishes before your tests, and cleanup always runs after them. Within each phase, tests still run concurrently up to your configured number of runners.
 
 ## Run tests
 
