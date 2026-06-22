@@ -17,7 +17,6 @@ import {
   replaceEnvs,
   selectSpecsForRun,
   findFreePort,
-  runConcurrent,
   runConcurrentByTest,
   rollUpResults,
   createAppiumPool,
