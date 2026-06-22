@@ -37,13 +37,17 @@ describe("Run tests successfully", function () {
     ];
     const onlySerial = SERIAL_ONLY.map((id) => `^${escapeRe(id)}$`);
 
-    // The bulk of the suite, run under concurrentRunners=2 (from config.json) on
-    // every OS. No recording specs here, so the runner must NOT fall back to
-    // forced-serial recording mode — asserted below so a serial-forcing spec
-    // can't silently slip through the filter and mask the concurrency.
+    // The bulk of the suite, run under concurrentRunners=2 on every OS. No
+    // recording specs here, so the runner must NOT fall back to forced-serial
+    // recording mode — asserted below so a serial-forcing spec can't silently
+    // slip through the filter and mask the concurrency. concurrentRunners is set
+    // here (not in config.json) so the shared config_base stays serial for other
+    // consumers like appium-port-conflict.test.js, which probes single-Appium
+    // port behavior and must not start a second Appium server.
     it("Non-recording core specs pass under concurrentRunners=2", async () => {
       const config_tests = JSON.parse(JSON.stringify(config_base));
       config_tests.input = artifactPath;
+      config_tests.concurrentRunners = 2;
       config_tests.specFilter = excludeSerial;
       const result = await runTests(config_tests);
       if (result === null) assert.fail("Expected result to be non-null");
