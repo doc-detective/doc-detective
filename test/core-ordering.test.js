@@ -303,6 +303,7 @@ describe("Advanced ordering under concurrentRunners", function () {
       const result = await runTests({
         beforeAny: [b],
         input: [m],
+        concurrentRunners: 4,
         logLevel: "error",
       });
       const before = result.specs.find(
@@ -330,6 +331,7 @@ describe("Advanced ordering under concurrentRunners", function () {
       const result = await runTests({
         input: [m],
         afterAll: [a],
+        concurrentRunners: 4,
         logLevel: "error",
       });
       const main = result.specs.find(
