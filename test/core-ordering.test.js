@@ -17,13 +17,14 @@ function mkTempDir() {
 // JSON.stringify) and invoke `node "<script>"` as a plain string command —
 // runShell runs with shell:true, so an inline `node -e` script gets mangled by
 // the shell, whereas a quoted script path with no special chars is safe and
-// cross-platform.
+// cross-platform. The sleep uses Atomics.wait (a real blocking wait) rather than
+// a busy loop so it doesn't burn CPU and flakify CI under `concurrentRunners`.
 let appendCounter = 0;
 function appendStep(dir, logPath, token, sleepMs = 0) {
   const scriptPath = path.join(dir, `append-${appendCounter++}.js`);
   const js =
     `const fs=require('fs');` +
-    `const e=Date.now()+${sleepMs};while(Date.now()<e){}` +
+    `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,${sleepMs});` +
     `fs.appendFileSync(${JSON.stringify(logPath)}, ${JSON.stringify(token + "\n")});`;
   fs.writeFileSync(scriptPath, js);
   return { runShell: `node "${scriptPath}"` };

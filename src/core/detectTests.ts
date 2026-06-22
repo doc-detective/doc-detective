@@ -339,9 +339,14 @@ async function qualifyFiles({ config }: { config: any }) {
       continue;
     }
 
-    // Parse input
-    if (isFile && (await isValidSourceFile({ config, files, source }))) {
-      const resolved = path.resolve(source);
+    // Parse input. Resolve before the validity/dedup check so isValidSourceFile
+    // de-dups against the resolved paths already in `files` (the directory
+    // branch below also passes resolved paths) and so `_phaseByFile` is keyed by
+    // the same resolved path the job list will carry — otherwise a file
+    // referenced once relative and once absolute could slip through twice with a
+    // mismatched phase.
+    const resolved = path.resolve(source);
+    if (isFile && (await isValidSourceFile({ config, files, source: resolved }))) {
       files.push(resolved);
       if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
     } else if (isDir) {
