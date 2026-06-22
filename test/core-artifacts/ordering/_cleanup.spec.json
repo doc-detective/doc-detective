@@ -1,0 +1,13 @@
+{
+  "specId": "ordering-cleanup-target",
+  "description": "Cleanup spec referenced by a test's `after`. Only the first test's steps are used.",
+  "tests": [
+    {
+      "steps": [
+        {
+          "runShell": "echo ordering-cleanup"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "specId": "ordering-setup-target",
+  "description": "Setup spec referenced by a test's `before`. Only the first test's steps are used.",
+  "tests": [
+    {
+      "steps": [
+        {
+          "runShell": "echo ordering-setup"
+        }
+      ]
+    }
+  ]
+}

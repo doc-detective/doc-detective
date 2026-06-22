@@ -898,9 +898,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       });
     }
 
-    // Phase 2: run every context job through one flat worker pool. A limit of 1
-    // (the default) is strictly sequential in input order.
-    await runConcurrent(jobs, limit, async (job: any) => {
+    // Phase 2: run context jobs through the worker pool, gated into three
+    // sequential phases. Config-level `beforeAny` specs all finish before any
+    // `main` test starts, and `afterAll` specs run only after every `main` test
+    // finishes. Within a phase, jobs still run concurrently up to `limit`.
+    // Warm-up / recording-concurrency / Appium-pool sizing above intentionally
+    // stay computed over the full `jobs[]`. Untagged jobs (programmatic callers
+    // that bypass detection) default to "main". With limit===1 this is identical
+    // ordering to a single pool over input-ordered jobs.
+    const runJob = async (job: any) => {
       try {
         job.contexts[job.slot] = await runContext({
           config,
@@ -935,7 +941,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           steps: [],
         };
       }
-    });
+    };
+
+    const jobsByPhase: { [phase: string]: any[] } = {
+      beforeAny: [],
+      main: [],
+      afterAll: [],
+    };
+    for (const job of jobs) {
+      const phase = job.spec?._phase ?? "main";
+      (jobsByPhase[phase] ?? jobsByPhase.main).push(job);
+    }
+    for (const phase of ["beforeAny", "main", "afterAll"]) {
+      await runConcurrent(jobsByPhase[phase], limit, runJob);
+    }
 
     // Phase 3: roll results up the tree and count the summary in one
     // deterministic pass after all contexts have finished.
@@ -1704,17 +1723,22 @@ async function runContext({
           result: "SKIPPED",
           resultDescription: "Skipped because unsafe steps aren't allowed.",
         };
+        delete stepReport._fromAfter;
         contextReport.steps.push(stepReport);
         continue;
       }
 
-      if (stepExecutionFailed) {
+      // Skip remaining steps after a failure — but NOT cleanup (`_fromAfter`)
+      // steps. Cleanup is hard-routed: it runs after the test no matter what
+      // routing (here, skip-on-failure) happened during execution.
+      if (stepExecutionFailed && !step._fromAfter) {
         // Mark as skipped
         const stepReport = {
           ...step,
           result: "SKIPPED",
           resultDescription: "Skipped due to previous failure in context.",
         };
+        delete stepReport._fromAfter;
         contextReport.steps.push(stepReport);
         continue;
       }
@@ -1750,6 +1774,8 @@ async function runContext({
         ...step,
         ...stepResult,
       };
+      // Internal cleanup marker never leaks into the report.
+      delete stepReport._fromAfter;
 
       // Capture a post-step screenshot for autoScreenshot runs. Applies to
       // browser steps (explicit `screenshot` steps already produce an image);
@@ -1776,8 +1802,11 @@ async function runContext({
 
       contextReport.steps.push(stepReport);
 
-      // If this step failed, set flag to skip remaining steps
-      if (stepReport.result === "FAIL") {
+      // If this step failed, set flag to skip remaining steps — but a failing
+      // cleanup (`_fromAfter`) step must NOT cascade: it can't skip later
+      // cleanup steps (cleanup is best-effort and must complete). The FAIL still
+      // counts in the rollup so cleanup failures surface.
+      if (stepReport.result === "FAIL" && !step._fromAfter) {
         stepExecutionFailed = true;
       }
     }

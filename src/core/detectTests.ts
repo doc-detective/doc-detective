@@ -210,14 +210,25 @@ async function processDitaMap({ config, source }: { config: any; source: string 
 async function qualifyFiles({ config }: { config: any }) {
   let dirs: string[] = [];
   let files: string[] = [];
-  let sequence: any[] = [];
+  // Each sequence entry carries its phase so config-level beforeAny / afterAll
+  // can be gated as execution barriers later (see runSpecs Phase 2). ditamap /
+  // heretto splices inherit the triggering entry's phase. The per-file phase is
+  // recorded in phaseByFile (keyed by resolved path, first-write-wins to match
+  // the isValidSourceFile dedup) and stamped onto each spec as `_phase` in
+  // parseTests.
+  let sequence: Array<{ source: string; phase: string }> = [];
+  const phaseByFile: Map<string, string> = new Map();
+  config._phaseByFile = phaseByFile;
 
-  const setup = config.beforeAny;
-  if (setup) sequence = sequence.concat(setup);
-  const input = config.input;
-  sequence = sequence.concat(input);
-  const cleanup = config.afterAll;
-  if (cleanup) sequence = sequence.concat(cleanup);
+  const toEntries = (value: any, phase: string) =>
+    (value == null ? [] : [].concat(value)).map((source: string) => ({
+      source,
+      phase,
+    }));
+
+  sequence = sequence.concat(toEntries(config.beforeAny, "beforeAny"));
+  sequence = sequence.concat(toEntries(config.input, "main"));
+  sequence = sequence.concat(toEntries(config.afterAll, "afterAll"));
 
   if (sequence.length === 0) {
     log(config, "warning", "No input sources specified.");
@@ -232,7 +243,8 @@ async function qualifyFiles({ config }: { config: any }) {
   }
 
   for (let i = 0; i < sequence.length; i++) {
-    let source = sequence[i];
+    let source: any = sequence[i].source;
+    const phase = sequence[i].phase;
     log(config, "debug", `source: ${source}`);
 
     // Check if source is a heretto:<name> reference
@@ -253,7 +265,7 @@ async function qualifyFiles({ config }: { config: any }) {
           if (outputPath) {
             herettoConfig.outputPath = outputPath;
             config._herettoPathMapping[outputPath] = herettoName;
-            sequence.splice(i + 1, 0, outputPath);
+            sequence.splice(i + 1, 0, { source: outputPath, phase });
             ignoredDitaMaps.push(outputPath);
           } else {
             log(config, "warning", `Failed to load Heretto content for "${herettoName}". Skipping.`);
@@ -266,8 +278,11 @@ async function qualifyFiles({ config }: { config: any }) {
         if (!ignoredDitaMaps.includes(herettoConfig.outputPath)) {
           ignoredDitaMaps.push(herettoConfig.outputPath);
         }
-        if (!sequence.includes(herettoConfig.outputPath)) {
-          sequence.splice(i + 1, 0, herettoConfig.outputPath);
+        if (!sequence.some((e) => e.source === herettoConfig.outputPath)) {
+          sequence.splice(i + 1, 0, {
+            source: herettoConfig.outputPath,
+            phase,
+          });
         }
         // Hydrate resourceDependencies for uploadOnChange on reuse runs
         if (herettoConfig.uploadOnChange && !herettoConfig.resourceDependencies) {
@@ -317,8 +332,8 @@ async function qualifyFiles({ config }: { config: any }) {
     ) {
       const ditaOutput = await processDitaMap({ config, source });
       if (ditaOutput) {
-        const currentIndex = sequence.indexOf(source);
-        sequence.splice(currentIndex + 1, 0, ditaOutput);
+        const currentIndex = sequence.findIndex((e) => e.source === source);
+        sequence.splice(currentIndex + 1, 0, { source: ditaOutput, phase });
         ignoredDitaMaps.push(ditaOutput);
       }
       continue;
@@ -326,7 +341,9 @@ async function qualifyFiles({ config }: { config: any }) {
 
     // Parse input
     if (isFile && (await isValidSourceFile({ config, files, source }))) {
-      files.push(path.resolve(source));
+      const resolved = path.resolve(source);
+      files.push(resolved);
+      if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
     } else if (isDir) {
       dirs = [];
       dirs[0] = source;
@@ -341,7 +358,9 @@ async function qualifyFiles({ config }: { config: any }) {
             isFile &&
             (await isValidSourceFile({ config, files, source: content }))
           ) {
-            files.push(path.resolve(content));
+            const resolved = path.resolve(content);
+            files.push(resolved);
+            if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
           } else if (isDir && config.recursive) {
             dirs.push(content);
           }
@@ -396,6 +415,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       //   keeps the same ID across runs and machines.
       if (!content.specId) content.specId = generateSpecId(file);
       if (!content.contentPath) content.contentPath = file;
+      // Internal phase marker (beforeAny / main / afterAll) so runSpecs can gate
+      // execution as barriers. Stripped before reporting; never in public schema.
+      content._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
       if (Array.isArray(content.tests)) {
         const usedTestIds = new Set(
           content.tests
@@ -488,6 +510,14 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         if (test.after) {
           const cleanup: any = await readFile({ fileURLOrPath: test.after });
           if (cleanup?.tests?.[0]?.steps) {
+            // Tag cleanup steps so the runner hard-routes them: they execute
+            // after the test even when an earlier step failed, and a failing
+            // cleanup step doesn't cascade-skip later cleanup steps. Unlike
+            // _fromBefore (deleted at detection time), _fromAfter must reach
+            // runtime; runContext strips it from the report.
+            for (const step of cleanup.tests[0].steps) {
+              step._fromAfter = true;
+            }
             test.steps = test.steps.concat(cleanup.tests[0].steps);
           }
         }
@@ -570,7 +600,12 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     } else {
       // Text content - use common's detectTests for parsing
       let id = generateSpecId(file);
-      let spec: any = { specId: id, contentPath: file, tests: [] };
+      let spec: any = {
+        specId: id,
+        contentPath: file,
+        _phase: config._phaseByFile?.get(path.resolve(file)) ?? "main",
+        tests: [],
+      };
       const fileType = config.fileTypes.find((fileType: any) =>
         fileType.extensions.includes(extension)
       );
