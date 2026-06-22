@@ -11,11 +11,66 @@ describe("Run tests successfully", function () {
   // 30 minutes for the combined core test suite (runs all specs in one Appium session)
   this.timeout(1800000);
   describe("Core test suite", function () {
-    // Run all spec files in a single runTests() call to avoid repeated Appium restarts.
-    // This starts Appium once and runs all specs within that session.
-    it("All core spec files pass", async () => {
+    // Specs that MUST run serially (concurrentRunners=1), split out so the rest
+    // of the suite can be exercised under real concurrency on every OS:
+    //   - recording / recording-permutations / autorecord / "Do all the things!"
+    //     drive ffmpeg/browser recordings, which need exclusive use of the
+    //     display. Left in a concurrent run they either force the whole run
+    //     serial (no Xvfb: Windows/macOS) or clobber each other's driver
+    //     sessions (Linux+Xvfb -> `invalid session id`).
+    //   - cookie-tests starts httpbin in Docker in its first test and depends on
+    //     it in later tests; concurrent test execution races that setup (the
+    //     dependent tests hit localhost:8080 before the container is up).
+    const SERIAL_ONLY = [
+      "recording",
+      "recording-permutations",
+      "autorecord",
+      "Do all the things! - Spec",
+      "cookie-tests",
+    ];
+    const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // specFilter is include-only (regex on specId). For the concurrent pass,
+    // exclude the serial set with a single anchored negative-lookahead; for the
+    // serial pass, include exactly that set.
+    const excludeSerial = [
+      `^(?!(?:${SERIAL_ONLY.map(escapeRe).join("|")})$).*$`,
+    ];
+    const onlySerial = SERIAL_ONLY.map((id) => `^${escapeRe(id)}$`);
+
+    // The bulk of the suite, run under concurrentRunners=2 on every OS. No
+    // recording specs here, so the runner must NOT fall back to forced-serial
+    // recording mode — asserted below so a serial-forcing spec can't silently
+    // slip through the filter and mask the concurrency. concurrentRunners is set
+    // here (not in config.json) so the shared config_base stays serial for other
+    // consumers like appium-port-conflict.test.js, which probes single-Appium
+    // port behavior and must not start a second Appium server.
+    it("Non-recording core specs pass under concurrentRunners=2", async () => {
       const config_tests = JSON.parse(JSON.stringify(config_base));
-      config_tests.runTests.input = artifactPath;
+      config_tests.input = artifactPath;
+      config_tests.concurrentRunners = 2;
+      config_tests.specFilter = excludeSerial;
+      const result = await runTests(config_tests);
+      if (result === null) assert.fail("Expected result to be non-null");
+      assert.notEqual(
+        result.recordingForcedSerial,
+        true,
+        "Concurrent pass was forced serial — a recording spec leaked past the filter; add it to SERIAL_ONLY."
+      );
+      const failedSpecs = result.specs.filter((s) => s.result === "FAIL");
+      assert.equal(
+        result.summary.specs.fail,
+        0,
+        `${failedSpecs.length} spec(s) failed: ${failedSpecs.map((s) => s.specId).join(", ")}`
+      );
+    });
+
+    // Recording + setup-ordered specs, run serially. (concurrentRunners=1 here
+    // is also what no-Xvfb platforms fall back to for recording anyway.)
+    it("Recording and setup-ordered core specs pass serially", async () => {
+      const config_tests = JSON.parse(JSON.stringify(config_base));
+      config_tests.input = artifactPath;
+      config_tests.concurrentRunners = 1;
+      config_tests.specFilter = onlySerial;
       const result = await runTests(config_tests);
       if (result === null) assert.fail("Expected result to be non-null");
       const failedSpecs = result.specs.filter((s) => s.result === "FAIL");
