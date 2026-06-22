@@ -5,7 +5,6 @@
   "logLevel": "debug",
   "relativePathBase": "file",
   "detectSteps": false,
-  "concurrentRunners": 2,
   "runOn": [
     {
       "platforms": ["mac", "linux"],
