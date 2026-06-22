@@ -1,3 +1,15 @@
+# [4.15.0-next.13](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.12...v4.15.0-next.13) (2026-06-22)
+
+
+### Bug Fixes
+
+* **runner:** gate advanced ordering under concurrentRunners ([#377](https://github.com/doc-detective/doc-detective/issues/377)) ([158c83e](https://github.com/doc-detective/doc-detective/commit/158c83e6d64a833aef4bea1bba39475d18c62259))
+
+
+### Features
+
+* **hints:** surface custom assertions and retry for transient errors ([#376](https://github.com/doc-detective/doc-detective/issues/376)) ([18ed387](https://github.com/doc-detective/doc-detective/commit/18ed3873376fa147866cf1ccaec4a7548da99d65))
+
 # [4.15.0-next.12](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.11...v4.15.0-next.12) (2026-06-21)
 
 
