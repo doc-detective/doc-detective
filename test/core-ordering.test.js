@@ -220,8 +220,45 @@ describe("Advanced ordering under concurrentRunners", function () {
         logLevel: "error",
       });
       const json = JSON.stringify(result);
-      assert.ok(!json.includes("_fromAfter"), "_fromAfter leaked into report");
-      assert.ok(!json.includes("_phase"), "_phase leaked into report");
+      // Anchor to JSON keys so a user step's command text containing the literal
+      // string can't false-positive.
+      assert.ok(
+        !/"_fromAfter"\s*:/.test(json),
+        "_fromAfter leaked into report"
+      );
+      assert.ok(!/"_phase"\s*:/.test(json), "_phase leaked into report");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("cleanup step's stepId is unaffected by the internal _fromAfter marker", async () => {
+    const dir = mkTempDir();
+    try {
+      const cmd = "echo same-step";
+      const cleanup = writeSpec(dir, "cleanup.json", {
+        tests: [{ steps: [{ runShell: cmd }] }],
+      });
+      const normal = writeSpec(dir, "normal.json", {
+        tests: [{ steps: [{ runShell: cmd }] }],
+      });
+      const withCleanup = writeSpec(dir, "with-cleanup.json", {
+        tests: [{ after: cleanup, steps: [{ runShell: "echo base" }] }],
+      });
+      const result = await runTests({
+        input: [normal, withCleanup],
+        logLevel: "error",
+      });
+      const normalStep = result.specs.find(
+        (s) => path.basename(s.contentPath) === "normal.json"
+      ).tests[0].contexts[0].steps[0];
+      const cleanupStep = result.specs.find(
+        (s) => path.basename(s.contentPath) === "with-cleanup.json"
+      ).tests[0].contexts[0].steps[1]; // [0] base step, [1] appended cleanup
+      // stepId is `<testId>~s<contentHash>`; the content-hash suffix must match
+      // — the _fromAfter marker must not perturb it.
+      const hashOf = (id) => id.replace(/^.*~s/, "");
+      assert.equal(hashOf(cleanupStep.stepId), hashOf(normalStep.stepId));
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

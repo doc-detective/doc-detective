@@ -63,6 +63,9 @@ failure does not set the cascade flag. `_phase` and `_fromAfter` are stripped be
   the barrier guarantee).
 * Neutral: `beforeAny` failures do not abort later phases (run-everything preserved); `afterAll`
   always runs. A future opt-in fail-fast is left as a follow-up.
+* Exception: an `unsafe` cleanup step is still skipped when `allowUnsafeSteps` is false. The
+  safety gate runs before the hard-routing check and intentionally wins — "cleanup runs no matter
+  what" does not override the user's explicit refusal to run unsafe steps.
 
 ### Confirmation
 

@@ -943,16 +943,22 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       }
     };
 
+    const PHASES = ["beforeAny", "main", "afterAll"];
     const jobsByPhase: { [phase: string]: any[] } = {
       beforeAny: [],
       main: [],
       afterAll: [],
     };
     for (const job of jobs) {
-      const phase = job.spec?._phase ?? "main";
-      (jobsByPhase[phase] ?? jobsByPhase.main).push(job);
+      // Constrain to the known set before indexing: a programmatic caller could
+      // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
+      // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw.
+      const phase = PHASES.includes(job.spec?._phase)
+        ? job.spec._phase
+        : "main";
+      jobsByPhase[phase].push(job);
     }
-    for (const phase of ["beforeAny", "main", "afterAll"]) {
+    for (const phase of PHASES) {
       await runConcurrent(jobsByPhase[phase], limit, runJob);
     }
 

@@ -528,9 +528,16 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             // after the test even when an earlier step failed, and a failing
             // cleanup step doesn't cascade-skip later cleanup steps. Unlike
             // _fromBefore (deleted at detection time), _fromAfter must reach
-            // runtime; runContext strips it from the report.
+            // runtime. Defined non-enumerable so it's invisible to contentHash
+            // (stepId stays identical to the unmarked step), object spreads, and
+            // JSON — it never affects hashing or the report.
             for (const step of cleanup.tests[0].steps) {
-              step._fromAfter = true;
+              Object.defineProperty(step, "_fromAfter", {
+                value: true,
+                enumerable: false,
+                writable: true,
+                configurable: true,
+              });
             }
             test.steps = test.steps.concat(cleanup.tests[0].steps);
           }
@@ -700,6 +707,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           object: spec,
           filePath: file,
         });
+        // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
+        // keys, so a text/markdown file referenced by beforeAny/afterAll would
+        // otherwise silently fall back to "main". Mirrors the JSON/YAML branch.
+        spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
         specs.push(spec);
       }
     }
