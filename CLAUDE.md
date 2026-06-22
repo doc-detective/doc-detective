@@ -15,6 +15,24 @@ Always use **red → green** test-driven development. For every behavior change:
 
 Don't write implementation code before the failing test exists, and don't batch many changes behind a single test. The ["TDD cycle per flag"](#tdd-cycle-per-flag) section below shows the canonical red→green sequence applied to a new CLI flag.
 
+## Architecture Decision Records (required)
+
+Every **behavior change** must ship with an Architecture Decision Record (ADR) in
+[MADR](https://adr.github.io/madr/) format under [adrs/](adrs). The ADR records the *intended
+behavior, the reasoning, and the decision* — write it **before** (or alongside) the code so it is
+the reviewable source of truth, not an afterthought.
+
+- **Format**: MADR 4.0.0. Include the YAML front matter (`status`, `date`, `decision-makers`) and
+  the standard sections: *Context and Problem Statement*, *Decision Drivers*, *Considered Options*,
+  *Decision Outcome* (with *Consequences* and *Confirmation*), and *Pros and Cons of the Options*.
+- **Filename**: `NNNNN-kebab-case-title.md`, 5-digit zero-padded. Numbering **starts at `01000`**
+  and increments (`01000`, `01001`, …). The range `00001`–`00999` is **intentionally reserved** to
+  backfill pre-existing architectural decisions later — do not use it for new decisions.
+- **Worked example**: [adrs/01000-gate-advanced-ordering-under-concurrent-runners.md](adrs/01000-gate-advanced-ordering-under-concurrent-runners.md).
+- **Scope**: ADRs document *decisions* (behavior, contracts, trade-offs), not mechanical changes.
+  Pure refactors, dependency bumps, typo/doc fixes, and style changes don't need one. If a change
+  alters observable behavior or a public contract, it does.
+
 ## Feature fixtures (required)
 
 Unit tests are necessary but not sufficient. When you add or change a **user-facing feature** (a new step type, action option, config/CLI flag, engine, output format, etc.), also author **Doc Detective fixtures** that exercise the feature end-to-end through the real runner — and cover **every permutation** of it, not just the happy path.
