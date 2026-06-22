@@ -511,11 +511,26 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Merge before/after steps, tracking which steps came from before-specs.
       for (let t = 0; t < content.tests.length; t++) {
         const test = content.tests[t];
+        // Scrub the internal routing markers from authored steps: they're set
+        // only by the before/after merge below. Without this, a spec could
+        // forge `_fromAfter: true` (the validation clone strips it, so it would
+        // survive to runtime) and bypass skip-on-failure / the cascade guard
+        // outside the `after` mechanism.
+        if (Array.isArray(test.steps)) {
+          for (const step of test.steps) {
+            if (step && typeof step === "object") {
+              delete step._fromBefore;
+              delete step._fromAfter;
+            }
+          }
+        }
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
           if (setup?.tests?.[0]?.steps) {
-            // Tag before-steps with a marker that survives validation cloning
+            // Tag before-steps with a marker that survives validation cloning.
+            // Scrub any forged _fromAfter from these authored steps first.
             for (const step of setup.tests[0].steps) {
+              if (step && typeof step === "object") delete step._fromAfter;
               step._fromBefore = true;
             }
             test.steps = setup.tests[0].steps.concat(test.steps);
@@ -532,6 +547,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             // (stepId stays identical to the unmarked step), object spreads, and
             // JSON — it never affects hashing or the report.
             for (const step of cleanup.tests[0].steps) {
+              if (step && typeof step === "object") delete step._fromBefore;
               Object.defineProperty(step, "_fromAfter", {
                 value: true,
                 enumerable: false,
