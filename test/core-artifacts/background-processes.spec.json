@@ -1,6 +1,6 @@
 {
   "specId": "background-processes",
-  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, readyWhen }) on runCode/runShell with each readyWhen probe (port, log, httpGet, delayMs), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
+  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, readyWhen }) on runCode/runShell with each readyWhen probe (port, log, httpGet, delayMs) plus the no-readyWhen form (ready as soon as spawned), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "bg-runcode-port",
