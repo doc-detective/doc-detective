@@ -21,7 +21,7 @@ export {
   waitForReady,
   waitForPort,
   waitForHttp,
-  waitForLog,
+  waitForStdio,
   inContainer,
   cleanTemp,
   calculateFractionalDifference,
@@ -334,12 +334,16 @@ function tryConnect(host: string, port: number): Promise<boolean> {
   });
 }
 
-// Poll a TCP port until it accepts a connection or the deadline passes.
+// How long to wait between poll attempts for the port / HTTP conditions.
+const READY_POLL_INTERVAL_MS = 500;
+
+// Poll a TCP port (on localhost) until it accepts a connection or the deadline
+// passes.
 async function waitForPort(
-  host: string,
   port: number,
-  { pollIntervalMs = 500, deadline }: { pollIntervalMs?: number; deadline: number }
+  { deadline }: { deadline: number }
 ): Promise<void> {
+  const host = "127.0.0.1";
   while (true) {
     if (await tryConnect(host, port)) return;
     // Only give up once the clock has actually run out, and bound the wait to
@@ -347,18 +351,17 @@ async function waitForPort(
     // fixed `Date.now() + pollIntervalMs >= deadline` check would throw with
     // time still on the clock on a slow host, skipping a winnable attempt.
     if (Date.now() >= deadline) {
-      throw new Error(`Port ${host}:${port} did not open in time.`);
+      throw new Error(`Port ${port} did not open in time.`);
     }
-    await backgroundSleep(Math.min(pollIntervalMs, deadline - Date.now()));
+    await backgroundSleep(Math.min(READY_POLL_INTERVAL_MS, deadline - Date.now()));
   }
 }
 
-// Poll an HTTP endpoint until it returns one of the expected status codes or the
-// deadline passes. Connection errors are swallowed and retried.
+// Poll an HTTP endpoint until a GET returns a 2xx status or the deadline passes.
+// Connection errors are swallowed and retried.
 async function waitForHttp(
   url: string,
-  statusCodes: number[],
-  { pollIntervalMs = 500, deadline }: { pollIntervalMs?: number; deadline: number }
+  { deadline }: { deadline: number }
 ): Promise<void> {
   while (true) {
     try {
@@ -369,46 +372,57 @@ async function waitForHttp(
         validateStatus: () => true,
         timeout: Math.max(1, Math.min(5000, remaining)),
       });
-      if (statusCodes.includes(resp.status)) return;
+      if (resp.status >= 200 && resp.status < 300) return;
     } catch {
       // Server not up yet (or transient) — retry until the deadline.
     }
     if (Date.now() >= deadline) {
-      throw new Error(
-        `HTTP GET ${url} did not return ${JSON.stringify(statusCodes)} in time.`
-      );
+      throw new Error(`HTTP GET ${url} did not return a 2xx status in time.`);
     }
-    await backgroundSleep(Math.min(pollIntervalMs, deadline - Date.now()));
+    await backgroundSleep(Math.min(READY_POLL_INTERVAL_MS, deadline - Date.now()));
   }
 }
 
-// Resolve when the process output matches `pattern` on the selected stream, or
-// reject when the deadline passes. Already-buffered output is checked first so a
-// match emitted before subscription isn't missed.
-function waitForLog(
+// Resolve when the process output matches `expected`, or reject when the
+// deadline passes. Mirrors runShell's `stdio` matching exactly: a substring
+// match, or a regular expression when `expected` is wrapped in forward slashes
+// (`/.../`), tested against stdout OR stderr (each stream separately, not a
+// concatenation — so a match can't span the stdout/stderr boundary).
+// Already-buffered output is checked first so a match emitted before
+// subscription isn't missed.
+function waitForStdio(
   bg: BackgroundProcess,
-  pattern: string,
-  stream: "stdout" | "stderr" | "any",
+  expected: string,
   { deadline }: { deadline: number }
 ): Promise<void> {
-  const regex = new RegExp(pattern);
-  const bufferFor = () =>
-    stream === "stdout"
-      ? bg.getStdout()
-      : stream === "stderr"
-      ? bg.getStderr()
-      : bg.getCombined();
+  let regex: RegExp | null = null;
+  if (expected.startsWith("/") && expected.endsWith("/")) {
+    try {
+      regex = new RegExp(expected.slice(1, -1));
+    } catch (error: any) {
+      // Surface a Doc Detective-shaped error instead of the engine's raw
+      // SyntaxError; runShell's stdio matching wraps regex compilation similarly.
+      return Promise.reject(
+        new Error(
+          `waitUntil.stdio: invalid regular expression ${expected}: ${error.message}`
+        )
+      );
+    }
+  }
+  const matchesText = (text: string) =>
+    regex ? regex.test(text) : text.includes(expected);
+  // stdout OR stderr, checked separately (like runShell's stdio).
+  const matched = () => matchesText(bg.getStdout()) || matchesText(bg.getStderr());
 
   return new Promise((resolve, reject) => {
-    if (regex.test(bufferFor())) return resolve();
+    if (matched()) return resolve();
     let unsubscribe = () => {};
     const timer = setTimeout(() => {
       unsubscribe();
-      reject(new Error(`Log pattern /${pattern}/ not seen in time.`));
+      reject(new Error(`Expected output (${expected}) not seen in time.`));
     }, Math.max(0, deadline - Date.now()));
-    unsubscribe = bg.onChunk((_chunk, s) => {
-      if (stream !== "any" && s !== stream) return;
-      if (regex.test(bufferFor())) {
+    unsubscribe = bg.onChunk(() => {
+      if (matched()) {
         clearTimeout(timer);
         unsubscribe();
         resolve();
@@ -417,54 +431,48 @@ function waitForLog(
   });
 }
 
-// Block until the background process satisfies its readiness probe, fails fast
-// if the process exits first, or rejects when `timeoutMs` elapses. Probe shape
-// defaults are applied here too (defense-in-depth — AJV may not fill defaults
-// nested under anyOf branches).
+// Block until every condition in `waitUntil` is met, fail fast if the process
+// exits first, or reject when `timeoutMs` elapses. Conditions are AND-combined
+// (like goTo's `waitUntil`): all the ones present must pass. An absent or empty
+// `waitUntil` means the process is ready as soon as it is spawned.
 async function waitForReady(
   bg: BackgroundProcess,
-  readyWhen: any,
+  waitUntil: any,
   { timeoutMs }: { timeoutMs: number }
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
-  let probe: Promise<void>;
-  if (readyWhen?.port) {
-    probe = waitForPort(
-      readyWhen.port.host || "127.0.0.1",
-      readyWhen.port.port,
-      { pollIntervalMs: readyWhen.port.pollIntervalMs || 500, deadline }
-    );
-  } else if (readyWhen?.httpGet) {
-    probe = waitForHttp(
-      readyWhen.httpGet.url,
-      readyWhen.httpGet.statusCodes || [200],
-      { pollIntervalMs: readyWhen.httpGet.pollIntervalMs || 500, deadline }
-    );
-  } else if (readyWhen?.log) {
-    probe = waitForLog(bg, readyWhen.log.pattern, readyWhen.log.stream || "any", {
-      deadline,
-    });
-  } else if (readyWhen && typeof readyWhen.delayMs === "number") {
-    probe = backgroundSleep(Math.min(readyWhen.delayMs, timeoutMs));
-  } else {
-    // No readyWhen: consider ready as soon as the process is spawned.
-    probe = Promise.resolve();
+  const probes: Promise<void>[] = [];
+  if (waitUntil && typeof waitUntil.port === "number") {
+    probes.push(waitForPort(waitUntil.port, { deadline }));
   }
+  if (waitUntil && typeof waitUntil.httpGet === "string") {
+    probes.push(waitForHttp(waitUntil.httpGet, { deadline }));
+  }
+  if (waitUntil && typeof waitUntil.stdio === "string") {
+    probes.push(waitForStdio(bg, waitUntil.stdio, { deadline }));
+  }
+  if (waitUntil && typeof waitUntil.delayMs === "number") {
+    probes.push(backgroundSleep(Math.min(waitUntil.delayMs, timeoutMs)));
+  }
+
+  // All conditions must pass; an empty set resolves immediately.
+  const ready = Promise.all(probes).then(() => undefined);
 
   // Fail fast if the process dies before becoming ready.
   const earlyExit = bg.exited.then((code) => {
     throw new Error(`Process exited before becoming ready (exit code ${code}).`);
   });
 
-  // The race loser settles later (the probe keeps polling to its own deadline;
+  // The race loser settles later (a probe keeps polling to its own deadline;
   // earlyExit rejects when the process is eventually killed at teardown).
-  // Attach no-op catches so that late rejection is always considered handled and
+  // Attach no-op catches so a late rejection is always considered handled and
   // never surfaces as an unhandledRejection during normal stopProcess teardown.
-  probe.catch(() => {});
+  ready.catch(() => {});
   earlyExit.catch(() => {});
+  for (const p of probes) p.catch(() => {});
 
-  await Promise.race([probe, earlyExit]);
+  await Promise.race([ready, earlyExit]);
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
