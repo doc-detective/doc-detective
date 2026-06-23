@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 
 export {
   outputResults,
@@ -17,6 +17,11 @@ export {
   runArchivesArtifacts,
   replaceEnvs,
   spawnCommand,
+  spawnBackgroundCommand,
+  waitForReady,
+  waitForPort,
+  waitForHttp,
+  waitForLog,
   inContainer,
   cleanTemp,
   calculateFractionalDifference,
@@ -39,6 +44,8 @@ export {
   rollUpAssertions,
   createAppiumPool,
 };
+
+export type { BackgroundProcess };
 
 // A fixed set of Appium server ports shared by concurrent runners. `acquire()`
 // hands out a free port, waiting if every port is checked out; `release()`
@@ -225,6 +232,239 @@ async function findFreePort(): Promise<number> {
       server.close(() => resolve(port));
     });
   });
+}
+
+// A handle to a long-running process started by a `background: true`
+// runShell/runCode step. Output is buffered (ring-capped) so readiness probes
+// and debugging can inspect it without waiting for the process to exit.
+interface BackgroundProcess {
+  child: ChildProcess;
+  pid: number | undefined;
+  getStdout(): string;
+  getStderr(): string;
+  getCombined(): string;
+  // Subscribe to new output chunks. Returns an unsubscribe function.
+  onChunk(cb: (chunk: string, stream: "stdout" | "stderr") => void): () => void;
+  // Resolves with the exit code when the process closes, or null if it never
+  // started (spawn error).
+  exited: Promise<number | null>;
+}
+
+// Cap each buffered stream so a process that logs for the whole suite can't
+// grow memory without bound. The tail is what readiness probes care about.
+const BACKGROUND_BUFFER_LIMIT = 256 * 1024;
+
+function backgroundSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Non-blocking sibling of spawnCommand: starts a process and returns a handle
+// immediately instead of awaiting `close`. Mirrors spawnCommand's spawn options
+// (shell:true, windowsHide on win32, cwd) so existing command strings behave the
+// same. With shell:true, child.pid is the shell's pid; tree-kill (used at
+// teardown) handles the child tree.
+function spawnBackgroundCommand(
+  cmd: string,
+  args: string[] = [],
+  options: any = {}
+): BackgroundProcess {
+  const spawnOptions: any = { shell: true };
+  if (process.platform === "win32") spawnOptions.windowsHide = true;
+  if (options.cwd) spawnOptions.cwd = options.cwd;
+
+  const child = spawn(cmd, args, spawnOptions);
+
+  let stdout = "";
+  let stderr = "";
+  const subscribers = new Set<
+    (chunk: string, stream: "stdout" | "stderr") => void
+  >();
+
+  function append(stream: "stdout" | "stderr", text: string) {
+    if (stream === "stdout") {
+      stdout = (stdout + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    } else {
+      stderr = (stderr + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    }
+    for (const cb of subscribers) cb(text, stream);
+  }
+
+  if (child.stdout)
+    child.stdout.on("data", (d: any) => append("stdout", d.toString()));
+  if (child.stderr)
+    child.stderr.on("data", (d: any) => append("stderr", d.toString()));
+
+  // Registering an `error` listener here also prevents an immediate spawn
+  // failure (e.g. a bad command) from crashing the process as an unhandled
+  // 'error' event; the failure surfaces via `exited` resolving with null.
+  const exited = new Promise<number | null>((resolve) => {
+    child.once("close", (code) => resolve(code));
+    child.once("error", () => resolve(null));
+  });
+
+  return {
+    child,
+    pid: child.pid,
+    getStdout: () => stdout,
+    getStderr: () => stderr,
+    getCombined: () => stdout + stderr,
+    onChunk(cb) {
+      subscribers.add(cb);
+      return () => subscribers.delete(cb);
+    },
+    exited,
+  };
+}
+
+// Attempt a single TCP connection. Resolves true on connect, false on any error
+// or per-attempt timeout. Never rejects.
+function tryConnect(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host, port });
+    let settled = false;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+    socket.setTimeout(2000, () => finish(false));
+  });
+}
+
+// Poll a TCP port until it accepts a connection or the deadline passes.
+async function waitForPort(
+  host: string,
+  port: number,
+  { pollIntervalMs = 500, deadline }: { pollIntervalMs?: number; deadline: number }
+): Promise<void> {
+  while (true) {
+    if (await tryConnect(host, port)) return;
+    // Only give up once the clock has actually run out, and bound the wait to
+    // the time remaining so a final probe still happens near the deadline. A
+    // fixed `Date.now() + pollIntervalMs >= deadline` check would throw with
+    // time still on the clock on a slow host, skipping a winnable attempt.
+    if (Date.now() >= deadline) {
+      throw new Error(`Port ${host}:${port} did not open in time.`);
+    }
+    await backgroundSleep(Math.min(pollIntervalMs, deadline - Date.now()));
+  }
+}
+
+// Poll an HTTP endpoint until it returns one of the expected status codes or the
+// deadline passes. Connection errors are swallowed and retried.
+async function waitForHttp(
+  url: string,
+  statusCodes: number[],
+  { pollIntervalMs = 500, deadline }: { pollIntervalMs?: number; deadline: number }
+): Promise<void> {
+  while (true) {
+    try {
+      // Cap the per-request timeout to the time left so a single hung request
+      // can't block past the overall readiness deadline (e.g. timeout: 600).
+      const remaining = deadline - Date.now();
+      const resp = await axios.get(url, {
+        validateStatus: () => true,
+        timeout: Math.max(1, Math.min(5000, remaining)),
+      });
+      if (statusCodes.includes(resp.status)) return;
+    } catch {
+      // Server not up yet (or transient) — retry until the deadline.
+    }
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `HTTP GET ${url} did not return ${JSON.stringify(statusCodes)} in time.`
+      );
+    }
+    await backgroundSleep(Math.min(pollIntervalMs, deadline - Date.now()));
+  }
+}
+
+// Resolve when the process output matches `pattern` on the selected stream, or
+// reject when the deadline passes. Already-buffered output is checked first so a
+// match emitted before subscription isn't missed.
+function waitForLog(
+  bg: BackgroundProcess,
+  pattern: string,
+  stream: "stdout" | "stderr" | "any",
+  { deadline }: { deadline: number }
+): Promise<void> {
+  const regex = new RegExp(pattern);
+  const bufferFor = () =>
+    stream === "stdout"
+      ? bg.getStdout()
+      : stream === "stderr"
+      ? bg.getStderr()
+      : bg.getCombined();
+
+  return new Promise((resolve, reject) => {
+    if (regex.test(bufferFor())) return resolve();
+    let unsubscribe = () => {};
+    const timer = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Log pattern /${pattern}/ not seen in time.`));
+    }, Math.max(0, deadline - Date.now()));
+    unsubscribe = bg.onChunk((_chunk, s) => {
+      if (stream !== "any" && s !== stream) return;
+      if (regex.test(bufferFor())) {
+        clearTimeout(timer);
+        unsubscribe();
+        resolve();
+      }
+    });
+  });
+}
+
+// Block until the background process satisfies its readiness probe, fails fast
+// if the process exits first, or rejects when `timeoutMs` elapses. Probe shape
+// defaults are applied here too (defense-in-depth — AJV may not fill defaults
+// nested under anyOf branches).
+async function waitForReady(
+  bg: BackgroundProcess,
+  readyWhen: any,
+  { timeoutMs }: { timeoutMs: number }
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  let probe: Promise<void>;
+  if (readyWhen?.port) {
+    probe = waitForPort(
+      readyWhen.port.host || "127.0.0.1",
+      readyWhen.port.port,
+      { pollIntervalMs: readyWhen.port.pollIntervalMs || 500, deadline }
+    );
+  } else if (readyWhen?.httpGet) {
+    probe = waitForHttp(
+      readyWhen.httpGet.url,
+      readyWhen.httpGet.statusCodes || [200],
+      { pollIntervalMs: readyWhen.httpGet.pollIntervalMs || 500, deadline }
+    );
+  } else if (readyWhen?.log) {
+    probe = waitForLog(bg, readyWhen.log.pattern, readyWhen.log.stream || "any", {
+      deadline,
+    });
+  } else if (readyWhen && typeof readyWhen.delayMs === "number") {
+    probe = backgroundSleep(Math.min(readyWhen.delayMs, timeoutMs));
+  } else {
+    // No readyWhen: consider ready as soon as the process is spawned.
+    probe = Promise.resolve();
+  }
+
+  // Fail fast if the process dies before becoming ready.
+  const earlyExit = bg.exited.then((code) => {
+    throw new Error(`Process exited before becoming ready (exit code ${code}).`);
+  });
+
+  // The race loser settles later (the probe keeps polling to its own deadline;
+  // earlyExit rejects when the process is eventually killed at teardown).
+  // Attach no-op catches so that late rejection is always considered handled and
+  // never surfaces as an unhandledRejection during normal stopProcess teardown.
+  probe.catch(() => {});
+  earlyExit.catch(() => {});
+
+  await Promise.race([probe, earlyExit]);
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {

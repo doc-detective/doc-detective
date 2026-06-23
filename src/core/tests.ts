@@ -1,4 +1,5 @@
 import kill from "tree-kill";
+import fs from "node:fs";
 // webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
 // site so the shim's CLI startup doesn't pay its ~50MB load cost when the
 // user is only running e.g. install-agents or install status. The type
@@ -63,6 +64,7 @@ import { loadCookie } from "./tests/loadCookie.js";
 import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
+import { stopProcess } from "./tests/stopProcess.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import path from "node:path";
@@ -986,6 +988,71 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
   }
 
+  // Registry of long-running background processes started by `background`
+  // runShell/runCode steps. Owned by this run (not per-context) so processes
+  // survive across specs/tests and are torn down once — by a stopProcess step
+  // or the run-end sweep in the `finally` below.
+  const processRegistry = new Map<string, any>();
+
+  // Tree-kill a pid and resolve when the kill has actually completed (callback
+  // form), so callers can await termination before exiting/returning.
+  const killTree = (pid?: number) =>
+    new Promise<void>((resolve) => {
+      if (!pid) return resolve();
+      try {
+        kill(pid, "SIGTERM", () => resolve());
+      } catch {
+        resolve();
+      }
+    });
+
+  // Kill every still-registered background process (and its child tree) and
+  // remove any deferred temp scripts. Awaits the kills so the process tree is
+  // actually gone before the run returns. Idempotent: stopProcess already
+  // removes the entries it handles.
+  const killAllRegistered = async () => {
+    const entries = [...processRegistry.entries()];
+    processRegistry.clear();
+    await Promise.all(
+      entries.map(async ([, entry]) => {
+        await killTree(entry?.bg?.pid);
+        if (entry?.tempPath) {
+          try {
+            fs.unlinkSync(entry.tempPath);
+          } catch {
+            // best-effort
+          }
+        }
+      })
+    );
+  };
+
+  // Tear down background processes, Appium servers, and Xvfb on Ctrl-C /
+  // termination, then exit. Registered here and removed in the `finally` so
+  // repeated programmatic runSpecs calls don't accumulate listeners. Without
+  // this, an interrupt mid-run leaked Appium and any background process. The
+  // handler awaits the tree-kills before exiting so children don't outlive it.
+  let signalHandled = false;
+  const onSignal = (signal: NodeJS.Signals) => {
+    if (signalHandled) return;
+    signalHandled = true;
+    (async () => {
+      await killAllRegistered();
+      await Promise.all(
+        appiumServers.map((server) => killTree(server.process?.pid))
+      );
+      for (const xvfb of xvfbProcesses) {
+        try {
+          xvfb.kill();
+        } catch {
+          // best-effort
+        }
+      }
+    })().finally(() => process.exit(signal === "SIGINT" ? 130 : 143));
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+
   // Everything that uses the Appium servers runs inside this try so the
   // shutdown in `finally` always reaches them — otherwise a throw in
   // warmUpContexts (e.g. getAvailableApps failing during the re-detect) would
@@ -1033,6 +1100,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           metaValues,
           installAttempts,
           warmUpResults,
+          processRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -1126,6 +1194,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           metaValues,
           installAttempts,
           warmUpResults,
+          processRegistry,
           platform,
           markAutoRecord,
           limit,
@@ -1156,6 +1225,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       report.summary.specs[specReport.result.toLowerCase()]++;
     }
   } finally {
+    // Run-end teardown: kill any background processes the run didn't explicitly
+    // stop (via stopProcess) so they don't leak. Awaited so the trees are gone
+    // before runSpecs returns.
+    await killAllRegistered();
     // Close every Appium server we started.
     for (const server of appiumServers) {
       log(config, "debug", `Closing Appium server on port ${server.port}`);
@@ -1173,6 +1246,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // Process may already be terminated
       }
     }
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
   }
 
   // Upload changed files back to source integrations (best-effort)
@@ -1249,6 +1324,7 @@ async function runRoutedSpec({
   metaValues,
   installAttempts,
   warmUpResults,
+  processRegistry,
   platform,
   markAutoRecord,
   limit,
@@ -1267,6 +1343,7 @@ async function runRoutedSpec({
   metaValues: any;
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
+  processRegistry?: Map<string, any>;
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
@@ -1451,6 +1528,7 @@ async function runRoutedSpec({
           metaValues,
           installAttempts,
           warmUpResults,
+          processRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -2212,6 +2290,7 @@ async function runContext({
   metaValues,
   installAttempts,
   warmUpResults,
+  processRegistry,
   logPrefix = "",
 }: {
   config: any;
@@ -2226,6 +2305,7 @@ async function runContext({
   metaValues: any;
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
+  processRegistry?: Map<string, any>;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -2734,6 +2814,7 @@ async function runContext({
           options: {
             openApiDefinitions: context.openApi || [],
           },
+          processRegistry: processRegistry,
         });
         clog(
           "debug",
@@ -2987,6 +3068,7 @@ async function runStep({
   driver,
   metaValues = {},
   options = {},
+  processRegistry,
 }: {
   config?: any;
   context?: any;
@@ -2994,6 +3076,7 @@ async function runStep({
   driver: any;
   metaValues?: any;
   options?: any;
+  processRegistry?: Map<string, any>;
 }): Promise<any> {
   let actionResult: any;
   // Load values from environment variables
@@ -3057,7 +3140,7 @@ async function runStep({
       driver.state.recordings.push(handle);
     }
   } else if (typeof step.runCode !== "undefined") {
-    actionResult = await runCode({ config: config, step: step });
+    actionResult = await runCode({ config: config, step: step, processRegistry });
   } else if (typeof step.runBrowserScript !== "undefined") {
     actionResult = await runBrowserScript({
       config: config,
@@ -3065,7 +3148,9 @@ async function runStep({
       driver: driver,
     });
   } else if (typeof step.runShell !== "undefined") {
-    actionResult = await runShell({ config: config, step: step });
+    actionResult = await runShell({ config: config, step: step, processRegistry });
+  } else if (typeof step.stopProcess !== "undefined") {
+    actionResult = await stopProcess({ config: config, step: step, processRegistry });
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
       config: config,

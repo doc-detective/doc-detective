@@ -1,6 +1,8 @@
 import { validate } from "../../common/src/validate.js";
 import {
   spawnCommand,
+  spawnBackgroundCommand,
+  waitForReady,
   log,
   calculateFractionalDifference,
 } from "../utils.js";
@@ -9,13 +11,25 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import kill from "tree-kill";
 import fs from "node:fs";
 import path from "node:path";
 
 export { runShell };
 
-// Run a shell command.
-async function runShell({ config, step }: { config: any; step: any }) {
+// Run a shell command. When `step.runShell.background` is true, the command is
+// started as a long-running process registered in `processRegistry` and the step
+// returns as soon as `readyWhen` is satisfied; the process is torn down later by
+// a stopProcess step or the run-end sweep.
+async function runShell({
+  config,
+  step,
+  processRegistry,
+}: {
+  config: any;
+  step: any;
+  processRegistry?: Map<string, any>;
+}) {
   // Promisify and execute command
   const result: any = {
     status: "PASS",
@@ -52,6 +66,71 @@ async function runShell({ config, step }: { config: any; step: any }) {
     overwrite: step.runShell.overwrite || "aboveVariation",
     timeout: step.runShell.timeout || 60000,
   };
+
+  // Background mode: start the process, register it, wait until ready, and
+  // return immediately. `exitCodes`, `stdio`, and output saving don't apply.
+  if (step.runShell.background) {
+    const name = step.runShell.name;
+    if (!name) {
+      result.status = "FAIL";
+      result.description = "Background processes require a `name`.";
+      return result;
+    }
+    if (!processRegistry) {
+      // Without a registry there is no way to stop or sweep the process, so it
+      // would leak. Fail fast rather than spawn an untrackable process.
+      result.status = "FAIL";
+      result.description =
+        "Background processes aren't supported in this run mode (no process registry available).";
+      return result;
+    }
+    if (processRegistry.has(name)) {
+      result.status = "FAIL";
+      result.description = `A background process named "${name}" is already running.`;
+      return result;
+    }
+
+    const bgOptions: any = {};
+    if (step.runShell.workingDirectory)
+      bgOptions.cwd = step.runShell.workingDirectory;
+
+    const bg = spawnBackgroundCommand(
+      step.runShell.command,
+      step.runShell.args,
+      bgOptions
+    );
+
+    // Register before awaiting readiness so the run-end sweep can kill the
+    // process even if it never becomes ready.
+    const entry: any = { name, bg };
+    processRegistry.set(name, entry);
+
+    try {
+      await waitForReady(bg, step.runShell.readyWhen, {
+        timeoutMs: step.runShell.timeout,
+      });
+    } catch (error: any) {
+      // Readiness failed (timeout or the process exited) — kill and deregister
+      // so a half-started process doesn't leak. Await the tree-kill (callback
+      // form) so the process tree is actually gone before the step returns.
+      if (bg.pid) {
+        await new Promise<void>((resolve) => kill(bg.pid!, "SIGTERM", () => resolve()));
+      }
+      processRegistry.delete(name);
+      result.status = "FAIL";
+      result.description = `Background process "${name}" failed to become ready: ${error.message}`;
+      return result;
+    }
+
+    result.status = "PASS";
+    result.description = `Started background process "${name}".`;
+    result.outputs = {
+      pid: String(bg.pid ?? ""),
+      name,
+      ready: "true",
+    };
+    return result;
+  }
 
   // Execute command
   const timeout = step.runShell.timeout;
