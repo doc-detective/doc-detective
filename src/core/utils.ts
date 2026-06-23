@@ -384,29 +384,45 @@ async function waitForHttp(
 }
 
 // Resolve when the process output matches `expected`, or reject when the
-// deadline passes. Mirrors runShell's `stdio` matching: a substring match, or a
-// regular expression when `expected` is wrapped in forward slashes (`/.../`),
-// tested against both stdout and stderr. Already-buffered output is checked
-// first so a match emitted before subscription isn't missed.
+// deadline passes. Mirrors runShell's `stdio` matching exactly: a substring
+// match, or a regular expression when `expected` is wrapped in forward slashes
+// (`/.../`), tested against stdout OR stderr (each stream separately, not a
+// concatenation — so a match can't span the stdout/stderr boundary).
+// Already-buffered output is checked first so a match emitted before
+// subscription isn't missed.
 function waitForStdio(
   bg: BackgroundProcess,
   expected: string,
   { deadline }: { deadline: number }
 ): Promise<void> {
-  const isRegex = expected.startsWith("/") && expected.endsWith("/");
-  const regex = isRegex ? new RegExp(expected.slice(1, -1)) : null;
-  const matches = (text: string) =>
+  let regex: RegExp | null = null;
+  if (expected.startsWith("/") && expected.endsWith("/")) {
+    try {
+      regex = new RegExp(expected.slice(1, -1));
+    } catch (error: any) {
+      // Surface a Doc Detective-shaped error instead of the engine's raw
+      // SyntaxError; runShell's stdio matching wraps regex compilation similarly.
+      return Promise.reject(
+        new Error(
+          `waitUntil.stdio: invalid regular expression ${expected}: ${error.message}`
+        )
+      );
+    }
+  }
+  const matchesText = (text: string) =>
     regex ? regex.test(text) : text.includes(expected);
+  // stdout OR stderr, checked separately (like runShell's stdio).
+  const matched = () => matchesText(bg.getStdout()) || matchesText(bg.getStderr());
 
   return new Promise((resolve, reject) => {
-    if (matches(bg.getCombined())) return resolve();
+    if (matched()) return resolve();
     let unsubscribe = () => {};
     const timer = setTimeout(() => {
       unsubscribe();
       reject(new Error(`Expected output (${expected}) not seen in time.`));
     }, Math.max(0, deadline - Date.now()));
     unsubscribe = bg.onChunk(() => {
-      if (matches(bg.getCombined())) {
+      if (matched()) {
         clearTimeout(timer);
         unsubscribe();
         resolve();

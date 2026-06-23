@@ -2517,6 +2517,34 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should reject an empty waitUntil object (no conditions)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: {} },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty-string stdio condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { stdio: "" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
       it("should reject the old object-shaped port condition", function () {
         const result = validate({
           schemaKey: "step_v3",

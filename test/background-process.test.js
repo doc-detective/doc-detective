@@ -180,6 +180,14 @@ describe("waitForStdio", function () {
       /not seen in time/
     );
   });
+
+  it("rejects a malformed /regex/ with a friendly error", async function () {
+    const bg = fakeBg();
+    await assert.rejects(
+      waitForStdio(bg, "/[unclosed/", { deadline: Date.now() + 1000 }),
+      /invalid regular expression/
+    );
+  });
 });
 
 describe("waitForReady", function () {
