@@ -39,9 +39,10 @@ describe("Background processes via runTests", function () {
               runCode: {
                 language: "javascript",
                 code: serverCode(port),
-                background: true,
-                name: "srv",
-                readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+                background: {
+                  name: "srv",
+                  readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+                },
                 timeout: 15000,
               },
             },
@@ -72,9 +73,10 @@ describe("Background processes via runTests", function () {
               runCode: {
                 language: "javascript",
                 code: serverCode(port),
-                background: true,
-                name: "leaked",
-                readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+                background: {
+                  name: "leaked",
+                  readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+                },
                 timeout: 15000,
               },
             },

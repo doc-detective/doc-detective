@@ -311,9 +311,10 @@ describe("runShell/runCode background (integration)", function () {
         step: {
           runShell: {
             command: `"${process.execPath}" "${tmp}" ${port}`,
-            background: true,
-            name: "web",
-            readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            background: {
+              name: "web",
+              readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            },
             timeout: 10000,
           },
         },
@@ -345,9 +346,7 @@ describe("runShell/runCode background (integration)", function () {
       step: {
         runShell: {
           command: "echo hi",
-          background: true,
-          name: "web",
-          readyWhen: { delayMs: 10 },
+          background: { name: "web", readyWhen: { delayMs: 10 } },
         },
       },
       processRegistry: registry,
@@ -366,9 +365,10 @@ describe("runShell/runCode background (integration)", function () {
       step: {
         runShell: {
           command: `"${process.execPath}" "${tmp}"`,
-          background: true,
-          name: "stuck",
-          readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+          background: {
+            name: "stuck",
+            readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+          },
           timeout: 600,
         },
       },
@@ -390,9 +390,10 @@ describe("runShell/runCode background (integration)", function () {
           runCode: {
             language: "javascript",
             code: `require('http').createServer((q,r)=>r.end('ok')).listen(${port});`,
-            background: true,
-            name: "api",
-            readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            background: {
+              name: "api",
+              readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            },
             timeout: 10000,
           },
         },
