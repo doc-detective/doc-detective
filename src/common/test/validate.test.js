@@ -2460,7 +2460,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a stopProcess step in string form", function () {
+      it("should validate a stopProcess step (string name)", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: { stopProcess: "db" },
@@ -2469,13 +2469,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a stopProcess step in object form with ignoreMissing", function () {
+      it("should reject a stopProcess in object form (string-only)", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: { stopProcess: { name: "db", ignoreMissing: true } },
         });
-        expect(result.valid).to.be.true;
-        expect(result.errors).to.equal("");
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
       });
 
       it("should reject a background that is not an object (e.g. true)", function () {
@@ -2602,10 +2602,10 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a stopProcess object missing name", function () {
+      it("should reject a whitespace-only stopProcess name", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { stopProcess: { ignoreMissing: true } },
+          object: { stopProcess: "   " },
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");

@@ -6,7 +6,9 @@ import fs from "node:fs";
 export { stopProcess };
 
 // Stop and deregister a background process started by a runShell/runCode step
-// with a `background` object.
+// with a `background` object. The step value is the process `name` (a string).
+// Stopping a process that isn't running (already stopped, or never started) is a
+// no-op that still PASSes.
 async function stopProcess({
   config,
   step,
@@ -31,21 +33,15 @@ async function stopProcess({
   }
   step = isValidStep.object;
 
-  // Normalize string shorthand to object form
-  let spec = step.stopProcess;
-  if (typeof spec === "string") spec = { name: spec };
-  const name = spec.name;
-  const ignoreMissing = spec.ignoreMissing || false;
+  // The step value is the process name.
+  const name = step.stopProcess;
 
   const entry = processRegistry?.get(name);
   if (!entry) {
-    if (ignoreMissing) {
-      result.status = "PASS";
-      result.description = `No background process named "${name}" is running; nothing to stop.`;
-      return result;
-    }
-    result.status = "FAIL";
-    result.description = `No background process named "${name}" is running.`;
+    // Missing process is never a failure — stopping something that isn't
+    // running is a no-op.
+    result.status = "PASS";
+    result.description = `No background process named "${name}" is running; nothing to stop.`;
     return result;
   }
 
