@@ -104,6 +104,25 @@
       ]
     },
     {
+      "testId": "bg-runcode-noprobe",
+      "description": "Background process with no readyWhen — ready as soon as it is spawned; stopped via stopProcess.",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "setInterval(() => {}, 1000000);",
+            "background": {
+              "name": "bg-noprobe"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "stopProcess": "bg-noprobe"
+        }
+      ]
+    },
+    {
       "testId": "bg-runshell-port",
       "description": "runShell background server (node bg-server.js), port readiness probe, stopped via stopProcess.",
       "steps": [

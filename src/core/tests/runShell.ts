@@ -75,6 +75,9 @@ async function runShell({
   if (step.runShell.background) {
     const background = step.runShell.background;
     const name = background.name;
+    // The schema requires `name` when `background` is an object, so a
+    // schema-validated step always has it. This guard is defence-in-depth for
+    // programmatic callers that construct steps without validating.
     if (!name) {
       result.status = "FAIL";
       result.description = "Background processes require a `name`.";
