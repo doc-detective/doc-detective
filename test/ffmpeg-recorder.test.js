@@ -9,6 +9,9 @@ import {
   resolveCropGeometry,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
+  jobExclusiveResources,
+  isFfmpegRecordingForScheduling,
+  contextHasRouting,
   parseMacScreenIndex,
   checkSystemBinary,
   xvfbDisplay,
@@ -461,6 +464,123 @@ describe("ffmpegRecorder", function () {
       expect(r.forcedSerial).to.equal(false);
       expect(r.xvfbContexts.length).to.equal(1);
       expect(r.overlappingCaptures).to.equal(undefined);
+    });
+  });
+
+  describe("contextHasRouting", function () {
+    it("detects step-level routing: if / goToStep / on* handlers", function () {
+      expect(contextHasRouting({ steps: [{ goTo: "x", if: "$$platform == linux" }] })).to.equal(true);
+      expect(contextHasRouting({ steps: [{ goTo: "x", goToStep: "later" }] })).to.equal(true);
+      expect(contextHasRouting({ steps: [{ goTo: "x", onFail: [{ continue: true }] }] })).to.equal(true);
+    });
+    it("is false for plain steps and empty handler arrays", function () {
+      expect(contextHasRouting({ steps: [{ goTo: "x" }, { wait: 10 }] })).to.equal(false);
+      expect(contextHasRouting({ steps: [{ goTo: "x", onPass: [] }] })).to.equal(false);
+      expect(contextHasRouting({ steps: [] })).to.equal(false);
+    });
+  });
+
+  describe("isFfmpegRecordingForScheduling (over-approx for routed contexts)", function () {
+    const visibleChrome = { name: "chrome", headless: false };
+
+    it("uses precise detection for non-routed contexts (sequential browser records => not ffmpeg)", function () {
+      const job = {
+        context: {
+          browser: visibleChrome,
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { stopRecord: "a" },
+            { record: { name: "b", engine: "browser" } },
+            { stopRecord: "b" },
+          ],
+        },
+      };
+      expect(isFfmpegRecordingForScheduling(job)).to.equal(false);
+      // Sanity: precise detector agrees on the same (non-routed) shape.
+      expect(jobIsFfmpegRecording(job)).to.equal(false);
+    });
+
+    it("over-approximates a routed context whose separating stopRecord could be skipped", function () {
+      // Same two sequential browser records, but a routing jump on the
+      // stopRecord step means it might not run -> the two could overlap and
+      // the 2nd would fall back to ffmpeg. Must be treated as display-exclusive.
+      const job = {
+        context: {
+          browser: visibleChrome,
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { stopRecord: "a", goToStep: "tail" },
+            { record: { name: "b", engine: "browser" } },
+            { stopRecord: "b" },
+          ],
+        },
+      };
+      expect(isFfmpegRecordingForScheduling(job)).to.equal(true);
+    });
+
+    it("flags any ffmpeg record in a routed context regardless of stopRecord", function () {
+      const job = {
+        context: {
+          steps: [
+            { goTo: "x", if: "$$platform == linux" },
+            { record: { engine: "ffmpeg" } },
+            { stopRecord: true },
+          ],
+        },
+      };
+      expect(isFfmpegRecordingForScheduling(job)).to.equal(true);
+    });
+
+    it("a routed context with no recording is not display-exclusive", function () {
+      const job = { context: { steps: [{ goTo: "x", goToStep: "x" }] } };
+      expect(isFfmpegRecordingForScheduling(job)).to.equal(false);
+    });
+  });
+
+  describe("jobExclusiveResources", function () {
+    const ffmpegJob = { context: { steps: [{ record: { engine: "ffmpeg" } }] } };
+    const browserJob = {
+      context: {
+        browser: { name: "chrome", headless: false },
+        steps: [{ record: true }],
+      },
+    };
+    const plainJob = { context: { steps: [{ goTo: "x" }] } };
+
+    it("tags a shared-display ffmpeg recording with ['display']", function () {
+      expect(
+        jobExclusiveResources(ffmpegJob, { platform: "win32", xvfbAvailable: false })
+      ).to.deep.equal(["display"]);
+    });
+
+    it("does not tag browser-engine, no-record, Xvfb-isolated, or overlap-opt-in jobs", function () {
+      expect(jobExclusiveResources(browserJob, { platform: "win32", xvfbAvailable: false })).to.deep.equal([]);
+      expect(jobExclusiveResources(plainJob, { platform: "win32", xvfbAvailable: false })).to.deep.equal([]);
+      // Linux + Xvfb: isolated displays -> safe to parallelize.
+      expect(jobExclusiveResources(ffmpegJob, { platform: "linux", xvfbAvailable: true })).to.deep.equal([]);
+      // autoRecord overlap opt-in.
+      expect(jobExclusiveResources(ffmpegJob, { platform: "win32", xvfbAvailable: false, allowOverlappingCaptures: true })).to.deep.equal([]);
+    });
+
+    it("over-approximation feeds the tag for routed contexts", function () {
+      const routed = {
+        context: {
+          browser: { name: "chrome", headless: false },
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { stopRecord: "a", goToStep: "tail" },
+            { record: { name: "b", engine: "browser" } },
+          ],
+        },
+      };
+      expect(jobExclusiveResources(routed, { platform: "win32", xvfbAvailable: false })).to.deep.equal(["display"]);
+    });
+
+    it("agrees with computeEffectiveConcurrency: xvfbContexts non-empty <=> jobs untagged", function () {
+      const ctx = { platform: "linux", xvfbAvailable: true, allowOverlappingCaptures: false };
+      const conc = computeEffectiveConcurrency({ requestedLimit: 4, jobs: [ffmpegJob], ...ctx });
+      const tagged = jobExclusiveResources(ffmpegJob, ctx);
+      expect(conc.xvfbContexts.length > 0).to.equal(tagged.length === 0);
     });
   });
 

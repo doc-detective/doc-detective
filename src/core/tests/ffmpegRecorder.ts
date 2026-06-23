@@ -21,6 +21,11 @@ export {
   resolveCropGeometry,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
+  stepHasRouting,
+  contextHasRouting,
+  contextHasAnyFfmpegRecordStep,
+  isFfmpegRecordingForScheduling,
+  jobExclusiveResources,
   getFfmpegPath,
   detectMacScreenIndex,
   parseMacScreenIndex,
@@ -462,6 +467,85 @@ function computeEffectiveConcurrency({
     };
   }
   return { limit: 1, xvfbContexts: [], forcedSerial: requestedLimit > 1 };
+}
+
+// True if a step carries step-level routing — `if` (guard), `goToStep` (jump),
+// or a non-empty on* handler — any of which can change which steps a context
+// actually runs, and in what order.
+function stepHasRouting(step: any): boolean {
+  if (!step || typeof step !== "object") return false;
+  if (typeof step.if !== "undefined") return true;
+  if (typeof step.goToStep === "string" && step.goToStep.trim() !== "")
+    return true;
+  for (const k of ["onPass", "onFail", "onWarning", "onSkip"]) {
+    if (Array.isArray(step[k]) && step[k].length > 0) return true;
+  }
+  return false;
+}
+
+// True if any step in the context carries step-level routing, so the executed
+// step set/order is not statically known.
+function contextHasRouting(context: any): boolean {
+  const steps = Array.isArray(context?.steps) ? context.steps : [];
+  return steps.some((s: any) => stepHasRouting(s));
+}
+
+// Over-approximating ffmpeg detection: flag the context display-exclusive if
+// ANY record could run as ffmpeg, ignoring the stopRecord LIFO that routing
+// might skip. A record that resolves to ffmpeg counts immediately; two or more
+// browser-engine records on a recording-capable context count too, because
+// once a separating stopRecord can be skipped they could overlap and the 2nd
+// would fall back to ffmpeg. Used only for scheduling — never under-serialize
+// the shared display.
+function contextHasAnyFfmpegRecordStep(context: any): boolean {
+  const steps = Array.isArray(context?.steps) ? context.steps : [];
+  let browserRecords = 0;
+  for (const s of steps) {
+    if (!s?.record || s.record === false) continue;
+    const plan = resolveRecordPlan({ step: s, context });
+    if (plan.name === "ffmpeg") return true;
+    const supportsBrowser =
+      context?.browser?.name === "chrome" && context?.browser?.headless === false;
+    if (supportsBrowser) browserRecords++;
+  }
+  return browserRecords >= 2;
+}
+
+// The ffmpeg-recording decision for SCHEDULING exclusivity. For a context with
+// no routing the executed steps are static, so use the precise
+// `jobIsFfmpegRecording`. For a routed context the order/skips are dynamic, so
+// over-approximate — serializing a routed-might-record context on the display
+// is slower but never unsafe. The precise detector still drives the runtime
+// ffmpeg fallback / Xvfb wiring elsewhere.
+function isFfmpegRecordingForScheduling(job: any): boolean {
+  return contextHasRouting(job?.context)
+    ? contextHasAnyFfmpegRecordStep(job?.context)
+    : jobIsFfmpegRecording(job);
+}
+
+// The exclusive resources a job must hold to run safely under concurrency.
+// Today the only one is the physical "display" for shared-display ffmpeg
+// recording. Mirrors the three `computeEffectiveConcurrency` "keep the limit"
+// branches inverted: not a recording, Linux+Xvfb isolation, or an autoRecord
+// overlap opt-in all leave the display free (`[]`); otherwise the job
+// serializes on `"display"` via the resource registry instead of forcing the
+// whole run serial.
+function jobExclusiveResources(
+  job: any,
+  {
+    platform,
+    xvfbAvailable,
+    allowOverlappingCaptures = false,
+  }: {
+    platform: string;
+    xvfbAvailable: boolean;
+    allowOverlappingCaptures?: boolean;
+  }
+): string[] {
+  if (!isFfmpegRecordingForScheduling(job)) return [];
+  if (platform === "linux" && xvfbAvailable) return [];
+  if (allowOverlappingCaptures) return [];
+  return ["display"];
 }
 
 // Resolve the ffmpeg binary path lazily — @ffmpeg-installer/ffmpeg is a heavy

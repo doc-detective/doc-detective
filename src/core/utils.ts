@@ -33,6 +33,8 @@ export {
   selectSpecsForRun,
   findFreePort,
   runConcurrent,
+  createResourceRegistry,
+  runResourceAware,
   rollUpResults,
   rollUpAssertions,
   createAppiumPool,
@@ -87,6 +89,99 @@ async function runConcurrent<T>(
     }
   });
   await Promise.all(workers);
+}
+
+// A registry of held, named exclusive resources (e.g. `"display"` for ffmpeg
+// screen capture) shared across one run. `tryAcquire` is all-or-nothing so a
+// multi-resource job never holds some names while blocked on another (no
+// hold-and-wait → no deadlock). `release` wakes every waiter to re-contend.
+// Single-threaded JS makes the Set checks atomic between awaits.
+type ResourceRegistry = {
+  tryAcquire(names: string[]): boolean;
+  release(names: string[]): void;
+  waitForFree(): Promise<void>;
+};
+function createResourceRegistry(): ResourceRegistry {
+  const held = new Set<string>();
+  let waiters: Array<() => void> = [];
+  return {
+    tryAcquire(names: string[]): boolean {
+      for (const n of names) if (held.has(n)) return false;
+      for (const n of names) held.add(n);
+      return true;
+    },
+    release(names: string[]): void {
+      for (const n of names) held.delete(n);
+      const wake = waiters;
+      waiters = [];
+      for (const w of wake) w();
+    },
+    waitForFree(): Promise<void> {
+      return new Promise<void>((resolve) => waiters.push(resolve));
+    },
+  };
+}
+
+// Like `runConcurrent`, but each item may declare a set of exclusive resource
+// names (via `resourcesOf`, default `item.exclusiveResources`). Up to `limit`
+// items run at once, EXCEPT that two items sharing a resource never run
+// concurrently — they queue on the shared `registry` mutex. So display-bound
+// recordings serialize among themselves while everything else stays parallel,
+// instead of collapsing the whole run to serial. Items with no resources never
+// block, so an all-empty run is identical to `runConcurrent`.
+//
+// A worker claims the first pending item whose resources are all free
+// (acquiring them atomically — no await between the scan and the claim). If
+// nothing is runnable but items remain, it parks on `registry.waitForFree()`;
+// an in-flight item necessarily holds the blocking resource and will release
+// it, waking the worker — so there is always progress (no deadlock/starvation).
+// Report order is preserved by callers via pre-assigned slots, so reordering
+// execution here is safe. Resources are released in a `finally` even if `fn`
+// rejects; callers needing error isolation catch inside `fn` (runSpecs does).
+async function runResourceAware<T>(
+  items: T[],
+  limit: number,
+  registry: ResourceRegistry,
+  fn: (item: T) => Promise<void>,
+  resourcesOf: (item: T) => string[] = (item: any) =>
+    item?.exclusiveResources ?? []
+): Promise<void> {
+  const pending = items.map((_, i) => i);
+  const workerCount = Math.max(
+    1,
+    Math.min(Math.floor(limit) || 1, items.length)
+  );
+  async function worker(): Promise<void> {
+    while (true) {
+      let claimPos = -1;
+      let claimNames: string[] = [];
+      for (let p = 0; p < pending.length; p++) {
+        const names = resourcesOf(items[pending[p]]);
+        if (names.length === 0) {
+          claimPos = p;
+          claimNames = [];
+          break;
+        }
+        if (registry.tryAcquire(names)) {
+          claimPos = p;
+          claimNames = names;
+          break;
+        }
+      }
+      if (claimPos === -1) {
+        if (pending.length === 0) return; // all done
+        await registry.waitForFree(); // every runnable item is resource-blocked
+        continue;
+      }
+      const idx = pending.splice(claimPos, 1)[0];
+      try {
+        await fn(items[idx]);
+      } finally {
+        if (claimNames.length) registry.release(claimNames);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 }
 
 // Roll child results up to a parent result: FAIL > WARNING > all-SKIPPED >

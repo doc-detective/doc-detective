@@ -1,5 +1,7 @@
 import {
   runConcurrent,
+  runResourceAware,
+  createResourceRegistry,
   rollUpResults,
   createAppiumPool,
 } from "../dist/core/utils.js";
@@ -124,6 +126,208 @@ describe("runConcurrent", function () {
       calls++;
     });
     expect(calls).to.equal(0);
+  });
+});
+
+describe("createResourceRegistry", function () {
+  it("grants a free name, blocks a held one, regrants after release", function () {
+    const reg = createResourceRegistry();
+    expect(reg.tryAcquire(["display"])).to.equal(true);
+    expect(reg.tryAcquire(["display"])).to.equal(false);
+    reg.release(["display"]);
+    expect(reg.tryAcquire(["display"])).to.equal(true);
+  });
+
+  it("treats disjoint names as independent", function () {
+    const reg = createResourceRegistry();
+    expect(reg.tryAcquire(["a"])).to.equal(true);
+    expect(reg.tryAcquire(["b"])).to.equal(true);
+    expect(reg.tryAcquire(["a"])).to.equal(false);
+    expect(reg.tryAcquire(["b"])).to.equal(false);
+  });
+
+  it("is all-or-nothing: a partial conflict acquires neither name", function () {
+    const reg = createResourceRegistry();
+    reg.tryAcquire(["a"]);
+    // ["a","b"] conflicts on "a" → must not leave "b" held.
+    expect(reg.tryAcquire(["a", "b"])).to.equal(false);
+    expect(reg.tryAcquire(["b"])).to.equal(true);
+  });
+
+  it("wakes a waitForFree() waiter on release", async function () {
+    const reg = createResourceRegistry();
+    reg.tryAcquire(["display"]);
+    let woke = false;
+    const waiting = reg.waitForFree().then(() => (woke = true));
+    await Promise.resolve();
+    expect(woke).to.equal(false);
+    reg.release(["display"]);
+    await waiting;
+    expect(woke).to.equal(true);
+  });
+});
+
+describe("runResourceAware", function () {
+  // Track concurrent in-flight counts, globally and per exclusive resource.
+  function tracker() {
+    const t = { total: 0, totalHigh: 0, perResource: {}, perResourceHigh: {} };
+    return {
+      enter(resources) {
+        t.total++;
+        t.totalHigh = Math.max(t.totalHigh, t.total);
+        for (const r of resources) {
+          t.perResource[r] = (t.perResource[r] || 0) + 1;
+          t.perResourceHigh[r] = Math.max(
+            t.perResourceHigh[r] || 0,
+            t.perResource[r]
+          );
+        }
+      },
+      exit(resources) {
+        t.total--;
+        for (const r of resources) t.perResource[r]--;
+      },
+      stats: t,
+    };
+  }
+  const job = (id, exclusiveResources = [], ms = 10) => ({
+    id,
+    exclusiveResources,
+    ms,
+  });
+
+  it("matches runConcurrent when no item has exclusive resources", async function () {
+    const reg = createResourceRegistry();
+    const seen = [];
+    const tk = tracker();
+    await runResourceAware(
+      [job(1), job(2), job(3), job(4), job(5)],
+      2,
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(item.ms);
+        tk.exit(item.exclusiveResources);
+        seen.push(item.id);
+      }
+    );
+    expect(seen.sort()).to.deep.equal([1, 2, 3, 4, 5]);
+    expect(tk.stats.totalHigh).to.equal(2);
+  });
+
+  it("never runs two jobs holding the same resource at once", async function () {
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    await runResourceAware(
+      [
+        job("d1", ["display"], 20),
+        job("d2", ["display"], 20),
+        job("d3", ["display"], 20),
+      ],
+      3, // limit allows 3, but the mutex must cap display at 1
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(item.ms);
+        tk.exit(item.exclusiveResources);
+      }
+    );
+    expect(tk.stats.perResourceHigh.display).to.equal(1);
+  });
+
+  it("runs disjoint-resource jobs fully in parallel", async function () {
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    await runResourceAware(
+      [job("a", ["ra"], 30), job("b", ["rb"], 30), job("c", ["rc"], 30)],
+      3,
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(item.ms);
+        tk.exit(item.exclusiveResources);
+      }
+    );
+    expect(tk.stats.totalHigh).to.equal(3);
+  });
+
+  it("serializes display jobs while non-exclusive jobs run in parallel", async function () {
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    const items = [
+      job("d1", ["display"], 40),
+      job("p1", [], 40),
+      job("d2", ["display"], 40),
+      job("p2", [], 40),
+      job("p3", [], 40),
+    ];
+    await runResourceAware(items, 4, reg, async (item) => {
+      tk.enter(item.exclusiveResources);
+      await sleep(item.ms);
+      tk.exit(item.exclusiveResources);
+    });
+    // Display serialized to 1; overall parallelism still exceeded 1.
+    expect(tk.stats.perResourceHigh.display).to.equal(1);
+    expect(tk.stats.totalHigh).to.be.above(1);
+  });
+
+  it("completes multi-resource jobs without hanging", async function () {
+    const reg = createResourceRegistry();
+    const done = [];
+    await runResourceAware(
+      [
+        job("ab", ["a", "b"], 10),
+        job("b", ["b"], 10),
+        job("a", ["a"], 10),
+        job("plain", [], 10),
+      ],
+      3,
+      reg,
+      async (item) => {
+        await sleep(item.ms);
+        done.push(item.id);
+      }
+    );
+    expect(done.sort()).to.deep.equal(["a", "ab", "b", "plain"]);
+  });
+
+  it("runs items in input order at limit 1", async function () {
+    const reg = createResourceRegistry();
+    const completed = [];
+    await runResourceAware(
+      [job(30, [], 30), job(20, [], 20), job(10, [], 10)],
+      1,
+      reg,
+      async (item) => {
+        await sleep(item.ms);
+        completed.push(item.id);
+      }
+    );
+    expect(completed).to.deep.equal([30, 20, 10]);
+  });
+
+  it("frees a rejecting job's resource so a later same-resource job still runs", async function () {
+    const reg = createResourceRegistry();
+    const completed = [];
+    // First display job throws; its "display" must be released so the second
+    // display job can acquire it. Errors isolated inside fn (as runJob does).
+    await runResourceAware(
+      [job("d1", ["display"], 5), job("d2", ["display"], 5)],
+      2,
+      reg,
+      async (item) => {
+        try {
+          if (item.id === "d1") throw new Error("boom");
+          await sleep(item.ms);
+          completed.push(item.id);
+        } catch {
+          /* isolated */
+        }
+      }
+    );
+    expect(completed).to.deep.equal(["d2"]);
+    // Registry left clean.
+    expect(reg.tryAcquire(["display"])).to.equal(true);
   });
 });
 

@@ -1,6 +1,6 @@
 {
   "specId": "cookie-tests",
-  "description": "Doesn't run on macOS because the macOS runner doesn't have Docker (ARM-based macOS doesn't support nested virtualization). Doesn't run on Windows because the Windows runner only allows Windows containers.",
+  "description": "Exercises cookie save/load (env-var and file) against a local httpbin container. One ordered test so the container lifecycle wraps the cookie operations: the container is started (and waited on) in the first steps and removed in the last, and because steps within a test always run sequentially this is safe under concurrentRunners>1. Doesn't run on macOS (the runner has no Docker — ARM-based macOS doesn't support nested virtualization) or Windows (the runner only allows Windows containers).",
   "runOn": [
     {
       "browsers": [
@@ -9,36 +9,28 @@
           "headless": true
         }
       ],
-      "platforms": ["linux"]
+      "platforms": [
+        "linux"
+      ]
     }
   ],
   "tests": [
     {
-      "testId": "cookie-setup",
+      "testId": "cookie-lifecycle",
+      "description": "Start httpbin in Docker, round-trip env-var and file cookies, then remove the container.",
       "steps": [
         {
-          "runShell": "docker pull kennethreitz/httpbin && docker run -d -p 8080:80 kennethreitz/httpbin"
-        }
-      ]
-    },
-    {
-      "testId": "cookie-env-save",
-      "description": "Test single cookie save functionality",
-      "steps": [
+          "runShell": "docker rm -f dd-httpbin 2>/dev/null || true; docker pull kennethreitz/httpbin && docker run -d --name dd-httpbin -p 8080:80 kennethreitz/httpbin"
+        },
+        {
+          "runShell": "curl --retry 30 --retry-delay 1 --retry-connrefused -sf http://localhost:8080/get -o /dev/null"
+        },
         {
           "goTo": "http://localhost:8080/cookies/set/test_env_cookie/test_env_value"
         },
         {
           "saveCookie": "test_env_cookie"
         },
-        {
-          "goTo": "http://localhost:8080/cookies"
-        }
-      ]
-    },
-    {
-      "testId": "cookie-env-load",
-      "steps": [
         {
           "goTo": "http://localhost:8080/"
         },
@@ -50,13 +42,7 @@
         },
         {
           "find": "/.*?test_env_value.*?/"
-        }
-      ]
-    },
-    {
-      "testId": "cookie-file-save",
-      "description": "Test single cookie save and load functionality",
-      "steps": [
+        },
         {
           "goTo": "http://localhost:8080/cookies/set/test_cookie/test_value"
         },
@@ -66,12 +52,7 @@
             "path": "test-cookie.txt",
             "overwrite": "true"
           }
-        }
-      ]
-    },
-    {
-      "testId": "cookie-file-load",
-      "steps": [
+        },
         {
           "goTo": "http://localhost:8080/"
         },
@@ -86,12 +67,7 @@
         },
         {
           "find": "/.*?test_value.*?/"
-        }
-      ]
-    },
-    {
-      "testId": "cookie-cleanup",
-      "steps": [
+        },
         {
           "runShell": {
             "command": "rm -f test-cookie.txt",
@@ -99,7 +75,7 @@
           }
         },
         {
-          "runShell": "docker stop $(docker ps -q --filter ancestor=kennethreitz/httpbin)"
+          "runShell": "docker rm -f dd-httpbin"
         }
       ]
     }

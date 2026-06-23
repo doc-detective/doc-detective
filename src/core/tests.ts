@@ -23,6 +23,8 @@ import {
   selectSpecsForRun,
   findFreePort,
   runConcurrent,
+  runResourceAware,
+  createResourceRegistry,
   rollUpResults,
   createAppiumPool,
   getRunOutputDir,
@@ -46,6 +48,7 @@ import {
   coerceRecordContextBrowser,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
+  jobExclusiveResources,
   checkSystemBinary,
   xvfbDisplay,
   startXvfb,
@@ -280,6 +283,35 @@ function isDriverRequired({ test }: { test: any }) {
     });
   });
   return driverRequired;
+}
+
+// The exclusive resources a context job must hold to run safely under
+// concurrency. A shared-display ffmpeg recording holds "display" exclusively
+// (jobExclusiveResources). And once ANY such recording is in the run
+// (`runHasDisplayRecording`), every OTHER driver/browser context also
+// serializes on "display": a recording's ffmpeg capture would otherwise include
+// their windows and starve them on the shared display. Non-driver jobs
+// (HTTP/shell) never take the display, so they stay parallel. On Linux+Xvfb the
+// recordings get isolated displays, so `runHasDisplayRecording` is false there
+// and nothing is promoted — driver work runs fully parallel.
+function jobDisplayResources(
+  job: any,
+  ctx: {
+    platform: string;
+    xvfbAvailable: boolean;
+    allowOverlappingCaptures?: boolean;
+    runHasDisplayRecording: boolean;
+  }
+): string[] {
+  const base = jobExclusiveResources(job, ctx);
+  if (base.length) return base;
+  if (
+    ctx.runHasDisplayRecording &&
+    isDriverRequired({ test: { steps: job.context?.steps } })
+  ) {
+    return ["display"];
+  }
+  return [];
 }
 
 // Check if context is supported by current platform and available apps
@@ -822,14 +854,48 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     allowOverlappingCaptures:
       autoRecordFlag.injected && !hasExplicitFfmpegRecording,
   });
-  limit = concurrency.limit;
-  if (concurrency.forcedSerial) {
+  // Inputs for tagging a job with the exclusive resources it must hold under
+  // concurrency. Mirrors what computeEffectiveConcurrency used, so the tag and
+  // the Xvfb/overlap decision stay in lock-step.
+  const exclusivityBase = {
+    platform: process.platform,
+    xvfbAvailable,
+    allowOverlappingCaptures:
+      autoRecordFlag.injected && !hasExplicitFfmpegRecording,
+  };
+  // Does the run contain a shared-display ffmpeg recording? If so, every driver
+  // context (not just the recordings) serializes on "display" — see
+  // jobDisplayResources. Computed over the full sizing view (flat + routed) so a
+  // recording in any spec gates driver work everywhere.
+  const runHasDisplayRecording =
+    limit > 1 &&
+    sizingJobs.some((j: any) =>
+      jobExclusiveResources(j, exclusivityBase).includes("display")
+    );
+  // Reused by the routed sequencer below.
+  const exclusivityCtx = { ...exclusivityBase, runHasDisplayRecording };
+  // We no longer collapse `limit` to 1 for shared-display recordings. Instead,
+  // at limit>1, tag each flat job and let the resource-aware pool serialize the
+  // display-bound work (recordings + every driver context while a recording is
+  // present) while non-driver jobs stay parallel. computeEffectiveConcurrency
+  // still drives Xvfb isolation (xvfbContexts) and the autoRecord-overlap
+  // warning. At limit===1 the single worker is already serial, so the old path
+  // is left byte-identical.
+  let anyDisplayExclusive = false;
+  if (limit > 1) {
+    for (const job of jobs)
+      job.exclusiveResources = jobDisplayResources(job, exclusivityCtx);
+    anyDisplayExclusive = jobs.some(
+      (j: any) => (j.exclusiveResources?.length ?? 0) > 0
+    );
+  }
+  if (anyDisplayExclusive) {
     log(
       config,
       "warning",
-      "Recording with the ffmpeg engine needs exclusive use of the display, so this run is executing serially (concurrentRunners=1). To record concurrently, use the Chrome browser engine (record: { engine: \"browser\" }) or, on Linux, install Xvfb."
+      "ffmpeg display recordings are serialized to protect the shared display; other jobs run in parallel. On Linux, install Xvfb for fully-isolated parallel recording."
     );
-    report.recordingForcedSerial = true;
+    report.recordingSerialized = true;
   } else if (concurrency.overlappingCaptures && limit > 1) {
     log(
       config,
@@ -1032,8 +1098,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         : "main";
       routedByPhase[phase].push(entry);
     }
+    // One resource registry per run, shared by every phase's flat pool AND the
+    // routed sequencer, so a flat-pool recording and a routed-spec recording
+    // never hold the shared "display" at the same time. Only consulted at
+    // limit>1 (where jobs were tagged); at limit===1 the pools stay on the
+    // byte-identical runConcurrent path.
+    const resourceRegistry = createResourceRegistry();
     for (const phase of PHASES) {
-      await runConcurrent(jobsByPhase[phase], limit, runJob);
+      if (limit > 1) {
+        await runResourceAware(
+          jobsByPhase[phase],
+          limit,
+          resourceRegistry,
+          runJob
+        );
+      } else {
+        await runConcurrent(jobsByPhase[phase], limit, runJob);
+      }
       for (const { spec, specReport, specGuardSkip } of routedByPhase[phase]) {
         await runRoutedSpec({
           spec,
@@ -1049,6 +1130,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           platform,
           markAutoRecord,
           limit,
+          resourceRegistry,
+          exclusivityCtx,
         });
       }
     }
@@ -1170,6 +1253,8 @@ async function runRoutedSpec({
   platform,
   markAutoRecord,
   limit,
+  resourceRegistry,
+  exclusivityCtx,
 }: {
   spec: any;
   specReport: any;
@@ -1186,6 +1271,13 @@ async function runRoutedSpec({
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
+  resourceRegistry: ReturnType<typeof createResourceRegistry>;
+  exclusivityCtx: {
+    platform: string;
+    xvfbAvailable: boolean;
+    allowOverlappingCaptures?: boolean;
+    runHasDisplayRecording: boolean;
+  };
 }): Promise<void> {
   // Set once a `stop:spec` (or deferred `stop:run`) decision halts the spec; the
   // remaining tests are recorded SKIPPED with the stop reason and not executed.
@@ -1333,9 +1425,21 @@ async function runRoutedSpec({
       }
     });
 
-    // Run the runnable contexts with the same concurrency + crash-isolation
-    // shape as the flat pool. runContext is reused verbatim.
-    await runConcurrent(contextJobs, limit, async (job: any) => {
+    // Tag the routed contexts with their display resources (recordings, plus
+    // every driver context when the run has a recording) so they queue on the
+    // SAME run-wide registry as the flat pool — a routed recording never
+    // overlaps a flat-pool recording or driver context. Only at limit>1; serial
+    // runs ignore the tags.
+    if (limit > 1) {
+      for (const job of contextJobs)
+        job.exclusiveResources = jobDisplayResources(job, exclusivityCtx);
+    }
+
+    // Run the runnable contexts with the same crash-isolation shape as the flat
+    // pool. runContext is reused verbatim. At limit>1 use the resource-aware
+    // pool so display recordings serialize while the rest run in parallel; at
+    // limit===1 keep the byte-identical runConcurrent path.
+    const runRoutedJob = async (job: any) => {
       try {
         job.contexts[job.slot] = await runContext({
           config,
@@ -1367,7 +1471,17 @@ async function runRoutedSpec({
           steps: [],
         };
       }
-    });
+    };
+    if (limit > 1) {
+      await runResourceAware(
+        contextJobs,
+        limit,
+        resourceRegistry,
+        runRoutedJob
+      );
+    } else {
+      await runConcurrent(contextJobs, limit, runRoutedJob);
+    }
 
     // Roll the test up (flow != verdict: this result is final and never altered
     // by routing). Phase-3 re-derives this identical value when tallying; we set

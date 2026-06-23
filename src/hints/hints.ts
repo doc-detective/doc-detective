@@ -290,7 +290,7 @@ export const HINTS: Hint[] = [
     id: "recordConcurrently",
     priority: 50,
     markdown: [
-      "This run executed serially because the ffmpeg recording engine needs exclusive use of the display. To keep `concurrentRunners` parallelism while recording, either record the Chrome viewport with the browser engine:",
+      "ffmpeg recordings in this run were serialized to protect the shared display (other contexts still ran in parallel). To let the recordings run concurrently too, either record the Chrome viewport with the browser engine:",
       "",
       "```json",
       '{ "record": { "engine": "browser" } }',
@@ -298,7 +298,7 @@ export const HINTS: Hint[] = [
       "",
       "or, on Linux, install Xvfb so each runner records its own virtual display.",
     ].join("\n"),
-    when: (ctx) => ctx.recordingForcedSerial,
+    when: (ctx) => ctx.recordingSerialized,
   },
 
   // ------------------------------------------------------------------

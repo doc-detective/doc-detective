@@ -1409,7 +1409,7 @@ function fakeCtx(partial = {}) {
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
     hasRstFiles: false,
-    recordingForcedSerial: false,
+    recordingSerialized: false,
     usedCustomAssertions: false,
     usedRetry: false,
     failedTransientRequest: false,
@@ -2076,11 +2076,11 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("recordConcurrently: fires only when the run was forced serial for recording", function () {
+  it("recordConcurrently: fires only when the run serialized recordings", function () {
     const h = findHint("recordConcurrently");
     expect(h.priority).to.equal(50);
-    expect(h.when(fakeCtx({ recordingForcedSerial: true }))).to.equal(true);
-    expect(h.when(fakeCtx({ recordingForcedSerial: false }))).to.equal(false);
+    expect(h.when(fakeCtx({ recordingSerialized: true }))).to.equal(true);
+    expect(h.when(fakeCtx({ recordingSerialized: false }))).to.equal(false);
   });
 
   it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {
