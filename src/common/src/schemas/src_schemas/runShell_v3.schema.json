@@ -93,9 +93,119 @@
           },
           "timeout": {
             "type": "integer",
-            "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.",
+            "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is `true`, this is instead the max time to wait for `readyWhen` to be satisfied before the step fails.",
             "default": 60000
+          },
+          "background": {
+            "type": "boolean",
+            "description": "If `true`, start the command as a long-running background process and return immediately instead of waiting for it to exit. Requires `name`. When `true`, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `readyWhen`. The process is owned by the run and is stopped by a `stopProcess` step or automatically when the run finishes.",
+            "default": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Unique identifier for a background process within the run. Required when `background` is `true`. Reference it from a `stopProcess` step to stop the process.",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "readyWhen": {
+            "type": "object",
+            "description": "Gate that blocks the step until the background process is ready. Only applies when `background` is `true`. Specify exactly one probe.",
+            "additionalProperties": false,
+            "oneOf": [
+              { "required": ["port"] },
+              { "required": ["log"] },
+              { "required": ["httpGet"] },
+              { "required": ["delayMs"] }
+            ],
+            "properties": {
+              "port": {
+                "type": "object",
+                "description": "Wait until a TCP port accepts connections.",
+                "additionalProperties": false,
+                "required": ["port"],
+                "properties": {
+                  "port": {
+                    "type": "integer",
+                    "description": "TCP port to probe.",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "host": {
+                    "type": "string",
+                    "description": "Host to probe.",
+                    "default": "127.0.0.1"
+                  },
+                  "pollIntervalMs": {
+                    "type": "integer",
+                    "description": "Milliseconds between connection attempts.",
+                    "minimum": 50,
+                    "default": 500
+                  }
+                }
+              },
+              "log": {
+                "type": "object",
+                "description": "Wait until the process's output matches a regular expression.",
+                "additionalProperties": false,
+                "required": ["pattern"],
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "Regular expression source (no surrounding slashes) tested against the process output.",
+                    "minLength": 1
+                  },
+                  "stream": {
+                    "type": "string",
+                    "description": "Which stream to match against.",
+                    "enum": ["stdout", "stderr", "any"],
+                    "default": "any"
+                  }
+                }
+              },
+              "httpGet": {
+                "type": "object",
+                "description": "Wait until an HTTP GET request returns an expected status code.",
+                "additionalProperties": false,
+                "required": ["url"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "URL to request."
+                  },
+                  "statusCodes": {
+                    "type": "array",
+                    "description": "Status codes that indicate readiness.",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "default": [200]
+                  },
+                  "pollIntervalMs": {
+                    "type": "integer",
+                    "description": "Milliseconds between requests.",
+                    "minimum": 50,
+                    "default": 500
+                  }
+                }
+              },
+              "delayMs": {
+                "type": "integer",
+                "description": "Fixed delay in milliseconds before considering the process ready.",
+                "minimum": 0
+              }
+            }
           }
+        },
+        "if": {
+          "properties": {
+            "background": {
+              "const": true
+            }
+          },
+          "required": ["background"]
+        },
+        "then": {
+          "required": ["name"]
         },
         "title": "Run shell command (detailed)"
       }
@@ -150,6 +260,20 @@
       "directory": "output",
       "maxVariation": 0.1,
       "overwrite": "aboveVariation"
+    },
+    {
+      "command": "docker run -p 8080:80 nginx",
+      "background": true,
+      "name": "web",
+      "readyWhen": {
+        "httpGet": {
+          "url": "http://localhost:8080",
+          "statusCodes": [
+            200
+          ]
+        }
+      },
+      "timeout": 30000
     }
   ]
 }

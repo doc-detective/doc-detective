@@ -2344,4 +2344,212 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
     });
+
+    describe("background processes (runShell/runCode) and stopProcess", function () {
+      it("should validate a background runShell with a port probe", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "docker run -p 5432:5432 postgres",
+              background: true,
+              name: "db",
+              readyWhen: { port: { port: 5432 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with a log probe", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              name: "srv",
+              readyWhen: { log: { pattern: "ready to accept", stream: "stdout" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with an httpGet probe", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              name: "web",
+              readyWhen: {
+                httpGet: { url: "http://localhost:8080", statusCodes: [200, 204] },
+              },
+              timeout: 30000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with a delayMs probe", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              name: "srv",
+              readyWhen: { delayMs: 2000 },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runCode with a port probe", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "javascript",
+              code: "require('http').createServer((q,r)=>r.end('ok')).listen(8088)",
+              background: true,
+              name: "api",
+              readyWhen: { port: { port: 8088 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a stopProcess step in string form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { stopProcess: "db" },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a stopProcess step in object form with ignoreMissing", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { stopProcess: { name: "db", ignoreMissing: true } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject a readyWhen with two probes", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              name: "srv",
+              readyWhen: { port: { port: 5432 }, delayMs: 1000 },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a readyWhen with an unknown probe key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              name: "srv",
+              readyWhen: { tcp: { port: 5432 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a background runShell without a name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              readyWhen: { delayMs: 1000 },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a background runCode without a name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "bash",
+              code: "sleep 100",
+              background: true,
+              readyWhen: { delayMs: 1000 },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a readyWhen port that is out of range", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              name: "srv",
+              readyWhen: { port: { port: 70000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a stopProcess object missing name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { stopProcess: { ignoreMissing: true } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a background process with a whitespace-only name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: true,
+              name: "   ",
+              readyWhen: { delayMs: 1000 },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
   });
