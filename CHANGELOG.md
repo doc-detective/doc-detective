@@ -1,3 +1,10 @@
+# [4.15.0-next.15](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.14...v4.15.0-next.15) (2026-06-23)
+
+
+### Features
+
+* **runner:** support long-running background processes for runShell/runCode ([#381](https://github.com/doc-detective/doc-detective/issues/381)) ([9be36a7](https://github.com/doc-detective/doc-detective/commit/9be36a7b1a3be7d954018479f19fa95ace523daa))
+
 # [4.15.0-next.14](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.13...v4.15.0-next.14) (2026-06-23)
 
 
