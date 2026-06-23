@@ -18,9 +18,9 @@ import path from "node:path";
 export { runShell };
 
 // Run a shell command. When `step.runShell.background` is set (an object with a
-// `name` and optional `readyWhen`), the command is started as a long-running
+// `name` and optional `waitUntil`), the command is started as a long-running
 // process registered in `processRegistry` and the step returns as soon as
-// `readyWhen` is satisfied; the process is torn down later by a stopProcess step
+// `waitUntil` is satisfied; the process is torn down later by a stopProcess step
 // or the run-end sweep.
 async function runShell({
   config,
@@ -70,7 +70,7 @@ async function runShell({
 
   // Background mode: start the process, register it, wait until ready, and
   // return immediately. `exitCodes`, `stdio`, and output saving don't apply.
-  // `background` is an object holding `name` and (optional) `readyWhen`; its
+  // `background` is an object holding `name` and (optional) `waitUntil`; its
   // presence signals background mode.
   if (step.runShell.background) {
     const background = step.runShell.background;
@@ -113,7 +113,7 @@ async function runShell({
     processRegistry.set(name, entry);
 
     try {
-      await waitForReady(bg, background.readyWhen, {
+      await waitForReady(bg, background.waitUntil, {
         timeoutMs: step.runShell.timeout,
       });
     } catch (error: any) {

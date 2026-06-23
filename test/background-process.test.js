@@ -9,7 +9,7 @@ import {
   spawnBackgroundCommand,
   waitForPort,
   waitForHttp,
-  waitForLog,
+  waitForStdio,
   waitForReady,
   findFreePort,
 } from "../dist/core/utils.js";
@@ -96,10 +96,7 @@ describe("waitForPort", function () {
     const server = net.createServer();
     await new Promise((r) => server.listen(port, "127.0.0.1", r));
     try {
-      await waitForPort("127.0.0.1", port, {
-        pollIntervalMs: 50,
-        deadline: Date.now() + 5000,
-      });
+      await waitForPort(port, { deadline: Date.now() + 5000 });
     } finally {
       await new Promise((r) => server.close(r));
     }
@@ -108,10 +105,7 @@ describe("waitForPort", function () {
   it("rejects when nothing is listening before the deadline", async function () {
     const port = await findFreePort();
     await assert.rejects(
-      waitForPort("127.0.0.1", port, {
-        pollIntervalMs: 50,
-        deadline: Date.now() + 300,
-      }),
+      waitForPort(port, { deadline: Date.now() + 300 }),
       /did not open in time/
     );
   });
@@ -120,16 +114,15 @@ describe("waitForPort", function () {
 describe("waitForHttp", function () {
   this.timeout(10000);
 
-  it("resolves when the endpoint returns an expected status", async function () {
+  it("resolves when the endpoint returns a 2xx status", async function () {
     const port = await findFreePort();
     const server = http.createServer((req, res) => {
-      res.statusCode = 200;
-      res.end("ok");
+      res.statusCode = 204;
+      res.end();
     });
     await new Promise((r) => server.listen(port, "127.0.0.1", r));
     try {
-      await waitForHttp(`http://127.0.0.1:${port}/`, [200], {
-        pollIntervalMs: 50,
+      await waitForHttp(`http://127.0.0.1:${port}/`, {
         deadline: Date.now() + 5000,
       });
     } finally {
@@ -137,7 +130,7 @@ describe("waitForHttp", function () {
     }
   });
 
-  it("rejects when the status never matches before the deadline", async function () {
+  it("rejects when the status is never 2xx before the deadline", async function () {
     const port = await findFreePort();
     const server = http.createServer((req, res) => {
       res.statusCode = 503;
@@ -146,11 +139,10 @@ describe("waitForHttp", function () {
     await new Promise((r) => server.listen(port, "127.0.0.1", r));
     try {
       await assert.rejects(
-        waitForHttp(`http://127.0.0.1:${port}/`, [200], {
-          pollIntervalMs: 50,
+        waitForHttp(`http://127.0.0.1:${port}/`, {
           deadline: Date.now() + 400,
         }),
-        /did not return/
+        /did not return a 2xx status/
       );
     } finally {
       await new Promise((r) => server.close(r));
@@ -158,31 +150,33 @@ describe("waitForHttp", function () {
   });
 });
 
-describe("waitForLog", function () {
+describe("waitForStdio", function () {
   this.timeout(10000);
 
-  it("resolves when already-buffered output matches", async function () {
+  it("resolves when already-buffered output contains the substring", async function () {
     const bg = fakeBg();
     bg._emit("server ready to accept connections\n");
-    await waitForLog(bg, "ready to accept", "any", {
-      deadline: Date.now() + 1000,
-    });
+    await waitForStdio(bg, "ready to accept", { deadline: Date.now() + 1000 });
   });
 
-  it("resolves when a later chunk matches on the chosen stream", async function () {
+  it("resolves on a later chunk and searches both streams", async function () {
     const bg = fakeBg();
-    const p = waitForLog(bg, "listening", "stderr", {
-      deadline: Date.now() + 2000,
-    });
+    const p = waitForStdio(bg, "listening", { deadline: Date.now() + 2000 });
     bg._emit("noise on stdout\n", "stdout");
-    bg._emit("now listening on 8080\n", "stderr");
+    bg._emit("now listening on 8080\n", "stderr"); // matched even though on stderr
     await p;
   });
 
-  it("rejects when the pattern is never seen before the deadline", async function () {
+  it("supports /regex/ matching", async function () {
+    const bg = fakeBg();
+    bg._emit("started on port 8080\n");
+    await waitForStdio(bg, "/on port \\d+/", { deadline: Date.now() + 1000 });
+  });
+
+  it("rejects when the content is never seen before the deadline", async function () {
     const bg = fakeBg();
     await assert.rejects(
-      waitForLog(bg, "never-appears", "any", { deadline: Date.now() + 200 }),
+      waitForStdio(bg, "never-appears", { deadline: Date.now() + 200 }),
       /not seen in time/
     );
   });
@@ -191,28 +185,61 @@ describe("waitForLog", function () {
 describe("waitForReady", function () {
   this.timeout(10000);
 
-  it("resolves after a delayMs probe", async function () {
+  it("resolves after a delayMs condition", async function () {
     const bg = fakeBg();
     const start = Date.now();
     await waitForReady(bg, { delayMs: 100 }, { timeoutMs: 5000 });
     assert.ok(Date.now() - start >= 90);
   });
 
-  it("resolves immediately when no readyWhen is given", async function () {
+  it("resolves immediately when no waitUntil is given", async function () {
     const bg = fakeBg();
     await waitForReady(bg, undefined, { timeoutMs: 5000 });
   });
 
-  it("resolves via a port probe", async function () {
+  it("resolves via a port condition", async function () {
     const port = await findFreePort();
     const server = net.createServer();
     await new Promise((r) => server.listen(port, "127.0.0.1", r));
     const bg = fakeBg();
     try {
+      await waitForReady(bg, { port }, { timeoutMs: 5000 });
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("requires ALL combined conditions to pass", async function () {
+    const port = await findFreePort();
+    const server = net.createServer();
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    const bg = fakeBg();
+    bg._emit("up and listening\n");
+    try {
+      // port is open AND stdio already matched AND a short delay → all pass
       await waitForReady(
         bg,
-        { port: { port, host: "127.0.0.1", pollIntervalMs: 50 } },
+        { port, stdio: "listening", delayMs: 50 },
         { timeoutMs: 5000 }
+      );
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("fails when one combined condition can't be met", async function () {
+    const port = await findFreePort();
+    const server = net.createServer();
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    const bg = fakeBg(); // port opens, but the stdio match never arrives
+    try {
+      await assert.rejects(
+        waitForReady(
+          bg,
+          { port, stdio: "never-shows-up" },
+          { timeoutMs: 500 }
+        ),
+        /not seen in time/
       );
     } finally {
       await new Promise((r) => server.close(r));
@@ -223,11 +250,7 @@ describe("waitForReady", function () {
     const port = await findFreePort(); // nothing listening here
     const bg = fakeBg({ exited: Promise.resolve(1) });
     await assert.rejects(
-      waitForReady(
-        bg,
-        { port: { port, host: "127.0.0.1", pollIntervalMs: 50 } },
-        { timeoutMs: 5000 }
-      ),
+      waitForReady(bg, { port }, { timeoutMs: 5000 }),
       /exited before becoming ready/
     );
   });
@@ -313,7 +336,7 @@ describe("runShell/runCode background (integration)", function () {
             command: `"${process.execPath}" "${tmp}" ${port}`,
             background: {
               name: "web",
-              readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+              waitUntil: { port },
             },
             timeout: 10000,
           },
@@ -325,10 +348,7 @@ describe("runShell/runCode background (integration)", function () {
       assert.equal(result.outputs.ready, "true");
       assert.ok(registry.has("web"));
       // Port is actually accepting connections.
-      await waitForPort("127.0.0.1", port, {
-        pollIntervalMs: 100,
-        deadline: Date.now() + 2000,
-      });
+      await waitForPort(port, { deadline: Date.now() + 2000 });
     } finally {
       await stopProcess({
         config: {},
@@ -346,7 +366,7 @@ describe("runShell/runCode background (integration)", function () {
       step: {
         runShell: {
           command: "echo hi",
-          background: { name: "web", readyWhen: { delayMs: 10 } },
+          background: { name: "web", waitUntil: { delayMs: 10 } },
         },
       },
       processRegistry: registry,
@@ -367,7 +387,7 @@ describe("runShell/runCode background (integration)", function () {
           command: `"${process.execPath}" "${tmp}"`,
           background: {
             name: "stuck",
-            readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            waitUntil: { port },
           },
           timeout: 600,
         },
@@ -392,7 +412,7 @@ describe("runShell/runCode background (integration)", function () {
             code: `require('http').createServer((q,r)=>r.end('ok')).listen(${port});`,
             background: {
               name: "api",
-              readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+              waitUntil: { port },
             },
             timeout: 10000,
           },

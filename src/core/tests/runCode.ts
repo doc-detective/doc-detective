@@ -37,7 +37,7 @@ function createTempScript(code: string, language: string) {
 }
 
 // Run gather, compile, and run code. When `step.runCode.background` is set (an
-// object with a `name` and optional `readyWhen`), the script is started as a
+// object with a `name` and optional `waitUntil`), the script is started as a
 // long-running process via runShell and the temp script
 // is kept on disk (deletion deferred to teardown) so the interpreter can keep
 // reading it.
@@ -150,7 +150,7 @@ async function runCode({
         ? path.join(step.runCode.directory, step.runCode.path)
         : step.runCode.path;
     }
-    // Forward the background object (name + readyWhen) so runShell starts and
+    // Forward the background object (name + waitUntil) so runShell starts and
     // registers the process.
     if (step.runCode.background) {
       runShellOptions.background = step.runCode.background;

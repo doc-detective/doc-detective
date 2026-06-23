@@ -1,10 +1,10 @@
 {
   "specId": "background-processes",
-  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, readyWhen }) on runCode/runShell with each readyWhen probe (port, log, httpGet, delayMs) plus the no-readyWhen form (ready as soon as spawned), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
+  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, waitUntil }) on runCode/runShell with each waitUntil condition (port, stdio, httpGet, delayMs), multiple conditions combined, the no-waitUntil form (ready as soon as spawned), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "bg-runcode-port",
-      "description": "runCode background server, port readiness probe, stopped via stopProcess string form.",
+      "description": "runCode background server, port condition, stopped via stopProcess string form.",
       "steps": [
         {
           "runCode": {
@@ -12,11 +12,8 @@
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8201,'127.0.0.1');",
             "background": {
               "name": "bg-port",
-              "readyWhen": {
-                "port": {
-                  "port": 8201,
-                  "host": "127.0.0.1"
-                }
+              "waitUntil": {
+                "port": 8201
               }
             },
             "timeout": 15000
@@ -28,20 +25,17 @@
       ]
     },
     {
-      "testId": "bg-runcode-log",
-      "description": "runCode background process, log-pattern readiness probe, stopped via stopProcess object form.",
+      "testId": "bg-runcode-stdio",
+      "description": "runCode background process, stdio condition (matches stdout or stderr), stopped via stopProcess object form.",
       "steps": [
         {
           "runCode": {
             "language": "javascript",
             "code": "console.log('DD_BG_READY'); setInterval(() => {}, 1000000);",
             "background": {
-              "name": "bg-log",
-              "readyWhen": {
-                "log": {
-                  "pattern": "DD_BG_READY",
-                  "stream": "stdout"
-                }
+              "name": "bg-stdio",
+              "waitUntil": {
+                "stdio": "DD_BG_READY"
               }
             },
             "timeout": 15000
@@ -49,14 +43,14 @@
         },
         {
           "stopProcess": {
-            "name": "bg-log"
+            "name": "bg-stdio"
           }
         }
       ]
     },
     {
       "testId": "bg-runcode-httpget",
-      "description": "runCode background server, httpGet readiness probe, stopped via stopProcess.",
+      "description": "runCode background server, httpGet condition, stopped via stopProcess.",
       "steps": [
         {
           "runCode": {
@@ -64,13 +58,8 @@
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8202,'127.0.0.1');",
             "background": {
               "name": "bg-http",
-              "readyWhen": {
-                "httpGet": {
-                  "url": "http://127.0.0.1:8202",
-                  "statusCodes": [
-                    200
-                  ]
-                }
+              "waitUntil": {
+                "httpGet": "http://127.0.0.1:8202"
               }
             },
             "timeout": 15000
@@ -83,7 +72,7 @@
     },
     {
       "testId": "bg-runcode-delay",
-      "description": "runCode background process, fixed-delay readiness probe, stopped via stopProcess.",
+      "description": "runCode background process, fixed-delay condition, stopped via stopProcess.",
       "steps": [
         {
           "runCode": {
@@ -91,7 +80,7 @@
             "code": "setInterval(() => {}, 1000000);",
             "background": {
               "name": "bg-delay",
-              "readyWhen": {
+              "waitUntil": {
                 "delayMs": 300
               }
             },
@@ -104,8 +93,32 @@
       ]
     },
     {
+      "testId": "bg-runcode-combined",
+      "description": "runCode background server with multiple waitUntil conditions combined (port AND stdio AND delayMs) — all must pass.",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8205,'127.0.0.1'); console.log('DD_COMBINED_READY');",
+            "background": {
+              "name": "bg-combined",
+              "waitUntil": {
+                "port": 8205,
+                "stdio": "/DD_COMBINED_READY/",
+                "delayMs": 100
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "stopProcess": "bg-combined"
+        }
+      ]
+    },
+    {
       "testId": "bg-runcode-noprobe",
-      "description": "Background process with no readyWhen — ready as soon as it is spawned; stopped via stopProcess.",
+      "description": "Background process with no waitUntil — ready as soon as it is spawned; stopped via stopProcess.",
       "steps": [
         {
           "runCode": {
@@ -124,7 +137,7 @@
     },
     {
       "testId": "bg-runshell-port",
-      "description": "runShell background server (node bg-server.js), port readiness probe, stopped via stopProcess.",
+      "description": "runShell background server (node bg-server.js), port condition, stopped via stopProcess.",
       "steps": [
         {
           "runShell": {
@@ -135,11 +148,8 @@
             ],
             "background": {
               "name": "bg-shell",
-              "readyWhen": {
-                "port": {
-                  "port": 8203,
-                  "host": "127.0.0.1"
-                }
+              "waitUntil": {
+                "port": 8203
               }
             },
             "timeout": 15000
@@ -160,11 +170,8 @@
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8204,'127.0.0.1');",
             "background": {
               "name": "bg-autosweep",
-              "readyWhen": {
-                "port": {
-                  "port": 8204,
-                  "host": "127.0.0.1"
-                }
+              "waitUntil": {
+                "port": 8204
               }
             },
             "timeout": 15000
