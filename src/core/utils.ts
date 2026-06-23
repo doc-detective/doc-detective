@@ -234,7 +234,7 @@ async function findFreePort(): Promise<number> {
   });
 }
 
-// A handle to a long-running process started by a `background: true`
+// A handle to a long-running process started by a `background`
 // runShell/runCode step. Output is buffered (ring-capped) so readiness probes
 // and debugging can inspect it without waiting for the process to exit.
 interface BackgroundProcess {

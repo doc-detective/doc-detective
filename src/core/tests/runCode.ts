@@ -36,8 +36,9 @@ function createTempScript(code: string, language: string) {
   return tmpFile;
 }
 
-// Run gather, compile, and run code. When `step.runCode.background` is true, the
-// script is started as a long-running process via runShell and the temp script
+// Run gather, compile, and run code. When `step.runCode.background` is set (an
+// object with a `name` and optional `readyWhen`), the script is started as a
+// long-running process via runShell and the temp script
 // is kept on disk (deletion deferred to teardown) so the interpreter can keep
 // reading it.
 async function runCode({
@@ -149,11 +150,10 @@ async function runCode({
         ? path.join(step.runCode.directory, step.runCode.path)
         : step.runCode.path;
     }
-    // Forward background settings so runShell starts and registers the process.
+    // Forward the background object (name + readyWhen) so runShell starts and
+    // registers the process.
     if (step.runCode.background) {
-      runShellOptions.background = true;
-      runShellOptions.name = step.runCode.name;
-      runShellOptions.readyWhen = step.runCode.readyWhen;
+      runShellOptions.background = step.runCode.background;
     }
     const shellStep: any = { runShell: runShellOptions };
 
@@ -176,7 +176,7 @@ async function runCode({
     // to the registry entry so teardown removes it after the process is killed.
     if (step.runCode.background && shellResult.status === "PASS") {
       deferTempCleanup = true;
-      const entry = processRegistry?.get(step.runCode.name);
+      const entry = processRegistry?.get(step.runCode.background.name);
       if (entry) entry.tempPath = scriptPath;
     }
   } catch (error: any) {

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "stopProcess",
-  "description": "Stop and deregister a background process started by a `runShell` or `runCode` step with `background: true`.",
+  "description": "Stop and deregister a background process started by a `runShell` or `runCode` step with a `background` object.",
   "anyOf": [
     {
       "$ref": "#/components/schemas/string"

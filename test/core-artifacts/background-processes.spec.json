@@ -1,6 +1,6 @@
 {
   "specId": "background-processes",
-  "description": "Exercises long-running background processes end-to-end: `background: true` on runCode/runShell with each readyWhen probe (port, log, httpGet, delayMs), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
+  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, readyWhen }) on runCode/runShell with each readyWhen probe (port, log, httpGet, delayMs) plus the no-readyWhen form (ready as soon as spawned), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "bg-runcode-port",
@@ -10,12 +10,13 @@
           "runCode": {
             "language": "javascript",
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8201,'127.0.0.1');",
-            "background": true,
-            "name": "bg-port",
-            "readyWhen": {
-              "port": {
-                "port": 8201,
-                "host": "127.0.0.1"
+            "background": {
+              "name": "bg-port",
+              "readyWhen": {
+                "port": {
+                  "port": 8201,
+                  "host": "127.0.0.1"
+                }
               }
             },
             "timeout": 15000
@@ -34,12 +35,13 @@
           "runCode": {
             "language": "javascript",
             "code": "console.log('DD_BG_READY'); setInterval(() => {}, 1000000);",
-            "background": true,
-            "name": "bg-log",
-            "readyWhen": {
-              "log": {
-                "pattern": "DD_BG_READY",
-                "stream": "stdout"
+            "background": {
+              "name": "bg-log",
+              "readyWhen": {
+                "log": {
+                  "pattern": "DD_BG_READY",
+                  "stream": "stdout"
+                }
               }
             },
             "timeout": 15000
@@ -60,14 +62,15 @@
           "runCode": {
             "language": "javascript",
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8202,'127.0.0.1');",
-            "background": true,
-            "name": "bg-http",
-            "readyWhen": {
-              "httpGet": {
-                "url": "http://127.0.0.1:8202",
-                "statusCodes": [
-                  200
-                ]
+            "background": {
+              "name": "bg-http",
+              "readyWhen": {
+                "httpGet": {
+                  "url": "http://127.0.0.1:8202",
+                  "statusCodes": [
+                    200
+                  ]
+                }
               }
             },
             "timeout": 15000
@@ -86,16 +89,36 @@
           "runCode": {
             "language": "javascript",
             "code": "setInterval(() => {}, 1000000);",
-            "background": true,
-            "name": "bg-delay",
-            "readyWhen": {
-              "delayMs": 300
+            "background": {
+              "name": "bg-delay",
+              "readyWhen": {
+                "delayMs": 300
+              }
             },
             "timeout": 15000
           }
         },
         {
           "stopProcess": "bg-delay"
+        }
+      ]
+    },
+    {
+      "testId": "bg-runcode-noprobe",
+      "description": "Background process with no readyWhen — ready as soon as it is spawned; stopped via stopProcess.",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "setInterval(() => {}, 1000000);",
+            "background": {
+              "name": "bg-noprobe"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "stopProcess": "bg-noprobe"
         }
       ]
     },
@@ -110,12 +133,13 @@
               "test/core-artifacts/bg-server.js",
               "8203"
             ],
-            "background": true,
-            "name": "bg-shell",
-            "readyWhen": {
-              "port": {
-                "port": 8203,
-                "host": "127.0.0.1"
+            "background": {
+              "name": "bg-shell",
+              "readyWhen": {
+                "port": {
+                  "port": 8203,
+                  "host": "127.0.0.1"
+                }
               }
             },
             "timeout": 15000
@@ -134,12 +158,13 @@
           "runCode": {
             "language": "javascript",
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8204,'127.0.0.1');",
-            "background": true,
-            "name": "bg-autosweep",
-            "readyWhen": {
-              "port": {
-                "port": 8204,
-                "host": "127.0.0.1"
+            "background": {
+              "name": "bg-autosweep",
+              "readyWhen": {
+                "port": {
+                  "port": 8204,
+                  "host": "127.0.0.1"
+                }
               }
             },
             "timeout": 15000

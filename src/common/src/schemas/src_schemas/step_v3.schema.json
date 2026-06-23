@@ -575,12 +575,13 @@
     {
       "runShell": {
         "command": "docker run -p 8080:80 nginx",
-        "background": true,
-        "name": "web",
-        "readyWhen": {
-          "httpGet": {
-            "url": "http://localhost:8080",
-            "statusCodes": [200]
+        "background": {
+          "name": "web",
+          "readyWhen": {
+            "httpGet": {
+              "url": "http://localhost:8080",
+              "statusCodes": [200]
+            }
           }
         },
         "timeout": 30000
