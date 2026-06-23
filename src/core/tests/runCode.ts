@@ -36,8 +36,19 @@ function createTempScript(code: string, language: string) {
   return tmpFile;
 }
 
-// Run gather, compile, and run code.
-async function runCode({ config, step }: { config: any; step: any }) {
+// Run gather, compile, and run code. When `step.runCode.background` is true, the
+// script is started as a long-running process via runShell and the temp script
+// is kept on disk (deletion deferred to teardown) so the interpreter can keep
+// reading it.
+async function runCode({
+  config,
+  step,
+  processRegistry,
+}: {
+  config: any;
+  step: any;
+  processRegistry?: Map<string, any>;
+}) {
   const result: any = {
     status: "PASS",
     description: "Executed code.",
@@ -74,6 +85,11 @@ async function runCode({ config, step }: { config: any; step: any }) {
     return result;
   }
   log(config, "debug", `Created temporary script at: ${scriptPath}`);
+
+  // When the script is started in the background it is still being read by the
+  // interpreter after runShell returns, so its temp file must outlive this
+  // call. Teardown (stopProcess / run-end sweep) deletes it instead.
+  let deferTempCleanup = false;
 
   try {
     if (!step.runCode.command) {
@@ -133,10 +149,20 @@ async function runCode({ config, step }: { config: any; step: any }) {
         ? path.join(step.runCode.directory, step.runCode.path)
         : step.runCode.path;
     }
+    // Forward background settings so runShell starts and registers the process.
+    if (step.runCode.background) {
+      runShellOptions.background = true;
+      runShellOptions.name = step.runCode.name;
+      runShellOptions.readyWhen = step.runCode.readyWhen;
+    }
     const shellStep: any = { runShell: runShellOptions };
 
     // Execute script using runShell
-    const shellResult = await runShell({ config: config, step: shellStep });
+    const shellResult = await runShell({
+      config: config,
+      step: shellStep,
+      processRegistry,
+    });
 
     // Copy results, including the articulated assertion records so runCode
     // reports the same implicit assertions runShell produces.
@@ -145,16 +171,26 @@ async function runCode({ config, step }: { config: any; step: any }) {
     result.outputs = {...result.outputs, ...shellResult.outputs};
     if (typeof shellResult.assertions !== "undefined")
       result.assertions = shellResult.assertions;
+
+    // On a successful background start, keep the temp script and hand its path
+    // to the registry entry so teardown removes it after the process is killed.
+    if (step.runCode.background && shellResult.status === "PASS") {
+      deferTempCleanup = true;
+      const entry = processRegistry?.get(step.runCode.name);
+      if (entry) entry.tempPath = scriptPath;
+    }
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;
   } finally {
-    // Clean up temporary script file
-    try {
-      fs.unlinkSync(scriptPath!);
-      log(config, "debug", `Removed temporary script: ${scriptPath}`);
-    } catch (error: any) {
-      log(config, "warn", `Failed to remove temporary script: ${scriptPath}`);
+    // Clean up temporary script file unless a background process still needs it.
+    if (!deferTempCleanup) {
+      try {
+        fs.unlinkSync(scriptPath!);
+        log(config, "debug", `Removed temporary script: ${scriptPath}`);
+      } catch (error: any) {
+        log(config, "warning", `Failed to remove temporary script: ${scriptPath}`);
+      }
     }
   }
 
