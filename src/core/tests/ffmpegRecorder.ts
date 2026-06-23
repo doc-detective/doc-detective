@@ -524,26 +524,29 @@ function isFfmpegRecordingForScheduling(job: any): boolean {
 }
 
 // The exclusive resources a job must hold to run safely under concurrency.
-// Today the only one is the physical "display" for shared-display ffmpeg
-// recording. Mirrors the three `computeEffectiveConcurrency` "keep the limit"
-// branches inverted: not a recording, Linux+Xvfb isolation, or an autoRecord
-// overlap opt-in all leave the display free (`[]`); otherwise the job
-// serializes on `"display"` via the resource registry instead of forcing the
-// whole run serial.
+// Today the only one is the physical "display" for ffmpeg recording. A
+// non-autoRecord ffmpeg recording serializes on `"display"` (the resource
+// registry queues recordings, and via jobDisplayResources every other driver
+// context while a recording is present) instead of forcing the whole run
+// serial. The autoRecord overlap opt-in (`allowOverlappingCaptures`) leaves the
+// display free — those captures intentionally overlap.
+//
+// NOTE: Linux+Xvfb per-context displays are NOT treated as isolation here. In
+// practice, concurrent recording contexts still clobber each other's driver
+// sessions on the CI runner (`invalid session id`), so recordings serialize on
+// every platform; the Xvfb displays are still provisioned so headless contexts
+// can record at all.
 function jobExclusiveResources(
   job: any,
   {
-    platform,
-    xvfbAvailable,
     allowOverlappingCaptures = false,
   }: {
-    platform: string;
-    xvfbAvailable: boolean;
+    platform?: string;
+    xvfbAvailable?: boolean;
     allowOverlappingCaptures?: boolean;
   }
 ): string[] {
   if (!isFfmpegRecordingForScheduling(job)) return [];
-  if (platform === "linux" && xvfbAvailable) return [];
   if (allowOverlappingCaptures) return [];
   return ["display"];
 }

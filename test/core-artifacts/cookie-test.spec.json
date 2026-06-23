@@ -23,7 +23,7 @@
           "runShell": "docker rm -f dd-httpbin 2>/dev/null || true; docker pull kennethreitz/httpbin && docker run -d --name dd-httpbin -p 8080:80 kennethreitz/httpbin"
         },
         {
-          "runShell": "curl --retry 30 --retry-delay 1 --retry-connrefused -sf http://localhost:8080/get -o /dev/null"
+          "runShell": "for i in $(seq 1 60); do curl -sf --max-time 5 http://localhost:8080/get -o /dev/null 2>/dev/null && exit 0; sleep 1; done; echo 'httpbin not ready after 60s' >&2; exit 1"
         },
         {
           "goTo": "http://localhost:8080/cookies/set/test_env_cookie/test_env_value"

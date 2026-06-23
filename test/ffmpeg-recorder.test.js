@@ -553,13 +553,18 @@ describe("ffmpegRecorder", function () {
       ).to.deep.equal(["display"]);
     });
 
-    it("does not tag browser-engine, no-record, Xvfb-isolated, or overlap-opt-in jobs", function () {
+    it("does not tag browser-engine, no-record, or overlap-opt-in jobs", function () {
       expect(jobExclusiveResources(browserJob, { platform: "win32", xvfbAvailable: false })).to.deep.equal([]);
       expect(jobExclusiveResources(plainJob, { platform: "win32", xvfbAvailable: false })).to.deep.equal([]);
-      // Linux + Xvfb: isolated displays -> safe to parallelize.
-      expect(jobExclusiveResources(ffmpegJob, { platform: "linux", xvfbAvailable: true })).to.deep.equal([]);
       // autoRecord overlap opt-in.
       expect(jobExclusiveResources(ffmpegJob, { platform: "win32", xvfbAvailable: false, allowOverlappingCaptures: true })).to.deep.equal([]);
+    });
+
+    it("tags ffmpeg recordings on every platform, incl. Linux+Xvfb", function () {
+      // Per-context Xvfb displays do not make concurrent recordings safe in
+      // practice (driver sessions clobber), so recordings serialize everywhere.
+      expect(jobExclusiveResources(ffmpegJob, { platform: "linux", xvfbAvailable: true })).to.deep.equal(["display"]);
+      expect(jobExclusiveResources(ffmpegJob, { platform: "darwin", xvfbAvailable: false })).to.deep.equal(["display"]);
     });
 
     it("over-approximation feeds the tag for routed contexts", function () {
@@ -576,11 +581,13 @@ describe("ffmpegRecorder", function () {
       expect(jobExclusiveResources(routed, { platform: "win32", xvfbAvailable: false })).to.deep.equal(["display"]);
     });
 
-    it("agrees with computeEffectiveConcurrency: xvfbContexts non-empty <=> jobs untagged", function () {
-      const ctx = { platform: "linux", xvfbAvailable: true, allowOverlappingCaptures: false };
+    it("the autoRecord overlap opt-in leaves recordings untagged (parallel)", function () {
+      // computeEffectiveConcurrency keeps the requested limit when overlap is
+      // allowed; jobExclusiveResources agrees by leaving the display free.
+      const ctx = { platform: "win32", xvfbAvailable: false, allowOverlappingCaptures: true };
       const conc = computeEffectiveConcurrency({ requestedLimit: 4, jobs: [ffmpegJob], ...ctx });
-      const tagged = jobExclusiveResources(ffmpegJob, ctx);
-      expect(conc.xvfbContexts.length > 0).to.equal(tagged.length === 0);
+      expect(conc.forcedSerial).to.equal(false);
+      expect(jobExclusiveResources(ffmpegJob, ctx)).to.deep.equal([]);
     });
   });
 

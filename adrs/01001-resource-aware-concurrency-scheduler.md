@@ -50,13 +50,14 @@ Mechanism:
 2. **Exclusivity tag** (`src/core/tests/ffmpegRecorder.ts` + `jobDisplayResources` in
    `src/core/tests.ts`): `jobExclusiveResources` returns `["display"]` for a shared-display ffmpeg
    recording — `[]` when there is no recording, on Linux+Xvfb (isolated displays), or under the
-   autoRecord overlap opt-in (mirroring the three `computeEffectiveConcurrency` "keep the limit"
-   branches). Crucially, a recording can't run alongside ANY other driver/browser context either —
-   ffmpeg captures the whole display (so other windows pollute the capture) and starves concurrent
-   browsers on a shared display. So once the run contains a shared-display recording,
-   `jobDisplayResources` also tags every other **driver** context `["display"]`; non-driver jobs
-   (HTTP/shell) take nothing and stay parallel. On Linux+Xvfb no recording is display-tagged, so
-   nothing is promoted and driver work runs fully parallel.
+   autoRecord overlap opt-in. Crucially, a recording can't run alongside ANY other driver/browser
+   context either — ffmpeg captures the whole display (so other windows pollute the capture) and
+   concurrent recording/driver contexts clobber each other's driver sessions (`invalid session id`)
+   even on Linux with per-context Xvfb displays. So recordings serialize on EVERY platform, and once
+   a run contains a recording, `jobDisplayResources` also tags every other **driver** context
+   `["display"]`; non-driver jobs (HTTP/shell) take nothing and stay parallel. (The Xvfb displays are
+   still provisioned so headless Linux contexts can record at all — they just no longer imply
+   parallel recordings.)
 3. **Routing over-approximation** (`isFfmpegRecordingForScheduling`): for a context with step-level
    routing, detection ignores the `stopRecord` LIFO that routing might skip and flags the context
    display-exclusive if *any* record could run as ffmpeg. Non-routed contexts keep the precise
@@ -70,14 +71,15 @@ Mechanism:
 
 ## Consequences
 
-* **Good** — a run with recordings now parallelizes all non-driver work (HTTP/shell/assertions);
-  on Linux+Xvfb driver work is fully parallel too. The PR #379 manual serial split collapses back
-  into a single concurrent core-core pass.
-* **Trade-off / future work** — on a shared display (Windows/macOS) every driver context serializes
-  on `"display"` while a recording is present, even two non-recording browser contexts that could
-  safely overlap in a gap between recordings. A reader/writer lock (recording = writer, browser =
-  reader) would recover that browser-vs-browser parallelism; deferred to keep the first cut simple
-  and starvation-free.
+* **Good** — a run with NO recordings (the common case) runs fully parallel on every platform; a
+  run WITH recordings still parallelizes all non-driver work (HTTP/shell/assertions). The PR #379
+  manual serial split collapses back into a single concurrent core-core pass.
+* **Trade-off / future work** — while a recording is present, every driver context serializes on
+  `"display"` (on all platforms), even two non-recording browser contexts that could safely overlap
+  in a gap between recordings. A reader/writer lock (recording = writer, browser = reader) would
+  recover that browser-vs-browser parallelism; deferred to keep the first cut simple and
+  starvation-free. (Concurrent recordings even on isolated Xvfb displays crash driver sessions on
+  the CI runner, so that path is not pursued.)
 * **Good / call-out** — Appium-pool sizing and the warm-up pre-pass now use the un-collapsed
   `limit` for recording runs (they were skipped when recording forced `limit = 1`). Warm-up is
   serial and idempotent, so this is safe; it is the intended parallelism.
