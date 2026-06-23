@@ -881,19 +881,18 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // still drives Xvfb isolation (xvfbContexts) and the autoRecord-overlap
   // warning. At limit===1 the single worker is already serial, so the old path
   // is left byte-identical.
-  let anyDisplayExclusive = false;
   if (limit > 1) {
     for (const job of jobs)
       job.exclusiveResources = jobDisplayResources(job, exclusivityCtx);
-    anyDisplayExclusive = jobs.some(
-      (j: any) => (j.exclusiveResources?.length ?? 0) > 0
-    );
   }
-  if (anyDisplayExclusive) {
+  // Report/warn off `runHasDisplayRecording`, which spans the full sizing view
+  // (flat + routed) — a routed-only run with a recording still serializes (the
+  // routed sequencer tags its own contexts) and must report so too.
+  if (runHasDisplayRecording) {
     log(
       config,
       "warning",
-      "ffmpeg display recordings are serialized to protect the shared display; other jobs run in parallel. On Linux, install Xvfb for fully-isolated parallel recording."
+      "ffmpeg recordings are serialized to protect the shared display; non-driver work still runs in parallel. To record concurrently, use the Chrome browser engine (record: { engine: \"browser\" })."
     );
     report.recordingSerialized = true;
   } else if (concurrency.overlappingCaptures && limit > 1) {
