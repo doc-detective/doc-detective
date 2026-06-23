@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
+import os from "node:os";
 import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
 import { findFreePort } from "../dist/core/utils.js";
@@ -49,7 +50,7 @@ describe("Background processes via runTests", function () {
         },
       ],
     };
-    const tempFilePath = path.resolve("./test/temp-bg-stop.json");
+    const tempFilePath = path.join(os.tmpdir(), `dd-temp-bg-stop-${process.pid}.json`);
     fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
     try {
       const result = await runTests({ input: tempFilePath, logLevel: "silent" });
@@ -81,7 +82,7 @@ describe("Background processes via runTests", function () {
         },
       ],
     };
-    const tempFilePath = path.resolve("./test/temp-bg-autosweep.json");
+    const tempFilePath = path.join(os.tmpdir(), `dd-temp-bg-autosweep-${process.pid}.json`);
     fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
     try {
       const result = await runTests({ input: tempFilePath, logLevel: "silent" });

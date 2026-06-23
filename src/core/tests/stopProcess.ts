@@ -50,7 +50,7 @@ async function stopProcess({
   }
 
   // Remove from the registry first so the run-end sweep doesn't double-kill.
-  processRegistry!.delete(name);
+  processRegistry?.delete(name);
 
   // Tree-kill the process (the spawned shell plus its children).
   if (entry.bg?.pid) {

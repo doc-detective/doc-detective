@@ -107,7 +107,7 @@
           },
           "readyWhen": {
             "type": "object",
-            "description": "Gate that blocks the step until the background process is ready. Only applies when `background` is `true`. Specify exactly one probe.",
+            "description": "Gate that blocks the step until the background process is ready. Only applies when `background` is `true` (otherwise it is ignored). Specify exactly one probe. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use a `port`, `httpGet`, or `delayMs` probe for those rather than relying on the foreground process staying alive.",
             "additionalProperties": false,
             "oneOf": [
               { "required": ["port"] },
@@ -154,7 +154,7 @@
                   },
                   "stream": {
                     "type": "string",
-                    "description": "Which stream to match against.",
+                    "description": "Which stream to match against. With `any`, buffered stdout and stderr are concatenated (all stdout, then all stderr), not interleaved in emission order — a pattern that depends on the time-ordering of output across both streams may not match; target a single stream for that.",
                     "enum": ["stdout", "stderr", "any"],
                     "default": "any"
                   }

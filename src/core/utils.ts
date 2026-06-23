@@ -342,10 +342,14 @@ async function waitForPort(
 ): Promise<void> {
   while (true) {
     if (await tryConnect(host, port)) return;
-    if (Date.now() + pollIntervalMs >= deadline) {
+    // Only give up once the clock has actually run out, and bound the wait to
+    // the time remaining so a final probe still happens near the deadline. A
+    // fixed `Date.now() + pollIntervalMs >= deadline` check would throw with
+    // time still on the clock on a slow host, skipping a winnable attempt.
+    if (Date.now() >= deadline) {
       throw new Error(`Port ${host}:${port} did not open in time.`);
     }
-    await backgroundSleep(pollIntervalMs);
+    await backgroundSleep(Math.min(pollIntervalMs, deadline - Date.now()));
   }
 }
 
@@ -366,12 +370,12 @@ async function waitForHttp(
     } catch {
       // Server not up yet (or transient) — retry until the deadline.
     }
-    if (Date.now() + pollIntervalMs >= deadline) {
+    if (Date.now() >= deadline) {
       throw new Error(
         `HTTP GET ${url} did not return ${JSON.stringify(statusCodes)} in time.`
       );
     }
-    await backgroundSleep(pollIntervalMs);
+    await backgroundSleep(Math.min(pollIntervalMs, deadline - Date.now()));
   }
 }
 
