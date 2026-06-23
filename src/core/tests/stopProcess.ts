@@ -33,8 +33,19 @@ async function stopProcess({
   }
   step = isValidStep.object;
 
-  // The step value is the process name.
+  // The step value is the process name. Guard the type defensively: a
+  // multi-action step can satisfy step_v3 via a different `anyOf` branch (or a
+  // programmatic caller can bypass schema transforms), leaving `stopProcess` a
+  // non-string. Fail loudly on that rather than using an object/number as a Map
+  // key and silently reporting a "missing process" no-op.
   const name = step.stopProcess;
+  if (typeof name !== "string" || name.trim().length === 0) {
+    result.status = "FAIL";
+    result.description = `Invalid stopProcess value: expected a process name string, got ${JSON.stringify(
+      name
+    )}.`;
+    return result;
+  }
 
   const entry = processRegistry?.get(name);
   if (!entry) {

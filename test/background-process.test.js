@@ -313,6 +313,19 @@ describe("stopProcess", function () {
     });
     assert.equal(result.status, "PASS");
   });
+
+  it("fails for a non-string stopProcess value (defensive)", async function () {
+    const registry = new Map();
+    const result = await stopProcess({
+      config: {},
+      // A multi-action step validates via the goTo anyOf branch, so the step
+      // passes step_v3 while stopProcess remains a non-string object.
+      step: { stopProcess: { name: "nope" }, goTo: "https://example.com" },
+      processRegistry: registry,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid stopProcess value/);
+  });
 });
 
 describe("runShell/runCode background (integration)", function () {
