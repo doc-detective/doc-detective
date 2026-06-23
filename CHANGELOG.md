@@ -1,3 +1,10 @@
+# [4.15.0-next.14](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.13...v4.15.0-next.14) (2026-06-23)
+
+
+### Features
+
+* **runner:** resource-aware scheduler for shared-display recordings ([#380](https://github.com/doc-detective/doc-detective/issues/380)) ([82c37f5](https://github.com/doc-detective/doc-detective/commit/82c37f535231bde40058e4ca28d7af45bdae8576)), closes [#379](https://github.com/doc-detective/doc-detective/issues/379) [#379](https://github.com/doc-detective/doc-detective/issues/379)
+
 # [4.15.0-next.13](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.12...v4.15.0-next.13) (2026-06-22)
 
 
