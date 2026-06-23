@@ -2346,13 +2346,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
     });
 
     describe("background processes (runShell/runCode) and stopProcess", function () {
-      it("should validate a background runShell with a port probe", function () {
+      it("should validate a background runShell with a port condition", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
               command: "docker run -p 5432:5432 postgres",
-              background: { name: "db", readyWhen: { port: { port: 5432 } } },
+              background: { name: "db", waitUntil: { port: 5432 } },
             },
           },
         });
@@ -2360,7 +2360,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a background runShell with a log probe", function () {
+      it("should validate a background runShell with a stdio condition", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
@@ -2368,7 +2368,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
               command: "my-server",
               background: {
                 name: "srv",
-                readyWhen: { log: { pattern: "ready to accept", stream: "stdout" } },
+                waitUntil: { stdio: "/ready to accept/" },
               },
             },
           },
@@ -2377,7 +2377,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a background runShell with an httpGet probe", function () {
+      it("should validate a background runShell with an httpGet condition", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
@@ -2385,9 +2385,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
               command: "my-server",
               background: {
                 name: "web",
-                readyWhen: {
-                  httpGet: { url: "http://localhost:8080", statusCodes: [200, 204] },
-                },
+                waitUntil: { httpGet: "http://localhost:8080" },
               },
               timeout: 30000,
             },
@@ -2397,13 +2395,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a background runShell with a delayMs probe", function () {
+      it("should validate a background runShell with a delayMs condition", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
               command: "my-server",
-              background: { name: "srv", readyWhen: { delayMs: 2000 } },
+              background: { name: "srv", waitUntil: { delayMs: 2000 } },
             },
           },
         });
@@ -2411,7 +2409,29 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a background with no readyWhen (ready on spawn)", function () {
+      it("should validate multiple waitUntil conditions combined", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: {
+                name: "srv",
+                waitUntil: {
+                  port: 5432,
+                  stdio: "/ready/",
+                  httpGet: "http://localhost:8080/health",
+                  delayMs: 1000,
+                },
+              },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background with no waitUntil (ready on spawn)", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
@@ -2425,14 +2445,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a background runCode with a port probe", function () {
+      it("should validate a background runCode with a port condition", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runCode: {
               language: "javascript",
               code: "require('http').createServer((q,r)=>r.end('ok')).listen(8088)",
-              background: { name: "api", readyWhen: { port: { port: 8088 } } },
+              background: { name: "api", waitUntil: { port: 8088 } },
             },
           },
         });
@@ -2483,16 +2503,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a readyWhen with two probes", function () {
+      it("should reject an unknown key inside waitUntil", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
               command: "my-server",
-              background: {
-                name: "srv",
-                readyWhen: { port: { port: 5432 }, delayMs: 1000 },
-              },
+              background: { name: "srv", waitUntil: { tcp: 5432 } },
             },
           },
         });
@@ -2500,13 +2517,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a readyWhen with an unknown probe key", function () {
+      it("should reject an empty waitUntil object (no conditions)", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
               command: "my-server",
-              background: { name: "srv", readyWhen: { tcp: { port: 5432 } } },
+              background: { name: "srv", waitUntil: {} },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty-string stdio condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { stdio: "" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject the old object-shaped port condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { port: { port: 5432 } } },
             },
           },
         });
@@ -2520,7 +2565,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: { readyWhen: { delayMs: 1000 } },
+              background: { waitUntil: { delayMs: 1000 } },
             },
           },
         });
@@ -2535,7 +2580,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             runCode: {
               language: "bash",
               code: "sleep 100",
-              background: { readyWhen: { delayMs: 1000 } },
+              background: { waitUntil: { delayMs: 1000 } },
             },
           },
         });
@@ -2543,13 +2588,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a readyWhen port that is out of range", function () {
+      it("should reject a waitUntil port that is out of range", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
               command: "my-server",
-              background: { name: "srv", readyWhen: { port: { port: 70000 } } },
+              background: { name: "srv", waitUntil: { port: 70000 } },
             },
           },
         });
@@ -2572,7 +2617,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: { name: "   ", readyWhen: { delayMs: 1000 } },
+              background: { name: "   ", waitUntil: { delayMs: 1000 } },
             },
           },
         });
