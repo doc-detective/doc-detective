@@ -6,7 +6,9 @@ import fs from "node:fs";
 export { stopProcess };
 
 // Stop and deregister a background process started by a runShell/runCode step
-// with a `background` object.
+// with a `background` object. The step value is the process `name` (a string).
+// Stopping a process that isn't running (already stopped, or never started) is a
+// no-op that still PASSes.
 async function stopProcess({
   config,
   step,
@@ -31,21 +33,26 @@ async function stopProcess({
   }
   step = isValidStep.object;
 
-  // Normalize string shorthand to object form
-  let spec = step.stopProcess;
-  if (typeof spec === "string") spec = { name: spec };
-  const name = spec.name;
-  const ignoreMissing = spec.ignoreMissing || false;
+  // The step value is the process name. Guard the type defensively: a
+  // multi-action step can satisfy step_v3 via a different `anyOf` branch (or a
+  // programmatic caller can bypass schema transforms), leaving `stopProcess` a
+  // non-string. Fail loudly on that rather than using an object/number as a Map
+  // key and silently reporting a "missing process" no-op.
+  const name = step.stopProcess;
+  if (typeof name !== "string" || name.trim().length === 0) {
+    result.status = "FAIL";
+    result.description = `Invalid stopProcess value: expected a process name string, got ${JSON.stringify(
+      name
+    )}.`;
+    return result;
+  }
 
   const entry = processRegistry?.get(name);
   if (!entry) {
-    if (ignoreMissing) {
-      result.status = "PASS";
-      result.description = `No background process named "${name}" is running; nothing to stop.`;
-      return result;
-    }
-    result.status = "FAIL";
-    result.description = `No background process named "${name}" is running.`;
+    // Missing process is never a failure — stopping something that isn't
+    // running is a no-op.
+    result.status = "PASS";
+    result.description = `No background process named "${name}" is running; nothing to stop.`;
     return result;
   }
 

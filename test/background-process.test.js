@@ -296,7 +296,7 @@ describe("stopProcess", function () {
     const registry = new Map([["api", { name: "api", bg, tempPath: tmp }]]);
     const result = await stopProcess({
       config: {},
-      step: { stopProcess: { name: "api" } },
+      step: { stopProcess: "api" },
       processRegistry: registry,
     });
     assert.equal(result.status, "PASS");
@@ -304,24 +304,27 @@ describe("stopProcess", function () {
     assert.equal(fs.existsSync(tmp), false, "temp script should be deleted");
   });
 
-  it("passes for a missing process when ignoreMissing is true", async function () {
-    const registry = new Map();
-    const result = await stopProcess({
-      config: {},
-      step: { stopProcess: { name: "nope", ignoreMissing: true } },
-      processRegistry: registry,
-    });
-    assert.equal(result.status, "PASS");
-  });
-
-  it("fails for a missing process when ignoreMissing is false", async function () {
+  it("passes (no-op) for a missing process", async function () {
     const registry = new Map();
     const result = await stopProcess({
       config: {},
       step: { stopProcess: "nope" },
       processRegistry: registry,
     });
+    assert.equal(result.status, "PASS");
+  });
+
+  it("fails for a non-string stopProcess value (defensive)", async function () {
+    const registry = new Map();
+    const result = await stopProcess({
+      config: {},
+      // A multi-action step validates via the goTo anyOf branch, so the step
+      // passes step_v3 while stopProcess remains a non-string object.
+      step: { stopProcess: { name: "nope" }, goTo: "https://example.com" },
+      processRegistry: registry,
+    });
     assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid stopProcess value/);
   });
 });
 
@@ -360,7 +363,7 @@ describe("runShell/runCode background (integration)", function () {
     } finally {
       await stopProcess({
         config: {},
-        step: { stopProcess: { name: "web", ignoreMissing: true } },
+        step: { stopProcess: "web" },
         processRegistry: registry,
       });
       fs.rmSync(tmp, { force: true });
@@ -437,7 +440,7 @@ describe("runShell/runCode background (integration)", function () {
       const tempPath = entry?.tempPath;
       await stopProcess({
         config: {},
-        step: { stopProcess: { name: "api", ignoreMissing: true } },
+        step: { stopProcess: "api" },
         processRegistry: registry,
       });
       if (tempPath) assert.equal(fs.existsSync(tempPath), false, "temp script removed on stop");
