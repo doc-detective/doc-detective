@@ -33,9 +33,9 @@ Set `engine` as a string to select an engine with its defaults (for example, `"e
 - `target`: (Optional, `ffmpeg` only) What the engine captures. Use `display` to record the full screen, `window` to record the active window, or `viewport` to record the browser content area (default: `display`). The `window` and `viewport` targets are best-effort: ffmpeg captures the full screen and then crops the result. The `browser` engine ignores this field and always captures its tab.
 - `fps`: (Optional, `ffmpeg` only) The capture frame rate (default: `30`).
 
-**Recording with concurrency:** Concurrency support depends on the engine and platform. The `browser` engine is always safe to run concurrently. The `ffmpeg` engine needs exclusive use of the display, so its behavior differs by platform:
+**Recording with concurrency:** Concurrency support depends on the engine and platform. The `browser` engine is always safe to run concurrently, because each context records its own window. The `ffmpeg` engine needs exclusive use of the display, so its behavior differs by platform:
 
-- **Windows and macOS:** When a run includes an `ffmpeg` record step, Doc Detective forces the run to execute serially, even if `concurrentRunners` is greater than 1. To keep concurrency while recording, use the `browser` engine instead.
+- **Windows and macOS:** `ffmpeg` captures the whole shared display, so when a run includes an `ffmpeg` recording, Doc Detective serializes that recording with every other browser-based test, letting them take turns on the display. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel up to `concurrentRunners`. To run the recordings concurrently too, use the `browser` engine instead.
 - **Linux:** Each runner records its own virtual display using Xvfb, so `ffmpeg` recording stays concurrent and works headless. Install Xvfb to enable this.
 
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
