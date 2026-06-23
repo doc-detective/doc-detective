@@ -65,9 +65,10 @@ Mechanism:
    through `runContext`/`runRoutedSpec` → `runStep` → the step handlers, so a process started in one
    spec/test survives for the whole run (e.g. start in `beforeAny`, use across `main`, stop in
    `afterAll`).
-4. **`stopProcess` step** (`src/core/tests/stopProcess.ts`, new `stopProcess_v3` schema): tree-kills
-   a process by `name` and deregisters it; accepts a string shorthand or `{ name, ignoreMissing }`.
-   `ignoreMissing: true` makes stopping an already-gone process a PASS.
+4. **`stopProcess` step** (`src/core/tests/stopProcess.ts`, new `stopProcess_v3` schema): the value is
+   the process `name` (a string); the step tree-kills the process and deregisters it. Stopping a
+   process that isn't running (already stopped, or never started) is a no-op that still PASSes — there
+   is no failure mode for a missing process and no object form / `ignoreMissing` flag to configure.
 5. **Guaranteed teardown** (`src/core/tests.ts`): the existing Appium-teardown `finally` also sweeps
    any still-registered process (run-end auto-cleanup), and new `SIGINT`/`SIGTERM` handlers tear
    down background processes, Appium, and Xvfb on interrupt — the handlers are removed in the same
@@ -101,17 +102,17 @@ Mechanism:
 * Unit (`test/background-process.test.js`): `spawnBackgroundCommand` returns immediately and buffers
   output; each condition (`port`/`httpGet`/`stdio`/`delayMs`) resolves and times out correctly,
   and combined conditions all gate together; readiness
-  fails fast on early exit; `stopProcess` kills + deregisters + honors `ignoreMissing`; the real
+  fails fast on early exit; `stopProcess` kills + deregisters and no-ops (PASS) on a missing process; the real
   `runShell`/`runCode` background branches (readiness, outputs, name collision, timeout-deregister,
   deferred temp cleanup).
 * Schema (`src/common/test/validate.test.js`): positive + negative cases for `background`/`name`/
-  every `waitUntil` condition (and combined conditions) and both `stopProcess` forms (non-object
-  `background`, unknown key in `background`/`waitUntil`, old object-shaped port, missing name,
-  out-of-range port, whitespace name).
+  every `waitUntil` condition (and combined conditions) and the string-only `stopProcess` (non-object
+  `background`, unknown key in `background`/`waitUntil`, old object-shaped port, object-form
+  `stopProcess`, missing name, out-of-range port, whitespace name).
 * End-to-end: `test/background-runner.test.js` drives `runTests()` for explicit-stop and run-end
   auto-sweep; `test/core-artifacts/background-processes.spec.json` exercises every permutation
   through the canonical `test/core-core.test.js` fixture gate (all `waitUntil` conditions, combined
-  conditions, `stopProcess` string/object, `ignoreMissing`, auto-sweep, `runShell` and `runCode`
+  conditions, `stopProcess` by name, the missing-process no-op, auto-sweep, `runShell` and `runCode`
   background) and must resolve
   PASS/SKIPPED across the CI matrix (macOS / Linux / Windows × node 22/24).
 

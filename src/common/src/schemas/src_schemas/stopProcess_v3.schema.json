@@ -1,56 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "stopProcess",
-  "description": "Stop and deregister a background process started by a `runShell` or `runCode` step with a `background` object.",
-  "anyOf": [
-    {
-      "$ref": "#/components/schemas/string"
-    },
-    {
-      "$ref": "#/components/schemas/object"
-    }
+  "description": "Stop and deregister a background process started by a `runShell` or `runCode` step (with a `background` object). The value is the process `name`. Stopping a process that isn't running — already stopped, or never started — is a no-op that still passes.",
+  "type": "string",
+  "minLength": 1,
+  "pattern": "\\S",
+  "transform": [
+    "trim"
   ],
-  "components": {
-    "schemas": {
-      "string": {
-        "title": "Stop process (by name)",
-        "description": "Name of the background process to stop.",
-        "type": "string",
-        "minLength": 1,
-        "pattern": "\\S",
-        "transform": [
-          "trim"
-        ]
-      },
-      "object": {
-        "title": "Stop process (detailed)",
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of the background process to stop.",
-            "minLength": 1,
-            "pattern": "\\S",
-            "transform": ["trim"]
-          },
-          "ignoreMissing": {
-            "type": "boolean",
-            "description": "If `true`, the step passes even when no process with `name` is registered (for example, it was already stopped or never started).",
-            "default": false
-          }
-        }
-      }
-    }
-  },
   "examples": [
-    "web",
-    {
-      "name": "web",
-      "ignoreMissing": true
-    }
+    "web"
   ]
 }

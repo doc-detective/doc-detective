@@ -1,10 +1,10 @@
 {
   "specId": "background-processes",
-  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, waitUntil }) on runCode/runShell with each waitUntil condition (port, stdio, httpGet, delayMs), multiple conditions combined, the no-waitUntil form (ready as soon as spawned), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
+  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, waitUntil }) on runCode/runShell with each waitUntil condition (port, stdio, httpGet, delayMs), multiple conditions combined, the no-waitUntil form (ready as soon as spawned), stopProcess (by name), the missing-process no-op, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "bg-runcode-port",
-      "description": "runCode background server, port condition, stopped via stopProcess string form.",
+      "description": "runCode background server, port condition, stopped via stopProcess.",
       "steps": [
         {
           "runCode": {
@@ -26,7 +26,7 @@
     },
     {
       "testId": "bg-runcode-stdio",
-      "description": "runCode background process, stdio condition (matches stdout or stderr), stopped via stopProcess object form.",
+      "description": "runCode background process, stdio condition (matches stdout or stderr), stopped via stopProcess.",
       "steps": [
         {
           "runCode": {
@@ -42,9 +42,7 @@
           }
         },
         {
-          "stopProcess": {
-            "name": "bg-stdio"
-          }
+          "stopProcess": "bg-stdio"
         }
       ]
     },
@@ -180,14 +178,11 @@
       ]
     },
     {
-      "testId": "bg-stopprocess-ignoremissing",
-      "description": "stopProcess with ignoreMissing on a name that was never started PASSES instead of failing.",
+      "testId": "bg-stopprocess-missing",
+      "description": "stopProcess on a name that was never started is a no-op that PASSES.",
       "steps": [
         {
-          "stopProcess": {
-            "name": "bg-never-started",
-            "ignoreMissing": true
-          }
+          "stopProcess": "bg-never-started"
         }
       ]
     }
