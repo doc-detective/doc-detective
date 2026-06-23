@@ -69,8 +69,11 @@ async function runShell({
 
   // Background mode: start the process, register it, wait until ready, and
   // return immediately. `exitCodes`, `stdio`, and output saving don't apply.
+  // `background` is an object holding `name` and (optional) `readyWhen`; its
+  // presence signals background mode.
   if (step.runShell.background) {
-    const name = step.runShell.name;
+    const background = step.runShell.background;
+    const name = background.name;
     if (!name) {
       result.status = "FAIL";
       result.description = "Background processes require a `name`.";
@@ -106,7 +109,7 @@ async function runShell({
     processRegistry.set(name, entry);
 
     try {
-      await waitForReady(bg, step.runShell.readyWhen, {
+      await waitForReady(bg, background.readyWhen, {
         timeoutMs: step.runShell.timeout,
       });
     } catch (error: any) {

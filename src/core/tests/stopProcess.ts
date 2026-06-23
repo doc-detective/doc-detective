@@ -6,7 +6,7 @@ import fs from "node:fs";
 export { stopProcess };
 
 // Stop and deregister a background process started by a runShell/runCode step
-// with `background: true`.
+// with a `background` object.
 async function stopProcess({
   config,
   step,
