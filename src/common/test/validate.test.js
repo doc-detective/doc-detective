@@ -2352,9 +2352,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "docker run -p 5432:5432 postgres",
-              background: true,
-              name: "db",
-              readyWhen: { port: { port: 5432 } },
+              background: { name: "db", readyWhen: { port: { port: 5432 } } },
             },
           },
         });
@@ -2368,9 +2366,10 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { log: { pattern: "ready to accept", stream: "stdout" } },
+              background: {
+                name: "srv",
+                readyWhen: { log: { pattern: "ready to accept", stream: "stdout" } },
+              },
             },
           },
         });
@@ -2384,10 +2383,11 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              name: "web",
-              readyWhen: {
-                httpGet: { url: "http://localhost:8080", statusCodes: [200, 204] },
+              background: {
+                name: "web",
+                readyWhen: {
+                  httpGet: { url: "http://localhost:8080", statusCodes: [200, 204] },
+                },
               },
               timeout: 30000,
             },
@@ -2403,9 +2403,21 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { delayMs: 2000 },
+              background: { name: "srv", readyWhen: { delayMs: 2000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background with no readyWhen (ready on spawn)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv" },
             },
           },
         });
@@ -2420,9 +2432,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             runCode: {
               language: "javascript",
               code: "require('http').createServer((q,r)=>r.end('ok')).listen(8088)",
-              background: true,
-              name: "api",
-              readyWhen: { port: { port: 8088 } },
+              background: { name: "api", readyWhen: { port: { port: 8088 } } },
             },
           },
         });
@@ -2448,15 +2458,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
+      it("should reject a background that is not an object (e.g. true)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "my-server", background: true },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an unknown key inside background", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", bogus: true },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
       it("should reject a readyWhen with two probes", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { port: { port: 5432 }, delayMs: 1000 },
+              background: {
+                name: "srv",
+                readyWhen: { port: { port: 5432 }, delayMs: 1000 },
+              },
             },
           },
         });
@@ -2470,9 +2506,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { tcp: { port: 5432 } },
+              background: { name: "srv", readyWhen: { tcp: { port: 5432 } } },
             },
           },
         });
@@ -2486,8 +2520,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              readyWhen: { delayMs: 1000 },
+              background: { readyWhen: { delayMs: 1000 } },
             },
           },
         });
@@ -2502,8 +2535,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             runCode: {
               language: "bash",
               code: "sleep 100",
-              background: true,
-              readyWhen: { delayMs: 1000 },
+              background: { readyWhen: { delayMs: 1000 } },
             },
           },
         });
@@ -2517,9 +2549,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { port: { port: 70000 } },
+              background: { name: "srv", readyWhen: { port: { port: 70000 } } },
             },
           },
         });
@@ -2542,9 +2572,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             runShell: {
               command: "my-server",
-              background: true,
-              name: "   ",
-              readyWhen: { delayMs: 1000 },
+              background: { name: "   ", readyWhen: { delayMs: 1000 } },
             },
           },
         });

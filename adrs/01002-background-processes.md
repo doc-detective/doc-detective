@@ -45,13 +45,16 @@ to config, which is harder to reason about per-spec and doesn't compose with rou
 
 Mechanism:
 
-1. **`background: true`** on `runShell`/`runCode` (`src/core/tests/runShell.ts`,
-   `runCode.ts`): spawn non-blocking via `spawnBackgroundCommand` and return as soon as the process
-   is ready. In background mode the exit-code / stdio / saved-output assertions don't apply, and
-   `timeout` is reinterpreted as the **readiness deadline**. A `name` (required by schema when
-   `background: true`) keys the process in the registry; a duplicate name FAILs rather than
-   double-spawning.
-2. **`readyWhen`** gate with exactly one of four probes (`src/core/utils.ts`): `port` (TCP connect),
+1. **`background` object** on `runShell`/`runCode` (`src/core/tests/runShell.ts`,
+   `runCode.ts`): a `background: { name, readyWhen? }` object whose *presence* signals background
+   mode (there is no `background: false` — omit it for a normal blocking run). Spawn non-blocking via
+   `spawnBackgroundCommand` and return as soon as the process is ready. In background mode the
+   exit-code / stdio / saved-output assertions don't apply, and step-level `timeout` is reinterpreted
+   as the **readiness deadline**. `name` is required inside `background` and keys the process in the
+   registry; a duplicate name FAILs rather than double-spawning. (An earlier iteration used a boolean
+   `background: true` with sibling `name`/`readyWhen`; collapsing the three into one cohesive object
+   keeps the related fields together and makes "is this backgrounded?" a single presence check.)
+2. **`readyWhen`** (inside `background`, optional) gate with exactly one of four probes (`src/core/utils.ts`): `port` (TCP connect),
    `httpGet` (status code), `log` (regex over buffered output), `delayMs` (fixed wait). Readiness is
    raced against process exit, so a process that dies during startup FAILs fast instead of waiting
    the whole deadline.

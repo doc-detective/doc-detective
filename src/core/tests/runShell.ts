@@ -17,10 +17,11 @@ import path from "node:path";
 
 export { runShell };
 
-// Run a shell command. When `step.runShell.background` is true, the command is
-// started as a long-running process registered in `processRegistry` and the step
-// returns as soon as `readyWhen` is satisfied; the process is torn down later by
-// a stopProcess step or the run-end sweep.
+// Run a shell command. When `step.runShell.background` is set (an object with a
+// `name` and optional `readyWhen`), the command is started as a long-running
+// process registered in `processRegistry` and the step returns as soon as
+// `readyWhen` is satisfied; the process is torn down later by a stopProcess step
+// or the run-end sweep.
 async function runShell({
   config,
   step,
@@ -69,8 +70,14 @@ async function runShell({
 
   // Background mode: start the process, register it, wait until ready, and
   // return immediately. `exitCodes`, `stdio`, and output saving don't apply.
+  // `background` is an object holding `name` and (optional) `readyWhen`; its
+  // presence signals background mode.
   if (step.runShell.background) {
-    const name = step.runShell.name;
+    const background = step.runShell.background;
+    const name = background.name;
+    // The schema requires `name` when `background` is an object, so a
+    // schema-validated step always has it. This guard is defence-in-depth for
+    // programmatic callers that construct steps without validating.
     if (!name) {
       result.status = "FAIL";
       result.description = "Background processes require a `name`.";
@@ -106,7 +113,7 @@ async function runShell({
     processRegistry.set(name, entry);
 
     try {
-      await waitForReady(bg, step.runShell.readyWhen, {
+      await waitForReady(bg, background.readyWhen, {
         timeoutMs: step.runShell.timeout,
       });
     } catch (error: any) {
