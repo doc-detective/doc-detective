@@ -114,3 +114,36 @@ Mechanism:
   conditions, `stopProcess` string/object, `ignoreMissing`, auto-sweep, `runShell` and `runCode`
   background) and must resolve
   PASS/SKIPPED across the CI matrix (macOS / Linux / Windows × node 22/24).
+
+## Pros and Cons of the Options
+
+### A. `background` object + `waitUntil` gate + run-level registry + `stopProcess` step
+
+* Good, because it reuses the two step types authors already know (`runShell`/`runCode`) — no new
+  command/option surface to learn or maintain.
+* Good, because start/stop live in the visible step stream, so `beforeAny` start / `afterAll` stop
+  reads naturally and composes with routing.
+* Good, because the process is a run-owned resource modeled exactly like Appium (started once, torn
+  down once), reusing the existing teardown/finally machinery.
+* Good, because `waitUntil` mirrors goTo's terminology and runShell's flat field conventions, so the
+  readiness contract is familiar.
+* Bad, because the lifecycle spans multiple steps/specs (start here, stop there), so a missing
+  `stopProcess` relies on the run-end sweep rather than being structurally impossible.
+* Bad, because PID-based teardown can't guarantee cleanup on a hard kill (SIGKILL/power loss).
+
+### B. A dedicated `service`/`daemon` step type
+
+* Good, because the lifecycle could be self-contained in one declaration.
+* Bad, because it duplicates all of `runShell`/`runCode`'s command/args/cwd/env surface in a third
+  step type, doubling the schema and runtime maintenance.
+* Bad, because authors must learn a separate step just to background a command they already know how
+  to run.
+
+### C. Config-level `services` block
+
+* Good, because run-wide services are declared in one place.
+* Bad, because it moves process lifecycle out of the visible test flow and couples it to config,
+  which is harder to reason about per-spec and doesn't compose with routing or `beforeAny`/`afterAll`
+  ordering.
+* Bad, because it can't express a service scoped to a single spec without additional config
+  machinery.
