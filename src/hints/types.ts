@@ -164,12 +164,13 @@ export interface HintContext {
    */
   hasNodeOrPythonInRunShell: boolean;
   /**
-   * True when the runner capped `concurrentRunners` to 1 because the run used
-   * the ffmpeg recording engine (which needs exclusive use of the display) on
-   * a platform without per-runner virtual displays. Read directly from
-   * `results.recordingForcedSerial`. Powers `recordConcurrently`.
+   * True when the runner serialized the run's ffmpeg recordings on the shared
+   * display (recordings queue on a "display" resource mutex while other
+   * contexts run in parallel) because the platform lacks per-runner virtual
+   * displays. Read directly from `results.recordingSerialized`. Powers
+   * `recordConcurrently`.
    */
-  recordingForcedSerial: boolean;
+  recordingSerialized: boolean;
   /**
    * True if any step report carried a `source: "custom"` assertion record —
    * i.e. the user authored a `step.assertions` condition. (Every step also has
