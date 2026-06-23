@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "bg-runcode-port",
-      "description": "runCode background server, port condition, stopped via stopProcess string form.",
+      "description": "runCode background server, port condition, stopped via stopProcess.",
       "steps": [
         {
           "runCode": {
