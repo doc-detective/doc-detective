@@ -994,51 +994,61 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // or the run-end sweep in the `finally` below.
   const processRegistry = new Map<string, any>();
 
-  // Kill every still-registered background process (and its child tree) and
-  // remove any deferred temp scripts. Idempotent: stopProcess already removes
-  // the entries it handles.
-  const killAllRegistered = () => {
-    for (const [name, entry] of processRegistry) {
+  // Tree-kill a pid and resolve when the kill has actually completed (callback
+  // form), so callers can await termination before exiting/returning.
+  const killTree = (pid?: number) =>
+    new Promise<void>((resolve) => {
+      if (!pid) return resolve();
       try {
-        if (entry?.bg?.pid) kill(entry.bg.pid);
+        kill(pid, "SIGTERM", () => resolve());
       } catch {
-        // best-effort
+        resolve();
       }
-      if (entry?.tempPath) {
-        try {
-          fs.unlinkSync(entry.tempPath);
-        } catch {
-          // best-effort
+    });
+
+  // Kill every still-registered background process (and its child tree) and
+  // remove any deferred temp scripts. Awaits the kills so the process tree is
+  // actually gone before the run returns. Idempotent: stopProcess already
+  // removes the entries it handles.
+  const killAllRegistered = async () => {
+    const entries = [...processRegistry.entries()];
+    processRegistry.clear();
+    await Promise.all(
+      entries.map(async ([, entry]) => {
+        await killTree(entry?.bg?.pid);
+        if (entry?.tempPath) {
+          try {
+            fs.unlinkSync(entry.tempPath);
+          } catch {
+            // best-effort
+          }
         }
-      }
-      processRegistry.delete(name);
-    }
+      })
+    );
   };
 
   // Tear down background processes, Appium servers, and Xvfb on Ctrl-C /
   // termination, then exit. Registered here and removed in the `finally` so
   // repeated programmatic runSpecs calls don't accumulate listeners. Without
-  // this, an interrupt mid-run leaked Appium and any background process.
+  // this, an interrupt mid-run leaked Appium and any background process. The
+  // handler awaits the tree-kills before exiting so children don't outlive it.
   let signalHandled = false;
   const onSignal = (signal: NodeJS.Signals) => {
     if (signalHandled) return;
     signalHandled = true;
-    killAllRegistered();
-    for (const server of appiumServers) {
-      try {
-        kill(server.process.pid);
-      } catch {
-        // best-effort
+    (async () => {
+      await killAllRegistered();
+      await Promise.all(
+        appiumServers.map((server) => killTree(server.process?.pid))
+      );
+      for (const xvfb of xvfbProcesses) {
+        try {
+          xvfb.kill();
+        } catch {
+          // best-effort
+        }
       }
-    }
-    for (const xvfb of xvfbProcesses) {
-      try {
-        xvfb.kill();
-      } catch {
-        // best-effort
-      }
-    }
-    process.exit(signal === "SIGINT" ? 130 : 143);
+    })().finally(() => process.exit(signal === "SIGINT" ? 130 : 143));
   };
   process.on("SIGINT", onSignal);
   process.on("SIGTERM", onSignal);
@@ -1216,8 +1226,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
   } finally {
     // Run-end teardown: kill any background processes the run didn't explicitly
-    // stop (via stopProcess) so they don't leak.
-    killAllRegistered();
+    // stop (via stopProcess) so they don't leak. Awaited so the trees are gone
+    // before runSpecs returns.
+    await killAllRegistered();
     // Close every Appium server we started.
     for (const server of appiumServers) {
       log(config, "debug", `Closing Appium server on port ${server.port}`);

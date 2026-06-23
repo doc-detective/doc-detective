@@ -34,7 +34,8 @@
             "type": "string",
             "description": "Name of the background process to stop.",
             "minLength": 1,
-            "pattern": "\\S"
+            "pattern": "\\S",
+            "transform": ["trim"]
           },
           "ignoreMissing": {
             "type": "boolean",

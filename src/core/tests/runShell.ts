@@ -76,7 +76,15 @@ async function runShell({
       result.description = "Background processes require a `name`.";
       return result;
     }
-    if (processRegistry && processRegistry.has(name)) {
+    if (!processRegistry) {
+      // Without a registry there is no way to stop or sweep the process, so it
+      // would leak. Fail fast rather than spawn an untrackable process.
+      result.status = "FAIL";
+      result.description =
+        "Background processes aren't supported in this run mode (no process registry available).";
+      return result;
+    }
+    if (processRegistry.has(name)) {
       result.status = "FAIL";
       result.description = `A background process named "${name}" is already running.`;
       return result;
@@ -95,7 +103,7 @@ async function runShell({
     // Register before awaiting readiness so the run-end sweep can kill the
     // process even if it never becomes ready.
     const entry: any = { name, bg };
-    if (processRegistry) processRegistry.set(name, entry);
+    processRegistry.set(name, entry);
 
     try {
       await waitForReady(bg, step.runShell.readyWhen, {
@@ -103,13 +111,12 @@ async function runShell({
       });
     } catch (error: any) {
       // Readiness failed (timeout or the process exited) — kill and deregister
-      // so a half-started process doesn't leak.
-      try {
-        if (bg.pid) kill(bg.pid);
-      } catch {
-        // best-effort cleanup; the readiness error is what matters
+      // so a half-started process doesn't leak. Await the tree-kill (callback
+      // form) so the process tree is actually gone before the step returns.
+      if (bg.pid) {
+        await new Promise<void>((resolve) => kill(bg.pid!, "SIGTERM", () => resolve()));
       }
-      if (processRegistry) processRegistry.delete(name);
+      processRegistry.delete(name);
       result.status = "FAIL";
       result.description = `Background process "${name}" failed to become ready: ${error.message}`;
       return result;

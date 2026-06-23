@@ -105,7 +105,8 @@
             "type": "string",
             "description": "Unique identifier for a background process within the run. Required when `background` is `true`. Reference it from a `stopProcess` step to stop the process.",
             "minLength": 1,
-            "pattern": "\\S"
+            "pattern": "\\S",
+            "transform": ["trim"]
           },
           "readyWhen": {
             "type": "object",

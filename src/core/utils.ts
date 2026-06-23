@@ -362,9 +362,12 @@ async function waitForHttp(
 ): Promise<void> {
   while (true) {
     try {
+      // Cap the per-request timeout to the time left so a single hung request
+      // can't block past the overall readiness deadline (e.g. timeout: 600).
+      const remaining = deadline - Date.now();
       const resp = await axios.get(url, {
         validateStatus: () => true,
-        timeout: 5000,
+        timeout: Math.max(1, Math.min(5000, remaining)),
       });
       if (statusCodes.includes(resp.status)) return;
     } catch {
@@ -453,6 +456,13 @@ async function waitForReady(
   const earlyExit = bg.exited.then((code) => {
     throw new Error(`Process exited before becoming ready (exit code ${code}).`);
   });
+
+  // The race loser settles later (the probe keeps polling to its own deadline;
+  // earlyExit rejects when the process is eventually killed at teardown).
+  // Attach no-op catches so that late rejection is always considered handled and
+  // never surfaces as an unhandledRejection during normal stopProcess teardown.
+  probe.catch(() => {});
+  earlyExit.catch(() => {});
 
   await Promise.race([probe, earlyExit]);
 }

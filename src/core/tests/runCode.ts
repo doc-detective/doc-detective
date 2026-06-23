@@ -189,7 +189,7 @@ async function runCode({
         fs.unlinkSync(scriptPath!);
         log(config, "debug", `Removed temporary script: ${scriptPath}`);
       } catch (error: any) {
-        log(config, "warn", `Failed to remove temporary script: ${scriptPath}`);
+        log(config, "warning", `Failed to remove temporary script: ${scriptPath}`);
       }
     }
   }
