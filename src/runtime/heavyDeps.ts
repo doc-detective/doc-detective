@@ -22,6 +22,15 @@ export const HEAVY_NPM_DEPS = [
 export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];
 
 /**
+ * Heavy deps whose install is **best-effort**: a failure to install them (e.g.
+ * no prebuilt binary for the runner's platform/arch + no build toolchain) must
+ * NOT abort the whole `install all` batch. The corresponding feature degrades to
+ * SKIP at runtime instead. `node-pty` is native and lacks reliable prebuilds
+ * across the full node/OS matrix, so it is installed on its own, failure-tolerant.
+ */
+export const BEST_EFFORT_NPM_DEPS: ReadonlySet<string> = new Set(["node-pty"]);
+
+/**
  * Optional peer dependencies that npm will NOT auto-install, but a heavy dep
  * needs for full functionality. `@puppeteer/browsers@3` moved `proxy-agent`
  * from a regular dependency (2.x) to an `optional` peer, so a bare

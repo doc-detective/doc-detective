@@ -159,6 +159,44 @@ describe("runtime/installer", function () {
       });
       expect(reports[0].action).to.equal("already-up-to-date");
     });
+
+    it("a best-effort dep (node-pty) failing to install does not abort the core batch", async function () {
+      // node-pty is native with no reliable prebuilds across the matrix; its
+      // install runs separately and failure-tolerant. A non-zero exit for it must
+      // leave the core batch installed and resolve with node-pty reported skipped.
+      const spawner = (cmd, args) => {
+        const isNodePty = args.some(
+          (a) => typeof a === "string" && a.includes("node-pty")
+        );
+        const prefix = args[args.indexOf("--prefix") + 1];
+        if (!isNodePty) {
+          const target = path.join(prefix, "node_modules", "pngjs");
+          fs.mkdirSync(target, { recursive: true });
+          fs.writeFileSync(
+            path.join(target, "package.json"),
+            JSON.stringify({ name: "pngjs", version: "7.0.0" })
+          );
+        }
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        setImmediate(() => child.emit("close", isNodePty ? 1 : 0));
+        return child;
+      };
+      // `force` bypasses the "already-present" fast path so the install actually
+      // spawns (otherwise a shim-resolved node-pty in the dev tree would skip the
+      // spawn and never exercise the failure). Must RESOLVE (not throw) despite
+      // node-pty's non-zero exit — the best-effort guarantee that keeps
+      // `install all` from aborting.
+      const reports = await installRuntime({
+        packages: ["pngjs", "node-pty"],
+        force: true,
+        deps: { spawn: spawner, logger: () => {} },
+      });
+      const byId = Object.fromEntries(reports.map((r) => [r.assetId, r]));
+      expect(byId["node-pty"].action).to.equal("skipped");
+      expect(byId.pngjs, "core dep still reported").to.exist;
+    });
   });
 
   describe("installBrowsers", function () {
