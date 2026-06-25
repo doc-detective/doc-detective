@@ -98,13 +98,13 @@
           },
           "background": {
             "type": "object",
-            "description": "Start the command as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `stopProcess` step or automatically when the run finishes.",
+            "description": "Start the command as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.",
             "additionalProperties": false,
             "required": ["name"],
             "properties": {
               "name": {
                 "type": "string",
-                "description": "Unique identifier for this background process within the run. Reference it from a `stopProcess` step to stop it.",
+                "description": "Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.",
                 "minLength": 1,
                 "pattern": "\\S",
                 "transform": ["trim"]

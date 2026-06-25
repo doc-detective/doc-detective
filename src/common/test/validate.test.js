@@ -2345,7 +2345,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
-    describe("background processes (runShell/runCode) and stopProcess", function () {
+    describe("background processes (runShell/runCode) and closeSurface", function () {
       it("should validate a background runShell with a port condition", function () {
         const result = validate({
           schemaKey: "step_v3",
@@ -2460,19 +2460,55 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a stopProcess step (string name)", function () {
+      it("should validate a closeSurface step (string name)", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { stopProcess: "db" },
+          object: { closeSurface: "db" },
         });
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
       });
 
-      it("should reject a stopProcess in object form (string-only)", function () {
+      it("should validate a closeSurface step (process object form)", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { stopProcess: { name: "db", ignoreMissing: true } },
+          object: { closeSurface: { process: "db" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a closeSurface step (array of surfaces)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: ["db", { process: "web" }] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an empty closeSurface array", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: [] },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty closeSurface object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: {} },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a closeSurface process object with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: { process: "db", bogus: true } },
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
@@ -2602,10 +2638,10 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a whitespace-only stopProcess name", function () {
+      it("should reject a whitespace-only closeSurface name", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { stopProcess: "   " },
+          object: { closeSurface: "   " },
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
@@ -2618,6 +2654,138 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             runShell: {
               command: "my-server",
               background: { name: "   ", waitUntil: { delayMs: 1000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("type to a process surface", function () {
+      it("should validate surface as a string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["2+2", "$ENTER$"], surface: "node" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface as a process object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["2+2", "$ENTER$"], surface: { process: "node" } },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface + waitUntil.stdio + timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["2+2", "$ENTER$"],
+              surface: "node",
+              waitUntil: { stdio: "/4/" },
+              timeout: 5000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface + waitUntil.delayMs", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["slow build"],
+              surface: "node",
+              waitUntil: { delayMs: 0 },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an empty surface object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: {} } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a browser surface object (no branch yet)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: { browser: "chrome" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["x"], surface: { process: "n", bogus: 1 } },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty waitUntil (minProperties)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["x"], surface: "node", waitUntil: {} },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a port probe in type waitUntil (service-only)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "node",
+              waitUntil: { port: { port: 3000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject waitUntil without a surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], waitUntil: { stdio: "/4/" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface combined with element targeting", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: { process: "node" },
+              selector: "#q",
             },
           },
         });

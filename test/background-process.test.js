@@ -11,9 +11,15 @@ import {
   waitForHttp,
   waitForStdio,
   waitForReady,
+  waitForOutputMatch,
   findFreePort,
 } from "../dist/core/utils.js";
-import { stopProcess } from "../dist/core/tests/stopProcess.js";
+import { closeSurface } from "../dist/core/tests/closeSurface.js";
+import {
+  translateProcessKeys,
+  resolveSurface,
+  _processKeyMap,
+} from "../dist/core/tests/typeKeys.js";
 import { runShell } from "../dist/core/tests/runShell.js";
 import { runCode } from "../dist/core/tests/runCode.js";
 
@@ -264,25 +270,175 @@ describe("waitForReady", function () {
   });
 });
 
-describe("stopProcess", function () {
+describe("BackgroundProcess.write", function () {
+  this.timeout(20000);
+
+  it("writes to stdin and the response is buffered into getCombined()", async function () {
+    // `node -i` is a line-oriented REPL: writing "1+1\r" should echo "2".
+    const bg = spawnBackgroundCommand(`"${process.execPath}" -i`);
+    try {
+      // Wait for the REPL prompt before sending input.
+      const promptDeadline = Date.now() + 8000;
+      while (!bg.getCombined().includes(">") && Date.now() < promptDeadline) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      const accepted = bg.write("1+1\r");
+      assert.equal(accepted, true, "write should be accepted");
+      const deadline = Date.now() + 8000;
+      while (!bg.getCombined().includes("2") && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      assert.ok(bg.getCombined().includes("2"), "REPL should have evaluated 1+1");
+    } finally {
+      await killTree(bg.pid);
+      await bg.exited;
+    }
+  });
+
+  it("returns false when stdin is gone (dead process)", async function () {
+    const bg = spawnBackgroundCommand(
+      "this-command-definitely-does-not-exist-xyz"
+    );
+    await bg.exited;
+    // After the process is gone, write must be a safe no-op (false), not a throw.
+    const result = bg.write("data");
+    assert.equal(typeof result, "boolean");
+  });
+});
+
+describe("waitForOutputMatch", function () {
+  this.timeout(10000);
+
+  it("resolves true when already-buffered output matches (before subscribe)", async function () {
+    const bg = fakeBg();
+    bg._emit("server ready to accept connections\n");
+    const matched = await waitForOutputMatch(bg, "ready to accept", {
+      deadline: Date.now() + 1000,
+    });
+    assert.equal(matched, true);
+  });
+
+  it("resolves true when a later chunk matches (after subscribe)", async function () {
+    const bg = fakeBg();
+    const p = waitForOutputMatch(bg, "/listening on \\d+/", {
+      deadline: Date.now() + 2000,
+    });
+    bg._emit("noise\n");
+    bg._emit("now listening on 8080\n");
+    assert.equal(await p, true);
+  });
+
+  it("resolves false on timeout when the pattern never appears", async function () {
+    const bg = fakeBg();
+    const matched = await waitForOutputMatch(bg, "never-appears", {
+      deadline: Date.now() + 200,
+    });
+    assert.equal(matched, false);
+  });
+});
+
+describe("_processKeyMap / translateProcessKeys", function () {
+  it("maps special keys to control bytes", function () {
+    assert.equal(_processKeyMap.$ENTER$, "\r");
+    assert.equal(_processKeyMap.$RETURN$, "\r");
+    assert.equal(_processKeyMap.$TAB$, "\t");
+    assert.equal(_processKeyMap.$ESCAPE$, "\x1b");
+    assert.equal(_processKeyMap.$BACKSPACE$, "\x7f");
+    assert.equal(_processKeyMap.$SPACE$, " ");
+    assert.equal(_processKeyMap.$ARROW_UP$, "\x1b[A");
+    assert.equal(_processKeyMap.$ARROW_DOWN$, "\x1b[B");
+    assert.equal(_processKeyMap.$ARROW_RIGHT$, "\x1b[C");
+    assert.equal(_processKeyMap.$ARROW_LEFT$, "\x1b[D");
+    assert.equal(_processKeyMap.$DELETE$, "\x1b[3~");
+  });
+
+  it("passes plain strings through verbatim", function () {
+    assert.deepEqual(translateProcessKeys(["6 * 7"]), ["6 * 7"]);
+  });
+
+  it("translates special keys and $ENTER$", function () {
+    assert.deepEqual(translateProcessKeys(["6 * 7", "$ENTER$"]), ["6 * 7", "\r"]);
+  });
+
+  it("translates $CTRL$ + next key into a control byte", function () {
+    // Ctrl+C → 0x03
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "c"]), ["\x03"]);
+    // Ctrl+D → 0x04
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "d"]), ["\x04"]);
+    // case-insensitive
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "C"]), ["\x03"]);
+  });
+
+  it("passes unknown $...$ tokens through verbatim", function () {
+    assert.deepEqual(translateProcessKeys(["$UNKNOWN$"]), ["$UNKNOWN$"]);
+  });
+
+  it("does not produce a garbage code point for $CTRL$ + a $...$ sentinel", function () {
+    // `$CTRL$` followed by a known sentinel must not compute a control byte from
+    // the literal "$" — that produced an out-of-range/garbage code point.
+    const out = translateProcessKeys(["$CTRL$", "$ENTER$"]);
+    for (const token of out) {
+      for (let i = 0; i < token.length; i++) {
+        assert.ok(
+          token.charCodeAt(i) <= 0xff,
+          `unexpected code point > 0xFF in ${JSON.stringify(token)}`
+        );
+      }
+    }
+    // $CTRL$ + $ENTER$ collapses to the carriage return the sentinel maps to.
+    assert.deepEqual(out, ["\r"]);
+  });
+
+  it("still maps $CTRL$ + an ASCII letter to a control byte", function () {
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "c"]), ["\x03"]);
+  });
+});
+
+describe("resolveSurface", function () {
+  it("resolves a string name to a process kind", function () {
+    assert.deepEqual(resolveSurface("repl"), { kind: "process", name: "repl" });
+  });
+
+  it("resolves a process object", function () {
+    assert.deepEqual(resolveSurface({ process: "repl" }), {
+      kind: "process",
+      name: "repl",
+    });
+  });
+
+  it("flags a reserved browser engine keyword as unsupported", function () {
+    assert.equal(resolveSurface("chrome").kind, "unsupported");
+    assert.equal(resolveSurface("firefox").kind, "unsupported");
+  });
+
+  it("flags a non-process object as unsupported", function () {
+    assert.equal(resolveSurface({ browser: "chrome" }).kind, "unsupported");
+  });
+
+  it("returns none for an absent surface", function () {
+    assert.equal(resolveSurface(undefined).kind, "none");
+  });
+});
+
+describe("closeSurface", function () {
   this.timeout(15000);
 
   function spawnLongLived() {
     const tmp = path.join(
       os.tmpdir(),
-      `dd-stop-test-${process.pid}-${Math.floor(performance.now())}.js`
+      `dd-close-test-${process.pid}-${Math.floor(performance.now())}.js`
     );
     fs.writeFileSync(tmp, `setInterval(() => {}, 100000);`);
     const bg = spawnBackgroundCommand(`"${process.execPath}" "${tmp}"`);
     return { bg, tmp };
   }
 
-  it("stops a registered process and removes it from the registry", async function () {
+  it("closes a registered process and removes it from the registry", async function () {
     const { bg, tmp } = spawnLongLived();
     const registry = new Map([["srv", { name: "srv", bg }]]);
-    const result = await stopProcess({
+    const result = await closeSurface({
       config: {},
-      step: { stopProcess: "srv" },
+      step: { closeSurface: "srv" },
       processRegistry: registry,
     });
     assert.equal(result.status, "PASS");
@@ -291,12 +447,12 @@ describe("stopProcess", function () {
     fs.rmSync(tmp, { force: true });
   });
 
-  it("removes a deferred temp script when stopping a runCode-style process", async function () {
+  it("removes a deferred temp script when closing a runCode-style process", async function () {
     const { bg, tmp } = spawnLongLived();
     const registry = new Map([["api", { name: "api", bg, tempPath: tmp }]]);
-    const result = await stopProcess({
+    const result = await closeSurface({
       config: {},
-      step: { stopProcess: "api" },
+      step: { closeSurface: { process: "api" } },
       processRegistry: registry,
     });
     assert.equal(result.status, "PASS");
@@ -304,27 +460,34 @@ describe("stopProcess", function () {
     assert.equal(fs.existsSync(tmp), false, "temp script should be deleted");
   });
 
-  it("passes (no-op) for a missing process", async function () {
+  it("is idempotent: closing an absent surface is a PASS no-op", async function () {
     const registry = new Map();
-    const result = await stopProcess({
+    const result = await closeSurface({
       config: {},
-      step: { stopProcess: "nope" },
+      step: { closeSurface: "nope" },
       processRegistry: registry,
     });
     assert.equal(result.status, "PASS");
   });
 
-  it("fails for a non-string stopProcess value (defensive)", async function () {
-    const registry = new Map();
-    const result = await stopProcess({
+  it("closes several surfaces in one step (array form)", async function () {
+    const a = spawnLongLived();
+    const b = spawnLongLived();
+    const registry = new Map([
+      ["web", { name: "web", bg: a.bg }],
+      ["api", { name: "api", bg: b.bg }],
+    ]);
+    const result = await closeSurface({
       config: {},
-      // A multi-action step validates via the goTo anyOf branch, so the step
-      // passes step_v3 while stopProcess remains a non-string object.
-      step: { stopProcess: { name: "nope" }, goTo: "https://example.com" },
+      step: { closeSurface: ["web", "api"] },
       processRegistry: registry,
     });
-    assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid stopProcess value/);
+    assert.equal(result.status, "PASS");
+    assert.equal(registry.size, 0);
+    await a.bg.exited;
+    await b.bg.exited;
+    fs.rmSync(a.tmp, { force: true });
+    fs.rmSync(b.tmp, { force: true });
   });
 });
 
@@ -361,9 +524,9 @@ describe("runShell/runCode background (integration)", function () {
       // Port is actually accepting connections.
       await waitForPort(port, { deadline: Date.now() + 2000 });
     } finally {
-      await stopProcess({
+      await closeSurface({
         config: {},
-        step: { stopProcess: "web" },
+        step: { closeSurface: "web" },
         processRegistry: registry,
       });
       fs.rmSync(tmp, { force: true });
@@ -438,9 +601,9 @@ describe("runShell/runCode background (integration)", function () {
     } finally {
       const entry = registry.get("api");
       const tempPath = entry?.tempPath;
-      await stopProcess({
+      await closeSurface({
         config: {},
-        step: { stopProcess: "api" },
+        step: { closeSurface: "api" },
         processRegistry: registry,
       });
       if (tempPath) assert.equal(fs.existsSync(tempPath), false, "temp script removed on stop");

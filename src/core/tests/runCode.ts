@@ -89,7 +89,7 @@ async function runCode({
 
   // When the script is started in the background it is still being read by the
   // interpreter after runShell returns, so its temp file must outlive this
-  // call. Teardown (stopProcess / run-end sweep) deletes it instead.
+  // call. Teardown (closeSurface / run-end sweep) deletes it instead.
   let deferTempCleanup = false;
 
   try {

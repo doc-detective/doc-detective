@@ -29,7 +29,7 @@ function serverCode(port) {
 describe("Background processes via runTests", function () {
   this.timeout(60000);
 
-  it("starts a background process and stops it with stopProcess", async function () {
+  it("starts a background process and stops it with closeSurface", async function () {
     const port = await findFreePort();
     const spec = {
       tests: [
@@ -46,7 +46,7 @@ describe("Background processes via runTests", function () {
                 timeout: 15000,
               },
             },
-            { stopProcess: "srv" },
+            { closeSurface: "srv" },
           ],
         },
       ],
@@ -89,7 +89,7 @@ describe("Background processes via runTests", function () {
     try {
       const result = await runTests({ input: tempFilePath, logLevel: "silent" });
       assert.equal(result.summary.steps.fail, 0, "the start step should pass");
-      // No stopProcess step — the run-end sweep must have killed it.
+      // No closeSurface step — the run-end sweep must have killed it.
       await assertPortFree(port);
     } finally {
       fs.rmSync(tempFilePath, { force: true });
