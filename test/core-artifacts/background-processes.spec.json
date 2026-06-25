@@ -1,10 +1,10 @@
 {
   "specId": "background-processes",
-  "description": "Exercises long-running background processes end-to-end: the `background` object form on runCode/runShell with each waitUntil probe (port, stdio, httpGet, delayMs), closeSurface in string and object form, the idempotent no-op close, and the run-end auto-sweep (a process left running with no closeSurface). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
+  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, waitUntil }) on runCode/runShell with each waitUntil condition (port, stdio, httpGet, delayMs), multiple conditions combined, the no-waitUntil form (ready as soon as spawned), closeSurface (by name), the missing-process no-op, and the run-end auto-sweep (a process left running with no closeSurface). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "bg-runcode-port",
-      "description": "runCode background server, port readiness probe, closed via closeSurface string form.",
+      "description": "runCode background server, port condition, stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -13,10 +13,7 @@
             "background": {
               "name": "bg-port",
               "waitUntil": {
-                "port": {
-                  "port": 8201,
-                  "host": "127.0.0.1"
-                }
+                "port": 8201
               }
             },
             "timeout": 15000
@@ -29,7 +26,7 @@
     },
     {
       "testId": "bg-runcode-stdio",
-      "description": "runCode background process, stdio-pattern readiness probe, closed via closeSurface object form.",
+      "description": "runCode background process, stdio condition (matches stdout or stderr), stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -38,22 +35,20 @@
             "background": {
               "name": "bg-stdio",
               "waitUntil": {
-                "stdio": "/DD_BG_READY/"
+                "stdio": "DD_BG_READY"
               }
             },
             "timeout": 15000
           }
         },
         {
-          "closeSurface": {
-            "process": "bg-stdio"
-          }
+          "closeSurface": "bg-stdio"
         }
       ]
     },
     {
       "testId": "bg-runcode-httpget",
-      "description": "runCode background server, httpGet readiness probe, closed via closeSurface.",
+      "description": "runCode background server, httpGet condition, stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -62,12 +57,7 @@
             "background": {
               "name": "bg-http",
               "waitUntil": {
-                "httpGet": {
-                  "url": "http://127.0.0.1:8202",
-                  "statusCodes": [
-                    200
-                  ]
-                }
+                "httpGet": "http://127.0.0.1:8202"
               }
             },
             "timeout": 15000
@@ -80,7 +70,7 @@
     },
     {
       "testId": "bg-runcode-delay",
-      "description": "runCode background process, fixed-delay readiness probe, closed via closeSurface.",
+      "description": "runCode background process, fixed-delay condition, stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -101,8 +91,51 @@
       ]
     },
     {
+      "testId": "bg-runcode-combined",
+      "description": "runCode background server with multiple waitUntil conditions combined (port AND stdio AND delayMs) — all must pass.",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8205,'127.0.0.1'); console.log('DD_COMBINED_READY');",
+            "background": {
+              "name": "bg-combined",
+              "waitUntil": {
+                "port": 8205,
+                "stdio": "/DD_COMBINED_READY/",
+                "delayMs": 100
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "bg-combined"
+        }
+      ]
+    },
+    {
+      "testId": "bg-runcode-noprobe",
+      "description": "Background process with no waitUntil — ready as soon as it is spawned; stopped via closeSurface.",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "setInterval(() => {}, 1000000);",
+            "background": {
+              "name": "bg-noprobe"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "bg-noprobe"
+        }
+      ]
+    },
+    {
       "testId": "bg-runshell-port",
-      "description": "runShell background server (node bg-server.js), port readiness probe, closed via closeSurface.",
+      "description": "runShell background server (node bg-server.js), port condition, stopped via closeSurface.",
       "steps": [
         {
           "runShell": {
@@ -114,10 +147,7 @@
             "background": {
               "name": "bg-shell",
               "waitUntil": {
-                "port": {
-                  "port": 8203,
-                  "host": "127.0.0.1"
-                }
+                "port": 8203
               }
             },
             "timeout": 15000
@@ -139,10 +169,7 @@
             "background": {
               "name": "bg-autosweep",
               "waitUntil": {
-                "port": {
-                  "port": 8204,
-                  "host": "127.0.0.1"
-                }
+                "port": 8204
               }
             },
             "timeout": 15000
@@ -151,13 +178,11 @@
       ]
     },
     {
-      "testId": "bg-closesurface-idempotent",
-      "description": "closeSurface on a name that was never started PASSES (idempotent no-op) instead of failing.",
+      "testId": "bg-stopprocess-missing",
+      "description": "closeSurface on a name that was never started is a no-op that PASSES.",
       "steps": [
         {
-          "closeSurface": {
-            "process": "bg-never-started"
-          }
+          "closeSurface": "bg-never-started"
         }
       ]
     }

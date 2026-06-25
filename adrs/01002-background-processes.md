@@ -31,7 +31,7 @@ start → ready-gate → reuse → guaranteed teardown — without a breaking ch
 
 ## Considered Options
 
-* **A. `background` flag + `readyWhen` gate + run-level registry + `stopProcess` step** (chosen).
+* **A. `background` object + `waitUntil` gate + run-level registry + `stopProcess` step** (chosen).
 * **B. A dedicated `service`/`daemon` step type** separate from `runShell`/`runCode`.
 * **C. Config-level `services` block** declaring long-lived processes outside the step stream.
 
@@ -45,23 +45,30 @@ to config, which is harder to reason about per-spec and doesn't compose with rou
 
 Mechanism:
 
-1. **`background: true`** on `runShell`/`runCode` (`src/core/tests/runShell.ts`,
-   `runCode.ts`): spawn non-blocking via `spawnBackgroundCommand` and return as soon as the process
-   is ready. In background mode the exit-code / stdio / saved-output assertions don't apply, and
-   `timeout` is reinterpreted as the **readiness deadline**. A `name` (required by schema when
-   `background: true`) keys the process in the registry; a duplicate name FAILs rather than
-   double-spawning.
-2. **`readyWhen`** gate with exactly one of four probes (`src/core/utils.ts`): `port` (TCP connect),
-   `httpGet` (status code), `log` (regex over buffered output), `delayMs` (fixed wait). Readiness is
-   raced against process exit, so a process that dies during startup FAILs fast instead of waiting
-   the whole deadline.
+1. **`background` object** on `runShell`/`runCode` (`src/core/tests/runShell.ts`,
+   `runCode.ts`): a `background: { name, waitUntil? }` object whose *presence* signals background
+   mode (there is no `background: false` — omit it for a normal blocking run). Spawn non-blocking via
+   `spawnBackgroundCommand` and return as soon as the process is ready. In background mode the
+   exit-code / stdio / saved-output assertions don't apply, and step-level `timeout` is reinterpreted
+   as the **readiness deadline**. `name` is required inside `background` and keys the process in the
+   registry; a duplicate name FAILs rather than double-spawning. (An earlier iteration used a boolean
+   `background: true` with sibling `name`/`readyWhen`; collapsing the three into one cohesive object
+   keeps the related fields together and makes "is this backgrounded?" a single presence check.)
+2. **`waitUntil`** (inside `background`, optional) gate with AND-combinable conditions
+   (`src/core/utils.ts`), borrowing goTo's `waitUntil` terminology: `port` (TCP connect, an integer),
+   `stdio` (substring-or-`/regex/` over combined stdout+stderr, mirroring runShell's `stdio` field),
+   `httpGet` (a URL string, ready on any 2xx), and `delayMs` (a fixed minimum wait). Any combination
+   may be given; every condition present must pass. The fields are flat (no `host`/`pollIntervalMs`/
+   `statusCodes`/`stream` knobs) to match runShell's other fields. Readiness is raced against process
+   exit, so a process that dies during startup FAILs fast instead of waiting the whole deadline.
 3. **Run-level process registry** owned by `runSpecs` (`src/core/tests.ts`): a `Map` threaded
    through `runContext`/`runRoutedSpec` → `runStep` → the step handlers, so a process started in one
    spec/test survives for the whole run (e.g. start in `beforeAny`, use across `main`, stop in
    `afterAll`).
-4. **`stopProcess` step** (`src/core/tests/stopProcess.ts`, new `stopProcess_v3` schema): tree-kills
-   a process by `name` and deregisters it; accepts a string shorthand or `{ name, ignoreMissing }`.
-   `ignoreMissing: true` makes stopping an already-gone process a PASS.
+4. **`stopProcess` step** (`src/core/tests/stopProcess.ts`, new `stopProcess_v3` schema): the value is
+   the process `name` (a string); the step tree-kills the process and deregisters it. Stopping a
+   process that isn't running (already stopped, or never started) is a no-op that still PASSes — there
+   is no failure mode for a missing process and no object form / `ignoreMissing` flag to configure.
 5. **Guaranteed teardown** (`src/core/tests.ts`): the existing Appium-teardown `finally` also sweeps
    any still-registered process (run-end auto-cleanup), and new `SIGINT`/`SIGTERM` handlers tear
    down background processes, Appium, and Xvfb on interrupt — the handlers are removed in the same
@@ -78,30 +85,66 @@ Mechanism:
 * **Good** — teardown is guaranteed on success, failure, run-end, and interrupt; the interrupt path
   also closes the prior Appium leak.
 * **Trade-off** — a process that forks a daemon and then exits (some Docker images, some databases)
-  trips the "exited before ready" path and FAILs; documented in the `readyWhen` schema with the
+  trips the "exited before ready" path and FAILs; documented in the `waitUntil` schema with the
   guidance to use `port`/`httpGet`/`delayMs` for those rather than relying on the parent staying
   alive.
-* **Trade-off** — `readyWhen.log` with `stream: "any"` matches against stdout-then-stderr
-  concatenation, not a true temporal interleave; documented in the schema (target a single stream
-  when ordering across streams matters).
+* **Trade-off** — `waitUntil.stdio` searches both streams as a single combined buffer (stdout then
+  stderr), not a true temporal interleave; a match that depends on the cross-stream ordering of
+  output may not behave as expected. Matches runShell's existing `stdio` semantics.
 * **Neutral / out of scope** — cross-runner *shared* processes under `concurrentRunners` are not
   modeled: the registry is run-owned and start/stop are single-owner. Per-runner instances and
   start-or-attach semantics are deferred; the run-owned placement is forward-compatible with them.
-* **Neutral** — `readyWhen` on a non-background step is ignored rather than rejected (kept permissive
-  to avoid over-constraining; documented as ignored).
+* **Neutral** — `waitUntil` lives inside the `background` object, so it can't be set on a
+  non-background step; an empty or omitted `waitUntil` means "ready as soon as spawned."
 
 ## Confirmation
 
 * Unit (`test/background-process.test.js`): `spawnBackgroundCommand` returns immediately and buffers
-  output; each probe (`port`/`httpGet`/`log`/`delayMs`) resolves and times out correctly; readiness
-  fails fast on early exit; `stopProcess` kills + deregisters + honors `ignoreMissing`; the real
+  output; each condition (`port`/`httpGet`/`stdio`/`delayMs`) resolves and times out correctly,
+  and combined conditions all gate together; readiness
+  fails fast on early exit; `stopProcess` kills + deregisters and no-ops (PASS) on a missing process; the real
   `runShell`/`runCode` background branches (readiness, outputs, name collision, timeout-deregister,
   deferred temp cleanup).
 * Schema (`src/common/test/validate.test.js`): positive + negative cases for `background`/`name`/
-  every `readyWhen` probe and both `stopProcess` forms (two-probe, unknown probe, missing name,
-  out-of-range port, whitespace name).
+  every `waitUntil` condition (and combined conditions) and the string-only `stopProcess` (non-object
+  `background`, unknown key in `background`/`waitUntil`, old object-shaped port, object-form
+  `stopProcess`, missing name, out-of-range port, whitespace name).
 * End-to-end: `test/background-runner.test.js` drives `runTests()` for explicit-stop and run-end
   auto-sweep; `test/core-artifacts/background-processes.spec.json` exercises every permutation
-  through the canonical `test/core-core.test.js` fixture gate (all probes, `stopProcess`
-  string/object, `ignoreMissing`, auto-sweep, `runShell` and `runCode` background) and must resolve
+  through the canonical `test/core-core.test.js` fixture gate (all `waitUntil` conditions, combined
+  conditions, `stopProcess` by name, the missing-process no-op, auto-sweep, `runShell` and `runCode`
+  background) and must resolve
   PASS/SKIPPED across the CI matrix (macOS / Linux / Windows × node 22/24).
+
+## Pros and Cons of the Options
+
+### A. `background` object + `waitUntil` gate + run-level registry + `stopProcess` step
+
+* Good, because it reuses the two step types authors already know (`runShell`/`runCode`) — no new
+  command/option surface to learn or maintain.
+* Good, because start/stop live in the visible step stream, so `beforeAny` start / `afterAll` stop
+  reads naturally and composes with routing.
+* Good, because the process is a run-owned resource modeled exactly like Appium (started once, torn
+  down once), reusing the existing teardown/finally machinery.
+* Good, because `waitUntil` mirrors goTo's terminology and runShell's flat field conventions, so the
+  readiness contract is familiar.
+* Bad, because the lifecycle spans multiple steps/specs (start here, stop there), so a missing
+  `stopProcess` relies on the run-end sweep rather than being structurally impossible.
+* Bad, because PID-based teardown can't guarantee cleanup on a hard kill (SIGKILL/power loss).
+
+### B. A dedicated `service`/`daemon` step type
+
+* Good, because the lifecycle could be self-contained in one declaration.
+* Bad, because it duplicates all of `runShell`/`runCode`'s command/args/cwd/env surface in a third
+  step type, doubling the schema and runtime maintenance.
+* Bad, because authors must learn a separate step just to background a command they already know how
+  to run.
+
+### C. Config-level `services` block
+
+* Good, because run-wide services are declared in one place.
+* Bad, because it moves process lifecycle out of the visible test flow and couples it to config,
+  which is harder to reason about per-spec and doesn't compose with routing or `beforeAny`/`afterAll`
+  ordering.
+* Bad, because it can't express a service scoped to a single spec without additional config
+  machinery.

@@ -1,6 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { spawnCommand, log } from "../utils.js";
-import { runShell, normalizeBackground } from "./runShell.js";
+import { runShell } from "./runShell.js";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -36,8 +36,9 @@ function createTempScript(code: string, language: string) {
   return tmpFile;
 }
 
-// Run gather, compile, and run code. When `step.runCode.background` is true, the
-// script is started as a long-running process via runShell and the temp script
+// Run gather, compile, and run code. When `step.runCode.background` is set (an
+// object with a `name` and optional `waitUntil`), the script is started as a
+// long-running process via runShell and the temp script
 // is kept on disk (deletion deferred to teardown) so the interpreter can keep
 // reading it.
 async function runCode({
@@ -88,7 +89,7 @@ async function runCode({
 
   // When the script is started in the background it is still being read by the
   // interpreter after runShell returns, so its temp file must outlive this
-  // call. Teardown (closeSurface / run-end sweep) deletes it instead.
+  // call. Teardown (stopProcess / run-end sweep) deletes it instead.
   let deferTempCleanup = false;
 
   try {
@@ -149,11 +150,9 @@ async function runCode({
         ? path.join(step.runCode.directory, step.runCode.path)
         : step.runCode.path;
     }
-    // Forward background settings verbatim so runShell starts and registers the
-    // process. The new `background` shape (boolean | string | { name, waitUntil })
-    // is passed through unchanged; runShell normalizes it (deriving the default
-    // name from the resolved `command`).
-    if (typeof step.runCode.background !== "undefined") {
+    // Forward the background object (name + waitUntil) so runShell starts and
+    // registers the process.
+    if (step.runCode.background) {
       runShellOptions.background = step.runCode.background;
     }
     const shellStep: any = { runShell: runShellOptions };
@@ -175,13 +174,9 @@ async function runCode({
 
     // On a successful background start, keep the temp script and hand its path
     // to the registry entry so teardown removes it after the process is killed.
-    // The registered name is whatever runShell derived from the forwarded
-    // background spec (string/object name, or the base command for `true`).
     if (step.runCode.background && shellResult.status === "PASS") {
       deferTempCleanup = true;
-      const bg = normalizeBackground(runShellOptions);
-      const name = bg?.name;
-      const entry = name ? processRegistry?.get(name) : undefined;
+      const entry = processRegistry?.get(step.runCode.background.name);
       if (entry) entry.tempPath = scriptPath;
     }
   } catch (error: any) {

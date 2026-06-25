@@ -1,6 +1,6 @@
 {
   "specId": "type-to-process",
-  "description": "Exercises the `type` step targeting a background PROCESS surface end-to-end: start `node -i` via runShell `background` with a stdio readiness probe, send keystrokes to its stdin via `type` + `surface`, with each waitUntil shape (stdio match, delayMs-only, none), special-key/$CTRL$ translation, then close it with `closeSurface` (string + idempotent no-op + derived-name forms). All steps are Node-only (no browser/driver), so they run and PASS on every platform; each test uses unique process names to stay safe under concurrentRunners.",
+  "description": "Exercises the `type` step targeting a background PROCESS surface end-to-end: start `node -i` via runShell `background` with a stdio readiness probe, send keystrokes to its stdin via `type` + `surface`, with each waitUntil shape (stdio match, delayMs-only, none), special-key/$CTRL$ translation, then close it with `closeSurface` (string + idempotent no-op forms). All steps are Node-only (no browser/driver), so they run and PASS on every platform; each test uses unique process names to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "type-process-stdio-match",
@@ -115,13 +115,15 @@
       ]
     },
     {
-      "testId": "type-process-derived-name-and-noop-close",
-      "description": "Start node -i with background:true (name derived from base command), type with no waitUntil, close the derived name, then a second close is an idempotent PASS no-op.",
+      "testId": "type-process-noop-close",
+      "description": "Start node -i with a named background process, type with no waitUntil, close it by name, then a second close is an idempotent PASS no-op.",
       "steps": [
         {
           "runShell": {
             "command": "node -i",
-            "background": true,
+            "background": {
+              "name": "ttp-repl-4"
+            },
             "timeout": 15000
           }
         },
@@ -131,14 +133,14 @@
               "2 + 2",
               "$ENTER$"
             ],
-            "surface": "node"
+            "surface": "ttp-repl-4"
           }
         },
         {
-          "closeSurface": "node"
+          "closeSurface": "ttp-repl-4"
         },
         {
-          "closeSurface": "node"
+          "closeSurface": "ttp-repl-4"
         }
       ]
     }

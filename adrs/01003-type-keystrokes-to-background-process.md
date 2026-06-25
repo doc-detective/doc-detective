@@ -53,11 +53,14 @@ Mechanism:
    `anyOf` entries). `type.waitUntil` is the **process** readiness shape (`stdio` | `delayMs` only) —
    network probes (`port`/`httpGet`) are absent *by construction* so they can never leak onto `type`.
    Schema guards: `waitUntil` requires a `surface`; a `{ process }` surface forbids element targeting.
-2. **Converged `waitUntil` vocabulary.** `runShell.background` is reshaped to
-   `true | "name" | { name, waitUntil }`; `readyWhen`→`waitUntil` and `log`→`stdio` (a clean rename —
-   `stdio` is the canonical substring-or-`/regex/` match used everywhere via `matchesExpectedOutput`).
-   `waitForReady` (`src/core/utils.ts`) now **AND-s all present probes** (`Promise.all` to a shared
-   deadline) instead of taking the first; the early-exit-on-process-death race is kept.
+2. **Converged `waitUntil` vocabulary.** `type.waitUntil` reuses the same readiness vocabulary as
+   `runShell.background`/`runCode.background` — the canonical `background` object (required `name`;
+   `waitUntil` with flattened scalar conditions `stdio` | `port` | `httpGet` | `delayMs`) that landed
+   on `next` (PRs #383/#384/#385). `stdio` is the canonical substring-or-`/regex/` match used
+   everywhere via `matchesExpectedOutput`. `waitForReady` (`src/core/utils.ts`) **AND-s all present
+   probes** (`Promise.all` to a shared deadline); the early-exit-on-process-death race is kept.
+   (This branch's earlier `background: true|"name"` shorthand and its own `background` reshape were
+   dropped during reconciliation with `next` in favor of `next`'s `background` object.)
 3. **Process control-byte map vs WebDriver `Key`.** A module-level `_processKeyMap`
    (`src/core/tests/typeKeys.ts`) maps `$ENTER$`/`$RETURN$`→`\r`, `$TAB$`→`\t`, `$ESCAPE$`→`\x1b`,
    `$BACKSPACE$`→`\x7f`, arrows→`\x1b[A/B/C/D`, `$DELETE$`→`\x1b[3~`, `$SPACE$`→` `; `$CTRL$` consumes
@@ -78,10 +81,9 @@ Mechanism:
 7. **`closeSurface` replaces `stopProcess`** (`src/core/tests/closeSurface.ts`, `closeSurface_v3`
    schema; `stopProcess.ts`/`stopProcess_v3` deleted). It takes a surface reference (string |
    `{ process }` | array of those), resolves to a list of process names, and tree-kills + deregisters
-   each, **idempotently** — closing an absent surface is a PASS no-op (replacing `stopProcess`'s
-   `ignoreMissing`, which is now the default and only behavior). Default process names derive from the
-   base command at runtime (`deriveName`: first shell token → basename → strip extension), since AJV
-   `dynamicDefaults` are static-only.
+   each, **idempotently** — closing an absent surface is a PASS no-op (replacing `next`'s
+   never-fails-on-missing `stopProcess`). Process names are the explicit `background.name` required by
+   the canonical `background` object; there is no name derivation.
 
 ## Consequences
 
@@ -104,19 +106,18 @@ Mechanism:
 
 * Unit (`test/background-process.test.js`): `bg.write` round-trips into `getCombined()` (real
   `node -i`); `waitForOutputMatch` (match-before-subscribe, match-after-chunk, timeout→false);
-  `deriveName`; `normalizeBackground` (false/true/string/object forms); `_processKeyMap` +
-  `translateProcessKeys` (`$CTRL$`/special-key translation); `resolveSurface` (process/engine/none);
-  `closeSurface` (close, temp-script removal, idempotent no-op, array form); `waitForReady` with the
-  new `waitUntil` shape (stdio, port, AND of both, early-exit).
+  `_processKeyMap` + `translateProcessKeys` (`$CTRL$`/special-key translation); `resolveSurface`
+  (process/engine/none); `closeSurface` (close, temp-script removal, idempotent no-op, array form);
+  `waitForReady` with the canonical `waitUntil` shape (stdio, port, AND of both, early-exit).
 * Schema (`src/common/test/validate.test.js`): `type` accepts string/`{process}` surface +
   `waitUntil.stdio`/`delayMs`+`timeout`, and rejects empty/browser/extra-key surfaces, port-in-`type`
-  readiness, `waitUntil` without a surface, and process-surface + element targeting; `runShell`
-  background accepts `true`/`false`/string/object forms and rejects unknown keys, empty `waitUntil`,
-  `httpGet` without `url`, and the removed `name`/`readyWhen` siblings; `closeSurface` accepts
-  string/`{process}`/array and rejects empty array/object and the removed `stopProcess` key.
+  readiness, `waitUntil` without a surface, and process-surface + element targeting; the canonical
+  `background` object (required `name`; flattened `waitUntil` `stdio`/`port`/`httpGet`/`delayMs`)
+  rejects unknown keys, empty `waitUntil`, and a missing `name`; `closeSurface` accepts
+  string/`{process}`/array and rejects empty array/object and process objects with an extra key.
 * End-to-end: `test/core-artifacts/type-to-process.spec.json` drives `node -i` through the canonical
   `test/core-core.test.js` `concurrentRunners=2` fixture gate (stdio-match, special-key/`$CTRL$`,
-  `delayMs`-only, derived-name + idempotent close), resolving PASS/SKIPPED on every platform; the
+  `delayMs`-only, named-process + idempotent close), resolving PASS/SKIPPED on every platform; the
   migrated `background-processes.spec.json` exercises the converged `waitUntil`/`closeSurface` shape.
   Focused `it`s assert the runtime FAIL paths: type to a missing process (names it), a `stdio`
   `waitUntil` that can't match in a tiny timeout (FAIL via the `stdioMatched` assertion), and

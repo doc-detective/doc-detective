@@ -578,10 +578,7 @@
         "background": {
           "name": "web",
           "waitUntil": {
-            "httpGet": {
-              "url": "http://localhost:8080",
-              "statusCodes": [200]
-            }
+            "httpGet": "http://localhost:8080"
           }
         },
         "timeout": 30000

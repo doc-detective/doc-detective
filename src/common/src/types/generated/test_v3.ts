@@ -731,34 +731,6 @@ export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
  */
 export type RunShellCommandSimple = string;
 /**
- * Run the command as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
- */
-export type BackgroundProcess =
-  | BackgroundOnOff
-  | BackgroundName
-  | {
-      /**
-       * Unique process name within the run. Defaults to the base command.
-       */
-      name?: string;
-      waitUntil?: {
-        stdio?: string;
-        delayMs?: number;
-        port?: {
-          port: number;
-          host?: string;
-          pollIntervalMs?: number;
-        };
-        httpGet?: {
-          url: string;
-          statusCodes?: number[];
-          pollIntervalMs?: number;
-        };
-      };
-    };
-export type BackgroundOnOff = boolean;
-export type BackgroundName = string;
-/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition13 = string | [string, ...string[]];
@@ -846,34 +818,6 @@ export type Routing31 =
  * Assemble and run code.
  */
 export type RunCode1 = RunCodeDetailed;
-/**
- * Run the code as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
- */
-export type BackgroundProcess1 =
-  | BackgroundOnOff1
-  | BackgroundName1
-  | {
-      /**
-       * Unique process name within the run. Defaults to the base command.
-       */
-      name?: string;
-      waitUntil?: {
-        stdio?: string;
-        delayMs?: number;
-        port?: {
-          port: number;
-          host?: string;
-          pollIntervalMs?: number;
-        };
-        httpGet?: {
-          url: string;
-          statusCodes?: number[];
-          pollIntervalMs?: number;
-        };
-      };
-    };
-export type BackgroundOnOff1 = boolean;
-export type BackgroundName1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2640,34 +2584,6 @@ export type RunShell3 = RunShellCommandSimple1 | RunShellCommandDetailed1;
  */
 export type RunShellCommandSimple1 = string;
 /**
- * Run the command as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
- */
-export type BackgroundProcess2 =
-  | BackgroundOnOff2
-  | BackgroundName2
-  | {
-      /**
-       * Unique process name within the run. Defaults to the base command.
-       */
-      name?: string;
-      waitUntil?: {
-        stdio?: string;
-        delayMs?: number;
-        port?: {
-          port: number;
-          host?: string;
-          pollIntervalMs?: number;
-        };
-        httpGet?: {
-          url: string;
-          statusCodes?: number[];
-          pollIntervalMs?: number;
-        };
-      };
-    };
-export type BackgroundOnOff2 = boolean;
-export type BackgroundName2 = string;
-/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition49 = string | [string, ...string[]];
@@ -2755,34 +2671,6 @@ export type Routing103 =
  * Assemble and run code.
  */
 export type RunCode3 = RunCodeDetailed1;
-/**
- * Run the code as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
- */
-export type BackgroundProcess3 =
-  | BackgroundOnOff3
-  | BackgroundName3
-  | {
-      /**
-       * Unique process name within the run. Defaults to the base command.
-       */
-      name?: string;
-      waitUntil?: {
-        stdio?: string;
-        delayMs?: number;
-        port?: {
-          port: number;
-          host?: string;
-          pollIntervalMs?: number;
-        };
-        httpGet?: {
-          url: string;
-          statusCodes?: number[];
-          pollIntervalMs?: number;
-        };
-      };
-    };
-export type BackgroundOnOff3 = boolean;
-export type BackgroundName3 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -5071,10 +4959,39 @@ export interface RunShellCommandDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.
    */
   timeout?: number;
-  background?: BackgroundProcess;
+  /**
+   * Start the command as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.
+   */
+  background?: {
+    /**
+     * Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.
+     */
+    name: string;
+    /**
+     * Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+     */
+    waitUntil?: {
+      /**
+       * Wait until this TCP port accepts connections on localhost.
+       */
+      port?: number;
+      /**
+       * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+       */
+      stdio?: string;
+      /**
+       * Wait until an HTTP GET request to this URL returns a 2xx status.
+       */
+      httpGet?: string;
+      /**
+       * Wait at least this many milliseconds.
+       */
+      delayMs?: number;
+    };
+  };
 }
 export interface Common6 {
   /**
@@ -5270,10 +5187,39 @@ export interface RunCodeDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.
    */
   timeout?: number;
-  background?: BackgroundProcess1;
+  /**
+   * Start the code as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.
+   */
+  background?: {
+    /**
+     * Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.
+     */
+    name: string;
+    /**
+     * Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+     */
+    waitUntil?: {
+      /**
+       * Wait until this TCP port accepts connections on localhost.
+       */
+      port?: number;
+      /**
+       * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+       */
+      stdio?: string;
+      /**
+       * Wait until an HTTP GET request to this URL returns a 2xx status.
+       */
+      httpGet?: string;
+      /**
+       * Wait at least this many milliseconds.
+       */
+      delayMs?: number;
+    };
+  };
   [k: string]: unknown;
 }
 export interface Common7 {
@@ -8189,10 +8135,39 @@ export interface RunShellCommandDetailed1 {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.
    */
   timeout?: number;
-  background?: BackgroundProcess2;
+  /**
+   * Start the command as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.
+   */
+  background?: {
+    /**
+     * Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.
+     */
+    name: string;
+    /**
+     * Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+     */
+    waitUntil?: {
+      /**
+       * Wait until this TCP port accepts connections on localhost.
+       */
+      port?: number;
+      /**
+       * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+       */
+      stdio?: string;
+      /**
+       * Wait until an HTTP GET request to this URL returns a 2xx status.
+       */
+      httpGet?: string;
+      /**
+       * Wait at least this many milliseconds.
+       */
+      delayMs?: number;
+    };
+  };
 }
 export interface Common24 {
   /**
@@ -8388,10 +8363,39 @@ export interface RunCodeDetailed1 {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.
    */
   timeout?: number;
-  background?: BackgroundProcess3;
+  /**
+   * Start the code as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.
+   */
+  background?: {
+    /**
+     * Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.
+     */
+    name: string;
+    /**
+     * Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+     */
+    waitUntil?: {
+      /**
+       * Wait until this TCP port accepts connections on localhost.
+       */
+      port?: number;
+      /**
+       * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+       */
+      stdio?: string;
+      /**
+       * Wait until an HTTP GET request to this URL returns a 2xx status.
+       */
+      httpGet?: string;
+      /**
+       * Wait at least this many milliseconds.
+       */
+      delayMs?: number;
+    };
+  };
   [k: string]: unknown;
 }
 export interface Common25 {

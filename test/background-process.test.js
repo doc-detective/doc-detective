@@ -9,13 +9,12 @@ import {
   spawnBackgroundCommand,
   waitForPort,
   waitForHttp,
-  waitForOutputMatch,
+  waitForStdio,
   waitForReady,
-  deriveName,
+  waitForOutputMatch,
   findFreePort,
 } from "../dist/core/utils.js";
 import { closeSurface } from "../dist/core/tests/closeSurface.js";
-import { normalizeBackground } from "../dist/core/tests/runShell.js";
 import {
   translateProcessKeys,
   resolveSurface,
@@ -95,6 +94,182 @@ describe("spawnBackgroundCommand", function () {
   });
 });
 
+describe("waitForPort", function () {
+  this.timeout(10000);
+
+  it("resolves once a port is accepting connections", async function () {
+    const port = await findFreePort();
+    const server = net.createServer();
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    try {
+      await waitForPort(port, { deadline: Date.now() + 5000 });
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("rejects when nothing is listening before the deadline", async function () {
+    const port = await findFreePort();
+    await assert.rejects(
+      waitForPort(port, { deadline: Date.now() + 300 }),
+      /did not open in time/
+    );
+  });
+});
+
+describe("waitForHttp", function () {
+  this.timeout(10000);
+
+  it("resolves when the endpoint returns a 2xx status", async function () {
+    const port = await findFreePort();
+    const server = http.createServer((req, res) => {
+      res.statusCode = 204;
+      res.end();
+    });
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    try {
+      await waitForHttp(`http://127.0.0.1:${port}/`, {
+        deadline: Date.now() + 5000,
+      });
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("rejects when the status is never 2xx before the deadline", async function () {
+    const port = await findFreePort();
+    const server = http.createServer((req, res) => {
+      res.statusCode = 503;
+      res.end("nope");
+    });
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    try {
+      await assert.rejects(
+        waitForHttp(`http://127.0.0.1:${port}/`, {
+          deadline: Date.now() + 400,
+        }),
+        /did not return a 2xx status/
+      );
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+});
+
+describe("waitForStdio", function () {
+  this.timeout(10000);
+
+  it("resolves when already-buffered output contains the substring", async function () {
+    const bg = fakeBg();
+    bg._emit("server ready to accept connections\n");
+    await waitForStdio(bg, "ready to accept", { deadline: Date.now() + 1000 });
+  });
+
+  it("resolves on a later chunk and searches both streams", async function () {
+    const bg = fakeBg();
+    const p = waitForStdio(bg, "listening", { deadline: Date.now() + 2000 });
+    bg._emit("noise on stdout\n", "stdout");
+    bg._emit("now listening on 8080\n", "stderr"); // matched even though on stderr
+    await p;
+  });
+
+  it("supports /regex/ matching", async function () {
+    const bg = fakeBg();
+    bg._emit("started on port 8080\n");
+    await waitForStdio(bg, "/on port \\d+/", { deadline: Date.now() + 1000 });
+  });
+
+  it("rejects when the content is never seen before the deadline", async function () {
+    const bg = fakeBg();
+    await assert.rejects(
+      waitForStdio(bg, "never-appears", { deadline: Date.now() + 200 }),
+      /not seen in time/
+    );
+  });
+
+  it("rejects a malformed /regex/ with a friendly error", async function () {
+    const bg = fakeBg();
+    await assert.rejects(
+      waitForStdio(bg, "/[unclosed/", { deadline: Date.now() + 1000 }),
+      /invalid regular expression/
+    );
+  });
+});
+
+describe("waitForReady", function () {
+  this.timeout(10000);
+
+  it("resolves after a delayMs condition", async function () {
+    const bg = fakeBg();
+    const start = Date.now();
+    await waitForReady(bg, { delayMs: 100 }, { timeoutMs: 5000 });
+    assert.ok(Date.now() - start >= 90);
+  });
+
+  it("resolves immediately when no waitUntil is given", async function () {
+    const bg = fakeBg();
+    await waitForReady(bg, undefined, { timeoutMs: 5000 });
+  });
+
+  it("resolves via a port condition", async function () {
+    const port = await findFreePort();
+    const server = net.createServer();
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    const bg = fakeBg();
+    try {
+      await waitForReady(bg, { port }, { timeoutMs: 5000 });
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("requires ALL combined conditions to pass", async function () {
+    const port = await findFreePort();
+    const server = net.createServer();
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    const bg = fakeBg();
+    bg._emit("up and listening\n");
+    try {
+      // port is open AND stdio already matched AND a short delay → all pass
+      await waitForReady(
+        bg,
+        { port, stdio: "listening", delayMs: 50 },
+        { timeoutMs: 5000 }
+      );
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("fails when one combined condition can't be met", async function () {
+    const port = await findFreePort();
+    const server = net.createServer();
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    const bg = fakeBg(); // port opens, but the stdio match never arrives
+    try {
+      await assert.rejects(
+        waitForReady(
+          bg,
+          { port, stdio: "never-shows-up" },
+          { timeoutMs: 500 }
+        ),
+        /not seen in time/
+      );
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("fails fast when the process exits before becoming ready", async function () {
+    const port = await findFreePort(); // nothing listening here
+    const bg = fakeBg({ exited: Promise.resolve(1) });
+    await assert.rejects(
+      waitForReady(bg, { port }, { timeoutMs: 5000 }),
+      /exited before becoming ready/
+    );
+  });
+});
+
 describe("BackgroundProcess.write", function () {
   this.timeout(20000);
 
@@ -159,205 +334,6 @@ describe("waitForOutputMatch", function () {
       deadline: Date.now() + 200,
     });
     assert.equal(matched, false);
-  });
-});
-
-describe("waitForPort", function () {
-  this.timeout(10000);
-
-  it("resolves once a port is accepting connections", async function () {
-    const port = await findFreePort();
-    const server = net.createServer();
-    await new Promise((r) => server.listen(port, "127.0.0.1", r));
-    try {
-      await waitForPort("127.0.0.1", port, {
-        pollIntervalMs: 50,
-        deadline: Date.now() + 5000,
-      });
-    } finally {
-      await new Promise((r) => server.close(r));
-    }
-  });
-
-  it("rejects when nothing is listening before the deadline", async function () {
-    const port = await findFreePort();
-    await assert.rejects(
-      waitForPort("127.0.0.1", port, {
-        pollIntervalMs: 50,
-        deadline: Date.now() + 300,
-      }),
-      /did not open in time/
-    );
-  });
-});
-
-describe("waitForHttp", function () {
-  this.timeout(10000);
-
-  it("resolves when the endpoint returns an expected status", async function () {
-    const port = await findFreePort();
-    const server = http.createServer((req, res) => {
-      res.statusCode = 200;
-      res.end("ok");
-    });
-    await new Promise((r) => server.listen(port, "127.0.0.1", r));
-    try {
-      await waitForHttp(`http://127.0.0.1:${port}/`, [200], {
-        pollIntervalMs: 50,
-        deadline: Date.now() + 5000,
-      });
-    } finally {
-      await new Promise((r) => server.close(r));
-    }
-  });
-
-  it("rejects when the status never matches before the deadline", async function () {
-    const port = await findFreePort();
-    const server = http.createServer((req, res) => {
-      res.statusCode = 503;
-      res.end("nope");
-    });
-    await new Promise((r) => server.listen(port, "127.0.0.1", r));
-    try {
-      await assert.rejects(
-        waitForHttp(`http://127.0.0.1:${port}/`, [200], {
-          pollIntervalMs: 50,
-          deadline: Date.now() + 400,
-        }),
-        /did not return/
-      );
-    } finally {
-      await new Promise((r) => server.close(r));
-    }
-  });
-});
-
-describe("waitForReady (waitUntil)", function () {
-  this.timeout(10000);
-
-  it("resolves after a delayMs probe", async function () {
-    const bg = fakeBg();
-    const start = Date.now();
-    await waitForReady(bg, { delayMs: 100 }, { timeoutMs: 5000 });
-    assert.ok(Date.now() - start >= 90);
-  });
-
-  it("resolves immediately when no waitUntil is given", async function () {
-    const bg = fakeBg();
-    await waitForReady(bg, undefined, { timeoutMs: 5000 });
-  });
-
-  it("resolves via a stdio probe (output match)", async function () {
-    const bg = fakeBg();
-    const p = waitForReady(bg, { stdio: "/ready/" }, { timeoutMs: 5000 });
-    bg._emit("all systems ready\n");
-    await p;
-  });
-
-  it("rejects when a stdio probe never matches before the deadline", async function () {
-    const bg = fakeBg();
-    await assert.rejects(
-      waitForReady(bg, { stdio: "never" }, { timeoutMs: 300 }),
-      /did not match/
-    );
-  });
-
-  it("resolves via a port probe", async function () {
-    const port = await findFreePort();
-    const server = net.createServer();
-    await new Promise((r) => server.listen(port, "127.0.0.1", r));
-    const bg = fakeBg();
-    try {
-      await waitForReady(
-        bg,
-        { port: { port, host: "127.0.0.1", pollIntervalMs: 50 } },
-        { timeoutMs: 5000 }
-      );
-    } finally {
-      await new Promise((r) => server.close(r));
-    }
-  });
-
-  it("AND-s multiple probes (stdio + port)", async function () {
-    const port = await findFreePort();
-    const server = net.createServer();
-    await new Promise((r) => server.listen(port, "127.0.0.1", r));
-    const bg = fakeBg();
-    try {
-      const p = waitForReady(
-        bg,
-        { stdio: "/up/", port: { port, host: "127.0.0.1", pollIntervalMs: 50 } },
-        { timeoutMs: 5000 }
-      );
-      bg._emit("server is up\n");
-      await p;
-    } finally {
-      await new Promise((r) => server.close(r));
-    }
-  });
-
-  it("fails fast when the process exits before becoming ready", async function () {
-    const port = await findFreePort(); // nothing listening here
-    const bg = fakeBg({ exited: Promise.resolve(1) });
-    await assert.rejects(
-      waitForReady(
-        bg,
-        { port: { port, host: "127.0.0.1", pollIntervalMs: 50 } },
-        { timeoutMs: 5000 }
-      ),
-      /exited before becoming ready/
-    );
-  });
-});
-
-describe("deriveName", function () {
-  it("derives the base command name", function () {
-    assert.equal(deriveName("npm start"), "npm");
-    assert.equal(deriveName("node -i"), "node");
-    assert.equal(deriveName("/usr/bin/python3 x"), "python3");
-    assert.equal(deriveName("node"), "node");
-    assert.equal(deriveName("  node   -i  "), "node");
-    assert.equal(deriveName("C:\\tools\\my-app.exe --flag"), "my-app");
-  });
-});
-
-describe("normalizeBackground", function () {
-  it("returns null for false/absent", function () {
-    assert.equal(normalizeBackground({ command: "node", background: false }), null);
-    assert.equal(normalizeBackground({ command: "node" }), null);
-  });
-
-  it("derives the name for background:true", function () {
-    assert.deepEqual(normalizeBackground({ command: "node -i", background: true }), {
-      name: "node",
-    });
-  });
-
-  it("uses a string name", function () {
-    assert.deepEqual(
-      normalizeBackground({ command: "npm start", background: "web" }),
-      { name: "web" }
-    );
-  });
-
-  it("passes through an object form (name + waitUntil)", function () {
-    assert.deepEqual(
-      normalizeBackground({
-        command: "node x",
-        background: { name: "srv", waitUntil: { stdio: "/up/" } },
-      }),
-      { name: "srv", waitUntil: { stdio: "/up/" } }
-    );
-  });
-
-  it("derives the name when the object omits it", function () {
-    assert.deepEqual(
-      normalizeBackground({
-        command: "node -i",
-        background: { waitUntil: { delayMs: 10 } },
-      }),
-      { name: "node", waitUntil: { delayMs: 10 } }
-    );
   });
 });
 
@@ -498,7 +474,7 @@ describe("closeSurface", function () {
 describe("runShell/runCode background (integration)", function () {
   this.timeout(20000);
 
-  it("runShell starts a background server, becomes ready, and is closeable", async function () {
+  it("runShell starts a background server, becomes ready, and is stoppable", async function () {
     const port = await findFreePort();
     const tmp = path.join(os.tmpdir(), `dd-srv-${process.pid}.js`);
     fs.writeFileSync(
@@ -514,7 +490,7 @@ describe("runShell/runCode background (integration)", function () {
             command: `"${process.execPath}" "${tmp}" ${port}`,
             background: {
               name: "web",
-              waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+              waitUntil: { port },
             },
             timeout: 10000,
           },
@@ -526,44 +502,11 @@ describe("runShell/runCode background (integration)", function () {
       assert.equal(result.outputs.ready, "true");
       assert.ok(registry.has("web"));
       // Port is actually accepting connections.
-      await waitForPort("127.0.0.1", port, {
-        pollIntervalMs: 100,
-        deadline: Date.now() + 2000,
-      });
+      await waitForPort(port, { deadline: Date.now() + 2000 });
     } finally {
       await closeSurface({
         config: {},
         step: { closeSurface: "web" },
-        processRegistry: registry,
-      });
-      fs.rmSync(tmp, { force: true });
-    }
-  });
-
-  it("runShell derives the process name from the base command for background:true", async function () {
-    const tmp = path.join(os.tmpdir(), `dd-derive-${process.pid}.js`);
-    fs.writeFileSync(tmp, `setInterval(() => {}, 100000);`);
-    const registry = new Map();
-    try {
-      const result = await runShell({
-        config: {},
-        step: {
-          runShell: {
-            command: `node "${tmp}"`,
-            background: true,
-            timeout: 5000,
-          },
-        },
-        processRegistry: registry,
-      });
-      assert.equal(result.status, "PASS");
-      // base command "node" → derived name "node"
-      assert.equal(result.outputs.name, "node");
-      assert.ok(registry.has("node"));
-    } finally {
-      await closeSurface({
-        config: {},
-        step: { closeSurface: "node" },
         processRegistry: registry,
       });
       fs.rmSync(tmp, { force: true });
@@ -598,7 +541,7 @@ describe("runShell/runCode background (integration)", function () {
           command: `"${process.execPath}" "${tmp}"`,
           background: {
             name: "stuck",
-            waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            waitUntil: { port },
           },
           timeout: 600,
         },
@@ -623,7 +566,7 @@ describe("runShell/runCode background (integration)", function () {
             code: `require('http').createServer((q,r)=>r.end('ok')).listen(${port});`,
             background: {
               name: "api",
-              waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+              waitUntil: { port },
             },
             timeout: 10000,
           },
@@ -643,7 +586,7 @@ describe("runShell/runCode background (integration)", function () {
         step: { closeSurface: "api" },
         processRegistry: registry,
       });
-      if (tempPath) assert.equal(fs.existsSync(tempPath), false, "temp script removed on close");
+      if (tempPath) assert.equal(fs.existsSync(tempPath), false, "temp script removed on stop");
     }
   });
 });

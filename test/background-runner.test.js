@@ -41,7 +41,7 @@ describe("Background processes via runTests", function () {
                 code: serverCode(port),
                 background: {
                   name: "srv",
-                  waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+                  waitUntil: { port },
                 },
                 timeout: 15000,
               },
@@ -75,7 +75,7 @@ describe("Background processes via runTests", function () {
                 code: serverCode(port),
                 background: {
                   name: "leaked",
-                  waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+                  waitUntil: { port },
                 },
                 timeout: 15000,
               },
