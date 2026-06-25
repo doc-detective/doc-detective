@@ -245,6 +245,30 @@ describe("runConcurrentByTest", function () {
     expect(calls).to.equal(0);
   });
 
+  it("lets in-flight jobs settle before surfacing a rejection", async function () {
+    // fn is expected to catch its own errors, but if one rejects, a sibling
+    // job from another spec that's already running must still finish (no
+    // fail-fast that races teardown against live work) before the error throws.
+    const completed = [];
+    let threw = false;
+    const jobs = [job("A", "t1", "c1"), job("B", "t1", "c1")];
+    try {
+      await runConcurrentByTest(jobs, 2, async (j) => {
+        if (j.spec === "A") {
+          await sleep(5);
+          throw new Error("boom");
+        }
+        await sleep(40);
+        completed.push(j.spec);
+      });
+    } catch (error) {
+      threw = true;
+      expect(error.message).to.equal("boom");
+    }
+    expect(threw).to.equal(true);
+    expect(completed).to.deep.equal(["B"]);
+  });
+
   it("never overlaps two exclusive jobs, even across specs", async function () {
     // ffmpeg recordings need exclusive use of the display; flagged exclusive,
     // no two may run at once regardless of the global limit.

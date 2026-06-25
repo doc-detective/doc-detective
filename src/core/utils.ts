@@ -206,14 +206,33 @@ async function runConcurrentByTest<T extends { spec: any; test: any }>(
   // Specs run concurrently; within a spec, tests run sequentially in order;
   // within a test, contexts run concurrently. The semaphore enforces the
   // global cap across all of it.
-  await Promise.all(
+  //
+  // Settle every started job before surfacing an error. `fn` is expected to
+  // catch its own failures (runSpecs does), but if one ever rejects, a
+  // fail-fast Promise.all would return while sibling specs/contexts are still
+  // mid-run — racing teardown against live work. allSettled at both fan-out
+  // levels waits for in-flight work first; the first rejection is rethrown
+  // afterward. A rejection still stops *later* test groups in its own spec
+  // (preserving the per-test ordering contract) but never starts new work.
+  let firstError: unknown;
+  let hasError = false;
+  await Promise.allSettled(
     specOrder.map(async (spec) => {
       const byTest = bySpec.get(spec) as Map<any, T[]>;
       for (const testItems of byTest.values()) {
-        await Promise.all(testItems.map(runOne));
+        const settled = await Promise.allSettled(testItems.map(runOne));
+        const rejected = settled.find((s) => s.status === "rejected");
+        if (rejected) {
+          if (!hasError) {
+            hasError = true;
+            firstError = (rejected as PromiseRejectedResult).reason;
+          }
+          break;
+        }
       }
     })
   );
+  if (hasError) throw firstError;
 }
 
 // Roll child results up to a parent result: FAIL > WARNING > all-SKIPPED >
