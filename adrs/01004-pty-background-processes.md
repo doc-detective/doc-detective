@@ -104,6 +104,12 @@ Mechanism:
   a prebuilt binary for the runner's platform/arch (Windows uses ConPTY). When it isn't available the
   feature SKIPs rather than works. Some Windows ConPTY edge cases (e.g. spawning a quoted interactive
   exe directly) are avoided by always spawning through the shell.
+* **Platform capability (SKIP, not FAIL)** — node-pty failing to LOAD (no prebuilt binary) and
+  failing to CREATE a PTY (`pty.spawn` throwing — e.g. `posix_spawnp failed` from a prebuilt
+  spawn-helper that doesn't work on some macOS arm64 runners) are BOTH treated as "PTY unavailable
+  here" and tagged `NODE_PTY_UNAVAILABLE` → the step SKIPs. A genuinely bad command/cwd still surfaces
+  as a readiness failure → FAIL. Net: PTY runs where node-pty is fully functional (e.g. Linux CI) and
+  degrades to SKIP elsewhere.
 * **Known limitation (Windows `args` + `tty`)** — on Windows, node-pty's ConPTY agent re-quotes the
   shell command line it builds, which collides with the quoting we add for the `args` field. So
   `command` strings work everywhere, but passing arguments via the `args` field together with `tty`

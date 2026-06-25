@@ -310,14 +310,22 @@ describe("BackgroundProcess.write", function () {
 describe("spawnPtyBackgroundCommand (PTY)", function () {
   this.timeout(30000);
 
-  // node-pty is a heavy native optionalDependency. Skip the whole suite when it
-  // can't be loaded so the unit run is green with or without it installed.
+  // node-pty is a heavy native dep. Skip the whole suite unless it can be both
+  // LOADED and used to SPAWN a PTY here. Detect in two cheap steps so we never
+  // trigger a slow JIT install in the hook: (1) resolve node-pty with
+  // autoInstall:false (fast — fails immediately on platforms where it isn't
+  // installed, e.g. Windows runners, instead of attempting a multi-minute build
+  // that would blow the hook timeout), then (2) actually spawn once to confirm a
+  // PTY can be created (skips platforms where node-pty loads but `pty.spawn`
+  // fails, e.g. some macOS arm64 runners).
   let ptyAvailable = false;
   before(async function () {
     try {
+      const { loadHeavyDep } = await import("../dist/runtime/loader.js");
+      await loadHeavyDep("node-pty", { autoInstall: false });
       const bg = await spawnPtyBackgroundCommand("node -e \"\"");
-      ptyAvailable = true;
       await bg.kill(); // kill() resolves once the PTY has exited
+      ptyAvailable = true;
     } catch {
       ptyAvailable = false;
     }

@@ -409,16 +409,30 @@ async function spawnPtyBackgroundCommand(
     ? ["/d", "/s", "/c", fullCommand]
     : ["-c", fullCommand];
 
-  const ptyProcess = pty.spawn(shell, shellArgs, {
-    name: "xterm-color",
-    // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
-    // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
-    // expected width when authoring `waitUntil.stdio` patterns.
-    cols: 120,
-    rows: 30,
-    cwd: options.cwd || process.cwd(),
-    env: process.env,
-  });
+  let ptyProcess: any;
+  try {
+    ptyProcess = pty.spawn(shell, shellArgs, {
+      name: "xterm-color",
+      // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
+      // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
+      // expected width when authoring `waitUntil.stdio` patterns.
+      cols: 120,
+      rows: 30,
+      cwd: options.cwd || process.cwd(),
+      env: process.env,
+    });
+  } catch (error: any) {
+    // node-pty loaded but couldn't create a PTY here (e.g. a prebuilt
+    // spawn-helper that doesn't work on this OS/arch — `posix_spawnp failed` on
+    // some macOS arm64 runners). Treat "PTY can't be created on this platform"
+    // the same as "node-pty unavailable" so runShell SKIPs (graceful) rather
+    // than FAILing. A bad command/cwd still surfaces as a readiness failure.
+    const err: any = new Error(
+      `PTY could not be created on this platform: ${error?.message ?? error}`
+    );
+    err.code = "NODE_PTY_UNAVAILABLE";
+    throw err;
+  }
 
   // PTY = one merged stream → feed everything into the stdout buffer.
   let stdout = "";
