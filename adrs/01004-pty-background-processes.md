@@ -53,8 +53,11 @@ Mechanism:
    the property is the whole schema change. The description documents the `node-pty` requirement, the
    SKIP-on-absence behavior, and that **stdout/stderr are merged into one stream** in PTY mode.
 2. **`spawnPtyBackgroundCommand`** (`src/core/utils.ts`), an async `BackgroundProcess`-compatible PTY
-   handle. It loads `node-pty` via the existing `loadHeavyDep("node-pty", { ctx: { cacheDir } })`
-   pattern; on failure it **rejects** (the caller maps that to SKIP). It spawns through the platform
+   handle. It loads `node-pty` via `loadHeavyDep("node-pty", { ctx: { cacheDir }, autoInstall: false })`
+   — `node-pty` is **not** vendored (not in `dependencies`/`optionalDependencies`, so the lockfile is
+   untouched and lean installs stay lean); `autoInstall: false` means it uses a **user-installed**
+   copy if present (`npm install node-pty`) and otherwise **rejects** (no runtime install of an
+   undeclared package). The caller maps that rejection to SKIP. It spawns through the platform
    shell for parity with the pipe path's `{ shell: true }` — `cmd.exe /c <cmd+args>` on Windows,
    `/bin/sh -c <cmd+args>` on POSIX — appending the (quoted) `args` to the command string so the
    `args` field still works. PTY = **one merged stream**: `onData` feeds the single `stdout` ring

@@ -99,7 +99,6 @@
     "appium-geckodriver": "^2.2.6",
     "appium-safari-driver": "^4.1.16",
     "geckodriver": "^6.1.0",
-    "node-pty": "^1.0.0",
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",
     "proxy-agent": "^8.0.1",

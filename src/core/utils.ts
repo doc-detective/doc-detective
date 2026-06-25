@@ -364,10 +364,14 @@ function quoteShellArg(arg: string): string {
 // (`getStderr()` returns "", `getCombined()` returns stdout). That keeps
 // `waitForStdio`/`waitForReady` (`getStdout()||getStderr()`) working unchanged.
 //
-// node-pty is a heavy native optionalDependency, lazily loaded via the existing
-// `loadHeavyDep` pattern. If it can't be resolved/installed this REJECTS; the
-// caller (runShell) maps the rejection to a SKIPPED step (graceful degradation),
-// keeping fixtures PASS/SKIPPED.
+// node-pty is a native module that doc-detective does NOT vendor (it is not in
+// `dependencies`/`optionalDependencies`, to keep the install lean and the lockfile
+// untouched). It is loaded only if the user has installed it themselves
+// (`npm install node-pty`); `loadHeavyDep` resolves a user-installed copy via its
+// shim/cache lookup. We pass `autoInstall: false` so a missing dep REJECTS cleanly
+// instead of attempting a runtime npm install of an undeclared package. The caller
+// (runShell) maps the rejection to a SKIPPED step (graceful degradation), keeping
+// fixtures PASS/SKIPPED.
 //
 // We spawn through the platform shell (`cmd.exe /c` / `/bin/sh -c`) for parity
 // with spawnBackgroundCommand's `{ shell: true }`, appending the (quoted) `args`
@@ -377,10 +381,19 @@ async function spawnPtyBackgroundCommand(
   args: string[] = [],
   options: any = {}
 ): Promise<BackgroundProcess> {
-  // Rethrow a tagged error on failure; runShell maps it to SKIP.
-  const pty = await loadHeavyDep<any>("node-pty", {
-    ctx: { cacheDir: options.cacheDir },
-  });
+  // Rethrow on failure; runShell maps it to SKIP. `autoInstall: false` → use a
+  // user-installed node-pty if present, otherwise reject (no runtime install).
+  let pty: any;
+  try {
+    pty = await loadHeavyDep<any>("node-pty", {
+      ctx: { cacheDir: options.cacheDir },
+      autoInstall: false,
+    });
+  } catch {
+    throw new Error(
+      "node-pty is not installed. Install it (`npm install node-pty`) to use `background.tty`."
+    );
+  }
 
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
   const fullCommand = cmd + argstr;
