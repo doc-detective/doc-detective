@@ -71,7 +71,7 @@ Mechanism:
    path. This is the same model as the other heavy deps; only the declaration field differs (to avoid
    the lockfile churn that adding a brand-new `optionalDependencies` entry caused).
 3. **`spawnPtyBackgroundCommand`** (`src/core/utils.ts`), an async `BackgroundProcess`-compatible PTY
-   handle. It loads `node-pty` via `loadHeavyDep("node-pty", { ctx: { cacheDir } })` (default
+   handle. It loads the PTY backend via `loadHeavyDep("@homebridge/node-pty-prebuilt-multiarch", { ctx: { cacheDir } })` (default
    `autoInstall`); when `node-pty` can't be resolved or installed (no prebuilt binary for the
    platform/arch) it **rejects** and the caller maps that to SKIP. It spawns through the platform
    shell for parity with the pipe path's `{ shell: true }` — `cmd.exe /d /s /c <cmd+args>` on Windows,

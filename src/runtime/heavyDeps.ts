@@ -33,7 +33,10 @@ export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];
  * prebuilt-multiarch fork's broad coverage, an exotic platform/arch could miss a
  * binary, so it is installed on its own, failure-tolerant, as a safety net.
  */
-export const BEST_EFFORT_NPM_DEPS: ReadonlySet<string> = new Set([
+// Public type is ReadonlySet<string> so `.has(someString)` callsites compile,
+// but the literal is typed Set<HeavyDepName> so a typo in an entry (a name not in
+// HEAVY_NPM_DEPS) is a compile error.
+export const BEST_EFFORT_NPM_DEPS: ReadonlySet<string> = new Set<HeavyDepName>([
   "@homebridge/node-pty-prebuilt-multiarch",
 ]);
 
