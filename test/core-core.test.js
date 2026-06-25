@@ -2037,6 +2037,60 @@ describe("getRunner() function", function () {
     }
   });
 
+  it("a tty:true background SKIPs (with a node-pty reason) when node-pty can't be loaded", async function () {
+    // Phase 2: when `background.tty` is set but the optional `node-pty` dep can't
+    // be resolved or installed, the runShell step must SKIP (graceful
+    // degradation) — never FAIL — with a description that names `node-pty`. We
+    // simulate absence by (1) moving the installed node-pty aside so it doesn't
+    // resolve from the shim, (2) pointing the runtime cache at an empty dir, and
+    // (3) forcing npm offline so the JIT install fails fast instead of fetching.
+    this.timeout(60000);
+    const require = (await import("node:module")).createRequire(
+      import.meta.url
+    );
+    let ptyDir = null;
+    try {
+      // <repo>/node_modules/node-pty
+      ptyDir = path.dirname(
+        path.dirname(require.resolve("node-pty"))
+      );
+      // Walk up to the package root (the dir literally named node-pty).
+      while (path.basename(ptyDir) !== "node-pty" && path.dirname(ptyDir) !== ptyDir) {
+        ptyDir = path.dirname(ptyDir);
+      }
+      if (path.basename(ptyDir) !== "node-pty") ptyDir = null;
+    } catch {
+      ptyDir = null; // node-pty not installed here — absence is already real.
+    }
+
+    const { runShell } = await import("../dist/core/tests/runShell.js");
+    const emptyCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-nopty-cache-"));
+    const moved = ptyDir ? `${ptyDir}.moved-for-test` : null;
+    const prevOffline = process.env.npm_config_offline;
+    process.env.npm_config_offline = "true";
+    if (ptyDir) fs.renameSync(ptyDir, moved);
+    try {
+      const result = await runShell({
+        config: { cacheDir: emptyCache },
+        step: {
+          runShell: {
+            command: "node -i",
+            background: { name: "nopty-repl", tty: true },
+            timeout: 5000,
+          },
+        },
+        processRegistry: new Map(),
+      });
+      assert.equal(result.status, "SKIPPED");
+      assert.match(result.description, /node-pty/);
+    } finally {
+      if (ptyDir) fs.renameSync(moved, ptyDir);
+      if (prevOffline === undefined) delete process.env.npm_config_offline;
+      else process.env.npm_config_offline = prevOffline;
+      fs.rmSync(emptyCache, { recursive: true, force: true });
+    }
+  });
+
   it("type to a browser-engine surface (chrome) FAILs with 'surface kind not yet supported'", async () => {
     // A reserved browser engine keyword is a future surface kind; Phase 1 must
     // FAIL at runtime rather than mis-routing it to a process or element.

@@ -1015,7 +1015,13 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     processRegistry.clear();
     await Promise.all(
       entries.map(async ([, entry]) => {
-        await killTree(entry?.bg?.pid);
+        // PTY-backed handles own their termination via `kill()`; pipe-backed
+        // ones tree-kill the process tree by pid.
+        if (entry?.bg?.kill) {
+          await entry.bg.kill();
+        } else {
+          await killTree(entry?.bg?.pid);
+        }
         if (entry?.tempPath) {
           try {
             fs.unlinkSync(entry.tempPath);

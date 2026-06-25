@@ -7,6 +7,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import {
   spawnBackgroundCommand,
+  spawnPtyBackgroundCommand,
   waitForPort,
   waitForHttp,
   waitForStdio,
@@ -303,6 +304,103 @@ describe("BackgroundProcess.write", function () {
     // After the process is gone, write must be a safe no-op (false), not a throw.
     const result = bg.write("data");
     assert.equal(typeof result, "boolean");
+  });
+});
+
+describe("spawnPtyBackgroundCommand (PTY)", function () {
+  this.timeout(30000);
+
+  // node-pty is a heavy native optionalDependency. Skip the whole suite when it
+  // can't be loaded so the unit run is green with or without it installed.
+  let ptyAvailable = false;
+  before(async function () {
+    try {
+      const bg = await spawnPtyBackgroundCommand("node -e \"\"");
+      ptyAvailable = true;
+      await bg.kill();
+      await bg.exited;
+    } catch {
+      ptyAvailable = false;
+    }
+  });
+
+  // Write a probe script to a temp file referenced by an unquoted, space-free
+  // path. Avoids nested-quote mangling when the command string is appended to
+  // `cmd /c` / `sh -c` on Windows.
+  function writeProbe(body) {
+    // os.tmpdir() is space-free on the CI runners and dev machines we target.
+    const file = path.join(
+      os.tmpdir(),
+      `dd-pty-${process.pid}-${Math.floor(performance.now())}.js`
+    );
+    fs.writeFileSync(file, body);
+    return file;
+  }
+
+  it("makes the process see a TTY (isTTY true)", async function () {
+    if (!ptyAvailable) this.skip();
+    const probe = writeProbe(
+      "process.stdout.write('ISTTY:'+process.stdout.isTTY)"
+    );
+    const bg = await spawnPtyBackgroundCommand(`node ${probe}`);
+    try {
+      const deadline = Date.now() + 15000;
+      while (
+        !bg.getCombined().includes("ISTTY:") &&
+        Date.now() < deadline
+      ) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      assert.ok(
+        bg.getCombined().includes("ISTTY:true"),
+        `expected ISTTY:true in PTY output, got: ${JSON.stringify(
+          bg.getCombined().slice(-120)
+        )}`
+      );
+      assert.equal(bg.isPty, true);
+      // PTY = one merged stream → stderr buffer is empty, combined == stdout.
+      assert.equal(bg.getStderr(), "");
+      assert.equal(bg.getCombined(), bg.getStdout());
+    } finally {
+      await bg.kill();
+      await bg.exited;
+      fs.rmSync(probe, { force: true });
+    }
+  });
+
+  it("round-trips write + readiness over the PTY (node -i)", async function () {
+    if (!ptyAvailable) this.skip();
+    // Use the bare `node -i` command (no quoted exe path): under Windows
+    // ConPTY a quoted interactive exe can trip node-pty's console-list agent.
+    // The runner always spawns through the shell the same way.
+    const bg = await spawnPtyBackgroundCommand("node -i");
+    try {
+      // Wait for the REPL prompt.
+      await waitForStdio(bg, ">", { deadline: Date.now() + 15000 });
+      const accepted = bg.write("2+2\r");
+      assert.equal(accepted, true, "write should be accepted");
+      const matched = await waitForOutputMatch(bg, "/4/", {
+        deadline: Date.now() + 10000,
+      });
+      assert.equal(matched, true, "REPL should have evaluated 2+2");
+    } finally {
+      await bg.kill();
+      await bg.exited;
+    }
+  });
+
+  it("kill() terminates the PTY (exited resolves)", async function () {
+    if (!ptyAvailable) this.skip();
+    const tmp = writeProbe("setInterval(() => {}, 100000);");
+    const bg = await spawnPtyBackgroundCommand(`node ${tmp}`);
+    try {
+      assert.equal(typeof bg.pid, "number");
+      await bg.kill();
+      const code = await bg.exited; // resolves once the PTY exits
+      assert.ok(code === null || typeof code === "number");
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
   });
 });
 

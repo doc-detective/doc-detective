@@ -6,6 +6,7 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
+import { loadHeavyDep } from "../runtime/loader.js";
 
 export {
   outputResults,
@@ -18,6 +19,7 @@ export {
   replaceEnvs,
   spawnCommand,
   spawnBackgroundCommand,
+  spawnPtyBackgroundCommand,
   waitForReady,
   waitForPort,
   waitForHttp,
@@ -239,7 +241,10 @@ async function findFreePort(): Promise<number> {
 // runShell/runCode step. Output is buffered (ring-capped) so readiness probes
 // and debugging can inspect it without waiting for the process to exit.
 interface BackgroundProcess {
-  child: ChildProcess;
+  // The Node ChildProcess, when the process was spawned over a pipe
+  // (spawnBackgroundCommand). PTY-backed processes have no ChildProcess, so this
+  // is optional; teardown prefers `kill()` when present, else tree-kills `pid`.
+  child?: ChildProcess;
   pid: number | undefined;
   getStdout(): string;
   getStderr(): string;
@@ -252,6 +257,13 @@ interface BackgroundProcess {
   // Resolves with the exit code when the process closes, or null if it never
   // started (spawn error).
   exited: Promise<number | null>;
+  // Terminate the process. Present on PTY-backed handles (which own their own
+  // termination via `pty.kill()` and have no pid for tree-kill). When present,
+  // teardown prefers this over tree-killing `pid`.
+  kill?(): Promise<void> | void;
+  // True when the handle is backed by a pseudo-terminal (node-pty) rather than a
+  // pipe. In PTY mode stdout/stderr are merged into a single stream.
+  isPty?: boolean;
 }
 
 // Cap each buffered stream so a process that logs for the whole suite can't
@@ -328,6 +340,112 @@ function spawnBackgroundCommand(
       return () => subscribers.delete(cb);
     },
     exited,
+  };
+}
+
+// Quote a single command-line argument so the platform shell treats it as one
+// token (so the `args` field keeps working when we append it to the command
+// string for the shell). Wraps in double quotes and escapes embedded double
+// quotes; mirrors how `shell:true` would pass each arg.
+function quoteShellArg(arg: string): string {
+  if (process.platform === "win32") {
+    // cmd.exe: escape embedded quotes by doubling them, then wrap.
+    return `"${arg.replace(/"/g, '""')}"`;
+  }
+  // POSIX sh: single-quote and escape any embedded single quote.
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+// PTY-backed sibling of spawnBackgroundCommand: starts a process under a real
+// pseudo-terminal (node-pty) so full-screen/interactive TUIs that check
+// `process.stdout.isTTY` render and accept keystrokes (Phase 2). It is a
+// drop-in `BackgroundProcess` — same buffer/subscriber model — except a PTY
+// exposes ONE merged stream, so all output lands in the `stdout` buffer
+// (`getStderr()` returns "", `getCombined()` returns stdout). That keeps
+// `waitForStdio`/`waitForReady` (`getStdout()||getStderr()`) working unchanged.
+//
+// node-pty is a heavy native optionalDependency, lazily loaded via the existing
+// `loadHeavyDep` pattern. If it can't be resolved/installed this REJECTS; the
+// caller (runShell) maps the rejection to a SKIPPED step (graceful degradation),
+// keeping fixtures PASS/SKIPPED.
+//
+// We spawn through the platform shell (`cmd.exe /c` / `/bin/sh -c`) for parity
+// with spawnBackgroundCommand's `{ shell: true }`, appending the (quoted) `args`
+// to the command string so the `args` field still works.
+async function spawnPtyBackgroundCommand(
+  cmd: string,
+  args: string[] = [],
+  options: any = {}
+): Promise<BackgroundProcess> {
+  // Rethrow a tagged error on failure; runShell maps it to SKIP.
+  const pty = await loadHeavyDep<any>("node-pty", {
+    ctx: { cacheDir: options.cacheDir },
+  });
+
+  const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
+  const fullCommand = cmd + argstr;
+  const isWin = process.platform === "win32";
+  const shell = isWin
+    ? process.env.ComSpec || "cmd.exe"
+    : process.env.SHELL || "/bin/sh";
+  const shellArgs = isWin ? ["/c", fullCommand] : ["-c", fullCommand];
+
+  const ptyProcess = pty.spawn(shell, shellArgs, {
+    name: "xterm-color",
+    cols: 120,
+    rows: 30,
+    cwd: options.cwd || process.cwd(),
+    env: process.env,
+  });
+
+  // PTY = one merged stream → feed everything into the stdout buffer.
+  let stdout = "";
+  const subscribers = new Set<
+    (chunk: string, stream: "stdout" | "stderr") => void
+  >();
+  function append(text: string) {
+    stdout = (stdout + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    for (const cb of subscribers) cb(text, "stdout");
+  }
+  ptyProcess.onData((d: string) => append(d));
+
+  let alive = true;
+  const exited = new Promise<number | null>((resolve) => {
+    ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
+      alive = false;
+      resolve(exitCode);
+    });
+  });
+
+  return {
+    pid: ptyProcess.pid,
+    isPty: true,
+    getStdout: () => stdout,
+    getStderr: () => "",
+    getCombined: () => stdout,
+    write(data) {
+      // Guard against a write to an already-exited PTY so it is a no-op (false)
+      // rather than a throw.
+      if (!alive) return false;
+      try {
+        ptyProcess.write(data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    onChunk(cb) {
+      subscribers.add(cb);
+      return () => subscribers.delete(cb);
+    },
+    exited,
+    kill() {
+      try {
+        ptyProcess.kill();
+      } catch {
+        // best-effort — the PTY may already have exited
+      }
+    },
   };
 }
 

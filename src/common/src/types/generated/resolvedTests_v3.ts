@@ -392,6 +392,10 @@ export interface RunShellCommandDetailed {
        */
       delayMs?: number;
     };
+    /**
+     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the optional `node-pty` dependency; if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode.
+     */
+    tty?: boolean;
   };
 }
 /**
