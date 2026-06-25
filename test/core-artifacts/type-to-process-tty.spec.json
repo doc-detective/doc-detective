@@ -17,7 +17,12 @@
               }
             },
             "timeout": 30000
-          }
+          },
+          "onSkip": [
+            {
+              "stop": "test"
+            }
+          ]
         },
         {
           "type": {
