@@ -409,6 +409,9 @@ async function spawnPtyBackgroundCommand(
 
   const ptyProcess = pty.spawn(shell, shellArgs, {
     name: "xterm-color",
+    // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
+    // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
+    // expected width when authoring `waitUntil.stdio` patterns.
     cols: 120,
     rows: 30,
     cwd: options.cwd || process.cwd(),

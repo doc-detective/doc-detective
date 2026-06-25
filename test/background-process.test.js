@@ -317,8 +317,7 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
     try {
       const bg = await spawnPtyBackgroundCommand("node -e \"\"");
       ptyAvailable = true;
-      await bg.kill();
-      await bg.exited;
+      await bg.kill(); // kill() resolves once the PTY has exited
     } catch {
       ptyAvailable = false;
     }
@@ -362,8 +361,7 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
       assert.equal(bg.getStderr(), "");
       assert.equal(bg.getCombined(), bg.getStdout());
     } finally {
-      await bg.kill();
-      await bg.exited;
+      await bg.kill(); // resolves once the PTY has exited
       fs.rmSync(probe, { force: true });
     }
   });
@@ -384,8 +382,7 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
       });
       assert.equal(matched, true, "REPL should have evaluated 2+2");
     } finally {
-      await bg.kill();
-      await bg.exited;
+      await bg.kill(); // resolves once the PTY has exited
     }
   });
 
