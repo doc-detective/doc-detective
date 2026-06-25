@@ -269,6 +269,114 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
+      it("should validate a config_v3 object with autoRecord set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoRecord: true },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoRecord).to.equal(true);
+      });
+
+      it("should default autoRecord to false when unset", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoRecord).to.equal(false);
+      });
+
+      it("should reject a config_v3 object whose autoRecord is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoRecord: "yes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoRecord");
+      });
+
+      it("should validate spec_v3 and test_v3 objects with autoRecord overrides", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            autoRecord: true,
+            tests: [
+              {
+                autoRecord: false,
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoRecord).to.equal(true);
+        expect(result.object.tests[0].autoRecord).to.equal(false);
+      });
+
+      it("should not default autoRecord on specs or tests when unset", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoRecord).to.equal(undefined);
+        expect(result.object.tests[0].autoRecord).to.equal(undefined);
+      });
+
+      it("should validate a record step with a name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", name: "demo" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.record.name).to.equal("demo");
+      });
+
+      it("should reject a record step whose name is whitespace-only", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", name: "   " } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate stopRecord as boolean, null, a name string, or a name object", function () {
+        for (const stopRecord of [true, null, "demo", { name: "demo" }]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { stopRecord },
+          });
+          expect(
+            result.valid,
+            `stopRecord: ${JSON.stringify(stopRecord)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject stopRecord with an empty name or extra properties", function () {
+        for (const stopRecord of [{ name: "" }, { name: "demo", extra: 1 }]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { stopRecord },
+          });
+          expect(
+            result.valid,
+            `expected invalid stopRecord: ${JSON.stringify(stopRecord)}`
+          ).to.be.false;
+        }
+      });
+
       it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
         for (const concurrentRunners of [1, 4, true]) {
           const result = validate({
@@ -480,6 +588,120 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.true;
         // The returned object should be the original without validation mutations
         expect(result.object.goTo.url).to.equal("https://example.com");
+      });
+    });
+
+    describe("runBrowserScript step", function () {
+      it("should validate the simple string form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runBrowserScript: "return document.title;" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript).to.equal(
+          "return document.title;"
+        );
+      });
+
+      it("should validate the detailed object form with all fields", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: {
+              script: "return arguments[0] + arguments[1];",
+              args: ["foo", "bar"],
+              output: "foobar",
+              path: "result.json",
+              directory: "output",
+              maxVariation: 0.1,
+              overwrite: "aboveVariation",
+              timeout: 5000,
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript.script).to.equal(
+          "return arguments[0] + arguments[1];"
+        );
+        expect(result.object.runBrowserScript.args).to.deep.equal([
+          "foo",
+          "bar",
+        ]);
+      });
+
+      it("should accept non-string args (numbers, booleans)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: {
+              script: "return arguments[0];",
+              args: [42, true, "x", null],
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript.args).to.deep.equal([
+          42,
+          true,
+          "x",
+          null,
+        ]);
+      });
+
+      it("should reject the object form when script is missing", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runBrowserScript: { args: ["foo"] } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject maxVariation outside the 0-1 range", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", maxVariation: 2 },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject unknown properties on the object form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", bogus: true },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject a non-positive timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", timeout: 0 },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
       });
     });
 

@@ -25,6 +25,10 @@
       "type": "boolean",
       "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
     },
+    "autoRecord": {
+      "type": "boolean",
+      "description": "If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level."
+    },
     "runOn": {
       "type": "array",
       "description": "Contexts to run the test in. Overrides contexts defined at the config and spec levels.",

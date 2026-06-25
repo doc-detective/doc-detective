@@ -112,6 +112,12 @@ const OVERRIDE_SPECS: Array<{
     present: (a) => typeof a.autoScreenshot === "boolean",
   },
   {
+    flag: "auto-record",
+    argKey: "autoRecord",
+    configKey: "autoRecord",
+    present: (a) => typeof a.autoRecord === "boolean",
+  },
+  {
     flag: "cache-dir",
     argKey: "cacheDir",
     configKey: "cacheDir",

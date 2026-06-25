@@ -10,6 +10,7 @@ import {
 import path from "node:path";
 import fs from "node:fs";
 import { loadHeavyDep } from "../../runtime/loader.js";
+import { isRecordingActive } from "./ffmpegRecorder.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -346,21 +347,19 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     await driver.pause(100);
   }
 
+  // Hide the synthetic cursor during capture so it isn't baked into the image,
+  // then always restore it in `finally` — otherwise a capture failure mid-way
+  // would leave the pointer hidden for every later step in a recording.
+  const recordingActive = isRecordingActive(driver);
   try {
-    // If recording is true, hide cursor
-    if (driver?.state?.recording) {
+    if (recordingActive) {
       await driver.execute(() => {
-        (document.querySelector("dd-mouse-pointer") as any).style.display = "none";
+        const pointer = document.querySelector("dd-mouse-pointer") as any;
+        if (pointer) pointer.style.display = "none";
       });
     }
     // Save screenshot
     await driver.saveScreenshot(filePath);
-    // If recording is true, show cursor
-    if (driver?.state?.recording) {
-      await driver.execute(() => {
-        (document.querySelector("dd-mouse-pointer") as any).style.display = "block";
-      });
-    }
   } catch (error) {
     // Couldn't save screenshot
     result.status = "FAIL";
@@ -370,6 +369,20 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       fs.unlinkSync(filePath);
     }
     return result;
+  } finally {
+    if (recordingActive) {
+      // Best-effort: a throw here (e.g. an unstable session) must not override a
+      // successful screenshot result or mask the caught error above — exceptions
+      // in `finally` take precedence over returns.
+      try {
+        await driver.execute(() => {
+          const pointer = document.querySelector("dd-mouse-pointer") as any;
+          if (pointer) pointer.style.display = "block";
+        });
+      } catch {
+        /* cursor restore is non-essential */
+      }
+    }
   }
 
   // If crop is set, found bounds of element and crop image

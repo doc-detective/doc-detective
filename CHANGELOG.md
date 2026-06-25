@@ -1,3 +1,24 @@
+## [4.14.1](https://github.com/doc-detective/doc-detective/compare/v4.14.0...v4.14.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **runner:** gate advanced ordering under concurrentRunners ([#377](https://github.com/doc-detective/doc-detective/issues/377)) ([158c83e](https://github.com/doc-detective/doc-detective/commit/158c83e6d64a833aef4bea1bba39475d18c62259))
+
+# [4.14.0](https://github.com/doc-detective/doc-detective/compare/v4.13.0...v4.14.0) (2026-06-18)
+
+
+### Features
+
+* **runner:** add runBrowserScript action to execute JavaScript in the browser context ([#352](https://github.com/doc-detective/doc-detective/issues/352)) ([f010c67](https://github.com/doc-detective/doc-detective/commit/f010c67dbd35e790df1bb8dcd3ae0db054c5e11b))
+
+# [4.13.0](https://github.com/doc-detective/doc-detective/compare/v4.12.1...v4.13.0) (2026-06-17)
+
+
+### Features
+
+* **record:** autoRecord + multiple overlapping recordings ([#349](https://github.com/doc-detective/doc-detective/issues/349)) ([189d197](https://github.com/doc-detective/doc-detective/commit/189d1979319825bc43e10ad43e18bd293c19ece7)), closes [#348](https://github.com/doc-detective/doc-detective/issues/348) [#348](https://github.com/doc-detective/doc-detective/issues/348)
+
 ## [4.12.1](https://github.com/doc-detective/doc-detective/compare/v4.12.0...v4.12.1) (2026-06-17)
 
 

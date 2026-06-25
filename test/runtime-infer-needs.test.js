@@ -46,6 +46,17 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("@ffmpeg-installer/ffmpeg")).to.equal(false);
   });
 
+  it("a runBrowserScript step requires a browser (wdio + appium + default chrome)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ runBrowserScript: "return document.title;" }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["chrome"]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(true);
+    expect(needs.npmPackages.has("appium")).to.equal(true);
+    expect(needs.npmPackages.has("@puppeteer/browsers")).to.equal(true);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
+  });
+
   it("respects an explicit runOn browser at the spec level", function () {
     const needs = inferRuntimeNeeds([
       makeSpec([{ goTo: { url: "https://x.test" } }], {

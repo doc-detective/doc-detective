@@ -92,6 +92,27 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // enableAutoRecord (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "enableAutoRecord",
+    priority: 40,
+    markdown: [
+      "Want a video of every run? Enable `--auto-record` to record each browser context end-to-end with the ffmpeg engine.",
+      "",
+      "Videos are archived per run under `.doc-detective/run-<runId>/` alongside test results, so you can replay exactly what happened.",
+      "",
+      "```bash",
+      "doc-detective --auto-record",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      !ctx.producedRecordings &&
+      !ctx.config?.autoRecord,
+  },
+
+  // ------------------------------------------------------------------
   // enableAutoScreenshot (feature discovery)
   // ------------------------------------------------------------------
   {
@@ -586,6 +607,29 @@ export const HINTS: Hint[] = [
       ctx.failedCount > 0 &&
       !ctx.producedRecordings &&
       ctx.usedBrowserContexts.size > 0,
+  },
+
+  // ------------------------------------------------------------------
+  // useRunBrowserScriptStep (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useRunBrowserScriptStep",
+    priority: 40,
+    markdown: [
+      "Need to read computed page state or seed the app from a test? `runBrowserScript` runs JavaScript in the live page and captures the return value into `outputs.result`.",
+      "",
+      "Reach for it when an assertion depends on DOM or `window` state the built-in steps don't expose, or when you need to set up state like `localStorage` before continuing.",
+      "",
+      "```json",
+      "{ \"runBrowserScript\": { \"script\": \"return document.title;\", \"output\": \"Welcome\" } }",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/runBrowserScript](https://doc-detective.com/docs/references/schemas/runbrowserscript)",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      ctx.usedStepTypes.has("find") &&
+      !ctx.usedStepTypes.has("runBrowserScript"),
   },
 
   // ------------------------------------------------------------------

@@ -150,6 +150,116 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("autoRecord/record name conflict skips the whole test before any step runs", async function () {
+    // A `record` step that reuses a recording `name` while one with that name
+    // is still active is caught by the static Phase-1 preflight, which skips
+    // the test (all contexts) with a clear reason — no driver is started, so
+    // this is deterministic on every platform.
+    const conflictSpec = {
+      tests: [
+        {
+          testId: "dup-name-conflict",
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { record: { path: "dup-1.mp4", name: "dup", engine: "ffmpeg", overwrite: "true" } },
+            { record: { path: "dup-2.mp4", name: "dup", engine: "ffmpeg", overwrite: "true" } },
+            { stopRecord: "dup" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-record-name-conflict.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(conflictSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0, "conflict must not fail the spec");
+      assert.equal(result.summary.tests.skipped, 1, "exactly the one conflicting test should be skipped");
+      assert.equal(result.summary.tests.pass, 0, "the conflicting test must not pass");
+      const ctx = result.specs[0].tests[0].contexts[0];
+      assert.equal(ctx.result, "SKIPPED");
+      assert.match(
+        ctx.resultDescription,
+        /recording name 'dup'/,
+        `expected the skip reason to name the conflict, got: ${ctx.resultDescription}`
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  // autoRecord precedence (config > spec > test) end-to-end through runTests.
+  // The synthetic full-context recording carries this exact description, so its
+  // presence/absence in the executed steps proves whether autoRecord resolved
+  // true for the context. Headless here: the ffmpeg capture itself SKIPs without
+  // a display, but the synthetic step is still injected and reported, which is
+  // all these assertions need.
+  const AUTO_RECORD_DESC = "Automatic full-context recording";
+  const hasSyntheticRecord = (result) => {
+    const steps = result?.specs?.[0]?.tests?.[0]?.contexts?.[0]?.steps || [];
+    return steps.some(
+      (s) => s.description === AUTO_RECORD_DESC && typeof s.record !== "undefined"
+    );
+  };
+
+  it("autoRecord config-level injects a synthetic recording end-to-end", async function () {
+    this.retries(2); // browser startup between sequential runTests calls can be flaky
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { find: { selector: "body", timeout: 5000 } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-autorecord-config.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    // autoRecord set ONLY at the config level (no spec/test fields).
+    const config = { input: tempFilePath, logLevel: "silent", autoRecord: true };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      assert.ok(
+        hasSyntheticRecord(result),
+        "config-level autoRecord should inject the synthetic recording step"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("autoRecord test-level false overrides spec-level true end-to-end", async function () {
+    this.retries(2);
+    const spec = {
+      autoRecord: true, // spec level on
+      tests: [
+        {
+          autoRecord: false, // test level wins → no synthetic recording
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { find: { selector: "body", timeout: 5000 } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-autorecord-precedence.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      assert.ok(
+        !hasSyntheticRecord(result),
+        "test-level autoRecord:false should override spec-level true (no synthetic recording)"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("runShell regression test returns WARNING when variation exceeds threshold", async () => {
     // Create a test file path
     const outputFilePath = path.resolve("./test/temp-regression-output.txt");
@@ -286,6 +396,146 @@ describe("Run tests successfully", function () {
       }
       if (fs.existsSync(screenshotPath)) {
         fs.unlinkSync(screenshotPath);
+      }
+    }
+  });
+
+  it("runBrowserScript: unsafe step runs when allowed, output mismatch FAILs, timeout FAILs", async function () {
+    this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
+    const spec = {
+      tests: [
+        {
+          // Test 0: an unsafe runBrowserScript runs when allowUnsafeSteps is true.
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { unsafe: true, runBrowserScript: { script: "return 1 + 1;", output: "2" } },
+          ],
+        },
+        {
+          // Test 1: an output assertion that can't match -> FAIL.
+          steps: [
+            { goTo: "http://localhost:8092" },
+            { runBrowserScript: { script: "return 'actual';", output: "expected-but-absent" } },
+          ],
+        },
+        {
+          // Test 2: a script that runs past its timeout -> FAIL.
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              runBrowserScript: {
+                script: "const start = Date.now(); while (Date.now() - start < 4000) {} return true;",
+                timeout: 1000,
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-runbrowserscript-edge.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent", allowUnsafeSteps: true };
+    try {
+      const result = await runTests(config);
+      const tests = result.specs[0].tests;
+      // Unsafe step ran (not skipped) and passed.
+      assert.equal(tests[0].contexts[0].steps[1].result, "PASS");
+      // Output mismatch failed.
+      assert.equal(tests[1].contexts[0].steps[1].result, "FAIL");
+      // Timeout failed.
+      assert.equal(tests[2].contexts[0].steps[1].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("runBrowserScript honors `directory` for the snapshot path", async function () {
+    this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
+    const dir = path.resolve("./test/temp-rbs-dir");
+    fs.rmSync(dir, { recursive: true, force: true });
+    const strayAtCwd = path.resolve("./rbs-dir-output.txt");
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              runBrowserScript: {
+                script: "return 'dir-test-value';",
+                path: "rbs-dir-output.txt",
+                directory: dir,
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-rbs-dir-spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 0);
+      // The output lands under `directory` (resolved upstream in files.ts), not cwd.
+      assert.equal(
+        fs.existsSync(path.join(dir, "rbs-dir-output.txt")),
+        true,
+        "snapshot should be written under `directory`"
+      );
+      assert.equal(
+        fs.existsSync(strayAtCwd),
+        false,
+        "snapshot should not be written to the working directory"
+      );
+    } finally {
+      fs.rmSync(tempFilePath, { force: true });
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(strayAtCwd, { force: true });
+    }
+  });
+
+  it("runBrowserScript snapshot returns WARNING when variation exceeds threshold and rewrites the file", async function () {
+    this.retries(2); // Browser driver startup can be flaky between sequential runTests calls
+    const outputFilePath = path.resolve("./test/temp-rbs-snapshot.txt");
+    fs.writeFileSync(outputFilePath, "initial content");
+
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              runBrowserScript: {
+                script: "return 'completely different return value';",
+                path: outputFilePath,
+                maxVariation: 0.1,
+                overwrite: "aboveVariation",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-rbs-snapshot-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.steps.warning, 1);
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(
+        result.specs[0].tests[0].contexts[0].steps[1].result,
+        "WARNING"
+      );
+      // overwrite: "aboveVariation" should have rewritten the file.
+      assert.equal(
+        fs.readFileSync(outputFilePath, "utf8"),
+        "completely different return value"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(outputFilePath)) {
+        fs.unlinkSync(outputFilePath);
       }
     }
   });

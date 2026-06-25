@@ -1,0 +1,129 @@
+---
+title: runBrowserScript
+description: Execute arbitrary JavaScript in the browser page context.
+---
+
+
+The `runBrowserScript` action runs a JavaScript snippet **inside the browser page under test** and captures its return value. Use it to read computed DOM state, assert on values only reachable from `window`, seed application state (such as `localStorage`), or dispatch synthetic events.
+
+It runs via the WebDriver `executeScript` endpoint, so the script has access to the page's `document`, `window`, and DOM. This is distinct from [`runCode`](/docs/actions/runcode), which runs Node, Python, or Bash on the **host machine** rather than in the browser.
+
+> Because it requires a live page, `runBrowserScript` is a browser step. Doc Detective launches a browser context to run it, just like `goTo`, `find`, and `click`.
+
+You can specify the `runBrowserScript` action using either a string or an object:
+
+- **String format:** The JavaScript to evaluate. Use `return` to capture a value.
+- **Object format:**
+  - `script`: (Required) The JavaScript to evaluate in the page. Supports `return`. The script reads values passed in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
+  - `args`: (Optional) An array of values passed positionally to the script. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
+  - `output`: (Optional) A string or regular expression to validate against the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^https?:\/\//`).
+  - *Output Saving:* You can also save the serialized return value using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runBrowserScript`](/reference/schemas/runbrowserscript) reference for details.
+
+**Capturing the return value.** Doc Detective stores the script's return value in the step's `outputs.result`. To reuse it in later steps, use the step-level `variables` object with the expression `$$result`.
+
+**Output regression testing.** If you set `path` and a reference file already exists there, the action compares the new serialized return value to the reference content. If the difference falls within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and the `overwrite` setting (`false`, `true`, or `aboveVariation`) controls whether the action rewrites the file.
+
+> Running arbitrary JavaScript in the page can modify application state. Mark a step `unsafe: true` when its script could have side effects. Unsafe steps run only when you allow them (via the `allowUnsafeSteps` config option or the `--allow-unsafe` flag); otherwise Doc Detective skips them.
+
+> For comprehensive options, see the [`runBrowserScript`](/reference/schemas/runbrowserscript) reference.
+
+## Examples
+
+Here are a few ways you might use the `runBrowserScript` action:
+
+### Read a value from the page
+
+This example navigates to a page and returns its title.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://example.com" },
+        {
+          "description": "Read the page title.",
+          "runBrowserScript": "return document.title;"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Assert on the return value
+
+This example checks that the current URL uses HTTP(S) via a regular expression.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://example.com" },
+        {
+          "description": "Validate the page URL.",
+          "runBrowserScript": {
+            "script": "return window.location.href;",
+            "output": "/^https?:\\/\\//"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Pass arguments into the script
+
+The script reads values from `args` through the `arguments` object.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://example.com" },
+        {
+          "description": "Concatenate two arguments in the page.",
+          "runBrowserScript": {
+            "script": "return arguments[0] + arguments[1];",
+            "args": ["foo", "bar"],
+            "output": "foobar"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Capture the return value into a variable
+
+The first step captures the return value into a `TOKEN` variable. The second step substitutes it into `args` and validates it round-trips through the page.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://example.com" },
+        {
+          "description": "Read a value and store it in a variable.",
+          "runBrowserScript": "return window.localStorage.getItem('token');",
+          "variables": {
+            "TOKEN": "$$result"
+          }
+        },
+        {
+          "description": "Reuse the captured value.",
+          "runBrowserScript": {
+            "script": "return arguments[0];",
+            "args": ["$TOKEN"]
+          }
+        }
+      ]
+    }
+  ]
+}
+```

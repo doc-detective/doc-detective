@@ -9,20 +9,8 @@ import { log } from "./utils.js";
 import { generateSpecId } from "./detectTests.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
-
-// Doc Detective actions that require a driver.
-const driverActions = [
-  "click",
-  "dragAndDrop",
-  "find",
-  "goTo",
-  "loadCookie",
-  "record",
-  "saveCookie",
-  "screenshot",
-  "stopRecord",
-  "type",
-];
+// Single source of truth for browser/driver-requiring step keys.
+import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;

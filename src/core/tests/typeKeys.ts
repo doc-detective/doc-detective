@@ -3,6 +3,7 @@ import {
   findElementByCriteria,
 } from "./findStrategies.js";
 import { loadHeavyDep } from "../../runtime/loader.js";
+import { isRecordingActive } from "./ffmpegRecorder.js";
 
 export { typeKeys };
 
@@ -166,7 +167,7 @@ async function typeKeys({ config, step, driver }: { config: any; step: any; driv
   }
 
   // Split into array of strings, each containing a single key
-  if (driver?.state?.recording) {
+  if (isRecordingActive(driver)) {
     let keys: any[] = [];
     step.type.keys.forEach((key: any) => {
       if (key.startsWith("$") && key.endsWith("$")) {
@@ -211,7 +212,7 @@ async function typeKeys({ config, step, driver }: { config: any; step: any; driv
 
   // Run action
   try {
-    if (driver?.state?.recording) {
+    if (isRecordingActive(driver)) {
       // Type keys one at a time
       for (let i = 0; i < step.type.keys.length; i++) {
         await driver.keys(step.type.keys[i]);

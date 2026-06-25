@@ -20,6 +20,8 @@ export {
   inContainer,
   cleanTemp,
   calculateFractionalDifference,
+  serializeBrowserResult,
+  matchesExpectedOutput,
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
@@ -780,10 +782,10 @@ function getRunOutputDir(
 }
 
 // Whether a run will write anything into its per-run artifact folder
-// (`<output>/.doc-detective/run-<id>/`). The folder only holds runFolder
-// reporter archives and autoScreenshot images, so when neither is active the
-// runner skips creating it (see runSpecs) instead of leaving an empty folder
-// behind.
+// (`<output>/.doc-detective/run-<id>/`). The folder holds runFolder reporter
+// archives, autoScreenshot images, and autoRecord videos, so when none is
+// active the runner skips creating it (see runSpecs) instead of leaving an
+// empty folder behind.
 //
 // autoScreenshot can be set globally on the config or per spec/test. When the
 // resolved `specs` are available, decide exactly as resolveAutoScreenshot does
@@ -805,17 +807,23 @@ function getRunOutputDir(
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   const list = Array.isArray(specs) ? specs : [];
   if (list.length > 0) {
-    const writesScreenshot = list.some((spec: any) =>
-      (spec?.tests ?? []).some((test: any) =>
-        Boolean(
-          test?.autoScreenshot ??
-            spec?.autoScreenshot ??
-            config?.autoScreenshot
-        )
+    // autoScreenshot images and autoRecord videos both land in the run folder.
+    // Resolve each exactly as resolveAutoScreenshot/resolveAutoRecord do
+    // (test > spec > config) per selected test, so a per-test `false` that
+    // overrides a global `true` is respected.
+    const writesArtifact = list.some((spec: any) =>
+      (spec?.tests ?? []).some(
+        (test: any) =>
+          Boolean(
+            test?.autoScreenshot ??
+              spec?.autoScreenshot ??
+              config?.autoScreenshot
+          ) ||
+          Boolean(test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord)
       )
     );
-    if (writesScreenshot) return true;
-  } else if (Boolean(config?.autoScreenshot)) {
+    if (writesArtifact) return true;
+  } else if (Boolean(config?.autoScreenshot) || Boolean(config?.autoRecord)) {
     return true;
   }
   const active =
@@ -911,6 +919,58 @@ function calculateFractionalDifference(text1: string, text2: string) {
   if (maxLength === 0) return 0; // Both strings are empty
   const fractionalDiff = distance / maxLength;
   return fractionalDiff;
+}
+
+/**
+ * Serialize the value returned by a browser script into a string for assertion
+ * and snapshotting. Strings pass through unchanged; other primitives and `null`
+ * go through `String(value)` (preserving `NaN`/`Infinity`/`BigInt`, which JSON
+ * would coerce or throw on); objects and arrays are JSON-serialized, falling
+ * back to `String(value)` for circular or otherwise unserializable structures
+ * so the result is always a usable string.
+ *
+ * @param {unknown} value - The raw return value from `driver.execute`.
+ * @returns {string} A string representation suitable for substring/regex
+ *                   matching and writing to a snapshot file.
+ */
+function serializeBrowserResult(value: unknown): string {
+  if (typeof value === "string") return value;
+  // Primitives (number, boolean, bigint, symbol, undefined) and null go through
+  // String(): it preserves values like NaN/Infinity/BigInt that JSON.stringify
+  // would coerce to "null", drop to undefined, or throw on.
+  if (value === null || typeof value !== "object") return String(value);
+  // Objects and arrays serialize to JSON, falling back to String() for
+  // circular or otherwise unserializable structures.
+  try {
+    const json = JSON.stringify(value);
+    return json === undefined ? String(value) : json;
+  } catch {
+    return String(value);
+  }
+}
+
+/**
+ * Test whether a serialized value contains the expected output. Mirrors the
+ * `runShell`/`runCode` `stdio` matching contract: when `expected` starts and
+ * ends with `/`, the inner text is treated as a regular expression; otherwise
+ * it's a plain substring match.
+ *
+ * @param {string} serialized - The serialized script result.
+ * @param {string} expected - Expected content; a `/pattern/` regex or a literal substring.
+ * @returns {boolean} `true` when the expected content is found.
+ */
+function matchesExpectedOutput(serialized: string, expected: string): boolean {
+  if (expected.startsWith("/") && expected.endsWith("/")) {
+    try {
+      const regex = new RegExp(expected.slice(1, -1));
+      return regex.test(serialized);
+    } catch {
+      // Malformed regex pattern — treat as a normal mismatch instead of
+      // letting the SyntaxError abort the step.
+      return false;
+    }
+  }
+  return serialized.includes(expected);
 }
 
 function llevenshteinDistance(s: string, t: string) {

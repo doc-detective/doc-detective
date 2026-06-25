@@ -13,6 +13,7 @@ import {
   detectX11ScreenSize,
 } from "./ffmpegRecorder.js";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -83,10 +84,52 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     return result;
   }
 
+  // With overlapping recordings, two could target the same output before
+  // either file exists (the existsSync check above can't catch that). Refuse to
+  // start a recording whose target is already claimed by an active one.
+  // Case-fold on case-insensitive filesystems (Windows/macOS) so `out.mp4` and
+  // `Out.mp4` — which resolve to the same file — are caught by this guard.
+  const normalizeActiveTarget = (p: string) => {
+    const resolved = path.resolve(p);
+    return process.platform === "win32" || process.platform === "darwin"
+      ? resolved.toLowerCase()
+      : resolved;
+  };
+  const normalizedTarget = normalizeActiveTarget(filePath);
+  if (
+    Array.isArray(driver?.state?.recordings) &&
+    driver.state.recordings.some(
+      (r: any) =>
+        typeof r?.targetPath === "string" &&
+        normalizeActiveTarget(r.targetPath) === normalizedTarget
+    )
+  ) {
+    result.status = "SKIPPED";
+    result.description = `Recording target is already in use by an active recording: ${filePath}`;
+    return result;
+  }
+
   // Resolve which engine to use. The context's browser is already coerced by
   // the runner (headed Chrome preferred when nothing was specified), so this
   // is a pure read.
-  const plan = resolveRecordPlan({ step, context });
+  let plan = resolveRecordPlan({ step, context });
+
+  // The browser engine owns a dedicated recorder tab and switches the active
+  // window, so only one browser-engine recording can run per context. If one
+  // is already active and this would be a second, don't fail — fall back to
+  // the ffmpeg engine with a `viewport` target (cropped to the browser content
+  // area, approximating the browser-engine capture) and warn.
+  const hasActiveBrowserRecording =
+    Array.isArray(driver?.state?.recordings) &&
+    driver.state.recordings.some((r: any) => r?.type === "MediaRecorder");
+  if (plan.name === "browser" && hasActiveBrowserRecording) {
+    log(
+      config,
+      "warning",
+      "A browser-engine recording is already active in this context; recording this one with the ffmpeg engine (viewport target) instead, since only one browser-engine recording can run at a time."
+    );
+    plan = { name: "ffmpeg", target: "viewport", fps: plan.fps };
+  }
 
   if (plan.name === "browser") {
     // Browser engine: capture the Chrome viewport via getDisplayMedia +
@@ -284,9 +327,12 @@ async function startRecording({ config, context, step, driver }: { config: any; 
 
   const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+  // A short unique suffix keeps two same-context recordings that share a
+  // baseName (e.g. overlapping ffmpeg captures) from writing/transcoding/
+  // deleting the same intermediate .mkv.
   const tempPath = path.join(
     tempDir,
-    `${safeContextId(context.contextId)}-${baseName}.mkv`
+    `${safeContextId(context.contextId)}-${baseName}-${randomUUID().slice(0, 8)}.mkv`
   );
 
   let ffmpegPath: string;
