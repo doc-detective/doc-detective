@@ -53,14 +53,23 @@ Mechanism:
    `runShell_v3` and `runCode_v3`. `additionalProperties:false` already guards the object, so adding
    the property is the whole schema change. The description documents the `node-pty` requirement, the
    SKIP-on-absence behavior, and that **stdout/stderr are merged into one stream** in PTY mode.
-2. **`node-pty` registered as a heavy dep, not a lockfile entry.** It is added to `HEAVY_NPM_DEPS`
-   (`src/runtime/heavyDeps.ts`) and given a version in a `ddRuntimeDependencies` field in
-   `package.json` (a custom field npm ignores, so the lockfile is untouched and `npm i doc-detective`
-   doesn't drag a native module into every install). `getDeclaredVersion` already reads
-   `ddRuntimeDependencies` first, so the `scripts/postinstall.js` / `doc-detective install all` flow
-   installs it alongside webdriverio/appium, and the runtime loader installs it on demand. This is the
-   same model as the other heavy deps — only the declaration field differs (to avoid the lockfile
-   churn that adding a brand-new `optionalDependencies` entry caused).
+2. **PTY backend = `@homebridge/node-pty-prebuilt-multiarch`, registered as a heavy dep, not a
+   lockfile entry.** We deliberately do NOT depend on upstream `microsoft/node-pty`: it has no
+   Windows prebuilt binary (its source build fails on a bare GitHub runner) and its macOS prebuild
+   ships the `spawn-helper` without the execute bit
+   ([microsoft/node-pty#850](https://github.com/microsoft/node-pty/issues/850)) → `posix_spawnp
+   failed` at spawn time on macOS arm64. The prebuilt-multiarch fork is an API-identical parallel
+   fork that ships working prebuilt binaries for macOS (incl. arm64), Windows, and Linux across Node
+   ABIs (Node 24 since v0.13.1), so the PTY path actually RUNS on every CI platform instead of
+   degrading to SKIP. It is added to `HEAVY_NPM_DEPS` (`src/runtime/heavyDeps.ts`) and given a version
+   in a `ddRuntimeDependencies` field in `package.json` (a custom field npm ignores, so the lockfile
+   is untouched and `npm i doc-detective` doesn't drag a native module into every install).
+   `getDeclaredVersion` reads `ddRuntimeDependencies` first, so `scripts/postinstall.js` /
+   `doc-detective install all` install it alongside webdriverio/appium, and the runtime loader
+   installs it on demand. It is also listed in `BEST_EFFORT_NPM_DEPS` so a missing prebuilt for an
+   exotic platform/arch can't abort the whole `install all` batch — a safety net, not the expected
+   path. This is the same model as the other heavy deps; only the declaration field differs (to avoid
+   the lockfile churn that adding a brand-new `optionalDependencies` entry caused).
 3. **`spawnPtyBackgroundCommand`** (`src/core/utils.ts`), an async `BackgroundProcess`-compatible PTY
    handle. It loads `node-pty` via `loadHeavyDep("node-pty", { ctx: { cacheDir } })` (default
    `autoInstall`); when `node-pty` can't be resolved or installed (no prebuilt binary for the

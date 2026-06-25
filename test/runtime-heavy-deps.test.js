@@ -19,9 +19,10 @@ describe("runtime/heavyDeps", function () {
     // This is the canonical list. If a new heavy dep is added, append it here
     // AND declare its version in the source package.json — normally under
     // `optionalDependencies` (the publish step moves that to
-    // `ddRuntimeDependencies`); `node-pty` is the exception, declared directly
-    // under `ddRuntimeDependencies` to keep it out of the lockfile. Either way
-    // getDeclaredVersion() is the bridge.
+    // `ddRuntimeDependencies`); the PTY backend
+    // (`@homebridge/node-pty-prebuilt-multiarch`) is the exception, declared
+    // directly under `ddRuntimeDependencies` to keep it out of the lockfile.
+    // Either way getDeclaredVersion() is the bridge.
     expect(HEAVY_NPM_DEPS).to.include.members([
       "webdriverio",
       "appium",
@@ -34,7 +35,7 @@ describe("runtime/heavyDeps", function () {
       "geckodriver",
       "pixelmatch",
       "pngjs",
-      "node-pty",
+      "@homebridge/node-pty-prebuilt-multiarch",
     ]);
   });
 

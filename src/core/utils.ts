@@ -364,17 +364,25 @@ function quoteShellArg(arg: string): string {
 // (`getStderr()` returns "", `getCombined()` returns stdout). That keeps
 // `waitForStdio`/`waitForReady` (`getStdout()||getStderr()`) working unchanged.
 //
-// node-pty is a registered heavy dep (HEAVY_NPM_DEPS + `ddRuntimeDependencies`),
-// loaded the same way as webdriverio/appium: `loadHeavyDep` resolves a copy that
-// the postinstall / `install all` step (or a prior run's JIT install) placed in
-// the runtime cache, and `autoInstall` lets it install on demand otherwise. It is
-// NOT in `optionalDependencies`, so the lockfile stays untouched. When it can't be
+// The PTY backend is `@homebridge/node-pty-prebuilt-multiarch` — an API-identical
+// parallel fork of node-pty that ships prebuilt binaries for macOS (incl. arm64),
+// Windows, and Linux across Node ABIs. Upstream node-pty has no Windows prebuilds
+// (source build fails on bare runners) and its macOS prebuild ships the
+// `spawn-helper` without the execute bit (`posix_spawnp failed`); the fork avoids
+// both, so the PTY path actually runs on CI rather than degrading to SKIP.
+//
+// It is a registered heavy dep (HEAVY_NPM_DEPS + `ddRuntimeDependencies`), loaded
+// the same way as webdriverio/appium: `loadHeavyDep` resolves a copy that the
+// postinstall / `install all` step (or a prior run's JIT install) placed in the
+// runtime cache, and `autoInstall` lets it install on demand otherwise. It is NOT
+// in `optionalDependencies`, so the lockfile stays untouched. When it can't be
 // resolved or installed (no prebuilt binary for the platform), this REJECTS and
 // the caller (runShell) maps that to a SKIPPED step (graceful degradation).
 //
 // We spawn through the platform shell (`cmd.exe /d /s /c` / `/bin/sh -c`) for
 // parity with spawnBackgroundCommand's `{ shell: true }`, appending the (quoted)
 // `args` to the command string so the `args` field still works.
+const PTY_PACKAGE = "@homebridge/node-pty-prebuilt-multiarch";
 async function spawnPtyBackgroundCommand(
   cmd: string,
   args: string[] = [],
@@ -384,14 +392,14 @@ async function spawnPtyBackgroundCommand(
   // still FAILing on any other PTY startup error.
   let pty: any;
   try {
-    pty = await loadHeavyDep<any>("node-pty", {
+    pty = await loadHeavyDep<any>(PTY_PACKAGE, {
       ctx: { cacheDir: options.cacheDir },
     });
   } catch {
     // Tag ONLY the missing-dependency case so runShell can SKIP for it while
     // still FAILing on any other PTY startup error.
     const err: any = new Error(
-      "node-pty is not installed. Install it (`npm install node-pty`) to use `background.tty`."
+      `The PTY backend (node-pty / ${PTY_PACKAGE}) is not installed. Install it (\`npm install ${PTY_PACKAGE}\`) to use \`background.tty\`.`
     );
     err.code = "NODE_PTY_UNAVAILABLE";
     throw err;

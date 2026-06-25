@@ -35,25 +35,25 @@ describe("scripts/publish-manifest transformForPublish", function () {
   });
 
   it("merges optionalDependencies onto a pre-existing ddRuntimeDependencies", function () {
-    // `node-pty` is declared directly under ddRuntimeDependencies (out of the
-    // lockfile); the moved optionalDependencies must merge on top, not clobber it.
+    // The PTY backend is declared directly under ddRuntimeDependencies (out of
+    // the lockfile); the moved optionalDependencies must merge on top, not clobber it.
     const out = transformForPublish({
-      ddRuntimeDependencies: { "node-pty": "^1.0.0" },
+      ddRuntimeDependencies: { "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1" },
       optionalDependencies: { sharp: "^0.34.5" },
     });
     expect(out).to.not.have.property("optionalDependencies");
     expect(out.ddRuntimeDependencies).to.deep.equal({
-      "node-pty": "^1.0.0",
+      "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
       sharp: "^0.34.5",
     });
   });
 
   it("preserves a ddRuntimeDependencies-only manifest", function () {
     const out = transformForPublish({
-      ddRuntimeDependencies: { "node-pty": "^1.0.0" },
+      ddRuntimeDependencies: { "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1" },
     });
     expect(out).to.not.have.property("optionalDependencies");
-    expect(out.ddRuntimeDependencies).to.deep.equal({ "node-pty": "^1.0.0" });
+    expect(out.ddRuntimeDependencies).to.deep.equal({ "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1" });
   });
 
   it("drops an empty optionalDependencies object without creating ddRuntimeDependencies", function () {
@@ -75,7 +75,7 @@ describe("scripts/publish-manifest transformForPublish", function () {
     // Run the transform against the actual package.json (source of truth, not a
     // generated dist artifact). The published manifest's ddRuntimeDependencies is
     // the source optionalDependencies merged on top of any deps already declared
-    // directly under ddRuntimeDependencies (e.g. node-pty, kept out of the
+    // directly under ddRuntimeDependencies (e.g. the PTY backend, kept out of the
     // lockfile) — and nothing npm would auto-install survives in
     // optionalDependencies.
     const pkg = require("../package.json");

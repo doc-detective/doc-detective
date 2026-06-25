@@ -322,7 +322,9 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
   before(async function () {
     try {
       const { loadHeavyDep } = await import("../dist/runtime/loader.js");
-      await loadHeavyDep("node-pty", { autoInstall: false });
+      await loadHeavyDep("@homebridge/node-pty-prebuilt-multiarch", {
+        autoInstall: false,
+      });
       const bg = await spawnPtyBackgroundCommand("node -e \"\"");
       await bg.kill(); // kill() resolves once the PTY has exited
       ptyAvailable = true;

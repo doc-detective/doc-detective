@@ -2047,22 +2047,27 @@ describe("getRunner() function", function () {
     // the offline JIT install can't pull node-pty from a warm `~/.npm` cache
     // (which it otherwise can on CI after `install all`) — it fails fast instead.
     this.timeout(60000);
+    // The PTY backend is the prebuilt-multiarch fork of node-pty; its package
+    // dir is named for the fork even though the SKIP reason still says "node-pty".
+    const PTY_PKG = "@homebridge/node-pty-prebuilt-multiarch";
+    const PTY_DIRNAME = "node-pty-prebuilt-multiarch";
     const require = (await import("node:module")).createRequire(
       import.meta.url
     );
     let ptyDir = null;
     try {
-      // <repo>/node_modules/node-pty
-      ptyDir = path.dirname(
-        path.dirname(require.resolve("node-pty"))
-      );
-      // Walk up to the package root (the dir literally named node-pty).
-      while (path.basename(ptyDir) !== "node-pty" && path.dirname(ptyDir) !== ptyDir) {
+      // <repo>/node_modules/@homebridge/node-pty-prebuilt-multiarch
+      ptyDir = path.dirname(path.dirname(require.resolve(PTY_PKG)));
+      // Walk up to the package root (the dir literally named for the fork).
+      while (
+        path.basename(ptyDir) !== PTY_DIRNAME &&
+        path.dirname(ptyDir) !== ptyDir
+      ) {
         ptyDir = path.dirname(ptyDir);
       }
-      if (path.basename(ptyDir) !== "node-pty") ptyDir = null;
+      if (path.basename(ptyDir) !== PTY_DIRNAME) ptyDir = null;
     } catch {
-      ptyDir = null; // node-pty not installed here — absence is already real.
+      ptyDir = null; // not installed here — absence is already real.
     }
 
     const { runShell } = await import("../dist/core/tests/runShell.js");
