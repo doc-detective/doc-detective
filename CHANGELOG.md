@@ -1,3 +1,10 @@
+# [4.15.0-next.16](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.15...v4.15.0-next.16) (2026-06-25)
+
+
+### Features
+
+* **runner:** type keystrokes to background processes via `surface` ([#386](https://github.com/doc-detective/doc-detective/issues/386)) ([fca8ded](https://github.com/doc-detective/doc-detective/commit/fca8ded91f212401dc165828caa1df8a29e0154e)), closes [384/#385](https://github.com/doc-detective/doc-detective/issues/385)
+
 # [4.15.0-next.15](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.14...v4.15.0-next.15) (2026-06-23)
 
 
