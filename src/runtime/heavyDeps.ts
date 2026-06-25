@@ -16,6 +16,7 @@ export const HEAVY_NPM_DEPS = [
   "geckodriver",
   "pixelmatch",
   "pngjs",
+  "node-pty",
 ] as const;
 
 export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];

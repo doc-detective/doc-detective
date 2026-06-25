@@ -25,7 +25,8 @@ pipe path, and without forcing every install to carry a heavy native dependency.
   no changes — a PTY is a spawn-time concern only.
 * Keep the new capability **opt-in** so existing background specs keep their exact pipe behavior.
 * Keep `node-pty` (a native dep with platform-specific prebuilt binaries / ConPTY on Windows) **out
-  of the critical install path** — lazily loaded, like the other heavy deps.
+  of the lockfile** — registered and lazily loaded like the other heavy deps (webdriverio, appium),
+  not as a normal `optionalDependencies` entry.
 * **Graceful degradation:** when `node-pty` can't be loaded, the step must SKIP — never FAIL — so
   fixtures stay PASS/SKIPPED and lean installs aren't broken.
 * The PTY handle must be a **drop-in** `BackgroundProcess` so readiness (`waitUntil`) and teardown
@@ -52,33 +53,40 @@ Mechanism:
    `runShell_v3` and `runCode_v3`. `additionalProperties:false` already guards the object, so adding
    the property is the whole schema change. The description documents the `node-pty` requirement, the
    SKIP-on-absence behavior, and that **stdout/stderr are merged into one stream** in PTY mode.
-2. **`spawnPtyBackgroundCommand`** (`src/core/utils.ts`), an async `BackgroundProcess`-compatible PTY
-   handle. It loads `node-pty` via `loadHeavyDep("node-pty", { ctx: { cacheDir }, autoInstall: false })`
-   — `node-pty` is **not** vendored (not in `dependencies`/`optionalDependencies`, so the lockfile is
-   untouched and lean installs stay lean); `autoInstall: false` means it uses a **user-installed**
-   copy if present (`npm install node-pty`) and otherwise **rejects** (no runtime install of an
-   undeclared package). The caller maps that rejection to SKIP. It spawns through the platform
-   shell for parity with the pipe path's `{ shell: true }` — `cmd.exe /c <cmd+args>` on Windows,
+2. **`node-pty` registered as a heavy dep, not a lockfile entry.** It is added to `HEAVY_NPM_DEPS`
+   (`src/runtime/heavyDeps.ts`) and given a version in a `ddRuntimeDependencies` field in
+   `package.json` (a custom field npm ignores, so the lockfile is untouched and `npm i doc-detective`
+   doesn't drag a native module into every install). `getDeclaredVersion` already reads
+   `ddRuntimeDependencies` first, so the `scripts/postinstall.js` / `doc-detective install all` flow
+   installs it alongside webdriverio/appium, and the runtime loader installs it on demand. This is the
+   same model as the other heavy deps — only the declaration field differs (to avoid the lockfile
+   churn that adding a brand-new `optionalDependencies` entry caused).
+3. **`spawnPtyBackgroundCommand`** (`src/core/utils.ts`), an async `BackgroundProcess`-compatible PTY
+   handle. It loads `node-pty` via `loadHeavyDep("node-pty", { ctx: { cacheDir } })` (default
+   `autoInstall`); when `node-pty` can't be resolved or installed (no prebuilt binary for the
+   platform/arch) it **rejects** and the caller maps that to SKIP. It spawns through the platform
+   shell for parity with the pipe path's `{ shell: true }` — `cmd.exe /d /s /c <cmd+args>` on Windows,
    `/bin/sh -c <cmd+args>` on POSIX — appending the (quoted) `args` to the command string so the
    `args` field still works. PTY = **one merged stream**: `onData` feeds the single `stdout` ring
    buffer (`BACKGROUND_BUFFER_LIMIT`-capped), `getStderr()` returns `""`, `getCombined()` returns
    stdout — which keeps `waitForStdio` (`getStdout()||getStderr()`) and `waitForReady` working
    unchanged. `write` guards against post-exit writes; `exited` resolves via `onExit`; `pid` is the
    PTY pid; `isPty:true`; `kill()` wraps `pty.kill()` (errors swallowed).
-3. **`BackgroundProcess` interface widened** (`src/core/utils.ts`): `child?` is now optional (a PTY
+4. **`BackgroundProcess` interface widened** (`src/core/utils.ts`): `child?` is now optional (a PTY
    has no `ChildProcess`), and two optional members are added — `kill?(): Promise<void> | void` and
    `isPty?: boolean`.
-4. **`runShell` branches on `background.tty`** (`src/core/tests/runShell.ts`). When set, it
-   `await`s `spawnPtyBackgroundCommand(...)` inside a try/catch; a load failure sets
-   `status:"SKIPPED"` with a description that names `node-pty` and returns — graceful skip, not a
-   FAIL. Otherwise it uses the pipe-backed `spawnBackgroundCommand` exactly as before. `runCode`
+5. **`runShell` branches on `background.tty`** (`src/core/tests/runShell.ts`). When set, it
+   `await`s `spawnPtyBackgroundCommand(...)` inside a try/catch; the catch SKIPs **only** the tagged
+   `NODE_PTY_UNAVAILABLE` (node-pty absent/uninstallable) case — any other PTY startup error (bad cwd,
+   spawn failure) returns FAIL so it isn't hidden as optional-dependency absence. Otherwise it uses
+   the pipe-backed `spawnBackgroundCommand` exactly as before. `runCode`
    needs no change: it forwards the whole `background` object (incl. `tty`) to `runShell`.
-5. **PTY-aware teardown.** Three teardown sites prefer `bg.kill()` when present, else the existing
+6. **PTY-aware teardown.** Three teardown sites prefer `bg.kill()` when present, else the existing
    tree-kill on `bg.pid`: `closeSurface` (`src/core/tests/closeSurface.ts`), `killAllRegistered`
    (`src/core/tests.ts`), and `runShell`'s readiness-failure cleanup. A PTY owns its own termination
    via `pty.kill()` and has no shell-tree pid to tree-kill, so the `kill()` abstraction is the
    uniform teardown contract.
-6. **`type` / `closeSurface` / `surface` are untouched.** The control-byte translation already emits
+7. **`type` / `closeSurface` / `surface` are untouched.** The control-byte translation already emits
    terminal-correct bytes, so the same keystrokes drive a pipe REPL or a PTY TUI.
 
 ## Consequences
@@ -120,3 +128,29 @@ Mechanism:
   way. A focused `it` in `test/core-core.test.js` asserts the absence path: with `node-pty`
   unresolvable, a `tty:true` background start yields a step `SKIPPED` whose description mentions
   `node-pty`.
+
+## Pros and Cons of the Options
+
+### A. Opt-in `background.tty` boolean spawning through a lazily-loaded `node-pty` (chosen)
+
+* Good — zero churn to the Phase 1 surface API; `type`/`waitUntil`/`closeSurface` are unchanged.
+* Good — no cost to specs that don't set `tty`; pipe behavior is byte-for-byte unchanged.
+* Good — `node-pty` stays out of the lockfile (registered via `ddRuntimeDependencies`/`HEAVY_NPM_DEPS`),
+  so a brand-new native dep doesn't churn the lock, and absence degrades to SKIP.
+* Bad — native dep: availability depends on a prebuilt binary for the runner's platform/arch.
+* Bad — PTY merges stdout/stderr into one stream; the Windows `args`+`tty` ConPTY quoting limitation
+  applies (use the `command` string).
+
+### B. Always spawn background processes under a PTY (drop the pipe path)
+
+* Good — one code path for every background process; no `tty` knob.
+* Bad — makes `node-pty` a hard dependency of *all* background processes, breaking lean installs.
+* Bad — changes the merged-vs-split stream contract for every existing spec (a breaking change), and
+  pays PTY overhead even for non-interactive processes.
+
+### C. A separate step / surface kind dedicated to TUIs
+
+* Good — an explicit, discoverable surface abstraction for TUI processes.
+* Bad — duplicates the `type`/`background`/`closeSurface` machinery for no benefit; the only real
+  difference from a normal background process is the spawn mechanism, which option A captures with one
+  boolean.

@@ -364,30 +364,28 @@ function quoteShellArg(arg: string): string {
 // (`getStderr()` returns "", `getCombined()` returns stdout). That keeps
 // `waitForStdio`/`waitForReady` (`getStdout()||getStderr()`) working unchanged.
 //
-// node-pty is a native module that doc-detective does NOT vendor (it is not in
-// `dependencies`/`optionalDependencies`, to keep the install lean and the lockfile
-// untouched). It is loaded only if the user has installed it themselves
-// (`npm install node-pty`); `loadHeavyDep` resolves a user-installed copy via its
-// shim/cache lookup. We pass `autoInstall: false` so a missing dep REJECTS cleanly
-// instead of attempting a runtime npm install of an undeclared package. The caller
-// (runShell) maps the rejection to a SKIPPED step (graceful degradation), keeping
-// fixtures PASS/SKIPPED.
+// node-pty is a registered heavy dep (HEAVY_NPM_DEPS + `ddRuntimeDependencies`),
+// loaded the same way as webdriverio/appium: `loadHeavyDep` resolves a copy that
+// the postinstall / `install all` step (or a prior run's JIT install) placed in
+// the runtime cache, and `autoInstall` lets it install on demand otherwise. It is
+// NOT in `optionalDependencies`, so the lockfile stays untouched. When it can't be
+// resolved or installed (no prebuilt binary for the platform), this REJECTS and
+// the caller (runShell) maps that to a SKIPPED step (graceful degradation).
 //
-// We spawn through the platform shell (`cmd.exe /c` / `/bin/sh -c`) for parity
-// with spawnBackgroundCommand's `{ shell: true }`, appending the (quoted) `args`
-// to the command string so the `args` field still works.
+// We spawn through the platform shell (`cmd.exe /d /s /c` / `/bin/sh -c`) for
+// parity with spawnBackgroundCommand's `{ shell: true }`, appending the (quoted)
+// `args` to the command string so the `args` field still works.
 async function spawnPtyBackgroundCommand(
   cmd: string,
   args: string[] = [],
   options: any = {}
 ): Promise<BackgroundProcess> {
-  // Rethrow on failure; runShell maps it to SKIP. `autoInstall: false` → use a
-  // user-installed node-pty if present, otherwise reject (no runtime install).
+  // Rethrow on failure tagged so runShell SKIPs for an unavailable node-pty while
+  // still FAILing on any other PTY startup error.
   let pty: any;
   try {
     pty = await loadHeavyDep<any>("node-pty", {
       ctx: { cacheDir: options.cacheDir },
-      autoInstall: false,
     });
   } catch {
     // Tag ONLY the missing-dependency case so runShell can SKIP for it while

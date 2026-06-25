@@ -34,6 +34,28 @@ describe("scripts/publish-manifest transformForPublish", function () {
     expect(out.dependencies).to.deep.equal({ yargs: "^18.0.0" });
   });
 
+  it("merges optionalDependencies onto a pre-existing ddRuntimeDependencies", function () {
+    // `node-pty` is declared directly under ddRuntimeDependencies (out of the
+    // lockfile); the moved optionalDependencies must merge on top, not clobber it.
+    const out = transformForPublish({
+      ddRuntimeDependencies: { "node-pty": "^1.0.0" },
+      optionalDependencies: { sharp: "^0.34.5" },
+    });
+    expect(out).to.not.have.property("optionalDependencies");
+    expect(out.ddRuntimeDependencies).to.deep.equal({
+      "node-pty": "^1.0.0",
+      sharp: "^0.34.5",
+    });
+  });
+
+  it("preserves a ddRuntimeDependencies-only manifest", function () {
+    const out = transformForPublish({
+      ddRuntimeDependencies: { "node-pty": "^1.0.0" },
+    });
+    expect(out).to.not.have.property("optionalDependencies");
+    expect(out.ddRuntimeDependencies).to.deep.equal({ "node-pty": "^1.0.0" });
+  });
+
   it("drops an empty optionalDependencies object without creating ddRuntimeDependencies", function () {
     // An empty `{}` must not survive into the published manifest — otherwise the
     // publish guardrail could see a stray empty object and misread it.
@@ -49,14 +71,19 @@ describe("scripts/publish-manifest transformForPublish", function () {
     expect(input.optionalDependencies).to.deep.equal({ sharp: "1" });
   });
 
-  it("moves the real source manifest's optionalDependencies wholesale into ddRuntimeDependencies", function () {
+  it("moves the real source manifest's optionalDependencies into ddRuntimeDependencies (merged with any direct entries)", function () {
     // Run the transform against the actual package.json (source of truth, not a
-    // generated dist artifact) so the published manifest's ddRuntimeDependencies
-    // is exactly the source optionalDependencies — and nothing npm would
-    // auto-install survives in optionalDependencies.
+    // generated dist artifact). The published manifest's ddRuntimeDependencies is
+    // the source optionalDependencies merged on top of any deps already declared
+    // directly under ddRuntimeDependencies (e.g. node-pty, kept out of the
+    // lockfile) — and nothing npm would auto-install survives in
+    // optionalDependencies.
     const pkg = require("../package.json");
     const published = transformForPublish(pkg);
     expect(published).to.not.have.property("optionalDependencies");
-    expect(published.ddRuntimeDependencies).to.deep.equal(pkg.optionalDependencies);
+    expect(published.ddRuntimeDependencies).to.deep.equal({
+      ...pkg.ddRuntimeDependencies,
+      ...pkg.optionalDependencies,
+    });
   });
 });
