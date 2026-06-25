@@ -2345,16 +2345,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
-    describe("background processes (runShell/runCode) and stopProcess", function () {
-      it("should validate a background runShell with a port probe", function () {
+    describe("background processes (runShell/runCode)", function () {
+      it("should validate background: true", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runShell: { command: "node -i", background: true } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate background: false", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runShell: { command: "echo hi", background: false } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate background as a string name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runShell: { command: "npm start", background: "web" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate background object with name + waitUntil.stdio", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
-              command: "docker run -p 5432:5432 postgres",
-              background: true,
-              name: "db",
-              readyWhen: { port: { port: 5432 } },
+              command: "./srv",
+              background: { name: "web", waitUntil: { stdio: "/up/" } },
             },
           },
         });
@@ -2362,15 +2387,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a background runShell with a log probe", function () {
+      it("should validate background object with waitUntil.port (no name)", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
-              command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { log: { pattern: "ready to accept", stream: "stdout" } },
+              command: "./srv",
+              background: { waitUntil: { port: { port: 3000 } } },
             },
           },
         });
@@ -2378,51 +2401,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a background runShell with an httpGet probe", function () {
-        const result = validate({
-          schemaKey: "step_v3",
-          object: {
-            runShell: {
-              command: "my-server",
-              background: true,
-              name: "web",
-              readyWhen: {
-                httpGet: { url: "http://localhost:8080", statusCodes: [200, 204] },
-              },
-              timeout: 30000,
-            },
-          },
-        });
-        expect(result.valid).to.be.true;
-        expect(result.errors).to.equal("");
-      });
-
-      it("should validate a background runShell with a delayMs probe", function () {
-        const result = validate({
-          schemaKey: "step_v3",
-          object: {
-            runShell: {
-              command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { delayMs: 2000 },
-            },
-          },
-        });
-        expect(result.valid).to.be.true;
-        expect(result.errors).to.equal("");
-      });
-
-      it("should validate a background runCode with a port probe", function () {
+      it("should validate a background runCode object", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runCode: {
               language: "javascript",
               code: "require('http').createServer((q,r)=>r.end('ok')).listen(8088)",
-              background: true,
-              name: "api",
-              readyWhen: { port: { port: 8088 } },
+              background: { name: "api", waitUntil: { port: { port: 8088 } } },
             },
           },
         });
@@ -2430,33 +2416,35 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a stopProcess step in string form", function () {
+      it("should reject a background object with an unknown key", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { stopProcess: "db" },
+          object: {
+            runShell: { command: "./srv", background: { bogus: 1 } },
+          },
         });
-        expect(result.valid).to.be.true;
-        expect(result.errors).to.equal("");
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
       });
 
-      it("should validate a stopProcess step in object form with ignoreMissing", function () {
+      it("should reject a background object with an empty waitUntil", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { stopProcess: { name: "db", ignoreMissing: true } },
+          object: {
+            runShell: { command: "./srv", background: { waitUntil: {} } },
+          },
         });
-        expect(result.valid).to.be.true;
-        expect(result.errors).to.equal("");
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a readyWhen with two probes", function () {
+      it("should reject a background waitUntil.httpGet without url", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
-              command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { port: { port: 5432 }, delayMs: 1000 },
+              command: "./srv",
+              background: { waitUntil: { httpGet: {} } },
             },
           },
         });
@@ -2464,28 +2452,23 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a readyWhen with an unknown probe key", function () {
+      it("should reject the removed sibling name with background: true", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
-            runShell: {
-              command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { tcp: { port: 5432 } },
-            },
+            runShell: { command: "./srv", background: true, name: "web" },
           },
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a background runShell without a name", function () {
+      it("should reject the removed sibling readyWhen with background: true", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             runShell: {
-              command: "my-server",
+              command: "./srv",
               background: true,
               readyWhen: { delayMs: 1000 },
             },
@@ -2494,16 +2477,108 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
       });
+    });
 
-      it("should reject a background runCode without a name", function () {
+    describe("type to a process surface", function () {
+      it("should validate surface as a string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["2+2", "$ENTER$"], surface: "node" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface as a process object", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
-            runCode: {
-              language: "bash",
-              code: "sleep 100",
-              background: true,
-              readyWhen: { delayMs: 1000 },
+            type: { keys: ["2+2", "$ENTER$"], surface: { process: "node" } },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface + waitUntil.stdio + timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["2+2", "$ENTER$"],
+              surface: "node",
+              waitUntil: { stdio: "/4/" },
+              timeout: 5000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface + waitUntil.delayMs", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["slow build"],
+              surface: "node",
+              waitUntil: { delayMs: 0 },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an empty surface object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: {} } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a browser surface object (no branch yet)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: { browser: "chrome" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["x"], surface: { process: "n", bogus: 1 } },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty waitUntil (minProperties)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["x"], surface: "node", waitUntil: {} },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a port probe in type waitUntil (service-only)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "node",
+              waitUntil: { port: { port: 3000 } },
             },
           },
         });
@@ -2511,42 +2586,90 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a readyWhen port that is out of range", function () {
+      it("should reject waitUntil without a surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], waitUntil: { stdio: "/4/" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface combined with element targeting", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
-            runShell: {
-              command: "my-server",
-              background: true,
-              name: "srv",
-              readyWhen: { port: { port: 70000 } },
+            type: {
+              keys: ["x"],
+              surface: { process: "node" },
+              selector: "#q",
             },
           },
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
       });
+    });
 
-      it("should reject a stopProcess object missing name", function () {
+    describe("closeSurface", function () {
+      it("should validate a string surface name", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { stopProcess: { ignoreMissing: true } },
+          object: { closeSurface: "web" },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a process surface object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: { process: "web" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate an array of surfaces", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: ["web", "api"] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an empty array (minItems)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: [] },
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a background process with a whitespace-only name", function () {
+      it("should reject an empty object (no discriminator)", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: {
-            runShell: {
-              command: "my-server",
-              background: true,
-              name: "   ",
-              readyWhen: { delayMs: 1000 },
-            },
-          },
+          object: { closeSurface: {} },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: { process: "w", bogus: 1 } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject the removed stopProcess action key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { stopProcess: "web" },
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");

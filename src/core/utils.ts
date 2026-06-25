@@ -21,7 +21,8 @@ export {
   waitForReady,
   waitForPort,
   waitForHttp,
-  waitForLog,
+  waitForOutputMatch,
+  deriveName,
   inContainer,
   cleanTemp,
   calculateFractionalDifference,
@@ -243,6 +244,9 @@ interface BackgroundProcess {
   getStdout(): string;
   getStderr(): string;
   getCombined(): string;
+  // Write data to the process's stdin. Returns false if stdin is unavailable
+  // (never opened, already closed/destroyed); true if the write was accepted.
+  write(data: string): boolean;
   // Subscribe to new output chunks. Returns an unsubscribe function.
   onChunk(cb: (chunk: string, stream: "stdout" | "stderr") => void): () => void;
   // Resolves with the exit code when the process closes, or null if it never
@@ -308,12 +312,59 @@ function spawnBackgroundCommand(
     getStdout: () => stdout,
     getStderr: () => stderr,
     getCombined: () => stdout + stderr,
+    write(data) {
+      // `{ shell: true }` gives the child a writable stdin pipe. Guard against
+      // a closed/destroyed stream so a write to a dead process is a no-op
+      // (false) rather than a throw.
+      if (!child.stdin || child.stdin.destroyed) return false;
+      return child.stdin.write(data);
+    },
     onChunk(cb) {
       subscribers.add(cb);
       return () => subscribers.delete(cb);
     },
     exited,
   };
+}
+
+// Base command name for a shell command string: first whitespace-delimited
+// token → basename → extension stripped. Used as the default background process
+// name when `background: true`. Examples: "npm start" → "npm",
+// "node -i" → "node", "/usr/bin/python3 x" → "python3".
+function deriveName(command: string): string {
+  const first = String(command || "").trim().split(/\s+/)[0] || "";
+  // basename: take the last path segment (handle both separators).
+  const base = first.split(/[\\/]/).pop() || first;
+  // strip a single trailing extension.
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? base.slice(0, dot) : base;
+}
+
+// Resolve when the process output matches `expected` (substring, or /regex/ via
+// matchesExpectedOutput), or resolve `false` when the deadline passes. Snapshots
+// the already-buffered output first so a match emitted before subscription isn't
+// missed (race guard). Non-throwing: the assertion engine — not an exception —
+// decides PASS/FAIL, unlike waitForLog which rejects on timeout.
+function waitForOutputMatch(
+  bg: BackgroundProcess,
+  expected: string,
+  { deadline }: { deadline: number }
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (matchesExpectedOutput(bg.getCombined(), expected)) return resolve(true);
+    let off = () => {};
+    const t = setTimeout(() => {
+      off();
+      resolve(false);
+    }, Math.max(0, deadline - Date.now()));
+    off = bg.onChunk(() => {
+      if (matchesExpectedOutput(bg.getCombined(), expected)) {
+        clearTimeout(t);
+        off();
+        resolve(true);
+      }
+    });
+  });
 }
 
 // Attempt a single TCP connection. Resolves true on connect, false on any error
@@ -382,85 +433,67 @@ async function waitForHttp(
   }
 }
 
-// Resolve when the process output matches `pattern` on the selected stream, or
-// reject when the deadline passes. Already-buffered output is checked first so a
-// match emitted before subscription isn't missed.
-function waitForLog(
-  bg: BackgroundProcess,
-  pattern: string,
-  stream: "stdout" | "stderr" | "any",
-  { deadline }: { deadline: number }
-): Promise<void> {
-  const regex = new RegExp(pattern);
-  const bufferFor = () =>
-    stream === "stdout"
-      ? bg.getStdout()
-      : stream === "stderr"
-      ? bg.getStderr()
-      : bg.getCombined();
-
-  return new Promise((resolve, reject) => {
-    if (regex.test(bufferFor())) return resolve();
-    let unsubscribe = () => {};
-    const timer = setTimeout(() => {
-      unsubscribe();
-      reject(new Error(`Log pattern /${pattern}/ not seen in time.`));
-    }, Math.max(0, deadline - Date.now()));
-    unsubscribe = bg.onChunk((_chunk, s) => {
-      if (stream !== "any" && s !== stream) return;
-      if (regex.test(bufferFor())) {
-        clearTimeout(timer);
-        unsubscribe();
-        resolve();
-      }
-    });
-  });
-}
-
-// Block until the background process satisfies its readiness probe, fails fast
-// if the process exits first, or rejects when `timeoutMs` elapses. Probe shape
-// defaults are applied here too (defense-in-depth — AJV may not fill defaults
-// nested under anyOf branches).
+// Block until the background process satisfies its readiness probe(s), fails
+// fast if the process exits first, or rejects when `timeoutMs` elapses. The
+// `waitUntil` object can carry multiple probes (`stdio`/`port`/`httpGet`/
+// `delayMs`); ALL present probes must resolve (AND-ed via Promise.all to a
+// shared deadline). Probe shape defaults are applied here too (defense-in-depth
+// — AJV may not fill defaults nested under anyOf branches).
 async function waitForReady(
   bg: BackgroundProcess,
-  readyWhen: any,
+  waitUntil: any,
   { timeoutMs }: { timeoutMs: number }
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
-  let probe: Promise<void>;
-  if (readyWhen?.port) {
-    probe = waitForPort(
-      readyWhen.port.host || "127.0.0.1",
-      readyWhen.port.port,
-      { pollIntervalMs: readyWhen.port.pollIntervalMs || 500, deadline }
+  const probes: Promise<void>[] = [];
+  if (waitUntil?.port) {
+    probes.push(
+      waitForPort(waitUntil.port.host || "127.0.0.1", waitUntil.port.port, {
+        pollIntervalMs: waitUntil.port.pollIntervalMs || 500,
+        deadline,
+      })
     );
-  } else if (readyWhen?.httpGet) {
-    probe = waitForHttp(
-      readyWhen.httpGet.url,
-      readyWhen.httpGet.statusCodes || [200],
-      { pollIntervalMs: readyWhen.httpGet.pollIntervalMs || 500, deadline }
-    );
-  } else if (readyWhen?.log) {
-    probe = waitForLog(bg, readyWhen.log.pattern, readyWhen.log.stream || "any", {
-      deadline,
-    });
-  } else if (readyWhen && typeof readyWhen.delayMs === "number") {
-    probe = backgroundSleep(Math.min(readyWhen.delayMs, timeoutMs));
-  } else {
-    // No readyWhen: consider ready as soon as the process is spawned.
-    probe = Promise.resolve();
   }
+  if (waitUntil?.httpGet) {
+    probes.push(
+      waitForHttp(
+        waitUntil.httpGet.url,
+        waitUntil.httpGet.statusCodes || [200],
+        { pollIntervalMs: waitUntil.httpGet.pollIntervalMs || 500, deadline }
+      )
+    );
+  }
+  if (typeof waitUntil?.stdio === "string") {
+    // stdio readiness reuses the non-throwing output matcher; convert the
+    // boolean result into the resolve/reject contract waitForReady expects.
+    probes.push(
+      waitForOutputMatch(bg, waitUntil.stdio, { deadline }).then((matched) => {
+        if (!matched) {
+          throw new Error(
+            `Output did not match (${waitUntil.stdio}) in time.`
+          );
+        }
+      })
+    );
+  }
+  if (typeof waitUntil?.delayMs === "number") {
+    probes.push(backgroundSleep(Math.min(waitUntil.delayMs, timeoutMs)));
+  }
+
+  // No probes: consider ready as soon as the process is spawned.
+  const probe: Promise<void> =
+    probes.length === 0 ? Promise.resolve() : Promise.all(probes).then(() => {});
 
   // Fail fast if the process dies before becoming ready.
   const earlyExit = bg.exited.then((code) => {
     throw new Error(`Process exited before becoming ready (exit code ${code}).`);
   });
 
-  // The race loser settles later (the probe keeps polling to its own deadline;
+  // The race loser settles later (the probes keep polling to their own deadline;
   // earlyExit rejects when the process is eventually killed at teardown).
   // Attach no-op catches so that late rejection is always considered handled and
-  // never surfaces as an unhandledRejection during normal stopProcess teardown.
+  // never surfaces as an unhandledRejection during normal closeSurface teardown.
   probe.catch(() => {});
   earlyExit.catch(() => {});
 

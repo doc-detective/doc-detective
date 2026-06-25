@@ -9,11 +9,18 @@ import {
   spawnBackgroundCommand,
   waitForPort,
   waitForHttp,
-  waitForLog,
+  waitForOutputMatch,
   waitForReady,
+  deriveName,
   findFreePort,
 } from "../dist/core/utils.js";
-import { stopProcess } from "../dist/core/tests/stopProcess.js";
+import { closeSurface } from "../dist/core/tests/closeSurface.js";
+import { normalizeBackground } from "../dist/core/tests/runShell.js";
+import {
+  translateProcessKeys,
+  resolveSurface,
+  _processKeyMap,
+} from "../dist/core/tests/typeKeys.js";
 import { runShell } from "../dist/core/tests/runShell.js";
 import { runCode } from "../dist/core/tests/runCode.js";
 
@@ -88,6 +95,73 @@ describe("spawnBackgroundCommand", function () {
   });
 });
 
+describe("BackgroundProcess.write", function () {
+  this.timeout(20000);
+
+  it("writes to stdin and the response is buffered into getCombined()", async function () {
+    // `node -i` is a line-oriented REPL: writing "1+1\r" should echo "2".
+    const bg = spawnBackgroundCommand(`"${process.execPath}" -i`);
+    try {
+      // Wait for the REPL prompt before sending input.
+      const promptDeadline = Date.now() + 8000;
+      while (!bg.getCombined().includes(">") && Date.now() < promptDeadline) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      const accepted = bg.write("1+1\r");
+      assert.equal(accepted, true, "write should be accepted");
+      const deadline = Date.now() + 8000;
+      while (!bg.getCombined().includes("2") && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      assert.ok(bg.getCombined().includes("2"), "REPL should have evaluated 1+1");
+    } finally {
+      await killTree(bg.pid);
+      await bg.exited;
+    }
+  });
+
+  it("returns false when stdin is gone (dead process)", async function () {
+    const bg = spawnBackgroundCommand(
+      "this-command-definitely-does-not-exist-xyz"
+    );
+    await bg.exited;
+    // After the process is gone, write must be a safe no-op (false), not a throw.
+    const result = bg.write("data");
+    assert.equal(typeof result, "boolean");
+  });
+});
+
+describe("waitForOutputMatch", function () {
+  this.timeout(10000);
+
+  it("resolves true when already-buffered output matches (before subscribe)", async function () {
+    const bg = fakeBg();
+    bg._emit("server ready to accept connections\n");
+    const matched = await waitForOutputMatch(bg, "ready to accept", {
+      deadline: Date.now() + 1000,
+    });
+    assert.equal(matched, true);
+  });
+
+  it("resolves true when a later chunk matches (after subscribe)", async function () {
+    const bg = fakeBg();
+    const p = waitForOutputMatch(bg, "/listening on \\d+/", {
+      deadline: Date.now() + 2000,
+    });
+    bg._emit("noise\n");
+    bg._emit("now listening on 8080\n");
+    assert.equal(await p, true);
+  });
+
+  it("resolves false on timeout when the pattern never appears", async function () {
+    const bg = fakeBg();
+    const matched = await waitForOutputMatch(bg, "never-appears", {
+      deadline: Date.now() + 200,
+    });
+    assert.equal(matched, false);
+  });
+});
+
 describe("waitForPort", function () {
   this.timeout(10000);
 
@@ -158,37 +232,7 @@ describe("waitForHttp", function () {
   });
 });
 
-describe("waitForLog", function () {
-  this.timeout(10000);
-
-  it("resolves when already-buffered output matches", async function () {
-    const bg = fakeBg();
-    bg._emit("server ready to accept connections\n");
-    await waitForLog(bg, "ready to accept", "any", {
-      deadline: Date.now() + 1000,
-    });
-  });
-
-  it("resolves when a later chunk matches on the chosen stream", async function () {
-    const bg = fakeBg();
-    const p = waitForLog(bg, "listening", "stderr", {
-      deadline: Date.now() + 2000,
-    });
-    bg._emit("noise on stdout\n", "stdout");
-    bg._emit("now listening on 8080\n", "stderr");
-    await p;
-  });
-
-  it("rejects when the pattern is never seen before the deadline", async function () {
-    const bg = fakeBg();
-    await assert.rejects(
-      waitForLog(bg, "never-appears", "any", { deadline: Date.now() + 200 }),
-      /not seen in time/
-    );
-  });
-});
-
-describe("waitForReady", function () {
+describe("waitForReady (waitUntil)", function () {
   this.timeout(10000);
 
   it("resolves after a delayMs probe", async function () {
@@ -198,9 +242,24 @@ describe("waitForReady", function () {
     assert.ok(Date.now() - start >= 90);
   });
 
-  it("resolves immediately when no readyWhen is given", async function () {
+  it("resolves immediately when no waitUntil is given", async function () {
     const bg = fakeBg();
     await waitForReady(bg, undefined, { timeoutMs: 5000 });
+  });
+
+  it("resolves via a stdio probe (output match)", async function () {
+    const bg = fakeBg();
+    const p = waitForReady(bg, { stdio: "/ready/" }, { timeoutMs: 5000 });
+    bg._emit("all systems ready\n");
+    await p;
+  });
+
+  it("rejects when a stdio probe never matches before the deadline", async function () {
+    const bg = fakeBg();
+    await assert.rejects(
+      waitForReady(bg, { stdio: "never" }, { timeoutMs: 300 }),
+      /did not match/
+    );
   });
 
   it("resolves via a port probe", async function () {
@@ -214,6 +273,24 @@ describe("waitForReady", function () {
         { port: { port, host: "127.0.0.1", pollIntervalMs: 50 } },
         { timeoutMs: 5000 }
       );
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it("AND-s multiple probes (stdio + port)", async function () {
+    const port = await findFreePort();
+    const server = net.createServer();
+    await new Promise((r) => server.listen(port, "127.0.0.1", r));
+    const bg = fakeBg();
+    try {
+      const p = waitForReady(
+        bg,
+        { stdio: "/up/", port: { port, host: "127.0.0.1", pollIntervalMs: 50 } },
+        { timeoutMs: 5000 }
+      );
+      bg._emit("server is up\n");
+      await p;
     } finally {
       await new Promise((r) => server.close(r));
     }
@@ -233,25 +310,139 @@ describe("waitForReady", function () {
   });
 });
 
-describe("stopProcess", function () {
+describe("deriveName", function () {
+  it("derives the base command name", function () {
+    assert.equal(deriveName("npm start"), "npm");
+    assert.equal(deriveName("node -i"), "node");
+    assert.equal(deriveName("/usr/bin/python3 x"), "python3");
+    assert.equal(deriveName("node"), "node");
+    assert.equal(deriveName("  node   -i  "), "node");
+    assert.equal(deriveName("C:\\tools\\my-app.exe --flag"), "my-app");
+  });
+});
+
+describe("normalizeBackground", function () {
+  it("returns null for false/absent", function () {
+    assert.equal(normalizeBackground({ command: "node", background: false }), null);
+    assert.equal(normalizeBackground({ command: "node" }), null);
+  });
+
+  it("derives the name for background:true", function () {
+    assert.deepEqual(normalizeBackground({ command: "node -i", background: true }), {
+      name: "node",
+    });
+  });
+
+  it("uses a string name", function () {
+    assert.deepEqual(
+      normalizeBackground({ command: "npm start", background: "web" }),
+      { name: "web" }
+    );
+  });
+
+  it("passes through an object form (name + waitUntil)", function () {
+    assert.deepEqual(
+      normalizeBackground({
+        command: "node x",
+        background: { name: "srv", waitUntil: { stdio: "/up/" } },
+      }),
+      { name: "srv", waitUntil: { stdio: "/up/" } }
+    );
+  });
+
+  it("derives the name when the object omits it", function () {
+    assert.deepEqual(
+      normalizeBackground({
+        command: "node -i",
+        background: { waitUntil: { delayMs: 10 } },
+      }),
+      { name: "node", waitUntil: { delayMs: 10 } }
+    );
+  });
+});
+
+describe("_processKeyMap / translateProcessKeys", function () {
+  it("maps special keys to control bytes", function () {
+    assert.equal(_processKeyMap.$ENTER$, "\r");
+    assert.equal(_processKeyMap.$RETURN$, "\r");
+    assert.equal(_processKeyMap.$TAB$, "\t");
+    assert.equal(_processKeyMap.$ESCAPE$, "\x1b");
+    assert.equal(_processKeyMap.$BACKSPACE$, "\x7f");
+    assert.equal(_processKeyMap.$SPACE$, " ");
+    assert.equal(_processKeyMap.$ARROW_UP$, "\x1b[A");
+    assert.equal(_processKeyMap.$ARROW_DOWN$, "\x1b[B");
+    assert.equal(_processKeyMap.$ARROW_RIGHT$, "\x1b[C");
+    assert.equal(_processKeyMap.$ARROW_LEFT$, "\x1b[D");
+    assert.equal(_processKeyMap.$DELETE$, "\x1b[3~");
+  });
+
+  it("passes plain strings through verbatim", function () {
+    assert.deepEqual(translateProcessKeys(["6 * 7"]), ["6 * 7"]);
+  });
+
+  it("translates special keys and $ENTER$", function () {
+    assert.deepEqual(translateProcessKeys(["6 * 7", "$ENTER$"]), ["6 * 7", "\r"]);
+  });
+
+  it("translates $CTRL$ + next key into a control byte", function () {
+    // Ctrl+C → 0x03
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "c"]), ["\x03"]);
+    // Ctrl+D → 0x04
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "d"]), ["\x04"]);
+    // case-insensitive
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "C"]), ["\x03"]);
+  });
+
+  it("passes unknown $...$ tokens through verbatim", function () {
+    assert.deepEqual(translateProcessKeys(["$UNKNOWN$"]), ["$UNKNOWN$"]);
+  });
+});
+
+describe("resolveSurface", function () {
+  it("resolves a string name to a process kind", function () {
+    assert.deepEqual(resolveSurface("repl"), { kind: "process", name: "repl" });
+  });
+
+  it("resolves a process object", function () {
+    assert.deepEqual(resolveSurface({ process: "repl" }), {
+      kind: "process",
+      name: "repl",
+    });
+  });
+
+  it("flags a reserved browser engine keyword as unsupported", function () {
+    assert.equal(resolveSurface("chrome").kind, "unsupported");
+    assert.equal(resolveSurface("firefox").kind, "unsupported");
+  });
+
+  it("flags a non-process object as unsupported", function () {
+    assert.equal(resolveSurface({ browser: "chrome" }).kind, "unsupported");
+  });
+
+  it("returns none for an absent surface", function () {
+    assert.equal(resolveSurface(undefined).kind, "none");
+  });
+});
+
+describe("closeSurface", function () {
   this.timeout(15000);
 
   function spawnLongLived() {
     const tmp = path.join(
       os.tmpdir(),
-      `dd-stop-test-${process.pid}-${Math.floor(performance.now())}.js`
+      `dd-close-test-${process.pid}-${Math.floor(performance.now())}.js`
     );
     fs.writeFileSync(tmp, `setInterval(() => {}, 100000);`);
     const bg = spawnBackgroundCommand(`"${process.execPath}" "${tmp}"`);
     return { bg, tmp };
   }
 
-  it("stops a registered process and removes it from the registry", async function () {
+  it("closes a registered process and removes it from the registry", async function () {
     const { bg, tmp } = spawnLongLived();
     const registry = new Map([["srv", { name: "srv", bg }]]);
-    const result = await stopProcess({
+    const result = await closeSurface({
       config: {},
-      step: { stopProcess: "srv" },
+      step: { closeSurface: "srv" },
       processRegistry: registry,
     });
     assert.equal(result.status, "PASS");
@@ -260,12 +451,12 @@ describe("stopProcess", function () {
     fs.rmSync(tmp, { force: true });
   });
 
-  it("removes a deferred temp script when stopping a runCode-style process", async function () {
+  it("removes a deferred temp script when closing a runCode-style process", async function () {
     const { bg, tmp } = spawnLongLived();
     const registry = new Map([["api", { name: "api", bg, tempPath: tmp }]]);
-    const result = await stopProcess({
+    const result = await closeSurface({
       config: {},
-      step: { stopProcess: { name: "api" } },
+      step: { closeSurface: { process: "api" } },
       processRegistry: registry,
     });
     assert.equal(result.status, "PASS");
@@ -273,31 +464,41 @@ describe("stopProcess", function () {
     assert.equal(fs.existsSync(tmp), false, "temp script should be deleted");
   });
 
-  it("passes for a missing process when ignoreMissing is true", async function () {
+  it("is idempotent: closing an absent surface is a PASS no-op", async function () {
     const registry = new Map();
-    const result = await stopProcess({
+    const result = await closeSurface({
       config: {},
-      step: { stopProcess: { name: "nope", ignoreMissing: true } },
+      step: { closeSurface: "nope" },
       processRegistry: registry,
     });
     assert.equal(result.status, "PASS");
   });
 
-  it("fails for a missing process when ignoreMissing is false", async function () {
-    const registry = new Map();
-    const result = await stopProcess({
+  it("closes several surfaces in one step (array form)", async function () {
+    const a = spawnLongLived();
+    const b = spawnLongLived();
+    const registry = new Map([
+      ["web", { name: "web", bg: a.bg }],
+      ["api", { name: "api", bg: b.bg }],
+    ]);
+    const result = await closeSurface({
       config: {},
-      step: { stopProcess: "nope" },
+      step: { closeSurface: ["web", "api"] },
       processRegistry: registry,
     });
-    assert.equal(result.status, "FAIL");
+    assert.equal(result.status, "PASS");
+    assert.equal(registry.size, 0);
+    await a.bg.exited;
+    await b.bg.exited;
+    fs.rmSync(a.tmp, { force: true });
+    fs.rmSync(b.tmp, { force: true });
   });
 });
 
 describe("runShell/runCode background (integration)", function () {
   this.timeout(20000);
 
-  it("runShell starts a background server, becomes ready, and is stoppable", async function () {
+  it("runShell starts a background server, becomes ready, and is closeable", async function () {
     const port = await findFreePort();
     const tmp = path.join(os.tmpdir(), `dd-srv-${process.pid}.js`);
     fs.writeFileSync(
@@ -311,9 +512,10 @@ describe("runShell/runCode background (integration)", function () {
         step: {
           runShell: {
             command: `"${process.execPath}" "${tmp}" ${port}`,
-            background: true,
-            name: "web",
-            readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            background: {
+              name: "web",
+              waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            },
             timeout: 10000,
           },
         },
@@ -329,9 +531,39 @@ describe("runShell/runCode background (integration)", function () {
         deadline: Date.now() + 2000,
       });
     } finally {
-      await stopProcess({
+      await closeSurface({
         config: {},
-        step: { stopProcess: { name: "web", ignoreMissing: true } },
+        step: { closeSurface: "web" },
+        processRegistry: registry,
+      });
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+
+  it("runShell derives the process name from the base command for background:true", async function () {
+    const tmp = path.join(os.tmpdir(), `dd-derive-${process.pid}.js`);
+    fs.writeFileSync(tmp, `setInterval(() => {}, 100000);`);
+    const registry = new Map();
+    try {
+      const result = await runShell({
+        config: {},
+        step: {
+          runShell: {
+            command: `node "${tmp}"`,
+            background: true,
+            timeout: 5000,
+          },
+        },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "PASS");
+      // base command "node" → derived name "node"
+      assert.equal(result.outputs.name, "node");
+      assert.ok(registry.has("node"));
+    } finally {
+      await closeSurface({
+        config: {},
+        step: { closeSurface: "node" },
         processRegistry: registry,
       });
       fs.rmSync(tmp, { force: true });
@@ -345,9 +577,7 @@ describe("runShell/runCode background (integration)", function () {
       step: {
         runShell: {
           command: "echo hi",
-          background: true,
-          name: "web",
-          readyWhen: { delayMs: 10 },
+          background: { name: "web", waitUntil: { delayMs: 10 } },
         },
       },
       processRegistry: registry,
@@ -366,9 +596,10 @@ describe("runShell/runCode background (integration)", function () {
       step: {
         runShell: {
           command: `"${process.execPath}" "${tmp}"`,
-          background: true,
-          name: "stuck",
-          readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+          background: {
+            name: "stuck",
+            waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+          },
           timeout: 600,
         },
       },
@@ -390,9 +621,10 @@ describe("runShell/runCode background (integration)", function () {
           runCode: {
             language: "javascript",
             code: `require('http').createServer((q,r)=>r.end('ok')).listen(${port});`,
-            background: true,
-            name: "api",
-            readyWhen: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            background: {
+              name: "api",
+              waitUntil: { port: { port, host: "127.0.0.1", pollIntervalMs: 100 } },
+            },
             timeout: 10000,
           },
         },
@@ -406,12 +638,12 @@ describe("runShell/runCode background (integration)", function () {
     } finally {
       const entry = registry.get("api");
       const tempPath = entry?.tempPath;
-      await stopProcess({
+      await closeSurface({
         config: {},
-        step: { stopProcess: { name: "api", ignoreMissing: true } },
+        step: { closeSurface: "api" },
         processRegistry: registry,
       });
-      if (tempPath) assert.equal(fs.existsSync(tempPath), false, "temp script removed on stop");
+      if (tempPath) assert.equal(fs.existsSync(tempPath), false, "temp script removed on close");
     }
   });
 });

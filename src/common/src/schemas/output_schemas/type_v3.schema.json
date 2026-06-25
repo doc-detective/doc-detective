@@ -47,8 +47,107 @@
         },
         "inputDelay": {
           "type": "number",
-          "description": "Delay in milliseconds between each key press during a recording",
+          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
           "default": 100
+        },
+        "surface": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "title": "surface",
+          "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+          "anyOf": [
+            {
+              "title": "Surface (by name)",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "transform": [
+                "trim"
+              ],
+              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+            },
+            {
+              "title": "Process surface",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "process"
+              ],
+              "properties": {
+                "process": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "transform": [
+                    "trim"
+                  ],
+                  "description": "Name of a background process started by a runShell/runCode `background` step."
+                }
+              }
+            }
+          ],
+          "components": {
+            "schemas": {
+              "byName": {
+                "title": "Surface (by name)",
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ],
+                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+              },
+              "process": {
+                "title": "Process surface",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "process"
+                ],
+                "properties": {
+                  "process": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ],
+                    "description": "Name of a background process started by a runShell/runCode `background` step."
+                  }
+                }
+              }
+            }
+          },
+          "examples": [
+            "node",
+            {
+              "process": "node"
+            }
+          ]
+        },
+        "waitUntil": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+          "properties": {
+            "stdio": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+            },
+            "delayMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Fixed delay (ms)."
+            }
+          }
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 5000,
+          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
         },
         "selector": {
           "type": "string",
@@ -105,7 +204,79 @@
       "required": [
         "keys"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "title": "waitUntil requires a surface",
+          "if": {
+            "required": [
+              "waitUntil"
+            ]
+          },
+          "then": {
+            "required": [
+              "surface"
+            ]
+          }
+        },
+        {
+          "title": "A process surface forbids element targeting",
+          "if": {
+            "required": [
+              "surface"
+            ],
+            "properties": {
+              "surface": {
+                "type": "object",
+                "required": [
+                  "process"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "selector"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementText"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementId"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementTestId"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementClass"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementAttribute"
+                  ]
+                },
+                {
+                  "required": [
+                    "elementAria"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "components": {
@@ -154,8 +325,107 @@
           },
           "inputDelay": {
             "type": "number",
-            "description": "Delay in milliseconds between each key press during a recording",
+            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
             "default": 100
+          },
+          "surface": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "surface",
+            "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+            "anyOf": [
+              {
+                "title": "Surface (by name)",
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ],
+                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+              },
+              {
+                "title": "Process surface",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "process"
+                ],
+                "properties": {
+                  "process": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ],
+                    "description": "Name of a background process started by a runShell/runCode `background` step."
+                  }
+                }
+              }
+            ],
+            "components": {
+              "schemas": {
+                "byName": {
+                  "title": "Surface (by name)",
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "transform": [
+                    "trim"
+                  ],
+                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                },
+                "process": {
+                  "title": "Process surface",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "process"
+                  ],
+                  "properties": {
+                    "process": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S",
+                      "transform": [
+                        "trim"
+                      ],
+                      "description": "Name of a background process started by a runShell/runCode `background` step."
+                    }
+                  }
+                }
+              }
+            },
+            "examples": [
+              "node",
+              {
+                "process": "node"
+              }
+            ]
+          },
+          "waitUntil": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+            "properties": {
+              "stdio": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+              },
+              "delayMs": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Fixed delay (ms)."
+              }
+            }
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 5000,
+            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
           },
           "selector": {
             "type": "string",
@@ -212,7 +482,79 @@
         "required": [
           "keys"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "title": "waitUntil requires a surface",
+            "if": {
+              "required": [
+                "waitUntil"
+              ]
+            },
+            "then": {
+              "required": [
+                "surface"
+              ]
+            }
+          },
+          {
+            "title": "A process surface forbids element targeting",
+            "if": {
+              "required": [
+                "surface"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "object",
+                  "required": [
+                    "process"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "selector"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementText"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementId"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementTestId"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementClass"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementAttribute"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementAria"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
       }
     }
   },
@@ -239,6 +581,26 @@
         "$ENTER$"
       ],
       "inputDelay": 500
+    },
+    {
+      "keys": [
+        "2+2",
+        "$ENTER$"
+      ],
+      "surface": "node",
+      "waitUntil": {
+        "stdio": "/^4$/"
+      },
+      "timeout": 5000
+    },
+    {
+      "keys": [
+        "$CTRL$",
+        "c"
+      ],
+      "surface": {
+        "process": "node"
+      }
     }
   ]
 }

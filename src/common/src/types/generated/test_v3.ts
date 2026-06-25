@@ -123,10 +123,11 @@ export type Step =
   | (Common10 & SaveCookie)
   | (Common11 & Record)
   | (Common12 & StopRecord)
-  | (Common13 & LoadVariables)
-  | (Common14 & DragAndDrop)
-  | (Common15 & LoadCookie)
-  | (Common16 & Wait);
+  | (Common13 & CloseSurface)
+  | (Common14 & LoadVariables)
+  | (Common15 & DragAndDrop)
+  | (Common16 & LoadCookie)
+  | (Common17 & Wait);
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -730,6 +731,34 @@ export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
  */
 export type RunShellCommandSimple = string;
 /**
+ * Run the command as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
+ */
+export type BackgroundProcess =
+  | BackgroundOnOff
+  | BackgroundName
+  | {
+      /**
+       * Unique process name within the run. Defaults to the base command.
+       */
+      name?: string;
+      waitUntil?: {
+        stdio?: string;
+        delayMs?: number;
+        port?: {
+          port: number;
+          host?: string;
+          pollIntervalMs?: number;
+        };
+        httpGet?: {
+          url: string;
+          statusCodes?: number[];
+          pollIntervalMs?: number;
+        };
+      };
+    };
+export type BackgroundOnOff = boolean;
+export type BackgroundName = string;
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition13 = string | [string, ...string[]];
@@ -817,6 +846,34 @@ export type Routing31 =
  * Assemble and run code.
  */
 export type RunCode1 = RunCodeDetailed;
+/**
+ * Run the code as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
+ */
+export type BackgroundProcess1 =
+  | BackgroundOnOff1
+  | BackgroundName1
+  | {
+      /**
+       * Unique process name within the run. Defaults to the base command.
+       */
+      name?: string;
+      waitUntil?: {
+        stdio?: string;
+        delayMs?: number;
+        port?: {
+          port: number;
+          host?: string;
+          pollIntervalMs?: number;
+        };
+        httpGet?: {
+          url: string;
+          statusCodes?: number[];
+          pollIntervalMs?: number;
+        };
+      };
+    };
+export type BackgroundOnOff1 = boolean;
+export type BackgroundName1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1001,10 +1058,7 @@ export type TypeKeys = TypeKeysSimple | TypeKeysDetailed;
  * Sequence of keys to enter.
  */
 export type TypeKeysSimple = string | string[];
-/**
- * Sequence of keys to enter.
- */
-export type TypeKeysSimple1 = string | string[];
+export type TypeKeysDetailed = WaitUntilRequiresASurface & AProcessSurfaceForbidsElementTargeting;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1522,9 +1576,25 @@ export type Routing59 =
       [k: string]: unknown;
     };
 /**
- * Load environment variables from the specified `.env` file.
+ * Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
  */
-export type LoadVariables1 = string;
+export type CloseSurface1 = Surface | [Surface1, ...Surface1[]];
+/**
+ * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ */
+export type Surface = SurfaceByName | ProcessSurface;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName = string;
+/**
+ * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ */
+export type Surface1 = SurfaceByName1 | ProcessSurface1;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1610,57 +1680,9 @@ export type Routing63 =
       [k: string]: unknown;
     };
 /**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ * Load environment variables from the specified `.env` file.
  */
-export type ElementSimple = string;
-export type ElementDetailed =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
- */
-export type ElementSimple1 = string;
-export type ElementDetailed1 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type LoadVariables1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1746,14 +1768,51 @@ export type Routing67 =
       [k: string]: unknown;
     };
 /**
- * Load a specific cookie from a file or environment variable into the browser.
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
-export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
+export type ElementSimple = string;
+export type ElementDetailed =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
- * Name of the specific cookie to load from default location, or file path to cookie file.
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
-export type CookieNameOrFilePath = string;
-export type LoadCookieDetailed =
+export type ElementSimple1 = string;
+export type ElementDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
@@ -1845,39 +1904,20 @@ export type Routing71 =
       [k: string]: unknown;
     };
 /**
- * Pause (in milliseconds) before performing the next action.
+ * Load a specific cookie from a file or environment variable into the browser.
  */
-export type Wait1 = WaitSimple | WaitEnvironmentVariable | WaitBoolean;
-export type WaitSimple = number;
-export type WaitEnvironmentVariable = string;
-export type WaitBoolean = boolean;
+export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
 /**
- * OpenAPI description and configuration.
+ * Name of the specific cookie to load from default location, or file path to cookie file.
  */
-export type OpenApi1 = {
-  [k: string]: unknown;
-};
-/**
- * A step in a test.
- */
-export type Step1 =
-  | (Common17 & CheckLink2)
-  | (Common18 & Click2)
-  | (Common19 & Find2)
-  | (Common20 & GoTo2)
-  | (Common21 & HttpRequest2)
-  | (Common22 & RunShell2)
-  | (Common23 & RunCode2)
-  | (Common24 & RunBrowserScript2)
-  | (Common25 & Type1)
-  | (Common26 & Screenshot2)
-  | (Common27 & SaveCookie2)
-  | (Common28 & Record2)
-  | (Common29 & StopRecord2)
-  | (Common30 & LoadVariables2)
-  | (Common31 & DragAndDrop2)
-  | (Common32 & LoadCookie2)
-  | (Common33 & Wait2);
+export type CookieNameOrFilePath = string;
+export type LoadCookieDetailed =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1962,16 +2002,41 @@ export type Routing75 =
   | {
       [k: string]: unknown;
     };
-export type CheckLink3 = CheckLinkDetailed2 | CheckLinkDetailed3;
 /**
- * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
+ * Pause (in milliseconds) before performing the next action.
  */
-export type CheckLinkDetailed2 = string;
+export type Wait1 = WaitSimple | WaitEnvironmentVariable | WaitBoolean;
+export type WaitSimple = number;
+export type WaitEnvironmentVariable = string;
+export type WaitBoolean = boolean;
 /**
- * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
- * Authorization: Bearer token`.
+ * OpenAPI description and configuration.
  */
-export type RequestHeadersString1 = string;
+export type OpenApi1 = {
+  [k: string]: unknown;
+};
+/**
+ * A step in a test.
+ */
+export type Step1 =
+  | (Common18 & CheckLink2)
+  | (Common19 & Click2)
+  | (Common20 & Find2)
+  | (Common21 & GoTo2)
+  | (Common22 & HttpRequest2)
+  | (Common23 & RunShell2)
+  | (Common24 & RunCode2)
+  | (Common25 & RunBrowserScript2)
+  | (Common26 & Type1)
+  | (Common27 & Screenshot2)
+  | (Common28 & SaveCookie2)
+  | (Common29 & Record2)
+  | (Common30 & StopRecord2)
+  | (Common31 & CloseSurface2)
+  | (Common32 & LoadVariables2)
+  | (Common33 & DragAndDrop2)
+  | (Common34 & LoadCookie2)
+  | (Common35 & Wait2);
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2056,36 +2121,16 @@ export type Routing79 =
   | {
       [k: string]: unknown;
     };
+export type CheckLink3 = CheckLinkDetailed2 | CheckLinkDetailed3;
 /**
- * Click or tap an element.
+ * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
  */
-export type Click3 = ClickElementSimple1 | ClickElementDetailed1 | boolean;
+export type CheckLinkDetailed2 = string;
 /**
- * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
+ * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
+ * Authorization: Bearer token`.
  */
-export type ClickElementSimple1 = string;
-export type ClickElementDetailed1 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type RequestHeadersString1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2171,14 +2216,14 @@ export type Routing83 =
       [k: string]: unknown;
     };
 /**
- * Find an element based on display text or a selector, then optionally interact with it.
+ * Click or tap an element.
  */
-export type Find3 = FindElementSimple1 | FindElementDetailed1;
+export type Click3 = ClickElementSimple1 | ClickElementDetailed1 | boolean;
 /**
- * Identifier for the element to find. Can be a selector, element text, ARIA name, ID, or test ID.
+ * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
  */
-export type FindElementSimple1 = string;
-export type FindElementDetailed1 =
+export type ClickElementSimple1 = string;
+export type ClickElementDetailed1 =
   | {
       [k: string]: unknown;
     }
@@ -2284,11 +2329,36 @@ export type Routing87 =
   | {
       [k: string]: unknown;
     };
-export type GoTo3 = GoToURLSimple1 | GoToURLDetailed1;
 /**
- * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
+ * Find an element based on display text or a selector, then optionally interact with it.
  */
-export type GoToURLSimple1 = string;
+export type Find3 = FindElementSimple1 | FindElementDetailed1;
+/**
+ * Identifier for the element to find. Can be a selector, element text, ARIA name, ID, or test ID.
+ */
+export type FindElementSimple1 = string;
+export type FindElementDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2373,21 +2443,11 @@ export type Routing91 =
   | {
       [k: string]: unknown;
     };
+export type GoTo3 = GoToURLSimple1 | GoToURLDetailed1;
 /**
- * Perform a generic HTTP request, for example to an API.
+ * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
  */
-export type HttpRequest3 = HTTPRequestSimple1 | HTTPRequestDetailed1;
-/**
- * URL for the HTTP request.
- */
-export type HTTPRequestSimple1 = string;
-export type HTTPRequestDetailed1 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type GoToURLSimple1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2473,13 +2533,20 @@ export type Routing95 =
       [k: string]: unknown;
     };
 /**
- * Perform a native shell command.
+ * Perform a generic HTTP request, for example to an API.
  */
-export type RunShell3 = RunShellCommandSimple1 | RunShellCommandDetailed1;
+export type HttpRequest3 = HTTPRequestSimple1 | HTTPRequestDetailed1;
 /**
- * Command to perform in the machine's default shell.
+ * URL for the HTTP request.
  */
-export type RunShellCommandSimple1 = string;
+export type HTTPRequestSimple1 = string;
+export type HTTPRequestDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2565,9 +2632,41 @@ export type Routing99 =
       [k: string]: unknown;
     };
 /**
- * Assemble and run code.
+ * Perform a native shell command.
  */
-export type RunCode3 = RunCodeDetailed1;
+export type RunShell3 = RunShellCommandSimple1 | RunShellCommandDetailed1;
+/**
+ * Command to perform in the machine's default shell.
+ */
+export type RunShellCommandSimple1 = string;
+/**
+ * Run the command as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
+ */
+export type BackgroundProcess2 =
+  | BackgroundOnOff2
+  | BackgroundName2
+  | {
+      /**
+       * Unique process name within the run. Defaults to the base command.
+       */
+      name?: string;
+      waitUntil?: {
+        stdio?: string;
+        delayMs?: number;
+        port?: {
+          port: number;
+          host?: string;
+          pollIntervalMs?: number;
+        };
+        httpGet?: {
+          url: string;
+          statusCodes?: number[];
+          pollIntervalMs?: number;
+        };
+      };
+    };
+export type BackgroundOnOff2 = boolean;
+export type BackgroundName2 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2653,13 +2752,37 @@ export type Routing103 =
       [k: string]: unknown;
     };
 /**
- * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ * Assemble and run code.
  */
-export type RunBrowserScript3 = RunBrowserScriptSimple1 | RunBrowserScriptDetailed1;
+export type RunCode3 = RunCodeDetailed1;
 /**
- * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
+ * Run the code as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
  */
-export type RunBrowserScriptSimple1 = string;
+export type BackgroundProcess3 =
+  | BackgroundOnOff3
+  | BackgroundName3
+  | {
+      /**
+       * Unique process name within the run. Defaults to the base command.
+       */
+      name?: string;
+      waitUntil?: {
+        stdio?: string;
+        delayMs?: number;
+        port?: {
+          port: number;
+          host?: string;
+          pollIntervalMs?: number;
+        };
+        httpGet?: {
+          url: string;
+          statusCodes?: number[];
+          pollIntervalMs?: number;
+        };
+      };
+    };
+export type BackgroundOnOff3 = boolean;
+export type BackgroundName3 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2745,17 +2868,13 @@ export type Routing107 =
       [k: string]: unknown;
     };
 /**
- * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
  */
-export type TypeKeys1 = TypeKeysSimple2 | TypeKeysDetailed1;
+export type RunBrowserScript3 = RunBrowserScriptSimple1 | RunBrowserScriptDetailed1;
 /**
- * Sequence of keys to enter.
+ * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
  */
-export type TypeKeysSimple2 = string | string[];
-/**
- * Sequence of keys to enter.
- */
-export type TypeKeysSimple3 = string | string[];
+export type RunBrowserScriptSimple1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2841,50 +2960,14 @@ export type Routing111 =
       [k: string]: unknown;
     };
 /**
- * Takes a screenshot in PNG format.
+ * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
  */
-export type Screenshot3 = ScreenshotSimple2 | CaptureScreenshotDetailed1 | CaptureScreenshot1;
+export type TypeKeys1 = TypeKeysSimple1 | TypeKeysDetailed1;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
+ * Sequence of keys to enter.
  */
-export type ScreenshotSimple2 = string;
-/**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
- */
-export type ScreenshotSimple3 = string;
-/**
- * Display text or selector of the element to screenshot.
- */
-export type CropByElementSimple1 = string;
-/**
- * Crop the screenshot to a specific element.
- */
-export type CropByElementDetailed1 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
- */
-export type CaptureScreenshot1 = boolean;
+export type TypeKeysSimple1 = string | string[];
+export type TypeKeysDetailed1 = WaitUntilRequiresASurface1 & AProcessSurfaceForbidsElementTargeting1;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2970,20 +3053,50 @@ export type Routing115 =
       [k: string]: unknown;
     };
 /**
- * Save a specific browser cookie to a file or environment variable for later reuse.
+ * Takes a screenshot in PNG format.
  */
-export type SaveCookie3 = CookieName1 | SaveCookieDetailed1;
+export type Screenshot3 = ScreenshotSimple2 | CaptureScreenshotDetailed1 | CaptureScreenshot1;
 /**
- * Name of the specific cookie to save. Will be saved to a default file path or environment variable.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
-export type CookieName1 = string;
-export type SaveCookieDetailed1 =
+export type ScreenshotSimple2 = string;
+/**
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
+ */
+export type ScreenshotSimple3 = string;
+/**
+ * Display text or selector of the element to screenshot.
+ */
+export type CropByElementSimple1 = string;
+/**
+ * Crop the screenshot to a specific element.
+ */
+export type CropByElementDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
   | {
       [k: string]: unknown;
     };
+/**
+ * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ */
+export type CaptureScreenshot1 = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3069,25 +3182,20 @@ export type Routing119 =
       [k: string]: unknown;
     };
 /**
- * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]
+ * Save a specific browser cookie to a file or environment variable for later reuse.
  */
-export type Record3 = RecordSimple1 | RecordDetailed1 | RecordBoolean1;
+export type SaveCookie3 = CookieName1 | SaveCookieDetailed1;
 /**
- * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
+ * Name of the specific cookie to save. Will be saved to a default file path or environment variable.
  */
-export type RecordSimple1 = string;
-/**
- * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
- */
-export type RecordingEngine1 = RecordingEngineSimple1 | RecordingEngineDetailed1;
-/**
- * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
- */
-export type RecordingEngineSimple1 = "browser" | "ffmpeg";
-/**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record.
- */
-export type RecordBoolean1 = boolean;
+export type CookieName1 = string;
+export type SaveCookieDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3173,21 +3281,25 @@ export type Routing123 =
       [k: string]: unknown;
     };
 /**
- * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
+ * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
-export type StopRecord3 = StopRecordBoolean1 | StopRecordNull1 | StopRecordName1 | StopRecordDetailed1;
+export type Record3 = RecordSimple1 | RecordDetailed1 | RecordBoolean1;
 /**
- * If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
+ * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
  */
-export type StopRecordBoolean1 = boolean;
+export type RecordSimple1 = string;
 /**
- * Stops the most recently started active recording (LIFO).
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
  */
-export type StopRecordNull1 = null;
+export type RecordingEngine1 = RecordingEngineSimple1 | RecordingEngineDetailed1;
 /**
- * Name of the recording to stop. Matches the `name` given to a `record` step.
+ * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
  */
-export type StopRecordName1 = string;
+export type RecordingEngineSimple1 = "browser" | "ffmpeg";
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ */
+export type RecordBoolean1 = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3273,9 +3385,21 @@ export type Routing127 =
       [k: string]: unknown;
     };
 /**
- * Load environment variables from the specified `.env` file.
+ * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
  */
-export type LoadVariables3 = string;
+export type StopRecord3 = StopRecordBoolean1 | StopRecordNull1 | StopRecordName1 | StopRecordDetailed1;
+/**
+ * If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
+ */
+export type StopRecordBoolean1 = boolean;
+/**
+ * Stops the most recently started active recording (LIFO).
+ */
+export type StopRecordNull1 = null;
+/**
+ * Name of the recording to stop. Matches the `name` given to a `record` step.
+ */
+export type StopRecordName1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3361,57 +3485,25 @@ export type Routing131 =
       [k: string]: unknown;
     };
 /**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ * Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
  */
-export type ElementSimple2 = string;
-export type ElementDetailed2 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type CloseSurface3 = Surface2 | [Surface3, ...Surface3[]];
 /**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
  */
-export type ElementSimple3 = string;
-export type ElementDetailed3 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type Surface2 = SurfaceByName2 | ProcessSurface2;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName2 = string;
+/**
+ * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ */
+export type Surface3 = SurfaceByName3 | ProcessSurface3;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName3 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3497,20 +3589,9 @@ export type Routing135 =
       [k: string]: unknown;
     };
 /**
- * Load a specific cookie from a file or environment variable into the browser.
+ * Load environment variables from the specified `.env` file.
  */
-export type LoadCookie3 = CookieNameOrFilePath1 | LoadCookieDetailed1;
-/**
- * Name of the specific cookie to load from default location, or file path to cookie file.
- */
-export type CookieNameOrFilePath1 = string;
-export type LoadCookieDetailed1 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type LoadVariables3 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3580,6 +3661,241 @@ export type Routing138 =
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing139 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ */
+export type ElementSimple2 = string;
+export type ElementDetailed2 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ */
+export type ElementSimple3 = string;
+export type ElementDetailed3 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition69 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition70 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing140 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing141 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing142 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing143 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * Load a specific cookie from a file or environment variable into the browser.
+ */
+export type LoadCookie3 = CookieNameOrFilePath1 | LoadCookieDetailed1;
+/**
+ * Name of the specific cookie to load from default location, or file path to cookie file.
+ */
+export type CookieNameOrFilePath1 = string;
+export type LoadCookieDetailed1 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition71 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition72 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing144 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing145 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing146 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing147 =
   | {
       [k: string]: unknown;
     }
@@ -4755,9 +5071,10 @@ export interface RunShellCommandDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
    */
   timeout?: number;
+  background?: BackgroundProcess;
 }
 export interface Common6 {
   /**
@@ -4953,9 +5270,10 @@ export interface RunCodeDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
    */
   timeout?: number;
+  background?: BackgroundProcess1;
   [k: string]: unknown;
 }
 export interface Common7 {
@@ -5295,42 +5613,11 @@ export interface Type {
   type: TypeKeys;
   [k: string]: unknown;
 }
-export interface TypeKeysDetailed {
-  keys: TypeKeysSimple1;
-  /**
-   * Delay in milliseconds between each key press during a recording
-   */
-  inputDelay?: number;
-  /**
-   * Selector for the element to type into. If not specified, the typing occurs in the active element.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: string | number | boolean;
-  };
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
+export interface WaitUntilRequiresASurface {
+  [k: string]: unknown;
+}
+export interface AProcessSurfaceForbidsElementTargeting {
+  [k: string]: unknown;
 }
 export interface Common9 {
   /**
@@ -6166,9 +6453,21 @@ export interface SourceLocation13 {
    */
   endIndex: number;
 }
-export interface LoadVariables {
-  loadVariables: LoadVariables1;
+export interface CloseSurface {
+  closeSurface: CloseSurface1;
   [k: string]: unknown;
+}
+export interface ProcessSurface {
+  /**
+   * Name of a background process started by a runShell/runCode `background` step.
+   */
+  process: string;
+}
+export interface ProcessSurface1 {
+  /**
+   * Name of a background process started by a runShell/runCode `background` step.
+   */
+  process: string;
 }
 export interface Common14 {
   /**
@@ -6317,26 +6616,8 @@ export interface SourceLocation14 {
    */
   endIndex: number;
 }
-export interface DragAndDrop {
-  dragAndDrop: DragAndDrop1;
-  [k: string]: unknown;
-}
-/**
- * Drag and drop an element from source to target.
- */
-export interface DragAndDrop1 {
-  /**
-   * The element to drag.
-   */
-  source: ElementSimple | ElementDetailed;
-  /**
-   * The target location to drop the element.
-   */
-  target: ElementSimple1 | ElementDetailed1;
-  /**
-   * Duration of the drag operation in milliseconds.
-   */
-  duration?: number;
+export interface LoadVariables {
+  loadVariables: LoadVariables1;
   [k: string]: unknown;
 }
 export interface Common15 {
@@ -6486,8 +6767,26 @@ export interface SourceLocation15 {
    */
   endIndex: number;
 }
-export interface LoadCookie {
-  loadCookie: LoadCookie1;
+export interface DragAndDrop {
+  dragAndDrop: DragAndDrop1;
+  [k: string]: unknown;
+}
+/**
+ * Drag and drop an element from source to target.
+ */
+export interface DragAndDrop1 {
+  /**
+   * The element to drag.
+   */
+  source: ElementSimple | ElementDetailed;
+  /**
+   * The target location to drop the element.
+   */
+  target: ElementSimple1 | ElementDetailed1;
+  /**
+   * Duration of the drag operation in milliseconds.
+   */
+  duration?: number;
   [k: string]: unknown;
 }
 export interface Common16 {
@@ -6637,67 +6936,8 @@ export interface SourceLocation16 {
    */
   endIndex: number;
 }
-export interface Wait {
-  wait: Wait1;
-  [k: string]: unknown;
-}
-export interface ResolvedContext {
-  /**
-   * Platform to run the test on. This is a resolved version of the `platforms` property.
-   */
-  platform?: string;
-  browser?: Browser2;
-  openApi?: (OpenApi1 & OpenAPIDescriptionTest1)[];
-  /**
-   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.
-   *
-   * @minItems 1
-   */
-  steps?: [Step1, ...Step1[]];
-  [k: string]: unknown;
-}
-/**
- * Browser configuration.
- */
-export interface Browser2 {
-  /**
-   * Name of the browser.
-   */
-  name: "chrome" | "firefox" | "safari" | "webkit";
-  /**
-   * If `true`, runs the browser in headless mode.
-   */
-  headless?: boolean;
-  window?: BrowserWindow2;
-  viewport?: BrowserViewport2;
-}
-/**
- * Browser dimensions.
- */
-export interface BrowserWindow2 {
-  /**
-   * Width of the browser window in pixels.
-   */
-  width?: number;
-  /**
-   * Height of the browser window in pixels.
-   */
-  height?: number;
-}
-/**
- * Viewport dimensions.
- */
-export interface BrowserViewport2 {
-  /**
-   * Width of the viewport in pixels.
-   */
-  width?: number;
-  /**
-   * Height of the viewport in pixels.
-   */
-  height?: number;
-}
-export interface OpenAPIDescriptionTest1 {
+export interface LoadCookie {
+  loadCookie: LoadCookie1;
   [k: string]: unknown;
 }
 export interface Common17 {
@@ -6847,42 +7087,68 @@ export interface SourceLocation17 {
    */
   endIndex: number;
 }
-export interface CheckLink2 {
-  checkLink: CheckLink3;
+export interface Wait {
+  wait: Wait1;
+  [k: string]: unknown;
+}
+export interface ResolvedContext {
+  /**
+   * Platform to run the test on. This is a resolved version of the `platforms` property.
+   */
+  platform?: string;
+  browser?: Browser2;
+  openApi?: (OpenApi1 & OpenAPIDescriptionTest1)[];
+  /**
+   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.
+   *
+   * @minItems 1
+   */
+  steps?: [Step1, ...Step1[]];
   [k: string]: unknown;
 }
 /**
- * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
+ * Browser configuration.
  */
-export interface CheckLinkDetailed3 {
+export interface Browser2 {
   /**
-   * URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.
+   * Name of the browser.
    */
-  url: string;
+  name: "chrome" | "firefox" | "safari" | "webkit";
   /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * If `true`, runs the browser in headless mode.
    */
-  origin?: string;
-  /**
-   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
-   */
-  params?: {
-    [k: string]: string;
-  };
-  /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
-   */
-  statusCodes?: number | number[];
-  /**
-   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
-   */
-  headers?: RequestHeadersObject1 | RequestHeadersString1;
+  headless?: boolean;
+  window?: BrowserWindow2;
+  viewport?: BrowserViewport2;
 }
 /**
- * Headers to include in the HTTP request, in key/value format. Values must be strings.
+ * Browser dimensions.
  */
-export interface RequestHeadersObject1 {
-  [k: string]: string;
+export interface BrowserWindow2 {
+  /**
+   * Width of the browser window in pixels.
+   */
+  width?: number;
+  /**
+   * Height of the browser window in pixels.
+   */
+  height?: number;
+}
+/**
+ * Viewport dimensions.
+ */
+export interface BrowserViewport2 {
+  /**
+   * Width of the viewport in pixels.
+   */
+  width?: number;
+  /**
+   * Height of the viewport in pixels.
+   */
+  height?: number;
+}
+export interface OpenAPIDescriptionTest1 {
+  [k: string]: unknown;
 }
 export interface Common18 {
   /**
@@ -7031,9 +7297,42 @@ export interface SourceLocation18 {
    */
   endIndex: number;
 }
-export interface Click2 {
-  click: Click3;
+export interface CheckLink2 {
+  checkLink: CheckLink3;
   [k: string]: unknown;
+}
+/**
+ * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
+ */
+export interface CheckLinkDetailed3 {
+  /**
+   * URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.
+   */
+  url: string;
+  /**
+   * Protocol and domain to navigate to. Prepended to `url`.
+   */
+  origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   */
+  statusCodes?: number | number[];
+  /**
+   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+   */
+  headers?: RequestHeadersObject1 | RequestHeadersString1;
+}
+/**
+ * Headers to include in the HTTP request, in key/value format. Values must be strings.
+ */
+export interface RequestHeadersObject1 {
+  [k: string]: string;
 }
 export interface Common19 {
   /**
@@ -7182,8 +7481,8 @@ export interface SourceLocation19 {
    */
   endIndex: number;
 }
-export interface Find2 {
-  find: Find3;
+export interface Click2 {
+  click: Click3;
   [k: string]: unknown;
 }
 export interface Common20 {
@@ -7333,70 +7632,9 @@ export interface SourceLocation20 {
    */
   endIndex: number;
 }
-export interface GoTo2 {
-  goTo: GoTo3;
+export interface Find2 {
+  find: Find3;
   [k: string]: unknown;
-}
-/**
- * Navigate to an HTTP or HTTPS URL.
- */
-export interface GoToURLDetailed1 {
-  /**
-   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
-   */
-  url: string;
-  /**
-   * Protocol and domain to navigate to. Prepended to `url`.
-   */
-  origin?: string;
-  /**
-   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
-   */
-  params?: {
-    [k: string]: string;
-  };
-  /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
-   */
-  timeout?: number;
-  /**
-   * Configuration for waiting conditions after navigation.
-   */
-  waitUntil?: {
-    /**
-     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
-     */
-    networkIdleTime?: number | null;
-    /**
-     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
-     */
-    domIdleTime?: number | null;
-    /**
-     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
-     */
-    find?:
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        };
-  };
 }
 export interface Common21 {
   /**
@@ -7545,9 +7783,70 @@ export interface SourceLocation21 {
    */
   endIndex: number;
 }
-export interface HttpRequest2 {
-  httpRequest: HttpRequest3;
+export interface GoTo2 {
+  goTo: GoTo3;
   [k: string]: unknown;
+}
+/**
+ * Navigate to an HTTP or HTTPS URL.
+ */
+export interface GoToURLDetailed1 {
+  /**
+   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
+   */
+  url: string;
+  /**
+   * Protocol and domain to navigate to. Prepended to `url`.
+   */
+  origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   */
+  timeout?: number;
+  /**
+   * Configuration for waiting conditions after navigation.
+   */
+  waitUntil?: {
+    /**
+     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
+     */
+    networkIdleTime?: number | null;
+    /**
+     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
+     */
+    domIdleTime?: number | null;
+    /**
+     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
+     */
+    find?:
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        };
+  };
 }
 export interface Common22 {
   /**
@@ -7696,52 +7995,9 @@ export interface SourceLocation22 {
    */
   endIndex: number;
 }
-export interface RunShell2 {
-  runShell: RunShell3;
+export interface HttpRequest2 {
+  httpRequest: HttpRequest3;
   [k: string]: unknown;
-}
-export interface RunShellCommandDetailed1 {
-  /**
-   * Command to perform in the machine's default shell.
-   */
-  command: string;
-  /**
-   * Arguments for the command.
-   */
-  args?: string[];
-  /**
-   * Working directory for the command.
-   */
-  workingDirectory?: string;
-  /**
-   * Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.
-   */
-  exitCodes?: number[];
-  /**
-   * Content expected in the command's stdout or stderr. If the expected content can't be found in the command's stdout or stderr, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
-   */
-  stdio?: string;
-  /**
-   * File path to save the command's output, relative to `directory`.
-   */
-  path?: string;
-  /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
-   */
-  directory?: string;
-  /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
-   */
-  maxVariation?: number;
-  /**
-   * If `true`, overwrites the existing output at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
-   */
-  overwrite?: "true" | "false" | "aboveVariation";
-  /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
-   */
-  timeout?: number;
 }
 export interface Common23 {
   /**
@@ -7890,19 +8146,15 @@ export interface SourceLocation23 {
    */
   endIndex: number;
 }
-export interface RunCode2 {
-  runCode: RunCode3;
+export interface RunShell2 {
+  runShell: RunShell3;
   [k: string]: unknown;
 }
-export interface RunCodeDetailed1 {
+export interface RunShellCommandDetailed1 {
   /**
-   * Language of the code to run.
+   * Command to perform in the machine's default shell.
    */
-  language: "python" | "bash" | "javascript";
-  /**
-   * Code to run.
-   */
-  code: string;
+  command: string;
   /**
    * Arguments for the command.
    */
@@ -7916,7 +8168,7 @@ export interface RunCodeDetailed1 {
    */
   exitCodes?: number[];
   /**
-   * Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   * Content expected in the command's stdout or stderr. If the expected content can't be found in the command's stdout or stderr, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
   stdio?: string;
   /**
@@ -7937,10 +8189,10 @@ export interface RunCodeDetailed1 {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
    */
   timeout?: number;
-  [k: string]: unknown;
+  background?: BackgroundProcess2;
 }
 export interface Common24 {
   /**
@@ -8089,33 +8341,45 @@ export interface SourceLocation24 {
    */
   endIndex: number;
 }
-export interface RunBrowserScript2 {
-  runBrowserScript: RunBrowserScript3;
+export interface RunCode2 {
+  runCode: RunCode3;
   [k: string]: unknown;
 }
-export interface RunBrowserScriptDetailed1 {
+export interface RunCodeDetailed1 {
   /**
-   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
+   * Language of the code to run.
    */
-  script: string;
+  language: "python" | "bash" | "javascript";
   /**
-   * Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
+   * Code to run.
    */
-  args?: unknown[];
+  code: string;
   /**
-   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   * Arguments for the command.
    */
-  output?: string;
+  args?: string[];
   /**
-   * File path to save the script's serialized return value, relative to `directory`.
+   * Working directory for the command.
+   */
+  workingDirectory?: string;
+  /**
+   * Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.
+   */
+  exitCodes?: number[];
+  /**
+   * Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
+   */
+  stdio?: string;
+  /**
+   * File path to save the command's output, relative to `directory`.
    */
   path?: string;
   /**
-   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step returns a warning. If no output exists at `path`, Doc Detective ignores this value.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -8124,9 +8388,11 @@ export interface RunBrowserScriptDetailed1 {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
    */
   timeout?: number;
+  background?: BackgroundProcess3;
+  [k: string]: unknown;
 }
 export interface Common25 {
   /**
@@ -8275,46 +8541,44 @@ export interface SourceLocation25 {
    */
   endIndex: number;
 }
-export interface Type1 {
-  type: TypeKeys1;
+export interface RunBrowserScript2 {
+  runBrowserScript: RunBrowserScript3;
   [k: string]: unknown;
 }
-export interface TypeKeysDetailed1 {
-  keys: TypeKeysSimple3;
+export interface RunBrowserScriptDetailed1 {
   /**
-   * Delay in milliseconds between each key press during a recording
+   * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
-  inputDelay?: number;
+  script: string;
   /**
-   * Selector for the element to type into. If not specified, the typing occurs in the active element.
+   * Arguments passed positionally to the script and exposed through the `arguments` object. Each item may be any JSON-serializable value (string, number, boolean, null, object, or array), matching what `executeScript` accepts.
    */
-  selector?: string;
+  args?: unknown[];
   /**
-   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
+   * Content expected in the script's serialized return value. Doc Detective serializes non-string return values to JSON before matching. If the serialized return value doesn't contain the expected content, the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.* /`.
    */
-  elementText?: string;
+  output?: string;
   /**
-   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * File path to save the script's serialized return value, relative to `directory`.
    */
-  elementId?: string;
+  path?: string;
   /**
-   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
    */
-  elementTestId?: string;
+  directory?: string;
   /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   * Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step returns a warning. If no output exists at `path`, Doc Detective ignores this value.
    */
-  elementClass?: string | string[];
+  maxVariation?: number;
   /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   * If `true`, overwrites the existing output at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
    */
-  elementAttribute?: {
-    [k: string]: string | number | boolean;
-  };
+  overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   * Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.
    */
-  elementAria?: string;
+  timeout?: number;
 }
 export interface Common26 {
   /**
@@ -8463,52 +8727,15 @@ export interface SourceLocation26 {
    */
   endIndex: number;
 }
-export interface Screenshot2 {
-  screenshot: Screenshot3;
+export interface Type1 {
+  type: TypeKeys1;
   [k: string]: unknown;
 }
-export interface CaptureScreenshotDetailed1 {
-  path?: ScreenshotSimple3;
-  /**
-   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
-   */
-  directory?: string;
-  /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
-   */
-  maxVariation?: number;
-  /**
-   * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
-   */
-  overwrite?: "true" | "false" | "aboveVariation";
-  crop?: CropByElementSimple1 | CropByElementDetailed1;
-  sourceIntegration?: SourceIntegration1;
+export interface WaitUntilRequiresASurface1 {
+  [k: string]: unknown;
 }
-/**
- * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
- */
-export interface SourceIntegration1 {
-  /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
-   */
-  type: "heretto";
-  /**
-   * The name of the integration configuration in the config file. Used to look up authentication credentials.
-   */
-  integrationName: string;
-  /**
-   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
-   */
-  fileId?: string;
-  /**
-   * The path of the file in the source CMS. Used for lookup if fileId is not available.
-   */
-  filePath?: string;
-  /**
-   * The local path to the file that references this source. Used for resolving relative paths.
-   */
-  contentPath?: string;
+export interface AProcessSurfaceForbidsElementTargeting1 {
+  [k: string]: unknown;
 }
 export interface Common27 {
   /**
@@ -8657,9 +8884,52 @@ export interface SourceLocation27 {
    */
   endIndex: number;
 }
-export interface SaveCookie2 {
-  saveCookie: SaveCookie3;
+export interface Screenshot2 {
+  screenshot: Screenshot3;
   [k: string]: unknown;
+}
+export interface CaptureScreenshotDetailed1 {
+  path?: ScreenshotSimple3;
+  /**
+   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
+   */
+  directory?: string;
+  /**
+   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   */
+  maxVariation?: number;
+  /**
+   * If `true`, overwrites the existing screenshot at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   */
+  overwrite?: "true" | "false" | "aboveVariation";
+  crop?: CropByElementSimple1 | CropByElementDetailed1;
+  sourceIntegration?: SourceIntegration1;
+}
+/**
+ * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
+ */
+export interface SourceIntegration1 {
+  /**
+   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   */
+  type: "heretto";
+  /**
+   * The name of the integration configuration in the config file. Used to look up authentication credentials.
+   */
+  integrationName: string;
+  /**
+   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
+   */
+  fileId?: string;
+  /**
+   * The path of the file in the source CMS. Used for lookup if fileId is not available.
+   */
+  filePath?: string;
+  /**
+   * The local path to the file that references this source. Used for resolving relative paths.
+   */
+  contentPath?: string;
 }
 export interface Common28 {
   /**
@@ -8808,43 +9078,9 @@ export interface SourceLocation28 {
    */
   endIndex: number;
 }
-export interface Record2 {
-  record: Record3;
+export interface SaveCookie2 {
+  saveCookie: SaveCookie3;
   [k: string]: unknown;
-}
-export interface RecordDetailed1 {
-  /**
-   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
-   */
-  path?: string;
-  /**
-   * Directory of the file. If the directory doesn't exist, creates the directory.
-   */
-  directory?: string;
-  /**
-   * If `true`, overwrites the existing recording at `path` if it exists.
-   */
-  overwrite?: "true" | "false";
-  /**
-   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
-   */
-  name?: string;
-  engine?: RecordingEngine1;
-  [k: string]: unknown;
-}
-export interface RecordingEngineDetailed1 {
-  /**
-   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
-   */
-  name: "browser" | "ffmpeg";
-  /**
-   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
-   */
-  target?: "display" | "window" | "viewport";
-  /**
-   * Capture frame rate for the `ffmpeg` engine.
-   */
-  fps?: number;
 }
 export interface Common29 {
   /**
@@ -8993,15 +9229,43 @@ export interface SourceLocation29 {
    */
   endIndex: number;
 }
-export interface StopRecord2 {
-  stopRecord: StopRecord3;
+export interface Record2 {
+  record: Record3;
   [k: string]: unknown;
 }
-export interface StopRecordDetailed1 {
+export interface RecordDetailed1 {
   /**
-   * Name of the recording to stop. Matches the `name` given to a `record` step.
+   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
-  name: string;
+  path?: string;
+  /**
+   * Directory of the file. If the directory doesn't exist, creates the directory.
+   */
+  directory?: string;
+  /**
+   * If `true`, overwrites the existing recording at `path` if it exists.
+   */
+  overwrite?: "true" | "false";
+  /**
+   * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
+   */
+  name?: string;
+  engine?: RecordingEngine1;
+  [k: string]: unknown;
+}
+export interface RecordingEngineDetailed1 {
+  /**
+   * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+   */
+  name: "browser" | "ffmpeg";
+  /**
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   */
+  target?: "display" | "window" | "viewport";
+  /**
+   * Capture frame rate for the `ffmpeg` engine.
+   */
+  fps?: number;
 }
 export interface Common30 {
   /**
@@ -9150,9 +9414,15 @@ export interface SourceLocation30 {
    */
   endIndex: number;
 }
-export interface LoadVariables2 {
-  loadVariables: LoadVariables3;
+export interface StopRecord2 {
+  stopRecord: StopRecord3;
   [k: string]: unknown;
+}
+export interface StopRecordDetailed1 {
+  /**
+   * Name of the recording to stop. Matches the `name` given to a `record` step.
+   */
+  name: string;
 }
 export interface Common31 {
   /**
@@ -9301,27 +9571,21 @@ export interface SourceLocation31 {
    */
   endIndex: number;
 }
-export interface DragAndDrop2 {
-  dragAndDrop: DragAndDrop3;
+export interface CloseSurface2 {
+  closeSurface: CloseSurface3;
   [k: string]: unknown;
 }
-/**
- * Drag and drop an element from source to target.
- */
-export interface DragAndDrop3 {
+export interface ProcessSurface2 {
   /**
-   * The element to drag.
+   * Name of a background process started by a runShell/runCode `background` step.
    */
-  source: ElementSimple2 | ElementDetailed2;
+  process: string;
+}
+export interface ProcessSurface3 {
   /**
-   * The target location to drop the element.
+   * Name of a background process started by a runShell/runCode `background` step.
    */
-  target: ElementSimple3 | ElementDetailed3;
-  /**
-   * Duration of the drag operation in milliseconds.
-   */
-  duration?: number;
-  [k: string]: unknown;
+  process: string;
 }
 export interface Common32 {
   /**
@@ -9470,8 +9734,8 @@ export interface SourceLocation32 {
    */
   endIndex: number;
 }
-export interface LoadCookie2 {
-  loadCookie: LoadCookie3;
+export interface LoadVariables2 {
+  loadVariables: LoadVariables3;
   [k: string]: unknown;
 }
 export interface Common33 {
@@ -9608,6 +9872,326 @@ export interface Assertion33 {
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation33 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface DragAndDrop2 {
+  dragAndDrop: DragAndDrop3;
+  [k: string]: unknown;
+}
+/**
+ * Drag and drop an element from source to target.
+ */
+export interface DragAndDrop3 {
+  /**
+   * The element to drag.
+   */
+  source: ElementSimple2 | ElementDetailed2;
+  /**
+   * The target location to drop the element.
+   */
+  target: ElementSimple3 | ElementDetailed3;
+  /**
+   * Duration of the drag operation in milliseconds.
+   */
+  duration?: number;
+  [k: string]: unknown;
+}
+export interface Common34 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep34;
+  variables?: VariablesStep34;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  if?: Condition69;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition70 | Assertion34[];
+  /**
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onPass?: Routing140[];
+  /**
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onFail?: Routing141[];
+  /**
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onWarning?: Routing142[];
+  /**
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   */
+  onSkip?: Routing143[];
+  location?: SourceLocation34;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  /**
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   */
+  attempts?: number;
+  /**
+   * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
+   */
+  visit?: number;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep34 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep34`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep34 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep34`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion34 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | number
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | number
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation34 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface LoadCookie2 {
+  loadCookie: LoadCookie3;
+  [k: string]: unknown;
+}
+export interface Common35 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep35;
+  variables?: VariablesStep35;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  if?: Condition71;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition72 | Assertion35[];
+  /**
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onPass?: Routing144[];
+  /**
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onFail?: Routing145[];
+  /**
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onWarning?: Routing146[];
+  /**
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   */
+  onSkip?: Routing147[];
+  location?: SourceLocation35;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  /**
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   */
+  attempts?: number;
+  /**
+   * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
+   */
+  visit?: number;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep35 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep35`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep35 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep35`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion35 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | number
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | number
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation35 {
   /**
    * 1-indexed line number in the source file where the step was detected.
    */

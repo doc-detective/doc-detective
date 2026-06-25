@@ -40,8 +40,35 @@
           },
           "inputDelay": {
             "type": "number",
-            "description": "Delay in milliseconds between each key press during a recording",
+            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
             "default": 100
+          },
+          "surface": {
+            "$ref": "surface_v3.schema.json#"
+          },
+          "waitUntil": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+            "properties": {
+              "stdio": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+              },
+              "delayMs": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Fixed delay (ms)."
+              }
+            }
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 5000,
+            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
           },
           "selector": {
             "type": "string",
@@ -96,7 +123,34 @@
           }
         },
         "required": ["keys"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "title": "waitUntil requires a surface",
+            "if": { "required": ["waitUntil"] },
+            "then": { "required": ["surface"] }
+          },
+          {
+            "title": "A process surface forbids element targeting",
+            "if": {
+              "required": ["surface"],
+              "properties": { "surface": { "type": "object", "required": ["process"] } }
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  { "required": ["selector"] },
+                  { "required": ["elementText"] },
+                  { "required": ["elementId"] },
+                  { "required": ["elementTestId"] },
+                  { "required": ["elementClass"] },
+                  { "required": ["elementAttribute"] },
+                  { "required": ["elementAria"] }
+                ]
+              }
+            }
+          }
+        ]
       }
     }
   },
@@ -113,6 +167,16 @@
     {
       "keys": ["kittens", "$ENTER$"],
       "inputDelay": 500
+    },
+    {
+      "keys": ["2+2", "$ENTER$"],
+      "surface": "node",
+      "waitUntil": { "stdio": "/^4$/" },
+      "timeout": 5000
+    },
+    {
+      "keys": ["$CTRL$", "c"],
+      "surface": { "process": "node" }
     }
   ]
 }

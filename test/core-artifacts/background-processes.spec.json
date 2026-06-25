@@ -1,107 +1,108 @@
 {
   "specId": "background-processes",
-  "description": "Exercises long-running background processes end-to-end: `background: true` on runCode/runShell with each readyWhen probe (port, log, httpGet, delayMs), stopProcess in string and object form, the ignoreMissing path, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
+  "description": "Exercises long-running background processes end-to-end: the `background` object form on runCode/runShell with each waitUntil probe (port, stdio, httpGet, delayMs), closeSurface in string and object form, the idempotent no-op close, and the run-end auto-sweep (a process left running with no closeSurface). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "bg-runcode-port",
-      "description": "runCode background server, port readiness probe, stopped via stopProcess string form.",
+      "description": "runCode background server, port readiness probe, closed via closeSurface string form.",
       "steps": [
         {
           "runCode": {
             "language": "javascript",
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8201,'127.0.0.1');",
-            "background": true,
-            "name": "bg-port",
-            "readyWhen": {
-              "port": {
-                "port": 8201,
-                "host": "127.0.0.1"
+            "background": {
+              "name": "bg-port",
+              "waitUntil": {
+                "port": {
+                  "port": 8201,
+                  "host": "127.0.0.1"
+                }
               }
             },
             "timeout": 15000
           }
         },
         {
-          "stopProcess": "bg-port"
+          "closeSurface": "bg-port"
         }
       ]
     },
     {
-      "testId": "bg-runcode-log",
-      "description": "runCode background process, log-pattern readiness probe, stopped via stopProcess object form.",
+      "testId": "bg-runcode-stdio",
+      "description": "runCode background process, stdio-pattern readiness probe, closed via closeSurface object form.",
       "steps": [
         {
           "runCode": {
             "language": "javascript",
             "code": "console.log('DD_BG_READY'); setInterval(() => {}, 1000000);",
-            "background": true,
-            "name": "bg-log",
-            "readyWhen": {
-              "log": {
-                "pattern": "DD_BG_READY",
-                "stream": "stdout"
+            "background": {
+              "name": "bg-stdio",
+              "waitUntil": {
+                "stdio": "/DD_BG_READY/"
               }
             },
             "timeout": 15000
           }
         },
         {
-          "stopProcess": {
-            "name": "bg-log"
+          "closeSurface": {
+            "process": "bg-stdio"
           }
         }
       ]
     },
     {
       "testId": "bg-runcode-httpget",
-      "description": "runCode background server, httpGet readiness probe, stopped via stopProcess.",
+      "description": "runCode background server, httpGet readiness probe, closed via closeSurface.",
       "steps": [
         {
           "runCode": {
             "language": "javascript",
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8202,'127.0.0.1');",
-            "background": true,
-            "name": "bg-http",
-            "readyWhen": {
-              "httpGet": {
-                "url": "http://127.0.0.1:8202",
-                "statusCodes": [
-                  200
-                ]
+            "background": {
+              "name": "bg-http",
+              "waitUntil": {
+                "httpGet": {
+                  "url": "http://127.0.0.1:8202",
+                  "statusCodes": [
+                    200
+                  ]
+                }
               }
             },
             "timeout": 15000
           }
         },
         {
-          "stopProcess": "bg-http"
+          "closeSurface": "bg-http"
         }
       ]
     },
     {
       "testId": "bg-runcode-delay",
-      "description": "runCode background process, fixed-delay readiness probe, stopped via stopProcess.",
+      "description": "runCode background process, fixed-delay readiness probe, closed via closeSurface.",
       "steps": [
         {
           "runCode": {
             "language": "javascript",
             "code": "setInterval(() => {}, 1000000);",
-            "background": true,
-            "name": "bg-delay",
-            "readyWhen": {
-              "delayMs": 300
+            "background": {
+              "name": "bg-delay",
+              "waitUntil": {
+                "delayMs": 300
+              }
             },
             "timeout": 15000
           }
         },
         {
-          "stopProcess": "bg-delay"
+          "closeSurface": "bg-delay"
         }
       ]
     },
     {
       "testId": "bg-runshell-port",
-      "description": "runShell background server (node bg-server.js), port readiness probe, stopped via stopProcess.",
+      "description": "runShell background server (node bg-server.js), port readiness probe, closed via closeSurface.",
       "steps": [
         {
           "runShell": {
@@ -110,36 +111,38 @@
               "test/core-artifacts/bg-server.js",
               "8203"
             ],
-            "background": true,
-            "name": "bg-shell",
-            "readyWhen": {
-              "port": {
-                "port": 8203,
-                "host": "127.0.0.1"
+            "background": {
+              "name": "bg-shell",
+              "waitUntil": {
+                "port": {
+                  "port": 8203,
+                  "host": "127.0.0.1"
+                }
               }
             },
             "timeout": 15000
           }
         },
         {
-          "stopProcess": "bg-shell"
+          "closeSurface": "bg-shell"
         }
       ]
     },
     {
       "testId": "bg-autosweep",
-      "description": "Background process started with no stopProcess — the run-end sweep must tear it down. The start step PASSES; cleanup is implicit.",
+      "description": "Background process started with no closeSurface — the run-end sweep must tear it down. The start step PASSES; cleanup is implicit.",
       "steps": [
         {
           "runCode": {
             "language": "javascript",
             "code": "require('http').createServer((q,r)=>r.end('ok')).listen(8204,'127.0.0.1');",
-            "background": true,
-            "name": "bg-autosweep",
-            "readyWhen": {
-              "port": {
-                "port": 8204,
-                "host": "127.0.0.1"
+            "background": {
+              "name": "bg-autosweep",
+              "waitUntil": {
+                "port": {
+                  "port": 8204,
+                  "host": "127.0.0.1"
+                }
               }
             },
             "timeout": 15000
@@ -148,13 +151,12 @@
       ]
     },
     {
-      "testId": "bg-stopprocess-ignoremissing",
-      "description": "stopProcess with ignoreMissing on a name that was never started PASSES instead of failing.",
+      "testId": "bg-closesurface-idempotent",
+      "description": "closeSurface on a name that was never started PASSES (idempotent no-op) instead of failing.",
       "steps": [
         {
-          "stopProcess": {
-            "name": "bg-never-started",
-            "ignoreMissing": true
+          "closeSurface": {
+            "process": "bg-never-started"
           }
         }
       ]

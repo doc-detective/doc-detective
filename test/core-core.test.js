@@ -1957,4 +1957,110 @@ describe("getRunner() function", function () {
       fs.unlinkSync(tempFilePath);
     }
   });
+
+  it("type to a MISSING process surface FAILs and names the process", async () => {
+    // No runShell background step started "ghost", so the type step has no
+    // process to write to. It must FAIL with a description naming the surface.
+    const t = {
+      tests: [
+        {
+          steps: [
+            { type: { keys: ["1 + 1", "$ENTER$"], surface: "ghost" } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-missing-process.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /ghost/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("type with a stdio waitUntil that can't match within a tiny timeout FAILs via the assertion", async () => {
+    // Start node -i, then type expecting output that will never appear within a
+    // very small timeout. The stdioMatched assertion must FAIL the step.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: {
+                command: "node -i",
+                background: {
+                  name: "ttp-fail-repl",
+                  waitUntil: { stdio: "/>/" },
+                },
+                timeout: 15000,
+              },
+            },
+            {
+              type: {
+                keys: ["1 + 1", "$ENTER$"],
+                surface: "ttp-fail-repl",
+                waitUntil: { stdio: "/THIS_WILL_NEVER_APPEAR/" },
+                timeout: 200,
+              },
+            },
+            { closeSurface: "ttp-fail-repl" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-stdio-timeout.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // Step 0 (start) PASS; step 1 (type) FAIL via stdioMatched assertion.
+      assert.equal(steps[0].result, "PASS");
+      assert.equal(steps[1].result, "FAIL");
+      const implicit = (steps[1].assertions || []).filter(
+        (a) => a.source === "implicit"
+      );
+      assert.ok(
+        implicit.some((a) => a.result === "FAIL"),
+        "expected an implicit stdioMatched assertion to FAIL"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("type to a browser-engine surface (chrome) FAILs with 'surface kind not yet supported'", async () => {
+    // A reserved browser engine keyword is a future surface kind; Phase 1 must
+    // FAIL at runtime rather than mis-routing it to a process or element.
+    const t = {
+      tests: [
+        {
+          steps: [
+            { type: { keys: ["hello"], surface: "chrome" } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-chrome-surface.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /surface kind not yet supported/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
 });

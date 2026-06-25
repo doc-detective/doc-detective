@@ -440,13 +440,13 @@
         },
         {
           "type": "object",
-          "required": ["stopProcess"],
+          "required": ["closeSurface"],
           "properties": {
-            "stopProcess": {
-              "$ref": "stopProcess_v3.schema.json#"
+            "closeSurface": {
+              "$ref": "closeSurface_v3.schema.json#"
             }
           },
-          "title": "stopProcess"
+          "title": "closeSurface"
         }
       ]
     },
@@ -575,25 +575,20 @@
     {
       "runShell": {
         "command": "docker run -p 8080:80 nginx",
-        "background": true,
-        "name": "web",
-        "readyWhen": {
-          "httpGet": {
-            "url": "http://localhost:8080",
-            "statusCodes": [200]
+        "background": {
+          "name": "web",
+          "waitUntil": {
+            "httpGet": {
+              "url": "http://localhost:8080",
+              "statusCodes": [200]
+            }
           }
         },
         "timeout": 30000
       }
     },
     {
-      "stopProcess": "web"
-    },
-    {
-      "stopProcess": {
-        "name": "web",
-        "ignoreMissing": true
-      }
+      "closeSurface": "web"
     },
     {
       "screenshot": true

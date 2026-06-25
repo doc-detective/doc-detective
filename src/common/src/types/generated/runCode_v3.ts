@@ -8,6 +8,34 @@
  * Assemble and run code.
  */
 export type RunCode = RunCodeDetailed;
+/**
+ * Run the code as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
+ */
+export type BackgroundProcess =
+  | BackgroundOnOff
+  | BackgroundName
+  | {
+      /**
+       * Unique process name within the run. Defaults to the base command.
+       */
+      name?: string;
+      waitUntil?: {
+        stdio?: string;
+        delayMs?: number;
+        port?: {
+          port: number;
+          host?: string;
+          pollIntervalMs?: number;
+        };
+        httpGet?: {
+          url: string;
+          statusCodes?: number[];
+          pollIntervalMs?: number;
+        };
+      };
+    };
+export type BackgroundOnOff = boolean;
+export type BackgroundName = string;
 
 export interface RunCodeDetailed {
   /**
@@ -52,8 +80,9 @@ export interface RunCodeDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
    */
   timeout?: number;
+  background?: BackgroundProcess;
   [k: string]: unknown;
 }

@@ -21,10 +21,11 @@ export type Step =
   | (Common10 & SaveCookie)
   | (Common11 & Record)
   | (Common12 & StopRecord)
-  | (Common13 & LoadVariables)
-  | (Common14 & DragAndDrop)
-  | (Common15 & LoadCookie)
-  | (Common16 & Wait);
+  | (Common13 & CloseSurface)
+  | (Common14 & LoadVariables)
+  | (Common15 & DragAndDrop)
+  | (Common16 & LoadCookie)
+  | (Common17 & Wait);
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -274,6 +275,34 @@ export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
  */
 export type RunShellCommandSimple = string;
 /**
+ * Run the command as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
+ */
+export type BackgroundProcess =
+  | BackgroundOnOff
+  | BackgroundName
+  | {
+      /**
+       * Unique process name within the run. Defaults to the base command.
+       */
+      name?: string;
+      waitUntil?: {
+        stdio?: string;
+        delayMs?: number;
+        port?: {
+          port: number;
+          host?: string;
+          pollIntervalMs?: number;
+        };
+        httpGet?: {
+          url: string;
+          statusCodes?: number[];
+          pollIntervalMs?: number;
+        };
+      };
+    };
+export type BackgroundOnOff = boolean;
+export type BackgroundName = string;
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition12 = string | [string, ...string[]];
@@ -309,6 +338,34 @@ export type Routing27 = {
  * Assemble and run code.
  */
 export type RunCode1 = RunCodeDetailed;
+/**
+ * Run the code as a long-running background process and return as soon as it is ready, instead of waiting for exit. `true` derives the name from the base command; a string sets the name; the object form adds `waitUntil`. When set, `exitCodes`/`stdio`/output-saving are ignored and `timeout` bounds `waitUntil`. Owned by the run; stopped by a `closeSurface` step or the run-end sweep.
+ */
+export type BackgroundProcess1 =
+  | BackgroundOnOff1
+  | BackgroundName1
+  | {
+      /**
+       * Unique process name within the run. Defaults to the base command.
+       */
+      name?: string;
+      waitUntil?: {
+        stdio?: string;
+        delayMs?: number;
+        port?: {
+          port: number;
+          host?: string;
+          pollIntervalMs?: number;
+        };
+        httpGet?: {
+          url: string;
+          statusCodes?: number[];
+          pollIntervalMs?: number;
+        };
+      };
+    };
+export type BackgroundOnOff1 = boolean;
+export type BackgroundName1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -389,10 +446,7 @@ export type TypeKeys = TypeKeysSimple | TypeKeysDetailed;
  * Sequence of keys to enter.
  */
 export type TypeKeysSimple = string | string[];
-/**
- * Sequence of keys to enter.
- */
-export type TypeKeysSimple1 = string | string[];
+export type TypeKeysDetailed = WaitUntilRequiresASurface & AProcessSurfaceForbidsElementTargeting;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -627,9 +681,25 @@ export type Routing55 = {
   [k: string]: unknown;
 };
 /**
- * Load environment variables from the specified `.env` file.
+ * Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
  */
-export type LoadVariables1 = string;
+export type CloseSurface1 = Surface | [Surface1, ...Surface1[]];
+/**
+ * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ */
+export type Surface = SurfaceByName | ProcessSurface;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName = string;
+/**
+ * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ */
+export type Surface1 = SurfaceByName1 | ProcessSurface1;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -663,19 +733,9 @@ export type Routing59 = {
   [k: string]: unknown;
 };
 /**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ * Load environment variables from the specified `.env` file.
  */
-export type ElementSimple = string;
-export type ElementDetailed = {
-  [k: string]: unknown;
-};
-/**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
- */
-export type ElementSimple1 = string;
-export type ElementDetailed1 = {
-  [k: string]: unknown;
-};
+export type LoadVariables1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -709,14 +769,17 @@ export type Routing63 = {
   [k: string]: unknown;
 };
 /**
- * Load a specific cookie from a file or environment variable into the browser.
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
-export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
+export type ElementSimple = string;
+export type ElementDetailed = {
+  [k: string]: unknown;
+};
 /**
- * Name of the specific cookie to load from default location, or file path to cookie file.
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
-export type CookieNameOrFilePath = string;
-export type LoadCookieDetailed = {
+export type ElementSimple1 = string;
+export type ElementDetailed1 = {
   [k: string]: unknown;
 };
 /**
@@ -749,6 +812,49 @@ export type Routing66 = {
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing67 = {
+  [k: string]: unknown;
+};
+/**
+ * Load a specific cookie from a file or environment variable into the browser.
+ */
+export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
+/**
+ * Name of the specific cookie to load from default location, or file path to cookie file.
+ */
+export type CookieNameOrFilePath = string;
+export type LoadCookieDetailed = {
+  [k: string]: unknown;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition34 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition35 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing68 = {
+  [k: string]: unknown;
+};
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing69 = {
+  [k: string]: unknown;
+};
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing70 = {
+  [k: string]: unknown;
+};
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing71 = {
   [k: string]: unknown;
 };
 /**
@@ -1767,9 +1873,10 @@ export interface RunShellCommandDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
    */
   timeout?: number;
+  background?: BackgroundProcess;
 }
 export interface Common6 {
   /**
@@ -1963,9 +2070,10 @@ export interface RunCodeDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for the background `waitUntil` readiness to be satisfied before the step fails.
    */
   timeout?: number;
+  background?: BackgroundProcess1;
   [k: string]: unknown;
 }
 export interface Common7 {
@@ -2301,42 +2409,11 @@ export interface Type {
   type: TypeKeys;
   [k: string]: unknown;
 }
-export interface TypeKeysDetailed {
-  keys: TypeKeysSimple1;
-  /**
-   * Delay in milliseconds between each key press during a recording
-   */
-  inputDelay?: number;
-  /**
-   * Selector for the element to type into. If not specified, the typing occurs in the active element.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: string | number | boolean;
-  };
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
+export interface WaitUntilRequiresASurface {
+  [k: string]: unknown;
+}
+export interface AProcessSurfaceForbidsElementTargeting {
+  [k: string]: unknown;
 }
 export interface Common9 {
   /**
@@ -3162,9 +3239,21 @@ export interface SourceLocation13 {
    */
   endIndex: number;
 }
-export interface LoadVariables {
-  loadVariables: LoadVariables1;
+export interface CloseSurface {
+  closeSurface: CloseSurface1;
   [k: string]: unknown;
+}
+export interface ProcessSurface {
+  /**
+   * Name of a background process started by a runShell/runCode `background` step.
+   */
+  process: string;
+}
+export interface ProcessSurface1 {
+  /**
+   * Name of a background process started by a runShell/runCode `background` step.
+   */
+  process: string;
 }
 export interface Common14 {
   /**
@@ -3311,26 +3400,8 @@ export interface SourceLocation14 {
    */
   endIndex: number;
 }
-export interface DragAndDrop {
-  dragAndDrop: DragAndDrop1;
-  [k: string]: unknown;
-}
-/**
- * Drag and drop an element from source to target.
- */
-export interface DragAndDrop1 {
-  /**
-   * The element to drag.
-   */
-  source: ElementSimple | ElementDetailed;
-  /**
-   * The target location to drop the element.
-   */
-  target: ElementSimple1 | ElementDetailed1;
-  /**
-   * Duration of the drag operation in milliseconds.
-   */
-  duration?: number;
+export interface LoadVariables {
+  loadVariables: LoadVariables1;
   [k: string]: unknown;
 }
 export interface Common15 {
@@ -3478,8 +3549,26 @@ export interface SourceLocation15 {
    */
   endIndex: number;
 }
-export interface LoadCookie {
-  loadCookie: LoadCookie1;
+export interface DragAndDrop {
+  dragAndDrop: DragAndDrop1;
+  [k: string]: unknown;
+}
+/**
+ * Drag and drop an element from source to target.
+ */
+export interface DragAndDrop1 {
+  /**
+   * The element to drag.
+   */
+  source: ElementSimple | ElementDetailed;
+  /**
+   * The target location to drop the element.
+   */
+  target: ElementSimple1 | ElementDetailed1;
+  /**
+   * Duration of the drag operation in milliseconds.
+   */
+  duration?: number;
   [k: string]: unknown;
 }
 export interface Common16 {
@@ -3614,6 +3703,155 @@ export interface Assertion16 {
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation16 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface LoadCookie {
+  loadCookie: LoadCookie1;
+  [k: string]: unknown;
+}
+export interface Common17 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep17;
+  variables?: VariablesStep17;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  if?: Condition34;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition35 | Assertion17[];
+  /**
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onPass?: Routing68[];
+  /**
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onFail?: Routing69[];
+  /**
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onWarning?: Routing70[];
+  /**
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   */
+  onSkip?: Routing71[];
+  location?: SourceLocation17;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  /**
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   */
+  attempts?: number;
+  /**
+   * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
+   */
+  visit?: number;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep17 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep17`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep17 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep17`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion17 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation17 {
   /**
    * 1-indexed line number in the source file where the step was detected.
    */
