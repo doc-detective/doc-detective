@@ -1,10 +1,10 @@
 {
   "specId": "background-processes",
-  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, waitUntil }) on runCode/runShell with each waitUntil condition (port, stdio, httpGet, delayMs), multiple conditions combined, the no-waitUntil form (ready as soon as spawned), stopProcess (by name), the missing-process no-op, and the run-end auto-sweep (a process left running with no stopProcess). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
+  "description": "Exercises long-running background processes end-to-end: a `background` object ({ name, waitUntil }) on runCode/runShell with each waitUntil condition (port, stdio, httpGet, delayMs), multiple conditions combined, the no-waitUntil form (ready as soon as spawned), closeSurface (by name), the missing-process no-op, and the run-end auto-sweep (a process left running with no closeSurface). All steps are non-driver (Node only), so they run and PASS on every platform; each test uses a distinct port and process name to stay safe under concurrentRunners.",
   "tests": [
     {
       "testId": "bg-runcode-port",
-      "description": "runCode background server, port condition, stopped via stopProcess.",
+      "description": "runCode background server, port condition, stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -20,13 +20,13 @@
           }
         },
         {
-          "stopProcess": "bg-port"
+          "closeSurface": "bg-port"
         }
       ]
     },
     {
       "testId": "bg-runcode-stdio",
-      "description": "runCode background process, stdio condition (matches stdout or stderr), stopped via stopProcess.",
+      "description": "runCode background process, stdio condition (matches stdout or stderr), stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -42,13 +42,13 @@
           }
         },
         {
-          "stopProcess": "bg-stdio"
+          "closeSurface": "bg-stdio"
         }
       ]
     },
     {
       "testId": "bg-runcode-httpget",
-      "description": "runCode background server, httpGet condition, stopped via stopProcess.",
+      "description": "runCode background server, httpGet condition, stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -64,13 +64,13 @@
           }
         },
         {
-          "stopProcess": "bg-http"
+          "closeSurface": "bg-http"
         }
       ]
     },
     {
       "testId": "bg-runcode-delay",
-      "description": "runCode background process, fixed-delay condition, stopped via stopProcess.",
+      "description": "runCode background process, fixed-delay condition, stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -86,7 +86,7 @@
           }
         },
         {
-          "stopProcess": "bg-delay"
+          "closeSurface": "bg-delay"
         }
       ]
     },
@@ -110,13 +110,13 @@
           }
         },
         {
-          "stopProcess": "bg-combined"
+          "closeSurface": "bg-combined"
         }
       ]
     },
     {
       "testId": "bg-runcode-noprobe",
-      "description": "Background process with no waitUntil — ready as soon as it is spawned; stopped via stopProcess.",
+      "description": "Background process with no waitUntil — ready as soon as it is spawned; stopped via closeSurface.",
       "steps": [
         {
           "runCode": {
@@ -129,13 +129,13 @@
           }
         },
         {
-          "stopProcess": "bg-noprobe"
+          "closeSurface": "bg-noprobe"
         }
       ]
     },
     {
       "testId": "bg-runshell-port",
-      "description": "runShell background server (node bg-server.js), port condition, stopped via stopProcess.",
+      "description": "runShell background server (node bg-server.js), port condition, stopped via closeSurface.",
       "steps": [
         {
           "runShell": {
@@ -154,13 +154,13 @@
           }
         },
         {
-          "stopProcess": "bg-shell"
+          "closeSurface": "bg-shell"
         }
       ]
     },
     {
       "testId": "bg-autosweep",
-      "description": "Background process started with no stopProcess — the run-end sweep must tear it down. The start step PASSES; cleanup is implicit.",
+      "description": "Background process started with no closeSurface — the run-end sweep must tear it down. The start step PASSES; cleanup is implicit.",
       "steps": [
         {
           "runCode": {
@@ -179,10 +179,10 @@
     },
     {
       "testId": "bg-stopprocess-missing",
-      "description": "stopProcess on a name that was never started is a no-op that PASSES.",
+      "description": "closeSurface on a name that was never started is a no-op that PASSES.",
       "steps": [
         {
-          "stopProcess": "bg-never-started"
+          "closeSurface": "bg-never-started"
         }
       ]
     }

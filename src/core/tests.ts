@@ -64,7 +64,7 @@ import { loadCookie } from "./tests/loadCookie.js";
 import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
-import { stopProcess } from "./tests/stopProcess.js";
+import { closeSurface } from "./tests/closeSurface.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import path from "node:path";
@@ -990,7 +990,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
   // Registry of long-running background processes started by `background`
   // runShell/runCode steps. Owned by this run (not per-context) so processes
-  // survive across specs/tests and are torn down once — by a stopProcess step
+  // survive across specs/tests and are torn down once — by a closeSurface step
   // or the run-end sweep in the `finally` below.
   const processRegistry = new Map<string, any>();
 
@@ -1008,7 +1008,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
-  // actually gone before the run returns. Idempotent: stopProcess already
+  // actually gone before the run returns. Idempotent: closeSurface already
   // removes the entries it handles.
   const killAllRegistered = async () => {
     const entries = [...processRegistry.entries()];
@@ -1226,7 +1226,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
   } finally {
     // Run-end teardown: kill any background processes the run didn't explicitly
-    // stop (via stopProcess) so they don't leak. Awaited so the trees are gone
+    // stop (via closeSurface) so they don't leak. Awaited so the trees are gone
     // before runSpecs returns.
     await killAllRegistered();
     // Close every Appium server we started.
@@ -3149,8 +3149,8 @@ async function runStep({
     });
   } else if (typeof step.runShell !== "undefined") {
     actionResult = await runShell({ config: config, step: step, processRegistry });
-  } else if (typeof step.stopProcess !== "undefined") {
-    actionResult = await stopProcess({ config: config, step: step, processRegistry });
+  } else if (typeof step.closeSurface !== "undefined") {
+    actionResult = await closeSurface({ config: config, step: step, processRegistry });
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
       config: config,
@@ -3162,6 +3162,7 @@ async function runStep({
       config: config,
       step: step,
       driver: driver,
+      processRegistry,
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step, driver: driver });

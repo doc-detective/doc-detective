@@ -20,7 +20,7 @@ export { runShell };
 // Run a shell command. When `step.runShell.background` is set (an object with a
 // `name` and optional `waitUntil`), the command is started as a long-running
 // process registered in `processRegistry` and the step returns as soon as
-// `waitUntil` is satisfied; the process is torn down later by a stopProcess step
+// `waitUntil` is satisfied; the process is torn down later by a closeSurface step
 // or the run-end sweep.
 async function runShell({
   config,

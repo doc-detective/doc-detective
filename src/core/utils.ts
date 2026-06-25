@@ -22,6 +22,7 @@ export {
   waitForPort,
   waitForHttp,
   waitForStdio,
+  waitForOutputMatch,
   inContainer,
   cleanTemp,
   calculateFractionalDifference,
@@ -243,6 +244,9 @@ interface BackgroundProcess {
   getStdout(): string;
   getStderr(): string;
   getCombined(): string;
+  // Write data to the process's stdin. Returns false if stdin is unavailable
+  // (never opened, already closed/destroyed); true if the write was accepted.
+  write(data: string): boolean;
   // Subscribe to new output chunks. Returns an unsubscribe function.
   onChunk(cb: (chunk: string, stream: "stdout" | "stderr") => void): () => void;
   // Resolves with the exit code when the process closes, or null if it never
@@ -308,6 +312,17 @@ function spawnBackgroundCommand(
     getStdout: () => stdout,
     getStderr: () => stderr,
     getCombined: () => stdout + stderr,
+    write(data) {
+      // `{ shell: true }` gives the child a writable stdin pipe. Guard against
+      // a closed/destroyed/ended stream so a write to a dead process is a no-op
+      // (false) rather than a throw. We return false ONLY when stdin is
+      // unavailable — never forwarding Node's backpressure `false` (which would
+      // conflate a full buffer with a gone stdin).
+      if (!child.stdin || child.stdin.destroyed || child.stdin.writableEnded)
+        return false;
+      child.stdin.write(data);
+      return true;
+    },
     onChunk(cb) {
       subscribers.add(cb);
       return () => subscribers.delete(cb);
@@ -431,6 +446,35 @@ function waitForStdio(
   });
 }
 
+// Resolve when the process output matches `expected` (substring, or /regex/ via
+// matchesExpectedOutput), or resolve `false` when the deadline passes. Snapshots
+// the already-buffered output first so a match emitted before subscription isn't
+// missed (race guard). Non-throwing: the assertion engine — not an exception —
+// decides PASS/FAIL, unlike waitForStdio which rejects on timeout.
+// Matches against the COMBINED stdout+stderr (getCombined), distinct from
+// waitForReady's stdout-OR-stderr `waitForStdio`.
+function waitForOutputMatch(
+  bg: BackgroundProcess,
+  expected: string,
+  { deadline }: { deadline: number }
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (matchesExpectedOutput(bg.getCombined(), expected)) return resolve(true);
+    let off = () => {};
+    const t = setTimeout(() => {
+      off();
+      resolve(false);
+    }, Math.max(0, deadline - Date.now()));
+    off = bg.onChunk(() => {
+      if (matchesExpectedOutput(bg.getCombined(), expected)) {
+        clearTimeout(t);
+        off();
+        resolve(true);
+      }
+    });
+  });
+}
+
 // Block until every condition in `waitUntil` is met, fail fast if the process
 // exits first, or reject when `timeoutMs` elapses. Conditions are AND-combined
 // (like goTo's `waitUntil`): all the ones present must pass. An absent or empty
@@ -461,13 +505,19 @@ async function waitForReady(
 
   // Fail fast if the process dies before becoming ready.
   const earlyExit = bg.exited.then((code) => {
-    throw new Error(`Process exited before becoming ready (exit code ${code}).`);
+    // `exited` resolves null when the process never started (spawn error), so
+    // report a spawn failure rather than a meaningless "exit code null".
+    throw new Error(
+      code === null
+        ? `Process failed to start (spawn error).`
+        : `Process exited before becoming ready (exit code ${code}).`
+    );
   });
 
   // The race loser settles later (a probe keeps polling to its own deadline;
   // earlyExit rejects when the process is eventually killed at teardown).
   // Attach no-op catches so a late rejection is always considered handled and
-  // never surfaces as an unhandledRejection during normal stopProcess teardown.
+  // never surfaces as an unhandledRejection during normal closeSurface teardown.
   ready.catch(() => {});
   earlyExit.catch(() => {});
   for (const p of probes) p.catch(() => {});

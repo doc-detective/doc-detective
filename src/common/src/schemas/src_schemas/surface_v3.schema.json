@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "surface",
+  "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+  "anyOf": [
+    { "$ref": "#/components/schemas/byName" },
+    { "$ref": "#/components/schemas/process" }
+  ],
+  "components": {
+    "schemas": {
+      "byName": {
+        "title": "Surface (by name)",
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S",
+        "transform": ["trim"],
+        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+      },
+      "process": {
+        "title": "Process surface",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["process"],
+        "properties": {
+          "process": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": ["trim"],
+            "description": "Name of a background process started by a runShell/runCode `background` step."
+          }
+        }
+      }
+    }
+  },
+  "examples": ["node", { "process": "node" }]
+}

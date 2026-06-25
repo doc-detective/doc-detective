@@ -440,13 +440,13 @@
         },
         {
           "type": "object",
-          "required": ["stopProcess"],
+          "required": ["closeSurface"],
           "properties": {
-            "stopProcess": {
-              "$ref": "stopProcess_v3.schema.json#"
+            "closeSurface": {
+              "$ref": "closeSurface_v3.schema.json#"
             }
           },
-          "title": "stopProcess"
+          "title": "closeSurface"
         }
       ]
     },
@@ -585,7 +585,7 @@
       }
     },
     {
-      "stopProcess": "web"
+      "closeSurface": "web"
     },
     {
       "screenshot": true
