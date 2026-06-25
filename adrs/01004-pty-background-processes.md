@@ -96,6 +96,12 @@ Mechanism:
   a prebuilt binary for the runner's platform/arch (Windows uses ConPTY). When it isn't available the
   feature SKIPs rather than works. Some Windows ConPTY edge cases (e.g. spawning a quoted interactive
   exe directly) are avoided by always spawning through the shell.
+* **Known limitation (Windows `args` + `tty`)** — on Windows, node-pty's ConPTY agent re-quotes the
+  shell command line it builds, which collides with the quoting we add for the `args` field. So
+  `command` strings work everywhere, but passing arguments via the `args` field together with `tty`
+  can mis-quote on Windows (this also affects `runCode`, which routes its script path through `args`).
+  The cross-platform path is to put everything in `command`. A node-pty verbatim-args fix and a
+  `runCode` PTY real-runner fixture are tracked as follow-ups.
 * **Neutral** — `tty:true` with no `node-pty` does not warn loudly; the SKIP description carries the
   reason and names the dependency.
 

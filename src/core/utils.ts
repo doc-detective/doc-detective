@@ -390,9 +390,13 @@ async function spawnPtyBackgroundCommand(
       autoInstall: false,
     });
   } catch {
-    throw new Error(
+    // Tag ONLY the missing-dependency case so runShell can SKIP for it while
+    // still FAILing on any other PTY startup error.
+    const err: any = new Error(
       "node-pty is not installed. Install it (`npm install node-pty`) to use `background.tty`."
     );
+    err.code = "NODE_PTY_UNAVAILABLE";
+    throw err;
   }
 
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";

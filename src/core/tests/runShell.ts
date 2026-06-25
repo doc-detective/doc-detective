@@ -104,9 +104,10 @@ async function runShell({
 
     // When `background.tty` is set, spawn the process under a real
     // pseudo-terminal (node-pty) so full-screen/interactive TUIs render and
-    // accept keystrokes. node-pty is a lazily-installed heavy dep; if it can't
-    // be loaded, SKIP the step (graceful degradation) rather than FAIL — this
-    // keeps fixtures PASS/SKIPPED. Otherwise use the pipe-backed spawn.
+    // accept keystrokes. node-pty is an optional, user-installed heavy dep; only
+    // its ABSENCE is a graceful SKIP (keeps fixtures PASS/SKIPPED). Any other
+    // startup error (bad cwd, PTY spawn failure, …) must FAIL so it isn't hidden
+    // as optional-dependency absence. Otherwise use the pipe-backed spawn.
     let bg;
     if (background.tty) {
       try {
@@ -116,6 +117,11 @@ async function runShell({
           { ...bgOptions, cacheDir: config?.cacheDir }
         );
       } catch (error: any) {
+        if (error?.code !== "NODE_PTY_UNAVAILABLE") {
+          result.status = "FAIL";
+          result.description = `Failed to start PTY background process "${name}": ${error.message}`;
+          return result;
+        }
         result.status = "SKIPPED";
         result.description = `PTY background requires the optional \`node-pty\` dependency, which isn't available: ${error.message}`;
         return result;
