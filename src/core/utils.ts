@@ -398,10 +398,14 @@ async function spawnPtyBackgroundCommand(
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
   const fullCommand = cmd + argstr;
   const isWin = process.platform === "win32";
-  const shell = isWin
-    ? process.env.ComSpec || "cmd.exe"
-    : process.env.SHELL || "/bin/sh";
-  const shellArgs = isWin ? ["/c", fullCommand] : ["-c", fullCommand];
+  // Match Node's `{ shell: true }` invocation exactly so a `tty` process behaves
+  // identically to the pipe path: cmd.exe with `/d /s /c` on Windows (disable
+  // AutoRun, treat the whole string as one quoted command), `/bin/sh -c` on POSIX
+  // (NOT $SHELL, which may be a non-POSIX shell).
+  const shell = isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh";
+  const shellArgs = isWin
+    ? ["/d", "/s", "/c", fullCommand]
+    : ["-c", fullCommand];
 
   const ptyProcess = pty.spawn(shell, shellArgs, {
     name: "xterm-color",
@@ -452,12 +456,19 @@ async function spawnPtyBackgroundCommand(
       return () => subscribers.delete(cb);
     },
     exited,
-    kill() {
+    kill(): Promise<void> {
       try {
         ptyProcess.kill();
       } catch {
         // best-effort — the PTY may already have exited
       }
+      // Resolve only once the PTY has actually exited, so `await bg.kill()` at
+      // teardown sites waits for the process to be gone (parity with the pipe
+      // path's awaited tree-kill).
+      return exited.then(
+        () => {},
+        () => {}
+      );
     },
   };
 }
