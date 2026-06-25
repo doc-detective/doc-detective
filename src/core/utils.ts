@@ -314,10 +314,14 @@ function spawnBackgroundCommand(
     getCombined: () => stdout + stderr,
     write(data) {
       // `{ shell: true }` gives the child a writable stdin pipe. Guard against
-      // a closed/destroyed stream so a write to a dead process is a no-op
-      // (false) rather than a throw.
-      if (!child.stdin || child.stdin.destroyed) return false;
-      return child.stdin.write(data);
+      // a closed/destroyed/ended stream so a write to a dead process is a no-op
+      // (false) rather than a throw. We return false ONLY when stdin is
+      // unavailable — never forwarding Node's backpressure `false` (which would
+      // conflate a full buffer with a gone stdin).
+      if (!child.stdin || child.stdin.destroyed || child.stdin.writableEnded)
+        return false;
+      child.stdin.write(data);
+      return true;
     },
     onChunk(cb) {
       subscribers.add(cb);
@@ -447,6 +451,8 @@ function waitForStdio(
 // the already-buffered output first so a match emitted before subscription isn't
 // missed (race guard). Non-throwing: the assertion engine — not an exception —
 // decides PASS/FAIL, unlike waitForStdio which rejects on timeout.
+// Matches against the COMBINED stdout+stderr (getCombined), distinct from
+// waitForReady's stdout-OR-stderr `waitForStdio`.
 function waitForOutputMatch(
   bg: BackgroundProcess,
   expected: string,
@@ -499,13 +505,19 @@ async function waitForReady(
 
   // Fail fast if the process dies before becoming ready.
   const earlyExit = bg.exited.then((code) => {
-    throw new Error(`Process exited before becoming ready (exit code ${code}).`);
+    // `exited` resolves null when the process never started (spawn error), so
+    // report a spawn failure rather than a meaningless "exit code null".
+    throw new Error(
+      code === null
+        ? `Process failed to start (spawn error).`
+        : `Process exited before becoming ready (exit code ${code}).`
+    );
   });
 
   // The race loser settles later (a probe keeps polling to its own deadline;
   // earlyExit rejects when the process is eventually killed at teardown).
   // Attach no-op catches so a late rejection is always considered handled and
-  // never surfaces as an unhandledRejection during normal stopProcess teardown.
+  // never surfaces as an unhandledRejection during normal closeSurface teardown.
   ready.catch(() => {});
   earlyExit.catch(() => {});
   for (const p of probes) p.catch(() => {});

@@ -51,10 +51,24 @@ function translateProcessKeys(keys: string[]): string[] {
     const key = keys[i];
     if (key === "$CTRL$") {
       const next = keys[i + 1];
-      if (typeof next === "string" && next.length > 0) {
-        const c = next[0];
-        out.push(String.fromCharCode(c.toUpperCase().charCodeAt(0) - 64));
+      if (typeof next === "string" && /^[A-Za-z]$/.test(next)) {
+        // Ctrl + ASCII letter → control byte (Ctrl+C → \x03). Only valid for
+        // A–Z, so the charCode math can't underflow into a garbage code point.
+        out.push(String.fromCharCode(next.toUpperCase().charCodeAt(0) - 64));
         i++; // consume the next key
+      } else if (
+        typeof next === "string" &&
+        Object.prototype.hasOwnProperty.call(_processKeyMap, next)
+      ) {
+        // Ctrl + a known sentinel (e.g. $CTRL$ + $ENTER$): there is no distinct
+        // control byte, so emit the sentinel's mapped value rather than deriving
+        // a bogus code from the literal "$".
+        out.push(_processKeyMap[next]);
+        i++; // consume the next key
+      } else {
+        // No usable next token: leave $CTRL$ as-is (and let the next token, if
+        // any, be handled on its own iteration) rather than producing garbage.
+        out.push(key);
       }
       continue;
     }
@@ -152,6 +166,9 @@ async function typeToProcess({
   //    a match emitted between write and subscribe isn't missed.
   let matchPromise: Promise<boolean> | null = null;
   if (waitUntil && typeof waitUntil.stdio === "string") {
+    // waitForOutputMatch tests the COMBINED stdout+stderr (per the
+    // `type.waitUntil.stdio` "combined" schema docs), distinct from
+    // waitForReady's stdout-OR-stderr `waitForStdio`.
     matchPromise = waitForOutputMatch(bg, waitUntil.stdio, {
       deadline: Date.now() + timeout,
     });
@@ -161,7 +178,7 @@ async function typeToProcess({
   //    can drop bytes written too fast).
   for (let i = 0; i < bytes.length; i++) {
     bg.write(bytes[i]);
-    if (inputDelay && i < bytes.length - 1) {
+    if (inputDelay > 0 && i < bytes.length - 1) {
       await new Promise((resolve) => setTimeout(resolve, inputDelay));
     }
   }

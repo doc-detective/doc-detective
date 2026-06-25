@@ -372,6 +372,26 @@ describe("_processKeyMap / translateProcessKeys", function () {
   it("passes unknown $...$ tokens through verbatim", function () {
     assert.deepEqual(translateProcessKeys(["$UNKNOWN$"]), ["$UNKNOWN$"]);
   });
+
+  it("does not produce a garbage code point for $CTRL$ + a $...$ sentinel", function () {
+    // `$CTRL$` followed by a known sentinel must not compute a control byte from
+    // the literal "$" — that produced an out-of-range/garbage code point.
+    const out = translateProcessKeys(["$CTRL$", "$ENTER$"]);
+    for (const token of out) {
+      for (let i = 0; i < token.length; i++) {
+        assert.ok(
+          token.charCodeAt(i) <= 0xff,
+          `unexpected code point > 0xFF in ${JSON.stringify(token)}`
+        );
+      }
+    }
+    // $CTRL$ + $ENTER$ collapses to the carriage return the sentinel maps to.
+    assert.deepEqual(out, ["\r"]);
+  });
+
+  it("still maps $CTRL$ + an ASCII letter to a control byte", function () {
+    assert.deepEqual(translateProcessKeys(["$CTRL$", "c"]), ["\x03"]);
+  });
 });
 
 describe("resolveSurface", function () {

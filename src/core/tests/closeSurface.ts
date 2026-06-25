@@ -98,6 +98,11 @@ async function closeSurface({
     );
   result.status = "PASS";
   result.description = parts.join(" ") || "No surfaces to close.";
-  result.outputs = { closed: closed.join(","), absent: absent.join(",") };
+  result.outputs = {
+    closed,
+    absent,
+    closedCount: closed.length,
+    absentCount: absent.length,
+  };
   return result;
 }

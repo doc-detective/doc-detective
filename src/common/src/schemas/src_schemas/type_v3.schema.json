@@ -33,98 +33,100 @@
       },
       "object": {
         "title": "Type keys (detailed)",
-        "type": "object",
-        "properties": {
-          "keys": {
-            "$ref": "#/components/schemas/keys"
-          },
-          "inputDelay": {
-            "type": "number",
-            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
-            "default": 100
-          },
-          "surface": {
-            "$ref": "surface_v3.schema.json#"
-          },
-          "waitUntil": {
+        "allOf": [
+          {
             "type": "object",
-            "additionalProperties": false,
-            "minProperties": 1,
-            "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
             "properties": {
-              "stdio": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+              "keys": {
+                "$ref": "#/components/schemas/keys"
               },
-              "delayMs": {
+              "inputDelay": {
+                "type": "number",
+                "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                "default": 100
+              },
+              "surface": {
+                "$ref": "surface_v3.schema.json#"
+              },
+              "waitUntil": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+                "properties": {
+                  "stdio": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                  },
+                  "delayMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Fixed delay (ms)."
+                  }
+                }
+              },
+              "timeout": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "Fixed delay (ms)."
-              }
-            }
-          },
-          "timeout": {
-            "type": "integer",
-            "minimum": 0,
-            "default": 5000,
-            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
-          },
-          "selector": {
-            "type": "string",
-            "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
-          },
-          "elementText": {
-            "type": "string",
-            "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
-          },
-          "elementId": {
-            "type": "string",
-            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementTestId": {
-            "type": "string",
-            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementClass": {
-            "anyOf": [
-              {
-                "type": "string"
+                "default": 5000,
+                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
               },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
+              "selector": {
+                "type": "string",
+                "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
+              },
+              "elementText": {
+                "type": "string",
+                "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
+              },
+              "elementId": {
+                "type": "string",
+                "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementTestId": {
+                "type": "string",
+                "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementClass": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+              },
+              "elementAttribute": {
+                "type": "object",
+                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
                 }
+              },
+              "elementAria": {
+                "type": "string",
+                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
               }
-            ],
-            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+            },
+            "required": ["keys"],
+            "additionalProperties": false
           },
-          "elementAttribute": {
-            "type": "object",
-            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
-            }
-          },
-          "elementAria": {
-            "type": "string",
-            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-          }
-        },
-        "required": ["keys"],
-        "additionalProperties": false,
-        "allOf": [
           {
             "title": "waitUntil requires a surface",
             "if": { "required": ["waitUntil"] },
