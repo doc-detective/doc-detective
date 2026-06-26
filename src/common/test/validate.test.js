@@ -2460,6 +2460,122 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
+      it("should validate a background runShell with tty:true", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "claude",
+              background: { name: "x", tty: true },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with tty:false", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "node -i",
+              background: { name: "x", tty: false },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with tty + waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "claude",
+              background: { name: "x", tty: true, waitUntil: { stdio: "/r/" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject a background runShell with a non-boolean tty", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "claude",
+              background: { name: "x", tty: "yes" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should validate a background runCode with tty:true", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: true },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runCode with tty:false", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: false },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runCode with tty + waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: true, waitUntil: { stdio: "/r/" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject a background runCode with a non-boolean tty", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: "yes" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
       it("should validate a closeSurface step (string name)", function () {
         const result = validate({
           schemaKey: "step_v3",
