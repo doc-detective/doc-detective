@@ -1,3 +1,10 @@
+# [4.15.0-next.17](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.16...v4.15.0-next.17) (2026-06-26)
+
+
+### Features
+
+* **runner:** run background processes under a PTY for full TUIs (`background.tty`) ([014c5c8](https://github.com/doc-detective/doc-detective/commit/014c5c87753ac92d8a6ec8dff7ee159780cd2c46))
+
 # [4.15.0-next.16](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.15...v4.15.0-next.16) (2026-06-25)
 
 
