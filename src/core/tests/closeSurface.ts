@@ -67,8 +67,11 @@ async function closeSurface({
     // Remove from the registry first so the run-end sweep doesn't double-kill.
     processRegistry?.delete(name);
 
-    // Tree-kill the process (the spawned shell plus its children).
-    if (entry.bg?.pid) {
+    // Terminate the process. PTY-backed handles own their own termination via
+    // `kill()`; pipe-backed ones tree-kill the spawned shell plus its children.
+    if (entry.bg?.kill) {
+      await entry.bg.kill();
+    } else if (entry.bg?.pid) {
       await new Promise<void>((resolve) =>
         kill(entry.bg.pid, "SIGTERM", () => resolve())
       );

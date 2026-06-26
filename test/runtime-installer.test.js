@@ -159,6 +159,45 @@ describe("runtime/installer", function () {
       });
       expect(reports[0].action).to.equal("already-up-to-date");
     });
+
+    it("a best-effort dep (the PTY backend) failing to install does not abort the core batch", async function () {
+      // The PTY backend is native; its install runs separately and
+      // failure-tolerant. A non-zero exit for it must leave the core batch
+      // installed and resolve with the PTY backend reported skipped.
+      const PTY = "@homebridge/node-pty-prebuilt-multiarch";
+      const spawner = (cmd, args) => {
+        const isNodePty = args.some(
+          (a) => typeof a === "string" && a.includes("node-pty")
+        );
+        const prefix = args[args.indexOf("--prefix") + 1];
+        if (!isNodePty) {
+          const target = path.join(prefix, "node_modules", "pngjs");
+          fs.mkdirSync(target, { recursive: true });
+          fs.writeFileSync(
+            path.join(target, "package.json"),
+            JSON.stringify({ name: "pngjs", version: "7.0.0" })
+          );
+        }
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        setImmediate(() => child.emit("close", isNodePty ? 1 : 0));
+        return child;
+      };
+      // `force` bypasses the "already-present" fast path so the install actually
+      // spawns (otherwise a shim-resolved PTY backend in the dev tree would skip
+      // the spawn and never exercise the failure). Must RESOLVE (not throw)
+      // despite the non-zero exit — the best-effort guarantee that keeps
+      // `install all` from aborting.
+      const reports = await installRuntime({
+        packages: ["pngjs", PTY],
+        force: true,
+        deps: { spawn: spawner, logger: () => {} },
+      });
+      const byId = Object.fromEntries(reports.map((r) => [r.assetId, r]));
+      expect(byId[PTY].action).to.equal("skipped");
+      expect(byId.pngjs, "core dep still reported").to.exist;
+    });
   });
 
   describe("installBrowsers", function () {

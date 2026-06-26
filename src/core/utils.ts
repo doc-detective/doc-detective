@@ -6,6 +6,7 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
+import { loadHeavyDep } from "../runtime/loader.js";
 
 export {
   outputResults,
@@ -18,6 +19,7 @@ export {
   replaceEnvs,
   spawnCommand,
   spawnBackgroundCommand,
+  spawnPtyBackgroundCommand,
   waitForReady,
   waitForPort,
   waitForHttp,
@@ -239,7 +241,10 @@ async function findFreePort(): Promise<number> {
 // runShell/runCode step. Output is buffered (ring-capped) so readiness probes
 // and debugging can inspect it without waiting for the process to exit.
 interface BackgroundProcess {
-  child: ChildProcess;
+  // The Node ChildProcess, when the process was spawned over a pipe
+  // (spawnBackgroundCommand). PTY-backed processes have no ChildProcess, so this
+  // is optional; teardown prefers `kill()` when present, else tree-kills `pid`.
+  child?: ChildProcess;
   pid: number | undefined;
   getStdout(): string;
   getStderr(): string;
@@ -252,6 +257,13 @@ interface BackgroundProcess {
   // Resolves with the exit code when the process closes, or null if it never
   // started (spawn error).
   exited: Promise<number | null>;
+  // Terminate the process. Present on PTY-backed handles (which own their own
+  // termination via `pty.kill()` and have no pid for tree-kill). When present,
+  // teardown prefers this over tree-killing `pid`.
+  kill?(): Promise<void> | void;
+  // True when the handle is backed by a pseudo-terminal (node-pty) rather than a
+  // pipe. In PTY mode stdout/stderr are merged into a single stream.
+  isPty?: boolean;
 }
 
 // Cap each buffered stream so a process that logs for the whole suite can't
@@ -328,6 +340,163 @@ function spawnBackgroundCommand(
       return () => subscribers.delete(cb);
     },
     exited,
+  };
+}
+
+// Quote a single command-line argument so the platform shell treats it as one
+// token (so the `args` field keeps working when we append it to the command
+// string for the shell). Wraps in double quotes and escapes embedded double
+// quotes; mirrors how `shell:true` would pass each arg.
+function quoteShellArg(arg: string): string {
+  if (process.platform === "win32") {
+    // cmd.exe: escape embedded quotes by doubling them, then wrap.
+    return `"${arg.replace(/"/g, '""')}"`;
+  }
+  // POSIX sh: single-quote and escape any embedded single quote.
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+// PTY-backed sibling of spawnBackgroundCommand: starts a process under a real
+// pseudo-terminal (node-pty) so full-screen/interactive TUIs that check
+// `process.stdout.isTTY` render and accept keystrokes (Phase 2). It is a
+// drop-in `BackgroundProcess` — same buffer/subscriber model — except a PTY
+// exposes ONE merged stream, so all output lands in the `stdout` buffer
+// (`getStderr()` returns "", `getCombined()` returns stdout). That keeps
+// `waitForStdio`/`waitForReady` (`getStdout()||getStderr()`) working unchanged.
+//
+// The PTY backend is `@homebridge/node-pty-prebuilt-multiarch` — an API-identical
+// parallel fork of node-pty that ships prebuilt binaries for macOS (incl. arm64),
+// Windows, and Linux across Node ABIs. Upstream node-pty has no Windows prebuilds
+// (source build fails on bare runners) and its macOS prebuild ships the
+// `spawn-helper` without the execute bit (`posix_spawnp failed`); the fork avoids
+// both, so the PTY path actually runs on CI rather than degrading to SKIP.
+//
+// It is a registered heavy dep (HEAVY_NPM_DEPS + `ddRuntimeDependencies`), loaded
+// the same way as webdriverio/appium: `loadHeavyDep` resolves a copy that the
+// postinstall / `install all` step (or a prior run's JIT install) placed in the
+// runtime cache, and `autoInstall` lets it install on demand otherwise. It is NOT
+// in `optionalDependencies`, so the lockfile stays untouched. When it can't be
+// resolved or installed (no prebuilt binary for the platform), this REJECTS and
+// the caller (runShell) maps that to a SKIPPED step (graceful degradation).
+//
+// We spawn through the platform shell (`cmd.exe /d /s /c` / `/bin/sh -c`) for
+// parity with spawnBackgroundCommand's `{ shell: true }`, appending the (quoted)
+// `args` to the command string so the `args` field still works.
+const PTY_PACKAGE = "@homebridge/node-pty-prebuilt-multiarch";
+async function spawnPtyBackgroundCommand(
+  cmd: string,
+  args: string[] = [],
+  options: any = {}
+): Promise<BackgroundProcess> {
+  // Rethrow on failure tagged so runShell SKIPs for an unavailable node-pty while
+  // still FAILing on any other PTY startup error.
+  let pty: any;
+  try {
+    pty = await loadHeavyDep<any>(PTY_PACKAGE, {
+      ctx: { cacheDir: options.cacheDir },
+    });
+  } catch {
+    // Tag ONLY the missing-dependency case so runShell can SKIP for it while
+    // still FAILing on any other PTY startup error.
+    const err: any = new Error(
+      `The PTY backend (node-pty / ${PTY_PACKAGE}) is not installed. Install it (\`npm install ${PTY_PACKAGE}\`) to use \`background.tty\`.`
+    );
+    err.code = "NODE_PTY_UNAVAILABLE";
+    throw err;
+  }
+
+  const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
+  const fullCommand = cmd + argstr;
+  const isWin = process.platform === "win32";
+  // Match Node's `{ shell: true }` invocation exactly so a `tty` process behaves
+  // identically to the pipe path: cmd.exe with `/d /s /c` on Windows (disable
+  // AutoRun, treat the whole string as one quoted command), `/bin/sh -c` on POSIX
+  // (NOT $SHELL, which may be a non-POSIX shell).
+  const shell = isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh";
+  const shellArgs = isWin
+    ? ["/d", "/s", "/c", fullCommand]
+    : ["-c", fullCommand];
+
+  let ptyProcess: any;
+  try {
+    ptyProcess = pty.spawn(shell, shellArgs, {
+      name: "xterm-color",
+      // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
+      // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
+      // expected width when authoring `waitUntil.stdio` patterns.
+      cols: 120,
+      rows: 30,
+      cwd: options.cwd || process.cwd(),
+      env: process.env,
+    });
+  } catch (error: any) {
+    // node-pty loaded but couldn't create a PTY here (e.g. a prebuilt
+    // spawn-helper that doesn't work on this OS/arch — `posix_spawnp failed` on
+    // some macOS arm64 runners). Treat "PTY can't be created on this platform"
+    // the same as "node-pty unavailable" so runShell SKIPs (graceful) rather
+    // than FAILing. A bad command/cwd still surfaces as a readiness failure.
+    const err: any = new Error(
+      `PTY could not be created on this platform: ${error?.message ?? error}`
+    );
+    err.code = "NODE_PTY_UNAVAILABLE";
+    throw err;
+  }
+
+  // PTY = one merged stream → feed everything into the stdout buffer.
+  let stdout = "";
+  const subscribers = new Set<
+    (chunk: string, stream: "stdout" | "stderr") => void
+  >();
+  function append(text: string) {
+    stdout = (stdout + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    for (const cb of subscribers) cb(text, "stdout");
+  }
+  ptyProcess.onData((d: string) => append(d));
+
+  let alive = true;
+  const exited = new Promise<number | null>((resolve) => {
+    ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
+      alive = false;
+      resolve(exitCode);
+    });
+  });
+
+  return {
+    pid: ptyProcess.pid,
+    isPty: true,
+    getStdout: () => stdout,
+    getStderr: () => "",
+    getCombined: () => stdout,
+    write(data) {
+      // Guard against a write to an already-exited PTY so it is a no-op (false)
+      // rather than a throw.
+      if (!alive) return false;
+      try {
+        ptyProcess.write(data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    onChunk(cb) {
+      subscribers.add(cb);
+      return () => subscribers.delete(cb);
+    },
+    exited,
+    kill(): Promise<void> {
+      try {
+        ptyProcess.kill();
+      } catch {
+        // best-effort — the PTY may already have exited
+      }
+      // Resolve only once the PTY has actually exited, so `await bg.kill()` at
+      // teardown sites waits for the process to be gone (parity with the pipe
+      // path's awaited tree-kill).
+      return exited.then(
+        () => {},
+        () => {}
+      );
+    },
   };
 }
 

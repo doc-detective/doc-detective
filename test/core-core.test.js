@@ -2037,6 +2037,88 @@ describe("getRunner() function", function () {
     }
   });
 
+  it("a tty:true background SKIPs (with a node-pty reason) when node-pty can't be loaded", async function () {
+    // Phase 2: when `background.tty` is set but the optional `node-pty` dep can't
+    // be resolved or installed, the runShell step must SKIP (graceful
+    // degradation) — never FAIL — with a description that names `node-pty`. We
+    // simulate absence by (1) moving the installed node-pty aside so it doesn't
+    // resolve from the shim, (2) pointing the runtime cache at an empty dir,
+    // (3) forcing npm offline, AND (4) pointing the npm cache at an empty dir so
+    // the offline JIT install can't pull node-pty from a warm `~/.npm` cache
+    // (which it otherwise can on CI after `install all`) — it fails fast instead.
+    this.timeout(60000);
+    // The PTY backend is the prebuilt-multiarch fork of node-pty; its package
+    // dir is named for the fork even though the SKIP reason still says "node-pty".
+    const PTY_PKG = "@homebridge/node-pty-prebuilt-multiarch";
+    const PTY_DIRNAME = "node-pty-prebuilt-multiarch";
+    const require = (await import("node:module")).createRequire(
+      import.meta.url
+    );
+    let ptyDir = null;
+    try {
+      // <repo>/node_modules/@homebridge/node-pty-prebuilt-multiarch
+      ptyDir = path.dirname(path.dirname(require.resolve(PTY_PKG)));
+      // Walk up to the package root (the dir literally named for the fork).
+      while (
+        path.basename(ptyDir) !== PTY_DIRNAME &&
+        path.dirname(ptyDir) !== ptyDir
+      ) {
+        ptyDir = path.dirname(ptyDir);
+      }
+      if (path.basename(ptyDir) !== PTY_DIRNAME) ptyDir = null;
+    } catch {
+      ptyDir = null; // not installed here — absence is already real.
+    }
+
+    const { runShell } = await import("../dist/core/tests/runShell.js");
+    const emptyCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-nopty-cache-"));
+    const emptyNpmCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-nopty-npm-"));
+    const moved = ptyDir ? `${ptyDir}.moved-for-test` : null;
+    const prevOffline = process.env.npm_config_offline;
+    const prevNpmCache = process.env.npm_config_cache;
+    process.env.npm_config_offline = "true";
+    process.env.npm_config_cache = emptyNpmCache;
+    if (ptyDir) fs.renameSync(ptyDir, moved);
+    const reg = new Map();
+    try {
+      const result = await runShell({
+        config: { cacheDir: emptyCache },
+        step: {
+          runShell: {
+            command: "node -i",
+            background: { name: "nopty-repl", tty: true },
+            timeout: 5000,
+          },
+        },
+        processRegistry: reg,
+      });
+      // Invariant: a `tty:true` start with node-pty unavailable must NEVER FAIL —
+      // it degrades to SKIPPED (named reason). The forcing above usually achieves
+      // SKIPPED; if a warm cache still lets it install, PASS is also acceptable
+      // (the feature simply works) — the assertion only forbids FAIL.
+      assert.ok(
+        result.status === "SKIPPED" || result.status === "PASS",
+        `expected SKIPPED or PASS, got ${result.status}: ${result.description}`
+      );
+      if (result.status === "SKIPPED") assert.match(result.description, /node-pty/);
+    } finally {
+      for (const entry of reg.values()) {
+        try {
+          await entry?.bg?.kill?.();
+        } catch {
+          /* best-effort cleanup of a started PTY */
+        }
+      }
+      if (ptyDir) fs.renameSync(moved, ptyDir);
+      if (prevOffline === undefined) delete process.env.npm_config_offline;
+      else process.env.npm_config_offline = prevOffline;
+      if (prevNpmCache === undefined) delete process.env.npm_config_cache;
+      else process.env.npm_config_cache = prevNpmCache;
+      fs.rmSync(emptyCache, { recursive: true, force: true });
+      fs.rmSync(emptyNpmCache, { recursive: true, force: true });
+    }
+  });
+
   it("type to a browser-engine surface (chrome) FAILs with 'surface kind not yet supported'", async () => {
     // A reserved browser engine keyword is a future surface kind; Phase 1 must
     // FAIL at runtime rather than mis-routing it to a process or element.

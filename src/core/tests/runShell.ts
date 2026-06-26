@@ -2,6 +2,7 @@ import { validate } from "../../common/src/validate.js";
 import {
   spawnCommand,
   spawnBackgroundCommand,
+  spawnPtyBackgroundCommand,
   waitForReady,
   log,
   calculateFractionalDifference,
@@ -101,11 +102,37 @@ async function runShell({
     if (step.runShell.workingDirectory)
       bgOptions.cwd = step.runShell.workingDirectory;
 
-    const bg = spawnBackgroundCommand(
-      step.runShell.command,
-      step.runShell.args,
-      bgOptions
-    );
+    // When `background.tty` is set, spawn the process under a real
+    // pseudo-terminal (node-pty) so full-screen/interactive TUIs render and
+    // accept keystrokes. node-pty is an optional, user-installed heavy dep; only
+    // its ABSENCE is a graceful SKIP (keeps fixtures PASS/SKIPPED). Any other
+    // startup error (bad cwd, PTY spawn failure, …) must FAIL so it isn't hidden
+    // as optional-dependency absence. Otherwise use the pipe-backed spawn.
+    let bg;
+    if (background.tty) {
+      try {
+        bg = await spawnPtyBackgroundCommand(
+          step.runShell.command,
+          step.runShell.args,
+          { ...bgOptions, cacheDir: config?.cacheDir }
+        );
+      } catch (error: any) {
+        if (error?.code !== "NODE_PTY_UNAVAILABLE") {
+          result.status = "FAIL";
+          result.description = `Failed to start PTY background process "${name}": ${error.message}`;
+          return result;
+        }
+        result.status = "SKIPPED";
+        result.description = `PTY background requires the optional \`node-pty\` dependency, which isn't available: ${error.message}`;
+        return result;
+      }
+    } else {
+      bg = spawnBackgroundCommand(
+        step.runShell.command,
+        step.runShell.args,
+        bgOptions
+      );
+    }
 
     // Register before awaiting readiness so the run-end sweep can kill the
     // process even if it never becomes ready.
@@ -118,9 +145,12 @@ async function runShell({
       });
     } catch (error: any) {
       // Readiness failed (timeout or the process exited) — kill and deregister
-      // so a half-started process doesn't leak. Await the tree-kill (callback
-      // form) so the process tree is actually gone before the step returns.
-      if (bg.pid) {
+      // so a half-started process doesn't leak. PTY-backed handles own their own
+      // termination via `kill()`; pipe-backed ones tree-kill the process tree.
+      // Await either so the process is actually gone before the step returns.
+      if (bg.kill) {
+        await bg.kill();
+      } else if (bg.pid) {
         await new Promise<void>((resolve) => kill(bg.pid!, "SIGTERM", () => resolve()));
       }
       processRegistry.delete(name);
