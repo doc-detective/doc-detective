@@ -288,6 +288,13 @@ function spawnBackgroundCommand(
   if (process.platform === "win32") spawnOptions.windowsHide = true;
   if (options.cwd) spawnOptions.cwd = options.cwd;
 
+  // `shell: true` is intentional and by design. `runShell` (and `runCode`'s
+  // shell backend) exist to execute the exact shell command an author writes in
+  // a test spec — pipes, `&&`, globbing, env-var expansion, redirection. The
+  // command string is author-controlled test content, not untrusted external
+  // input, so this is not a command-injection sink. Switching to an arg-array /
+  // execFile invocation would break the feature's contract. CodeQL "unsafe
+  // shell command" here is acknowledged and dismissed as won't-fix / by design.
   const child = spawn(cmd, args, spawnOptions);
 
   let stdout = "";
