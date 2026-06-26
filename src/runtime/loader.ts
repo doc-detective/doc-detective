@@ -48,12 +48,48 @@ export interface LoadOptions {
 
 const requireFromShim = createRequire(import.meta.url);
 
-function tryResolveFromShim(name: string): string | null {
+// Map a resolved `<name>/package.json` path to the package's real entry file by
+// reading its `exports["."]` (or bare `exports`/`main`). Pure-ESM packages —
+// e.g. appium-chromium-driver v3, appium-geckodriver v3, appium-safari-driver v5
+// — publish an exports map whose "." has only an `import` condition, so
+// `require.resolve(name)` throws ERR_PACKAGE_PATH_NOT_EXPORTED even though the
+// package is installed. `./package.json` stays exported, so we resolve that and
+// derive the entry ourselves. Returns null if no entry can be determined.
+function entryFromPackageJson(pkgJsonPath: string): string | null {
   try {
-    return requireFromShim.resolve(name);
+    const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+    const dot = pkg?.exports?.["."] ?? pkg?.exports;
+    let rel: unknown;
+    if (typeof dot === "string") {
+      rel = dot;
+    } else if (dot && typeof dot === "object") {
+      rel = dot.import ?? dot.require ?? dot.default ?? dot.node;
+    }
+    if (typeof rel !== "string") rel = pkg?.main;
+    if (typeof rel !== "string") return null;
+    return path.join(path.dirname(pkgJsonPath), rel);
   } catch {
     return null;
   }
+}
+
+// Resolve a package's entry with `require`, falling back to its package.json for
+// pure-ESM packages whose "." export omits a require/default condition.
+function resolveEntry(requireFn: NodeRequire, name: string): string | null {
+  try {
+    return requireFn.resolve(name);
+  } catch {
+    try {
+      const pkgJson = requireFn.resolve(`${name}/package.json`);
+      return entryFromPackageJson(pkgJson);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function tryResolveFromShim(name: string): string | null {
+  return resolveEntry(requireFromShim, name);
 }
 
 function tryResolveFromCache(
@@ -66,12 +102,8 @@ function tryResolveFromCache(
   // check would miss for scoped or sub-path entry points.
   const pkgJsonAnchor = path.join(runtimeDir, "package.json");
   if (!fs.existsSync(pkgJsonAnchor)) return null;
-  try {
-    const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
-    return requireFromCache.resolve(name);
-  } catch {
-    return null;
-  }
+  const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
+  return resolveEntry(requireFromCache, name);
 }
 
 /**

@@ -5,7 +5,7 @@ import {
   resolveHeavyDepSource,
   resolveHeavyDepVersion,
 } from "../dist/runtime/loader.js";
-import { readInstalledRecord } from "../dist/runtime/cacheDir.js";
+import { readInstalledRecord, getRuntimeDir } from "../dist/runtime/cacheDir.js";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
@@ -72,6 +72,47 @@ describe("runtime/loader", function () {
       const bogus = "definitely-not-a-real-heavy-dep-xyz";
       expect(resolveHeavyDepSource(bogus)).to.equal(null);
       expect(resolveHeavyDepVersion(bogus)).to.equal(null);
+    });
+
+    it("resolves a pure-ESM cache package via package.json when `.` has no require export", function () {
+      // Reproduces appium-chromium-driver v3 / appium-geckodriver v3 /
+      // appium-safari-driver v5: a package whose "." export exposes only an
+      // `import` condition. `require.resolve(name)` throws
+      // ERR_PACKAGE_PATH_NOT_EXPORTED, but `./package.json` stays exported, so
+      // the loader must fall back to it and derive the real entry.
+      const runtimeDir = getRuntimeDir({ cacheDir: tmpRoot });
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(runtimeDir, "package.json"),
+        JSON.stringify({ name: "rt-cache", private: true, version: "0.0.0" })
+      );
+      const pkgDir = path.join(runtimeDir, "node_modules", "fake-esm-driver");
+      fs.mkdirSync(path.join(pkgDir, "build"), { recursive: true });
+      fs.writeFileSync(
+        path.join(pkgDir, "package.json"),
+        JSON.stringify({
+          name: "fake-esm-driver",
+          version: "3.0.0",
+          type: "module",
+          exports: {
+            ".": { import: "./build/index.js" },
+            "./package.json": "./package.json",
+          },
+        })
+      );
+      fs.writeFileSync(
+        path.join(pkgDir, "build", "index.js"),
+        "export default {};\n"
+      );
+
+      const resolved = resolveHeavyDepPath("fake-esm-driver", {
+        cacheDir: tmpRoot,
+      });
+      expect(resolved).to.equal(path.join(pkgDir, "build", "index.js"));
+      // The version walk-up must also work off the fallback-resolved entry.
+      expect(resolveHeavyDepVersion("fake-esm-driver", { cacheDir: tmpRoot })).to.equal(
+        "3.0.0"
+      );
     });
   });
 
