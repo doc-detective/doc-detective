@@ -61,9 +61,11 @@ Chosen option **A**.
 
 2. **Finding 6.** Introduce `resolveInputDelay(value)` returning the value when it is a number
    and `100` only when it is absent (`undefined`/`null`/non-number) — i.e. nullish semantics, so
-   an explicit `0` is honored. Use it where the recording/browser path set its default. The
-   process-surface path already used `inputDelay > 0` (an absent value means no delay there), so
-   its behavior is unchanged; the fix targets the recording/browser default specifically.
+   an explicit `0` is honored. Use it on the recording/browser path, which previously clobbered an explicit `inputDelay: 0`
+   to `100`. The process-surface path is left unchanged: it already honors an explicit `0` directly
+   via its `inputDelay > 0` keystroke-gap guard (so `0` = no inter-key delay there), while an absent
+   value is governed by the schema default (`type.inputDelay` defaults to `100`) rather than meaning
+   "no delay".
 
 ### Consequences
 
