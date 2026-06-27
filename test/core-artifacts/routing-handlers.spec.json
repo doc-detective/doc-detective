@@ -1,0 +1,95 @@
+{
+  "specId": "routing-handlers",
+  "description": "Step-level routing handlers (onPass/onFail/onWarning/onSkip + continue/stop). Every permutation here resolves PASS or SKIPPED so it lands in the combined no-fail suite; the FAIL-path behaviors (onFail:continue running past a failure, the default onFail:stop) are asserted in focused it() tests in core-core.test.js. Cross-platform: uses `node -e` runShell so it resolves on every OS.",
+  "tests": [
+    {
+      "testId": "routing-onfail-continue-noop",
+      "description": "A handler that is present but not triggered is a no-op: onFail:[{continue:true}] on a PASSING step never fires, so the step PASSes exactly as if no handler were set (additive/byte-identical).",
+      "steps": [
+        {
+          "description": "Passes; the onFail handler is never reached.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onFail": [
+            {
+              "continue": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "routing-onpass-stop",
+      "description": "onPass:[{stop:'test'}] halts the test after a passing step: step 1 PASSes and stops, so step 2 is SKIPPED. With a PASS present the test rolls up PASS.",
+      "steps": [
+        {
+          "description": "Passes, then routes stop.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onPass": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "description": "Never reached -> SKIPPED.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "routing-onskip-stop",
+      "description": "onSkip:[{stop:'test'}] on a reached-but-skipped step halts the rest: step 1 is guard-`if` false -> SKIPPED, its onSkip routes stop, so step 2 is SKIPPED too. All steps SKIPPED -> the test rolls up SKIPPED.",
+      "steps": [
+        {
+          "description": "Guard false -> SKIPPED; onSkip routes stop.",
+          "if": "$$platform == nonexistentos",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onSkip": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "description": "Never reached -> SKIPPED.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "routing-onwarning-continue-noop",
+      "description": "onWarning:[{continue:true}] on a passing step is a no-op (no warning is produced): the step PASSes.",
+      "steps": [
+        {
+          "description": "Passes; onWarning never fires.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onWarning": [
+            {
+              "continue": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "routing-if-selector-no-match-falls-to-default",
+      "description": "A routing entry whose `if` selector does not match is skipped, falling back to the status default. onPass:[{if:'$$platform == nonexistentos', stop:'test'}] never matches, so the default (continue) applies and step 2 still runs -> PASS.",
+      "steps": [
+        {
+          "description": "Passes; the stop entry's `if` never matches, so default continue applies.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onPass": [
+            {
+              "if": "$$platform == nonexistentos",
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "description": "Still runs (no stop fired) -> PASS.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}

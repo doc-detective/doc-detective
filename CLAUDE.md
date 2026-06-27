@@ -4,6 +4,7 @@ Repo-wide guidance for AI agents. Package-specific rules live alongside the code
 
 - [src/common/AGENTS.md](src/common/AGENTS.md) — schemas, validation, and the doc-detective-common subpackage.
 - [src/hints/AGENTS.md](src/hints/AGENTS.md) — authoring post-run hints when you add a user-facing feature.
+- [docs/content-strategy/](docs/content-strategy/) — audiences, personas, CUJs, and the information architecture that govern every documentation change. Consult before writing docs (see ["Documentation content strategy"](#documentation-content-strategy-required)).
 
 ## Development workflow (required)
 
@@ -14,6 +15,95 @@ Always use **red → green** test-driven development. For every behavior change:
 3. **Refactor** — clean up while keeping the test green.
 
 Don't write implementation code before the failing test exists, and don't batch many changes behind a single test. The ["TDD cycle per flag"](#tdd-cycle-per-flag) section below shows the canonical red→green sequence applied to a new CLI flag.
+
+## Architecture Decision Records (required)
+
+Every **behavior change** must ship with an Architecture Decision Record (ADR) in
+[MADR](https://adr.github.io/madr/) format under [adrs/](adrs). The ADR records the *intended
+behavior, the reasoning, and the decision* — write it **before** (or alongside) the code so it is
+the reviewable source of truth, not an afterthought.
+
+- **Format**: MADR 4.0.0. Include the YAML front matter (`status`, `date`, `decision-makers`) and
+  the standard sections: *Context and Problem Statement*, *Decision Drivers*, *Considered Options*,
+  *Decision Outcome* (with *Consequences* and *Confirmation*), and *Pros and Cons of the Options*.
+- **Filename**: `NNNNN-kebab-case-title.md`, 5-digit zero-padded. Numbering **starts at `01000`**
+  and increments (`01000`, `01001`, …). The range `00001`–`00999` is **intentionally reserved** to
+  backfill pre-existing architectural decisions later — do not use it for new decisions.
+- **Worked example**: [adrs/01000-gate-advanced-ordering-under-concurrent-runners.md](adrs/01000-gate-advanced-ordering-under-concurrent-runners.md).
+- **Scope**: ADRs document *decisions* (behavior, contracts, trade-offs), not mechanical changes.
+  Pure refactors, dependency bumps, typo/doc fixes, and style changes don't need one. If a change
+  alters observable behavior or a public contract, it does.
+
+## Feature fixtures (required)
+
+Unit tests are necessary but not sufficient. When you add or change a **user-facing feature** (a new step type, action option, config/CLI flag, engine, output format, etc.), also author **Doc Detective fixtures** that exercise the feature end-to-end through the real runner — and cover **every permutation** of it, not just the happy path.
+
+"Every permutation" means each meaningfully distinct shape the feature can take, for example:
+
+- Each shape a field's value can take (boolean / string / object), including the disabling / no-op form (`false`).
+- Each enumerated option (every engine, target, format, mode).
+- Each precedence level (config vs. spec vs. test overrides).
+- The interaction with related features (overlap, fallback, conflict, skip paths).
+- The graceful-degradation / guard paths (unsupported platform, headless, missing dependency).
+
+Fixtures live in [test/core-artifacts/](test/core-artifacts) as `*.spec.json` files and run inside the single combined `runTests()` pass driven by [test/core-core.test.js](test/core-core.test.js), which asserts no spec **fails**. So every fixture must resolve to **PASS** or **SKIPPED** (never FAIL):
+
+- Gate display/engine-specific permutations with `runOn` (platforms + headed/headless) so each runs only where it can succeed, and lands as `SKIPPED` elsewhere. Recording fixtures are the worked example: ffmpeg permutations run on Windows/macOS/Linux headed; browser-engine permutations only on headed Chrome (Windows/macOS).
+- Permutations that are *meant* to be skipped or guarded (headless skip, name conflict, `record: false`) belong in fixtures too — assert the SKIPPED behavior, don't omit it.
+- When a behavior needs a precise assertion the "no spec fails" gate can't express (e.g. a preflight that must skip a test for a specific reason), add a focused `it(...)` in `test/core-core.test.js` alongside the fixture.
+
+See [test/core-artifacts/recording.spec.json](test/core-artifacts/recording.spec.json), [recording-permutations.spec.json](test/core-artifacts/recording-permutations.spec.json), and [autorecord.spec.json](test/core-artifacts/autorecord.spec.json) for the canonical pattern (one spec per feature; one test per permutation; `runOn`-gated; PASS/SKIPPED only).
+
+## Documentation impact (required)
+
+ADRs and feature fixtures travel with a third companion: a **docs-impact assessment**. Every
+**behavior change** must include an explicit answer to one question:
+
+> Does this change have **meaningful user-facing impact** — does it add, change, or remove something a
+> user can see, run, configure, or rely on (a step type, action option, config/CLI flag, engine,
+> output format, default, supported platform, integration, error/skip behavior)?
+
+- **If yes, it has documentation impact, and the docs work is part of this change's
+  definition-of-done — not a follow-up.** Identify which persona and CUJ it touches and which
+  page(s) must change or be created (use [docs/content-strategy/](docs/content-strategy/) and the
+  ["Documentation content strategy"](#documentation-content-strategy-required) rule below). Land the
+  docs change alongside the code, or, if docs live on a separate cadence, open a tracked issue and
+  note it in the PR — never silently.
+- **If no** (pure refactor, internal-only change, dependency bump, test-only change), say so briefly in
+  the PR description so reviewers can confirm the call.
+
+Rule of thumb: a change that warrants an **ADR** or a **feature fixture** almost always has user-facing
+surface, so it almost always has docs impact. The three move together: **behavior change → ADR +
+fixtures + docs assessment.**
+
+## Documentation content strategy (required)
+
+The documentation site is governed by a durable content strategy in
+[docs/content-strategy/](docs/content-strategy/). It is **organized by user intent (persona + journey),
+not by document type** — do not impose a Diátaxis tutorial/how-to/reference split as the organizing
+principle. Before drafting or restructuring **any** user-facing documentation, consult it:
+
+- [docs/content-strategy/README.md](docs/content-strategy/README.md) — how to use the strategy during a
+  writing task.
+- [audiences.md](docs/content-strategy/audiences.md) · [personas.md](docs/content-strategy/personas.md)
+  · [cujs.md](docs/content-strategy/cujs.md) ·
+  [information-architecture.md](docs/content-strategy/information-architecture.md).
+
+The workflow:
+
+1. **Identify the persona** — Wren (documentation engineer, lead), Diego (developer / API tester),
+   Priya (CI / platform engineer), Aria (AI-assisted author), or Cole (contributor).
+2. **Find the matching CUJ** in [cujs.md](docs/content-strategy/cujs.md) (W1–W3, D1–D3, P1–P3, A1–A2,
+   C1, or the cross-cutting X1) and sequence the content by that journey.
+3. **Deep-link into the Reference shelf** for exhaustive detail (full action fields, every `config_v3`
+   key, every CLI flag, contexts, selectors). Journey pages explain the path; they don't duplicate
+   reference.
+4. **Record any new page** in the content-set map in
+   [information-architecture.md](docs/content-strategy/information-architecture.md), with the CUJ it
+   serves.
+5. **Match the source of truth.** Reference pages must agree with the code; see the source-of-truth
+   table in [information-architecture.md](docs/content-strategy/information-architecture.md). For docs
+   authoring conventions (Fern frontmatter, MDX, Vale/Google style), follow [docs/AGENTS.md](docs/AGENTS.md).
 
 ## Commit messages (required)
 

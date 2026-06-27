@@ -32,14 +32,89 @@
           "breakpoint": {
             "$ref": "#/components/schemas/breakpoint"
           },
+          "if": {
+            "$ref": "#/components/schemas/if"
+          },
+          "assertions": {
+            "$ref": "#/components/schemas/assertions"
+          },
+          "onPass": {
+            "$ref": "#/components/schemas/onPass"
+          },
+          "onFail": {
+            "$ref": "#/components/schemas/onFail"
+          },
+          "onWarning": {
+            "$ref": "#/components/schemas/onWarning"
+          },
+          "onSkip": {
+            "$ref": "#/components/schemas/onSkip"
+          },
           "location": {
             "$ref": "#/components/schemas/location"
           },
           "autoScreenshot": {
             "$ref": "#/components/schemas/autoScreenshot"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 2,
+            "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
+            "readOnly": true
+          },
+          "visit": {
+            "type": "integer",
+            "minimum": 2,
+            "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+            "readOnly": true
           }
         },
         "title": "Common"
+      },
+      "if": {
+        "$ref": "routing_v3.schema.json#/components/schemas/condition"
+      },
+      "assertions": {
+        "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+        "anyOf": [
+          {
+            "$ref": "routing_v3.schema.json#/components/schemas/condition"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "assertion_v3.schema.json#"
+            }
+          }
+        ]
+      },
+      "onPass": {
+        "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
+      },
+      "onFail": {
+        "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
+      },
+      "onWarning": {
+        "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
+      },
+      "onSkip": {
+        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+        "type": "array",
+        "items": {
+          "$ref": "routing_v3.schema.json#"
+        }
       },
       "$schema": {
         "description": "JSON Schema for this object.",
@@ -95,6 +170,18 @@
         "minLength": 1,
         "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
         "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+        "readOnly": true
+      },
+      "attempts": {
+        "type": "integer",
+        "minimum": 2,
+        "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
+        "readOnly": true
+      },
+      "visit": {
+        "type": "integer",
+        "minimum": 2,
+        "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
         "readOnly": true
       },
       "location": {
@@ -251,6 +338,23 @@
         },
         {
           "type": "object",
+          "required": ["runBrowserScript"],
+          "properties": {
+            "runBrowserScript": {
+              "$ref": "runBrowserScript_v3.schema.json#"
+            }
+          },
+          "title": "runBrowserScript"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
           "required": ["type"],
           "properties": {
             "type": {
@@ -326,6 +430,23 @@
             }
           },
           "title": "stopRecord"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": ["closeSurface"],
+          "properties": {
+            "closeSurface": {
+              "$ref": "closeSurface_v3.schema.json#"
+            }
+          },
+          "title": "closeSurface"
         }
       ]
     },
@@ -450,6 +571,21 @@
     },
     {
       "stopRecord": true
+    },
+    {
+      "runShell": {
+        "command": "docker run -p 8080:80 nginx",
+        "background": {
+          "name": "web",
+          "waitUntil": {
+            "httpGet": "http://localhost:8080"
+          }
+        },
+        "timeout": 30000
+      }
+    },
+    {
+      "closeSurface": "web"
     },
     {
       "screenshot": true
@@ -664,6 +800,16 @@
         "target": {
           "selector": "#targetElement"
         }
+      }
+    },
+    {
+      "runBrowserScript": "return document.title;"
+    },
+    {
+      "runBrowserScript": {
+        "script": "return arguments[0] + arguments[1];",
+        "args": ["foo", "bar"],
+        "output": "foobar"
       }
     }
   ]

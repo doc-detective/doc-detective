@@ -11,34 +11,46 @@
         {
           "runShell": {
             "command": "echo",
-            "args": ["$USER"]
+            "args": [
+              "$USER"
+            ]
           }
         },
         {
           "runShell": {
             "command": "echo",
-            "args": ["hello-world"]
+            "args": [
+              "hello-world"
+            ]
           }
         },
         {
           "runShell": {
             "command": "echo 'Hello from Docker!'",
             "timeout": 20000,
-            "exitCodes": [0],
+            "exitCodes": [
+              0
+            ],
             "stdio": "Hello from Docker!"
           }
         },
         {
           "runShell": {
             "command": "false",
-            "exitCodes": [1]
+            "exitCodes": [
+              1
+            ]
           }
         },
         {
           "runShell": {
             "command": "echo",
-            "args": ["setup"],
-            "exitCodes": [0],
+            "args": [
+              "setup"
+            ],
+            "exitCodes": [
+              0
+            ],
             "stdio": "/.*?/"
           }
         },
@@ -46,7 +58,9 @@
           "runShell": {
             "command": "echo 'Hello from Docker!'",
             "workingDirectory": ".",
-            "exitCodes": [0],
+            "exitCodes": [
+              0
+            ],
             "stdio": "Hello from Docker!",
             "path": "docker-output.txt",
             "directory": "output",
@@ -57,22 +71,43 @@
         {
           "runShell": {
             "command": "echo",
-            "args": ["setup"],
-            "exitCodes": [0],
+            "args": [
+              "setup"
+            ],
+            "exitCodes": [
+              0
+            ],
             "stdio": "setup"
           }
         },
         {
           "runShell": {
             "command": "echo",
-            "args": ["timeout"],
+            "args": [
+              "timeout"
+            ],
             "timeout": 2000
           }
         },
         {
           "runShell": {
             "command": "exit 1",
-            "exitCodes": [1, -2]
+            "exitCodes": [
+              1,
+              -2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo",
+            "args": [
+              "assertion-articulation"
+            ],
+            "exitCodes": [
+              0
+            ],
+            "stdio": "/assertion-.*/"
           }
         }
       ]

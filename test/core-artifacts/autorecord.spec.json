@@ -1,0 +1,169 @@
+{
+  "specId": "autorecord",
+  "description": "Exercises autoRecord and the multiple-overlapping-recordings model end-to-end: a synthetic full-context ffmpeg recording (autoRecord), a synthetic recording overlapping an explicit named recording stopped by name, the browser-engine-to-ffmpeg fallback when a second browser recording would overlap, and the static name-conflict preflight that skips a test before it runs. Recording tests need a visible display (Windows/macOS, and Linux via the per-runner Xvfb display); the browser engine additionally requires headed Chrome (Windows/macOS).",
+  "tests": [
+    {
+      "testId": "autorecord-full-context",
+      "description": "autoRecord (test-level) injects a synthetic full-context ffmpeg recording that is auto-stopped at the end of the context.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "autorecord-overlap-named",
+      "description": "A synthetic autoRecord (ffmpeg) recording overlaps an explicit, named browser-engine recording; the explicit one is stopped by name mid-context while the synthetic one runs to the end.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "autorecord-section.webm",
+            "name": "section",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": "section"
+        }
+      ]
+    },
+    {
+      "testId": "autorecord-browser-fallback",
+      "description": "A second concurrent browser-engine recording falls back to the ffmpeg engine (viewport target) instead of failing; both recordings are stopped by name.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "autorecord-fallback-first.webm",
+            "name": "first",
+            "engine": "browser",
+            "overwrite": "true"
+          }
+        },
+        {
+          "record": {
+            "path": "autorecord-fallback-second.mp4",
+            "name": "second",
+            "engine": "browser",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": "second"
+        },
+        {
+          "stopRecord": "first"
+        }
+      ]
+    },
+    {
+      "testId": "autorecord-name-conflict-skipped",
+      "description": "Reusing a recording name while one with that name is still active is caught by the static preflight, which skips the whole test (all contexts) before any step runs — so this needs no display and runs everywhere.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "autorecord-dup-1.mp4",
+            "name": "dup",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "record": {
+            "path": "autorecord-dup-2.mp4",
+            "name": "dup",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": "dup"
+        }
+      ]
+    }
+  ]
+}

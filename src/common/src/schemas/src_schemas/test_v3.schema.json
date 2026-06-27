@@ -25,6 +25,10 @@
       "type": "boolean",
       "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
     },
+    "autoRecord": {
+      "type": "boolean",
+      "description": "If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level."
+    },
     "runOn": {
       "type": "array",
       "description": "Contexts to run the test in. Overrides contexts defined at the config and spec levels.",
@@ -38,6 +42,37 @@
     },
     "openApi": {
       "$ref": "#/components/schemas/openApi"
+    },
+    "if": {
+      "$ref": "routing_v3.schema.json#/components/schemas/condition"
+    },
+    "onPass": {
+      "description": "Routing entries evaluated after this test passes. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
+    },
+    "onFail": {
+      "description": "Routing entries evaluated after this test fails. `continue` and `stop` are honored at runtime: `stop: test` (the default) is a no-op (the test already finished, so a failing test does not stop its siblings), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
+    },
+    "onWarning": {
+      "description": "Routing entries evaluated after this test produces a warning. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
+    },
+    "onSkip": {
+      "description": "Routing entries evaluated after this test is skipped. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "type": "array",
+      "items": {
+        "$ref": "routing_v3.schema.json#"
+      }
     },
     "before": {
       "type": "string",

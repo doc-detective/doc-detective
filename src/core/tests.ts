@@ -1,16 +1,22 @@
 import kill from "tree-kill";
+import fs from "node:fs";
 // webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
 // site so the shim's CLI startup doesn't pay its ~50MB load cost when the
 // user is only running e.g. install-agents or install status. The type
-// reference uses `typeof import('webdriverio')` directly at the call site
-// so we don't carry a top-level `import type` whose `typeof` would refer
-// to a non-runtime identifier.
+// reference uses a minimal LOCAL declaration (WdioModule from ./tests/wdioTypes)
+// rather than `typeof import('webdriverio')`, so `tsc` does not require the
+// optional package on disk — webdriverio is an optionalDependency that npm may
+// skip on a CI runner, and a hard compile-time type reference would otherwise
+// turn that skipped install into an intermittent build failure.
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import type { WdioModule } from "./tests/wdioTypes.js";
 import {
   requiredBrowserAssets,
   ensureBrowserInstalled,
   type BrowserAssetName,
 } from "../runtime/browsers.js";
+// Single source of truth for browser/driver-requiring step keys.
+import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
 import os from "node:os";
 import {
   log,
@@ -18,9 +24,12 @@ import {
   selectSpecsForRun,
   findFreePort,
   runConcurrent,
+  runResourceAware,
+  createResourceRegistry,
   rollUpResults,
   createAppiumPool,
   getRunOutputDir,
+  runArchivesArtifacts,
   sanitizeFilesystemName,
 } from "./utils.js";
 import axios from "axios";
@@ -34,12 +43,29 @@ import { wait } from "./tests/wait.js";
 import { saveScreenshot } from "./tests/saveScreenshot.js";
 import { startRecording } from "./tests/startRecording.js";
 import { stopRecording } from "./tests/stopRecording.js";
+import {
+  browserCaptureTitle,
+  browserDownloadDir,
+  coerceRecordContextBrowser,
+  jobIsFfmpegRecording,
+  computeEffectiveConcurrency,
+  jobExclusiveResources,
+  checkSystemBinary,
+  xvfbDisplay,
+  startXvfb,
+  XVFB_SCREEN_SIZE,
+  isRecordingActive,
+  recordStepName,
+  detectRecordingNameConflict,
+} from "./tests/ffmpegRecorder.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
 import { loadCookie } from "./tests/loadCookie.js";
 import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
+import { closeSurface } from "./tests/closeSurface.js";
+import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -47,6 +73,17 @@ import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
+import {
+  evaluateCustomAssertions,
+  evaluateGuard,
+  guardReferencesSteps,
+  customAssertionsReferenceSteps,
+  resolveStepRouting,
+  resolveTestRouting,
+  computeRetryDelay,
+  buildConditionContext,
+} from "./routing.js";
+import type { RoutingDecision, StepRoutingStatus } from "./routing.js";
 import {
   getEnvironment,
   getAvailableApps,
@@ -73,24 +110,13 @@ export {
   getDefaultBrowser,
   isSupportedContext,
   resolveAutoScreenshot,
+  resolveAutoRecord,
+  buildAutoRecordStep,
+  specIsRouted,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
-
-// Doc Detective actions that require a driver.
-const driverActions = [
-  "click",
-  "dragAndDrop",
-  "stopRecord",
-  "find",
-  "goTo",
-  "loadCookie",
-  "record",
-  "saveCookie",
-  "screenshot",
-  "type",
-];
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
@@ -198,7 +224,16 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         if (!chromium) break;
         // Set args
         args.push(`--enable-chrome-browser-cloud-management`);
-        args.push(`--auto-select-desktop-capture-source=RECORD_ME`);
+        // Auto-select the getDisplayMedia capture source by window title. A
+        // per-context title (set on document.title in startRecording) makes
+        // concurrent Chrome recordings safe: each browser process auto-selects
+        // only its own window. Falls back to the shared default for callers
+        // (warm-up, non-record contexts) that don't supply one.
+        args.push(
+          `--auto-select-desktop-capture-source=${
+            options.captureSourceTitle || "RECORD_ME"
+          }`
+        );
         if (options.headless) args.push("--headless", "--disable-gpu");
         if (process.platform === "linux") {
           args.push("--no-sandbox");
@@ -221,7 +256,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
             prefs: {
-              "download.default_directory": os.tmpdir(),
+              // Per-context download dir keeps concurrent recordings from
+              // colliding on the same .webm filename in a shared temp dir.
+              "download.default_directory": options.downloadDir || os.tmpdir(),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
             },
@@ -249,6 +286,35 @@ function isDriverRequired({ test }: { test: any }) {
     });
   });
   return driverRequired;
+}
+
+// The exclusive resources a context job must hold to run safely under
+// concurrency. A shared-display ffmpeg recording holds "display" exclusively
+// (jobExclusiveResources). And once ANY such recording is in the run
+// (`runHasDisplayRecording`), every OTHER driver/browser context also
+// serializes on "display": a recording's ffmpeg capture would otherwise include
+// their windows and starve them on the shared display. Non-driver jobs
+// (HTTP/shell) never take the display, so they stay parallel. On Linux+Xvfb the
+// recordings get isolated displays, so `runHasDisplayRecording` is false there
+// and nothing is promoted — driver work runs fully parallel.
+function jobDisplayResources(
+  job: any,
+  ctx: {
+    platform: string;
+    xvfbAvailable: boolean;
+    allowOverlappingCaptures?: boolean;
+    runHasDisplayRecording: boolean;
+  }
+): string[] {
+  const base = jobExclusiveResources(job, ctx);
+  if (base.length) return base;
+  if (
+    ctx.runHasDisplayRecording &&
+    isDriverRequired({ test: { steps: job.context?.steps } })
+  ) {
+    return ["display"];
+  }
+  return [];
 }
 
 // Check if context is supported by current platform and available apps
@@ -549,7 +615,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // reporter archives results beside any auto screenshots from the same run,
   // and so consumers can correlate results over time. Created after the
   // filter short-circuit above so a run that matched nothing leaves no folder.
-  const runDir = getRunOutputDir(config);
+  // Only create the folder when something will actually write into it (the
+  // runFolder reporter, or autoScreenshot at any of config/spec/test level) —
+  // otherwise just resolve the path for the report stamp and leave no empty
+  // `.doc-detective/run-<id>/` behind. Pass the selected specs so per-spec/test
+  // autoScreenshot reserves the folder atomically up front rather than via the
+  // non-atomic memoized branch when the first screenshot fires.
+  const runDir = getRunOutputDir(config, {
+    create: runArchivesArtifacts(config, specs),
+  });
   const runId = path.basename(runDir).replace(/^run-/, "");
   const report: any = {
     runId,
@@ -586,20 +660,63 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Resolve concurrency up front (defensive re-resolve: API callers can hand
   // runSpecs a config that never went through core setConfig, leaving
   // concurrentRunners as `true`). Drives both the worker pool and how many
-  // Appium servers to start.
-  const limit = resolveConcurrentRunners(config);
+  // Appium servers to start. Mutable: recording constraints may cap it below.
+  let limit = resolveConcurrentRunners(config);
 
   // Phase 1: pre-build the report skeleton and a flat list of context jobs
   // across all specs and tests. Slots are pre-assigned so report order always
   // matches input order, no matter what order concurrent contexts finish in.
   log(config, "info", "Running test specs.");
   const jobs: any[] = [];
+  // ROUTED specs (any test carries a non-empty test-level routing handler) are
+  // executed by the sequential `runRoutedSpec` sequencer AFTER the flat pool,
+  // not via `jobs[]`. They are collected here in input order with their already
+  // pushed (empty) specReport and resolved spec-guard skip flag. NON-routed
+  // specs (every spec today) take the unchanged flat-pool path below, byte for
+  // byte. `routedSizingJobs` holds job-shaped descriptors for every routed
+  // context — used ONLY to size the Appium pool / recording concurrency / warm
+  // up alongside the flat jobs; the sequencer re-prepares each context at
+  // execution time and never runs these descriptors.
+  const routedSpecs: Array<{ spec: any; specReport: any; specGuardSkip: boolean }> =
+    [];
+  const routedSizingJobs: any[] = [];
+  // Set when at least one context gets a synthetic autoRecord (ffmpeg) step.
+  // It opts the run into overlapping ffmpeg captures (parallel anyway) rather
+  // than the safe-serial default reserved for explicit-only ffmpeg recordings.
+  // A holder object so the shared prepareContextSlot helper can flip it from
+  // either path.
+  const autoRecordFlag = { injected: false };
+  const markAutoRecord = () => {
+    autoRecordFlag.injected = true;
+  };
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
     // Create-if-missing: specIds (and testIds) aren't guaranteed unique
     // across the run, and all registration now happens up front — an
     // overwrite here would wipe an earlier spec's registered tests.
     metaValues.specs[spec.specId] ??= { tests: {} };
+    // Spec-level guard `if`: evaluated once against the host platform. Tests
+    // aren't sequenced relative to each other, so cross-test `$$outputs`/
+    // `$$steps` are not meaningful here — only `$$platform` (plus any meta
+    // `buildConditionContext` exposes). Fails CLOSED (unresolvable -> false).
+    // When false, every test/context in this spec is recorded SKIPPED below and
+    // no job is enqueued. Fully gated on `spec.if` presence: a spec with no
+    // `if` is byte-identical (no evaluation, `specGuardSkip` stays false).
+    let specGuardSkip = false;
+    if (spec.if) {
+      if (guardReferencesSteps(spec.if)) {
+        log(
+          config,
+          "warning",
+          `Spec '${spec.specId}': 'if' references '$$steps.*', which is not available at spec scope — the guard will always fail closed (the spec is always skipped). Use '$$steps.*' only in step-level 'if'.`
+        );
+      }
+      const guardPassed = await evaluateGuard(
+        spec.if,
+        buildConditionContext({ platform })
+      );
+      specGuardSkip = !guardPassed;
+    }
     const specReport: any = {
       specId: spec.specId,
       description: spec.description,
@@ -607,6 +724,54 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       tests: [],
     };
     report.specs.push(specReport);
+
+    const routed = specIsRouted(spec);
+    if (routed) {
+      // ROUTED spec: defer test execution to the sequencer. Phase-1 only
+      // registers the spec (order-preserving specReport pushed above) and sizes
+      // its contexts. The sequencer (runRoutedSpec) builds the per-test
+      // testReports, applies the same per-test/per-context preflight via the
+      // shared helpers, runs the contexts, and evaluates test-level routing
+      // between tests. specGuardSkip is carried so the sequencer can record
+      // spec-guard SKIPPED contexts without entering the routing loop.
+      routedSpecs.push({ spec, specReport, specGuardSkip });
+      // Sizing only: prepare each context (idempotent — the sequencer re-runs
+      // the identical helper at execution time) so the Appium pool, recording
+      // concurrency, and warm-up account for routed driver contexts too.
+      for (const test of spec.tests) {
+        const { testGuardSkip, recordingNameConflict, usedContextIds } =
+          await prepareTestPreflight({
+            config,
+            spec,
+            test,
+            specGuardSkip,
+            platform,
+          });
+        test.contexts.forEach((context: any, slot: number) => {
+          const result = prepareContextSlot({
+            config,
+            spec,
+            test,
+            context,
+            slot,
+            usedContextIds,
+            specGuardSkip,
+            testGuardSkip,
+            recordingNameConflict,
+            runnerDetails,
+            contexts: new Array(test.contexts.length),
+            onAutoRecord: markAutoRecord,
+          });
+          if (result.kind === "job") routedSizingJobs.push(result.job);
+        });
+      }
+      continue;
+    }
+
+    // NON-ROUTED spec: the unchanged flat-pool path. Builds testReports, runs
+    // the same per-test/per-context preflight via the shared helpers, and pushes
+    // runnable contexts to the flat `jobs[]`. Output is byte-identical to the
+    // pre-routing runner.
     for (const test of spec.tests) {
       log(config, "debug", `TEST: ${test.testId}`);
       metaValues.specs[spec.specId].tests[test.testId] ??= { contexts: {} };
@@ -618,49 +783,126 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
-      // Track contextIds within this test so the deterministic fallback below
-      // can suffix collisions, mirroring resolveTests' deriveContextId.
-      const usedContextIds = new Set<string>(
-        test.contexts.map((c: any) => c.contextId).filter(Boolean)
-      );
+      const { testGuardSkip, recordingNameConflict, usedContextIds } =
+        await prepareTestPreflight({
+          config,
+          spec,
+          test,
+          specGuardSkip,
+          platform,
+        });
       test.contexts.forEach((context: any, slot: number) => {
-        // Derive a stable contextId from platform/browser when unset (the
-        // resolver normally assigns one) so the same context keeps the same
-        // ID across runs for comparison — `default` when neither is known,
-        // with an ordinal suffix on collision. No randomness, so two
-        // otherwise-identical runs produce identical reports. Normalized onto
-        // the context so runContext's metaValues keys and the report all read
-        // the same value.
-        if (!context.contextId) {
-          const base =
-            [context.platform, context.browser?.name]
-              .filter(Boolean)
-              .join("-") || "default";
-          let id = base;
-          let suffix = 2;
-          while (usedContextIds.has(id)) {
-            id = `${base}-${suffix++}`;
-          }
-          usedContextIds.add(id);
-          context.contextId = id;
+        const result = prepareContextSlot({
+          config,
+          spec,
+          test,
+          context,
+          slot,
+          usedContextIds,
+          specGuardSkip,
+          testGuardSkip,
+          recordingNameConflict,
+          runnerDetails,
+          contexts: testReport.contexts,
+          onAutoRecord: markAutoRecord,
+        });
+        if (result.kind === "skipped") {
+          testReport.contexts[slot] = result.contextReport;
+        } else {
+          jobs.push(result.job);
         }
-        jobs.push({ spec, test, context, contexts: testReport.contexts, slot });
       });
     }
   }
 
-  if (
+  // Recording concurrency. The browser (Chrome getDisplayMedia) engine is
+  // concurrency-safe via per-context capture titles, but the ffmpeg engine
+  // grabs the whole physical display and must own it — so concurrent ffmpeg
+  // recordings are only safe on Linux with per-runner Xvfb displays. Probe
+  // Xvfb only when it could matter, then let computeEffectiveConcurrency
+  // decide the effective limit.
+  // Only ffmpeg-engine recordings need Xvfb; a browser-engine-only run
+  // shouldn't pay for an `Xvfb -help` spawn. Contexts are already coerced
+  // above, so resolveRecordPlan reflects the engine that will actually run.
+  // Sizing view: the flat (non-routed) jobs PLUS every routed context. Routed
+  // contexts execute in the sequencer, not the flat pool, but they still need
+  // the Appium pool / recording concurrency / warm-up to account for them.
+  // Execution stays split; only sizing reads this combined list.
+  const sizingJobs = jobs.concat(routedSizingJobs);
+  const anyFfmpegRecording = sizingJobs.some(jobIsFfmpegRecording);
+  let xvfbAvailable = false;
+  if (anyFfmpegRecording && process.platform === "linux") {
+    xvfbAvailable = await checkSystemBinary("Xvfb");
+  }
+  // "Parallel anyway" is an autoRecord-only opt-in: only bypass the forced-serial
+  // safeguard when every ffmpeg recording in the run is a synthetic autoRecord
+  // capture. If any explicit (author-written) record step would run as ffmpeg,
+  // keep the safe serial default so those recordings aren't silently
+  // parallelized (which would clobber each other on a shared display).
+  const hasExplicitFfmpegRecording = sizingJobs.some((job: any) =>
+    jobIsFfmpegRecording({
+      context: {
+        ...job.context,
+        steps: Array.isArray(job.context?.steps)
+          ? job.context.steps.filter((s: any) => !s?.__autoRecord)
+          : [],
+      },
+    })
+  );
+  const concurrency = computeEffectiveConcurrency({
+    requestedLimit: limit,
+    jobs: sizingJobs,
+    platform: process.platform,
+    xvfbAvailable,
+    allowOverlappingCaptures:
+      autoRecordFlag.injected && !hasExplicitFfmpegRecording,
+  });
+  // Inputs for tagging a job with the exclusive resources it must hold under
+  // concurrency. Mirrors what computeEffectiveConcurrency used, so the tag and
+  // the Xvfb/overlap decision stay in lock-step.
+  const exclusivityBase = {
+    platform: process.platform,
+    xvfbAvailable,
+    allowOverlappingCaptures:
+      autoRecordFlag.injected && !hasExplicitFfmpegRecording,
+  };
+  // Does the run contain a shared-display ffmpeg recording? If so, every driver
+  // context (not just the recordings) serializes on "display" — see
+  // jobDisplayResources. Computed over the full sizing view (flat + routed) so a
+  // recording in any spec gates driver work everywhere.
+  const runHasDisplayRecording =
     limit > 1 &&
-    jobs.some((job: any) =>
-      job.context.steps?.some((step: any) => step.record !== undefined)
-    )
-  ) {
-    // Concurrent headed recordings capture via getDisplayMedia and can grab
-    // the wrong window. Recording filenames in the temp dir can also collide.
+    sizingJobs.some((j: any) =>
+      jobExclusiveResources(j, exclusivityBase).includes("display")
+    );
+  // Reused by the routed sequencer below.
+  const exclusivityCtx = { ...exclusivityBase, runHasDisplayRecording };
+  // We no longer collapse `limit` to 1 for shared-display recordings. Instead,
+  // at limit>1, tag each flat job and let the resource-aware pool serialize the
+  // display-bound work (recordings + every driver context while a recording is
+  // present) while non-driver jobs stay parallel. computeEffectiveConcurrency
+  // still drives Xvfb isolation (xvfbContexts) and the autoRecord-overlap
+  // warning. At limit===1 the single worker is already serial, so the old path
+  // is left byte-identical.
+  if (limit > 1) {
+    for (const job of jobs)
+      job.exclusiveResources = jobDisplayResources(job, exclusivityCtx);
+  }
+  // Report/warn off `runHasDisplayRecording`, which spans the full sizing view
+  // (flat + routed) — a routed-only run with a recording still serializes (the
+  // routed sequencer tags its own contexts) and must report so too.
+  if (runHasDisplayRecording) {
     log(
       config,
       "warning",
-      "Tests include record steps while concurrentRunners is greater than 1. Concurrent recordings can capture the wrong window; set concurrentRunners to 1 for recording runs."
+      "ffmpeg recordings are serialized to protect the shared display; non-driver work still runs in parallel. To record concurrently, use the Chrome browser engine (record: { engine: \"browser\" })."
+    );
+    report.recordingSerialized = true;
+  } else if (concurrency.overlappingCaptures && limit > 1) {
+    log(
+      config,
+      "warning",
+      "autoRecord is running ffmpeg recordings concurrently on a shared display, so the captured videos will overlap (each context records the whole screen). For isolated concurrent recordings, run on Linux with Xvfb installed."
     );
   }
 
@@ -669,13 +911,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // distinct port, so parallel contexts never create sessions on the same
   // server — that contention crashed ChromeDriver when every context shared
   // one server. Non-driver runs start none.
-  const driverJobCount = jobs.filter((job: any) =>
+  const driverJobCount = sizingJobs.filter((job: any) =>
     isDriverRequired({ test: job.context })
   ).length;
-  let appiumServers: Array<{ port: number; process: any }> = [];
+  let appiumServers: Array<{ port: number; process: any; display?: string }> =
+    [];
   let appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
+  // Per-server virtual displays (Linux Xvfb) for concurrent ffmpeg recording,
+  // and the port→display map so a context that acquires a server records the
+  // same display its browser renders on.
+  const xvfbProcesses: any[] = [];
+  const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
+  let portToDisplay: Map<number, string> | undefined;
   if (driverJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     // Resolve appium's actual JS entrypoint via `require.resolve` (shim
@@ -703,7 +952,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // come up, tearing down any already started so they don't leak.
     try {
       for (let i = 0; i < serverCount; i++) {
-        appiumServers.push(await startAppiumServer(appiumEntry, config));
+        let display: string | undefined;
+        if (useXvfbDisplays) {
+          display = xvfbDisplay(i);
+          xvfbProcesses.push(await startXvfb(display));
+          log(config, "debug", `Started Xvfb on ${display} for recording.`);
+        }
+        appiumServers.push(
+          await startAppiumServer(appiumEntry, config, display)
+        );
       }
     } catch (error) {
       for (const server of appiumServers) {
@@ -713,10 +970,95 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // best-effort
         }
       }
+      for (const xvfb of xvfbProcesses) {
+        try {
+          xvfb.kill();
+        } catch {
+          // best-effort
+        }
+      }
       throw error;
     }
     appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
+    if (useXvfbDisplays) {
+      portToDisplay = new Map(
+        appiumServers
+          .filter((s) => s.display)
+          .map((s) => [s.port, s.display as string])
+      );
+    }
   }
+
+  // Registry of long-running background processes started by `background`
+  // runShell/runCode steps. Owned by this run (not per-context) so processes
+  // survive across specs/tests and are torn down once — by a closeSurface step
+  // or the run-end sweep in the `finally` below.
+  const processRegistry = new Map<string, any>();
+
+  // Tree-kill a pid and resolve when the kill has actually completed (callback
+  // form), so callers can await termination before exiting/returning.
+  const killTree = (pid?: number) =>
+    new Promise<void>((resolve) => {
+      if (!pid) return resolve();
+      try {
+        kill(pid, "SIGTERM", () => resolve());
+      } catch {
+        resolve();
+      }
+    });
+
+  // Kill every still-registered background process (and its child tree) and
+  // remove any deferred temp scripts. Awaits the kills so the process tree is
+  // actually gone before the run returns. Idempotent: closeSurface already
+  // removes the entries it handles.
+  const killAllRegistered = async () => {
+    const entries = [...processRegistry.entries()];
+    processRegistry.clear();
+    await Promise.all(
+      entries.map(async ([, entry]) => {
+        // PTY-backed handles own their termination via `kill()`; pipe-backed
+        // ones tree-kill the process tree by pid.
+        if (entry?.bg?.kill) {
+          await entry.bg.kill();
+        } else {
+          await killTree(entry?.bg?.pid);
+        }
+        if (entry?.tempPath) {
+          try {
+            fs.unlinkSync(entry.tempPath);
+          } catch {
+            // best-effort
+          }
+        }
+      })
+    );
+  };
+
+  // Tear down background processes, Appium servers, and Xvfb on Ctrl-C /
+  // termination, then exit. Registered here and removed in the `finally` so
+  // repeated programmatic runSpecs calls don't accumulate listeners. Without
+  // this, an interrupt mid-run leaked Appium and any background process. The
+  // handler awaits the tree-kills before exiting so children don't outlive it.
+  let signalHandled = false;
+  const onSignal = (signal: NodeJS.Signals) => {
+    if (signalHandled) return;
+    signalHandled = true;
+    (async () => {
+      await killAllRegistered();
+      await Promise.all(
+        appiumServers.map((server) => killTree(server.process?.pid))
+      );
+      for (const xvfb of xvfbProcesses) {
+        try {
+          xvfb.kill();
+        } catch {
+          // best-effort
+        }
+      }
+    })().finally(() => process.exit(signal === "SIGINT" ? 130 : 143));
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
 
   // Everything that uses the Appium servers runs inside this try so the
   // shutdown in `finally` always reaches them — otherwise a throw in
@@ -735,7 +1077,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // extra driver start, byte-identical to before.
     if (limit > 1 && appiumPool) {
       await warmUpContexts({
-        jobs,
+        jobs: sizingJobs,
         config,
         runnerDetails,
         appiumPool,
@@ -744,9 +1086,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       });
     }
 
-    // Phase 2: run every context job through one flat worker pool. A limit of 1
-    // (the default) is strictly sequential in input order.
-    await runConcurrent(jobs, limit, async (job: any) => {
+    // Phase 2: run context jobs through the worker pool, gated into three
+    // sequential phases. Config-level `beforeAny` specs all finish before any
+    // `main` test starts, and `afterAll` specs run only after every `main` test
+    // finishes. Within a phase, jobs still run concurrently up to `limit`.
+    // Warm-up / recording-concurrency / Appium-pool sizing above intentionally
+    // stay computed over the full `jobs[]`. Untagged jobs (programmatic callers
+    // that bypass detection) default to "main". With limit===1 this is identical
+    // ordering to a single pool over input-ordered jobs.
+    const runJob = async (job: any) => {
       try {
         job.contexts[job.slot] = await runContext({
           config,
@@ -755,9 +1103,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           context: job.context,
           runnerDetails,
           appiumPool,
+          portToDisplay,
           metaValues,
           installAttempts,
           warmUpResults,
+          processRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -780,7 +1130,86 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           steps: [],
         };
       }
-    });
+    };
+
+    const PHASES = ["beforeAny", "main", "afterAll"];
+    const jobsByPhase: { [phase: string]: any[] } = {
+      beforeAny: [],
+      main: [],
+      afterAll: [],
+    };
+    for (const job of jobs) {
+      // Constrain to the known set before indexing: a programmatic caller could
+      // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
+      // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw.
+      const phase = PHASES.includes(job.spec?._phase)
+        ? job.spec._phase
+        : "main";
+      jobsByPhase[phase].push(job);
+    }
+    // Routed specs are conceptually main-phase work too, so bucket them by the
+    // same `_phase` and run each phase's routed specs right after that phase's
+    // flat jobs. This keeps #377's ordering guarantee intact under routing: all
+    // `beforeAny` work (flat + routed) finishes before any `main` test, and all
+    // `afterAll` work runs after every `main` test — a routed main spec can't
+    // slip past the teardown. Within a phase, routed specs still run
+    // sequentially AFTER the flat jobs (unchanged relative order), reusing the
+    // same appiumPool / portToDisplay / metaValues / memo maps inside this same
+    // try/finally so teardown always reaches the servers. Each spec's tests run
+    // in order with test-level routing evaluated between them; the sequencer
+    // only pushes onto the already-registered specReport — it never touches the
+    // summary (Phase-3 below remains the sole tally site). With no
+    // beforeAny/afterAll specs (the common case) this is identical to running
+    // the main flat pool and then every routed spec.
+    const routedByPhase: { [phase: string]: typeof routedSpecs } = {
+      beforeAny: [],
+      main: [],
+      afterAll: [],
+    };
+    for (const entry of routedSpecs) {
+      const phase = PHASES.includes(entry.spec?._phase)
+        ? entry.spec._phase
+        : "main";
+      routedByPhase[phase].push(entry);
+    }
+    // One resource registry per run, shared by every phase's flat pool AND the
+    // routed sequencer, so a flat-pool recording and a routed-spec recording
+    // never hold the shared "display" at the same time. Only consulted at
+    // limit>1 (where jobs were tagged); at limit===1 the pools stay on the
+    // byte-identical runConcurrent path.
+    const resourceRegistry = createResourceRegistry();
+    for (const phase of PHASES) {
+      if (limit > 1) {
+        await runResourceAware(
+          jobsByPhase[phase],
+          limit,
+          resourceRegistry,
+          runJob
+        );
+      } else {
+        await runConcurrent(jobsByPhase[phase], limit, runJob);
+      }
+      for (const { spec, specReport, specGuardSkip } of routedByPhase[phase]) {
+        await runRoutedSpec({
+          spec,
+          specReport,
+          specGuardSkip,
+          config,
+          runnerDetails,
+          appiumPool,
+          portToDisplay,
+          metaValues,
+          installAttempts,
+          warmUpResults,
+          processRegistry,
+          platform,
+          markAutoRecord,
+          limit,
+          resourceRegistry,
+          exclusivityCtx,
+        });
+      }
+    }
 
     // Phase 3: roll results up the tree and count the summary in one
     // deterministic pass after all contexts have finished.
@@ -803,6 +1232,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       report.summary.specs[specReport.result.toLowerCase()]++;
     }
   } finally {
+    // Run-end teardown: kill any background processes the run didn't explicitly
+    // stop (via closeSurface) so they don't leak. Awaited so the trees are gone
+    // before runSpecs returns.
+    await killAllRegistered();
     // Close every Appium server we started.
     for (const server of appiumServers) {
       log(config, "debug", `Closing Appium server on port ${server.port}`);
@@ -812,6 +1245,16 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // Process may already be terminated
       }
     }
+    // Tear down any Xvfb virtual displays started for recording.
+    for (const xvfb of xvfbProcesses) {
+      try {
+        xvfb.kill();
+      } catch {
+        // Process may already be terminated
+      }
+    }
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
   }
 
   // Upload changed files back to source integrations (best-effort)
@@ -840,6 +1283,363 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   }
 
   return report;
+}
+
+/**
+ * Sequencer for a single ROUTED spec (one whose `specIsRouted` is true). Runs
+ * the spec's tests in input order, evaluating test-level routing between them.
+ *
+ * The flat pool can't do this: tests there are flattened into one concurrent
+ * context pool with no ordering or between-test decision point. So a routed spec
+ * is pulled out and run here, sequentially, reusing the SAME appiumPool /
+ * portToDisplay / metaValues / memo maps and the SAME `runContext` (verbatim) —
+ * only the per-spec test loop and the routing decision are new.
+ *
+ * Per test it:
+ *   - builds a fresh testReport (appended to specReport.tests so report order
+ *     matches input order), then registers the test's metaValues slot;
+ *   - runs the SAME per-test/per-context preflight as the flat path (via
+ *     prepareTestPreflight + prepareContextSlot) so SKIPPED wordings, contextId
+ *     derivation, autoRecord injection, and browser coercion are identical;
+ *   - runs the runnable contexts via the same runConcurrent + crash-isolation
+ *     shape as the flat pool;
+ *   - rolls the contexts up to the test result (rollUpResults — flow != verdict,
+ *     never altered by routing) and resolves test-level routing.
+ *
+ * Test-scope `stop` semantics (what makes the FAIL default byte-identical):
+ *   - `stop:test`  -> NO-OP: the test already finished; just continue to the
+ *     next test. This is the FAIL default, so a FAILing test with no handler
+ *     does NOT stop its siblings — exactly like the flat pool.
+ *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
+ *   - `stop:run`   -> deferred this phase: warn once per spec and treat as `spec`.
+ *
+ * goToTest jumps the cursor to the target test within this spec (first-occurrence
+ * wins). An unknown target emits a FAIL marker and stops; a runaway cycle is
+ * bounded by a per-spec visit cap (also a FAIL marker). A re-run test's report
+ * is appended (append-per-visit) with an additive `visit` number. The sequencer
+ * NEVER touches the summary — Phase-3 in runSpecs remains the sole tally site;
+ * here we only push reports.
+ */
+async function runRoutedSpec({
+  spec,
+  specReport,
+  specGuardSkip,
+  config,
+  runnerDetails,
+  appiumPool,
+  portToDisplay,
+  metaValues,
+  installAttempts,
+  warmUpResults,
+  processRegistry,
+  platform,
+  markAutoRecord,
+  limit,
+  resourceRegistry,
+  exclusivityCtx,
+}: {
+  spec: any;
+  specReport: any;
+  specGuardSkip: boolean;
+  config: any;
+  runnerDetails: any;
+  appiumPool:
+    | { acquire(): Promise<number>; release(port: number): void }
+    | undefined;
+  portToDisplay?: Map<number, string>;
+  metaValues: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
+  processRegistry?: Map<string, any>;
+  platform: string | undefined;
+  markAutoRecord: () => void;
+  limit: number;
+  resourceRegistry: ReturnType<typeof createResourceRegistry>;
+  exclusivityCtx: {
+    platform: string;
+    xvfbAvailable: boolean;
+    allowOverlappingCaptures?: boolean;
+    runHasDisplayRecording: boolean;
+  };
+}): Promise<void> {
+  // Set once a `stop:spec` (or deferred `stop:run`) decision halts the spec; the
+  // remaining tests are recorded SKIPPED with the stop reason and not executed.
+  let stopRest = false;
+  // Warn only once per spec if a deferred `stop:run` is encountered.
+  let warnedRunStop = false;
+  // Map testId -> first index within this spec, for `goToTest` jumps.
+  // First-occurrence wins (testIds aren't guaranteed unique within a spec),
+  // mirroring the step loop's `indexByStepId`.
+  const indexByTestId = new Map<string, number>();
+  spec.tests.forEach((t: any, idx: number) => {
+    if (t?.testId && !indexByTestId.has(t.testId)) {
+      indexByTestId.set(t.testId, idx);
+    }
+  });
+  // Per-spec visit cap: a `goToTest` cycle is bounded so a self-referential jump
+  // stops with a FAIL marker instead of hanging. Tests are heavier than steps,
+  // so a smaller multiplier than the step-loop cap.
+  let totalTestVisits = 0;
+  const MAX_TEST_VISITS = spec.tests.length * 100 + 100;
+  // Times each test INDEX (cursor position) has been executed, so a test re-run
+  // by a backward `goToTest` jump can stamp its visit number. Keyed by index,
+  // NOT testId: testIds aren't guaranteed unique within a spec, so two distinct
+  // tests sharing an id must not be conflated into a single visit count (only a
+  // true re-execution of the same test instance — a jump back to the same index
+  // — should be stamped). Additive, like the step-level `visit`.
+  const testVisitByIndex = new Map<number, number>();
+
+  let i = 0;
+  while (i < spec.tests.length) {
+    const test = spec.tests[i];
+    // Cycle guard: a runaway goToTest loop stops with a FAIL marker (so it
+    // can't silently report green) rather than hanging. Checked before any work.
+    // Unlike the unknown-target path (which sets `stopRest` so remaining tests
+    // are recorded SKIPPED), the cap `break`s — a runaway cycle is a total
+    // abort, so the not-yet-reached tests are simply absent from the report.
+    totalTestVisits++;
+    if (totalTestVisits > MAX_TEST_VISITS) {
+      log(
+        config,
+        "error",
+        `Routing exceeded ${MAX_TEST_VISITS} test executions in spec '${spec.specId}'; stopping (possible goToTest loop).`
+      );
+      // The marker carries a synthetic FAIL CONTEXT (not just a top-level
+      // result): Phase-3 re-derives testReport.result via
+      // rollUpResults(contexts), and rollUpResults([]) is SKIPPED — so an
+      // empty-contexts marker would be downgraded to SKIPPED. The FAIL context
+      // makes the rollup (and the spec verdict) FAIL.
+      const capReason = `Routing exceeded the maximum of ${MAX_TEST_VISITS} test executions in this spec (possible goToTest loop).`;
+      specReport.tests.push({
+        testId: test.testId,
+        result: "FAIL",
+        resultDescription: capReason,
+        contexts: [
+          { contextId: "routing", result: "FAIL", resultDescription: capReason, steps: [] },
+        ],
+      });
+      break;
+    }
+    log(config, "debug", `TEST: ${test.testId}`);
+    metaValues.specs[spec.specId].tests[test.testId] ??= { contexts: {} };
+    const testReport: any = {
+      testId: test.testId,
+      description: test.description,
+      contentPath: test.contentPath,
+      detectSteps: test.detectSteps,
+      contexts: new Array(test.contexts.length),
+    };
+    // Stamp the visit number when a backward goToTest re-ran this test (additive
+    // — the first visit omits `visit`, so an unrouted/once-run report is
+    // byte-identical, mirroring the step-level `visit`).
+    const visitN = (testVisitByIndex.get(i) ?? 0) + 1;
+    testVisitByIndex.set(i, visitN);
+    if (visitN > 1) testReport.visit = visitN;
+    specReport.tests.push(testReport);
+
+    // A prior test stopped the spec: record every context SKIPPED with the
+    // routing reason and move on without running anything.
+    if (stopRest) {
+      // Mirror prepareContextSlot's contextId derivation INCLUDING the
+      // collision-suffix loop, so two contexts with the same base ("linux",
+      // no browser) don't get duplicate ids. (In practice the sizing pass has
+      // already assigned every contextId via prepareContextSlot, so the
+      // `if (!context.contextId)` guard rarely fires — but keep it consistent.)
+      const usedContextIds = new Set<string>(
+        test.contexts.map((c: any) => c.contextId).filter(Boolean)
+      );
+      test.contexts.forEach((context: any, slot: number) => {
+        if (!context.contextId) {
+          const base =
+            [context.platform, context.browser?.name].filter(Boolean).join("-") ||
+            "default";
+          let id = base;
+          let suffix = 2;
+          while (usedContextIds.has(id)) {
+            id = `${base}-${suffix++}`;
+          }
+          usedContextIds.add(id);
+          context.contextId = id;
+        }
+        testReport.contexts[slot] = {
+          contextId: context.contextId,
+          platform: context.platform,
+          browser: context.browser,
+          result: "SKIPPED",
+          resultDescription:
+            "Skipped: a prior test stopped the spec (routing).",
+          steps: [],
+        };
+      });
+      i++;
+      continue;
+    }
+
+    // Same per-test/per-context preflight as the flat path.
+    const { testGuardSkip, recordingNameConflict, usedContextIds } =
+      await prepareTestPreflight({
+        config,
+        spec,
+        test,
+        specGuardSkip,
+        platform,
+      });
+
+    const contextJobs: any[] = [];
+    test.contexts.forEach((context: any, slot: number) => {
+      const result = prepareContextSlot({
+        config,
+        spec,
+        test,
+        context,
+        slot,
+        usedContextIds,
+        specGuardSkip,
+        testGuardSkip,
+        recordingNameConflict,
+        runnerDetails,
+        contexts: testReport.contexts,
+        onAutoRecord: markAutoRecord,
+      });
+      if (result.kind === "skipped") {
+        testReport.contexts[slot] = result.contextReport;
+      } else {
+        contextJobs.push(result.job);
+      }
+    });
+
+    // Tag the routed contexts with their display resources (recordings, plus
+    // every driver context when the run has a recording) so they queue on the
+    // SAME run-wide registry as the flat pool — a routed recording never
+    // overlaps a flat-pool recording or driver context. Only at limit>1; serial
+    // runs ignore the tags.
+    if (limit > 1) {
+      for (const job of contextJobs)
+        job.exclusiveResources = jobDisplayResources(job, exclusivityCtx);
+    }
+
+    // Run the runnable contexts with the same crash-isolation shape as the flat
+    // pool. runContext is reused verbatim. At limit>1 use the resource-aware
+    // pool so display recordings serialize while the rest run in parallel; at
+    // limit===1 keep the byte-identical runConcurrent path.
+    const runRoutedJob = async (job: any) => {
+      try {
+        job.contexts[job.slot] = await runContext({
+          config,
+          spec: job.spec,
+          test: job.test,
+          context: job.context,
+          runnerDetails,
+          appiumPool,
+          portToDisplay,
+          metaValues,
+          installAttempts,
+          warmUpResults,
+          processRegistry,
+          logPrefix:
+            limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
+        });
+      } catch (error: any) {
+        const detail = error?.message ?? String(error);
+        log(
+          config,
+          "error",
+          `Context '${job.context.contextId}' crashed: ${detail}`
+        );
+        job.contexts[job.slot] = {
+          contextId: job.context.contextId,
+          platform: job.context.platform,
+          browser: job.context.browser,
+          result: "FAIL",
+          resultDescription: `Unexpected error: ${detail}`,
+          steps: [],
+        };
+      }
+    };
+    if (limit > 1) {
+      await runResourceAware(
+        contextJobs,
+        limit,
+        resourceRegistry,
+        runRoutedJob
+      );
+    } else {
+      await runConcurrent(contextJobs, limit, runRoutedJob);
+    }
+
+    // Roll the test up (flow != verdict: this result is final and never altered
+    // by routing). Phase-3 re-derives this identical value when tallying; we set
+    // it here so test-level routing can read the verdict. Only `$$platform` is
+    // meaningful at test scope (tests aren't sequenced relative to each other).
+    const testResult = rollUpResults(testReport.contexts.filter(Boolean));
+    testReport.result = testResult;
+    // Spec-guard skip SUBSUMES routing: a spec whose `if` was false never ran,
+    // so its tests are SKIPPED with the spec-guard reason and their onSkip
+    // handlers must NOT change flow (no stopRest, no deferred stop:run warning).
+    // Only evaluate test-level routing for a reached spec.
+    if (!specGuardSkip) {
+      const decision = await resolveTestRouting({
+        // rollUpResults returns a plain string; resolveTestRouting handles an
+        // unknown status defensively (-> continue), so the narrowing cast is safe.
+        status: testResult as StepRoutingStatus,
+        test,
+        context: buildConditionContext({ platform }),
+      });
+
+      if (decision.action === "stop") {
+        if (decision.scope === "spec") {
+          stopRest = true;
+        } else if (decision.scope === "run") {
+          // DEFER a true run-stop this phase: warn once PER SPEC (the flag is
+          // scoped to this runRoutedSpec call) and treat as spec.
+          if (!warnedRunStop) {
+            log(
+              config,
+              "warning",
+              `Test '${test.testId}': routing requested 'stop: run', which is not yet implemented at test scope — treating it as 'stop: spec' (stopping this spec's remaining tests).`
+            );
+            warnedRunStop = true;
+          }
+          stopRest = true;
+        }
+        // scope === "test": no-op — the test already finished; continue to the
+        // next test (this is the FAIL default, byte-identical to the flat path).
+      } else if (decision.action === "goToTest") {
+        const target = indexByTestId.get(decision.testId);
+        if (target === undefined) {
+          // Unknown target is a routing misconfiguration (e.g. a typo'd
+          // testId). Surface a FAIL marker so it can't silently report green,
+          // then stop the spec's remaining tests. (Cross-spec jumps are not
+          // supported — targets resolve within this spec only.)
+          log(
+            config,
+            "error",
+            `Routing goToTest target '${decision.testId}' not found in spec '${spec.specId}'; stopping.`
+          );
+          // Synthetic FAIL context so Phase-3's rollUpResults(contexts) yields
+          // FAIL (an empty-contexts marker would roll up to SKIPPED).
+          const unknownReason = `Routing goToTest target '${decision.testId}' does not exist.`;
+          specReport.tests.push({
+            testId: decision.testId,
+            result: "FAIL",
+            resultDescription: unknownReason,
+            contexts: [
+              { contextId: "routing", result: "FAIL", resultDescription: unknownReason, steps: [] },
+            ],
+          });
+          stopRest = true;
+        } else {
+          // JUMP: move the cursor to the target test and re-enter the loop
+          // without advancing (flow != verdict — no stepExecutionFailed-style
+          // state; the visited test's verdict already stands).
+          i = target;
+          continue;
+        }
+      }
+      // continue (and a stop:test no-op) just advance to the next test.
+    }
+    i++;
+  }
 }
 
 /**
@@ -1019,6 +1819,255 @@ async function warmUpContexts({
   }
 }
 
+/**
+ * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
+ * tests has a non-empty `onPass`/`onFail`/`onWarning`/`onSkip` array. This is
+ * the switch between the runner's two execution paths:
+ *   - false (every spec today) -> the unchanged flat concurrent job pool; the
+ *     report is byte-identical to the pre-routing runner.
+ *   - true -> the sequential `runRoutedSpec` sequencer, which evaluates
+ *     test-level routing between tests.
+ *
+ * Step-level handlers (a step's own on*) and a guard `if` do NOT count — those
+ * are orthogonal features handled inside `runContext` and the guard preflight.
+ * An empty handler array (`onFail: []`) is "no routing" and stays on the flat
+ * path. Defensive against a missing/empty `tests` array.
+ */
+function specIsRouted(spec: any): boolean {
+  if (!spec || !Array.isArray(spec.tests)) return false;
+  const keys = ["onPass", "onFail", "onWarning", "onSkip"] as const;
+  return spec.tests.some((test: any) =>
+    keys.some((key) => Array.isArray(test?.[key]) && test[key].length > 0)
+  );
+}
+
+/**
+ * Per-test preflight shared by both paths: evaluates the test-level guard `if`
+ * (only when not already spec-guard-skipped), scans for a recording-name
+ * conflict, and builds the `usedContextIds` set for deterministic contextId
+ * derivation. A faithful extraction of the original inline per-test block, so
+ * the non-routed path stays byte-identical (same warnings, same precedence).
+ */
+async function prepareTestPreflight({
+  config,
+  spec,
+  test,
+  specGuardSkip,
+  platform,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+  specGuardSkip: boolean;
+  platform: string | undefined;
+}): Promise<{
+  testGuardSkip: boolean;
+  recordingNameConflict: string | null;
+  usedContextIds: Set<string>;
+}> {
+  // Test-level guard `if`: evaluated once against the host platform, same
+  // semantics as the spec-level guard (only `$$platform`/meta meaningful; fails
+  // CLOSED). When false, every context of this test is recorded SKIPPED and no
+  // job is enqueued. Skipped entirely when the spec guard already skips this
+  // spec (a spec-guard skip subsumes all its tests). Fully gated on `test.if`
+  // presence: a test with no `if` is byte-identical (no evaluation,
+  // `testGuardSkip` stays false).
+  let testGuardSkip = false;
+  if (!specGuardSkip && test.if) {
+    if (guardReferencesSteps(test.if)) {
+      log(
+        config,
+        "warning",
+        `Test '${test.testId}': 'if' references '$$steps.*', which is not available at test scope — the guard will always fail closed (the test is always skipped). Use '$$steps.*' only in step-level 'if'.`
+      );
+    }
+    const guardPassed = await evaluateGuard(
+      test.if,
+      buildConditionContext({ platform })
+    );
+    testGuardSkip = !guardPassed;
+  }
+  // Preflight: a `record` step that reuses a recording `name` while one is still
+  // active makes a later `stopRecord: "<name>"` ambiguous. Catch it statically
+  // and skip the whole test (across all its contexts) with a warning, rather
+  // than failing mid-run. Scan every context's authored steps (runOn overrides
+  // can differ) and skip if any conflicts. Skip the scan when a guard already
+  // skips this test/spec — the test won't run, and the guard skip takes
+  // precedence over the conflict skip (so we also suppress the conflict warning
+  // for a guarded-out test).
+  let recordingNameConflict: string | null = null;
+  if (!specGuardSkip && !testGuardSkip) {
+    for (const c of test.contexts) {
+      const conflict = detectRecordingNameConflict(c?.steps);
+      if (conflict) {
+        recordingNameConflict = conflict;
+        break;
+      }
+    }
+  }
+  if (recordingNameConflict) {
+    log(
+      config,
+      "warning",
+      `Skipping test '${test.testId}': recording name '${recordingNameConflict}' is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
+    );
+  }
+  // Track contextIds within this test so the deterministic fallback can suffix
+  // collisions, mirroring resolveTests' deriveContextId.
+  const usedContextIds = new Set<string>(
+    test.contexts.map((c: any) => c.contextId).filter(Boolean)
+  );
+  return { testGuardSkip, recordingNameConflict, usedContextIds };
+}
+
+/**
+ * The outcome of preparing one context slot: either a SKIPPED contextReport the
+ * caller writes into `testReport.contexts[slot]` (no job runs), or a runnable
+ * job descriptor the caller either pushes to the flat pool (non-routed) or runs
+ * in the sequencer (routed).
+ */
+type ContextSlotResult =
+  | { kind: "skipped"; contextReport: any }
+  | { kind: "job"; job: any };
+
+/**
+ * Per-context preflight shared by BOTH execution paths (flat pool + routed
+ * sequencer). It is a faithful extraction of the original per-context body in
+ * runSpecs' Phase-1 loop, so the non-routed path stays byte-identical:
+ *   1. Derive a stable `contextId` when unset (deterministic collision suffix).
+ *   2. Apply the three skip precedences (spec guard > test guard >
+ *      recording-name conflict), returning a SKIPPED contextReport with the
+ *      exact same wording as before.
+ *   3. Otherwise inject the synthetic autoRecord step (idempotent) and coerce a
+ *      record context's browser, then return a runnable job descriptor.
+ *
+ * Mutates `context` in place (contextId, steps, browser) exactly as the original
+ * inline code did — idempotent, so the routed sequencer can call it per visit.
+ * `onAutoRecord` is invoked when a synthetic autoRecord step is injected (the
+ * caller uses it — via `markAutoRecord` — to set the run-level
+ * `autoRecordFlag.injected` used for ffmpeg-overlap sizing).
+ */
+function prepareContextSlot({
+  config,
+  spec,
+  test,
+  context,
+  slot,
+  usedContextIds,
+  specGuardSkip,
+  testGuardSkip,
+  recordingNameConflict,
+  runnerDetails,
+  contexts,
+  onAutoRecord,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+  context: any;
+  slot: number;
+  usedContextIds: Set<string>;
+  specGuardSkip: boolean;
+  testGuardSkip: boolean;
+  recordingNameConflict: string | null;
+  runnerDetails: any;
+  contexts: any[];
+  onAutoRecord: () => void;
+}): ContextSlotResult {
+  // Derive a stable contextId from platform/browser when unset (the resolver
+  // normally assigns one) so the same context keeps the same ID across runs for
+  // comparison — `default` when neither is known, with an ordinal suffix on
+  // collision. No randomness, so two otherwise-identical runs produce identical
+  // reports. Normalized onto the context so runContext's metaValues keys and the
+  // report all read the same value.
+  if (!context.contextId) {
+    const base =
+      [context.platform, context.browser?.name].filter(Boolean).join("-") ||
+      "default";
+    let id = base;
+    let suffix = 2;
+    while (usedContextIds.has(id)) {
+      id = `${base}-${suffix++}`;
+    }
+    usedContextIds.add(id);
+    context.contextId = id;
+  }
+  // Spec-level guard skip: record a SKIPPED context and don't enqueue a job.
+  // Highest precedence — a false spec guard subsumes test guards and the
+  // recording-name preflight (no test in the spec runs).
+  if (specGuardSkip) {
+    return {
+      kind: "skipped",
+      contextReport: {
+        contextId: context.contextId,
+        platform: context.platform,
+        browser: context.browser,
+        result: "SKIPPED",
+        resultDescription: "Skipped: spec guard `if` condition not met.",
+        steps: [],
+      },
+    };
+  }
+  // Test-level guard skip: record a SKIPPED context and don't enqueue a job.
+  // Takes precedence over the recording-name preflight (the test is skipped
+  // wholesale regardless of its step contents).
+  if (testGuardSkip) {
+    return {
+      kind: "skipped",
+      contextReport: {
+        contextId: context.contextId,
+        platform: context.platform,
+        browser: context.browser,
+        result: "SKIPPED",
+        resultDescription: "Skipped: test guard `if` condition not met.",
+        steps: [],
+      },
+    };
+  }
+  // Preflight conflict: record a SKIPPED context and don't enqueue a job.
+  if (recordingNameConflict) {
+    return {
+      kind: "skipped",
+      contextReport: {
+        contextId: context.contextId,
+        platform: context.platform,
+        browser: context.browser,
+        result: "SKIPPED",
+        resultDescription: `Skipped — recording name '${recordingNameConflict}' is reused while still active; names must be unique among overlapping recordings.`,
+        steps: [],
+      },
+    };
+  }
+  // autoRecord: prepend a synthetic full-context ffmpeg recording step (even
+  // when the author also has explicit record steps — overlapping is intended).
+  // Done before the concurrency calc so the synthetic ffmpeg recording is
+  // counted by jobIsFfmpegRecording.
+  if (resolveAutoRecord({ config, spec, test })) {
+    const autoStep = buildAutoRecordStep({ config, spec, test, context });
+    if (autoStep) {
+      // Idempotent: strip any prior synthetic step before prepending, so a
+      // resolved context that's reused (e.g. runSpecs invoked twice) can't
+      // accumulate duplicate autoRecord captures targeting the same file.
+      const authored = Array.isArray(context.steps)
+        ? context.steps.filter((s: any) => !s?.__autoRecord)
+        : [];
+      context.steps = [autoStep, ...authored];
+      onAutoRecord();
+    }
+  }
+  // Auto-resolution: when a record step has no explicit engine and the user
+  // never chose a browser, prefer the concurrency-safe browser engine by
+  // coercing to headed Chrome (when available). Done here, before the
+  // concurrency calc, so each job's engine is settled. Non-record contexts keep
+  // runContext's normal browser defaulting.
+  const coercedBrowser = coerceRecordContextBrowser({
+    context,
+    availableApps: runnerDetails.availableApps,
+  });
+  if (coercedBrowser) context.browser = coercedBrowser;
+  return { kind: "job", job: { spec, test, context, contexts, slot } };
+}
+
 // Effective autoScreenshot setting for a test: the test level wins over the
 // spec level, which wins over the global config. Levels left unset defer
 // down the chain.
@@ -1034,6 +2083,93 @@ function resolveAutoScreenshot({
   return Boolean(
     test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot
   );
+}
+
+/**
+ * Resolve the `onSkip` routing decision for a REACHED-but-skipped step
+ * (unsafe-blocked or guard-`if`-false). Default onSkip is continue, so an
+ * unrouted step resolves to `{ action: "continue" }` — keeping today's behavior.
+ * The selector context has no own `$$outputs.*` (the step didn't run) but can
+ * read prior steps via `$$steps.<id>.outputs.*`.
+ *
+ * `stop` and `goToStep` are the meaningful decisions for a skipped step; the
+ * caller applies them. `continue` is the no-op default, and `retry` is
+ * meaningless for a step that never ran (there is nothing to re-run) — both
+ * leave execution flowing. (An in-runner SKIPPED *result* from a step that DID
+ * run — e.g. a no-op action — goes through the normal retry loop, where its
+ * onSkip `retry` would re-run it.) `skipRetry` is passed so a `retry` entry is
+ * treated as a non-match and a later `goToStep`/`stop` entry can apply.
+ */
+async function resolveStepSkipRouting(
+  step: any,
+  platform: string | undefined,
+  stepOutputsById: Record<string, any>
+): Promise<RoutingDecision> {
+  return await resolveStepRouting({
+    status: "SKIPPED",
+    step,
+    context: buildConditionContext({ platform, steps: stepOutputsById }),
+    skipRetry: true,
+  });
+}
+
+// Effective autoRecord setting for a test: same precedence as autoScreenshot
+// (test > spec > config; unset levels defer down the chain).
+function resolveAutoRecord({
+  config,
+  spec,
+  test,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+}): boolean {
+  return Boolean(test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord);
+}
+
+// Build the synthetic full-context recording step for an autoRecord run, or
+// null when the context shouldn't be recorded (no driver-required authored
+// steps). Always uses the ffmpeg engine, and a deterministic path under the
+// run's artifact folder (recordings/<specId>/<testId>/<contextId>.mp4) so the
+// same context lands on the same relative path every run for comparison. The
+// `__autoRecord` marker tags the started handle as synthetic so an untargeted
+// user `stopRecord` won't end it (only end-of-context cleanup does).
+function buildAutoRecordStep({
+  config,
+  spec,
+  test,
+  context,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+  context: any;
+}): any | null {
+  if (!isDriverRequired({ test: context })) return null;
+  // Compute the path only — runSpecs reserves the run folder up front when
+  // runArchivesArtifacts is true (autoRecord counts), so creating it here would
+  // be redundant. (startRecording also mkdirs the recording's target dir up
+  // front, so an enabled autoRecord run reserves the folder regardless — same as
+  // autoScreenshot.)
+  const runDir = getRunOutputDir(config, { create: false });
+  const fileName = `${capPathSegment(
+    sanitizeFilesystemName(String(context.contextId ?? ""), "context")
+  )}.mp4`;
+  const recordPath = path.join(
+    runDir,
+    "recordings",
+    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
+    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
+    fileName
+  );
+  return {
+    record: { path: recordPath, overwrite: "true", engine: "ffmpeg" },
+    description: "Automatic full-context recording",
+    stepId: `${sanitizeFilesystemName(String(test.testId ?? ""), "test")}~autorecord`,
+    // Internal marker — the runStep record dispatch flags the started handle as
+    // synthetic so it survives untargeted stopRecord and is swept by cleanup.
+    __autoRecord: true,
+  };
 }
 
 // Directory/file segments built from IDs are capped so deeply nested doc
@@ -1157,9 +2293,11 @@ async function runContext({
   context,
   runnerDetails,
   appiumPool,
+  portToDisplay,
   metaValues,
   installAttempts,
   warmUpResults,
+  processRegistry,
   logPrefix = "",
 }: {
   config: any;
@@ -1170,9 +2308,11 @@ async function runContext({
   appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
+  portToDisplay?: Map<number, string>;
   metaValues: any;
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
+  processRegistry?: Map<string, any>;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -1340,9 +2480,27 @@ async function runContext({
       // Check out a server for this context's lifetime — released in the
       // finally so the next queued context can reuse it.
       appiumPort = await appiumPool!.acquire();
+      // If this server runs on a dedicated Xvfb display, record it on the
+      // context so the ffmpeg recorder captures the same display the browser
+      // renders on.
+      if (portToDisplay) {
+        const display = portToDisplay.get(appiumPort);
+        if (display) {
+          context.__display = display;
+          // The Xvfb displays are created at a known fixed size; record it so
+          // x11grab captures the full display (its default grabs only 640x480).
+          context.__displaySize = XVFB_SCREEN_SIZE;
+        }
+      }
 
       // Define driver capabilities
       // TODO: Support custom apps
+      // Per-context recording identifiers so concurrent Chrome recordings
+      // auto-select their own window and download to their own dir.
+      const recordOptions = {
+        captureSourceTitle: browserCaptureTitle(context.contextId),
+        downloadDir: browserDownloadDir(context.contextId),
+      };
       let caps: any = getDriverCapabilities({
         runnerDetails: runnerDetails,
         name: context.browser.name,
@@ -1350,6 +2508,7 @@ async function runContext({
           width: context.browser?.window?.width || 1200,
           height: context.browser?.window?.height || 800,
           headless: context.browser?.headless !== false,
+          ...recordOptions,
         },
       });
       clog("debug", "CAPABILITIES:");
@@ -1373,6 +2532,7 @@ async function runContext({
               width: context.browser?.window?.width || 1200,
               height: context.browser?.window?.height || 800,
               headless: context.browser?.headless !== false,
+              ...recordOptions,
             },
           });
           driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
@@ -1425,15 +2585,25 @@ async function runContext({
 
     // Iterates steps
     let stepExecutionFailed = false;
+    // The reason recorded on steps skipped after execution stopped. Defaults to
+    // the failure wording (the only way execution stopped before routing); a
+    // non-failure routing `stop` (e.g. onPass/onSkip stop) overwrites it with an
+    // accurate message so a passing step's stop isn't mislabeled as a failure.
+    let stopReason = "Skipped due to previous failure in context.";
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
-    for (const [stepIndex, step] of context.steps.entries()) {
-      // Set step id if not defined. Derived from the test ID and a hash of
-      // the step's authored definition so the same step keeps the same ID
-      // (and any `screenshot: true` default filename) across runs.
-      // Sanitized because the ID doubles as a screenshot filename; identical
-      // steps in one test get an ordinal suffix.
+    // Pre-assign stepIds for every step BEFORE the loop. `goToStep` routing
+    // needs a stepId -> index map up front so a jump can target a not-yet-run
+    // step. Safe because the same derivation + order-preserving de-dup is used
+    // as the (previous) in-loop assignment, and `contentHash` excludes `stepId`
+    // (stepId is in detectTests' HASH_EXCLUDED_KEYS) — so existing specs get
+    // byte-identical ids. Derived from the test ID and a hash of the step's
+    // authored definition so the same step keeps the same ID (and any
+    // `screenshot: true` default filename) across runs. Sanitized because the
+    // ID doubles as a screenshot filename; identical steps in one test get an
+    // ordinal suffix.
+    for (const step of context.steps as any[]) {
       if (!step.stepId) {
         const baseId = sanitizeFilesystemName(
           `${test.testId}~s${contentHash(step)}`,
@@ -1447,6 +2617,102 @@ async function runContext({
         step.stepId = stepId;
       }
       usedStepIds.add(step.stepId);
+    }
+    // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
+    // so a duplicated stepId routes to the earliest one).
+    const indexByStepId = new Map<string, number>();
+    context.steps.forEach((s: any, idx: number) => {
+      if (s.stepId && !indexByStepId.has(s.stepId)) {
+        indexByStepId.set(s.stepId, idx);
+      }
+    });
+    // Tracks how many times each stepId's report has been produced, so a step
+    // re-run by a backward `goToStep` jump can record its visit number.
+    const visitCountById = new Map<string, number>();
+    // Push a step report, stamping `visit` (1-based count of times this stepId
+    // has been recorded) once a goToStep loop produces more than one. Additive:
+    // a single-visit report omits `visit` and stays byte-identical (mirrors
+    // `attempts`). Used for EVERY step-report push in the loop — ran, skipped,
+    // and routing-error markers — so re-visited steps are stamped consistently.
+    const pushStepReport = (rep: any) => {
+      if (rep.stepId) {
+        const n = (visitCountById.get(rep.stepId) ?? 0) + 1;
+        visitCountById.set(rep.stepId, n);
+        if (n > 1) rep.visit = n;
+      }
+      // The internal cleanup marker (`_fromAfter`) is non-enumerable, so a
+      // `{...step}` report spread already drops it; delete defensively here so
+      // it can never leak into a report through any push site.
+      delete rep._fromAfter;
+      contextReport.steps.push(rep);
+    };
+    // Per-step outputs accumulator: maps each completed step's stepId to its
+    // computed `outputs` bag, so later steps' guard `if` conditions can read a
+    // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
+    // bookkeeping local to this context — it does not change any existing path.
+    const stepOutputsById: Record<string, any> = {};
+    // Apply an onSkip routing decision for a reached-but-skipped step (unsafe or
+    // guard-`if` false). Returns true when it JUMPED (goToStep moved the cursor)
+    // so the caller `continue`s without `i++`; returns false otherwise (the
+    // caller advances normally). `stop` and an unknown-target `goToStep` both
+    // fail-safe to stopping execution.
+    const applySkipRouting = (decision: RoutingDecision): boolean => {
+      if (decision.action === "stop") {
+        stepExecutionFailed = true;
+        stopReason =
+          "Skipped because a prior step stopped execution (routing).";
+        return false;
+      }
+      if (decision.action === "goToStep") {
+        const target = indexByStepId.get(decision.stepId);
+        if (target === undefined) {
+          clog(
+            "error",
+            `Routing goToStep target '${decision.stepId}' not found in this test; stopping.`
+          );
+          // An unknown target is a routing misconfiguration. Push a FAIL marker
+          // so the verdict reflects the broken routing — mirrors the run-path.
+          pushStepReport({
+            result: "FAIL",
+            resultDescription: `Routing goToStep target '${decision.stepId}' does not exist.`,
+          });
+          stepExecutionFailed = true;
+          stopReason = `Skipped because routing goToStep target '${decision.stepId}' does not exist.`;
+          return false;
+        }
+        i = target; // JUMP (no stepExecutionFailed — flow != verdict)
+        return true;
+      }
+      // continue / retry (no-op for a never-run step): advance normally.
+      return false;
+    };
+    // Indexed loop (not for…of) so `goToStep` routing can move the cursor.
+    // `totalVisits` + `MAX_TOTAL_VISITS` is a fail-safe against a goToStep loop:
+    // linear execution can never reach the cap, but a backward jump that never
+    // makes progress would, and we stop rather than hang.
+    let i = 0;
+    let totalVisits = 0;
+    const MAX_TOTAL_VISITS = context.steps.length * 1000 + 1000;
+    while (i < context.steps.length) {
+      const stepIndex = i; // keep this name (autoScreenshot reads it)
+      const step = context.steps[i];
+
+      totalVisits++;
+      if (totalVisits > MAX_TOTAL_VISITS) {
+        clog(
+          "error",
+          `Routing exceeded ${MAX_TOTAL_VISITS} step executions in this context; stopping (possible goToStep loop).`
+        );
+        // Surface the runaway as a FAIL so the verdict reflects the abnormal
+        // termination — a force-terminated goToStep cycle must not report green.
+        pushStepReport({
+          result: "FAIL",
+          resultDescription: `Routing exceeded the maximum of ${MAX_TOTAL_VISITS} step executions in this context (possible goToStep loop).`,
+        });
+        stepExecutionFailed = true;
+        break;
+      }
+
       clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
@@ -1460,19 +2726,82 @@ async function runContext({
           result: "SKIPPED",
           resultDescription: "Skipped because unsafe steps aren't allowed.",
         };
-        contextReport.steps.push(stepReport);
+        pushStepReport(stepReport);
+        // onSkip fires only for a REACHED step. The unsafe check precedes the
+        // `stepExecutionFailed` gate below, so an unsafe step DOWNSTREAM of a
+        // prior stop reaches here too — but it is not reached, so its onSkip
+        // must NOT fire (the `!stepExecutionFailed` guard). For a genuinely
+        // reached unsafe-skip, onSkip runs (default continue; `stop` halts the
+        // test; `goToStep` jumps). The unsafe gate also precedes the cleanup
+        // (`_fromAfter`) exception below, so an unsafe cleanup step is still
+        // skipped — the safety gate wins over the hard-route.
+        if (!stepExecutionFailed) {
+          const decision = await resolveStepSkipRouting(
+            step,
+            context.platform,
+            stepOutputsById
+          );
+          const jumped = applySkipRouting(decision);
+          if (jumped) continue; // goToStep moved the cursor — don't i++
+        }
+        i++;
         continue;
       }
 
-      if (stepExecutionFailed) {
-        // Mark as skipped
+      // Skip remaining steps once execution has stopped (downstream of a prior
+      // failure or a routing `stop`). These steps are NOT reached, so no routing
+      // fires for them, and the reason reflects why execution stopped.
+      // EXCEPTION: cleanup (`_fromAfter`) steps are hard-routed — they run after
+      // the test no matter what stopped execution, so they're not skipped here.
+      if (stepExecutionFailed && !step._fromAfter) {
         const stepReport = {
           ...step,
           result: "SKIPPED",
-          resultDescription: "Skipped due to previous failure in context.",
+          resultDescription: stopReason,
         };
-        contextReport.steps.push(stepReport);
+        pushStepReport(stepReport);
+        i++;
         continue;
+      }
+
+      // Step-level guard `if`: evaluated BEFORE the action runs. The guard sees
+      // `$$platform` and prior steps' outputs via `$$steps.<stepId>.outputs.*`
+      // (the current step's own `$$outputs.*` is NOT available — it hasn't run
+      // yet). `if` is `string | string[]` (array = AND, all must be truthy) and
+      // fails CLOSED (an unresolvable `$$` -> false). When the guard is not all
+      // true the step is SKIPPED: the action is NOT run, and this does NOT trip
+      // `stepExecutionFailed`, so later steps still run.
+      if (step.if) {
+        const guardContext = buildConditionContext({
+          platform: context.platform,
+          steps: stepOutputsById,
+        });
+        const guardPassed = await evaluateGuard(step.if, guardContext);
+        if (!guardPassed) {
+          const stepReport = {
+            ...step,
+            result: "SKIPPED",
+            resultDescription: "Skipped: guard `if` condition not met.",
+          };
+          pushStepReport(stepReport);
+          // Reached-but-skipped: the onSkip handler fires (default continue;
+          // `stop` halts; `goToStep` jumps). This branch is already past the
+          // `stepExecutionFailed` gate above, so it is unreachable when stopped;
+          // the `!stepExecutionFailed` guard keeps the "not reached -> no
+          // routing" invariant explicit and robust if the branch order ever
+          // changes.
+          if (!stepExecutionFailed) {
+            const decision = await resolveStepSkipRouting(
+              step,
+              context.platform,
+              stepOutputsById
+            );
+            const jumped = applySkipRouting(decision);
+            if (jumped) continue; // goToStep moved the cursor — don't i++
+          }
+          i++;
+          continue;
+        }
       }
 
       // Set meta values
@@ -1480,37 +2809,97 @@ async function runContext({
         context.contextId
       ].steps[step.stepId] = {};
 
-      // Run step
-      const stepResult = await runStep({
-        config: config,
-        context: context,
-        step: step,
-        driver: driver,
-        metaValues: metaValues,
-        options: {
-          openApiDefinitions: context.openApi || [],
-        },
-      });
-      clog(
-        "debug",
-        `RESULT: ${stepResult.status}\n${JSON.stringify(stepResult, null, 2)}`
-      );
-
-      stepResult.result = stepResult.status;
-      stepResult.resultDescription = stepResult.description;
-      delete stepResult.status;
-      delete stepResult.description;
-
-      // Add step result to report
-      const stepReport = {
-        ...step,
-        ...stepResult,
+      // Run the step once: execute it, normalize the result, and build the
+      // step report. Used by the initial run and each retry attempt.
+      const runStepOnce = async () => {
+        const r = await runStep({
+          config: config,
+          context: context,
+          step: step,
+          driver: driver,
+          metaValues: metaValues,
+          options: {
+            openApiDefinitions: context.openApi || [],
+          },
+          processRegistry: processRegistry,
+        });
+        clog(
+          "debug",
+          `RESULT: ${r.status}\n${JSON.stringify(r, null, 2)}`
+        );
+        r.result = r.status;
+        r.resultDescription = r.description;
+        delete r.status;
+        delete r.description;
+        return { ...step, ...r } as any;
       };
 
-      // Capture a post-step screenshot for autoScreenshot runs. Applies to
-      // browser steps (explicit `screenshot` steps already produce an image);
-      // failed steps are captured too — the failure frame is often the most
-      // useful. A capture failure logs a warning and never fails the step.
+      // Run the step, then resolve routing. A `retry` decision re-runs the step
+      // (up to `limit` retries — so `limit + 1` total runs — waiting `delay`
+      // with `fixed`/`exponential`
+      // backoff) until the result no longer routes `retry` or the limit is hit;
+      // once exhausted, routing is re-resolved with retry entries skipped to get
+      // the terminal action (so `onFail:[{retry},{continue}]` = "retry then
+      // continue"; `onFail:[{retry}]` = "retry then the default stop"). Each
+      // attempt re-runs the whole step (assertions included), so a transient
+      // failure can recover to PASS. flow != verdict: routing only chooses flow;
+      // the step's reported result is the final attempt's.
+      let stepReport = await runStepOnce();
+      let attempts = 1;
+      let routingDecision: RoutingDecision;
+      while (true) {
+        // Record this attempt's outputs so the routing selector can read the
+        // step's own `$$steps.<id>.outputs.*` (and so the FINAL value lands in
+        // the accumulator for later steps). Reached only for steps that ran.
+        if (step.stepId) {
+          stepOutputsById[step.stepId] = { outputs: stepReport.outputs ?? {} };
+        }
+        const routingContext = buildConditionContext({
+          platform: context.platform,
+          outputs: stepReport.outputs,
+          steps: stepOutputsById,
+        });
+        routingDecision = await resolveStepRouting({
+          status: stepReport.result,
+          step,
+          context: routingContext,
+        });
+        if (routingDecision.action !== "retry") break;
+        if (attempts > routingDecision.limit) {
+          // Retries exhausted: re-resolve ignoring retry entries to get the
+          // terminal action (a later entry, or the status default).
+          routingDecision = await resolveStepRouting({
+            status: stepReport.result,
+            step,
+            context: routingContext,
+            skipRetry: true,
+          });
+          break;
+        }
+        const waitMs = computeRetryDelay(
+          routingDecision.delay,
+          routingDecision.backoff,
+          attempts - 1
+        );
+        if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
+        clog(
+          "debug",
+          `Retrying step (attempt ${attempts + 1}, limit ${routingDecision.limit})`
+        );
+        attempts++;
+        stepReport = await runStepOnce();
+      }
+      // Record the total run count when the step was retried (additive — absent
+      // for an un-retried step, so its report is byte-identical).
+      if (attempts > 1) stepReport.attempts = attempts;
+
+      // Capture a post-step screenshot for autoScreenshot runs (final attempt
+      // only). Applies to browser steps (explicit `screenshot` steps already
+      // produce an image); failed steps are captured too — the failure frame is
+      // often the most useful. A capture failure logs a warning, never fails.
+      // Note: the filename derives from `stepIndex`, so a backward `goToStep`
+      // re-visit of the same step overwrites the prior visit's image
+      // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
       if (
         autoScreenshotEnabled &&
         driver &&
@@ -1530,43 +2919,75 @@ async function runContext({
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
 
-      contextReport.steps.push(stepReport);
+      pushStepReport(stepReport);
 
-      // If this step failed, set flag to skip remaining steps
-      if (stepReport.result === "FAIL") {
+      // Apply the terminal routing decision. `continue` runs the next step; a
+      // `stop` halts the remaining steps in this context (`spec`/`run` scope —
+      // skipping later tests/specs — is deferred to the test-routing phase);
+      // `goToStep` jumps the cursor to the target step. flow != verdict: a
+      // FAILed step routed `continue`/`goToStep` still leaves the test FAILed
+      // via rollUpResults. EXCEPTION: a cleanup (`_fromAfter`) step never stops
+      // execution — cleanup is best-effort and must not cascade-skip later
+      // cleanup steps; its FAIL still counts in the rollup so failures surface.
+      if (routingDecision.action === "stop" && !step._fromAfter) {
+        if (routingDecision.scope !== "test") {
+          clog(
+            "warning",
+            `Routing stop scope '${routingDecision.scope}' is not yet propagated beyond the current test; it currently behaves as 'test'. Later tests/specs are not skipped.`
+          );
+        }
         stepExecutionFailed = true;
+        // Preserve the historical wording when a FAIL stops the test (the
+        // default onFail:stop); otherwise record that routing stopped it.
+        stopReason =
+          stepReport.result === "FAIL"
+            ? "Skipped due to previous failure in context."
+            : "Skipped because a prior step stopped execution (routing).";
+        i++;
+      } else if (routingDecision.action === "goToStep") {
+        const target = indexByStepId.get(routingDecision.stepId);
+        if (target === undefined) {
+          clog(
+            "error",
+            `Routing goToStep target '${routingDecision.stepId}' not found in this test; stopping.`
+          );
+          // An unknown target is a routing misconfiguration (e.g. a typo'd
+          // stepId). Surface a FAIL so it can't silently report green, then
+          // stop the rest of the context.
+          pushStepReport({
+            result: "FAIL",
+            resultDescription: `Routing goToStep target '${routingDecision.stepId}' does not exist.`,
+          });
+          stepExecutionFailed = true;
+          stopReason = `Skipped because routing goToStep target '${routingDecision.stepId}' does not exist.`;
+          i++;
+        } else {
+          i = target; // JUMP (no stepExecutionFailed — flow != verdict)
+        }
+      } else {
+        i++; // continue
       }
     }
 
-    // If recording, stop recording
-    if (driver?.state?.recording) {
-      const stopRecordStep = {
-        stopRecord: true,
-        description: "Stopping recording",
-        stepId: randomUUID(),
-      };
-      const stepResult = await runStep({
-        config: config,
-        context: context,
-        step: stopRecordStep,
-        driver: driver,
-        options: {
-          openApiDefinitions: context.openApi || [],
-        },
-      });
-      stepResult.result = stepResult.status;
-      stepResult.resultDescription = stepResult.description;
-      delete stepResult.status;
-      delete stepResult.description;
-
-      // Add step result to report
-      const stepReport = {
-        ...stopRecordStep,
-        ...stepResult,
-      };
-      contextReport.steps.push(stepReport);
-    }
+    // Stop every recording still active at the end of the context (the
+    // synthetic autoRecord capture plus any explicit record steps the author
+    // didn't stop). Each produces an ordered stopRecord step report.
+    await stopAllRecordings({ config, context, driver, contextReport });
   } finally {
+    // Safety net: if the context threw before the normal sweep above, recordings
+    // are still active. Stop them now — while the driver session is still alive
+    // (the deleteSession below would otherwise kill the browser/ffmpeg capture
+    // and leak the process). On the normal path the set is already empty, so
+    // this is a no-op. Best-effort: a stop failure here must not mask the
+    // original error.
+    try {
+      // On the normal path the step loop above already drained every recording,
+      // so this is a no-op; it only does work when the context threw before the
+      // in-loop sweep, finalizing recordings before deleteSession kills them.
+      await stopAllRecordings({ config, context, driver, contextReport });
+    } catch (error: any) {
+      clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
+    }
     // Close driver. In a finally so an unexpected throw can't leak a session
     // while sibling contexts keep running.
     if (driver) {
@@ -1588,6 +3009,64 @@ async function runContext({
   return contextReport;
 }
 
+// Stop every recording still active on the driver, pushing an ordered
+// stopRecord step report for each. Drains the per-context stack (LIFO) by
+// synthesizing `{ stopRecord: true, __stopAny: true }` steps — `__stopAny`
+// lets the generic stop also end the synthetic autoRecord recording (a plain
+// user `stopRecord: true` deliberately skips it). Each stop removes its handle
+// even on failure, so the loop always makes progress; an explicit iteration
+// cap is a belt-and-suspenders guard against a handle that somehow refuses to
+// drop. Each synthesized stop is isolated so one failure doesn't abort the
+// rest. Safe to call when nothing is active (no-op).
+async function stopAllRecordings({
+  config,
+  context,
+  driver,
+  contextReport,
+}: {
+  config: any;
+  context: any;
+  driver: any;
+  contextReport: any;
+}): Promise<void> {
+  if (!Array.isArray(driver?.state?.recordings)) return;
+  let guard = driver.state.recordings.length + 1;
+  while (driver.state.recordings.length > 0 && guard-- > 0) {
+    const stopRecordStep: any = {
+      stopRecord: true,
+      __stopAny: true,
+      description: "Stopping recording",
+      stepId: randomUUID(),
+    };
+    try {
+      const stepResult = await runStep({
+        config,
+        context,
+        step: stopRecordStep,
+        driver,
+        options: { openApiDefinitions: context.openApi || [] },
+      });
+      stepResult.result = stepResult.status;
+      stepResult.resultDescription = stepResult.description;
+      delete stepResult.status;
+      delete stepResult.description;
+      // Don't leak the internal routing marker into the report.
+      delete stopRecordStep.__stopAny;
+      contextReport.steps.push({ ...stopRecordStep, ...stepResult });
+    } catch (error: any) {
+      // A throw from runStep would otherwise strand the remaining handles.
+      // Drop the top handle so the loop can't spin, and record the failure.
+      delete stopRecordStep.__stopAny;
+      driver.state.recordings.pop();
+      contextReport.steps.push({
+        ...stopRecordStep,
+        result: "FAIL",
+        resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+      });
+    }
+  }
+}
+
 // Run a specific step
 async function runStep({
   config = {},
@@ -1596,6 +3075,7 @@ async function runStep({
   driver,
   metaValues = {},
   options = {},
+  processRegistry,
 }: {
   config?: any;
   context?: any;
@@ -1603,6 +3083,7 @@ async function runStep({
   driver: any;
   metaValues?: any;
   options?: any;
+  processRegistry?: Map<string, any>;
 }): Promise<any> {
   let actionResult: any;
   // Load values from environment variables
@@ -1654,11 +3135,29 @@ async function runStep({
       step: step,
       driver: driver,
     });
-    driver.state.recording = actionResult.recording ?? null;
+    // Push the started recording onto the per-context stack so several can
+    // overlap. Carry the step's `id`/`name` so a later stopRecord can target
+    // it (by name) and end-of-context cleanup can identify the synthetic one.
+    if (actionResult.recording) {
+      if (!Array.isArray(driver.state.recordings)) driver.state.recordings = [];
+      const handle = actionResult.recording;
+      handle.id = handle.id ?? randomUUID();
+      handle.name = handle.name ?? recordStepName(step.record);
+      if (step.__autoRecord) handle.synthetic = true;
+      driver.state.recordings.push(handle);
+    }
   } else if (typeof step.runCode !== "undefined") {
-    actionResult = await runCode({ config: config, step: step });
+    actionResult = await runCode({ config: config, step: step, processRegistry });
+  } else if (typeof step.runBrowserScript !== "undefined") {
+    actionResult = await runBrowserScript({
+      config: config,
+      step: step,
+      driver: driver,
+    });
   } else if (typeof step.runShell !== "undefined") {
-    actionResult = await runShell({ config: config, step: step });
+    actionResult = await runShell({ config: config, step: step, processRegistry });
+  } else if (typeof step.closeSurface !== "undefined") {
+    actionResult = await closeSurface({ config: config, step: step, processRegistry });
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
       config: config,
@@ -1670,6 +3169,7 @@ async function runStep({
       config: config,
       step: step,
       driver: driver,
+      processRegistry,
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step, driver: driver });
@@ -1680,7 +3180,7 @@ async function runStep({
     };
   }
   // If recording, wait until browser is loaded, then instantiate cursor
-  if (driver?.state?.recording) {
+  if (isRecordingActive(driver)) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
@@ -1690,6 +3190,32 @@ async function runStep({
   // Clean up actionResult outputs
   if (actionResult?.outputs?.rawElement) {
     delete actionResult.outputs.rawElement;
+  }
+
+  // Evaluate author-written custom assertions (`step.assertions`). Strictly
+  // additive: with no usable `assertions` field this is a no-op and the
+  // actionResult is byte-identical. Folds custom records into
+  // actionResult.assertions and re-rolls actionResult.status. See
+  // evaluateCustomAssertions for the execution-error -> SKIPPED and
+  // implicit-FAIL short-circuit semantics.
+  if (step.assertions && actionResult) {
+    // Custom assertions are evaluated with an empty `steps` map (cross-step
+    // `$$steps.*` is deferred), so a `$$steps.*` reference always fails closed —
+    // turning a passing step into a FAIL with no explanation. Warn the author
+    // (parity with the spec/test-scope `guardReferencesSteps` warning) rather
+    // than letting the misuse silently fail the step.
+    if (customAssertionsReferenceSteps(step)) {
+      log(
+        config,
+        "warning",
+        `Step '${step.stepId || "(unnamed)"}': a custom assertion references '$$steps.*', which is not available to custom assertions yet — the assertion will always fail closed (the step fails). Remove the '$$steps.*' reference or assert on '$$outputs.*' instead.`
+      );
+    }
+    await evaluateCustomAssertions({
+      step,
+      actionResult,
+      platform: context?.platform,
+    });
   }
 
   // If variables are defined, resolve and set them
@@ -1713,16 +3239,22 @@ async function runStep({
 // never create sessions on the same Appium instance.
 async function startAppiumServer(
   appiumEntry: string,
-  config: any
-): Promise<{ port: number; process: any }> {
+  config: any,
+  display?: string
+): Promise<{ port: number; process: any; display?: string }> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
+  // When a virtual display is supplied (Linux Xvfb recording), launch the
+  // server with DISPLAY set so the browser it spawns (via chromedriver)
+  // renders on that display — which is what ffmpeg x11grab then captures.
+  const env = display ? { ...process.env, DISPLAY: display } : process.env;
   const proc: any = spawn(
     process.execPath,
     [appiumEntry, "-a", "127.0.0.1", "-p", String(port)],
     {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
+      env,
     }
   );
   proc.on("error", (err: any) => {
@@ -1748,7 +3280,7 @@ async function startAppiumServer(
     throw error;
   }
   log(config, "debug", `Appium is ready on port ${port}.`);
-  return { port, process: proc };
+  return { port, process: proc, display };
 }
 
 // Delay execution until Appium server is available.
@@ -1792,10 +3324,7 @@ async function driverStart(
   // creation failure and propagates immediately.
   const TRANSIENT =
     /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
-  const wdio = await loadHeavyDep<typeof import("webdriverio")>(
-    "webdriverio",
-    { ctx }
-  );
+  const wdio = await loadHeavyDep<WdioModule>("webdriverio", { ctx });
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -1809,9 +3338,12 @@ async function driverStart(
         connectionRetryTimeout: 120000, // 2 minutes
         waitforTimeout: 120000, // 2 minutes
       });
-      // Per-context mutable state. `recording` lives here (not on config)
-      // so concurrent contexts can't clobber each other's recordings.
-      driver.state = { url: "", x: null, y: null, recording: null };
+      // Per-context mutable state. `recordings` lives here (not on config)
+      // so concurrent contexts can't clobber each other's recordings. It is a
+      // stack of active recording handles (LIFO) so several can overlap within
+      // one context (e.g. an autoRecord full-context capture plus an explicit
+      // record/stopRecord sub-section).
+      driver.state = { url: "", x: null, y: null, recordings: [] };
       return driver;
     } catch (err: any) {
       lastError = err;

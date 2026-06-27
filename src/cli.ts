@@ -109,6 +109,7 @@ async function runTestsHandler(args: any) {
         configPath: configPath,
         configError: err instanceof Error ? err : new Error(String(err)),
         outDir: defaultDebugDir(),
+        args,
       });
       // The env-var dump replaced a real test run; a broken config must
       // still fail the process so CI doesn't go green on an unran suite.
@@ -130,6 +131,7 @@ async function runTestsHandler(args: any) {
       configPath,
       configError: null,
       outDir: defaultDebugDir(),
+      args,
     });
     return;
   }

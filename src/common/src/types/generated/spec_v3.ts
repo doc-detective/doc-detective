@@ -5,6 +5,10 @@
  */
 
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition = string | [string, ...string[]];
+/**
  * OpenAPI description and configuration.
  */
 export type OpenApi = {
@@ -42,6 +46,7 @@ export interface Specification {
    * Path to the content that the specification is associated with.
    */
   contentPath?: string;
+  if?: Condition;
   /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.
    */
@@ -51,6 +56,10 @@ export interface Specification {
    * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
    */
   autoScreenshot?: boolean;
+  /**
+   * If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level.
+   */
+  autoRecord?: boolean;
   /**
    * [Tests](test) to perform.
    *
