@@ -360,6 +360,36 @@ function guardReferencesSteps(
 }
 
 /**
+ * Authoring-time detector: does a step's custom `assertions` reference
+ * `$$steps.*`?
+ *
+ * Parity sibling of `guardReferencesSteps`. `evaluateCustomAssertions`
+ * evaluates custom assertions with `steps: {}` (cross-step `$$steps.*` is
+ * deferred), so any `$$steps.*` reference resolves against an empty map and
+ * fails closed — turning a passing step into a FAIL with no explanation.
+ * Callers use this to emit an authoring warning instead of letting the misuse
+ * silently fail the step. Only the author string form (`string | string[]`) is
+ * inspected; the report shape (array of objects) is ignored.
+ *
+ * @param step - The step whose `assertions` field is inspected.
+ * @returns `true` if any string assertion references `$$steps.`.
+ */
+function customAssertionsReferenceSteps(
+  step: { assertions?: unknown } | undefined | null
+): boolean {
+  const raw = step?.assertions;
+  const statements =
+    typeof raw === "string"
+      ? [raw]
+      : Array.isArray(raw)
+        ? raw
+        : [];
+  return statements.some(
+    (s) => typeof s === "string" && s.includes("$$steps.")
+  );
+}
+
+/**
  * A step's result status, used to select the matching routing handler.
  */
 type StepRoutingStatus = "PASS" | "FAIL" | "WARNING" | "SKIPPED";
@@ -628,6 +658,7 @@ export {
   evaluateCustomAssertions,
   evaluateGuard,
   guardReferencesSteps,
+  customAssertionsReferenceSteps,
   resolveStepRouting,
   resolveTestRouting,
   computeRetryDelay,
