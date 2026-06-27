@@ -7,7 +7,7 @@ Doc Detective can automatically generate tests based on your documentation sourc
 
 Detected tests are useful for keeping your tests in sync with your documentation. When you update your documentation, Doc Detective automatically updates the tests based on the new content. Detected tests are generated automatically. You can't edit detected tests directly, but you can update your config or documentation source files to change the tests.
 
-> You can mix detected tests with [inline tests](./inline-tests) to declare steps that might not be covered in your content, such starting or stopping a recording.
+> You can mix detected tests with [inline tests](/docs/test-docs/inline) to declare steps your content might not cover, such starting or stopping a recording.
 
 ## Benefits of detected tests
 
@@ -18,11 +18,11 @@ Detected tests provide several advantages:
 - **Consistent coverage**: Ensures all documented procedures are tested
 - **Time savings**: Eliminates the need to write many test specifications manually
 
-Combine detected tests with [inline tests](./inline-tests) for comprehensive test coverage with minimal manual effort.
+Combine detected tests with [inline tests](/docs/test-docs/inline) for comprehensive test coverage with minimal manual effort.
 
 ## Default markup patterns
 
-Doc Detective includes default markup patterns for Markdown and DITA files. For comprehensive information about each input format and their patterns, see [Input formats](/docs/input-formats/overview).
+Doc Detective includes default markup patterns for Markdown and DITA files. For comprehensive information about each input format and their patterns, see [Input formats](/docs/test-docs/input-formats/overview).
 
 ### Markdown patterns
 
@@ -37,7 +37,7 @@ Doc Detective recognizes common Markdown patterns and converts them into test ac
 - **httpRequestFormat**: HTTP request code blocks generate `httpRequest` actions
 - **runCode**: Code blocks with language tags generate `runCode` actions
 
-For the complete Markdown pattern configuration and detailed examples, see [Markdown input format](/docs/input-formats/markdown).
+For the complete Markdown pattern configuration and detailed examples, see [Markdown input format](/docs/test-docs/input-formats/markdown).
 
 ### DITA patterns
 
@@ -57,7 +57,7 @@ Key DITA patterns include:
 - **verifySystemOutput**: `<cmd>Verify <systemoutput>Success</systemoutput></cmd>` generates `find` actions
 - **checkExternalXref**: External links with `scope="external"` generate `checkLink` actions
 
-For the complete DITA pattern configuration and semantic element reference, see [DITA input format](/docs/input-formats/dita).
+For the complete DITA pattern configuration and semantic element reference, see [DITA input format](/docs/test-docs/input-formats/dita).
 
 ## Example with detected tests
 

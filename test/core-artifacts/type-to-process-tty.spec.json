@@ -1,0 +1,46 @@
+{
+  "specId": "type-to-process-tty",
+  "description": "Exercises the `type` step targeting a PTY-backed background PROCESS surface (Phase 2): start `node -i` via runShell `background` with `tty:true` (a real pseudo-terminal via node-pty) and a stdio readiness probe, send keystrokes to it via `type` + `surface`, wait until its merged output shows the result, then close it with `closeSurface`. When the optional `node-pty` dependency is unavailable the start step returns SKIPPED, so the whole test lands SKIPPED — keeping the combined core pass green either way. Uses a unique process name to stay safe under concurrentRunners.",
+  "tests": [
+    {
+      "testId": "type-process-tty-stdio-match",
+      "description": "Start node -i under a PTY, type an arithmetic expression + Enter, wait until the terminal shows the result, then close.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "ttp-tty-repl-1",
+              "tty": true,
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 30000
+          },
+          "onSkip": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "type": {
+            "keys": [
+              "2 + 2",
+              "$ENTER$"
+            ],
+            "surface": "ttp-tty-repl-1",
+            "waitUntil": {
+              "stdio": "/4/"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "ttp-tty-repl-1"
+        }
+      ]
+    }
+  ]
+}

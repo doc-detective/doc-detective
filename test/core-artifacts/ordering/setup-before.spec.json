@@ -1,0 +1,14 @@
+{
+  "specId": "ordering-setup-before",
+  "description": "Test-level setup: `before` prepends the setup spec's steps under this test's identity. Report shows this test starting with the setup step, then its own step.",
+  "tests": [
+    {
+      "before": "./_setup.spec.json",
+      "steps": [
+        {
+          "runShell": "echo ordering-main"
+        }
+      ]
+    }
+  ]
+}
