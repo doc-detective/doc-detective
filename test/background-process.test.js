@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import {
+  spawnCommand,
   spawnBackgroundCommand,
   spawnPtyBackgroundCommand,
   waitForPort,
@@ -19,6 +20,7 @@ import { closeSurface } from "../dist/core/tests/closeSurface.js";
 import {
   translateProcessKeys,
   resolveSurface,
+  resolveInputDelay,
   _processKeyMap,
 } from "../dist/core/tests/typeKeys.js";
 import { runShell } from "../dist/core/tests/runShell.js";
@@ -92,6 +94,32 @@ describe("spawnBackgroundCommand", function () {
     const code = await bg.exited;
     // Either the shell reports a non-zero exit code, or spawn errors (null).
     assert.ok(code === null || typeof code === "number");
+  });
+});
+
+// Finding 2 (PR #394, CodeQL js/shell-command-constructed-from-input):
+// `spawnCommand`/`spawnBackgroundCommand` run with `shell: true`. That is the
+// FEATURE contract (runShell/runCode execute the exact shell command an author
+// writes — pipes, `&&`, globbing, redirection), not an injection sink: the
+// command string is author-controlled test content, never untrusted external
+// input. This lock test proves the shell metacharacters that the feature
+// depends on are honored, so any future "fix" that swaps `shell: true` for an
+// arg-array/execFile form (which would NOT interpret `&&`) breaks this test and
+// forces a deliberate decision rather than a silent contract change.
+describe("spawnCommand honors shell metacharacters (finding 2: shell:true is by design)", function () {
+  this.timeout(15000);
+
+  it("interprets `&&` to chain two commands (a shell feature, not literal args)", async function () {
+    const a = `"${process.execPath}" -e "process.stdout.write('first')"`;
+    const b = `"${process.execPath}" -e "process.stdout.write('second')"`;
+    const { stdout, exitCode } = await spawnCommand(`${a} && ${b}`);
+    // With shell:true the `&&` runs both; without it (arg-array form) the `&&`
+    // would be passed as a literal argument and this would not be "firstsecond".
+    assert.ok(
+      stdout.includes("first") && stdout.includes("second"),
+      `expected chained output, got: ${JSON.stringify(stdout)}`
+    );
+    assert.equal(exitCode, 0);
   });
 });
 
@@ -496,6 +524,28 @@ describe("_processKeyMap / translateProcessKeys", function () {
 
   it("still maps $CTRL$ + an ASCII letter to a control byte", function () {
     assert.deepEqual(translateProcessKeys(["$CTRL$", "c"]), ["\x03"]);
+  });
+});
+
+// Finding 6 (PR #394): `inputDelay || 100` replaced an explicit author `0`
+// with 100, silently ignoring "type as fast as possible". `?? 100` only fills
+// in the default when inputDelay is absent (undefined/null), honoring an
+// explicit 0.
+describe("resolveInputDelay (finding 6: explicit 0 is honored)", function () {
+  it("returns 100 when inputDelay is undefined (schema default)", function () {
+    assert.equal(resolveInputDelay(undefined), 100);
+  });
+
+  it("returns 100 when inputDelay is null", function () {
+    assert.equal(resolveInputDelay(null), 100);
+  });
+
+  it("returns 0 when inputDelay is an explicit 0 (NOT 100)", function () {
+    assert.equal(resolveInputDelay(0), 0);
+  });
+
+  it("returns the author value for a positive delay", function () {
+    assert.equal(resolveInputDelay(500), 500);
   });
 });
 

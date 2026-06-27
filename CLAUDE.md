@@ -4,6 +4,7 @@ Repo-wide guidance for AI agents. Package-specific rules live alongside the code
 
 - [src/common/AGENTS.md](src/common/AGENTS.md) — schemas, validation, and the doc-detective-common subpackage.
 - [src/hints/AGENTS.md](src/hints/AGENTS.md) — authoring post-run hints when you add a user-facing feature.
+- [docs/content-strategy/](docs/content-strategy/) — audiences, personas, CUJs, and the information architecture that govern every documentation change. Consult before writing docs (see ["Documentation content strategy"](#documentation-content-strategy-required)).
 
 ## Development workflow (required)
 
@@ -52,6 +53,57 @@ Fixtures live in [test/core-artifacts/](test/core-artifacts) as `*.spec.json` fi
 - When a behavior needs a precise assertion the "no spec fails" gate can't express (e.g. a preflight that must skip a test for a specific reason), add a focused `it(...)` in `test/core-core.test.js` alongside the fixture.
 
 See [test/core-artifacts/recording.spec.json](test/core-artifacts/recording.spec.json), [recording-permutations.spec.json](test/core-artifacts/recording-permutations.spec.json), and [autorecord.spec.json](test/core-artifacts/autorecord.spec.json) for the canonical pattern (one spec per feature; one test per permutation; `runOn`-gated; PASS/SKIPPED only).
+
+## Documentation impact (required)
+
+ADRs and feature fixtures travel with a third companion: a **docs-impact assessment**. Every
+**behavior change** must include an explicit answer to one question:
+
+> Does this change have **meaningful user-facing impact** — does it add, change, or remove something a
+> user can see, run, configure, or rely on (a step type, action option, config/CLI flag, engine,
+> output format, default, supported platform, integration, error/skip behavior)?
+
+- **If yes, it has documentation impact, and the docs work is part of this change's
+  definition-of-done — not a follow-up.** Identify which persona and CUJ it touches and which
+  page(s) must change or be created (use [docs/content-strategy/](docs/content-strategy/) and the
+  ["Documentation content strategy"](#documentation-content-strategy-required) rule below). Land the
+  docs change alongside the code, or, if docs live on a separate cadence, open a tracked issue and
+  note it in the PR — never silently.
+- **If no** (pure refactor, internal-only change, dependency bump, test-only change), say so briefly in
+  the PR description so reviewers can confirm the call.
+
+Rule of thumb: a change that warrants an **ADR** or a **feature fixture** almost always has user-facing
+surface, so it almost always has docs impact. The three move together: **behavior change → ADR +
+fixtures + docs assessment.**
+
+## Documentation content strategy (required)
+
+The documentation site is governed by a durable content strategy in
+[docs/content-strategy/](docs/content-strategy/). It is **organized by user intent (persona + journey),
+not by document type** — do not impose a Diátaxis tutorial/how-to/reference split as the organizing
+principle. Before drafting or restructuring **any** user-facing documentation, consult it:
+
+- [docs/content-strategy/README.md](docs/content-strategy/README.md) — how to use the strategy during a
+  writing task.
+- [audiences.md](docs/content-strategy/audiences.md) · [personas.md](docs/content-strategy/personas.md)
+  · [cujs.md](docs/content-strategy/cujs.md) ·
+  [information-architecture.md](docs/content-strategy/information-architecture.md).
+
+The workflow:
+
+1. **Identify the persona** — Wren (documentation engineer, lead), Diego (developer / API tester),
+   Priya (CI / platform engineer), Aria (AI-assisted author), or Cole (contributor).
+2. **Find the matching CUJ** in [cujs.md](docs/content-strategy/cujs.md) (W1–W3, D1–D3, P1–P3, A1–A2,
+   C1, or the cross-cutting X1) and sequence the content by that journey.
+3. **Deep-link into the Reference shelf** for exhaustive detail (full action fields, every `config_v3`
+   key, every CLI flag, contexts, selectors). Journey pages explain the path; they don't duplicate
+   reference.
+4. **Record any new page** in the content-set map in
+   [information-architecture.md](docs/content-strategy/information-architecture.md), with the CUJ it
+   serves.
+5. **Match the source of truth.** Reference pages must agree with the code; see the source-of-truth
+   table in [information-architecture.md](docs/content-strategy/information-architecture.md). For docs
+   authoring conventions (Fern frontmatter, MDX, Vale/Google style), follow [docs/AGENTS.md](docs/AGENTS.md).
 
 ## Commit messages (required)
 

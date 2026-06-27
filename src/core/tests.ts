@@ -77,6 +77,7 @@ import {
   evaluateCustomAssertions,
   evaluateGuard,
   guardReferencesSteps,
+  customAssertionsReferenceSteps,
   resolveStepRouting,
   resolveTestRouting,
   computeRetryDelay,
@@ -3198,6 +3199,18 @@ async function runStep({
   // evaluateCustomAssertions for the execution-error -> SKIPPED and
   // implicit-FAIL short-circuit semantics.
   if (step.assertions && actionResult) {
+    // Custom assertions are evaluated with an empty `steps` map (cross-step
+    // `$$steps.*` is deferred), so a `$$steps.*` reference always fails closed —
+    // turning a passing step into a FAIL with no explanation. Warn the author
+    // (parity with the spec/test-scope `guardReferencesSteps` warning) rather
+    // than letting the misuse silently fail the step.
+    if (customAssertionsReferenceSteps(step)) {
+      log(
+        config,
+        "warning",
+        `Step '${step.stepId || "(unnamed)"}': a custom assertion references '$$steps.*', which is not available to custom assertions yet — the assertion will always fail closed (the step fails). Remove the '$$steps.*' reference or assert on '$$outputs.*' instead.`
+      );
+    }
     await evaluateCustomAssertions({
       step,
       actionResult,

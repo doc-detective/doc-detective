@@ -115,6 +115,41 @@
       ]
     },
     {
+      "testId": "type-process-input-delay-zero",
+      "description": "Finding 6 (PR #394): an explicit `inputDelay: 0` (\"type as fast as possible\") must be honored, not silently replaced by the 100ms default. Type into a node -i REPL with inputDelay 0 and assert the result still appears — a PASS on every platform proves the explicit 0 is accepted and used.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "ttp-repl-delay0",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "8 * 8",
+              "$ENTER$"
+            ],
+            "surface": "ttp-repl-delay0",
+            "inputDelay": 0,
+            "waitUntil": {
+              "stdio": "/64/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": "ttp-repl-delay0"
+        }
+      ]
+    },
+    {
       "testId": "type-process-noop-close",
       "description": "Start node -i with a named background process, type with no waitUntil, close it by name, then a second close is an idempotent PASS no-op.",
       "steps": [
