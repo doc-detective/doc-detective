@@ -290,15 +290,13 @@ export const HINTS: Hint[] = [
     id: "recordConcurrently",
     priority: 50,
     markdown: [
-      "This run executed serially because the ffmpeg recording engine needs exclusive use of the display. To keep `concurrentRunners` parallelism while recording, either record the Chrome viewport with the browser engine:",
+      "ffmpeg recordings in this run were serialized to protect the shared display (non-driver work still ran in parallel). To let the recordings run concurrently too, record the Chrome viewport with the browser engine, which captures just the browser window:",
       "",
       "```json",
       '{ "record": { "engine": "browser" } }',
       "```",
-      "",
-      "or, on Linux, install Xvfb so each runner records its own virtual display.",
     ].join("\n"),
-    when: (ctx) => ctx.recordingForcedSerial,
+    when: (ctx) => ctx.recordingSerialized,
   },
 
   // ------------------------------------------------------------------
@@ -411,6 +409,28 @@ export const HINTS: Hint[] = [
       "More: [Node.js release schedule](https://nodejs.org/en/about/previous-releases)",
     ].join("\n"),
     when: (ctx) => ctx.nodeMajor > 0 && ctx.nodeMajor < 20,
+  },
+
+  // ------------------------------------------------------------------
+  // useAssertionsForOutputChecks (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAssertionsForOutputChecks",
+    priority: 40,
+    markdown: [
+      "Steps like `runShell`, `httpRequest`, and `runCode` pass when they execute — but you can also assert on what they produced. Add an `assertions` expression over `$$outputs.*` to check a specific value:",
+      "",
+      "```json",
+      "{ \"runShell\": \"node --version\", \"assertions\": \"$$outputs.stdio.stdout contains v20\" }",
+      "```",
+      "",
+      "A failed assertion fails the step (and the test) — turning \"it ran\" into \"it returned what I expected\". Pass an array of strings to require several.",
+    ].join("\n"),
+    when: (ctx) =>
+      !ctx.usedCustomAssertions &&
+      (ctx.usedStepTypes.has("runShell") ||
+        ctx.usedStepTypes.has("httpRequest") ||
+        ctx.usedStepTypes.has("runCode")),
   },
 
   // ------------------------------------------------------------------
@@ -607,6 +627,24 @@ export const HINTS: Hint[] = [
       ctx.failedCount > 0 &&
       !ctx.producedRecordings &&
       ctx.usedBrowserContexts.size > 0,
+  },
+
+  // ------------------------------------------------------------------
+  // useRetryForTransientErrors (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useRetryForTransientErrors",
+    priority: 20,
+    markdown: [
+      "A request returned a transient server error this run (a 429 rate-limit or a 5xx). `onFail` retry with exponential backoff re-runs the step before failing — the standard way to ride out rate limits and flaky upstreams:",
+      "",
+      "```json",
+      "{ \"httpRequest\": \"https://api.example.com/data\", \"onFail\": [{ \"retry\": { \"limit\": 3, \"delay\": 1000, \"backoff\": \"exponential\" } }] }",
+      "```",
+      "",
+      "The same `onFail` retry works on a `checkLink` step. Retry never changes the verdict — if the upstream is still erroring after the retries, the step still fails, so a real outage isn't masked.",
+    ].join("\n"),
+    when: (ctx) => ctx.failedTransientRequest && !ctx.usedRetry,
   },
 
   // ------------------------------------------------------------------

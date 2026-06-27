@@ -126,6 +126,7 @@ src/container/test/artifacts/*.png
 /screenshot-boolean.png
 test/core-artifacts/**/*.png
 test/core-artifacts/**/*.webm
+test/core-artifacts/**/*.gif
 
 # Common subpackage build artifacts
 src/common/dist/

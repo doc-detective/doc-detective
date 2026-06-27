@@ -1,3 +1,32 @@
+# [4.15.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.14.1...v4.15.0-next.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **build:** decouple compile-time type from optional webdriverio dep ([#369](https://github.com/doc-detective/doc-detective/issues/369)) ([45d931d](https://github.com/doc-detective/doc-detective/commit/45d931d6a9dbf6cd99a2dc722ee22529c1f029f6))
+* **expressions:** harden against ReDoS and incomplete string escaping ([dc4f705](https://github.com/doc-detective/doc-detective/commit/dc4f705786f6838b8283dc28c1f1c1f1ac22cc4b))
+* **runner:** clear self-kill watchdog when main() completes ([#368](https://github.com/doc-detective/doc-detective/issues/368)) ([ad859a2](https://github.com/doc-detective/doc-detective/commit/ad859a258c4590f57123f24d4fb186aeb6f6ae51))
+* **runtime:** resolve pure-ESM heavy deps so appium v3/v5 drivers load ([4d0e98e](https://github.com/doc-detective/doc-detective/commit/4d0e98e8ab36510b1a8d892daf9a8b06beb85e62))
+* **schema:** bound retry.delay and type assertion expected/actual ([4a4ae70](https://github.com/doc-detective/doc-detective/commit/4a4ae706f3d54c345b7d841d42687e279d55666b))
+
+
+### Features
+
+* **assertions:** convert all step actions to the unified expression model ([2af1ee5](https://github.com/doc-detective/doc-detective/commit/2af1ee539ed5363c6bb52e47206df9c3b848ec09)), closes [#355](https://github.com/doc-detective/doc-detective/issues/355)
+* **assertions:** evaluate author-written custom assertions at runtime ([9b85713](https://github.com/doc-detective/doc-detective/commit/9b857138a8b7cf94f8762c79e34a78c7b0bacc85))
+* dynamic-routing & assertions foundation (schema, expression engine, unified assertions) ([f4230f6](https://github.com/doc-detective/doc-detective/commit/f4230f668e186b411fe331fd03c2e4dffa74c7eb))
+* **hints:** surface custom assertions and retry for transient errors ([#376](https://github.com/doc-detective/doc-detective/issues/376)) ([832629c](https://github.com/doc-detective/doc-detective/commit/832629c6add12b440e60b6e20c2e4381ed02c879))
+* **routing:** spec-, test-, and step-level guard `if` conditional execution ([#362](https://github.com/doc-detective/doc-detective/issues/362)) ([e209ecd](https://github.com/doc-detective/doc-detective/commit/e209ecdc35927ff250619435ac0878ac4185b36c))
+* **routing:** step goToStep action (index-driven step loop) ([#370](https://github.com/doc-detective/doc-detective/issues/370)) ([9a8fdc6](https://github.com/doc-detective/doc-detective/commit/9a8fdc63c06784466c3071d7494c5fa47825df64))
+* **routing:** step retry action (limit/delay/backoff) ([#366](https://github.com/doc-detective/doc-detective/issues/366)) ([778a395](https://github.com/doc-detective/doc-detective/commit/778a39588a6b2658d26dda8aca03275a33f4d567))
+* **routing:** step-level onPass/onFail/onWarning/onSkip handlers (continue/stop) ([#364](https://github.com/doc-detective/doc-detective/issues/364)) ([102e293](https://github.com/doc-detective/doc-detective/commit/102e293a172dcb9f3c0e66d232be3d2d4067c243))
+* **routing:** test-level goToTest action on the sequencer ([#374](https://github.com/doc-detective/doc-detective/issues/374)) ([1b37a27](https://github.com/doc-detective/doc-detective/commit/1b37a27243b2fbdf6e9427d0ee6699bdfe61f379))
+* **routing:** test-level routing handlers (continue/stop) via non-breaking sequencer ([#372](https://github.com/doc-detective/doc-detective/issues/372)) ([32bb7a9](https://github.com/doc-detective/doc-detective/commit/32bb7a9d468b740037aa4555b9721baadcdc0c8e))
+* **runner:** resource-aware scheduler for shared-display recordings ([#380](https://github.com/doc-detective/doc-detective/issues/380)) ([a5a5900](https://github.com/doc-detective/doc-detective/commit/a5a590062767c5e2a0c1893e4bfaa30ba9a0da40)), closes [#379](https://github.com/doc-detective/doc-detective/issues/379) [#379](https://github.com/doc-detective/doc-detective/issues/379)
+* **runner:** run background processes under a PTY for full TUIs (`background.tty`) ([1d12cef](https://github.com/doc-detective/doc-detective/commit/1d12cef2782fac56e50d564d35eb56567beeeda7))
+* **runner:** support long-running background processes for runShell/runCode ([#381](https://github.com/doc-detective/doc-detective/issues/381)) ([7f55a32](https://github.com/doc-detective/doc-detective/commit/7f55a32556f23e6004c7c89e6631b40e1aea0146))
+* **runner:** type keystrokes to background processes via `surface` ([#386](https://github.com/doc-detective/doc-detective/issues/386)) ([cc885c2](https://github.com/doc-detective/doc-detective/commit/cc885c2cbd97df54254a5ac70a5aed5adccad2db)), closes [384/#385](https://github.com/doc-detective/doc-detective/issues/385)
+
 ## [4.14.1](https://github.com/doc-detective/doc-detective/compare/v4.14.0...v4.14.1) (2026-06-22)
 
 

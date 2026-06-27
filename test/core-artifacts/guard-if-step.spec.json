@@ -1,0 +1,60 @@
+{
+  "specId": "guard-if-step",
+  "description": "Step-level guard `if` (conditional step execution): a step whose `if` is not all-true is SKIPPED before its action runs; an all-true `if` runs the step. Covers single-string true/false guards plus a cross-step guard that reads a prior step's outputs via $$steps.<stepId>.outputs.* (proving the per-step outputs accumulator). Cross-platform: uses `node -e` runShell so it resolves PASS/SKIPPED on every OS.",
+  "tests": [
+    {
+      "testId": "guard-if-false-skips",
+      "description": "An always-false guard (`$$platform == nonexistentos`) skips the step before its action runs.",
+      "steps": [
+        {
+          "description": "Always-false guard -> SKIPPED, action not run.",
+          "if": "$$platform == nonexistentos",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "guard-if-true-runs",
+      "description": "An always-true guard (`$$platform != nonexistentos`) runs the step.",
+      "steps": [
+        {
+          "description": "Always-true guard -> runs and PASSes.",
+          "if": "$$platform != nonexistentos",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "guard-if-cross-step-true",
+      "description": "A guard reads a prior step's outputs: step A exits 0, then step B is guarded on `$$steps.a.outputs.exitCode == 0` (true) -> B runs.",
+      "steps": [
+        {
+          "stepId": "a",
+          "description": "Prior step exits 0; its exitCode output feeds the next guard.",
+          "runShell": "node -e \"process.exit(0)\""
+        },
+        {
+          "description": "Guard reads prior step A's exitCode (== 0, true) -> runs and PASSes.",
+          "if": "$$steps.a.outputs.exitCode == 0",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "guard-if-cross-step-false",
+      "description": "A guard reads a prior step's outputs: step A exits 0, then step B is guarded on `$$steps.a.outputs.exitCode == 1` (false) -> B is SKIPPED.",
+      "steps": [
+        {
+          "stepId": "a",
+          "description": "Prior step exits 0; its exitCode output feeds the next guard.",
+          "runShell": "node -e \"process.exit(0)\""
+        },
+        {
+          "description": "Guard reads prior step A's exitCode (== 1, false) -> SKIPPED.",
+          "if": "$$steps.a.outputs.exitCode == 1",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}

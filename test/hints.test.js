@@ -629,6 +629,86 @@ describe("hints/context", function () {
       expect(data.usedStepTypes.size).to.equal(0);
       expect(data.usedBrowserContexts.size).to.equal(0);
       expect(data.producedScreenshots).to.equal(false);
+      expect(data.usedCustomAssertions).to.equal(false);
+      expect(data.usedRetry).to.equal(false);
+      expect(data.failedTransientRequest).to.equal(false);
+    });
+
+    it("usedCustomAssertions is true only for a source:'custom' assertion record", function () {
+      // Implicit-only records must NOT count (every step has those).
+      const implicitOnly = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: "x", assertions: [{ source: "implicit", result: "PASS" }] },
+        ] }] }] }],
+      });
+      expect(implicitOnly.usedCustomAssertions).to.equal(false);
+      // A custom record counts.
+      const custom = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: "x", assertions: [
+            { source: "implicit", result: "PASS" },
+            { source: "custom", result: "PASS" },
+          ] },
+        ] }] }] }],
+      });
+      expect(custom.usedCustomAssertions).to.equal(true);
+    });
+
+    it("usedRetry is true when any routing handler carries a retry entry", function () {
+      // Detection iterates all four handler keys, not just onFail.
+      for (const key of ["onPass", "onFail", "onWarning", "onSkip"]) {
+        const data = walkResults({
+          specs: [{ tests: [{ contexts: [{ steps: [
+            { find: "Submit", [key]: [{ retry: { limit: 2 } }] },
+          ] }] }] }],
+        });
+        expect(data.usedRetry, `retry in ${key}`).to.equal(true);
+      }
+      // A non-retry handler (continue/stop/goToStep) does not count.
+      const noRetry = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { find: "Submit", onFail: [{ continue: true }] },
+        ] }] }] }],
+      });
+      expect(noRetry.usedRetry).to.equal(false);
+    });
+
+    it("failedTransientRequest is true only for a FAILed request with a 429/5xx status", function () {
+      // httpRequest FAILed with a 429 -> transient.
+      const http429 = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { httpRequest: "x", result: "FAIL", outputs: { response: { statusCode: 429 } } },
+        ] }] }] }],
+      });
+      expect(http429.failedTransientRequest).to.equal(true);
+      // checkLink FAILed with a 503 -> transient.
+      const link503 = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { checkLink: "x", result: "FAIL", outputs: { statusCode: 503 } },
+        ] }] }] }],
+      });
+      expect(link503.failedTransientRequest).to.equal(true);
+      // A 404 is NOT transient (retry won't help) -> excluded.
+      const http404 = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { httpRequest: "x", result: "FAIL", outputs: { response: { statusCode: 404 } } },
+        ] }] }] }],
+      });
+      expect(http404.failedTransientRequest).to.equal(false);
+      // A PASSing request (even a 200) does not count.
+      const passed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { httpRequest: "x", result: "PASS", outputs: { response: { statusCode: 200 } } },
+        ] }] }] }],
+      });
+      expect(passed.failedTransientRequest).to.equal(false);
+      // A FAILed non-request step (runShell) does not count.
+      const failedShell = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: "exit 1", result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(failedShell.failedTransientRequest).to.equal(false);
     });
   });
 
@@ -1329,7 +1409,10 @@ function fakeCtx(partial = {}) {
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
     hasRstFiles: false,
-    recordingForcedSerial: false,
+    recordingSerialized: false,
+    usedCustomAssertions: false,
+    usedRetry: false,
+    failedTransientRequest: false,
     ...partial,
   };
 }
@@ -1402,12 +1485,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 31 active hints. `useFileTypesForRst` is commented out in the
+    // 33 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(31);
+    expect(HINTS.length).to.equal(33);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1821,6 +1904,49 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
+  it("useAssertionsForOutputChecks: fires for an output step with no custom assertions", function () {
+    const h = findHint("useAssertionsForOutputChecks");
+    expect(h.priority).to.equal(40);
+    // Positive: a runShell step, user isn't asserting on outputs yet.
+    expect(
+      h.when(fakeCtx({ usedStepTypes: new Set(["runShell"]) }))
+    ).to.equal(true);
+    // Also fires for httpRequest / runCode.
+    expect(
+      h.when(fakeCtx({ usedStepTypes: new Set(["httpRequest"]) }))
+    ).to.equal(true);
+    expect(
+      h.when(fakeCtx({ usedStepTypes: new Set(["runCode"]) }))
+    ).to.equal(true);
+    // Negative: already using custom assertions -> skip.
+    expect(
+      h.when(
+        fakeCtx({
+          usedStepTypes: new Set(["runShell"]),
+          usedCustomAssertions: true,
+        })
+      )
+    ).to.equal(false);
+    // Negative: no output-producing step in the run -> skip.
+    expect(
+      h.when(fakeCtx({ usedStepTypes: new Set(["goTo", "find"]) }))
+    ).to.equal(false);
+  });
+
+  it("useRetryForTransientErrors: fires when a request failed transiently and retry isn't used", function () {
+    const h = findHint("useRetryForTransientErrors");
+    expect(h.priority).to.equal(20);
+    // Positive: a request FAILed with a transient status (429/5xx), no retry.
+    expect(h.when(fakeCtx({ failedTransientRequest: true }))).to.equal(true);
+    // Negative: already using retry -> skip.
+    expect(
+      h.when(fakeCtx({ failedTransientRequest: true, usedRetry: true }))
+    ).to.equal(false);
+    // Negative: no transient request failure (e.g. a 404, or a non-request
+    // failure) -> skip.
+    expect(h.when(fakeCtx({ failedTransientRequest: false }))).to.equal(false);
+  });
+
   it("useRunBrowserScriptStep: fires on browser + find when runBrowserScript isn't used", function () {
     const h = findHint("useRunBrowserScriptStep");
     // Positive: browser test that inspects the DOM via find, no runBrowserScript yet.
@@ -1950,11 +2076,11 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("recordConcurrently: fires only when the run was forced serial for recording", function () {
+  it("recordConcurrently: fires only when the run serialized recordings", function () {
     const h = findHint("recordConcurrently");
     expect(h.priority).to.equal(50);
-    expect(h.when(fakeCtx({ recordingForcedSerial: true }))).to.equal(true);
-    expect(h.when(fakeCtx({ recordingForcedSerial: false }))).to.equal(false);
+    expect(h.when(fakeCtx({ recordingSerialized: true }))).to.equal(true);
+    expect(h.when(fakeCtx({ recordingSerialized: false }))).to.equal(false);
   });
 
   it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {
