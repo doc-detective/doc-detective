@@ -19,6 +19,7 @@ import { closeSurface } from "../dist/core/tests/closeSurface.js";
 import {
   translateProcessKeys,
   resolveSurface,
+  resolveInputDelay,
   _processKeyMap,
 } from "../dist/core/tests/typeKeys.js";
 import { runShell } from "../dist/core/tests/runShell.js";
@@ -496,6 +497,28 @@ describe("_processKeyMap / translateProcessKeys", function () {
 
   it("still maps $CTRL$ + an ASCII letter to a control byte", function () {
     assert.deepEqual(translateProcessKeys(["$CTRL$", "c"]), ["\x03"]);
+  });
+});
+
+// Finding 6 (PR #394): `inputDelay || 100` replaced an explicit author `0`
+// with 100, silently ignoring "type as fast as possible". `?? 100` only fills
+// in the default when inputDelay is absent (undefined/null), honoring an
+// explicit 0.
+describe("resolveInputDelay (finding 6: explicit 0 is honored)", function () {
+  it("returns 100 when inputDelay is undefined (schema default)", function () {
+    assert.equal(resolveInputDelay(undefined), 100);
+  });
+
+  it("returns 100 when inputDelay is null", function () {
+    assert.equal(resolveInputDelay(null), 100);
+  });
+
+  it("returns 0 when inputDelay is an explicit 0 (NOT 100)", function () {
+    assert.equal(resolveInputDelay(0), 0);
+  });
+
+  it("returns the author value for a positive delay", function () {
+    assert.equal(resolveInputDelay(500), 500);
   });
 });
 

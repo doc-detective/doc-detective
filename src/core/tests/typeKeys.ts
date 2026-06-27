@@ -11,7 +11,7 @@ import {
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
 
-export { typeKeys, translateProcessKeys, resolveSurface, _processKeyMap };
+export { typeKeys, translateProcessKeys, resolveSurface, resolveInputDelay };
 
 // Browser engine keywords reserved for the (later-phase) browser surface kind.
 // A bare-string surface that matches one of these targets a browser, which is
@@ -40,6 +40,19 @@ const _processKeyMap: Record<string, string> = {
   $ARROW_LEFT$: "\x1b[D",
   $DELETE$: "\x1b[3~",
 };
+// Exported AFTER its declaration: a `const` is not hoisted, so naming it in the
+// top-of-file export list (before this point) referenced it in the temporal
+// dead zone. Exporting here keeps the binding live for tests without the TDZ
+// hazard.
+export { _processKeyMap };
+
+// Resolve the effective inter-keystroke delay (ms). The schema default is 100,
+// but an author may explicitly request 0 ("type as fast as possible"). Use
+// nullish coalescing so ONLY an absent value (undefined/null) falls back to the
+// default — an explicit 0 is honored rather than being clobbered by `|| 100`.
+function resolveInputDelay(inputDelay: unknown): number {
+  return typeof inputDelay === "number" ? inputDelay : 100;
+}
 
 // Translate an authored keys array into the raw bytes written to a process's
 // stdin. Plain strings pass through verbatim. A `$…$` sentinel maps via
@@ -353,7 +366,7 @@ async function typeKeys({
   step.type = {
     ...step.type,
     keys: step.type.keys || [],
-    inputDelay: step.type.inputDelay || 100,
+    inputDelay: resolveInputDelay(step.type.inputDelay),
   };
 
   // Skip if no keys to type
