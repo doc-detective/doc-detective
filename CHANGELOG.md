@@ -1,3 +1,11 @@
+## [4.15.1](https://github.com/doc-detective/doc-detective/compare/v4.15.0...v4.15.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* address PR [#394](https://github.com/doc-detective/doc-detective/issues/394) code-review findings (routing/expressions) ([#398](https://github.com/doc-detective/doc-detective/issues/398)) ([3bfea2b](https://github.com/doc-detective/doc-detective/commit/3bfea2bf0e8802008aa7d65fde3f92ed512720f0))
+* **expressions:** inline only bare literals; quote all other string operands ([#400](https://github.com/doc-detective/doc-detective/issues/400)) ([e86123b](https://github.com/doc-detective/doc-detective/commit/e86123b9e15f2b07050a7c636c62b67b05a1290f))
+
 # [4.15.0](https://github.com/doc-detective/doc-detective/compare/v4.14.1...v4.15.0) (2026-06-27)
 
 
