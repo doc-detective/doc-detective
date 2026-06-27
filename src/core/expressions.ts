@@ -5,13 +5,33 @@ import { log } from "./utils.js";
 import jq from "jq-web";
 
 /**
+ * Shared pattern source for a $$ meta-value token (the part after "$$"),
+ * with an optional trailing JSON pointer (#/...). Used by BOTH replaceMetaValues
+ * and hasUnresolvedMetaReference so the two regexes can never drift.
+ *
+ * The token character class is [\w.\[\]\-~] = [A-Za-z0-9_.\[\]\-~]. The `-` and
+ * `~` are included so DEFAULT stepIds resolve: a default stepId is the
+ * UUID/`testId~sHASH` form, which is hyphenated and may contain "~". With the
+ * old `\w`-only class, a token like `$$steps.my-test~s3f2a-1.outputs.exitCode`
+ * matched only up to the first `-`, breaking resolution. The `-` is placed at
+ * the END of the class so it is a literal, not a range.
+ *
+ * Edge note: because `-` is now a valid token char, a spaced subtraction like
+ * `$$x - 1` is unaffected (the space separates `-` from the token, so only
+ * `$$x` is captured). But `$$x-1` (no spaces) would now capture `x-1` as the
+ * token. This is acceptable: conditions use spaced comparison/word operators,
+ * so a token-adjacent `-` is intended to be part of the id, not subtraction.
+ */
+const META_TOKEN_SOURCE = "\\$\\$([\\w.\\[\\]\\-~]+(?:#\\/[\\w\\/\\[\\]]+)*)";
+
+/**
  * Resolves runtime expressions that may contain meta values and operators.
  * Can handle both standalone expressions and strings with embedded expressions.
  * @param {string} expression - The expression to resolve.
  * @param {object} context - Context object containing meta values.
  * @returns {*} - The resolved value of the expression.
  */
-async function resolveExpression({ expression, context }: { expression: any; context: any }): Promise<any> {
+async function resolveExpression({ expression, context, allowOperators = false }: { expression: any; context: any; allowOperators?: boolean }): Promise<any> {
   if (typeof expression !== "string") {
     return expression;
   }
@@ -23,18 +43,18 @@ async function resolveExpression({ expression, context }: { expression: any; con
     }
 
     // For standalone expressions, replace all meta values
-    let resolvedExpression = replaceMetaValues(expression, context);
+    let resolvedExpression = replaceMetaValues(expression, context, allowOperators);
 
     // Check if the expression is a single meta value with no operators
     if (
       resolvedExpression !== expression &&
-      !containsOperators(resolvedExpression)
+      !containsOperators(resolvedExpression, allowOperators)
     ) {
       return resolvedExpression;
     }
 
     // Evaluate the expression if it contains operators
-    if (containsOperators(resolvedExpression)) {
+    if (containsOperators(resolvedExpression, allowOperators)) {
       let evaluatedExpression = await evaluateExpression(
         resolvedExpression,
         context
@@ -62,13 +82,14 @@ async function resolveExpression({ expression, context }: { expression: any; con
  * @param {object} context - Context object containing meta values.
  * @returns {*} - The expression with meta values replaced.
  */
-function replaceMetaValues(expression: string, context: any): any {
-  // Regular expression to match meta values with optional JSON pointer
-  const metaValueRegex = /\$\$([\w\.\[\]]+(?:#\/[\w\/\[\]]+)*)/g;
+function replaceMetaValues(expression: string, context: any, allowOperators: boolean = false): any {
+  // Regular expression to match meta values with optional JSON pointer.
+  // Shares META_TOKEN_SOURCE with hasUnresolvedMetaReference so they can't drift.
+  const metaValueRegex = new RegExp(META_TOKEN_SOURCE, "g");
 
   let result: any = expression;
   let match;
-  const hasOperators = containsOperators(expression);
+  const hasOperators = containsOperators(expression, allowOperators);
 
   while ((match = metaValueRegex.exec(expression)) !== null) {
     const metaValuePath = match[1];
@@ -81,10 +102,31 @@ function replaceMetaValues(expression: string, context: any): any {
       if (typeof metaValue === "object") {
         replaceValue = JSON.stringify(metaValue);
       } else if (typeof metaValue === "string" && hasOperators) {
-        // If the meta value is a string and we're in an expression with operators,
-        // only quote it if it contains spaces or special characters
-        if (/[\s\(\)\[\]\{\}\,\;\:\.\+\-\*\/\|\&\!\?\<\>\=]/.test(metaValue)) {
-          replaceValue = `"${metaValue.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+        // Inline ONLY a bare JS literal (a number, or the boolean/null keywords) so
+        // numeric/boolean comparison semantics are preserved; quote+escape EVERY other
+        // string. Any other string inlined raw (e.g. "O'Reilly", "a@b", "hello world")
+        // is mis-parsed by the downstream literal masking and operator rewrites, or is an
+        // undefined identifier, so `new Function` throws and the assertion fails closed.
+        if (
+          !(
+            /^-?\d+(?:\.\d+)?$/.test(metaValue) ||
+            metaValue === "true" ||
+            metaValue === "false" ||
+            metaValue === "null"
+          )
+        ) {
+          // Build a JS string literal for `new Function`. Escape backslashes
+          // FIRST, then double-quotes, then literal line terminators. Without
+          // the \n/\r escapes a multi-line step-output value produces an
+          // UNTERMINATED string literal (a SyntaxError), so the evaluator throws
+          // and the condition silently fails closed with a confusing error.
+          replaceValue = `"${metaValue
+            .replace(/\\/g, "\\\\")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, "\\n")
+            .replace(/\r/g, "\\r")
+            .replace(/\u2028/g, "\\u2028")
+            .replace(/\u2029/g, "\\u2029")}"`;
         } else {
           replaceValue = metaValue;
         }
@@ -92,11 +134,49 @@ function replaceMetaValues(expression: string, context: any): any {
         replaceValue = metaValue.toString();
       }
 
-      result = result.replace(match[0], replaceValue);
+      // Use a function replacer so "$" sequences in the resolved value (e.g. a
+      // string containing "$$foo" or "$&") are inserted literally rather than
+      // being interpreted as String.replace special replacement patterns.
+      const literalReplacement = replaceValue;
+      result = result.replace(match[0], () => literalReplacement);
     }
   }
 
   return result;
+}
+
+/**
+ * Condition-path helper (Defect B): detects whether an assertion references a
+ * meta value ($$token) that does NOT resolve in the given context. This is the
+ * fail-closed signal for evaluateAssertion. It detects UNRESOLVED references at
+ * resolution time (by re-running the same getMetaValue lookups the resolver
+ * uses) instead of scanning the RESOLVED output for /\$\$\w/ — the latter
+ * false-positives when a resolved value legitimately contains literal "$$word".
+ * This helper lives only on the condition path; the default resolveExpression
+ * path (interpolation/variables) still passes unresolved tokens through as
+ * literals and must NOT be forced false.
+ * @param {string} expression - The raw assertion expression.
+ * @param {object} context - Context object containing meta values.
+ * @returns {boolean} - True iff some referenced $$token resolved to undefined.
+ */
+function hasUnresolvedMetaReference(expression: string, context: any): boolean {
+  if (typeof expression !== "string") return false;
+  // Mask quoted string literals first so a $$token written INSIDE a literal
+  // (e.g. `$$a == "$$foo"`) is not mistaken for a real meta reference — those
+  // are intentional literals, not lookups. Only $$tokens in the JS skeleton are
+  // genuine references whose undefined resolution should fail the condition.
+  const skeleton = expression.replace(
+    /"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'/g,
+    " "
+  );
+  const metaValueRegex = new RegExp(META_TOKEN_SOURCE, "g");
+  let match;
+  while ((match = metaValueRegex.exec(skeleton)) !== null) {
+    if (getMetaValue(match[1]!, context) === undefined) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -242,10 +322,41 @@ function getNestedProperty(obj: any, path: string): any {
  * @param {string} expression - The expression to check.
  * @returns {boolean} - Whether the expression contains operators.
  */
-function containsOperators(expression: string): boolean {
-  // TODO: Add back common operators (!)
-  const operatorRegex = /jq\(|extract\(/;
-  return operatorRegex.test(expression);
+function containsOperators(expression: string, allowOperators: boolean = false): boolean {
+  // Function-call operators are ALWAYS active (today's behavior). These are used
+  // by the default resolveExpression path (variables, interpolation) and must
+  // remain unchanged regardless of allowOperators.
+  const functionOperatorRegex = /jq\(|extract\(/;
+  if (functionOperatorRegex.test(expression)) {
+    return true;
+  }
+
+  // Comparison and word operators are OPT-IN. They are only active on the
+  // condition path (evaluateAssertion), so operator-like text inside an
+  // ordinary variable value (e.g. "a > b", "x contains y", a file path
+  // containing "contains") is never evaluated.
+  if (!allowOperators) {
+    return false;
+  }
+
+  // Comparison operators. Bounded so the multi-char operators (==, !=, >=, <=)
+  // are matched as units and the bare < / > don't get confused with => / <=.
+  // We require a non-operator char (or start) before, and a non-operator char
+  // (or end) after, so that ">=" is not also seen as ">" + "=".
+  const comparisonRegex = /(==|!=|>=|<=|>|<)/;
+  if (comparisonRegex.test(expression)) {
+    return true;
+  }
+
+  // Word operators. Whitespace/anchor-bounded so identifiers like "containsFoo",
+  // "matchesRegex", or file paths are not matched — only the standalone words
+  // surrounded by whitespace (or string boundaries) count.
+  const wordOperatorRegex = /(^|\s)(contains|oneOf|matches)(\s|$)/;
+  if (wordOperatorRegex.test(expression)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -262,20 +373,20 @@ async function evaluateExpression(expression: string, context: any): Promise<any
     // Create a safe evaluation context
     const evalContext: Record<string, any> = {
       ...context,
-      //   contains: (a, b) => {
-      //     if (typeof a === "string") return a.includes(b);
-      //     if (Array.isArray(a)) return a.includes(b);
-      //     if (typeof a === "object" && a !== null) return b in a;
-      //     return false;
-      //   },
-      //   oneOf: (value, options) => {
-      //     if (!Array.isArray(options)) return false;
-      //     return options.includes(value);
-      //   },
-      //   matches: (str, regex) => {
-      //     if (typeof str !== "string") return false;
-      //     return new RegExp(regex).test(str);
-      //   },
+      contains: (a: any, b: any) => {
+        if (typeof a === "string") return a.includes(b);
+        if (Array.isArray(a)) return a.includes(b);
+        if (typeof a === "object" && a !== null) return b in a;
+        return false;
+      },
+      oneOf: (value: any, options: any) => {
+        if (!Array.isArray(options)) return false;
+        return options.includes(value);
+      },
+      matches: (str: any, regex: any) => {
+        if (typeof str !== "string") return false;
+        return new RegExp(regex).test(str);
+      },
       //   jsonpath: (obj, path) => {
       //     try {
       //       return JSONPath({ path, json: obj });
@@ -317,10 +428,15 @@ async function evaluateExpression(expression: string, context: any): Promise<any
       },
     };
 
-    // Use Function constructor for safer evaluation
+    // Use Function constructor for safer evaluation. The expression's string
+    // literals are already escaped at construction — masked user literals are
+    // restored verbatim as valid JS source, and the `matches /regex/` pattern
+    // escapes its own backslashes/quotes. A previous blunt global
+    // `\\` -> `\\\\` doubling here corrupted intentional escapes (e.g. \" inside
+    // a literal, or a regex containing a double-quote), so it has been removed.
     const evaluator = new Function(
       ...Object.keys(evalContext),
-      `return ${expression.replace(/\\/g, "\\\\").replace(/\./g, "\\.")};`
+      `return ${expression};`
     );
     return evaluator(...Object.values(evalContext));
   } catch (error: any) {
@@ -339,58 +455,151 @@ async function evaluateExpression(expression: string, context: any): Promise<any
  * @returns {string} - The preprocessed expression.
  */
 function preprocessExpression(expression: string): string {
-  // Replace "contains" operator
-  //   expression = expression.replace(
-  //     /(\S+)\s+contains\s+(\S+)/g,
-  //     "contains($1, $2)"
-  //   );
-
-  //   // Replace "oneOf" operator
-  //   expression = expression.replace(/(\S+)\s+oneOf\s+(\S+)/g, "oneOf($1, $2)");
-
-  //   // Replace "matches" operator
-  //   expression = expression.replace(
-  //     /(\S+)\s+matches\s+(\S+)/g,
-  //     (match, left, right) => {
-  //       // If left side is not quoted and isn't a defined variable, add quotes
-  //       if (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left) || typeof left === "string") {
-  //         left = `"${left}"`;
-  //       }
-  //       // If right side is not quoted and looks like a string literal, add quotes
-  //       if (!/^['"`]/.test(right)) {
-  //         right = `"${right}"`;
-  //       }
-  //       return `matches(${left}, ${right})`;
-  //     }
-  //   );
-
-  // Replace "extract" operator if used with infix notation
+  // Quote-awareness (Defect A): the infix/comparison rewrites below scan RAW
+  // text, so a quoted string literal containing spaces or operator
+  // characters/words (e.g. "a > b", "x contains y") would get mangled. To
+  // prevent that, MASK every quoted string literal ('...' or "...") with a
+  // space/operator-free placeholder token BEFORE running the rewrites, then
+  // RESTORE the literals at the very end (before the string is handed to
+  // `new Function`). Masking runs first so operator detection/quoting never
+  // scans inside string contents. The `matches /regex/` slash form is NOT a
+  // quoted literal, so it is left untouched here and handled normally below.
+  const maskedLiterals: string[] = [];
   expression = expression.replace(
-    /(\S+)\s+extract\s+(\S+)/g,
+    /"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'/g,
+    (literal: string) => {
+      const token = `__DDSTR${maskedLiterals.length}__`;
+      maskedLiterals.push(literal);
+      return token;
+    }
+  );
+
+  // Restore a possibly-masked token back to its original literal. Placeholder
+  // tokens are emitted verbatim by the rewrites (they look like a bare
+  // identifier), so quoteIfLiteral must treat them as already-quoted.
+  const isMaskToken = (token: string): boolean => /^__DDSTR\d+__$/.test(token);
+
+  // Helper: quote a token as a JS string literal unless it is already a
+  // quoted string, a number (incl. decimals), a boolean/null literal, an
+  // array/object literal, a parenthesized/function expression, or a masked
+  // string-literal placeholder (which restores to its own quoted literal).
+  const quoteIfLiteral = (token: string): string => {
+    if (isMaskToken(token)) return token; // masked literal, restored later
+    if (/^['"`]/.test(token)) return token; // already quoted
+    if (/^-?\d+(\.\d+)?$/.test(token)) return token; // numeric
+    if (/^[\[\{\(]/.test(token)) return token; // array/object/expr literal
+    if (["true", "false", "null", "undefined", "NaN", "Infinity"].includes(token))
+      return token;
+    return `"${token}"`;
+  };
+
+  // ReDoS hardening (CodeQL js/polynomial-redos). The infix-operator rewrites
+  // below scan the WHOLE expression with a global `replace`. Their left operand
+  // pattern (`LEFT`) and the bare RHS used an UNBOUNDED `\S+` (and the unrolled
+  // quoted forms). On an adversarial operand — a long run of non-space chars
+  // that ALMOST matches but lacks the trailing operator — the engine retries the
+  // long scan at every start position, which is polynomial (O(n^2)) in the
+  // operand length. Two structural mitigations, neither of which changes the
+  // result for any realistic condition:
+  //   1. Keyword guard: skip a rewrite entirely unless its operator word is
+  //      actually present (whitespace/anchor-bounded). The common attack — long
+  //      junk with no operator at all — then never runs the expensive regex.
+  //   2. Bounded quantifiers: cap every unbounded run with an explicit upper
+  //      bound (`OPERAND_MAX`). A bounded quantifier cannot backtrack
+  //      super-linearly, so even a keyword-bearing adversarial input is linear.
+  // Operands longer than the bound are simply left un-rewritten (treated as
+  // ordinary identifiers); real condition operands are far shorter.
+  const OPERAND_MAX = 1024;
+  const hasWordOperator = (op: string): boolean =>
+    new RegExp(`(^|\\s)${op}(\\s|$)`).test(expression);
+  // A left operand for an infix word operator: a quoted string literal (which
+  // may itself contain spaces) or a run of non-space characters — all bounded.
+  // Note: string literals are masked to `__DDSTRn__` BEFORE this point, so the
+  // quoted alternatives are effectively defensive; the bare run is what matches.
+  const LEFT =
+    `("[^"\\\\]{0,${OPERAND_MAX}}(?:\\\\.[^"\\\\]{0,${OPERAND_MAX}}){0,${OPERAND_MAX}}"` +
+    `|'[^'\\\\]{0,${OPERAND_MAX}}(?:\\\\.[^'\\\\]{0,${OPERAND_MAX}}){0,${OPERAND_MAX}}'` +
+    `|\\S{1,${OPERAND_MAX}})`;
+  const RIGHT_BARE = `(\\S{1,${OPERAND_MAX}})`;
+
+  // Replace "contains" operator (infix): <left> contains <right>
+  if (hasWordOperator("contains")) {
+    expression = expression.replace(
+      new RegExp(`${LEFT}\\s+contains\\s+${RIGHT_BARE}`, "g"),
+      (_m: string, left: string, right: string) =>
+        `contains(${quoteIfLiteral(left)}, ${quoteIfLiteral(right)})`
+    );
+  }
+
+  // Replace "oneOf" operator (infix): <value> oneOf <options>
+  if (hasWordOperator("oneOf")) {
+    expression = expression.replace(
+      new RegExp(`${LEFT}\\s+oneOf\\s+(.+)$`),
+      (_m: string, left: string, right: string) =>
+        `oneOf(${quoteIfLiteral(left)}, ${right.trim()})`
+    );
+  }
+
+  // Replace "matches" operator (infix): <str> matches <regex>.
+  // The regex may be written as a /pattern/ literal (which may contain spaces)
+  // or a bare/quoted string (no spaces). The RHS alternation tries the
+  // slash-literal form first so a pattern like /hello world/ is captured whole.
+  if (hasWordOperator("matches")) {
+    expression = expression.replace(
+      new RegExp(
+        `${LEFT}\\s+matches\\s+(\\/[^\\/\\\\]{0,${OPERAND_MAX}}(?:\\\\.[^\\/\\\\]{0,${OPERAND_MAX}}){0,${OPERAND_MAX}}\\/[a-z]*|\\S{1,${OPERAND_MAX}})`,
+        "g"
+      ),
+      (_m: string, left: string, right: string) => {
+        // Strip /.../ regex-literal delimiters into a plain string pattern.
+        const reLiteral = right.match(/^\/(.*)\/[a-z]*$/);
+        // Build a JS string literal for the regex source. Escape backslashes
+        // FIRST, then double-quotes, so a pattern like /\d/ or /a"b/ survives
+        // intact into `new Function` (CodeQL: incomplete string escaping). For a
+        // bare/quoted RHS, defer to quoteIfLiteral.
+        const pattern = reLiteral
+          ? `"${reLiteral[1]!.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+          : quoteIfLiteral(right);
+        return `matches(${quoteIfLiteral(left)}, ${pattern})`;
+      }
+    );
+  }
+
+  // Replace "extract" operator if used with infix notation. A masked literal
+  // placeholder (__DDSTRn__) is already a quoted literal once restored, so it
+  // must NOT be re-wrapped in quotes here. ReDoS-hardened (CodeQL
+  // js/polynomial-redos): guarded on the keyword's presence and the unbounded
+  // `\S+` operands bounded with `OPERAND_MAX`, so an adversarial non-`extract`
+  // operand can't drive O(n^2) backtracking across the global scan.
+  if (/(^|\s)extract(\s|$)/.test(expression))
+  expression = expression.replace(
+    new RegExp(`(\\S{1,${OPERAND_MAX}})\\s+extract\\s+(\\S{1,${OPERAND_MAX}})`, "g"),
     (match: string, left: string, right: string) => {
       // If left side is not quoted and isn't a defined variable, add quotes
       if (
-        (!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left)) ||
-        typeof left === "string"
+        !isMaskToken(left) &&
+        ((!/^['"`]/.test(left) && !/^[\d\{\}\[\]\(\)]/.test(left)) ||
+          typeof left === "string")
       ) {
         left = `"${left}"`;
       }
       // If right side is not quoted and looks like a string literal, add quotes
-      if (!/^['"`]/.test(right)) {
+      if (!isMaskToken(right) && !/^['"`]/.test(right)) {
         right = `"${right}"`;
       }
       return `extract(${left}, ${right})`;
     }
   );
   // Fix quoting around "extract" operator
-  // If inputs are not quoted, add quotes
+  // If inputs are not quoted, add quotes. Operand runs are bounded
+  // (CodeQL js/polynomial-redos) so a long comma-free argument can't backtrack.
   expression = expression.replace(
-    /extract\(([^,]+),\s*([^,]+)\)/g,
+    new RegExp(`extract\\(([^,]{1,${OPERAND_MAX}}),\\s*([^,]{1,${OPERAND_MAX}})\\)`, "g"),
     (match: string, left: string, right: string) => {
-      if (!/^['"`]/.test(left)) {
+      if (!isMaskToken(left.trim()) && !/^['"`]/.test(left)) {
         left = `"${left}"`;
       }
-      if (!/^['"`]/.test(right)) {
+      if (!isMaskToken(right.trim()) && !/^['"`]/.test(right)) {
         right = `"${right}"`;
       }
       return `extract(${left}, ${right})`;
@@ -418,10 +627,15 @@ function preprocessExpression(expression: string): string {
     }
   );
 
-  // Now handle potential string literals without quotes (like variable names not in context)
+  // Now handle potential string literals without quotes on the LEFT side of a
+  // comparison (like variable names not in context). Only match tokens that
+  // START with a letter so pure-numeric operands — including decimals like
+  // "0.6" where the dot is a word boundary — are never quoted and stay
+  // numeric. Anchored to whitespace/start so we don't grab a digit run that
+  // follows a decimal point.
   expression = expression.replace(
-    /\b(\w+)\s*(==|!=|>|>=|<|<=)/g,
-    (match: string, word: string, operator: string) => {
+    /(^|\s)([A-Za-z]\w*)\s*(==|!=|>=|<=|>|<)/g,
+    (match: string, pre: string, word: string, operator: string) => {
       // Skip meta values (already processed) and known variables in context
       if (
         word.startsWith("$$") ||
@@ -430,9 +644,21 @@ function preprocessExpression(expression: string): string {
         return match;
       }
       // Add quotes around identifiers that might be string literals
-      return `"${word}" ${operator}`;
+      return `${pre}"${word}" ${operator}`;
     }
   );
+
+  // RESTORE masked string literals (Defect A). Done last, after every rewrite,
+  // so the literal contents are reinserted verbatim into the JS skeleton and
+  // never participated in operator detection/quoting. Out of scope: bare
+  // bracket regex `matches [a-c]+` (use the slash form `/[a-c]+/`); `oneOf`
+  // greedily consumes to end-of-string (must be the last operator).
+  if (maskedLiterals.length > 0) {
+    expression = expression.replace(
+      /__DDSTR(\d+)__/g,
+      (_m: string, idx: string) => maskedLiterals[Number(idx)]!
+    );
+  }
 
   return expression;
 }
@@ -445,9 +671,28 @@ function preprocessExpression(expression: string): string {
  */
 async function evaluateAssertion(assertion: any, context: any): Promise<boolean> {
   try {
+    // Fail-closed (Defect B): detect UNRESOLVED meta references at resolution
+    // time, by re-running the same getMetaValue lookups against the raw
+    // assertion. If any referenced $$token resolves to undefined, the condition
+    // is false. We do NOT scan the RESOLVED string for /\$\$\w/ — that
+    // false-positives when a resolved value legitimately contains literal
+    // "$$word". The default resolveExpression path is unaffected: it still
+    // passes unresolved tokens through as literals for interpolation/variables.
+    if (
+      typeof assertion === "string" &&
+      hasUnresolvedMetaReference(assertion, context)
+    ) {
+      log(
+        `Condition '${assertion}' has an unresolved meta value; treating as false.`,
+        "debug"
+      );
+      return false;
+    }
+
     const resolvedAssertion = await resolveExpression(
       {expression: assertion,
-      context: context}
+      context: context,
+      allowOperators: true}
     );
 
     // If the resolved assertion is already a boolean, return it

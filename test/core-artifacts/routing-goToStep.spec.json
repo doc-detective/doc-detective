@@ -1,0 +1,59 @@
+{
+  "specId": "routing-goToStep",
+  "description": "The goToStep routing action (jump execution to the step with a given stepId). Only PASS/SKIPPED permutations are expressible as a fixture (the combined suite asserts 0 fails): a forward jump over a middle step, and a goToStep on a guard-skipped step's onSkip. The FAIL-path behaviors — backward-jump re-runs (visit===2), unknown-target fail-safe stop, the infinite-loop visit cap — are asserted in focused it() tests in core-core.test.js, since they resolve to FAIL or need a counter file. Cross-platform via `node -e`.",
+  "tests": [
+    {
+      "testId": "routing-goToStep-forward-jump",
+      "description": "A passing step routes goToStep to a later step, skipping the intermediate step entirely (the intermediate step never runs and produces no report). The jumped-to step and the source step both PASS.",
+      "steps": [
+        {
+          "stepId": "goToStep-forward-source",
+          "description": "Passes, then jumps forward to 'goToStep-forward-target', skipping the middle step.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "onPass": [
+            {
+              "goToStep": "goToStep-forward-target"
+            }
+          ]
+        },
+        {
+          "stepId": "goToStep-forward-middle",
+          "description": "Jumped over by the forward goToStep — this step never runs.",
+          "runShell": "node -e \"process.exit(1)\""
+        },
+        {
+          "stepId": "goToStep-forward-target",
+          "description": "The forward-jump target; runs and passes.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "routing-goToStep-onskip-jump",
+      "description": "A guard-`if`-false step is SKIPPED, and its onSkip routes goToStep to a later step, skipping the intermediate step. The skipped source step records SKIPPED; the jumped-to step PASSes.",
+      "steps": [
+        {
+          "stepId": "goToStep-onskip-source",
+          "description": "Guard is always false, so this step is SKIPPED; its onSkip jumps to the target.",
+          "if": "$$platform == nonexistentos",
+          "runShell": "node -e \"process.exit(1)\"",
+          "onSkip": [
+            {
+              "goToStep": "goToStep-onskip-target"
+            }
+          ]
+        },
+        {
+          "stepId": "goToStep-onskip-middle",
+          "description": "Jumped over by the onSkip goToStep — this step never runs.",
+          "runShell": "node -e \"process.exit(1)\""
+        },
+        {
+          "stepId": "goToStep-onskip-target",
+          "description": "The onSkip-jump target; runs and passes.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}

@@ -8,19 +8,32 @@ const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
 
 describe("Run tests successfully", function () {
-  // 30 minutes for the combined core test suite (all specs in one runTests() call)
+  // 30 minutes for the combined core test suite (runs all specs in one Appium session)
   this.timeout(1800000);
   describe("Core test suite", function () {
-    // Run all spec files in a single runTests() call to avoid repeated Appium restarts.
-    // With concurrentRunners set, the runner starts a small pool of Appium
-    // servers (one per concurrent runner, capped by the number of driver
-    // contexts) and distributes specs across them, rather than restarting
-    // Appium for every spec.
-    it("All core spec files pass", async () => {
+    // Run the ENTIRE core suite in ONE concurrent pass (concurrentRunners=2) on
+    // every OS. The resource-aware scheduler auto-serializes display-bound
+    // ffmpeg recordings on a shared "display" mutex while everything else runs
+    // in parallel, so the recording specs (recording, recording-permutations,
+    // autorecord, "Do all the things!") no longer need a separate serial pass.
+    // cookie-tests is self-contained and ordered (its Docker container is
+    // started in the first step and removed in the last), so it is safe here
+    // too. concurrentRunners is set here (not in config.json) so the shared
+    // config_base stays serial for other consumers like
+    // appium-port-conflict.test.js, which probes single-Appium port behavior.
+    it("All core specs pass under concurrentRunners=2", async () => {
       const config_tests = JSON.parse(JSON.stringify(config_base));
       config_tests.input = artifactPath;
+      config_tests.concurrentRunners = 2;
       const result = await runTests(config_tests);
       if (result === null) assert.fail("Expected result to be non-null");
+      // The run must NOT collapse to whole-run serial — recordings serialize on
+      // the display mutex while the rest of the contexts run in parallel.
+      assert.notEqual(
+        result.recordingForcedSerial,
+        true,
+        "Run was forced whole-run serial; recordings should serialize on the display mutex instead, leaving the rest parallel."
+      );
       const failedSpecs = result.specs.filter((s) => s.result === "FAIL");
       assert.equal(
         result.summary.specs.fail,
@@ -57,6 +70,238 @@ describe("Run tests successfully", function () {
       assert.equal(result.summary.steps.skipped, 1);
     } finally {
       // Ensure cleanup even on failure
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A guard `if` false skips the step (with the guard reason) and does NOT skip the following non-guarded step", async () => {
+    // Step 1 has an always-false guard -> SKIPPED with the guard reason, action
+    // NOT run, stepExecutionFailed NOT tripped. Step 2 has no guard -> still
+    // runs and PASSes (proving a guard-skip doesn't cascade like a FAIL).
+    const guardTest = {
+      tests: [
+        {
+          steps: [
+            {
+              if: "$$platform == nonexistentos",
+              runShell: "node -e \"process.exit(0)\"",
+            },
+            {
+              runShell: "node -e \"process.exit(0)\"",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-guard-if-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      // Step 1: SKIPPED for the guard reason, action not run.
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.match(
+        steps[0].resultDescription,
+        /guard `if` condition not met/
+      );
+      // Step 2: ran (not affected by the guard-skip) and PASSed.
+      assert.equal(steps[1].result, "PASS");
+      assert.equal(result.summary.steps.skipped, 1);
+      assert.equal(result.summary.steps.pass, 1);
+      assert.equal(result.summary.steps.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("Custom assertion FAIL fails the step and skips the rest of the test", async () => {
+    // An action that EXECUTES fine (exit 0) but whose custom assertion is false.
+    // The custom-assertion FAIL must fail the step, and the existing step-loop
+    // FAIL handling must then skip the remaining step.
+    const customFailTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(0)\"",
+              assertions: "$$outputs.exitCode == 1",
+            },
+            {
+              runShell: "node -e \"process.exit(0)\"",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-custom-fail-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(customFailTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      assert.equal(result.summary.steps.skipped, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("Custom assertion records are SKIPPED when an implicit check already FAILed", async () => {
+    // Exit code 1 with exitCodes [0] makes the IMPLICIT check FAIL. The custom
+    // assertion must then be SKIPPED (not evaluated), and the step stays FAIL.
+    const implicitFailTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: { command: "node -e \"process.exit(1)\"", exitCodes: [0] },
+              assertions: "$$outputs.exitCode == 1",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-implicit-fail-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(implicitFailTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      const custom = (step.assertions || []).filter((a) => a.source === "custom");
+      assert.equal(custom.length, 1);
+      assert.equal(custom[0].result, "SKIPPED");
+      const implicit = (step.assertions || []).filter(
+        (a) => a.source === "implicit"
+      );
+      assert.ok(implicit.some((a) => a.result === "FAIL"));
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A custom assertion that references $$steps.* warns the author and fails closed (finding 5, PR #394)", async () => {
+    // `$$steps.*` is not available to custom assertions yet (steps map is empty),
+    // so it resolves to false and the custom assertion FAILs. Parity with the
+    // spec/test-scope guardReferencesSteps warning: the runner must emit an
+    // author-facing warning rather than silently failing the step.
+    const stepsRefTest = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "uses-steps-ref",
+              runShell: "node -e \"process.exit(0)\"",
+              assertions: "$$steps.prev.outputs.exitCode == 0",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-custom-steps-ref-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(stepsRefTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "warning" };
+    const logged = [];
+    const origLog = console.log;
+    console.log = (...args) => {
+      logged.push(args.join(" "));
+    };
+    let result;
+    try {
+      result = await runTests(config);
+    } finally {
+      console.log = origLog;
+      fs.unlinkSync(tempFilePath);
+    }
+    // Fails closed: the $$steps.* reference is unresolvable, so the custom
+    // assertion FAILs and the step FAILs.
+    assert.equal(result.summary.steps.fail, 1);
+    // And the author is warned (mentions $$steps.* and the step id).
+    const warning = logged.find(
+      (l) =>
+        l.includes("$$steps.*") &&
+        l.includes("uses-steps-ref") &&
+        l.toUpperCase().includes("(WARNING)")
+    );
+    assert.ok(
+      warning,
+      `expected a $$steps.* custom-assertion warning, got:\n${logged.join("\n")}`
+    );
+  });
+
+  it("A spec-level guard `if` false skips every test/context in the spec (SKIPPED, 0 fail)", async () => {
+    // Spec-level guard is false everywhere ($$platform is never nonexistentos).
+    // Every test in the spec must be SKIPPED across all contexts, no job runs,
+    // and nothing fails.
+    const guardSpec = {
+      if: "$$platform == nonexistentos",
+      tests: [
+        { steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+        { steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-guard-if-spec-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      for (const test of tests) {
+        assert.ok(test.contexts.length >= 1);
+        for (const ctx of test.contexts) {
+          assert.equal(ctx.result, "SKIPPED");
+          assert.match(ctx.resultDescription, /spec guard `if` condition not met/);
+          assert.deepEqual(ctx.steps, []);
+        }
+      }
+      // No steps ran (every context was skipped before enqueue).
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(result.summary.steps.pass, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A test-level guard `if` false skips that test while its sibling runs", async () => {
+    // First test has an always-false test guard -> SKIPPED across contexts.
+    // Sibling test has no guard -> runs and PASSes. Proves test-level isolation.
+    const guardSpec = {
+      tests: [
+        {
+          if: "$$platform == nonexistentos",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+        },
+        { steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-guard-if-test-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      // First test: every context SKIPPED for the test-guard reason, no steps.
+      for (const ctx of tests[0].contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /test guard `if` condition not met/);
+        assert.deepEqual(ctx.steps, []);
+      }
+      // Sibling test: ran and PASSed.
+      assert.ok(tests[1].contexts.some((c) => c.result === "PASS"));
+      assert.ok(tests[1].contexts.some((c) => (c.steps || []).length > 0));
+      assert.equal(result.summary.steps.fail, 0);
+    } finally {
       fs.unlinkSync(tempFilePath);
     }
   });
@@ -304,6 +549,57 @@ describe("Run tests successfully", function () {
       if (fs.existsSync(outputFilePath)) {
         fs.unlinkSync(outputFilePath);
       }
+    }
+  });
+
+  it("runShell carries articulated assertion records into the report", async function () {
+    // Phase 4a.1: a successful runShell step emits implicit assertion records
+    // (exitCode, stdio) that the runner rolls up into the step result and the
+    // existing report spread carries through under `step.assertions`.
+    const assertionSpec = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: {
+                command: "echo",
+                args: ["needle-in-haystack"],
+                exitCodes: [0],
+                stdio: "needle",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-runshell-assertions.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(assertionSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(result.summary.steps.pass, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "PASS");
+      assert.ok(Array.isArray(step.assertions), "step should carry assertions");
+      // Unified model: statements are runtime $$ expressions evaluated by the
+      // shared engine; expected/actual are vestigial and omitted.
+      const exit = step.assertions.find((a) =>
+        a.statement.includes("exitCode")
+      );
+      assert.ok(exit, "expected an exitCode assertion record");
+      assert.equal(exit.source, "implicit");
+      assert.equal(exit.result, "PASS");
+      assert.equal(exit.statement, "$$outputs.exitCode oneOf [0]");
+      const stdio = step.assertions.find((a) =>
+        a.statement.includes("stdioMatched")
+      );
+      assert.ok(stdio, "expected a stdio assertion record");
+      assert.equal(stdio.result, "PASS");
+      assert.equal(stdio.statement, "$$outputs.stdioMatched == true");
+    } finally {
+      fs.unlinkSync(tempFilePath);
     }
   });
 
@@ -797,5 +1093,1105 @@ describe("getRunner() function", function () {
   it("should handle errors during runner initialization", async function () {
     // Requires mocking driverStart - skipping
     this.skip();
+  });
+
+  // --- Routing handlers: onPass/onFail/onWarning/onSkip + continue/stop ---
+  // These exercise FAIL/stop control-flow paths the "no spec fails" gate can't
+  // express as PASS/SKIPPED fixtures. flow != verdict throughout.
+
+  it("onFail [{continue:true}] runs the next step after a failure (verdict still FAIL)", async () => {
+    // Step 1 fails but routes continue -> step 2 still runs and passes. The
+    // step stays FAILed, so the test verdict rolls up to FAIL (routing changes
+    // flow, never the result).
+    const routingTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(1)\"", // fails (exitCode 1)
+              onFail: [{ continue: true }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" }, // should still run
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-onfail-continue.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(routingTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "FAIL");
+      assert.equal(steps[1].result, "PASS"); // ran despite the prior failure
+      assert.equal(result.summary.steps.fail, 1);
+      assert.equal(result.summary.steps.pass, 1);
+      assert.equal(result.summary.steps.skipped, 0);
+      // flow != verdict: the test still FAILs.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onPass [{stop:'test'}] halts the test after a passing step", async () => {
+    // Step 1 passes but routes stop -> step 2 is SKIPPED with the routing
+    // reason (not a failure reason). With a PASS present the test rolls up PASS.
+    const routingTest = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(0)\"",
+              onPass: [{ stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" }, // should be skipped
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-onpass-stop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(routingTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "PASS");
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.match(steps[1].resultDescription, /routing/);
+      assert.equal(result.summary.steps.skipped, 1);
+      assert.equal(result.summary.steps.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onSkip [{stop:'test'}] after a guard-skipped step halts the rest", async () => {
+    // Step 1 is guard-`if` false -> SKIPPED, and its onSkip routes stop -> step
+    // 2 is SKIPPED for the routing reason (not the guard reason). All steps
+    // SKIPPED -> the test rolls up SKIPPED. Proves a reached-but-skipped step's
+    // onSkip handler fires.
+    const routingTest = {
+      tests: [
+        {
+          steps: [
+            {
+              if: "$$platform == nonexistentos", // always false -> SKIPPED
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" }, // should be skipped
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-onskip-stop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(routingTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.match(steps[0].resultDescription, /guard `if` condition not met/);
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.match(steps[1].resultDescription, /routing/);
+      assert.equal(result.summary.steps.fail, 0);
+      assert.equal(result.summary.steps.pass, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("an unsafe step DOWNSTREAM of a stop does NOT fire its onSkip routing", async () => {
+    // Invariant: a step that is not reached (downstream of a prior stop) fires
+    // NO routing. Step 1 fails -> the test stops (default onFail). Step 2 is
+    // unsafe AND carries onSkip:[{stop:'test'}]; because it is downstream of the
+    // stop its onSkip must NOT fire. Proof: step 3's skip reason stays the
+    // original failure reason ("previous failure"), not the routing reason — if
+    // step 2's onSkip had fired it would have overwritten the stop reason.
+    const t = {
+      tests: [
+        {
+          steps: [
+            { runShell: "node -e \"process.exit(1)\"" }, // FAIL -> stop
+            {
+              unsafe: true,
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-unsafe-after-stop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = {
+      input: tempFilePath,
+      logLevel: "debug",
+      allowUnsafeSteps: false,
+    };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 3);
+      assert.equal(steps[0].result, "FAIL");
+      // Step 2: skipped for being unsafe (its pre-existing reason), NOT routing.
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.match(steps[1].resultDescription, /unsafe/);
+      // Step 3: still carries the ORIGINAL failure stop reason — proving step 2's
+      // onSkip never fired (it would have rewritten the reason to "...routing").
+      assert.equal(steps[2].result, "SKIPPED");
+      assert.match(steps[2].resultDescription, /previous failure/);
+      assert.doesNotMatch(steps[2].resultDescription, /routing/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  // --- Routing: retry action ---
+
+  it("onFail retry recovers a transient failure (fails once, passes on retry)", async () => {
+    // A counter-file step exits 1 on its first run and 0 on the second.
+    // onFail:[{retry:{limit:2}}] re-runs it; the retry passes, so the step is
+    // PASS with attempts === 2 (verdict reflects the final attempt).
+    const counterFile = path
+      .join(os.tmpdir(), `dd-retry-counter-${process.pid}-${Math.floor(performance.now())}.txt`)
+      .replace(/\\/g, "/");
+    if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    const cmd =
+      `node -e "const fs=require('fs');const f='${counterFile}';` +
+      `let n=fs.existsSync(f)?Number(fs.readFileSync(f,'utf8')):0;n++;` +
+      `fs.writeFileSync(f,String(n));process.exit(n>=2?0:1)"`;
+    const t = {
+      tests: [
+        { steps: [{ runShell: cmd, onFail: [{ retry: { limit: 2 } }] }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-retry-recover.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "PASS");
+      assert.equal(step.attempts, 2); // 1 initial + 1 retry
+    } finally {
+      fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    }
+  });
+
+  it("onFail retry exhausted -> the default (stop) applies", async () => {
+    // An always-failing step with retry:{limit:2} runs 3 times total (1 + 2
+    // retries), stays FAIL, then the exhausted retry falls to the onFail
+    // default (stop) -> the next step is SKIPPED.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(1)\"",
+              onFail: [{ retry: { limit: 2 } }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-retry-exhaust.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps[0].result, "FAIL");
+      assert.equal(steps[0].attempts, 3); // 1 initial + 2 retries
+      assert.equal(steps[1].result, "SKIPPED"); // default stop after exhaustion
+      assert.match(steps[1].resultDescription, /previous failure/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onFail [{retry},{continue}] retries then continues when still failing", async () => {
+    // After retries are exhausted and the step still FAILs, the trailing
+    // {continue:true} entry applies -> the next step still runs.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: "node -e \"process.exit(1)\"",
+              onFail: [{ retry: { limit: 1 } }, { continue: true }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-retry-continue.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps[0].result, "FAIL");
+      assert.equal(steps[0].attempts, 2); // 1 initial + 1 retry
+      assert.equal(steps[1].result, "PASS"); // continued past the failure
+      // flow != verdict: the test still FAILs.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  // --- Routing: goToStep action ---
+
+  it("goToStep forward jump skips an intermediate step", async () => {
+    // Step a PASSes and routes goToStep "c" -> step b is never run; step c runs.
+    // The report contains a then c (not b), and the verdict is PASS.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "a",
+              runShell: "node -e \"process.exit(0)\"",
+              onPass: [{ goToStep: "c" }],
+            },
+            { stepId: "b", runShell: "node -e \"process.exit(0)\"" },
+            { stepId: "c", runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-forward.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // Only a and c produced reports — b was jumped over and never reported.
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].stepId, "a");
+      assert.equal(steps[0].result, "PASS");
+      assert.equal(steps[1].stepId, "c");
+      assert.equal(steps[1].result, "PASS");
+      assert.equal(result.specs[0].tests[0].result, "PASS");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("goToStep backward jump re-runs a step (records visit===2)", async () => {
+    // Step b jumps back to a only on its first visit (a counter file gates it),
+    // so a runs twice then execution proceeds forward. The revisited stepId "a"
+    // appears >=2 times, and the 2nd report carries visit===2.
+    const counterFile = path
+      .join(os.tmpdir(), `dd-goto-counter-${process.pid}-${Math.floor(performance.now())}.txt`)
+      .replace(/\\/g, "/");
+    if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    // b: on first run create the marker file and exit 1 (FAIL -> jump back to a);
+    // on the second run the file exists, so exit 0 (PASS -> continue).
+    const bCmd = `node -e "const f='${counterFile}';const fs=require('fs');if(fs.existsSync(f)){process.exit(0)}else{fs.writeFileSync(f,'1');process.exit(1)}"`;
+    const t = {
+      tests: [
+        {
+          steps: [
+            { stepId: "a", runShell: "node -e \"process.exit(0)\"" },
+            {
+              stepId: "b",
+              runShell: bCmd,
+              onFail: [{ goToStep: "a" }],
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-backward.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      const aReports = steps.filter((s) => s.stepId === "a");
+      assert.ok(aReports.length >= 2, `expected a to run >=2 times, got ${aReports.length}`);
+      // First visit of a omits `visit`; the 2nd visit records visit===2.
+      assert.equal(aReports[0].visit, undefined);
+      assert.equal(aReports[1].visit, 2);
+      // The final visit of b PASSes, but b's first (recorded) visit FAILed —
+      // flow != verdict: the recorded FAIL keeps the test FAILed.
+      const bReports = steps.filter((s) => s.stepId === "b");
+      assert.equal(bReports[0].result, "FAIL");
+      assert.equal(bReports[bReports.length - 1].result, "PASS");
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    }
+  });
+
+  it("goToStep unknown target -> FAIL marker + remaining steps SKIPPED, verdict FAIL (no hang)", async () => {
+    // Step a routes goToStep to a nonexistent stepId. This is a routing
+    // misconfiguration, so the runner emits a FAIL marker (so it can't silently
+    // report green), stops, and SKIPs step b with the unknown-target reason.
+    // Verdict rolls up FAIL.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "a",
+              runShell: "node -e \"process.exit(0)\"",
+              onPass: [{ goToStep: "nope" }],
+            },
+            { stepId: "b", runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-unknown.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // a PASS, then the FAIL marker, then b SKIPPED.
+      assert.equal(steps.length, 3);
+      assert.equal(steps[0].result, "PASS");
+      assert.equal(steps[1].result, "FAIL");
+      assert.match(steps[1].resultDescription, /does not exist/);
+      assert.equal(steps[2].result, "SKIPPED");
+      assert.match(steps[2].resultDescription, /does not exist/);
+      // A typo'd goToStep must NOT silently report green.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+      assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("goToStep infinite loop is bounded by the visit cap (terminates, verdict FAIL)", async () => {
+    // A single step that unconditionally jumps to itself. The fail-safe cap
+    // (steps.length * 1000 + 1000 = 2000 for one step) stops it rather than
+    // hanging, and emits a final FAIL marker so the force-terminated cycle
+    // reports FAIL instead of green.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              // `wait: 1` (1ms, no process spawn) keeps the 2000-visit cap test
+              // fast — a per-visit `runShell` would spawn 2000 node processes.
+              stepId: "s",
+              wait: 1,
+              onPass: [{ goToStep: "s" }],
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-loop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // The cap (steps.length * 1000 + 1000 = 2000 for one step) bounds the
+      // executed visits: 2000 PASS reports, then a final FAIL marker emitted
+      // when the cap trips (2001 total). The point is it terminates rather than
+      // hanging — and reports FAIL, not green.
+      assert.equal(steps.length, 2001);
+      assert.ok(
+        steps.slice(0, 2000).every((s) => s.result === "PASS"),
+        "every executed visit PASSes"
+      );
+      assert.equal(steps[2000].result, "FAIL");
+      assert.match(steps[2000].resultDescription, /maximum|loop/);
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onSkip goToStep jumps from a guard-`if`-false step", async () => {
+    // Step a is guard-skipped and its onSkip routes goToStep "c" -> step b is
+    // never run; step c runs and PASSes.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "a",
+              if: "$$platform == nonexistentos", // always false -> SKIPPED
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ goToStep: "c" }],
+            },
+            { stepId: "b", runShell: "node -e \"process.exit(0)\"" },
+            { stepId: "c", runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-onskip.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // a (SKIPPED, guard) then c (PASS) — b jumped over.
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].stepId, "a");
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.match(steps[0].resultDescription, /guard `if` condition not met/);
+      assert.equal(steps[1].stepId, "c");
+      assert.equal(steps[1].result, "PASS");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onSkip goToStep to an unknown target emits FAIL marker and rolls up FAIL", async () => {
+    // A guard-skipped step with a typo'd goToStep must fail-safe identically to
+    // the run-path: push a FAIL marker so the verdict is FAIL, not silent green.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "a",
+              if: "$$platform == nonexistentos", // always false -> SKIPPED
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ goToStep: "typo" }],
+            },
+            { stepId: "b", runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-onskip-unknown.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      // FAIL marker pushes verdict to FAIL — typo'd target must not silently pass.
+      assert.equal(result.specs[0].tests[0].result, "FAIL");
+      assert.equal(result.summary.specs.fail, 1);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // step a (SKIPPED) + FAIL marker + step b (SKIPPED downstream of the stop).
+      assert.equal(steps.length, 3);
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.equal(steps[1].result, "FAIL");
+      assert.match(steps[1].resultDescription, /does not exist/);
+      assert.equal(steps[2].result, "SKIPPED");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onSkip goToStep jumps from an unsafe-blocked step", async () => {
+    // Step a is unsafe-skipped (allowUnsafeSteps:false) and its onSkip routes
+    // goToStep "c" -> step b is never run; step c runs and PASSes. Exercises the
+    // unsafe-branch onSkip path (shares applySkipRouting with the guard path).
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "a",
+              unsafe: true,
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ goToStep: "c" }],
+            },
+            { stepId: "b", runShell: "node -e \"process.exit(0)\"" },
+            { stepId: "c", runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gotostep-unsafe-onskip.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug", allowUnsafeSteps: false };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // a (SKIPPED, unsafe) then c (PASS) — b jumped over.
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].stepId, "a");
+      assert.equal(steps[0].result, "SKIPPED");
+      assert.match(steps[0].resultDescription, /unsafe/);
+      assert.equal(steps[1].stepId, "c");
+      assert.equal(steps[1].result, "PASS");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  // --- Routing: test-level handlers (PR-A: continue / stop via the sequencer) ---
+
+  it("test-level stop:spec halts the spec's remaining tests (SKIPPED, not executed)", async () => {
+    // testA FAILs and routes onFail stop:spec -> testB is recorded SKIPPED with
+    // the "a prior test stopped the spec" reason and never runs. The spec is a
+    // ROUTED spec (testA has a test-level handler), so it runs in the sequencer.
+    // flow != verdict: testA's recorded FAIL keeps the spec FAILed.
+    const t = {
+      tests: [
+        {
+          testId: "stopspec-a",
+          steps: [{ runShell: "node -e \"process.exit(1)\"" }],
+          onFail: [{ stop: "spec" }],
+        },
+        {
+          testId: "stopspec-b",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-test-stopspec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      // testA ran and FAILed.
+      assert.equal(tests[0].testId, "stopspec-a");
+      assert.equal(tests[0].result, "FAIL");
+      // testB was skipped by the spec stop — its context produced no steps.
+      assert.equal(tests[1].testId, "stopspec-b");
+      assert.equal(tests[1].result, "SKIPPED");
+      const bCtx = tests[1].contexts[0];
+      assert.match(bCtx.resultDescription, /a prior test stopped the spec/);
+      assert.equal(bCtx.steps.length, 0);
+      // flow != verdict: the spec is FAIL (testA failed), and the summary counts
+      // it once.
+      assert.equal(result.specs[0].result, "FAIL");
+      assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("test-level continue default reproduces today (a FAILing test does NOT stop its siblings)", async () => {
+    // testA FAILs but routes onFail continue (so the spec is ROUTED and runs in
+    // the sequencer). testB STILL runs and PASSes — proving the FAIL->stop:test
+    // default is a no-op at test scope, identical to the non-routed flat pool.
+    const t = {
+      tests: [
+        {
+          testId: "cont-a",
+          steps: [{ runShell: "node -e \"process.exit(1)\"" }],
+          onFail: [{ continue: true }],
+        },
+        {
+          testId: "cont-b",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-test-continue.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      assert.equal(tests[0].result, "FAIL");
+      // testB ran (one step report) and PASSed — not skipped.
+      assert.equal(tests[1].testId, "cont-b");
+      assert.equal(tests[1].result, "PASS");
+      assert.equal(tests[1].contexts[0].steps.length, 1);
+      assert.equal(tests[1].contexts[0].steps[0].result, "PASS");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("NON-routed spec: a FAILing test still lets siblings run, with NO `visit` field anywhere", async () => {
+    // No test-level handlers anywhere -> NON-routed spec -> the unchanged flat
+    // pool. testA FAILs, testB still runs (today's behavior). The byte-identical
+    // guarantee: no `visit` field is added to any step/context/test report.
+    const t = {
+      tests: [
+        {
+          testId: "nonrouted-a",
+          steps: [{ runShell: "node -e \"process.exit(1)\"" }],
+        },
+        {
+          testId: "nonrouted-b",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-test-nonrouted.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      assert.equal(tests[0].result, "FAIL");
+      // testB still ran (a FAIL does not stop a sibling test today).
+      assert.equal(tests[1].result, "PASS");
+      assert.equal(tests[1].contexts[0].steps[0].result, "PASS");
+      // No `visit` field anywhere in the non-routed report (single-visit).
+      const json = JSON.stringify(result);
+      assert.ok(
+        !/"visit"/.test(json),
+        "non-routed report must not introduce a `visit` field"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("spec-guard skip subsumes test routing (onSkip stop does NOT fire)", async () => {
+    // A ROUTED spec (testA has onSkip) whose spec-level guard is false. The spec
+    // never runs, so test routing must NOT be evaluated: every test is SKIPPED
+    // with the SPEC-GUARD reason, not the routing "a prior test stopped" reason.
+    const guardSpec = {
+      if: "$$platform == nonexistentos", // always false -> spec-guard skip
+      tests: [
+        {
+          testId: "a",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+          onSkip: [{ stop: "spec" }],
+        },
+        { testId: "b", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-test-specguard.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(guardSpec, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      for (const test of tests) {
+        for (const ctx of test.contexts) {
+          assert.equal(ctx.result, "SKIPPED");
+          // Spec-guard reason, NOT the routing stop reason.
+          assert.match(ctx.resultDescription, /spec guard `if` condition not met/);
+          assert.doesNotMatch(ctx.resultDescription, /prior test stopped/);
+        }
+      }
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("test-level stop:run is deferred -> treated as stop:spec (remaining tests SKIPPED)", async () => {
+    // stop:run is not yet implemented at test scope; it warns once and halts the
+    // spec's remaining tests (same as stop:spec). testA FAILs+stop:run -> testB
+    // SKIPPED with the routing reason; verdict FAIL.
+    const t = {
+      tests: [
+        {
+          testId: "a",
+          steps: [{ runShell: "node -e \"process.exit(1)\"" }],
+          onFail: [{ stop: "run" }],
+        },
+        { testId: "b", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-test-stoprun.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      assert.equal(tests[0].result, "FAIL");
+      assert.equal(tests[1].result, "SKIPPED");
+      assert.match(tests[1].contexts[0].resultDescription, /prior test stopped the spec/);
+      assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  // --- Routing: goToTest jumps (PR-B) ---
+
+  it("goToTest forward jump skips an intermediate test", async () => {
+    // testA PASSes and routes goToTest "c" -> testB is jumped over (never run),
+    // testC runs. Only a and c appear in the report; verdict PASS.
+    const t = {
+      tests: [
+        {
+          testId: "a",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+          onPass: [{ goToTest: "c" }],
+        },
+        { testId: "b", steps: [{ runShell: "node -e \"process.exit(1)\"" }] },
+        { testId: "c", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gototest-fwd.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      assert.equal(tests[0].testId, "a");
+      assert.equal(tests[0].result, "PASS");
+      assert.equal(tests[1].testId, "c"); // b was jumped over
+      assert.equal(tests[1].result, "PASS");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("goToTest backward jump re-runs a test (records visit===2; verdict FAIL)", async () => {
+    // testB FAILs on its first visit (counter file) and routes goToTest "a";
+    // testA re-runs (visit 2), then testB passes on its second visit. flow !=
+    // verdict: testB's first FAIL keeps the spec FAIL even though it later passes.
+    const counterFile = path
+      .join(os.tmpdir(), `dd-gototest-counter-${process.pid}-${Math.floor(performance.now())}.txt`)
+      .replace(/\\/g, "/");
+    if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    const cmd =
+      `node -e "const fs=require('fs');const f='${counterFile}';` +
+      `let n=fs.existsSync(f)?Number(fs.readFileSync(f,'utf8')):0;n++;` +
+      `fs.writeFileSync(f,String(n));process.exit(n>=2?0:1)"`;
+    const t = {
+      tests: [
+        { testId: "a", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+        {
+          testId: "b",
+          steps: [{ runShell: cmd }],
+          onFail: [{ goToTest: "a" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gototest-back.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      const aVisits = tests.filter((t) => t.testId === "a");
+      assert.ok(aVisits.length >= 2, "testA ran at least twice");
+      assert.equal(aVisits[1].visit, 2);
+      // flow != verdict: b's first visit FAILed, so the spec is FAIL.
+      assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(counterFile)) fs.unlinkSync(counterFile);
+    }
+  });
+
+  it("goToTest unknown target -> FAIL marker + verdict FAIL (no hang)", async () => {
+    const t = {
+      tests: [
+        {
+          testId: "a",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+          onPass: [{ goToTest: "nope" }],
+        },
+        { testId: "b", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gototest-unknown.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      // a PASS, then the FAIL marker, then b SKIPPED downstream (stopRest).
+      assert.equal(tests.length, 3);
+      assert.equal(tests[0].result, "PASS");
+      assert.equal(tests[1].result, "FAIL");
+      assert.match(tests[1].resultDescription, /does not exist/);
+      assert.equal(tests[2].testId, "b");
+      assert.equal(tests[2].result, "SKIPPED");
+      assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("goToTest self-loop is bounded by the visit cap (terminates, verdict FAIL)", async () => {
+    // A single test that unconditionally jumps to itself. The per-spec cap
+    // (tests.length*100 + 100 = 200 for one test) stops it with a FAIL marker
+    // rather than hanging. `wait: 1` keeps it fast (no per-visit process spawn).
+    const t = {
+      tests: [
+        {
+          testId: "loop",
+          steps: [{ wait: 1 }],
+          onPass: [{ goToTest: "loop" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gototest-loop.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const tests = result.specs[0].tests;
+      // 200 loop visits + 1 FAIL marker.
+      assert.equal(tests.length, 201);
+      assert.equal(tests[200].result, "FAIL");
+      assert.match(tests[200].resultDescription, /maximum|loop/);
+      assert.equal(result.summary.specs.fail, 1);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("two distinct tests with the same testId are NOT stamped as a re-visit", async () => {
+    // `visit` is keyed by test INDEX, not testId. testIds aren't unique within a
+    // spec, so two DISTINCT tests sharing an id must each be visit 1 (no stamp)
+    // — only a true goToTest re-run of the same index gets visit>1. The spec is
+    // routed (first test has a handler) so it runs in the sequencer.
+    const t = {
+      tests: [
+        {
+          testId: "dup",
+          steps: [{ runShell: "node -e \"process.exit(0)\"" }],
+          onPass: [{ continue: true }],
+        },
+        { testId: "dup", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-gototest-dupid.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const tests = result.specs[0].tests;
+      assert.equal(tests.length, 2);
+      // Neither distinct test is stamped with a visit number.
+      assert.equal(tests[0].visit, undefined);
+      assert.equal(tests[1].visit, undefined);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("type to a MISSING process surface FAILs and names the process", async () => {
+    // No runShell background step started "ghost", so the type step has no
+    // process to write to. It must FAIL with a description naming the surface.
+    const t = {
+      tests: [
+        {
+          steps: [
+            { type: { keys: ["1 + 1", "$ENTER$"], surface: "ghost" } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-missing-process.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /ghost/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("type with a stdio waitUntil that can't match within a tiny timeout FAILs via the assertion", async () => {
+    // Start node -i, then type expecting output that will never appear within a
+    // very small timeout. The stdioMatched assertion must FAIL the step.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              runShell: {
+                command: "node -i",
+                background: {
+                  name: "ttp-fail-repl",
+                  waitUntil: { stdio: "/>/" },
+                },
+                timeout: 15000,
+              },
+            },
+            {
+              type: {
+                keys: ["1 + 1", "$ENTER$"],
+                surface: "ttp-fail-repl",
+                waitUntil: { stdio: "/THIS_WILL_NEVER_APPEAR/" },
+                timeout: 200,
+              },
+            },
+            { closeSurface: "ttp-fail-repl" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-stdio-timeout.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      // Step 0 (start) PASS; step 1 (type) FAIL via stdioMatched assertion.
+      assert.equal(steps[0].result, "PASS");
+      assert.equal(steps[1].result, "FAIL");
+      const implicit = (steps[1].assertions || []).filter(
+        (a) => a.source === "implicit"
+      );
+      assert.ok(
+        implicit.some((a) => a.result === "FAIL"),
+        "expected an implicit stdioMatched assertion to FAIL"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("a tty:true background SKIPs (with a node-pty reason) when node-pty can't be loaded", async function () {
+    // Phase 2: when `background.tty` is set but the optional `node-pty` dep can't
+    // be resolved or installed, the runShell step must SKIP (graceful
+    // degradation) — never FAIL — with a description that names `node-pty`. We
+    // simulate absence by (1) moving the installed node-pty aside so it doesn't
+    // resolve from the shim, (2) pointing the runtime cache at an empty dir,
+    // (3) forcing npm offline, AND (4) pointing the npm cache at an empty dir so
+    // the offline JIT install can't pull node-pty from a warm `~/.npm` cache
+    // (which it otherwise can on CI after `install all`) — it fails fast instead.
+    this.timeout(60000);
+    // The PTY backend is the prebuilt-multiarch fork of node-pty; its package
+    // dir is named for the fork even though the SKIP reason still says "node-pty".
+    const PTY_PKG = "@homebridge/node-pty-prebuilt-multiarch";
+    const PTY_DIRNAME = "node-pty-prebuilt-multiarch";
+    const require = (await import("node:module")).createRequire(
+      import.meta.url
+    );
+    let ptyDir = null;
+    try {
+      // <repo>/node_modules/@homebridge/node-pty-prebuilt-multiarch
+      ptyDir = path.dirname(path.dirname(require.resolve(PTY_PKG)));
+      // Walk up to the package root (the dir literally named for the fork).
+      while (
+        path.basename(ptyDir) !== PTY_DIRNAME &&
+        path.dirname(ptyDir) !== ptyDir
+      ) {
+        ptyDir = path.dirname(ptyDir);
+      }
+      if (path.basename(ptyDir) !== PTY_DIRNAME) ptyDir = null;
+    } catch {
+      ptyDir = null; // not installed here — absence is already real.
+    }
+
+    const { runShell } = await import("../dist/core/tests/runShell.js");
+    const emptyCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-nopty-cache-"));
+    const emptyNpmCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-nopty-npm-"));
+    const moved = ptyDir ? `${ptyDir}.moved-for-test` : null;
+    const prevOffline = process.env.npm_config_offline;
+    const prevNpmCache = process.env.npm_config_cache;
+    process.env.npm_config_offline = "true";
+    process.env.npm_config_cache = emptyNpmCache;
+    if (ptyDir) fs.renameSync(ptyDir, moved);
+    const reg = new Map();
+    try {
+      const result = await runShell({
+        config: { cacheDir: emptyCache },
+        step: {
+          runShell: {
+            command: "node -i",
+            background: { name: "nopty-repl", tty: true },
+            timeout: 5000,
+          },
+        },
+        processRegistry: reg,
+      });
+      // Invariant: a `tty:true` start with node-pty unavailable must NEVER FAIL —
+      // it degrades to SKIPPED (named reason). The forcing above usually achieves
+      // SKIPPED; if a warm cache still lets it install, PASS is also acceptable
+      // (the feature simply works) — the assertion only forbids FAIL.
+      assert.ok(
+        result.status === "SKIPPED" || result.status === "PASS",
+        `expected SKIPPED or PASS, got ${result.status}: ${result.description}`
+      );
+      if (result.status === "SKIPPED") assert.match(result.description, /node-pty/);
+    } finally {
+      for (const entry of reg.values()) {
+        try {
+          await entry?.bg?.kill?.();
+        } catch {
+          /* best-effort cleanup of a started PTY */
+        }
+      }
+      if (ptyDir) fs.renameSync(moved, ptyDir);
+      if (prevOffline === undefined) delete process.env.npm_config_offline;
+      else process.env.npm_config_offline = prevOffline;
+      if (prevNpmCache === undefined) delete process.env.npm_config_cache;
+      else process.env.npm_config_cache = prevNpmCache;
+      fs.rmSync(emptyCache, { recursive: true, force: true });
+      fs.rmSync(emptyNpmCache, { recursive: true, force: true });
+    }
+  });
+
+  it("type to a browser-engine surface (chrome) FAILs with 'surface kind not yet supported'", async () => {
+    // A reserved browser engine keyword is a future surface kind; Phase 1 must
+    // FAIL at runtime rather than mis-routing it to a process or element.
+    const t = {
+      tests: [
+        {
+          steps: [
+            { type: { keys: ["hello"], surface: "chrome" } },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-chrome-surface.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /surface kind not yet supported/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
   });
 });

@@ -1,10 +1,9 @@
 {
-  "input": "./doc-content.md",
+  "input": ".",
   "output": ".",
   "recursive": true,
   "logLevel": "debug",
   "relativePathBase": "file",
-  "concurrentRunners": 2,
   "detectSteps": false,
   "runOn": [
     {

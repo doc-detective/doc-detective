@@ -1,6 +1,7 @@
 import {
   runConcurrent,
-  runConcurrentByTest,
+  runResourceAware,
+  createResourceRegistry,
   rollUpResults,
   createAppiumPool,
 } from "../dist/core/utils.js";
@@ -128,193 +129,205 @@ describe("runConcurrent", function () {
   });
 });
 
-describe("runConcurrentByTest", function () {
-  // Jobs carry { spec, test } identity (object reference or string). The
-  // scheduler runs specs concurrently, tests sequentially in order within a
-  // spec, and contexts concurrently within a test — capped at a global limit.
-  const job = (spec, test, ctx) => ({ spec, test, ctx });
-
-  it("runs a spec's tests in order: test i+1 waits for all of test i", async function () {
-    // Without ordering, the short t2 job would start (and could finish) before
-    // the longer t1 contexts end. With ordering, t2 must start after both.
-    const events = [];
-    const jobs = [
-      job("A", "t1", "c1"),
-      job("A", "t1", "c2"),
-      job("A", "t2", "c1"),
-    ];
-    await runConcurrentByTest(jobs, 4, async (j) => {
-      events.push(`start:${j.test}:${j.ctx}`);
-      await sleep(j.test === "t1" ? 40 : 5);
-      events.push(`end:${j.test}:${j.ctx}`);
-    });
-    const t2Start = events.indexOf("start:t2:c1");
-    expect(t2Start).to.be.greaterThan(events.indexOf("end:t1:c1"));
-    expect(t2Start).to.be.greaterThan(events.indexOf("end:t1:c2"));
+describe("createResourceRegistry", function () {
+  it("grants a free name, blocks a held one, regrants after release", function () {
+    const reg = createResourceRegistry();
+    expect(reg.tryAcquire(["display"])).to.equal(true);
+    expect(reg.tryAcquire(["display"])).to.equal(false);
+    reg.release(["display"]);
+    expect(reg.tryAcquire(["display"])).to.equal(true);
   });
 
-  it("runs contexts within a test concurrently", async function () {
-    let inFlight = 0;
-    let highWater = 0;
-    const jobs = [job("A", "t1", "c1"), job("A", "t1", "c2")];
-    await runConcurrentByTest(jobs, 4, async () => {
-      inFlight++;
-      highWater = Math.max(highWater, inFlight);
-      await sleep(20);
-      inFlight--;
-    });
-    expect(highWater).to.equal(2);
+  it("treats disjoint names as independent", function () {
+    const reg = createResourceRegistry();
+    expect(reg.tryAcquire(["a"])).to.equal(true);
+    expect(reg.tryAcquire(["b"])).to.equal(true);
+    expect(reg.tryAcquire(["a"])).to.equal(false);
+    expect(reg.tryAcquire(["b"])).to.equal(false);
   });
 
-  it("runs different specs concurrently", async function () {
-    let inFlight = 0;
-    let highWater = 0;
-    const jobs = [job("A", "t1", "c1"), job("B", "t1", "c1")];
-    await runConcurrentByTest(jobs, 4, async () => {
-      inFlight++;
-      highWater = Math.max(highWater, inFlight);
-      await sleep(20);
-      inFlight--;
-    });
-    expect(highWater).to.equal(2);
+  it("is all-or-nothing: a partial conflict acquires neither name", function () {
+    const reg = createResourceRegistry();
+    reg.tryAcquire(["a"]);
+    // ["a","b"] conflicts on "a" → must not leave "b" held.
+    expect(reg.tryAcquire(["a", "b"])).to.equal(false);
+    expect(reg.tryAcquire(["b"])).to.equal(true);
   });
 
-  it("never exceeds the global limit across specs", async function () {
-    let inFlight = 0;
-    let highWater = 0;
-    const jobs = ["A", "B", "C", "D"].map((s) => job(s, "t1", "c1"));
-    await runConcurrentByTest(jobs, 2, async () => {
-      inFlight++;
-      highWater = Math.max(highWater, inFlight);
-      await sleep(15);
-      inFlight--;
-    });
-    expect(highWater).to.equal(2);
+  it("wakes a waitForFree() waiter on release", async function () {
+    const reg = createResourceRegistry();
+    reg.tryAcquire(["display"]);
+    let woke = false;
+    const waiting = reg.waitForFree().then(() => (woke = true));
+    await Promise.resolve();
+    expect(woke).to.equal(false);
+    reg.release(["display"]);
+    await waiting;
+    expect(woke).to.equal(true);
   });
+});
 
-  it("treats a limit below 1 as sequential", async function () {
-    let inFlight = 0;
-    let highWater = 0;
-    const jobs = [job("A", "t1", "c1"), job("B", "t1", "c1")];
-    await runConcurrentByTest(jobs, 0, async () => {
-      inFlight++;
-      highWater = Math.max(highWater, inFlight);
-      await sleep(15);
-      inFlight--;
-    });
-    expect(highWater).to.equal(1);
-  });
-
-  it("runs strictly in input order at limit 1, without interleaving specs", async function () {
-    // Decreasing durations would invert completion order if anything overlapped;
-    // interleaving across specs (spec B's test before spec A's second test)
-    // would reorder completions even when nothing runs in parallel.
-    const completed = [];
-    const jobs = [
-      job("A", "t1", "c1"),
-      job("A", "t2", "c1"),
-      job("B", "t1", "c1"),
-    ];
-    const ms = { "A/t1/c1": 30, "A/t2/c1": 20, "B/t1/c1": 10 };
-    await runConcurrentByTest(jobs, 1, async (j) => {
-      const key = `${j.spec}/${j.test}/${j.ctx}`;
-      await sleep(ms[key]);
-      completed.push(key);
-    });
-    expect(completed).to.deep.equal(["A/t1/c1", "A/t2/c1", "B/t1/c1"]);
-  });
-
-  it("processes every job exactly once", async function () {
-    const seen = [];
-    const jobs = [
-      job("A", "t1", "c1"),
-      job("A", "t2", "c1"),
-      job("B", "t1", "c1"),
-    ];
-    await runConcurrentByTest(jobs, 2, async (j) => {
-      seen.push(`${j.spec}/${j.test}/${j.ctx}`);
-    });
-    expect(seen.sort()).to.deep.equal(["A/t1/c1", "A/t2/c1", "B/t1/c1"]);
-  });
-
-  it("resolves immediately for an empty job list", async function () {
-    let calls = 0;
-    await runConcurrentByTest([], 4, async () => {
-      calls++;
-    });
-    expect(calls).to.equal(0);
-  });
-
-  it("lets in-flight jobs settle before surfacing a rejection", async function () {
-    // fn is expected to catch its own errors, but if one rejects, a sibling
-    // job from another spec that's already running must still finish (no
-    // fail-fast that races teardown against live work) before the error throws.
-    const completed = [];
-    let threw = false;
-    const jobs = [job("A", "t1", "c1"), job("B", "t1", "c1")];
-    try {
-      await runConcurrentByTest(jobs, 2, async (j) => {
-        if (j.spec === "A") {
-          await sleep(5);
-          throw new Error("boom");
+describe("runResourceAware", function () {
+  // Track concurrent in-flight counts, globally and per exclusive resource.
+  function tracker() {
+    const t = { total: 0, totalHigh: 0, perResource: {}, perResourceHigh: {} };
+    return {
+      enter(resources) {
+        t.total++;
+        t.totalHigh = Math.max(t.totalHigh, t.total);
+        for (const r of resources) {
+          t.perResource[r] = (t.perResource[r] || 0) + 1;
+          t.perResourceHigh[r] = Math.max(
+            t.perResourceHigh[r] || 0,
+            t.perResource[r]
+          );
         }
-        await sleep(40);
-        completed.push(j.spec);
-      });
-    } catch (error) {
-      threw = true;
-      expect(error.message).to.equal("boom");
-    }
-    expect(threw).to.equal(true);
-    expect(completed).to.deep.equal(["B"]);
-  });
-
-  it("never overlaps two exclusive jobs, even across specs", async function () {
-    // ffmpeg recordings need exclusive use of the display; flagged exclusive,
-    // no two may run at once regardless of the global limit.
-    let exclusiveInFlight = 0;
-    let exclusiveHighWater = 0;
-    const jobs = [
-      job("A", "t1", "c1"),
-      job("B", "t1", "c1"),
-      job("C", "t1", "c1"),
-    ].map((j) => ({ ...j, ffmpeg: true }));
-    await runConcurrentByTest(
-      jobs,
-      3,
-      async () => {
-        exclusiveInFlight++;
-        exclusiveHighWater = Math.max(exclusiveHighWater, exclusiveInFlight);
-        await sleep(20);
-        exclusiveInFlight--;
       },
-      { exclusive: (j) => j.ffmpeg }
-    );
-    expect(exclusiveHighWater).to.equal(1);
+      exit(resources) {
+        t.total--;
+        for (const r of resources) t.perResource[r]--;
+      },
+      stats: t,
+    };
+  }
+  const job = (id, exclusiveResources = [], ms = 10) => ({
+    id,
+    exclusiveResources,
+    ms,
   });
 
-  it("still runs non-exclusive jobs concurrently alongside an exclusive one", async function () {
-    // An exclusive job must not throttle ordinary jobs: with limit 3 the two
-    // non-exclusive jobs plus the exclusive one should overlap.
-    let inFlight = 0;
-    let highWater = 0;
-    const jobs = [
-      { ...job("A", "t1", "c1"), ffmpeg: true },
-      { ...job("B", "t1", "c1"), ffmpeg: false },
-      { ...job("C", "t1", "c1"), ffmpeg: false },
+  it("matches runConcurrent when no item has exclusive resources", async function () {
+    const reg = createResourceRegistry();
+    const seen = [];
+    const tk = tracker();
+    await runResourceAware(
+      [job(1), job(2), job(3), job(4), job(5)],
+      2,
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(item.ms);
+        tk.exit(item.exclusiveResources);
+        seen.push(item.id);
+      }
+    );
+    expect(seen.sort()).to.deep.equal([1, 2, 3, 4, 5]);
+    expect(tk.stats.totalHigh).to.equal(2);
+  });
+
+  it("never runs two jobs holding the same resource at once", async function () {
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    await runResourceAware(
+      [
+        job("d1", ["display"], 20),
+        job("d2", ["display"], 20),
+        job("d3", ["display"], 20),
+      ],
+      3, // limit allows 3, but the mutex must cap display at 1
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(item.ms);
+        tk.exit(item.exclusiveResources);
+      }
+    );
+    expect(tk.stats.perResourceHigh.display).to.equal(1);
+  });
+
+  it("runs disjoint-resource jobs fully in parallel", async function () {
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    await runResourceAware(
+      [job("a", ["ra"], 30), job("b", ["rb"], 30), job("c", ["rc"], 30)],
+      3,
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(item.ms);
+        tk.exit(item.exclusiveResources);
+      }
+    );
+    expect(tk.stats.totalHigh).to.equal(3);
+  });
+
+  it("serializes display jobs while non-exclusive jobs run in parallel", async function () {
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    const items = [
+      job("d1", ["display"], 40),
+      job("p1", [], 40),
+      job("d2", ["display"], 40),
+      job("p2", [], 40),
+      job("p3", [], 40),
     ];
-    await runConcurrentByTest(
-      jobs,
+    await runResourceAware(items, 4, reg, async (item) => {
+      tk.enter(item.exclusiveResources);
+      await sleep(item.ms);
+      tk.exit(item.exclusiveResources);
+    });
+    // Display serialized to 1; overall parallelism still exceeded 1.
+    expect(tk.stats.perResourceHigh.display).to.equal(1);
+    expect(tk.stats.totalHigh).to.be.above(1);
+  });
+
+  it("completes multi-resource jobs without hanging", async function () {
+    const reg = createResourceRegistry();
+    const done = [];
+    await runResourceAware(
+      [
+        job("ab", ["a", "b"], 10),
+        job("b", ["b"], 10),
+        job("a", ["a"], 10),
+        job("plain", [], 10),
+      ],
       3,
-      async () => {
-        inFlight++;
-        highWater = Math.max(highWater, inFlight);
-        await sleep(20);
-        inFlight--;
-      },
-      { exclusive: (j) => j.ffmpeg }
+      reg,
+      async (item) => {
+        await sleep(item.ms);
+        done.push(item.id);
+      }
     );
-    expect(highWater).to.be.greaterThan(1);
+    expect(done.sort()).to.deep.equal(["a", "ab", "b", "plain"]);
+  });
+
+  it("runs items in input order at limit 1", async function () {
+    const reg = createResourceRegistry();
+    const completed = [];
+    await runResourceAware(
+      [job(30, [], 30), job(20, [], 20), job(10, [], 10)],
+      1,
+      reg,
+      async (item) => {
+        await sleep(item.ms);
+        completed.push(item.id);
+      }
+    );
+    expect(completed).to.deep.equal([30, 20, 10]);
+  });
+
+  it("frees a rejecting job's resource so a later same-resource job still runs", async function () {
+    const reg = createResourceRegistry();
+    const completed = [];
+    // First display job throws; its "display" must be released so the second
+    // display job can acquire it. Errors isolated inside fn (as runJob does).
+    await runResourceAware(
+      [job("d1", ["display"], 5), job("d2", ["display"], 5)],
+      2,
+      reg,
+      async (item) => {
+        try {
+          if (item.id === "d1") throw new Error("boom");
+          await sleep(item.ms);
+          completed.push(item.id);
+        } catch {
+          /* isolated */
+        }
+      }
+    );
+    expect(completed).to.deep.equal(["d2"]);
+    // Registry left clean.
+    expect(reg.tryAcquire(["display"])).to.equal(true);
   });
 });
 

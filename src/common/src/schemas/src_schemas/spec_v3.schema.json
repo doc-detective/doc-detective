@@ -29,6 +29,9 @@
       "type": "string",
       "description": "Path to the content that the specification is associated with."
     },
+    "if": {
+      "$ref": "routing_v3.schema.json#/components/schemas/condition"
+    },
     "runOn": {
       "$ref": "test_v3.schema.json#/properties/runOn"
     },
