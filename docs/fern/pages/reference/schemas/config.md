@@ -231,10 +231,3 @@ cacheDir | string | Optional. Directory for lazy-installed runtime assets (heavy
   "output": "./test-results"
 }
 ```
-
-```json
-{
-  "autoRecord": true,
-  "output": "./test-results"
-}
-```
