@@ -127,6 +127,11 @@ function buildYargs(args: any): any {
         "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs plus each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
       type: "boolean",
     })
+    .option("auto-record", {
+      description:
+        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
+      type: "boolean",
+    })
     .option("auto-update", {
       description:
         "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
@@ -395,6 +400,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.autoScreenshot === "boolean") {
     config.autoScreenshot = args.autoScreenshot;
   }
+  if (typeof args.autoRecord === "boolean") {
+    config.autoRecord = args.autoRecord;
+  }
   if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
     // Assignment-only per the documented setConfig contract (the standard
     // `length > 0` guard, no per-flag sanitization). getCacheDir() in
@@ -437,6 +445,35 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   });
 
   return config;
+}
+
+// Resolve the directory the runFolder reporter's `.doc-detective/` archive
+// root sits under, from its `output`. `output` is normally a directory, but
+// the reporter also accepts a file path (e.g. `results.json`), in which case
+// the run folder belongs *beside* the file, not inside it.
+//
+// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
+// parent, matching getRunOutputDir exactly — even for an existing directory
+// oddly named `reports.json` — so the archive root never diverges from the
+// stamped runDir (a divergence would reject the stamp and break runId/runDir
+// correlation with autoScreenshot). Any other path is then resolved by real
+// filesystem type: an existing file (any extension) archives beside it, an
+// existing or not-yet-created directory (including a dotted name like
+// `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
+// shared getRunOutputDir is unchanged, so autoScreenshot and report stamping
+// are unaffected.
+function runFolderBaseDir(output: any): string {
+  const base = String(output ?? ".") || ".";
+  const reportFileExtensions = [".json", ".html", ".htm"];
+  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+    return path.dirname(base);
+  }
+  try {
+    return fs.statSync(base).isDirectory() ? base : path.dirname(base);
+  } catch {
+    // Not created yet — treat as a directory (matches getRunOutputDir).
+    return base;
+  }
 }
 
 // Internal reporters
@@ -519,18 +556,11 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // path's `.doc-detective/` root. Results can originate outside the local
     // process (e.g. API runs), and a garbled or malicious runDir must not
     // redirect the write elsewhere. Otherwise derive a fresh run folder.
-    const expectedRunsRoot = (() => {
-      let base = outputPath || config.output || ".";
-      const reportFileExtensions = [".json", ".html", ".htm"];
-      if (
-        reportFileExtensions.some((ext) =>
-          String(base).toLowerCase().endsWith(ext)
-        )
-      ) {
-        base = path.dirname(base);
-      }
-      return path.resolve(base, ".doc-detective");
-    })();
+    // Resolve the output to a base directory once (file paths → parent), then
+    // both the confinement root and the fresh-folder fallback below derive
+    // from the same base, so a file-path output archives beside the file.
+    const baseDir = runFolderBaseDir(outputPath || config.output || ".");
+    const expectedRunsRoot = path.resolve(baseDir, ".doc-detective");
     const stampedRunDir =
       typeof results?.runDir === "string" && results.runDir.length > 0
         ? path.resolve(results.runDir)
@@ -554,9 +584,12 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         useStampedRunDir = false;
       }
     }
+    // Pass the already-resolved directory so getRunOutputDir creates the run
+    // folder under it directly (it's a directory, so its report-extension
+    // handling is a no-op) — keeping the fallback consistent with baseDir.
     const runDir = useStampedRunDir
       ? stampedRunDir!
-      : getRunOutputDir({ output: outputPath || config.output || "." });
+      : getRunOutputDir({ output: baseDir });
     // When we reject the stamped runDir and write to a fresh folder, rewrite
     // runDir/runId in the archived JSON so the report describes the folder it
     // actually sits beside — otherwise consumers resolve `autoScreenshot`
@@ -573,7 +606,36 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     try {
       fs.mkdirSync(runDir, { recursive: true });
       fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
+
+      // Archive a human-readable HTML report beside the JSON, so the run folder
+      // is a complete shareable artifact without the standalone `html` reporter.
+      // Best-effort and isolated: an HTML failure must not break the JSON
+      // archive (this reporter's primary contract). Dynamic import keeps the
+      // large inlined CSS/JS off the hot path, matching htmlReporter.
+      const htmlFile = path.resolve(runDir, `${reportType}.html`);
+      try {
+        const { buildHtml } = await import("./reporters/htmlReporter.js");
+        fs.writeFileSync(htmlFile, buildHtml(persistedResults));
+        console.log(`See per-run HTML report at ${htmlFile}\n`);
+      } catch (htmlErr) {
+        // Pass the error as a separate arg so its stack survives (string
+        // interpolation would flatten it, e.g. to "[object Object]").
+        console.error(
+          `Error writing per-run HTML report to ${htmlFile}.`,
+          htmlErr
+        );
+      }
+
+      // Log the JSON path *after* the HTML line so that, within this reporter,
+      // no "...report at <html>" line trails the per-run "results at" line. The
+      // doc-detective GitHub Action resolves the results file by splitting
+      // stdout on "results at " and require()-ing the trimmed last segment; a
+      // trailing HTML line folded into that segment broke the release smoke
+      // test. (Reporters run concurrently, so this line isn't guaranteed to be
+      // the final stdout token overall — but every reporter's "results at" line
+      // is itself a valid results path, so whichever lands last still resolves.)
       console.log(`See per-run results at ${outputFile}\n`);
+
       return outputFile;
     } catch (err) {
       console.error(`Error writing results to ${outputFile}. ${err}`);

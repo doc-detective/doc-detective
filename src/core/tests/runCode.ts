@@ -36,8 +36,20 @@ function createTempScript(code: string, language: string) {
   return tmpFile;
 }
 
-// Run gather, compile, and run code.
-async function runCode({ config, step }: { config: any; step: any }) {
+// Run gather, compile, and run code. When `step.runCode.background` is set (an
+// object with a `name` and optional `waitUntil`), the script is started as a
+// long-running process via runShell and the temp script
+// is kept on disk (deletion deferred to teardown) so the interpreter can keep
+// reading it.
+async function runCode({
+  config,
+  step,
+  processRegistry,
+}: {
+  config: any;
+  step: any;
+  processRegistry?: Map<string, any>;
+}) {
   const result: any = {
     status: "PASS",
     description: "Executed code.",
@@ -75,6 +87,11 @@ async function runCode({ config, step }: { config: any; step: any }) {
   }
   log(config, "debug", `Created temporary script at: ${scriptPath}`);
 
+  // When the script is started in the background it is still being read by the
+  // interpreter after runShell returns, so its temp file must outlive this
+  // call. Teardown (closeSurface / run-end sweep) deletes it instead.
+  let deferTempCleanup = false;
+
   try {
     if (!step.runCode.command) {
       const lang = step.runCode.language.toLowerCase();
@@ -110,32 +127,70 @@ async function runCode({ config, step }: { config: any; step: any }) {
       return result;
     }
 
-    // Prepare shell command using the resolved command
-    const shellStep: any = {
-      runShell: {
-        command,
-        args: [scriptPath, ...step.runCode.args],
-      },
+    // Prepare shell command using the resolved command.
+    // BUG #1 FIX: previously only {command,args} were forwarded, so the
+    // runCode-level exitCodes/stdio/maxVariation/overwrite/path/timeout/
+    // workingDirectory options were silently DROPPED (e.g. `exitCodes:[1]` had
+    // no effect and the step FAILed on a non-zero exit). Forward every option
+    // runShell honors so they actually take effect. `directory` (runCode-only)
+    // is resolved into the single `path` runShell expects.
+    const runShellOptions: any = {
+      command,
+      args: [scriptPath, ...step.runCode.args],
+      exitCodes: step.runCode.exitCodes,
+      workingDirectory: step.runCode.workingDirectory,
+      maxVariation: step.runCode.maxVariation,
+      overwrite: step.runCode.overwrite,
+      timeout: step.runCode.timeout,
     };
-    delete shellStep.runCode;
+    if (typeof step.runCode.stdio !== "undefined")
+      runShellOptions.stdio = step.runCode.stdio;
+    if (typeof step.runCode.path !== "undefined") {
+      runShellOptions.path = step.runCode.directory
+        ? path.join(step.runCode.directory, step.runCode.path)
+        : step.runCode.path;
+    }
+    // Forward the background object (name + waitUntil) so runShell starts and
+    // registers the process.
+    if (step.runCode.background) {
+      runShellOptions.background = step.runCode.background;
+    }
+    const shellStep: any = { runShell: runShellOptions };
 
     // Execute script using runShell
-    const shellResult = await runShell({ config: config, step: shellStep });
+    const shellResult = await runShell({
+      config: config,
+      step: shellStep,
+      processRegistry,
+    });
 
-    // Copy results
+    // Copy results, including the articulated assertion records so runCode
+    // reports the same implicit assertions runShell produces.
     result.status = shellResult.status;
     result.description = shellResult.description;
     result.outputs = {...result.outputs, ...shellResult.outputs};
+    if (typeof shellResult.assertions !== "undefined")
+      result.assertions = shellResult.assertions;
+
+    // On a successful background start, keep the temp script and hand its path
+    // to the registry entry so teardown removes it after the process is killed.
+    if (step.runCode.background && shellResult.status === "PASS") {
+      deferTempCleanup = true;
+      const entry = processRegistry?.get(step.runCode.background.name);
+      if (entry) entry.tempPath = scriptPath;
+    }
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;
   } finally {
-    // Clean up temporary script file
-    try {
-      fs.unlinkSync(scriptPath!);
-      log(config, "debug", `Removed temporary script: ${scriptPath}`);
-    } catch (error: any) {
-      log(config, "warn", `Failed to remove temporary script: ${scriptPath}`);
+    // Clean up temporary script file unless a background process still needs it.
+    if (!deferTempCleanup) {
+      try {
+        fs.unlinkSync(scriptPath!);
+        log(config, "debug", `Removed temporary script: ${scriptPath}`);
+      } catch (error: any) {
+        log(config, "warning", `Failed to remove temporary script: ${scriptPath}`);
+      }
     }
   }
 

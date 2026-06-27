@@ -210,14 +210,30 @@ async function processDitaMap({ config, source }: { config: any; source: string 
 async function qualifyFiles({ config }: { config: any }) {
   let dirs: string[] = [];
   let files: string[] = [];
-  let sequence: any[] = [];
+  // Each sequence entry carries its phase so config-level beforeAny / afterAll
+  // can be gated as execution barriers later (see runSpecs Phase 2). ditamap /
+  // heretto splices inherit the triggering entry's phase. The per-file phase is
+  // recorded in phaseByFile (keyed by resolved path, first-write-wins to match
+  // the isValidSourceFile dedup) and stamped onto each spec as `_phase` in
+  // parseTests.
+  //
+  // Call-order invariant: the map is published on `config._phaseByFile` (same
+  // side-channel pattern as `config._herettoPathMapping`). parseTests reads it
+  // from there, so qualifyFiles MUST run first; a parseTests call that bypasses
+  // qualifyFiles safely defaults every spec to phase "main".
+  let sequence: Array<{ source: string; phase: string }> = [];
+  const phaseByFile: Map<string, string> = new Map();
+  config._phaseByFile = phaseByFile;
 
-  const setup = config.beforeAny;
-  if (setup) sequence = sequence.concat(setup);
-  const input = config.input;
-  sequence = sequence.concat(input);
-  const cleanup = config.afterAll;
-  if (cleanup) sequence = sequence.concat(cleanup);
+  const toEntries = (value: any, phase: string) =>
+    (value == null ? [] : [].concat(value)).map((source: string) => ({
+      source,
+      phase,
+    }));
+
+  sequence = sequence.concat(toEntries(config.beforeAny, "beforeAny"));
+  sequence = sequence.concat(toEntries(config.input, "main"));
+  sequence = sequence.concat(toEntries(config.afterAll, "afterAll"));
 
   if (sequence.length === 0) {
     log(config, "warning", "No input sources specified.");
@@ -232,7 +248,8 @@ async function qualifyFiles({ config }: { config: any }) {
   }
 
   for (let i = 0; i < sequence.length; i++) {
-    let source = sequence[i];
+    let source: any = sequence[i].source;
+    const phase = sequence[i].phase;
     log(config, "debug", `source: ${source}`);
 
     // Check if source is a heretto:<name> reference
@@ -253,7 +270,7 @@ async function qualifyFiles({ config }: { config: any }) {
           if (outputPath) {
             herettoConfig.outputPath = outputPath;
             config._herettoPathMapping[outputPath] = herettoName;
-            sequence.splice(i + 1, 0, outputPath);
+            sequence.splice(i + 1, 0, { source: outputPath, phase });
             ignoredDitaMaps.push(outputPath);
           } else {
             log(config, "warning", `Failed to load Heretto content for "${herettoName}". Skipping.`);
@@ -266,8 +283,11 @@ async function qualifyFiles({ config }: { config: any }) {
         if (!ignoredDitaMaps.includes(herettoConfig.outputPath)) {
           ignoredDitaMaps.push(herettoConfig.outputPath);
         }
-        if (!sequence.includes(herettoConfig.outputPath)) {
-          sequence.splice(i + 1, 0, herettoConfig.outputPath);
+        if (!sequence.some((e) => e.source === herettoConfig.outputPath)) {
+          sequence.splice(i + 1, 0, {
+            source: herettoConfig.outputPath,
+            phase,
+          });
         }
         // Hydrate resourceDependencies for uploadOnChange on reuse runs
         if (herettoConfig.uploadOnChange && !herettoConfig.resourceDependencies) {
@@ -317,16 +337,23 @@ async function qualifyFiles({ config }: { config: any }) {
     ) {
       const ditaOutput = await processDitaMap({ config, source });
       if (ditaOutput) {
-        const currentIndex = sequence.indexOf(source);
-        sequence.splice(currentIndex + 1, 0, ditaOutput);
+        const currentIndex = sequence.findIndex((e) => e.source === source);
+        sequence.splice(currentIndex + 1, 0, { source: ditaOutput, phase });
         ignoredDitaMaps.push(ditaOutput);
       }
       continue;
     }
 
-    // Parse input
-    if (isFile && (await isValidSourceFile({ config, files, source }))) {
-      files.push(path.resolve(source));
+    // Parse input. Resolve before the validity/dedup check so isValidSourceFile
+    // de-dups against the resolved paths already in `files` (the directory
+    // branch below also passes resolved paths) and so `_phaseByFile` is keyed by
+    // the same resolved path the job list will carry — otherwise a file
+    // referenced once relative and once absolute could slip through twice with a
+    // mismatched phase.
+    const resolved = path.resolve(source);
+    if (isFile && (await isValidSourceFile({ config, files, source: resolved }))) {
+      files.push(resolved);
+      if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
     } else if (isDir) {
       dirs = [];
       dirs[0] = source;
@@ -341,7 +368,9 @@ async function qualifyFiles({ config }: { config: any }) {
             isFile &&
             (await isValidSourceFile({ config, files, source: content }))
           ) {
-            files.push(path.resolve(content));
+            const resolved = path.resolve(content);
+            files.push(resolved);
+            if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
           } else if (isDir && config.recursive) {
             dirs.push(content);
           }
@@ -396,6 +425,13 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       //   keeps the same ID across runs and machines.
       if (!content.specId) content.specId = generateSpecId(file);
       if (!content.contentPath) content.contentPath = file;
+      // Internal phase marker (beforeAny / main / afterAll) so runSpecs can gate
+      // execution as barriers. Stripped before reporting; never in public schema.
+      // Captured here and re-stamped after the validate / resolvePaths transforms
+      // below (either of which could drop an unknown key), so a future schema
+      // tightening can't silently turn the barriers into a no-op.
+      const specPhase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
+      content._phase = specPhase;
       if (Array.isArray(content.tests)) {
         const usedTestIds = new Set(
           content.tests
@@ -475,11 +511,26 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Merge before/after steps, tracking which steps came from before-specs.
       for (let t = 0; t < content.tests.length; t++) {
         const test = content.tests[t];
+        // Scrub the internal routing markers from authored steps: they're set
+        // only by the before/after merge below. Without this, a spec could
+        // forge `_fromAfter: true` (the validation clone strips it, so it would
+        // survive to runtime) and bypass skip-on-failure / the cascade guard
+        // outside the `after` mechanism.
+        if (Array.isArray(test.steps)) {
+          for (const step of test.steps) {
+            if (step && typeof step === "object") {
+              delete step._fromBefore;
+              delete step._fromAfter;
+            }
+          }
+        }
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
           if (setup?.tests?.[0]?.steps) {
-            // Tag before-steps with a marker that survives validation cloning
+            // Tag before-steps with a marker that survives validation cloning.
+            // Scrub any forged _fromAfter from these authored steps first.
             for (const step of setup.tests[0].steps) {
+              if (step && typeof step === "object") delete step._fromAfter;
               step._fromBefore = true;
             }
             test.steps = setup.tests[0].steps.concat(test.steps);
@@ -488,6 +539,22 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         if (test.after) {
           const cleanup: any = await readFile({ fileURLOrPath: test.after });
           if (cleanup?.tests?.[0]?.steps) {
+            // Tag cleanup steps so the runner hard-routes them: they execute
+            // after the test even when an earlier step failed, and a failing
+            // cleanup step doesn't cascade-skip later cleanup steps. Unlike
+            // _fromBefore (deleted at detection time), _fromAfter must reach
+            // runtime. Defined non-enumerable so it's invisible to contentHash
+            // (stepId stays identical to the unmarked step), object spreads, and
+            // JSON — it never affects hashing or the report.
+            for (const step of cleanup.tests[0].steps) {
+              if (step && typeof step === "object") delete step._fromBefore;
+              Object.defineProperty(step, "_fromAfter", {
+                value: true,
+                enumerable: false,
+                writable: true,
+                configurable: true,
+              });
+            }
             test.steps = test.steps.concat(cleanup.tests[0].steps);
           }
         }
@@ -495,9 +562,15 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Validate each step
       for (const test of content.tests) {
         test.steps = test.steps.filter((step: any) => {
+          // Exclude internal routing markers from the validated clone so a
+          // future strict (additionalProperties:false) step schema can't drop
+          // tagged setup/cleanup steps. The markers stay on the real `step`.
+          const stepForValidation = { ...step };
+          delete stepForValidation._fromBefore;
+          delete stepForValidation._fromAfter;
           const validation = validate({
             schemaKey: `step_v3`,
-            object: { ...step },
+            object: stepForValidation,
             addDefaults: false,
           });
           if (!validation.valid) {
@@ -531,6 +604,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         object: content,
         filePath: file,
       });
+      // Re-stamp the phase: neither `content = validation.object` nor
+      // resolvePaths is guaranteed to preserve unknown keys.
+      content._phase = specPhase;
 
       // Apply step locations after all validation/transformation (v2→v3 safe).
       // Compute offset from surviving before-steps (tagged with _fromBefore).
@@ -570,7 +646,12 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     } else {
       // Text content - use common's detectTests for parsing
       let id = generateSpecId(file);
-      let spec: any = { specId: id, contentPath: file, tests: [] };
+      let spec: any = {
+        specId: id,
+        contentPath: file,
+        _phase: config._phaseByFile?.get(path.resolve(file)) ?? "main",
+        tests: [],
+      };
       const fileType = config.fileTypes.find((fileType: any) =>
         fileType.extensions.includes(extension)
       );
@@ -642,6 +723,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           object: spec,
           filePath: file,
         });
+        // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
+        // keys, so a text/markdown file referenced by beforeAny/afterAll would
+        // otherwise silently fall back to "main". Mirrors the JSON/YAML branch.
+        spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
         specs.push(spec);
       }
     }

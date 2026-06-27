@@ -70,6 +70,7 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
         configError: err instanceof Error ? err : new Error(String(err)),
         includeEnv,
         outDir,
+        args,
       });
       // Config is broken — exit non-zero so scripts/CI that gate on the
       // exit code don't treat a CONFIG INVALID dump as success. Mirrors
@@ -83,6 +84,7 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
       configError: null,
       includeEnv,
       outDir,
+      args,
     });
   },
 };

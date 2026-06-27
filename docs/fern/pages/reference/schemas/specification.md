@@ -11,6 +11,7 @@ specId | string | Optional. Unique identifier for the test specification. |
 description | string | Optional. Description of the test specification. | 
 specPath | string | Optional. Path to the test specification. | 
 contentPath | string | Optional. Path to the content that the specification is associated with. | 
+if | string or array | Optional. Condition that decides whether this spec runs. A single condition expression or an array of expressions combined with logical AND. If the condition evaluates to false, every test in the spec is marked SKIPPED instead of running. Spec-level conditions can reference `$$platform`. An unresolvable condition fails closed (the spec is skipped). | 
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | 
 openApi | array of unknown | Optional. No description provided. | 
 autoScreenshot | boolean | Optional. If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level. | 

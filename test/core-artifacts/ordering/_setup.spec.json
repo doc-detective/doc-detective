@@ -1,0 +1,13 @@
+{
+  "specId": "ordering-setup-target",
+  "description": "Setup spec referenced by setup-before.spec.json's `before`. Only the first test's steps are used there. Note: the combined core scanner also picks this file up and runs it as a standalone spec (the echo step passes) — that dual role is intentional, so keep its steps self-contained and passing.",
+  "tests": [
+    {
+      "steps": [
+        {
+          "runShell": "echo ordering-setup"
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,54 @@ Repo-wide guidance for AI agents. Package-specific rules live alongside the code
 - [src/common/AGENTS.md](src/common/AGENTS.md) — schemas, validation, and the doc-detective-common subpackage.
 - [src/hints/AGENTS.md](src/hints/AGENTS.md) — authoring post-run hints when you add a user-facing feature.
 
+## Development workflow (required)
+
+Always use **red → green** test-driven development. For every behavior change:
+
+1. **Red** — write a failing test that captures the desired behavior first, and run it to confirm it fails for the expected reason.
+2. **Green** — write the minimum code to make that test pass, and run it to confirm it passes.
+3. **Refactor** — clean up while keeping the test green.
+
+Don't write implementation code before the failing test exists, and don't batch many changes behind a single test. The ["TDD cycle per flag"](#tdd-cycle-per-flag) section below shows the canonical red→green sequence applied to a new CLI flag.
+
+## Architecture Decision Records (required)
+
+Every **behavior change** must ship with an Architecture Decision Record (ADR) in
+[MADR](https://adr.github.io/madr/) format under [adrs/](adrs). The ADR records the *intended
+behavior, the reasoning, and the decision* — write it **before** (or alongside) the code so it is
+the reviewable source of truth, not an afterthought.
+
+- **Format**: MADR 4.0.0. Include the YAML front matter (`status`, `date`, `decision-makers`) and
+  the standard sections: *Context and Problem Statement*, *Decision Drivers*, *Considered Options*,
+  *Decision Outcome* (with *Consequences* and *Confirmation*), and *Pros and Cons of the Options*.
+- **Filename**: `NNNNN-kebab-case-title.md`, 5-digit zero-padded. Numbering **starts at `01000`**
+  and increments (`01000`, `01001`, …). The range `00001`–`00999` is **intentionally reserved** to
+  backfill pre-existing architectural decisions later — do not use it for new decisions.
+- **Worked example**: [adrs/01000-gate-advanced-ordering-under-concurrent-runners.md](adrs/01000-gate-advanced-ordering-under-concurrent-runners.md).
+- **Scope**: ADRs document *decisions* (behavior, contracts, trade-offs), not mechanical changes.
+  Pure refactors, dependency bumps, typo/doc fixes, and style changes don't need one. If a change
+  alters observable behavior or a public contract, it does.
+
+## Feature fixtures (required)
+
+Unit tests are necessary but not sufficient. When you add or change a **user-facing feature** (a new step type, action option, config/CLI flag, engine, output format, etc.), also author **Doc Detective fixtures** that exercise the feature end-to-end through the real runner — and cover **every permutation** of it, not just the happy path.
+
+"Every permutation" means each meaningfully distinct shape the feature can take, for example:
+
+- Each shape a field's value can take (boolean / string / object), including the disabling / no-op form (`false`).
+- Each enumerated option (every engine, target, format, mode).
+- Each precedence level (config vs. spec vs. test overrides).
+- The interaction with related features (overlap, fallback, conflict, skip paths).
+- The graceful-degradation / guard paths (unsupported platform, headless, missing dependency).
+
+Fixtures live in [test/core-artifacts/](test/core-artifacts) as `*.spec.json` files and run inside the single combined `runTests()` pass driven by [test/core-core.test.js](test/core-core.test.js), which asserts no spec **fails**. So every fixture must resolve to **PASS** or **SKIPPED** (never FAIL):
+
+- Gate display/engine-specific permutations with `runOn` (platforms + headed/headless) so each runs only where it can succeed, and lands as `SKIPPED` elsewhere. Recording fixtures are the worked example: ffmpeg permutations run on Windows/macOS/Linux headed; browser-engine permutations only on headed Chrome (Windows/macOS).
+- Permutations that are *meant* to be skipped or guarded (headless skip, name conflict, `record: false`) belong in fixtures too — assert the SKIPPED behavior, don't omit it.
+- When a behavior needs a precise assertion the "no spec fails" gate can't express (e.g. a preflight that must skip a test for a specific reason), add a focused `it(...)` in `test/core-core.test.js` alongside the fixture.
+
+See [test/core-artifacts/recording.spec.json](test/core-artifacts/recording.spec.json), [recording-permutations.spec.json](test/core-artifacts/recording-permutations.spec.json), and [autorecord.spec.json](test/core-artifacts/autorecord.spec.json) for the canonical pattern (one spec per feature; one test per permutation; `runOn`-gated; PASS/SKIPPED only).
+
 ## Commit messages (required)
 
 All commits must follow [Conventional Commits](https://www.conventionalcommits.org/). This is enforced locally by a husky `commit-msg` hook and on PRs by [.github/workflows/commitlint.yml](.github/workflows/commitlint.yml). Non-conforming commits are rejected.
