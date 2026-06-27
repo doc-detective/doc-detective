@@ -25,13 +25,15 @@
 export function transformForPublish(pkg) {
   const out = { ...pkg };
   delete out.workspaces;
-  // Preserve any declared heavy deps under the custom field...
-  if (
-    out.optionalDependencies &&
-    typeof out.optionalDependencies === "object" &&
-    Object.keys(out.optionalDependencies).length > 0
-  ) {
-    out.ddRuntimeDependencies = { ...out.optionalDependencies };
+  // Move the source-side heavy deps (optionalDependencies) into the custom field,
+  // MERGED on top of any deps already declared directly under
+  // `ddRuntimeDependencies` (e.g. `node-pty`, kept out of the lockfile to avoid
+  // churn). npm never auto-installs a custom field, so a default `npm i
+  // doc-detective` doesn't drag in the heavy deps; the runtime loader reads
+  // versions from `ddRuntimeDependencies` via getDeclaredVersion().
+  const merged = { ...out.ddRuntimeDependencies, ...out.optionalDependencies };
+  if (Object.keys(merged).length > 0) {
+    out.ddRuntimeDependencies = merged;
   }
   // ...then always drop optionalDependencies, including an empty `{}`, so the
   // published manifest never carries the field (and the publish guardrail never

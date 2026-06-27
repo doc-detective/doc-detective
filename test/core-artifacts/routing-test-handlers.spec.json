@@ -1,0 +1,49 @@
+{
+  "specId": "routing-test-handlers",
+  "description": "Test-level routing handlers (PR-A: continue / stop via the routed-spec sequencer). Only PASS/SKIPPED permutations are expressible as a fixture (the combined suite asserts 0 fails): a test that PASSes with onPass continue:true (an explicit no-op that resolves PASS), and a test that PASSes with onPass stop:spec, which stops the spec's remaining tests so they resolve SKIPPED. The FAIL-path behaviors (FAIL stop:spec, the FAIL->stop:test no-op default) are asserted in focused it() tests in core-core.test.js, since they resolve to FAIL. Cross-platform via `node -e`.",
+  "tests": [
+    {
+      "testId": "routing-test-continue-noop",
+      "description": "A passing test routes onPass continue:true. continue is the PASS default, so this is an explicit no-op: the test resolves PASS and the next test runs normally.",
+      "steps": [
+        {
+          "stepId": "continue-noop-step",
+          "description": "Passes; the test's onPass continue:true is a no-op and the next test still runs.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ],
+      "onPass": [
+        {
+          "continue": true
+        }
+      ]
+    },
+    {
+      "testId": "routing-test-stopspec-source",
+      "description": "A passing test routes onPass stop:spec. The test itself resolves PASS, but the spec's remaining tests are stopped and recorded SKIPPED.",
+      "steps": [
+        {
+          "stepId": "stopspec-source-step",
+          "description": "Passes, then stops the spec — the following test is skipped.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ],
+      "onPass": [
+        {
+          "stop": "spec"
+        }
+      ]
+    },
+    {
+      "testId": "routing-test-stopspec-skipped",
+      "description": "Reached only after the prior test stopped the spec, so this test is SKIPPED (never executed). Its step would PASS if it ran.",
+      "steps": [
+        {
+          "stepId": "stopspec-skipped-step",
+          "description": "Never runs — the prior test stopped the spec.",
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}

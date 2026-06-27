@@ -8,8 +8,39 @@ import { typeKeys } from "./typeKeys.js";
 import { moveTo } from "./moveTo.js";
 import { wait } from "./wait.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 
 export { findElement };
+
+// Unified assertion model: element EXISTENCE is the single implicit
+// verification. Whether an element matching ALL of the requested criteria
+// (selector/text/id/testId/class/attribute/aria AND-logic, or the shorthand
+// string path) was located is computed and EXPOSED as `outputs.found`, so the
+// implicit check is a trivial expression over it (`$$outputs.found == true`).
+// `outputs.found` and `result.assertions` are part of find's CONTRACT for
+// downstream consumers (conditions / custom assertions). `outputs.element.*`
+// and `outputs.rawElement` are preserved exactly as before. The interactions
+// the action performs (`moveTo` / `click` / `type` sub-effects) remain
+// EXECUTION, not assertions: a failure there sets FAIL with NO extra assertion
+// record, preserving prior behavior.
+//
+// Evaluate the single existence spec through the shared engine and set
+// `result.assertions` + `result.status`. On the success path this runs once,
+// after which sub-effects can still flip the status to FAIL (execution error).
+async function finalizeFound({ result }: { result: any }) {
+  const specs: ImplicitAssertionSpec[] = [
+    { statement: "$$outputs.found == true", severity: "fail" },
+  ];
+  const ctx = buildConditionContext({ outputs: result.outputs });
+  const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+  result.assertions = assertions;
+  result.status = status;
+  return result;
+}
 
 // Find a single element
 async function findElement({ config, step, driver, click }: { config: any; step: any; driver: any; click?: any }) {
@@ -38,12 +69,14 @@ async function findElement({ config, step, driver, click }: { config: any; step:
     if (element) {
       result.description += ` Found element by ${foundBy}.`;
       result.outputs = await setElementOutputs({ element });
-      return result;
+      result.outputs.found = true;
+      return await finalizeFound({ result });
     } else {
-      // No matching elements
-      result.status = "FAIL";
+      // No matching elements: expose found=false and still evaluate so the
+      // existence assertion FAILs (don't early-return before the spec).
       result.description = "No elements matched selector or text.";
-      return result;
+      result.outputs.found = false;
+      return await finalizeFound({ result });
     }
   }
   // Apply default values
@@ -82,22 +115,26 @@ async function findElement({ config, step, driver, click }: { config: any; step:
   });
 
   if (!foundElement) {
-    result.status = "FAIL";
     result.description = error || "No elements matched criteria.";
-    return result;
+    result.outputs.found = false;
+    return await finalizeFound({ result });
   }
   element = foundElement;
   result.description += ` Found element by ${foundBy}.`;
 
   // No matching elements
   if (!element.elementId) {
-    result.status = "FAIL";
     result.description = "No elements matched selector and/or text.";
-    return result;
+    result.outputs.found = false;
+    return await finalizeFound({ result });
   }
 
   // Set element in outputs
   result.outputs = await setElementOutputs({ element });
+  result.outputs.found = true;
+  // Evaluate the existence assertion now (PASS). Sub-effects below remain
+  // EXECUTION and may still set FAIL with no extra record.
+  await finalizeFound({ result });
 
   // Move to element
   if (step.find.moveTo) {

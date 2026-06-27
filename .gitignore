@@ -126,6 +126,7 @@ src/container/test/artifacts/*.png
 /screenshot-boolean.png
 test/core-artifacts/**/*.png
 test/core-artifacts/**/*.webm
+test/core-artifacts/**/*.gif
 
 # Common subpackage build artifacts
 src/common/dist/
@@ -133,3 +134,6 @@ src/common/node_modules/
 
 # Diagnostic dump output (`doc-detective debug`)
 .doc-detective/
+# Screenshot captured by the release smoke-test fixture (test/artifacts/doc-content.md);
+# must not be committed as a baseline (aspect ratio is environment-specific).
+/reference.png
