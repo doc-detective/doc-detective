@@ -4,6 +4,8 @@ import {
   compileFilter,
   matchesFilter,
   selectSpecsForRun,
+  serializeBrowserResult,
+  matchesExpectedOutput,
 } from "../dist/core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -373,6 +375,34 @@ describe("Util tests", function () {
     expect(argsAbsent.autoScreenshot).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
     expect(configAbsent.autoScreenshot).to.equal(false);
+  });
+
+  it("Yargs parses --auto-record / --no-auto-record as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--auto-record"]);
+    expect(on.autoRecord).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-auto-record"]);
+    expect(off.autoRecord).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.autoRecord).to.equal(undefined);
+  });
+
+  it("setConfig stores --auto-record on config.autoRecord and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--auto-record"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.autoRecord).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-auto-record"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.autoRecord).to.equal(false);
+
+    // Schema default is false; absent flag yields false via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.autoRecord).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.autoRecord).to.equal(false);
   });
 
   it("Yargs parses --cache-dir as a string", function () {
@@ -1523,3 +1553,60 @@ function deepObjectExpect(actual, expected) {
     }
   });
 }
+
+describe("serializeBrowserResult", function () {
+  it("passes strings through unchanged", function () {
+    expect(serializeBrowserResult("hello")).to.equal("hello");
+    expect(serializeBrowserResult("")).to.equal("");
+  });
+
+  it("JSON-serializes objects and arrays", function () {
+    expect(serializeBrowserResult({ a: 1, b: "x" })).to.equal('{"a":1,"b":"x"}');
+    expect(serializeBrowserResult([1, 2, 3])).to.equal("[1,2,3]");
+  });
+
+  it("serializes numbers, booleans, and null", function () {
+    expect(serializeBrowserResult(42)).to.equal("42");
+    expect(serializeBrowserResult(true)).to.equal("true");
+    expect(serializeBrowserResult(null)).to.equal("null");
+  });
+
+  it("preserves non-JSON primitives (NaN, Infinity) rather than coercing to null", function () {
+    expect(serializeBrowserResult(NaN)).to.equal("NaN");
+    expect(serializeBrowserResult(Infinity)).to.equal("Infinity");
+    expect(serializeBrowserResult(-Infinity)).to.equal("-Infinity");
+  });
+
+  it("falls back to String() for undefined and unserializable values", function () {
+    expect(serializeBrowserResult(undefined)).to.equal("undefined");
+    const circular = {};
+    circular.self = circular;
+    expect(serializeBrowserResult(circular)).to.equal("[object Object]");
+  });
+});
+
+describe("matchesExpectedOutput", function () {
+  it("matches a literal substring", function () {
+    expect(matchesExpectedOutput("hello world", "lo wo")).to.equal(true);
+    expect(matchesExpectedOutput("hello world", "absent")).to.equal(false);
+  });
+
+  it("matches a /regex/ pattern", function () {
+    expect(matchesExpectedOutput("https://example.com", "/^https?:\\/\\//")).to.equal(
+      true
+    );
+    expect(matchesExpectedOutput("ftp://example.com", "/^https?:\\/\\//")).to.equal(
+      false
+    );
+  });
+
+  it("treats a plain string with no surrounding slashes as a substring", function () {
+    expect(matchesExpectedOutput("a.b.c", "a.b.c")).to.equal(true);
+    expect(matchesExpectedOutput("axbxc", "a.b.c")).to.equal(false);
+  });
+
+  it("returns false (no throw) for a malformed /regex/ pattern", function () {
+    expect(() => matchesExpectedOutput("anything", "/(unclosed/")).to.not.throw();
+    expect(matchesExpectedOutput("anything", "/(unclosed/")).to.equal(false);
+  });
+});
