@@ -24,7 +24,7 @@ elementAria | string | Optional. Computed accessible name of the element per ARI
 timeout | integer | Optional. Max duration in milliseconds to wait for the element to exist. | `5000`
 moveTo | boolean | Optional. Move to the element. If the element isn't visible, it's scrolled into view. | `true`
 click | one of:<br/>- one of:<br/>- string<br/>- object([Click element (detailed)](/reference/schemas/click-element-detailed))<br/>- boolean<br/>- object([Find element and click](/reference/schemas/find-element-and-click)) | Optional. Click the element. | 
-type | object(typeKeys) | Optional. Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`type`](type). To type in the element, make the element active with the `click` parameter. | 
+type | one of:<br/>- one of:<br/>- string<br/>- array of string<br/>- object([Type keys (detailed)](/reference/schemas/type-keys-detailed)) | Optional. Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`type`](type). To type in the element, make the element active with the `click` parameter. | 
 
 ## Examples
 

@@ -440,19 +440,28 @@ function getTypeString(schema) {
     );
   }
 
-  // allOf composition (e.g. a titled object plus constraints). Prefer a titled
-  // branch so the type links to its page; otherwise combine the parts.
+  // A titled object schema (including one composed via allOf) links to its page.
+  if (schema.title && getEffectiveProperties(schema)) {
+    const schemaPath = schemaPaths.get(schema.title);
+    return schemaPath
+      ? `object([${schema.title}](${schemaPath}))`
+      : `object(${schema.title})`;
+  }
+
+  // allOf without object semantics (e.g. a typed value plus constraint-only or
+  // metadata-only branches): derive the type from the branch that actually
+  // defines it, not from a title on a constraint branch.
   if (Array.isArray(schema.allOf)) {
-    const titled = schema.allOf.find((s) => s && s.title);
-    if (titled) return getTypeString({ type: "object", title: titled.title });
-    const parts = schema.allOf
-      .map((s) => getTypeString(s))
-      .filter((t) => t && t !== "unknown");
-    if (parts.length) return parts.join(" &amp; ");
+    const typed = schema.allOf.find(
+      (s) =>
+        s &&
+        (s.type || s.properties || s.enum || s.const || s.anyOf || s.oneOf)
+    );
+    if (typed) return getTypeString(typed);
   }
 
   // A bare object schema (properties only, no explicit type)
-  if (schema.properties || getEffectiveProperties(schema)) return "object";
+  if (getEffectiveProperties(schema)) return "object";
 
   return "unknown";
 }
@@ -564,6 +573,16 @@ async function main() {
     generatedSchemaFiles.add(fileName);
 
     console.log(`Generated schema file: ${fileName}`);
+  }
+
+  // Prune stale pages: this directory is owned entirely by the generator, so any
+  // *.md no longer produced (schema removed or renamed) is dead and must go —
+  // otherwise the drift check can't catch it (the file is unchanged, not new).
+  for (const existing of fs.readdirSync(outputDir)) {
+    if (existing.endsWith(".md") && !generatedSchemaFiles.has(existing)) {
+      fs.unlinkSync(path.join(outputDir, existing));
+      console.log(`Removed stale schema file: ${existing}`);
+    }
   }
 
   console.log(`Total schemas generated: ${generatedSchemaFiles.size}`);

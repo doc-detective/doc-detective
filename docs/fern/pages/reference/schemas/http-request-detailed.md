@@ -15,7 +15,7 @@ description: "Reference for the `HTTP request (detailed)` schema."
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 url | string | Optional. URL for the HTTP request.<br/><br/>Pattern: `(^(http://|https://).*|\$[A-Za-z0-9_]+)` | 
-openApi | one of:<br/>- object(Operation ID)<br/>- object([openApi](/reference/schemas/openapi)) | Optional. No description provided. | 
+openApi | one of:<br/>- string<br/>- object([openApi](/reference/schemas/openapi)) | Optional. No description provided. | 
 statusCodes | array of integer | Optional. Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. | ``[200,201]``
 method | string | Optional. Method of the HTTP request<br/><br/>Accepted values: `get`, `put`, `post`, `patch`, `delete` | `get`
 timeout | integer | Optional. Timeout for the HTTP request, in milliseconds. | `60000`
