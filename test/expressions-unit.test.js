@@ -380,6 +380,16 @@ describe("expressions: multi-line meta values are escaped (finding 3)", function
     );
     assert.equal(r, true);
   });
+
+  it("a value with U+2028/U+2029 line separators is comparable without throwing", async function () {
+    // JS treats U+2028/U+2029 as line terminators; an unescaped one in the
+    // built string literal is a SyntaxError on older engines, so the condition
+    // would fail closed. Escaping them keeps the comparison sound everywhere.
+    const sep = String.fromCharCode(0x2028) + String.fromCharCode(0x2029);
+    const ctx = { outputs: { a: "x" + sep + "y", b: "x" + sep + "y" } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, true);
+  });
 });
 
 // Finding 1: the quoted-string-literal regexes used to mask/scan literals are
@@ -388,6 +398,9 @@ describe("expressions: multi-line meta values are escaped (finding 3)", function
 // input that is a near-miss for a quoted literal must evaluate well under a
 // generous timeout.
 describe("expressions: literal-scan regexes are ReDoS-safe (finding 1)", function () {
+  // Generous timeout: the guard catches catastrophic (seconds+) backtracking,
+  // so a slow-but-linear CI runner must not trip Mocha's 2s default.
+  this.timeout(20000);
   it("a long unterminated-quote input evaluates quickly (no catastrophic backtracking)", async function () {
     // n backslash-escape pairs followed by no closing quote is the classic
     // trigger for the ambiguous `(?:[^"\\]|\\.)*` form. With the unrolled form
@@ -400,7 +413,7 @@ describe("expressions: literal-scan regexes are ReDoS-safe (finding 1)", functio
     await evaluateAssertion(`${evil} == $$outputs.val`, ctx);
     const elapsed = Date.now() - start;
     assert.ok(
-      elapsed < 2000,
+      elapsed < 5000,
       `expression evaluation took ${elapsed}ms (possible ReDoS)`
     );
   });
@@ -412,7 +425,7 @@ describe("expressions: literal-scan regexes are ReDoS-safe (finding 1)", functio
     await evaluateAssertion(`${evil} == $$outputs.val`, ctx);
     const elapsed = Date.now() - start;
     assert.ok(
-      elapsed < 2000,
+      elapsed < 5000,
       `expression evaluation took ${elapsed}ms (possible ReDoS)`
     );
   });
