@@ -10,7 +10,7 @@ A [test specification](/reference/schemas/specification) is a group of tests to 
 
 ## Test
 
-A [test](/docs/tests) is a sequence of steps to perform. Conceptually parallel to a procedure.
+A [test](/docs/get-started/how-testing-works) is a sequence of steps to perform. Conceptually parallel to a procedure.
 
 ## Step
 

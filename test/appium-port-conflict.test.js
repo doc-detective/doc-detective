@@ -10,7 +10,7 @@ const driverSpec = path.join(artifactPath, "wait-with-driver.spec.json");
 
 function makeConfig() {
   const config = JSON.parse(JSON.stringify(config_base));
-  config.runTests.input = driverSpec;
+  config.input = driverSpec;
   return config;
 }
 

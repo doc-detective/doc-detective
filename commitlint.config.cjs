@@ -9,4 +9,15 @@ module.exports = {
     // to `^`; match anywhere in the commit message.
     (message) => /Signed-off-by: dependabot\[bot\]/.test(message),
   ],
+  // GitHub's squash-merge builds each commit body by concatenating the
+  // feature branch's commit messages, which routinely exceeds 100 columns.
+  // That squashed body is never linted pre-merge: the feature->next PR lints
+  // the pre-squash branch commits, not the resulting squash commit. The long
+  // lines only surface at `next`->`main` promotion time, where this workflow
+  // re-lints the whole range. Body/footer wrapping carries no semantic-release
+  // signal (only the header type does), so don't gate promotion on it.
+  rules: {
+    'body-max-line-length': [0, 'always', 100],
+    'footer-max-line-length': [0, 'always', 100],
+  },
 };
