@@ -205,7 +205,7 @@ A step passes only when both its implicit and custom assertions pass. Custom ass
 - An expression that can't be resolved fails closed, so the assertion fails and the step fails.
 
 <Note>
-Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported yet. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
+Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
 </Note>
 
 ## Conditional execution

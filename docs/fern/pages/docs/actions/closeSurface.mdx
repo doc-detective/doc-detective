@@ -4,21 +4,21 @@ description: Close one or more surfaces, such as background processes started by
 ---
 
 
-The `closeSurface` action closes one or more surfaces. A surface is anything a step can target. In this release, the only kind of surface is a background process that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. `closeSurface` replaces the earlier `stopProcess` action.
+The `closeSurface` action closes one or more surfaces. A surface is anything a step can target, such as a background process that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. `closeSurface` replaces the earlier `stopProcess` action.
 
 Provide a surface as the value for the `closeSurface` key. You can identify a surface in any of these ways:
 
-- **String name:** The process `name` you set on the `runShell` or `runCode` step that started it.
-- **Object:** A `{ "process": "<name>" }` object that names the process explicitly.
+- **String name:** The `name` of the surface, such as the process `name` you set on the `runShell` or `runCode` step that started it.
+- **Object:** An object that names the surface explicitly, such as `{ "process": "<name>" }` for a background process.
 - **Array:** A list of names or objects to close several surfaces in one step.
 
-Before matching, Doc Detective trims leading and trailing whitespace from both the `closeSurface` value and the `background` name.
+Doc Detective trims leading and trailing whitespace from the surface name before matching.
 
-Closing a surface that isn't open, because it was already closed or never started, always passes. Doc Detective never treats a missing surface as a failure, so you can call `closeSurface` defensively without first checking whether the process is still running.
+Closing a surface that isn't open, because it was already closed or never started, always passes. Doc Detective never treats a missing surface as a failure, so you can call `closeSurface` defensively without first checking whether the surface is still open.
 
-You don't have to close every background process explicitly. Doc Detective closes any that remain automatically when the run finishes. Use `closeSurface` when you want to close a surface before the run ends, such as to free a port for a later test.
+You don't have to close every surface explicitly. Doc Detective closes any that are still open when the run finishes. Use `closeSurface` when you want to close a surface before the run ends, such as to free a port for a later test.
 
-The step records which surfaces it closed and which were already absent in its `outputs`: `closed` and `absent` are arrays of process names, and `closedCount` and `absentCount` are their counts.
+The step records which surfaces it closed and which were already absent in its `outputs`: `closed` and `absent` are arrays of surface names, and `closedCount` and `absentCount` are their counts.
 
 > For comprehensive options, see the [`closeSurface`](/reference/schemas/closesurface) reference.
 

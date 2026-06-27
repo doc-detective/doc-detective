@@ -40,8 +40,6 @@ This lets tests continue executing while flagging output changes that exceed you
 
 To start a long-running process, such as a Docker container, development server, or database, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/close-surface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`.
 
-There's no boolean form. Adding the `background` object enables background mode, and omitting it runs the command as a normal blocking step.
-
 When you add a `background` object:
 
 - `name` is required inside `background`. It identifies the process within the run so that a later `closeSurface` step can stop it, or a `type` step can target it. Doc Detective trims leading and trailing whitespace from the name, and so do the `closeSurface` and `type` steps, so the names match after trimming.
@@ -69,9 +67,7 @@ Some processes, such as certain Docker images and databases, fork a daemon and t
 
 By default, a background process runs behind a pipe. That works for line-oriented REPLs and basic CLIs, but not for full-screen terminal UIs (TUIs). Programs built with frameworks like Ink check whether their output is attached to a terminal (`process.stdout.isTTY`) and won't render or accept keystrokes over a pipe. Set `tty` to `true` to run the process under a real pseudo-terminal (PTY) instead, so these interactive TUIs render and respond to the keystrokes a [`type`](/docs/actions/type) step sends.
 
-PTY mode requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch`, which isn't bundled. Install it with `npm install @homebridge/node-pty-prebuilt-multiarch`. If it isn't available, the step is skipped (SKIPPED) rather than failing, so a lean install never breaks your run. In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement, so match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
-
-On Windows, pairing `args` with `tty` can mis-quote the command, because the PTY backend's ConPTY agent re-quotes the command line. To stay cross-platform, put the full command and its arguments in `command` rather than `args`.
+In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement, so match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
 
 ## Examples
 
