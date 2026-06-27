@@ -231,15 +231,3 @@ cacheDir | string | Optional. Directory for lazy-installed runtime assets (heavy
   "output": "./test-results"
 }
 ```
-
-```json
-{
-  "autoUpdate": false
-}
-```
-
-```json
-{
-  "cacheDir": "/opt/doc-detective"
-}
-```
