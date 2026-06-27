@@ -3,6 +3,7 @@ import {
   buildConditionContext,
   evaluateImplicitAssertions,
   evaluateCustomAssertions,
+  customAssertionsReferenceSteps,
 } from "../dist/core/routing.js";
 
 // Generalization of the shared evaluator: a `source` stamp and a `startFailed`
@@ -247,5 +248,54 @@ describe("routing: evaluateCustomAssertions", function () {
     const before = JSON.stringify(actionResult);
     await evaluateCustomAssertions({ step: {}, actionResult });
     assert.equal(JSON.stringify(actionResult), before);
+  });
+});
+
+// Finding 5 (PR #394): a custom assertion that references `$$steps.*` resolves
+// against the empty `steps` map evaluateCustomAssertions passes (`steps: {}`),
+// so it always fails closed — but unlike `evaluateGuard` there was no
+// author-facing warning. `customAssertionsReferenceSteps` is the parity sibling
+// of `guardReferencesSteps`: callers use it to emit a warning.
+describe("routing: customAssertionsReferenceSteps (finding 5)", function () {
+  it("detects $$steps.* in a single-string assertion", function () {
+    assert.equal(
+      customAssertionsReferenceSteps({
+        assertions: "$$steps.prev.outputs.code == 0",
+      }),
+      true
+    );
+  });
+
+  it("detects $$steps.* in an array of assertions", function () {
+    assert.equal(
+      customAssertionsReferenceSteps({
+        assertions: ["$$outputs.code == 0", "$$steps.prev.outputs.x == 1"],
+      }),
+      true
+    );
+  });
+
+  it("returns false when no assertion references $$steps.*", function () {
+    assert.equal(
+      customAssertionsReferenceSteps({
+        assertions: ["$$outputs.code == 0", "$$platform == linux"],
+      }),
+      false
+    );
+  });
+
+  it("returns false for a missing/empty assertions field", function () {
+    assert.equal(customAssertionsReferenceSteps({}), false);
+    assert.equal(customAssertionsReferenceSteps({ assertions: [] }), false);
+    assert.equal(customAssertionsReferenceSteps(undefined), false);
+  });
+
+  it("ignores the report shape (array of objects) — only author strings count", function () {
+    assert.equal(
+      customAssertionsReferenceSteps({
+        assertions: [{ statement: "$$steps.prev.outputs.x == 1" }],
+      }),
+      false
+    );
   });
 });

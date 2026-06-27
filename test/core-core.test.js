@@ -185,6 +185,55 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("A custom assertion that references $$steps.* warns the author and fails closed (finding 5, PR #394)", async () => {
+    // `$$steps.*` is not available to custom assertions yet (steps map is empty),
+    // so it resolves to false and the custom assertion FAILs. Parity with the
+    // spec/test-scope guardReferencesSteps warning: the runner must emit an
+    // author-facing warning rather than silently failing the step.
+    const stepsRefTest = {
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "uses-steps-ref",
+              runShell: "node -e \"process.exit(0)\"",
+              assertions: "$$steps.prev.outputs.exitCode == 0",
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-custom-steps-ref-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(stepsRefTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "warning" };
+    const logged = [];
+    const origLog = console.log;
+    console.log = (...args) => {
+      logged.push(args.join(" "));
+    };
+    let result;
+    try {
+      result = await runTests(config);
+    } finally {
+      console.log = origLog;
+      fs.unlinkSync(tempFilePath);
+    }
+    // Fails closed: the $$steps.* reference is unresolvable, so the custom
+    // assertion FAILs and the step FAILs.
+    assert.equal(result.summary.steps.fail, 1);
+    // And the author is warned (mentions $$steps.* and the step id).
+    const warning = logged.find(
+      (l) =>
+        l.includes("$$steps.*") &&
+        l.includes("uses-steps-ref") &&
+        l.toUpperCase().includes("(WARNING)")
+    );
+    assert.ok(
+      warning,
+      `expected a $$steps.* custom-assertion warning, got:\n${logged.join("\n")}`
+    );
+  });
+
   it("A spec-level guard `if` false skips every test/context in the spec (SKIPPED, 0 fail)", async () => {
     // Spec-level guard is false everywhere ($$platform is never nonexistentos).
     // Every test in the spec must be SKIPPED across all contexts, no job runs,

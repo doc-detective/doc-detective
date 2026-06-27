@@ -105,7 +105,18 @@ function replaceMetaValues(expression: string, context: any, allowOperators: boo
         // If the meta value is a string and we're in an expression with operators,
         // only quote it if it contains spaces or special characters
         if (/[\s\(\)\[\]\{\}\,\;\:\.\+\-\*\/\|\&\!\?\<\>\=]/.test(metaValue)) {
-          replaceValue = `"${metaValue.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+          // Build a JS string literal for `new Function`. Escape backslashes
+          // FIRST, then double-quotes, then literal line terminators. Without
+          // the \n/\r escapes a multi-line step-output value produces an
+          // UNTERMINATED string literal (a SyntaxError), so the evaluator throws
+          // and the condition silently fails closed with a confusing error.
+          replaceValue = `"${metaValue
+            .replace(/\\/g, "\\\\")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, "\\n")
+            .replace(/\r/g, "\\r")
+            .replace(/\u2028/g, "\\u2028")
+            .replace(/\u2029/g, "\\u2029")}"`;
         } else {
           replaceValue = metaValue;
         }
@@ -472,51 +483,87 @@ function preprocessExpression(expression: string): string {
     return `"${token}"`;
   };
 
-  // A left operand for an infix word operator: either a quoted string literal
-  // (which may itself contain spaces) or a run of non-space characters.
-  const LEFT = `("[^"\\\\]*(?:\\\\.[^"\\\\]*)*"|'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'|\\S+)`;
+  // ReDoS hardening (CodeQL js/polynomial-redos). The infix-operator rewrites
+  // below scan the WHOLE expression with a global `replace`. Their left operand
+  // pattern (`LEFT`) and the bare RHS used an UNBOUNDED `\S+` (and the unrolled
+  // quoted forms). On an adversarial operand — a long run of non-space chars
+  // that ALMOST matches but lacks the trailing operator — the engine retries the
+  // long scan at every start position, which is polynomial (O(n^2)) in the
+  // operand length. Two structural mitigations, neither of which changes the
+  // result for any realistic condition:
+  //   1. Keyword guard: skip a rewrite entirely unless its operator word is
+  //      actually present (whitespace/anchor-bounded). The common attack — long
+  //      junk with no operator at all — then never runs the expensive regex.
+  //   2. Bounded quantifiers: cap every unbounded run with an explicit upper
+  //      bound (`OPERAND_MAX`). A bounded quantifier cannot backtrack
+  //      super-linearly, so even a keyword-bearing adversarial input is linear.
+  // Operands longer than the bound are simply left un-rewritten (treated as
+  // ordinary identifiers); real condition operands are far shorter.
+  const OPERAND_MAX = 1024;
+  const hasWordOperator = (op: string): boolean =>
+    new RegExp(`(^|\\s)${op}(\\s|$)`).test(expression);
+  // A left operand for an infix word operator: a quoted string literal (which
+  // may itself contain spaces) or a run of non-space characters — all bounded.
+  // Note: string literals are masked to `__DDSTRn__` BEFORE this point, so the
+  // quoted alternatives are effectively defensive; the bare run is what matches.
+  const LEFT =
+    `("[^"\\\\]{0,${OPERAND_MAX}}(?:\\\\.[^"\\\\]{0,${OPERAND_MAX}}){0,${OPERAND_MAX}}"` +
+    `|'[^'\\\\]{0,${OPERAND_MAX}}(?:\\\\.[^'\\\\]{0,${OPERAND_MAX}}){0,${OPERAND_MAX}}'` +
+    `|\\S{1,${OPERAND_MAX}})`;
+  const RIGHT_BARE = `(\\S{1,${OPERAND_MAX}})`;
 
   // Replace "contains" operator (infix): <left> contains <right>
-  expression = expression.replace(
-    new RegExp(`${LEFT}\\s+contains\\s+(\\S+)`, "g"),
-    (_m: string, left: string, right: string) =>
-      `contains(${quoteIfLiteral(left)}, ${quoteIfLiteral(right)})`
-  );
+  if (hasWordOperator("contains")) {
+    expression = expression.replace(
+      new RegExp(`${LEFT}\\s+contains\\s+${RIGHT_BARE}`, "g"),
+      (_m: string, left: string, right: string) =>
+        `contains(${quoteIfLiteral(left)}, ${quoteIfLiteral(right)})`
+    );
+  }
 
   // Replace "oneOf" operator (infix): <value> oneOf <options>
-  expression = expression.replace(
-    new RegExp(`${LEFT}\\s+oneOf\\s+(.+)$`),
-    (_m: string, left: string, right: string) =>
-      `oneOf(${quoteIfLiteral(left)}, ${right.trim()})`
-  );
+  if (hasWordOperator("oneOf")) {
+    expression = expression.replace(
+      new RegExp(`${LEFT}\\s+oneOf\\s+(.+)$`),
+      (_m: string, left: string, right: string) =>
+        `oneOf(${quoteIfLiteral(left)}, ${right.trim()})`
+    );
+  }
 
   // Replace "matches" operator (infix): <str> matches <regex>.
   // The regex may be written as a /pattern/ literal (which may contain spaces)
   // or a bare/quoted string (no spaces). The RHS alternation tries the
   // slash-literal form first so a pattern like /hello world/ is captured whole.
-  expression = expression.replace(
-    new RegExp(`${LEFT}\\s+matches\\s+(\\/[^\\/\\\\]*(?:\\\\.[^\\/\\\\]*)*\\/[a-z]*|\\S+)`, "g"),
-    (_m: string, left: string, right: string) => {
-      let pattern = right;
-      // Strip /.../ regex-literal delimiters into a plain string pattern.
-      const reLiteral = right.match(/^\/(.*)\/[a-z]*$/);
-      if (reLiteral) {
+  if (hasWordOperator("matches")) {
+    expression = expression.replace(
+      new RegExp(
+        `${LEFT}\\s+matches\\s+(\\/[^\\/\\\\]{0,${OPERAND_MAX}}(?:\\\\.[^\\/\\\\]{0,${OPERAND_MAX}}){0,${OPERAND_MAX}}\\/[a-z]*|\\S{1,${OPERAND_MAX}})`,
+        "g"
+      ),
+      (_m: string, left: string, right: string) => {
+        // Strip /.../ regex-literal delimiters into a plain string pattern.
+        const reLiteral = right.match(/^\/(.*)\/[a-z]*$/);
         // Build a JS string literal for the regex source. Escape backslashes
         // FIRST, then double-quotes, so a pattern like /\d/ or /a"b/ survives
-        // intact into `new Function` (CodeQL: incomplete string escaping).
-        pattern = `"${reLiteral[1]!.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-      } else {
-        pattern = quoteIfLiteral(right);
+        // intact into `new Function` (CodeQL: incomplete string escaping). For a
+        // bare/quoted RHS, defer to quoteIfLiteral.
+        const pattern = reLiteral
+          ? `"${reLiteral[1]!.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+          : quoteIfLiteral(right);
+        return `matches(${quoteIfLiteral(left)}, ${pattern})`;
       }
-      return `matches(${quoteIfLiteral(left)}, ${pattern})`;
-    }
-  );
+    );
+  }
 
   // Replace "extract" operator if used with infix notation. A masked literal
   // placeholder (__DDSTRn__) is already a quoted literal once restored, so it
-  // must NOT be re-wrapped in quotes here.
+  // must NOT be re-wrapped in quotes here. ReDoS-hardened (CodeQL
+  // js/polynomial-redos): guarded on the keyword's presence and the unbounded
+  // `\S+` operands bounded with `OPERAND_MAX`, so an adversarial non-`extract`
+  // operand can't drive O(n^2) backtracking across the global scan.
+  if (/(^|\s)extract(\s|$)/.test(expression))
   expression = expression.replace(
-    /(\S+)\s+extract\s+(\S+)/g,
+    new RegExp(`(\\S{1,${OPERAND_MAX}})\\s+extract\\s+(\\S{1,${OPERAND_MAX}})`, "g"),
     (match: string, left: string, right: string) => {
       // If left side is not quoted and isn't a defined variable, add quotes
       if (
@@ -534,9 +581,10 @@ function preprocessExpression(expression: string): string {
     }
   );
   // Fix quoting around "extract" operator
-  // If inputs are not quoted, add quotes
+  // If inputs are not quoted, add quotes. Operand runs are bounded
+  // (CodeQL js/polynomial-redos) so a long comma-free argument can't backtrack.
   expression = expression.replace(
-    /extract\(([^,]+),\s*([^,]+)\)/g,
+    new RegExp(`extract\\(([^,]{1,${OPERAND_MAX}}),\\s*([^,]{1,${OPERAND_MAX}})\\)`, "g"),
     (match: string, left: string, right: string) => {
       if (!isMaskToken(left.trim()) && !/^['"`]/.test(left)) {
         left = `"${left}"`;
