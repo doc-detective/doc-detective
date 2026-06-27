@@ -20,6 +20,10 @@ You must specify the `runCode` action using an object format with the following 
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the code execution to complete.
   - `exitCodes`: (Optional) An array of acceptable exit codes. If the code execution's exit code is not in this list, the step fails (default: `[0]`).
   - `stdio`: (Optional) A string or regular expression to validate against the code's combined stdout and stderr. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^hello world.*/`).
+  - `background`: (Optional) An object that starts the code as a long-running background process and returns as soon as it's ready, instead of waiting for it to exit. Including this object enables background mode; omit it for a normal blocking run. See [Background processes](#background-processes).
+    - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/close-surface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
+    - `waitUntil`: (Optional) The conditions that must be met before the process is considered ready. See [Wait conditions](#wait-conditions).
+    - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
   - *Output Saving:* You can also save the code's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runCode`](/reference/schemas/runcode) reference for details.
 
 **Output Regression Testing:** If `path` is specified and `maxVariation` is set, and a reference file exists at the target `path`, the action compares the new code output to the reference file content. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting:
@@ -33,6 +37,43 @@ This allows tests to continue while flagging output changes that exceed your acc
 **Setting Variables:** To capture output into variables for later steps, use the step-level `variables` object. You can assign values based on the code's output using expressions like `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`.
 
 > For comprehensive options, see the [`runCode`](/reference/schemas/runcode) reference.
+
+## Background processes
+
+To start a long-running process, such as a local server, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/close-surface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`.
+
+There's no boolean form. Adding the `background` object enables background mode, and omitting it runs the code as a normal blocking step.
+
+When you add a `background` object:
+
+- `name` is required inside `background`. It identifies the process within the run so that a later `closeSurface` step can stop it, or a `type` step can target it. Doc Detective trims leading and trailing whitespace from the name, and so do the `closeSurface` and `type` steps, so the names match after trimming.
+- `timeout` is the maximum time in milliseconds to wait for the process to become ready, not the maximum time the process can run.
+- Doc Detective doesn't apply the `exitCodes`, `stdio`, or output-saving (`path`, `directory`, `maxVariation`, `overwrite`) assertions, because the process doesn't exit during the step.
+
+The run owns the process. If you don't stop it with a `closeSurface` step, Doc Detective stops it automatically when the run finishes, including when you interrupt the run with `Ctrl+C`.
+
+A common pattern is to start the process in a setup test, run your tests against it, and stop it in a cleanup test. See the [`before` and `after`](/reference/schemas/test) test properties for setup and cleanup specs.
+
+### Wait conditions
+
+Inside the `background` object, use `waitUntil` to block the step until the process is ready. If you omit `waitUntil`, Doc Detective treats the process as ready as soon as it starts. You can set any combination of the following conditions, and every condition you set must pass before `timeout` elapses.
+
+- `port`: Wait until this TCP port accepts connections on localhost. An integer between 1 and 65535.
+- `stdio`: Wait until the process output contains this content. Doc Detective searches both stdout and stderr and supports strings and regular expressions. To use a regular expression, start and end the string with a forward slash, as in `/ready to accept/`.
+- `httpGet`: Wait until an HTTP GET request to this URL returns a 2xx status.
+- `delayMs`: Wait at least this many milliseconds before considering the process ready. An integer, minimum 0.
+
+If the process exits or doesn't become ready before `timeout` elapses, the step fails and Doc Detective stops the process.
+
+Some processes, such as certain Docker images and databases, fork a daemon and then exit. Because the foreground process doesn't stay alive, Doc Detective treats it as having exited before it became ready, and the step fails. For these processes, use a `port`, `httpGet`, or `delayMs` condition instead of `stdio`.
+
+### Full-screen terminal UIs
+
+By default, a background process runs behind a pipe. That works for line-oriented REPLs and basic CLIs, but not for full-screen terminal UIs (TUIs). Programs built with frameworks like Ink check whether their output is attached to a terminal (`process.stdout.isTTY`) and won't render or accept keystrokes over a pipe. Set `tty` to `true` to run the process under a real pseudo-terminal (PTY) instead, so these interactive TUIs render and respond to the keystrokes a [`type`](/docs/actions/type) step sends.
+
+PTY mode requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch`, which isn't bundled. Install it with `npm install @homebridge/node-pty-prebuilt-multiarch`. If it isn't available, the step is skipped (SKIPPED) rather than failing, so a lean install never breaks your run. In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement, so match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
+
+PTY mode with `tty` is unreliable on Windows: the PTY backend's ConPTY agent re-quotes the command line, which collides with the quoting Doc Detective adds for arguments. Because `runCode` runs your script through those arguments, prefer running it without `tty` on Windows, or drive the equivalent command through [`runShell`](/docs/actions/run-shell)'s `command` field instead.
 
 ## Examples
 
@@ -133,6 +174,39 @@ The first step runs Python code to print "setup", validates the output using a r
             "code": "echo $SETUP_VAL",
             "stdio": "setup"
           }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Start a background server and stop it later
+
+This example starts a Node.js HTTP server in the background, waits until port `8088` accepts connections, and then stops the server with a [`closeSurface`](/docs/actions/close-surface) step.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start an HTTP server in the background.",
+          "runCode": {
+            "language": "javascript",
+            "code": "require('http').createServer((req, res) => res.end('ok')).listen(8088);",
+            "background": {
+              "name": "api",
+              "waitUntil": {
+                "port": 8088
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "description": "Stop the server.",
+          "closeSurface": "api"
         }
       ]
     }

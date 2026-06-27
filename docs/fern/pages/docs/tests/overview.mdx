@@ -25,6 +25,7 @@ Tests tell Doc Detective what actions to perform, how, and where. Tests are made
   - [**runShell**](/docs/actions/runshell): Perform a native shell command.
   - [**runBrowserScript**](/docs/actions/runbrowserscript): Run JavaScript in the browser page context and capture its return value.
   - [**screenshot**](/docs/actions/screenshot): Take a screenshot in PNG format.
+  - [**closeSurface**](/docs/actions/close-surface): Close a surface, such as a background process started by `runShell` or `runCode`.
   - [**type**](/docs/actions/type): Type keys. To type special keys, begin and end the string with `$` and use the special key's enum. For example, to type the Escape key, enter `$ESCAPE$`.
   - [**wait**](/docs/actions/wait): Pause before performing the next action.
 
@@ -204,7 +205,7 @@ A step passes only when both its implicit and custom assertions pass. Custom ass
 - An expression that can't be resolved fails closed, so the assertion fails and the step fails.
 
 <Note>
-Custom assertions can't reference other steps' outputs with `$$steps.*` yet. They can read only the current step's `$$outputs.*` and `$$platform`. A `$$steps.*` reference can't resolve and fails closed, so the assertion fails and the step fails. Doc Detective logs a warning naming the step so you can switch the reference to `$$outputs.*`.
+Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported yet. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
 </Note>
 
 ## Conditional execution
