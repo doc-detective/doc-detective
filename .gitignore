@@ -113,11 +113,27 @@ coverageResults*
 testSuggestions*
 *.mp4
 
+# Per-run artifact folders (runFolder reporter + auto screenshots)
+.doc-detective/
+
 # Container test outputs
 src/container/test/artifacts/results*.json
 src/container/test/artifacts/output/
 src/container/test/artifacts/*.png
 
+# Test-generated screenshot / recording artifacts (created by the core
+# screenshot/recording specs; not curated baselines, regenerated per run)
+/screenshot-boolean.png
+test/core-artifacts/**/*.png
+test/core-artifacts/**/*.webm
+test/core-artifacts/**/*.gif
+
 # Common subpackage build artifacts
 src/common/dist/
 src/common/node_modules/
+
+# Diagnostic dump output (`doc-detective debug`)
+.doc-detective/
+# Screenshot captured by the release smoke-test fixture (test/artifacts/doc-content.md);
+# must not be committed as a baseline (aspect ratio is environment-specific).
+/reference.png

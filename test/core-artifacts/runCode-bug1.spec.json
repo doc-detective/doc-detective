@@ -1,0 +1,28 @@
+{
+  "id": "runCode-bug1-exitcodes-forwarding",
+  "description": "End-to-end coverage for the Phase 4a.2a runCode bug #1 fix: runCode now forwards its own exitCodes (and other runShell-honored options) when delegating to runShell. Previously exitCodes was silently dropped, so a non-zero exit FAILed even when whitelisted. Node-only code keeps this cross-platform (no shell syntax, avoids the Windows bash restriction).",
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Bug #1: a forwarded exitCodes:[1] makes a process.exit(1) PASS. Before the fix the option was dropped and this FAILed.",
+          "runCode": {
+            "language": "javascript",
+            "code": "process.exit(1);",
+            "exitCodes": [
+              1
+            ]
+          }
+        },
+        {
+          "description": "Default exitCodes ([0]) still PASS for a clean exit, proving the forwarding didn't break the happy path.",
+          "runCode": {
+            "language": "javascript",
+            "code": "console.log('forwarded-ok');",
+            "stdio": "forwarded-ok"
+          }
+        }
+      ]
+    }
+  ]
+}

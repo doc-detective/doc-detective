@@ -1,18 +1,194 @@
+import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import * as browsers from "@puppeteer/browsers";
-import * as geckodriver from "geckodriver";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Resolved path to the compiled CLI, shared by both install steps below.
+const CLI_PATH = path.join(__dirname, "..", "bin", "doc-detective.js");
+
+// Two steps run at `npm install` time:
+//   1. maybeInstallRuntime(): eagerly install the heavy runtime assets
+//      (webdriverio/appium/sharp + browsers) via `doc-detective install all`,
+//      so a fresh install — and any Docker image built `FROM` it — is ready to
+//      run without a separate install step. On by default; opt out with
+//      DOC_DETECTIVE_AUTOINSTALL=0.
+//   2. maybePromptInstallAgents(): the optional agent-tools install prompt —
+//      lightweight (TTY-gated, time-bounded, skipped in CI).
 async function main() {
-  await installBrowsers();
-  // await installAppiumDepencencies();
+  await maybeInstallRuntime();
   await maybePromptInstallAgents();
 }
 
-main();
+// Only run the install steps when executed as the npm lifecycle script, not
+// when a test imports this module for the exported pure helpers below.
+function isInvokedDirectly() {
+  try {
+    if (!process.argv[1]) return false;
+    return (
+      fs.realpathSync(process.argv[1]) ===
+      fs.realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+}
+// Swallow any unexpected rejection: a postinstall script must always exit 0,
+// otherwise it fails the user's `npm install`.
+if (isInvokedDirectly()) main().catch(() => {});
+
+// --- Runtime + browsers auto-install ----------------------------------------
+
+/**
+ * True when the user has opted out of the postinstall heavy install via
+ * DOC_DETECTIVE_AUTOINSTALL (0/false/no/off, case-insensitive). Default
+ * (unset or any other value) installs. Exported for tests.
+ */
+export function isRuntimeInstallOptedOut(env = process.env) {
+  const v = String(env.DOC_DETECTIVE_AUTOINSTALL ?? "").trim().toLowerCase();
+  return v === "0" || v === "false" || v === "no" || v === "off";
+}
+
+/**
+ * A line we surface to the user: the installer's own clean progress output
+ * (`Installing runtime…`, `  [npm] webdriverio — installed`, …). Everything
+ * else from the child — npm deprecation/funding noise, blank lines — is
+ * suppressed on the success path. Exported for tests.
+ */
+export function isProgressLine(line) {
+  return /^\s*Installing\b/.test(line) || /^\s*\[(npm|browser)\]/.test(line);
+}
+
+/**
+ * Pure npm noise (deprecation/funding/notice). Dropped from the captured
+ * buffer when surfacing a failure tail so the dump stays readable — genuine
+ * warnings/errors (e.g. EBADENGINE) are kept. Exported for tests.
+ *
+ * Kept in sync with src/runtime/installOutput.ts#isNpmNoiseLine (this is a
+ * plain Node script that can't import the compiled TS module reliably).
+ */
+export function isNpmNoiseLine(line) {
+  const l = line.trim();
+  if (!l) return true;
+  return (
+    /^npm warn deprecated/i.test(l) ||
+    /^npm notice/i.test(l) ||
+    /^npm fund/i.test(l) ||
+    /packages are looking for funding/i.test(l)
+  );
+}
+
+// Install the heavy runtime assets in a CHILD PROCESS whose stdout/stderr we
+// capture (pipe) rather than inherit, so npm's deprecated-transitive-dependency
+// warnings (glob, whatwg-encoding, …) never reach the user's terminal. We
+// forward only the installer's own progress lines; on failure we surface a
+// curated tail. This never fails the npm install — the assets also lazy-install
+// on first use, so a failure here just forfeits the pre-warm.
+async function maybeInstallRuntime() {
+  if (isRuntimeInstallOptedOut()) return;
+
+  const distDir = path.join(__dirname, "..", "dist");
+  // Dev checkout / partial install without a build: the CLI can't run yet.
+  // Skip silently — postinstall must never fail.
+  if (!fs.existsSync(CLI_PATH) || !fs.existsSync(distDir)) return;
+
+  console.log(
+    "doc-detective: installing runtime + browsers " +
+      "(set DOC_DETECTIVE_AUTOINSTALL=0 to skip)…"
+  );
+
+  const captured = [];
+  const handleLine = (raw, forward) => {
+    if (!raw.trim()) return;
+    captured.push(raw);
+    if (forward && isProgressLine(raw)) console.log("  " + raw.trim());
+  };
+  // Buffer per stream so a line split across data chunks is reassembled before
+  // the allow-list filter sees it. Returns the new buffer remainder.
+  const consume = (buf, chunk, forward) => {
+    const parts = (buf + chunk.toString()).split(/\r?\n/);
+    const remainder = parts.pop(); // trailing partial line (no newline yet)
+    for (const line of parts) handleLine(line, forward);
+    return remainder;
+  };
+
+  // Wall-clock ceiling so a hung npm/network can't make the parent
+  // `npm install` hang forever. Heavy deps + browser downloads are large, so
+  // this is generous; on expiry we kill the child and let the assets install
+  // lazily on first use instead.
+  const RUNTIME_INSTALL_TIMEOUT_MS = 10 * 60 * 1000;
+
+  const { code, signal, errored, timedOut } = await new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(
+        process.execPath,
+        [CLI_PATH, "install", "all", "--yes"],
+        { stdio: ["ignore", "pipe", "pipe"], env: process.env }
+      );
+    } catch {
+      resolve({ code: 1, signal: null, errored: true, timedOut: false });
+      return;
+    }
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+    // unref() so the timer itself never holds the event loop open.
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        /* already gone */
+      }
+      finish({ code: null, signal: null, errored: false, timedOut: true });
+    }, RUNTIME_INSTALL_TIMEOUT_MS);
+    timer.unref?.();
+    let outBuf = "";
+    let errBuf = "";
+    child.stdout?.on("data", (chunk) => (outBuf = consume(outBuf, chunk, true)));
+    // stderr is captured for a possible failure dump but never forwarded live.
+    child.stderr?.on("data", (chunk) => (errBuf = consume(errBuf, chunk, false)));
+    child.on("close", (exitCode, exitSignal) => {
+      // Flush any trailing partial lines left without a final newline.
+      handleLine(outBuf, true);
+      handleLine(errBuf, false);
+      finish({ code: exitCode, signal: exitSignal, errored: false, timedOut: false });
+    });
+    child.on("error", () =>
+      finish({ code: 1, signal: null, errored: true, timedOut: false })
+    );
+  });
+
+  if (timedOut) {
+    console.error(
+      `doc-detective: runtime pre-warm timed out after ${Math.round(
+        RUNTIME_INSTALL_TIMEOUT_MS / 1000
+      )}s; heavy deps will install on first use, or run \`doc-detective install all\`.`
+    );
+    // A killed `install all` can leave orphaned npm grandchildren that keep the
+    // event loop alive and freeze the parent `npm install` (the same hazard the
+    // agent-detection phase guards against). Exit 0 so the install completes.
+    process.exit(0);
+  }
+
+  if (!errored && !signal && code === 0) {
+    console.log("doc-detective: runtime + browsers ready.");
+    return;
+  }
+
+  const tail = captured.filter((l) => !isNpmNoiseLine(l)).slice(-20);
+  console.error(
+    "doc-detective: runtime install did not complete " +
+      (signal ? `(signal ${signal})` : `(exit ${code})`) +
+      ". Assets will install on first use, or run `doc-detective install all`."
+  );
+  if (tail.length) console.error(tail.map((l) => "  " + l).join("\n"));
+}
 
 async function maybePromptInstallAgents() {
   // Don't prompt in non-interactive contexts. npm sets many of these during
@@ -177,14 +353,13 @@ async function maybePromptInstallAgents() {
   }
   if (!proceed) {
     console.log(
-      "Skipped. Run `npx doc-detective install-agents` later to install."
+      "Skipped. Run `npx doc-detective install agents` later to install."
     );
     return;
   }
 
   // Pre-fill --agent so the CLI doesn't re-prompt for the picker. Scope stays
   // interactive on purpose — project vs global is a per-user decision.
-  const cliPath = path.join(__dirname, "..", "bin", "doc-detective.js");
   const cliArgs = ["install-agents"];
   for (const a of adaptersNeedingInstall) {
     cliArgs.push("--agent", a.id);
@@ -194,7 +369,7 @@ async function maybePromptInstallAgents() {
   // `node_modules/.bin` during the install step either.
   const childEnv = { ...process.env, [pathKey]: sanitizedPath };
   const { code, signal } = await new Promise((resolve) => {
-    const child = spawn(process.execPath, [cliPath, ...cliArgs], {
+    const child = spawn(process.execPath, [CLI_PATH, ...cliArgs], {
       stdio: "inherit",
       cwd: targetCwd,
       env: childEnv,
@@ -208,93 +383,8 @@ async function maybePromptInstallAgents() {
   if (signal || (code !== null && code !== 0)) {
     const reason = signal ? `due to signal ${signal}` : `with code ${code}`;
     console.log(
-      `\ndoc-detective install-agents exited ${reason}. ` +
-        "You can retry with `npx doc-detective install-agents`."
+      `\ndoc-detective install agents exited ${reason}. ` +
+        "You can retry with `npx doc-detective install agents`."
     );
   }
-}
-
-async function installBrowsers() {
-  // Move to package root directory to correctly set browser snapshot directory
-  let cwd = process.cwd();
-  process.chdir(path.join(__dirname, ".."));
-
-  // Meta
-  const browser_platform = browsers.detectBrowserPlatform();
-  const cacheDir = path.resolve("browser-snapshots");
-
-  // Install Chrome
-  try {
-    console.log("Installing Chrome browser");
-    let browser = "chrome";
-    let buildId = await browsers.resolveBuildId(
-      browser,
-      browser_platform,
-      "stable"
-    );
-    await browsers.install({
-      browser,
-      buildId,
-      cacheDir,
-    });
-  } catch (error) {
-    console.log("Chrome download not available.", error);
-  }
-
-  // Install Firefox
-  try {
-    console.log("Installing Firefox browser");
-    let browser = "firefox";
-    let buildId = await browsers.resolveBuildId(
-      browser,
-      browser_platform,
-      "latest"
-    );
-    await browsers.install({
-      browser,
-      buildId,
-      cacheDir,
-    });
-  } catch (error) {
-    console.log("Firefox download not available.", error);
-  }
-
-  // Install ChromeDriver
-  try {
-    console.log("Installing ChromeDriver binary");
-    let browser = "chromedriver";
-    let buildId = await browsers.resolveBuildId(
-      browser,
-      browser_platform,
-      "stable"
-    );
-    await browsers.install({
-      browser,
-      buildId,
-      cacheDir,
-    });
-  } catch (error) {
-    console.log("ChromeDriver download not available.", error);
-  }
-
-  // Install Geckodriver
-  try {
-    console.log("Installing Geckodriver binary");
-    let binPath;
-    if (__dirname.includes("AppData\\Roaming\\")) {
-      // Running from global install on Windows
-      binPath = path.join(__dirname.split("node_modules")[0]);
-    } else if (__dirname.includes("node_modules")) {
-      // If running from node_modules
-      binPath = path.join(__dirname, "../../.bin");
-    } else {
-      binPath = path.join(__dirname, "../node_modules/.bin");
-    }
-    process.env.GECKODRIVER_CACHE_DIR = binPath;
-    await geckodriver.download();
-  } catch (error) {
-    console.log("Geckodriver download not available.", error);
-  }
-  // Move back to original directory
-  process.chdir(cwd);
 }

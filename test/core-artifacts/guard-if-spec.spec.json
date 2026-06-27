@@ -1,0 +1,25 @@
+{
+  "specId": "guard-if-spec",
+  "description": "Exercises spec-level guard `if`: a spec with an always-false `if` must have every test/context recorded SKIPPED (no jobs enqueued), while a spec with an always-true `if` runs normally to PASS. Cross-platform: `$$platform` never equals `nonexistentos`, so the false guard is false everywhere and the true guard is true everywhere.",
+  "if": "$$platform == nonexistentos",
+  "tests": [
+    {
+      "testId": "guard-if-spec-skipped-test-a",
+      "description": "Spec-level guard is false, so this test is SKIPPED across all contexts before any step runs.",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "guard-if-spec-skipped-test-b",
+      "description": "A second test in the same spec — also SKIPPED by the spec-level guard, proving the skip covers the whole spec.",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}

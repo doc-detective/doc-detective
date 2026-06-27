@@ -69,12 +69,18 @@ tabs:
     display-name: Documentation
     icon: fa-solid fa-file
     slug: docs
-  tutorials:
-    display-name: Tutorials
-    icon: fa-solid fa-graduation-cap
+  ai:
+    display-name: AI & Agents
+    icon: fa-solid fa-robot
+    slug: ai
   reference:
     display-name: Reference
     icon: fa-solid fa-line-columns
+    slug: reference
+  contribute:
+    display-name: Contribute
+    icon: fa-solid fa-code-pull-request
+    slug: contribute
   support:
     display-name: Support
     icon: fa-solid fa-heart
@@ -107,73 +113,121 @@ navigation:
 
   - tab: docs
     layout:
-      - page: Introduction
-        path: pages/docs/intro.mdx
-
       - section: Get started
+        slug: get-started
         contents:
+          - page: Introduction
+            path: pages/docs/intro.mdx
+            slug: introduction
           - page: Installation
             path: pages/docs/get-started/installation.mdx
+            slug: installation
           - page: Concepts
             path: pages/docs/get-started/concepts.md
+            slug: concepts
           - page: Create your first test
             path: pages/docs/get-started/create-your-first-test.mdx
+            slug: create-your-first-test
+          - page: How testing works
+            path: pages/docs/tests/overview.mdx
+            slug: how-testing-works
           - page: Sample tests
             path: pages/docs/get-started/sample-tests.mdx
-          - page: CI
-            path: pages/docs/get-started/ci.mdx
-          - page: Integrations
-            path: pages/docs/get-started/integrations.mdx
-          - page: Self-healing
-            path: pages/docs/get-started/self-healing.mdx
-          - page: Resources
-            path: pages/docs/get-started/resources.mdx
+            slug: sample-tests
 
-      - section: Agent tools
+      - section: Test your docs
+        slug: test-docs
         contents:
           - page: Overview
-            path: pages/docs/agent-tools/overview.mdx
-          - page: Claude Code
-            path: pages/docs/agent-tools/claude-code.mdx
-          - page: Copilot CLI
-            path: pages/docs/agent-tools/copilot-cli.mdx
-          - page: Gemini CLI
-            path: pages/docs/agent-tools/gemini-cli.mdx
-          - page: Other assistants
-            path: pages/docs/agent-tools/other-assistants.mdx
-            slug: other-assistants
-
-      - section: Configuration
-        contents:
-          - page: Contexts
-            path: pages/docs/config/contexts.md
-
-      - section: Tests
-        contents:
-          - page: Overview
-            path: pages/docs/tests/overview.mdx
-          - page: Standalone tests
-            path: pages/docs/tests/standalone.mdx
+            path: pages/docs/test-docs/overview.mdx
+            slug: overview
           - page: Inline tests
             path: pages/docs/tests/inline.mdx
+            slug: inline
           - page: Detected tests
             path: pages/docs/tests/detected.mdx
+            slug: detected
+          - section: Input formats
+            slug: input-formats
+            contents:
+              - page: Overview
+                path: pages/docs/input-formats/overview.mdx
+                slug: overview
+              - page: Markdown
+                path: pages/docs/input-formats/markdown.mdx
+                slug: markdown
+              - page: DITA
+                path: pages/docs/input-formats/dita.mdx
+                slug: dita
+              - page: AsciiDoc
+                path: pages/docs/input-formats/asciidoc.mdx
+                slug: asciidoc
+              - page: HTML
+                path: pages/docs/input-formats/html.mdx
+                slug: html
+              - page: Custom
+                path: pages/docs/input-formats/custom.mdx
+                slug: custom
+          - page: Capture screenshots
+            path: pages/tutorials/capture-screenshot.mdx
+            slug: capture-screenshots
+          - page: Record video
+            path: pages/tutorials/record-video.mdx
+            slug: record-video
+          - page: Fill fields
+            path: pages/tutorials/fill-fields.mdx
+            slug: fill-fields
+          - page: Test across platforms & browsers
+            path: pages/docs/config/contexts.md
+            slug: platforms-and-browsers
+          - page: Heretto
+            path: pages/docs/integrations/heretto.mdx
+            slug: heretto
 
-      - section: Input formats
+      - section: Test code & APIs
+        slug: test-code
         contents:
           - page: Overview
-            path: pages/docs/input-formats/overview.mdx
-          - page: Markdown
-            path: pages/docs/input-formats/markdown.mdx
-          - page: DITA
-            path: pages/docs/input-formats/dita.mdx
-          - page: AsciiDoc
-            path: pages/docs/input-formats/asciidoc.mdx
-            slug: asciidoc
-          - page: HTML
-            path: pages/docs/input-formats/html.mdx
-          - page: Custom
-            path: pages/docs/input-formats/custom.mdx
+            path: pages/docs/test-code/overview.mdx
+            slug: overview
+          - page: Standalone tests
+            path: pages/docs/tests/standalone.mdx
+            slug: standalone
+          - page: Run shell & code
+            path: pages/docs/test-code/run-shell-and-code.mdx
+            slug: run-shell-and-code
+          - page: HTTP & APIs
+            path: pages/docs/test-code/http-and-api.mdx
+            slug: http-and-api
+          - page: Integrations
+            path: pages/docs/get-started/integrations.mdx
+            slug: integrations
+
+      - section: Run in CI & at scale
+        slug: ci
+        contents:
+          - page: Overview
+            path: pages/docs/ci/overview.mdx
+            slug: overview
+          - page: GitHub Action
+            path: pages/docs/get-started/ci.mdx
+            slug: github-action
+          - page: Set up your test environment
+            path: pages/tutorials/set-up-your-test-environment.mdx
+            slug: set-up-environment
+          - page: Reporters & artifacts
+            path: pages/docs/ci/reporters-and-artifacts.mdx
+            slug: reporters-and-artifacts
+          - page: Docker & headless
+            path: pages/docs/ci/docker-and-headless.mdx
+            slug: docker-and-headless
+
+      - section: Troubleshoot
+        slug: troubleshoot
+        contents:
+          - page: Troubleshoot a failing or flaky test
+            path: pages/docs/troubleshoot/overview.mdx
+            slug: overview
 
       - folder: pages/docs/actions
         title: Actions
@@ -187,20 +241,67 @@ navigation:
             path: pages/docs/selectors/xpath.mdx
             slug: xpath
 
+  - tab: ai
+    layout:
+      - section: AI & Agents
+        contents:
+          - page: Overview
+            path: pages/docs/agent-tools/overview.mdx
+            slug: overview
+          - page: Claude Code
+            path: pages/docs/agent-tools/claude-code.mdx
+            slug: claude-code
+          - page: Copilot CLI
+            path: pages/docs/agent-tools/copilot-cli.mdx
+            slug: copilot-cli
+          - page: Gemini CLI
+            path: pages/docs/agent-tools/gemini-cli.mdx
+            slug: gemini-cli
+          - page: Other assistants
+            path: pages/docs/agent-tools/other-assistants.mdx
+            slug: other-assistants
+          - page: Agent tools & MCP
+            path: pages/ai/agent-tools-and-mcp.mdx
+            slug: agent-tools-and-mcp
+          - page: Self-healing
+            path: pages/docs/get-started/self-healing.mdx
+            slug: self-healing
+
+  - tab: reference
+    layout:
+      - section: Reference
+        contents:
+          - page: Glossary
+            path: pages/reference/glossary.mdx
+            slug: glossary
+          - page: CLI commands & flags
+            path: pages/reference/cli.mdx
+            slug: cli
+      - folder: pages/reference/schemas
+        title: Schemas
+
+  - tab: contribute
+    layout:
       - section: Contribute
         contents:
           - page: Contribute to the docs
             path: pages/contribute/index.mdx
+            slug: index
           - page: Quick start
             path: pages/contribute/quick-start.mdx
+            slug: quick-start
           - page: Standard contributions
             path: pages/contribute/standard-contributions.mdx
+            slug: standard-contributions
           - page: Substantial contributions
             path: pages/contribute/substantial-contributions.mdx
+            slug: substantial-contributions
           - page: Local development
             path: pages/contribute/local-development.mdx
+            slug: local-development
           - page: Review process
             path: pages/contribute/review-process.mdx
+            slug: review-process
           - page: Testing the docs
             path: pages/contribute/testing.mdx
             slug: testing
@@ -224,30 +325,118 @@ navigation:
           - folder: pages/contribute/repos
             title: Repository guides
 
-      - section: Legal
-        contents:
-          - page: Privacy policy (Companion app)
-            path: pages/legal/privacy-policy-companion.md
-
-  - tab: tutorials
-    layout:
-      - page: Set up your test environment
-        path: pages/tutorials/set-up-your-test-environment.mdx
-      - page: Fill fields
-        path: pages/tutorials/fill-fields.mdx
-      - page: Capture screenshot
-        path: pages/tutorials/capture-screenshot.mdx
-      - page: Record video
-        path: pages/tutorials/record-video.mdx
-
-  - tab: reference
-    layout:
-      - page: Glossary
-        path: pages/reference/glossary.mdx
-      - folder: pages/reference/schemas
-        title: Schemas
-
   - tab: support
     layout:
-      - page: Support
-        path: pages/support.mdx
+      - section: Support
+        contents:
+          - page: Support
+            path: pages/support.mdx
+          - page: Resources
+            path: pages/docs/get-started/resources.mdx
+            slug: /resources
+          - page: Privacy policy (Companion app)
+            path: pages/legal/privacy-policy-companion.md
+            slug: /legal/privacy-policy-companion
+
+###########
+# Redirects
+###########
+
+redirects:
+  # Get started split
+  - source: /docs/introduction
+    destination: /docs/get-started/introduction
+  # Tests → split across tracks
+  - source: /docs/tests
+    destination: /docs/get-started/how-testing-works
+  - source: /docs/tests/overview
+    destination: /docs/get-started/how-testing-works
+  - source: /docs/tests/inline-tests
+    destination: /docs/test-docs/inline
+  - source: /docs/tests/inline
+    destination: /docs/test-docs/inline
+  - source: /docs/tests/detected-tests
+    destination: /docs/test-docs/detected
+  - source: /docs/tests/detected
+    destination: /docs/test-docs/detected
+  - source: /docs/tests/standalone-tests
+    destination: /docs/test-code/standalone
+  - source: /docs/tests/standalone
+    destination: /docs/test-code/standalone
+  # Input formats → Test your docs (explicit; Fern redirects match literal paths)
+  - source: /docs/input-formats/overview
+    destination: /docs/test-docs/input-formats/overview
+  - source: /docs/input-formats/markdown
+    destination: /docs/test-docs/input-formats/markdown
+  - source: /docs/input-formats/dita
+    destination: /docs/test-docs/input-formats/dita
+  - source: /docs/input-formats/asciidoc
+    destination: /docs/test-docs/input-formats/asciidoc
+  - source: /docs/input-formats/html
+    destination: /docs/test-docs/input-formats/html
+  - source: /docs/input-formats/custom
+    destination: /docs/test-docs/input-formats/custom
+  # Integrations / contexts → tracks
+  - source: /docs/integrations/heretto
+    destination: /docs/test-docs/heretto
+  - source: /docs/configuration/contexts
+    destination: /docs/test-docs/platforms-and-browsers
+  # Get started → CI / Test code / AI / Support
+  - source: /docs/get-started/ci
+    destination: /docs/ci/github-action
+  - source: /docs/get-started/integrations
+    destination: /docs/test-code/integrations
+  - source: /docs/get-started/self-healing
+    destination: /ai/self-healing
+  - source: /docs/get-started/resources
+    destination: /resources
+  # Agent tools → AI & Agents pillar
+  - source: /docs/agent-tools/overview
+    destination: /ai/overview
+  - source: /docs/agent-tools/claude-code
+    destination: /ai/claude-code
+  - source: /docs/agent-tools/copilot-cli
+    destination: /ai/copilot-cli
+  - source: /docs/agent-tools/gemini-cli
+    destination: /ai/gemini-cli
+  - source: /docs/agent-tools/other-assistants
+    destination: /ai/other-assistants
+  # Tutorials tab dissolved into tracks
+  - source: /tutorials
+    destination: /docs/test-docs/overview
+  - source: /tutorials/capture-screenshot
+    destination: /docs/test-docs/capture-screenshots
+  - source: /tutorials/fill-fields
+    destination: /docs/test-docs/fill-fields
+  - source: /tutorials/record-video
+    destination: /docs/test-docs/record-video
+  - source: /tutorials/set-up-your-test-environment
+    destination: /docs/ci/set-up-environment
+  # Contribute → own tab (explicit; Fern redirects match literal paths)
+  - source: /docs/contribute/contribute-to-the-docs
+    destination: /contribute/index
+  - source: /docs/contribute/quick-start
+    destination: /contribute/quick-start
+  - source: /docs/contribute/standard-contributions
+    destination: /contribute/standard-contributions
+  - source: /docs/contribute/substantial-contributions
+    destination: /contribute/substantial-contributions
+  - source: /docs/contribute/local-development
+    destination: /contribute/local-development
+  - source: /docs/contribute/review-process
+    destination: /contribute/review-process
+  - source: /docs/contribute/testing
+    destination: /contribute/testing
+  - source: /docs/contribute/how-to
+    destination: /contribute/how-to
+  - source: /docs/contribute/tutorial
+    destination: /contribute/tutorial
+  - source: /docs/contribute/reference
+    destination: /contribute/reference
+  - source: /docs/contribute/feature
+    destination: /contribute/feature
+  - source: /docs/contribute/troubleshooting
+    destination: /contribute/troubleshooting
+  # Legal → Support
+  - source: /docs/legal/privacy-policy-companion-app
+    destination: /legal/privacy-policy-companion
