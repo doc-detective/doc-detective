@@ -250,6 +250,8 @@ navigation:
     layout:
       - page: Glossary
         path: pages/reference/glossary.mdx
+      - page: Expressions
+        path: pages/reference/expressions.mdx
       - folder: pages/reference/schemas
         title: Schemas
 
