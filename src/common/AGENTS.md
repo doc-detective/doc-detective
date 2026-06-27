@@ -10,6 +10,8 @@
 
 This is a dependency package, not a standalone application. Changes here affect downstream packages.
 
+> Schema changes are user-facing: they alter the test/config contract. A change here that adds, renames, or constrains a field owes a **docs-impact assessment** — see ["Documentation impact"](../../CLAUDE.md#documentation-impact-required) and the [content strategy](../../docs/content-strategy/) in the root guide.
+
 ## Architecture
 
 ### Schema System (Core Component)

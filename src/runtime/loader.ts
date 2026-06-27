@@ -48,12 +48,64 @@ export interface LoadOptions {
 
 const requireFromShim = createRequire(import.meta.url);
 
-function tryResolveFromShim(name: string): string | null {
+// Map a resolved `<name>/package.json` path to the package's real entry file by
+// reading its `exports["."]` (or bare `exports`/`main`). Pure-ESM packages —
+// e.g. appium-chromium-driver v3, appium-geckodriver v3, appium-safari-driver v5
+// — publish an exports map whose "." has only an `import` condition, so
+// `require.resolve(name)` throws ERR_PACKAGE_PATH_NOT_EXPORTED even though the
+// package is installed. `./package.json` stays exported, so we resolve that and
+// derive the entry ourselves. Returns null if no entry can be determined.
+function entryFromPackageJson(pkgJsonPath: string): string | null {
   try {
-    return requireFromShim.resolve(name);
+    const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+    // `?? pkg?.exports` also handles the root-level shorthand
+    // `"exports": { "import": "…" }` (no "." key) where the conditions sit
+    // directly on the exports object.
+    const dot = pkg?.exports?.["."] ?? pkg?.exports;
+    let rel: unknown;
+    if (typeof dot === "string") {
+      rel = dot;
+    } else if (dot && typeof dot === "object") {
+      // `import` wins first: this fallback only runs after require.resolve(name)
+      // already threw, so there is no usable CJS entry — the ESM `import` target
+      // is the only valid one (the inverse of normal CJS condition order).
+      rel = dot.import ?? dot.require ?? dot.default ?? dot.node;
+    }
+    if (typeof rel !== "string") rel = pkg?.main;
+    if (typeof rel !== "string") return null;
+    // Containment guard: mirror Node's rule that an exports target must stay
+    // inside the package dir. Skipping Node's own validation here means a
+    // crafted "../../outside.js" would otherwise let path.join escape the
+    // package — and the result is both imported and used to anchor APPIUM_HOME.
+    const pkgDir = path.dirname(pkgJsonPath);
+    const entry = path.resolve(pkgDir, rel);
+    const within = path.relative(pkgDir, entry);
+    if (within === "" || within.startsWith("..") || path.isAbsolute(within)) {
+      return null;
+    }
+    return entry;
   } catch {
     return null;
   }
+}
+
+// Resolve a package's entry with `require`, falling back to its package.json for
+// pure-ESM packages whose "." export omits a require/default condition.
+function resolveEntry(requireFn: NodeRequire, name: string): string | null {
+  try {
+    return requireFn.resolve(name);
+  } catch {
+    try {
+      const pkgJson = requireFn.resolve(`${name}/package.json`);
+      return entryFromPackageJson(pkgJson);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function tryResolveFromShim(name: string): string | null {
+  return resolveEntry(requireFromShim, name);
 }
 
 function tryResolveFromCache(
@@ -66,12 +118,8 @@ function tryResolveFromCache(
   // check would miss for scoped or sub-path entry points.
   const pkgJsonAnchor = path.join(runtimeDir, "package.json");
   if (!fs.existsSync(pkgJsonAnchor)) return null;
-  try {
-    const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
-    return requireFromCache.resolve(name);
-  } catch {
-    return null;
-  }
+  const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
+  return resolveEntry(requireFromCache, name);
 }
 
 /**
@@ -87,6 +135,59 @@ export function resolveHeavyDepPath(
   ctx: CacheDirContext = {}
 ): string | null {
   return tryResolveFromShim(name) ?? tryResolveFromCache(name, ctx);
+}
+
+/**
+ * Where a heavy dep resolves from, or `null` if it doesn't resolve.
+ * "shim" = the doc-detective package's own node_modules (a pre-installed
+ * optionalDependency or dev checkout); "cache" = <cacheDir>/runtime. The
+ * distinction matters for freshness: `ensureRuntimeInstalled` never
+ * overrides a shim-resolved version but DOES reinstall a stale cache, so
+ * callers reporting "outdated" must only apply the declared-range check to
+ * cache resolutions.
+ */
+export function resolveHeavyDepSource(
+  name: string,
+  ctx: CacheDirContext = {}
+): "shim" | "cache" | null {
+  if (tryResolveFromShim(name)) return "shim";
+  if (tryResolveFromCache(name, ctx)) return "cache";
+  return null;
+}
+
+/**
+ * Read the installed version of a heavy dep that's resolvable (shim
+ * node_modules OR runtime cache) but may not be recorded in
+ * <cacheDir>/installed.json — e.g. a pre-installed optionalDependency or a
+ * dev checkout. Walks up from the resolved entry to the package's own
+ * package.json (the first one whose `name` matches, so a nested
+ * `dist/package.json` with only `{"type":"module"}` is skipped). Returns
+ * `null` when the dep isn't resolvable or the version can't be read.
+ */
+export function resolveHeavyDepVersion(
+  name: string,
+  ctx: CacheDirContext = {}
+): string | null {
+  const entry = resolveHeavyDepPath(name, ctx);
+  if (!entry) return null;
+  let dir = path.dirname(entry);
+  for (let i = 0; i < 12; i++) {
+    const pkgJsonPath = path.join(dir, "package.json");
+    try {
+      if (fs.existsSync(pkgJsonPath)) {
+        const parsed = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+        if (parsed?.name === name && typeof parsed.version === "string") {
+          return parsed.version;
+        }
+      }
+    } catch {
+      // Unreadable / malformed package.json — keep walking.
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
 }
 
 /**
