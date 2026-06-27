@@ -37,9 +37,11 @@ $$steps.fetch-user.outputs.body#/data/0/email
 
 To embed an expression inside a larger string, wrap it in double curly braces. Doc Detective replaces each `{{...}}` with the resolved value and leaves the surrounding text intact.
 
+For example, after a prior step with the `stepId` `fetch-user` captures a response, interpolate one of its outputs into a later step:
+
 ```json
 {
-  "goTo": "https://example.com/users/{{$$response.body.id}}"
+  "goTo": "https://example.com/users/{{$$steps.fetch-user.outputs.body.id}}"
 }
 ```
 
@@ -72,7 +74,7 @@ Write word operators between the operands, with a space on each side.
 - **`contains`**: True when the left operand contains the right operand. Works on strings (substring), arrays (membership), and objects (key presence).
 
   ```text
-  $$response.body.role contains admin
+  $$response.body.role contains "admin"
   ```
 
 - **`oneOf`**: True when the left operand equals one of the values in the array on the right.
