@@ -1,3 +1,10 @@
+# [4.15.0-next.18](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.17...v4.15.0-next.18) (2026-06-27)
+
+
+### Bug Fixes
+
+* **expressions:** harden against ReDoS and incomplete string escaping ([9af5221](https://github.com/doc-detective/doc-detective/commit/9af52212a776baf1c5f2f7d6944dd0a519de9856))
+
 # [4.15.0-next.17](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.16...v4.15.0-next.17) (2026-06-26)
 
 

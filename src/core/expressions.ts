@@ -145,7 +145,7 @@ function hasUnresolvedMetaReference(expression: string, context: any): boolean {
   // are intentional literals, not lookups. Only $$tokens in the JS skeleton are
   // genuine references whose undefined resolution should fail the condition.
   const skeleton = expression.replace(
-    /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+    /"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'/g,
     " "
   );
   const metaValueRegex = new RegExp(META_TOKEN_SOURCE, "g");
@@ -407,10 +407,15 @@ async function evaluateExpression(expression: string, context: any): Promise<any
       },
     };
 
-    // Use Function constructor for safer evaluation
+    // Use Function constructor for safer evaluation. The expression's string
+    // literals are already escaped at construction — masked user literals are
+    // restored verbatim as valid JS source, and the `matches /regex/` pattern
+    // escapes its own backslashes/quotes. A previous blunt global
+    // `\\` -> `\\\\` doubling here corrupted intentional escapes (e.g. \" inside
+    // a literal, or a regex containing a double-quote), so it has been removed.
     const evaluator = new Function(
       ...Object.keys(evalContext),
-      `return ${expression.replace(/\\/g, "\\\\")};`
+      `return ${expression};`
     );
     return evaluator(...Object.values(evalContext));
   } catch (error: any) {
@@ -440,7 +445,7 @@ function preprocessExpression(expression: string): string {
   // quoted literal, so it is left untouched here and handled normally below.
   const maskedLiterals: string[] = [];
   expression = expression.replace(
-    /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+    /"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'/g,
     (literal: string) => {
       const token = `__DDSTR${maskedLiterals.length}__`;
       maskedLiterals.push(literal);
@@ -469,7 +474,7 @@ function preprocessExpression(expression: string): string {
 
   // A left operand for an infix word operator: either a quoted string literal
   // (which may itself contain spaces) or a run of non-space characters.
-  const LEFT = `("(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'|\\S+)`;
+  const LEFT = `("[^"\\\\]*(?:\\\\.[^"\\\\]*)*"|'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'|\\S+)`;
 
   // Replace "contains" operator (infix): <left> contains <right>
   expression = expression.replace(
@@ -490,13 +495,16 @@ function preprocessExpression(expression: string): string {
   // or a bare/quoted string (no spaces). The RHS alternation tries the
   // slash-literal form first so a pattern like /hello world/ is captured whole.
   expression = expression.replace(
-    new RegExp(`${LEFT}\\s+matches\\s+(\\/(?:[^\\/\\\\]|\\\\.)*\\/[a-z]*|\\S+)`, "g"),
+    new RegExp(`${LEFT}\\s+matches\\s+(\\/[^\\/\\\\]*(?:\\\\.[^\\/\\\\]*)*\\/[a-z]*|\\S+)`, "g"),
     (_m: string, left: string, right: string) => {
       let pattern = right;
       // Strip /.../ regex-literal delimiters into a plain string pattern.
       const reLiteral = right.match(/^\/(.*)\/[a-z]*$/);
       if (reLiteral) {
-        pattern = `"${reLiteral[1]!.replace(/"/g, '\\"')}"`;
+        // Build a JS string literal for the regex source. Escape backslashes
+        // FIRST, then double-quotes, so a pattern like /\d/ or /a"b/ survives
+        // intact into `new Function` (CodeQL: incomplete string escaping).
+        pattern = `"${reLiteral[1]!.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
       } else {
         pattern = quoteIfLiteral(right);
       }
