@@ -23,3 +23,13 @@ ignoreEnd | one of:<br/>- string<br/>- array of string | Optional. Regular expre
 step | one of:<br/>- string<br/>- array of string | Optional. Regular expressions that indicate a step in a test. | 
 
 ## Examples
+
+```json
+{
+  "testStart": "example",
+  "testEnd": "example",
+  "ignoreStart": "example",
+  "ignoreEnd": "example",
+  "step": "example"
+}
+```

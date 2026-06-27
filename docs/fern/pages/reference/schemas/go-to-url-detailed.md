@@ -29,7 +29,6 @@ waitUntil | object | Optional. Configuration for waiting conditions after naviga
   "url": "example",
   "origin": "example",
   "params": {},
-  "timeout": 30000,
-  "waitUntil": {}
+  "timeout": 30000
 }
 ```

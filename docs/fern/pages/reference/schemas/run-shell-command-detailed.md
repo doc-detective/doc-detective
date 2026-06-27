@@ -43,6 +43,8 @@ background | object | Optional. Start the command as a long-running background p
   "maxVariation": 0,
   "overwrite": "aboveVariation",
   "timeout": 60000,
-  "background": {}
+  "background": {
+    "name": "example"
+  }
 }
 ```

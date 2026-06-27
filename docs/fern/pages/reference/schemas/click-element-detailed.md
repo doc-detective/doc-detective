@@ -34,6 +34,7 @@ elementAria | string | Optional. Computed accessible name of the element per ARI
   "elementId": "example",
   "elementTestId": "example",
   "elementClass": "example",
+  "elementAttribute": {},
   "elementAria": "example"
 }
 ```

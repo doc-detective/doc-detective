@@ -34,6 +34,7 @@ padding | one of:<br/>- number<br/>- object([Padding (detailed)](/reference/sche
   "elementId": "example",
   "elementTestId": "example",
   "elementClass": "example",
+  "elementAttribute": {},
   "elementAria": "example",
   "padding": 42
 }

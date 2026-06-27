@@ -91,6 +91,18 @@ function getEffectiveProperties(schema) {
   return properties ? { properties, required } : null;
 }
 
+// A single-property wrapper whose property name matches its title, e.g. an action
+// `{ dragAndDrop: { source, target } }` titled "dragAndDrop" — the step-level shape
+// we want to document, in preference to the bare value schema of the same title.
+function isSinglePropWrapper(schema, id) {
+  const eff = getEffectiveProperties(schema);
+  return !!(
+    eff &&
+    Object.keys(eff.properties).length === 1 &&
+    Object.keys(eff.properties)[0] === id
+  );
+}
+
 // Function to extract all object schemas from a schema
 function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
   // Skip if null or not an object
@@ -112,8 +124,14 @@ function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
       parentChildRelationships.get(parentSchemaId).add(schemaId);
     }
 
-    // Add to extracted schemas if not already processed
-    if (!schemaRegistry.has(schemaId)) {
+    // Register the schema for this id. On a title collision, prefer a single-
+    // property wrapper (the step-level action shape) over a bare value schema,
+    // so e.g. dragAndDrop documents `{ dragAndDrop: {...} }` like goTo does.
+    const existing = schemaRegistry.get(schemaId);
+    const preferNew =
+      isSinglePropWrapper(schema, schemaId) &&
+      !(existing && isSinglePropWrapper(existing, schemaId));
+    if (!existing || preferNew) {
       schemaRegistry.set(schemaId, schema);
       extractedSchemas[schemaId] = schema;
 
@@ -283,63 +301,74 @@ function generateSchemaMarkdown(schemaId, schema) {
   return heading.concat(fields).concat(examples).join("\n");
 }
 
+// Produce an example value for a single property schema. Returns undefined when
+// no sensible value can be synthesized (so the caller omits the property).
+function exampleValue(propSchema, depth = 0) {
+  if (!propSchema || typeof propSchema !== "object" || depth > 5) return undefined;
+  if (propSchema.default !== undefined) return propSchema.default;
+  if (propSchema.const !== undefined) return propSchema.const;
+  if (propSchema.enum) return propSchema.enum[0];
+
+  switch (propSchema.type) {
+    case "string":
+      return "example";
+    case "number":
+    case "integer":
+      return 42;
+    case "boolean":
+      return true;
+    case "array":
+      return [];
+  }
+
+  // Object schemas (incl. allOf-composed). Build a minimal valid object: when the
+  // object has required fields, include only those; small optional objects get a
+  // full example; large optional objects are omitted (an empty `{}` would be
+  // invalid when required fields exist, and noisy otherwise).
+  const eff = getEffectiveProperties(propSchema);
+  if (propSchema.type === "object" || eff) {
+    if (!eff) return {};
+    const required = eff.required || [];
+    if (required.length > 0) {
+      const obj = {};
+      for (const key of required) {
+        const v = exampleValue(eff.properties[key], depth + 1);
+        if (v !== undefined) obj[key] = v;
+      }
+      return obj;
+    }
+    if (Object.keys(eff.properties).length <= 2) {
+      return buildExampleObject(eff, depth + 1);
+    }
+    return undefined; // omit complex optional object
+  }
+
+  // anyOf/oneOf — use the first option.
+  const options = propSchema.anyOf || propSchema.oneOf;
+  if (Array.isArray(options) && options.length > 0) {
+    return exampleValue(options[0], depth + 1);
+  }
+
+  return undefined;
+}
+
+// Build an example object from effective properties, skipping read-only/deprecated
+// fields and omitting properties with no sensible synthesized value.
+function buildExampleObject(eff, depth = 0) {
+  const example = {};
+  for (const [propName, propSchema] of Object.entries(eff.properties)) {
+    if (propSchema.readOnly || propSchema.deprecated) continue;
+    const v = exampleValue(propSchema, depth);
+    if (v !== undefined) example[propName] = v;
+  }
+  return example;
+}
+
 // Function to generate an example from a schema
 function generateExampleFromSchema(schema) {
   const eff = getEffectiveProperties(schema);
   if (!eff) return {};
-
-  const example = {};
-
-  for (const [propName, propSchema] of Object.entries(eff.properties)) {
-    // Skip system-populated/deprecated fields — they shouldn't be set manually.
-    if (propSchema.readOnly || propSchema.deprecated) continue;
-
-    // Use default value if available
-    if (propSchema.default !== undefined) {
-      example[propName] = propSchema.default;
-      continue;
-    }
-
-    // Generate based on type
-    if (propSchema.type === "string") {
-      example[propName] = propSchema.enum ? propSchema.enum[0] : "example";
-    } else if (propSchema.type === "number" || propSchema.type === "integer") {
-      example[propName] = 42;
-    } else if (propSchema.type === "boolean") {
-      example[propName] = true;
-    } else if (propSchema.type === "array") {
-      example[propName] = [];
-    } else if (propSchema.type === "object" && propSchema.properties) {
-      // Only include nested example if it's a simple object
-      if (Object.keys(propSchema.properties).length <= 2) {
-        example[propName] = generateExampleFromSchema(propSchema);
-      } else {
-        example[propName] = {};
-      }
-    }
-
-    // Handle anyOf/oneOf by using the first option
-    if (!propSchema.type && (propSchema.anyOf || propSchema.oneOf)) {
-      const options = propSchema.anyOf || propSchema.oneOf;
-      if (options.length > 0) {
-        const firstOption = options[0];
-        if (firstOption.type === "string") {
-          example[propName] = firstOption.enum
-            ? firstOption.enum[0]
-            : "example";
-        } else if (
-          firstOption.type === "number" ||
-          firstOption.type === "integer"
-        ) {
-          example[propName] = 42;
-        } else if (firstOption.type === "boolean") {
-          example[propName] = true;
-        }
-      }
-    }
-  }
-
-  return example;
+  return buildExampleObject(eff);
 }
 
 // Function to generate a property row for the fields table

@@ -32,6 +32,7 @@ timeout | integer | Optional. Max duration in milliseconds to wait for the eleme
   "elementId": "example",
   "elementTestId": "example",
   "elementClass": "example",
+  "elementAttribute": {},
   "elementAria": "example",
   "timeout": 5000
 }

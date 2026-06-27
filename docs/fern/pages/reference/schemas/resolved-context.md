@@ -24,7 +24,9 @@ steps | array of object | Optional. Steps to perform as part of the test. Perfor
 ```json
 {
   "platform": "example",
-  "browser": {},
+  "browser": {
+    "name": "chrome"
+  },
   "openApi": [],
   "steps": []
 }

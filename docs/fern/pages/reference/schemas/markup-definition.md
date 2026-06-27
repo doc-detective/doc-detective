@@ -24,6 +24,7 @@ actions | one of:<br/>- string<br/>- array of one of: string, object | Optional.
 ```json
 {
   "name": "example",
+  "regex": "example",
   "batchMatches": false,
   "actions": "checkLink"
 }

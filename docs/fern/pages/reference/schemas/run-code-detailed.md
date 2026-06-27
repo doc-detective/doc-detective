@@ -44,6 +44,8 @@ background | object | Optional. Start the code as a long-running background proc
   "maxVariation": 0,
   "overwrite": "aboveVariation",
   "timeout": 60000,
-  "background": {}
+  "background": {
+    "name": "example"
+  }
 }
 ```

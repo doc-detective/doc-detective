@@ -46,6 +46,7 @@ visit | integer | ReadOnly. Which visit of this step produced this report, when 
   "variables": {},
   "breakpoint": false,
   "if": "example",
+  "assertions": "example",
   "onPass": [],
   "onFail": [],
   "onWarning": [],

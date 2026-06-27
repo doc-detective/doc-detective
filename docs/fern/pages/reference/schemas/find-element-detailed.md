@@ -35,8 +35,10 @@ type | one of:<br/>- one of:<br/>- string<br/>- array of string<br/>- object([Ty
   "elementId": "example",
   "elementTestId": "example",
   "elementClass": "example",
+  "elementAttribute": {},
   "elementAria": "example",
   "timeout": 5000,
-  "moveTo": true
+  "moveTo": true,
+  "click": "example"
 }
 ```

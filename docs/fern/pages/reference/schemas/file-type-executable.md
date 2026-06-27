@@ -18,3 +18,10 @@ extensions | one of:<br/>- string<br/>- array of string | Required. File extensi
 runShell | one of:<br/>- string<br/>- object([Run shell command (detailed)](/reference/schemas/run-shell-command-detailed)) | Optional. `runShell` step to perform for this file type. Use $1 as a placeholder for the file path. | 
 
 ## Examples
+
+```json
+{
+  "extensions": "example",
+  "runShell": "example"
+}
+```

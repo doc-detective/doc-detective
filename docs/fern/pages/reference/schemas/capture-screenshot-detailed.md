@@ -30,6 +30,9 @@ sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegrat
   "maxVariation": 0.05,
   "overwrite": "aboveVariation",
   "crop": "example",
-  "sourceIntegration": {}
+  "sourceIntegration": {
+    "type": "heretto",
+    "integrationName": "example"
+  }
 }
 ```

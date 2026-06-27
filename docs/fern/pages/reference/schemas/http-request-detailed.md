@@ -38,8 +38,6 @@ overwrite | string | Optional. If `true`, overwrites the existing output at `pat
   ],
   "method": "get",
   "timeout": 60000,
-  "request": {},
-  "response": {},
   "allowAdditionalFields": true,
   "path": "example",
   "directory": "example",
