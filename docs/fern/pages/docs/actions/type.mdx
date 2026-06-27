@@ -12,7 +12,7 @@ You can specify the keys to type in several ways:
 - **Array Shorthand:** Provide an array of strings. Each string in the array is typed sequentially. This allows mixing regular text with [special keys](#special-keys).
 - **Object Format:** Use an object for more control:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
-  - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible.
+  - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible.
 
 **Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
 
