@@ -43,7 +43,14 @@ async function clickElement({ config, step, driver }: { config: any; step: any; 
     click: true,
   });
 
+  // Unified model: click delegates element EXISTENCE (the implicit verification)
+  // to find, and the actual click is performed inside find as a sub-effect =
+  // EXECUTION. So click owns no spec of its own; it PROPAGATES find's computed
+  // outputs (incl. `found`), its existence assertion(s), and the rolled-up
+  // status verbatim. found→PASS, not-found→FAIL, click-fails→FAIL all carry
+  // through unchanged.
   result.outputs = findResult.outputs;
+  result.assertions = findResult.assertions;
   result.status = findResult.status;
   result.description = findResult.description;
 

@@ -5,6 +5,11 @@ import {
   serializeBrowserResult,
   matchesExpectedOutput,
 } from "../utils.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -96,18 +101,53 @@ async function runBrowserScript({
   result.outputs.result = returnValue;
   const serialized = serializeBrowserResult(returnValue);
 
-  // Evaluate expected output (substring or /regex/) against the serialized value.
+  // Unified assertion model: implicit verifications are `$$` runtime
+  // EXPRESSIONS evaluated by the shared engine. Script EXECUTION errors (no
+  // driver/`execute`, throw/timeout, invalid step, fs error) are handled above
+  // / below as FAIL with NO assertion records. Here we (1) compute any derived
+  // inputs the expressions reference and EXPOSE them as outputs, (2) build the
+  // ordered list of APPLICABLE specs, then (3) hand them to the shared engine.
+  //
+  // Applicable set: output match (only when `output` is set); saved-file
+  // variation (only when `path` is set AND an existing file is being compared
+  // against). With neither, there are zero applicable specs and the roll-up of
+  // an empty record list is PASS. File write/overwrite SIDE EFFECTS are
+  // preserved exactly and run unconditionally whenever `path` is set,
+  // independent of the assertion model.
+  const specs: ImplicitAssertionSpec[] = [];
+  const descriptions: string[] = [];
+
+  // (a) Expected output match — APPLICABLE only when `output` is set. The
+  // existing substring / regex match (`matchesExpectedOutput`) is computed here
+  // and EXPOSED as a boolean output so the spec is a simple equality and
+  // `$$outputs.outputMatches` is referenceable downstream.
   if (step.runBrowserScript.output) {
-    if (!matchesExpectedOutput(serialized, step.runBrowserScript.output)) {
-      result.status = "FAIL";
-      result.description = `Couldn't find expected output (${step.runBrowserScript.output}) in the script's return value.`;
-      return result;
-    }
+    const outputMatches = matchesExpectedOutput(
+      serialized,
+      step.runBrowserScript.output
+    );
+    result.outputs.outputMatches = outputMatches;
+    specs.push({
+      statement: `$$outputs.outputMatches == true`,
+      severity: "fail",
+    });
+    descriptions.push(
+      outputMatches
+        ? `Found expected output (${step.runBrowserScript.output}) in the script's return value.`
+        : `Couldn't find expected output (${step.runBrowserScript.output}) in the script's return value.`
+    );
   }
 
-  // Check if the return value is saved to a file. Wrap the filesystem work so a
-  // permissions error, bad path, full disk, or a file deleted mid-run returns a
-  // deterministic FAIL instead of throwing out of the runner.
+  // (b) Saved-file variation ≤ maxVariation — APPLICABLE only when `path` is set
+  // AND an existing file is being compared against. File-write / overwrite SIDE
+  // EFFECTS are preserved exactly and run unconditionally whenever `path` is
+  // set; the assertion is gated on there being a prior file (the "file didn't
+  // exist yet → write, NO variation assertion" path emits no variation spec).
+  // When applicable, the computed `fractionalDiff` is EXPOSED as
+  // `outputs.variation` and the spec is `$$outputs.variation <= maxVariation`
+  // at WARNING severity, referenceable downstream. A filesystem error (bad
+  // path, permissions, full disk, file removed mid-run) is an EXECUTION error,
+  // not an assertion: FAIL with NO records.
   if (step.runBrowserScript.path) {
     try {
       const dir = path.dirname(step.runBrowserScript.path);
@@ -119,7 +159,8 @@ async function runBrowserScript({
       log(config, "debug", `Saving script result to file: ${filePath}`);
 
       if (!fs.existsSync(filePath)) {
-        // Doesn't exist, save output to file
+        // Doesn't exist, save output to file. No prior content to compare
+        // against, so there is NO variation assertion in this branch.
         fs.writeFileSync(filePath, serialized);
       } else {
         const existingFile = fs.readFileSync(filePath, "utf8");
@@ -129,30 +170,38 @@ async function runBrowserScript({
         );
         log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
+        // Expose the computed variation as an output the expression references.
+        result.outputs.variation = fractionalDiff;
+        specs.push({
+          statement: `$$outputs.variation <= ${step.runBrowserScript.maxVariation}`,
+          severity: "warning",
+        });
+
+        // File side effects (write/overwrite) are unchanged from prior behavior.
         if (fractionalDiff > step.runBrowserScript.maxVariation) {
           if (
             step.runBrowserScript.overwrite == "aboveVariation" ||
             step.runBrowserScript.overwrite == "true"
           ) {
             fs.writeFileSync(filePath, serialized);
-            result.description += ` Saved output to file.`;
+            descriptions.push(`Saved output to file.`);
           } else {
-            result.description += ` Didn't overwrite the existing file.`;
+            descriptions.push(`Didn't overwrite the existing file.`);
           }
-          result.status = "WARNING";
-          result.description += ` The difference between the existing output and the new output (${fractionalDiff.toFixed(
-            2
-          )}) is greater than the max accepted variation (${
-            step.runBrowserScript.maxVariation
-          }).`;
-          return result;
-        }
-
-        // Within variation: only "true" forces a rewrite; otherwise the
-        // existing file is left as-is and the step passes without a note.
-        if (step.runBrowserScript.overwrite == "true") {
-          fs.writeFileSync(filePath, serialized);
-          result.description += ` Saved output to file.`;
+          descriptions.push(
+            `The difference between the existing output and the new output (${fractionalDiff.toFixed(
+              2
+            )}) is greater than the max accepted variation (${
+              step.runBrowserScript.maxVariation
+            }).`
+          );
+        } else {
+          // Within variation: only "true" forces a rewrite; otherwise the
+          // existing file is left as-is.
+          if (step.runBrowserScript.overwrite == "true") {
+            fs.writeFileSync(filePath, serialized);
+            descriptions.push(`Saved output to file.`);
+          }
         }
       }
     } catch (error: any) {
@@ -160,6 +209,16 @@ async function runBrowserScript({
       result.description = `Couldn't persist script output at ${step.runBrowserScript.path}: ${error.message}`;
       return result;
     }
+  }
+
+  // Evaluate the applicable specs through the shared engine. Zero applicable
+  // specs (neither `output` nor a compared file) roll up to PASS.
+  const ctx = buildConditionContext({ outputs: result.outputs });
+  const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+  result.assertions = assertions;
+  result.status = status;
+  if (descriptions.length > 0) {
+    result.description = `${result.description} ${descriptions.join(" ")}`;
   }
 
   return result;

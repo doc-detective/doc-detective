@@ -11,6 +11,11 @@ import path from "node:path";
 import fs from "node:fs";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -98,6 +103,46 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     },
   };
   let element: any;
+
+  // ---------------------------------------------------------------------------
+  // Unified assertion model (mirrors runShell.ts / httpRequest.ts / findElement.ts).
+  //
+  // Each implicit VERIFICATION check is a `$$` runtime EXPRESSION evaluated by
+  // the shared engine (`evaluateImplicitAssertions`). We do NOT compute
+  // PASS/FAIL/WARNING inline. Instead we (1) compute the derived input the
+  // expression references and EXPOSE it as an output, (2) push an APPLICABLE
+  // spec onto `specs` IN ORDER, then (3) hand the ordered list to the shared
+  // engine, which performs the in-order evaluation, the FAIL short-circuit
+  // (later applicable checks become SKIPPED), and the
+  // FAIL > WARNING > SKIPPED > PASS roll-up.
+  //
+  // Applicable verification specs, IN ORDER:
+  //   (1) crop element found      `$$outputs.cropElementFound == true`  (fail)    — only when `crop` is set
+  //   (2) element fits viewport   `$$outputs.fitsViewport == true`      (fail)    — only when `crop` is set
+  //   (3) aspect ratios match     `$$outputs.aspectRatioMatch == true`  (fail)    — only when comparing against an existing/URL reference
+  //   (4) variation <= max        `$$outputs.variation <= <max>`        (warning) — only when comparing against an existing/URL reference
+  //
+  // EXECUTION errors (NOT assertions) still return FAIL with NO assertion
+  // records, preserving the prior early returns + messages exactly:
+  //   - can't load sharp/PNG/pixelmatch; invalid step; can't fetch the URL
+  //     reference; path escapes the run folder; the underlying findElement call
+  //     itself errors; can't capture; can't decode PNG; can't crop/extract.
+  // SKIPPED is preserved when the file exists and overwrite is "false".
+  //
+  // ALL existing outputs (`screenshotPath`, `changed`, `referenceUrl`,
+  // `sourceIntegration`, `element`) and every file write/overwrite/rename side
+  // effect (including the URL-reference read-only path) are preserved exactly.
+  // `evaluateApplicable()` is the single helper that runs the engine over the
+  // specs gathered so far and stamps `result.assertions` + `result.status`; it
+  // is called at every terminal point.
+  const specs: ImplicitAssertionSpec[] = [];
+  const evaluateApplicable = async () => {
+    const ctx = buildConditionContext({ outputs: result.outputs });
+    const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+    result.assertions = assertions;
+    result.status = status;
+    return result;
+  };
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
   // already materialized them ahead of step execution. The ctx threads
   // through so a user-overridden cacheDir resolves from the same location
@@ -252,6 +297,11 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         // File already exists
         result.status = "SKIPPED";
         result.description = `File already exists: ${filePath}`;
+        // No verification specs were gathered (we short-circuit before capture
+        // and comparison), but keep the `assertions` shape consistent with every
+        // other return path — an empty array rather than undefined. The SKIPPED
+        // status itself is unchanged.
+        result.assertions = [];
         return result;
       } else {
         // Set temp file path
@@ -286,15 +336,28 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       step: findStep,
       driver,
     });
-    if (findResult.status === "FAIL") {
-      return findResult;
-    }
+    // (1) Crop element existence is a VERIFICATION ASSERTION. findElement FAILs
+    // when no element matches, so `findResult.status === "FAIL"` (or a missing
+    // rawElement) means the crop target wasn't found: expose
+    // `outputs.cropElementFound = false`, push the spec, and evaluate -> FAIL.
+    // This preserves the prior `Couldn't find element to crop.` FAIL status
+    // (capture never runs). When the element IS found, the spec PASSes and we
+    // continue to capture.
     element = findResult.outputs?.rawElement;
-    if (!element) {
-      result.status = "FAIL";
+    if (findResult.status === "FAIL" || !element) {
+      result.outputs.cropElementFound = false;
+      specs.push({
+        statement: `$$outputs.cropElementFound == true`,
+        severity: "fail",
+      });
       result.description = `Couldn't find element to crop.`;
-      return result;
+      return await evaluateApplicable();
     }
+    result.outputs.cropElementFound = true;
+    specs.push({
+      statement: `$$outputs.cropElementFound == true`,
+      severity: "fail",
+    });
     if (element) result.outputs.element = findResult.outputs.element;
     // Determine if element bounding box + padding is within viewport
     const rect = {
@@ -319,14 +382,21 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       padding = step.screenshot.crop.padding;
     }
 
-    // Check if element can fit in viewport
-    if (
-      rect.width + padding.right + padding.left > viewport.width ||
-      rect.height + padding.top + padding.bottom > viewport.height
-    ) {
-      result.status = "FAIL";
+    // (2) Element fits the viewport is a VERIFICATION ASSERTION. Compute the
+    // boolean with the existing logic, expose it as `outputs.fitsViewport`, and
+    // push the spec. When it's false we evaluate immediately and return (capture
+    // never runs), preserving the prior `Element can't fit in viewport.` FAIL.
+    const fitsViewport =
+      rect.width + padding.right + padding.left <= viewport.width &&
+      rect.height + padding.top + padding.bottom <= viewport.height;
+    result.outputs.fitsViewport = fitsViewport;
+    specs.push({
+      statement: `$$outputs.fitsViewport == true`,
+      severity: "fail",
+    });
+    if (!fitsViewport) {
       result.description = `Element can't fit in viewport.`;
-      return result;
+      return await evaluateApplicable();
     }
 
     // Scroll element into view at top-left with padding
@@ -481,7 +551,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       if (step.screenshot.sourceIntegration) {
         result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
       }
-      return result;
+      // No comparison was performed (unconditional overwrite), so no comparison
+      // assertion is applicable; evaluate whatever specs were gathered (only the
+      // crop specs, which already PASSed) -> PASS, matching the prior behavior.
+      return await evaluateApplicable();
     }
     let fractionalDiff;
 
@@ -507,9 +580,18 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         return result;
       }
 
-      // Compare aspect ratio of images
-      if (!aspectRatiosMatch(img1, img2)) {
-        result.status = "FAIL";
+      // (3) Aspect ratios match is a VERIFICATION ASSERTION. Compute the boolean
+      // with the existing helper, expose it as `outputs.aspectRatioMatch`, and
+      // push the spec. On mismatch we evaluate immediately and return (the
+      // variation spec is never pushed — the diff can't be computed across
+      // mismatched ratios), preserving the prior FAIL status exactly.
+      const aspectRatioMatch = aspectRatiosMatch(img1, img2);
+      result.outputs.aspectRatioMatch = aspectRatioMatch;
+      specs.push({
+        statement: `$$outputs.aspectRatioMatch == true`,
+        severity: "fail",
+      });
+      if (!aspectRatioMatch) {
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
         if (
           !isUrlPath &&
@@ -518,7 +600,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         ) {
           fs.unlinkSync(filePath);
         }
-        return result;
+        return await evaluateApplicable();
       }
 
       // Resize images to same size
@@ -579,12 +661,22 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         fractionalDiff,
       });
 
+      // (4) Pixel-diff variation <= maxVariation is a VERIFICATION ASSERTION at
+      // WARNING severity. Expose the computed fractional diff as
+      // `outputs.variation` and push the spec; the shared engine records WARNING
+      // (not FAIL) when it evaluates false, matching the prior `WARNING` status.
+      // The file-write/rename side effects below are preserved exactly.
+      result.outputs.variation = fractionalDiff;
+      specs.push({
+        statement: `$$outputs.variation <= ${step.screenshot.maxVariation}`,
+        severity: "warning",
+      });
+
       if (fractionalDiff > step.screenshot.maxVariation) {
         if (step.screenshot.overwrite == "aboveVariation" && !isUrlPath) {
           // Replace old file with new file
           fs.renameSync(filePath, existFilePath);
         }
-        result.status = "WARNING";
         result.description += ` The difference between the existing screenshot and new screenshot (${fractionalDiff.toFixed(
           2
         )}) is greater than the max accepted variation (${
@@ -606,7 +698,9 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
             result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
           }
         }
-        return result;
+        // The WARNING-severity variation spec evaluates false here -> WARNING
+        // (no short-circuit), matching the prior `result.status = "WARNING"`.
+        return await evaluateApplicable();
       } else {
         result.description += ` Screenshots are within maximum accepted variation: ${fractionalDiff.toFixed(
           2
@@ -638,6 +732,11 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     }
   }
 
-  // PASS
-  return result;
+  // Evaluate the applicable verification specs gathered above (crop existence /
+  // viewport / aspect-ratio / within-variation as applicable) through the shared
+  // engine and stamp `result.assertions` + `result.status`. A brand-new capture
+  // with no reference to compare pushes no comparison specs; with no crop either
+  // the spec list is empty -> PASS (capture succeeded). Within-variation falls
+  // through here with a PASSing variation spec -> PASS.
+  return await evaluateApplicable();
 }

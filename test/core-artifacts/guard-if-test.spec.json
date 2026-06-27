@@ -1,0 +1,25 @@
+{
+  "specId": "guard-if-test",
+  "description": "Exercises test-level guard `if`: one test with an always-false `if` is SKIPPED across all its contexts, while a sibling test in the same spec with no `if` runs normally to PASS. Proves test-level guard isolation (a false test guard skips only that test). Cross-platform: `$$platform` never equals `nonexistentos`.",
+  "tests": [
+    {
+      "testId": "guard-if-test-skipped",
+      "description": "Test-level guard is false, so this test is SKIPPED across all contexts before any step runs.",
+      "if": "$$platform == nonexistentos",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    },
+    {
+      "testId": "guard-if-test-sibling-runs",
+      "description": "Sibling test with no `if` — unaffected by the other test's false guard, runs to PASS.",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}
