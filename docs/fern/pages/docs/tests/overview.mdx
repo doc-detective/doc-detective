@@ -204,7 +204,7 @@ A step passes only when both its implicit and custom assertions pass. Custom ass
 - An expression that can't be resolved fails closed, so the assertion fails and the step fails.
 
 <Note>
-Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported yet. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
+Custom assertions can't reference other steps' outputs with `$$steps.*` yet. They can read only the current step's `$$outputs.*` and `$$platform`. A `$$steps.*` reference can't resolve and fails closed, so the assertion fails and the step fails. Doc Detective logs a warning naming the step so you can switch the reference to `$$outputs.*`.
 </Note>
 
 ## Conditional execution
