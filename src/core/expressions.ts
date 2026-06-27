@@ -104,7 +104,7 @@ function replaceMetaValues(expression: string, context: any, allowOperators: boo
       } else if (typeof metaValue === "string" && hasOperators) {
         // If the meta value is a string and we're in an expression with operators,
         // only quote it if it contains spaces or special characters
-        if (/[\s\(\)\[\]\{\}\,\;\:\.\+\-\*\/\|\&\!\?\<\>\=]/.test(metaValue)) {
+        if (/[\s"\\\(\)\[\]\{\}\,\;\:\.\+\-\*\/\|\&\!\?\<\>\=]/.test(metaValue)) {
           // Build a JS string literal for `new Function`. Escape backslashes
           // FIRST, then double-quotes, then literal line terminators. Without
           // the \n/\r escapes a multi-line step-output value produces an
