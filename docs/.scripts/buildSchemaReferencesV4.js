@@ -72,6 +72,25 @@ function generateSchemaId(schema, path = "") {
   return cleanPath + (cleanPath ? "-" : "") + contentHash;
 }
 
+// Resolve an object schema's effective properties, merging any `allOf` branches
+// (e.g. a titled object composed as `allOf: [{ properties }, ...constraints]`).
+// Returns null when the schema has no object properties.
+function getEffectiveProperties(schema) {
+  if (!schema || typeof schema !== "object") return null;
+  let properties = schema.properties ? { ...schema.properties } : null;
+  let required = Array.isArray(schema.required) ? [...schema.required] : [];
+  if (Array.isArray(schema.allOf)) {
+    for (const sub of schema.allOf) {
+      const subEff = getEffectiveProperties(sub);
+      if (subEff) {
+        properties = { ...(properties || {}), ...subEff.properties };
+        required = required.concat(subEff.required);
+      }
+    }
+  }
+  return properties ? { properties, required } : null;
+}
+
 // Function to extract all object schemas from a schema
 function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
   // Skip if null or not an object
@@ -79,8 +98,9 @@ function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
 
   const extractedSchemas = {};
 
-  // If this is an object schema with properties
-  if ((schema.type === "object" || !schema.type) && schema.properties) {
+  // If this is an object schema with properties (directly or composed via allOf)
+  const effective = getEffectiveProperties(schema);
+  if ((schema.type === "object" || !schema.type) && effective) {
     // Generate an ID for this schema
     const schemaId = generateSchemaId(schema, currentPath || parentSchemaId);
 
@@ -97,8 +117,8 @@ function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
       schemaRegistry.set(schemaId, schema);
       extractedSchemas[schemaId] = schema;
 
-      // Process properties
-      for (const [propName, propSchema] of Object.entries(schema.properties)) {
+      // Process properties (merged across allOf branches)
+      for (const [propName, propSchema] of Object.entries(effective.properties)) {
         const propPath = currentPath ? `${currentPath}.${propName}` : propName;
         const nestedSchemas = extractObjectSchemas(
           propSchema,
@@ -126,7 +146,9 @@ function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
     }
   }
 
-  // Handle anyOf/oneOf/allOf
+  // Handle anyOf/oneOf/allOf. allOf object properties are also merged into the
+  // page above via getEffectiveProperties; recursing here additionally surfaces
+  // any titled object schemas nested inside allOf branches as their own pages.
   ["anyOf", "oneOf", "allOf"].forEach((key) => {
     if (Array.isArray(schema[key])) {
       schema[key].forEach((subSchema, index) => {
@@ -169,14 +191,16 @@ function generateSchemaMarkdown(schemaId, schema) {
     heading.push(schema.description, "");
   }
 
-  // Add parent schemas section if this schema is referenced by others
+  // Add parent schemas section if this schema is referenced by others. Only link
+  // to parents that are actually emitted as pages (titled schemas) — anonymous
+  // hash-named parents are skipped at write time and would 404.
   const parentSchemas = [];
   for (const [parentId, children] of parentChildRelationships.entries()) {
     if (children.has(schemaId) && parentId !== schemaId) {
       const parentPath = schemaPaths.get(parentId);
-      if (parentPath) {
-        const parentName = parentId;
-        parentSchemas.push(`- [${parentName}](${parentPath})`);
+      const parentSchema = schemaRegistry.get(parentId);
+      if (parentPath && parentSchema && parentSchema.title) {
+        parentSchemas.push(`- [${parentId}](${parentPath})`);
       }
     }
   }
@@ -196,10 +220,14 @@ function generateSchemaMarkdown(schemaId, schema) {
     ":-- | :-- | :-- | :--",
   ];
 
-  // Process fields if schema has properties
-  if (schema.properties) {
-    for (const [propName, propSchema] of Object.entries(schema.properties)) {
-      const row = generatePropertyRow(propName, propSchema, schema);
+  // Process fields (merged across allOf branches)
+  const effectiveFields = getEffectiveProperties(schema);
+  if (effectiveFields) {
+    const parentForRequired = { required: effectiveFields.required };
+    for (const [propName, propSchema] of Object.entries(
+      effectiveFields.properties
+    )) {
+      const row = generatePropertyRow(propName, propSchema, parentForRequired);
       fields.push(row);
     }
   }
@@ -234,11 +262,15 @@ function generateSchemaMarkdown(schemaId, schema) {
 
 // Function to generate an example from a schema
 function generateExampleFromSchema(schema) {
-  if (!schema || !schema.properties) return {};
+  const eff = getEffectiveProperties(schema);
+  if (!eff) return {};
 
   const example = {};
 
-  for (const [propName, propSchema] of Object.entries(schema.properties)) {
+  for (const [propName, propSchema] of Object.entries(eff.properties)) {
+    // Skip system-populated/deprecated fields — they shouldn't be set manually.
+    if (propSchema.readOnly || propSchema.deprecated) continue;
+
     // Use default value if available
     if (propSchema.default !== undefined) {
       example[propName] = propSchema.default;
@@ -292,18 +324,24 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
   // Get type information
   let type = getTypeString(propSchema);
 
-  // Get description with status prefix
-  let description = propSchema.description || "No description provided.";
+  // Get description with status prefix. Collapse literal newlines to <br/> so
+  // multi-line schema descriptions don't break the markdown table row.
+  let description = (propSchema.description || "No description provided.")
+    .replace(/\r?\n/g, "<br/>")
+    .trim();
 
-  // Add required/optional status
+  // Add required/optional status (don't double-prefix when the description
+  // already leads with the status word, e.g. a deprecated field's text).
+  const startsWith = (word) =>
+    new RegExp(`^${word}\\b`, "i").test(description);
   if (parentSchema.required && parentSchema.required.includes(propName)) {
-    description = "Required. " + description;
+    if (!startsWith("required")) description = "Required. " + description;
   } else if (propSchema.readOnly) {
-    description = "ReadOnly. " + description;
+    if (!startsWith("readonly")) description = "ReadOnly. " + description;
   } else if (propSchema.deprecated) {
-    description = "Deprecated. " + description;
+    if (!startsWith("deprecated")) description = "Deprecated. " + description;
   } else {
-    description = "Optional. " + description;
+    if (!startsWith("optional")) description = "Optional. " + description;
   }
 
   // Add enum values if present
@@ -354,6 +392,11 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
 function getTypeString(schema) {
   if (!schema) return "unknown";
 
+  // Constant value (e.g. `continue: { const: true }`)
+  if (schema.const !== undefined) {
+    return `\`${JSON.stringify(schema.const)}\``;
+  }
+
   // Direct type
   if (schema.type) {
     let type = schema.type;
@@ -396,6 +439,20 @@ function getTypeString(schema) {
         .join("<br/>")
     );
   }
+
+  // allOf composition (e.g. a titled object plus constraints). Prefer a titled
+  // branch so the type links to its page; otherwise combine the parts.
+  if (Array.isArray(schema.allOf)) {
+    const titled = schema.allOf.find((s) => s && s.title);
+    if (titled) return getTypeString({ type: "object", title: titled.title });
+    const parts = schema.allOf
+      .map((s) => getTypeString(s))
+      .filter((t) => t && t !== "unknown");
+    if (parts.length) return parts.join(" &amp; ");
+  }
+
+  // A bare object schema (properties only, no explicit type)
+  if (schema.properties || getEffectiveProperties(schema)) return "object";
 
   return "unknown";
 }

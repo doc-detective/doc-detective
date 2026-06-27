@@ -8,10 +8,8 @@ description: "Reference for the `Process surface` schema."
 
 ## Referenced In
 
-- [fileTypes-anyOf[0]-array-anyOf[1]-markup-array-actions-anyOf[1]-array-anyOf[1]-anyOf[2]-allOf[1]-find-anyOf[1]-type-allOf[0]-anyOf[1]-allOf[0]-f913fb13](/reference/schemas/filetypes-anyof-0--array-anyof-1--markup-array-actions-anyof-1--array-anyof-1--anyof-2--allof-1--find-anyof-1--type-allof-0--anyof-1--allof-0--f913fb13)
-- [fileTypes-anyOf[0]-array-anyOf[1]-markup-array-actions-anyOf[1]-array-anyOf[1]-anyOf[8]-allOf[1]-type-anyOf[1]-allOf[0]-f913fb13](/reference/schemas/filetypes-anyof-0--array-anyof-1--markup-array-actions-anyof-1--array-anyof-1--anyof-8--allof-1--type-anyof-1--allof-0--f913fb13)
+- [Type keys (detailed)](/reference/schemas/type-keys-detailed)
 - [closeSurface](/reference/schemas/closesurface)
-- [anyOf[1]-allOf[0]-f913fb13](/reference/schemas/anyof-1--allof-0--f913fb13)
 
 ## Fields
 

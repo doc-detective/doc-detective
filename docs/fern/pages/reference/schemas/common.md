@@ -49,10 +49,6 @@ visit | integer | ReadOnly. Which visit of this step produced this report, when 
   "onPass": [],
   "onFail": [],
   "onWarning": [],
-  "onSkip": [],
-  "location": {},
-  "autoScreenshot": "example",
-  "attempts": 42,
-  "visit": 42
+  "onSkip": []
 }
 ```

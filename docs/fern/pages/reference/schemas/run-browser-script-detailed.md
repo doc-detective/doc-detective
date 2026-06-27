@@ -20,8 +20,7 @@ output | string | Optional. Content expected in the script's serialized return v
 path | string | Optional. File path to save the script's serialized return value, relative to `directory`. | 
 directory | string | Optional. Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory. | 
 maxVariation | number | Optional. Allowed variation as a fraction (0 to 1) of text different between the current return value and previously saved value. For example, 0.1 means 10%. If the difference between the current value and the previous value is greater than `maxVariation`, the step returns a warning. If no output exists at `path`, Doc Detective ignores this value.<br/><br/>Minimum: 0. Maximum: 1 | `0`
-overwrite | string | Optional. If `true`, overwrites the existing output at `path` if it exists.
-If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | `aboveVariation`
+overwrite | string | Optional. If `true`, overwrites the existing output at `path` if it exists.<br/>If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | `aboveVariation`
 timeout | integer | Optional. Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.<br/><br/>Minimum: 1 | `60000`
 
 ## Examples

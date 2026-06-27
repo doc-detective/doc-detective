@@ -18,7 +18,7 @@ A single dynamic-routing entry: an optional condition (`if`) plus exactly one ro
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 if | one of:<br/>- string<br/>- array of string | Optional. A condition expression, or an array of expressions combined with logical AND. | 
-continue | unknown | Optional. Continue execution with the next step. Use to explicitly suppress a default handler behavior. | 
+continue | `true` | Optional. Continue execution with the next step. Use to explicitly suppress a default handler behavior. | 
 stop | string | Optional. Stop execution at the given scope.<br/><br/>Accepted values: `test`, `spec`, `run` | 
 retry | object([Retry](/reference/schemas/retry)) | Optional. Retry the current step. | 
 goToStep | string | Optional. Identifier of the step to jump to.<br/><br/>Minimum length: 1. Pattern: `\S` | 

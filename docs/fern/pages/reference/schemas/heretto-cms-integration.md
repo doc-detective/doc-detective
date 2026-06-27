@@ -33,7 +33,6 @@ resourceDependencies | object | ReadOnly. Mapping of Heretto file paths to their
   "username": "example",
   "apiToken": "example",
   "scenarioName": "Doc Detective",
-  "outputPath": "example",
   "uploadOnChange": false
 }
 ```

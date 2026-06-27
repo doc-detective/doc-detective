@@ -14,7 +14,7 @@ description: "Reference for the `Load cookie (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-$schema | string | Optional. Optional self-describing schema URI for linters | 
+$schema | string | Optional self-describing schema URI for linters | 
 name | string | Required. Name of the specific cookie to load.<br/><br/>Pattern: `^[A-Za-z0-9_.-]+$` | 
 variable | string | Optional. Environment variable name containing the cookie as JSON string.<br/><br/>Pattern: `^[A-Za-z_][A-Za-z0-9_]*$` | 
 path | string | Optional. File path to cookie file, relative to directory. Supports Netscape cookie format. | 
