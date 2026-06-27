@@ -163,6 +163,46 @@ describe("expressions: evaluateAssertion (condition path, allowOperators)", func
     );
   });
 
+  // --- CodeQL alert 63: a /regex/ literal containing a backslash escape must
+  //     survive into the compiled pattern. The old code escaped quotes but NOT
+  //     backslashes, so `\d` collapsed to `d` and `\.` to a wildcard `.`. ---
+  it("matches /\\d/ -> true on a digit-bearing string with no literal 'd'", async function () {
+    assert.equal(
+      await evaluateAssertion("$$outputs.code matches /\\d/", {
+        outputs: { code: "x5" },
+      }),
+      true
+    );
+  });
+  it("matches /a\\.c/ -> false on 'axc' (escaped dot is a literal dot)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$outputs.v matches /a\\.c/", {
+        outputs: { v: "axc" },
+      }),
+      false
+    );
+  });
+  it("matches /a\\.c/ -> true on 'a.c' (escaped dot matches a literal dot)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$outputs.v matches /a\\.c/", {
+        outputs: { v: "a.c" },
+      }),
+      true
+    );
+  });
+
+  // --- CodeQL alerts 61/62: the ReDoS-safe (unrolled) rewrite of the
+  //     string-literal masking regex must still mask a literal that contains
+  //     escaped quotes as a single whole (exercises the \\. escape branch). ---
+  it("masking preserves a literal containing escaped quotes", async function () {
+    assert.equal(
+      await evaluateAssertion('$$a == "he said \\"hi\\""', {
+        a: 'he said "hi"',
+      }),
+      true
+    );
+  });
+
   // --- single string condition baseline ---
   it("plain boolean-ish meta value coerces", async function () {
     assert.equal(
