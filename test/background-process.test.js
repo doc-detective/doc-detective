@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import {
+  spawnCommand,
   spawnBackgroundCommand,
   spawnPtyBackgroundCommand,
   waitForPort,
@@ -93,6 +94,32 @@ describe("spawnBackgroundCommand", function () {
     const code = await bg.exited;
     // Either the shell reports a non-zero exit code, or spawn errors (null).
     assert.ok(code === null || typeof code === "number");
+  });
+});
+
+// Finding 2 (PR #394, CodeQL js/shell-command-constructed-from-input):
+// `spawnCommand`/`spawnBackgroundCommand` run with `shell: true`. That is the
+// FEATURE contract (runShell/runCode execute the exact shell command an author
+// writes — pipes, `&&`, globbing, redirection), not an injection sink: the
+// command string is author-controlled test content, never untrusted external
+// input. This lock test proves the shell metacharacters that the feature
+// depends on are honored, so any future "fix" that swaps `shell: true` for an
+// arg-array/execFile form (which would NOT interpret `&&`) breaks this test and
+// forces a deliberate decision rather than a silent contract change.
+describe("spawnCommand honors shell metacharacters (finding 2: shell:true is by design)", function () {
+  this.timeout(15000);
+
+  it("interprets `&&` to chain two commands (a shell feature, not literal args)", async function () {
+    const a = `"${process.execPath}" -e "process.stdout.write('first')"`;
+    const b = `"${process.execPath}" -e "process.stdout.write('second')"`;
+    const { stdout, exitCode } = await spawnCommand(`${a} && ${b}`);
+    // With shell:true the `&&` runs both; without it (arg-array form) the `&&`
+    // would be passed as a literal argument and this would not be "firstsecond".
+    assert.ok(
+      stdout.includes("first") && stdout.includes("second"),
+      `expected chained output, got: ${JSON.stringify(stdout)}`
+    );
+    assert.equal(exitCode, 0);
   });
 });
 

@@ -1316,6 +1316,15 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
     spawnOptions.cwd = options.cwd;
   }
 
+  // `shell: true` is intentional and by design (see spawnBackgroundCommand for
+  // the full rationale). `spawnCommand` runs the exact shell command an author
+  // writes in a test spec (`runShell`, `runCode`'s shell backend) or a fixed
+  // internal probe (`dita --version`, the Safari version probe) — pipes, `&&`,
+  // globbing, and redirection are the FEATURE, not an injection sink. The
+  // command string is author-controlled test content, never untrusted external
+  // input, so switching to an arg-array / execFile form would break the
+  // contract. CodeQL "unsafe shell command" here is acknowledged and dismissed
+  // as won't-fix / by design.
   const runCommand = spawn(cmd, args, spawnOptions);
   runCommand.on("error", (error) => {});
 
