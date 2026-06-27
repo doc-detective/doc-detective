@@ -1,3 +1,10 @@
+# [4.15.0-next.19](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.18...v4.15.0-next.19) (2026-06-27)
+
+
+### Bug Fixes
+
+* **runtime:** resolve pure-ESM heavy deps so appium v3/v5 drivers load ([ff4714a](https://github.com/doc-detective/doc-detective/commit/ff4714aca724efb9458ef08896a12dbf607003d2))
+
 # [4.15.0-next.18](https://github.com/doc-detective/doc-detective/compare/v4.15.0-next.17...v4.15.0-next.18) (2026-06-27)
 
 
