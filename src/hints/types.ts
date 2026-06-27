@@ -164,12 +164,37 @@ export interface HintContext {
    */
   hasNodeOrPythonInRunShell: boolean;
   /**
-   * True when the runner capped `concurrentRunners` to 1 because the run used
-   * the ffmpeg recording engine (which needs exclusive use of the display) on
-   * a platform without per-runner virtual displays. Read directly from
-   * `results.recordingForcedSerial`. Powers `recordConcurrently`.
+   * True when the runner serialized the run's ffmpeg recordings on the shared
+   * display (recordings queue on a "display" resource mutex while other
+   * contexts run in parallel) because the platform lacks per-runner virtual
+   * displays. Read directly from `results.recordingSerialized`. Powers
+   * `recordConcurrently`.
    */
-  recordingForcedSerial: boolean;
+  recordingSerialized: boolean;
+  /**
+   * True if any step report carried a `source: "custom"` assertion record —
+   * i.e. the user authored a `step.assertions` condition. (Every step also has
+   * `source: "implicit"` records under the unified model, so this specifically
+   * detects user-authored assertions.) Powers `useAssertionsForOutputChecks`.
+   * Sourced from the `walkResults` step pass.
+   */
+  usedCustomAssertions: boolean;
+  /**
+   * True if any step's routing handler (`onPass`/`onFail`/`onWarning`/`onSkip`)
+   * contained a `retry` entry — i.e. the user already uses routing retry.
+   * Powers `useRetryForTransientErrors`. Sourced from the `walkResults` step
+   * pass (the report spreads the authored step, so handlers are present).
+   */
+  usedRetry: boolean;
+  /**
+   * True if any request step (`httpRequest`/`checkLink`) FAILed this run with a
+   * TRANSIENT server-side status — a 429 (rate limit) or any 5xx. A 4xx like
+   * 404 is excluded (not transient — retry won't help). Powers
+   * `useRetryForTransientErrors`. Sourced from the `walkResults` step pass
+   * (`outputs.response.statusCode` for httpRequest, `outputs.statusCode` for
+   * checkLink).
+   */
+  failedTransientRequest: boolean;
 }
 
 export interface Hint {

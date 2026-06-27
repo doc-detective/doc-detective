@@ -5,7 +5,8 @@ import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
+import { loadHeavyDep } from "../runtime/loader.js";
 
 export {
   outputResults,
@@ -17,6 +18,13 @@ export {
   runArchivesArtifacts,
   replaceEnvs,
   spawnCommand,
+  spawnBackgroundCommand,
+  spawnPtyBackgroundCommand,
+  waitForReady,
+  waitForPort,
+  waitForHttp,
+  waitForStdio,
+  waitForOutputMatch,
   inContainer,
   cleanTemp,
   calculateFractionalDifference,
@@ -33,9 +41,14 @@ export {
   selectSpecsForRun,
   findFreePort,
   runConcurrent,
+  createResourceRegistry,
+  runResourceAware,
   rollUpResults,
+  rollUpAssertions,
   createAppiumPool,
 };
+
+export type { BackgroundProcess };
 
 // A fixed set of Appium server ports shared by concurrent runners. `acquire()`
 // hands out a free port, waiting if every port is checked out; `release()`
@@ -88,6 +101,99 @@ async function runConcurrent<T>(
   await Promise.all(workers);
 }
 
+// A registry of held, named exclusive resources (e.g. `"display"` for ffmpeg
+// screen capture) shared across one run. `tryAcquire` is all-or-nothing so a
+// multi-resource job never holds some names while blocked on another (no
+// hold-and-wait → no deadlock). `release` wakes every waiter to re-contend.
+// Single-threaded JS makes the Set checks atomic between awaits.
+type ResourceRegistry = {
+  tryAcquire(names: string[]): boolean;
+  release(names: string[]): void;
+  waitForFree(): Promise<void>;
+};
+function createResourceRegistry(): ResourceRegistry {
+  const held = new Set<string>();
+  let waiters: Array<() => void> = [];
+  return {
+    tryAcquire(names: string[]): boolean {
+      for (const n of names) if (held.has(n)) return false;
+      for (const n of names) held.add(n);
+      return true;
+    },
+    release(names: string[]): void {
+      for (const n of names) held.delete(n);
+      const wake = waiters;
+      waiters = [];
+      for (const w of wake) w();
+    },
+    waitForFree(): Promise<void> {
+      return new Promise<void>((resolve) => waiters.push(resolve));
+    },
+  };
+}
+
+// Like `runConcurrent`, but each item may declare a set of exclusive resource
+// names (via `resourcesOf`, default `item.exclusiveResources`). Up to `limit`
+// items run at once, EXCEPT that two items sharing a resource never run
+// concurrently — they queue on the shared `registry` mutex. So display-bound
+// recordings serialize among themselves while everything else stays parallel,
+// instead of collapsing the whole run to serial. Items with no resources never
+// block, so an all-empty run is identical to `runConcurrent`.
+//
+// A worker claims the first pending item whose resources are all free
+// (acquiring them atomically — no await between the scan and the claim). If
+// nothing is runnable but items remain, it parks on `registry.waitForFree()`;
+// an in-flight item necessarily holds the blocking resource and will release
+// it, waking the worker — so there is always progress (no deadlock/starvation).
+// Report order is preserved by callers via pre-assigned slots, so reordering
+// execution here is safe. Resources are released in a `finally` even if `fn`
+// rejects; callers needing error isolation catch inside `fn` (runSpecs does).
+async function runResourceAware<T>(
+  items: T[],
+  limit: number,
+  registry: ResourceRegistry,
+  fn: (item: T) => Promise<void>,
+  resourcesOf: (item: T) => string[] = (item: any) =>
+    item?.exclusiveResources ?? []
+): Promise<void> {
+  const pending = items.map((_, i) => i);
+  const workerCount = Math.max(
+    1,
+    Math.min(Math.floor(limit) || 1, items.length)
+  );
+  async function worker(): Promise<void> {
+    while (true) {
+      let claimPos = -1;
+      let claimNames: string[] = [];
+      for (let p = 0; p < pending.length; p++) {
+        const names = resourcesOf(items[pending[p]]);
+        if (names.length === 0) {
+          claimPos = p;
+          claimNames = [];
+          break;
+        }
+        if (registry.tryAcquire(names)) {
+          claimPos = p;
+          claimNames = names;
+          break;
+        }
+      }
+      if (claimPos === -1) {
+        if (pending.length === 0) return; // all done
+        await registry.waitForFree(); // every runnable item is resource-blocked
+        continue;
+      }
+      const idx = pending.splice(claimPos, 1)[0];
+      try {
+        await fn(items[idx]);
+      } finally {
+        if (claimNames.length) registry.release(claimNames);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+}
+
 // Roll child results up to a parent result: FAIL > WARNING > all-SKIPPED >
 // PASS. An empty list rolls up to SKIPPED (vacuously "all children skipped").
 function rollUpResults(children: Array<{ result?: string }>): string {
@@ -95,6 +201,20 @@ function rollUpResults(children: Array<{ result?: string }>): string {
   if (children.some((child) => child.result === "WARNING")) return "WARNING";
   if (children.every((child) => child.result === "SKIPPED")) return "SKIPPED";
   return "PASS";
+}
+
+// Roll up an action's verification ASSERTIONS to a step status. Unlike
+// `rollUpResults`, an empty (or falsy) assertion set rolls up to PASS, not
+// SKIPPED: zero applicable assertions plus successful EXECUTION is a PASS (the
+// action did its work, there was simply nothing to verify). Use this — not
+// `rollUpResults` — wherever an action's `assertions` array may legitimately be
+// empty (click/type/dragAndDrop/runBrowserScript). Actions that always emit at
+// least one record stay on `rollUpResults`.
+function rollUpAssertions(
+  assertions?: Array<{ result?: string }> | null
+): string {
+  if (!assertions || assertions.length === 0) return "PASS";
+  return rollUpResults(assertions);
 }
 
 // Bind a temp listener to port 0, capture the OS-assigned port, and release
@@ -115,6 +235,470 @@ async function findFreePort(): Promise<number> {
       server.close(() => resolve(port));
     });
   });
+}
+
+// A handle to a long-running process started by a `background`
+// runShell/runCode step. Output is buffered (ring-capped) so readiness probes
+// and debugging can inspect it without waiting for the process to exit.
+interface BackgroundProcess {
+  // The Node ChildProcess, when the process was spawned over a pipe
+  // (spawnBackgroundCommand). PTY-backed processes have no ChildProcess, so this
+  // is optional; teardown prefers `kill()` when present, else tree-kills `pid`.
+  child?: ChildProcess;
+  pid: number | undefined;
+  getStdout(): string;
+  getStderr(): string;
+  getCombined(): string;
+  // Write data to the process's stdin. Returns false if stdin is unavailable
+  // (never opened, already closed/destroyed); true if the write was accepted.
+  write(data: string): boolean;
+  // Subscribe to new output chunks. Returns an unsubscribe function.
+  onChunk(cb: (chunk: string, stream: "stdout" | "stderr") => void): () => void;
+  // Resolves with the exit code when the process closes, or null if it never
+  // started (spawn error).
+  exited: Promise<number | null>;
+  // Terminate the process. Present on PTY-backed handles (which own their own
+  // termination via `pty.kill()` and have no pid for tree-kill). When present,
+  // teardown prefers this over tree-killing `pid`.
+  kill?(): Promise<void> | void;
+  // True when the handle is backed by a pseudo-terminal (node-pty) rather than a
+  // pipe. In PTY mode stdout/stderr are merged into a single stream.
+  isPty?: boolean;
+}
+
+// Cap each buffered stream so a process that logs for the whole suite can't
+// grow memory without bound. The tail is what readiness probes care about.
+const BACKGROUND_BUFFER_LIMIT = 256 * 1024;
+
+function backgroundSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Non-blocking sibling of spawnCommand: starts a process and returns a handle
+// immediately instead of awaiting `close`. Mirrors spawnCommand's spawn options
+// (shell:true, windowsHide on win32, cwd) so existing command strings behave the
+// same. With shell:true, child.pid is the shell's pid; tree-kill (used at
+// teardown) handles the child tree.
+function spawnBackgroundCommand(
+  cmd: string,
+  args: string[] = [],
+  options: any = {}
+): BackgroundProcess {
+  const spawnOptions: any = { shell: true };
+  if (process.platform === "win32") spawnOptions.windowsHide = true;
+  if (options.cwd) spawnOptions.cwd = options.cwd;
+
+  // `shell: true` is intentional and by design. `runShell` (and `runCode`'s
+  // shell backend) exist to execute the exact shell command an author writes in
+  // a test spec — pipes, `&&`, globbing, env-var expansion, redirection. The
+  // command string is author-controlled test content, not untrusted external
+  // input, so this is not a command-injection sink. Switching to an arg-array /
+  // execFile invocation would break the feature's contract. CodeQL "unsafe
+  // shell command" here is acknowledged and dismissed as won't-fix / by design.
+  const child = spawn(cmd, args, spawnOptions);
+
+  let stdout = "";
+  let stderr = "";
+  const subscribers = new Set<
+    (chunk: string, stream: "stdout" | "stderr") => void
+  >();
+
+  function append(stream: "stdout" | "stderr", text: string) {
+    if (stream === "stdout") {
+      stdout = (stdout + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    } else {
+      stderr = (stderr + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    }
+    for (const cb of subscribers) cb(text, stream);
+  }
+
+  if (child.stdout)
+    child.stdout.on("data", (d: any) => append("stdout", d.toString()));
+  if (child.stderr)
+    child.stderr.on("data", (d: any) => append("stderr", d.toString()));
+
+  // Registering an `error` listener here also prevents an immediate spawn
+  // failure (e.g. a bad command) from crashing the process as an unhandled
+  // 'error' event; the failure surfaces via `exited` resolving with null.
+  const exited = new Promise<number | null>((resolve) => {
+    child.once("close", (code) => resolve(code));
+    child.once("error", () => resolve(null));
+  });
+
+  return {
+    child,
+    pid: child.pid,
+    getStdout: () => stdout,
+    getStderr: () => stderr,
+    getCombined: () => stdout + stderr,
+    write(data) {
+      // `{ shell: true }` gives the child a writable stdin pipe. Guard against
+      // a closed/destroyed/ended stream so a write to a dead process is a no-op
+      // (false) rather than a throw. We return false ONLY when stdin is
+      // unavailable — never forwarding Node's backpressure `false` (which would
+      // conflate a full buffer with a gone stdin).
+      if (!child.stdin || child.stdin.destroyed || child.stdin.writableEnded)
+        return false;
+      child.stdin.write(data);
+      return true;
+    },
+    onChunk(cb) {
+      subscribers.add(cb);
+      return () => subscribers.delete(cb);
+    },
+    exited,
+  };
+}
+
+// Quote a single command-line argument so the platform shell treats it as one
+// token (so the `args` field keeps working when we append it to the command
+// string for the shell). Wraps in double quotes and escapes embedded double
+// quotes; mirrors how `shell:true` would pass each arg.
+function quoteShellArg(arg: string): string {
+  if (process.platform === "win32") {
+    // cmd.exe: escape embedded quotes by doubling them, then wrap.
+    return `"${arg.replace(/"/g, '""')}"`;
+  }
+  // POSIX sh: single-quote and escape any embedded single quote.
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+// PTY-backed sibling of spawnBackgroundCommand: starts a process under a real
+// pseudo-terminal (node-pty) so full-screen/interactive TUIs that check
+// `process.stdout.isTTY` render and accept keystrokes (Phase 2). It is a
+// drop-in `BackgroundProcess` — same buffer/subscriber model — except a PTY
+// exposes ONE merged stream, so all output lands in the `stdout` buffer
+// (`getStderr()` returns "", `getCombined()` returns stdout). That keeps
+// `waitForStdio`/`waitForReady` (`getStdout()||getStderr()`) working unchanged.
+//
+// The PTY backend is `@homebridge/node-pty-prebuilt-multiarch` — an API-identical
+// parallel fork of node-pty that ships prebuilt binaries for macOS (incl. arm64),
+// Windows, and Linux across Node ABIs. Upstream node-pty has no Windows prebuilds
+// (source build fails on bare runners) and its macOS prebuild ships the
+// `spawn-helper` without the execute bit (`posix_spawnp failed`); the fork avoids
+// both, so the PTY path actually runs on CI rather than degrading to SKIP.
+//
+// It is a registered heavy dep (HEAVY_NPM_DEPS + `ddRuntimeDependencies`), loaded
+// the same way as webdriverio/appium: `loadHeavyDep` resolves a copy that the
+// postinstall / `install all` step (or a prior run's JIT install) placed in the
+// runtime cache, and `autoInstall` lets it install on demand otherwise. It is NOT
+// in `optionalDependencies`, so the lockfile stays untouched. When it can't be
+// resolved or installed (no prebuilt binary for the platform), this REJECTS and
+// the caller (runShell) maps that to a SKIPPED step (graceful degradation).
+//
+// We spawn through the platform shell (`cmd.exe /d /s /c` / `/bin/sh -c`) for
+// parity with spawnBackgroundCommand's `{ shell: true }`, appending the (quoted)
+// `args` to the command string so the `args` field still works.
+const PTY_PACKAGE = "@homebridge/node-pty-prebuilt-multiarch";
+async function spawnPtyBackgroundCommand(
+  cmd: string,
+  args: string[] = [],
+  options: any = {}
+): Promise<BackgroundProcess> {
+  // Rethrow on failure tagged so runShell SKIPs for an unavailable node-pty while
+  // still FAILing on any other PTY startup error.
+  let pty: any;
+  try {
+    pty = await loadHeavyDep<any>(PTY_PACKAGE, {
+      ctx: { cacheDir: options.cacheDir },
+    });
+  } catch {
+    // Tag ONLY the missing-dependency case so runShell can SKIP for it while
+    // still FAILing on any other PTY startup error.
+    const err: any = new Error(
+      `The PTY backend (node-pty / ${PTY_PACKAGE}) is not installed. Install it (\`npm install ${PTY_PACKAGE}\`) to use \`background.tty\`.`
+    );
+    err.code = "NODE_PTY_UNAVAILABLE";
+    throw err;
+  }
+
+  const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
+  const fullCommand = cmd + argstr;
+  const isWin = process.platform === "win32";
+  // Match Node's `{ shell: true }` invocation exactly so a `tty` process behaves
+  // identically to the pipe path: cmd.exe with `/d /s /c` on Windows (disable
+  // AutoRun, treat the whole string as one quoted command), `/bin/sh -c` on POSIX
+  // (NOT $SHELL, which may be a non-POSIX shell).
+  const shell = isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh";
+  const shellArgs = isWin
+    ? ["/d", "/s", "/c", fullCommand]
+    : ["-c", fullCommand];
+
+  let ptyProcess: any;
+  try {
+    ptyProcess = pty.spawn(shell, shellArgs, {
+      name: "xterm-color",
+      // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
+      // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
+      // expected width when authoring `waitUntil.stdio` patterns.
+      cols: 120,
+      rows: 30,
+      cwd: options.cwd || process.cwd(),
+      env: process.env,
+    });
+  } catch (error: any) {
+    // node-pty loaded but couldn't create a PTY here (e.g. a prebuilt
+    // spawn-helper that doesn't work on this OS/arch — `posix_spawnp failed` on
+    // some macOS arm64 runners). Treat "PTY can't be created on this platform"
+    // the same as "node-pty unavailable" so runShell SKIPs (graceful) rather
+    // than FAILing. A bad command/cwd still surfaces as a readiness failure.
+    const err: any = new Error(
+      `PTY could not be created on this platform: ${error?.message ?? error}`
+    );
+    err.code = "NODE_PTY_UNAVAILABLE";
+    throw err;
+  }
+
+  // PTY = one merged stream → feed everything into the stdout buffer.
+  let stdout = "";
+  const subscribers = new Set<
+    (chunk: string, stream: "stdout" | "stderr") => void
+  >();
+  function append(text: string) {
+    stdout = (stdout + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    for (const cb of subscribers) cb(text, "stdout");
+  }
+  ptyProcess.onData((d: string) => append(d));
+
+  let alive = true;
+  const exited = new Promise<number | null>((resolve) => {
+    ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
+      alive = false;
+      resolve(exitCode);
+    });
+  });
+
+  return {
+    pid: ptyProcess.pid,
+    isPty: true,
+    getStdout: () => stdout,
+    getStderr: () => "",
+    getCombined: () => stdout,
+    write(data) {
+      // Guard against a write to an already-exited PTY so it is a no-op (false)
+      // rather than a throw.
+      if (!alive) return false;
+      try {
+        ptyProcess.write(data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    onChunk(cb) {
+      subscribers.add(cb);
+      return () => subscribers.delete(cb);
+    },
+    exited,
+    kill(): Promise<void> {
+      try {
+        ptyProcess.kill();
+      } catch {
+        // best-effort — the PTY may already have exited
+      }
+      // Resolve only once the PTY has actually exited, so `await bg.kill()` at
+      // teardown sites waits for the process to be gone (parity with the pipe
+      // path's awaited tree-kill).
+      return exited.then(
+        () => {},
+        () => {}
+      );
+    },
+  };
+}
+
+// Attempt a single TCP connection. Resolves true on connect, false on any error
+// or per-attempt timeout. Never rejects.
+function tryConnect(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host, port });
+    let settled = false;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+    socket.setTimeout(2000, () => finish(false));
+  });
+}
+
+// How long to wait between poll attempts for the port / HTTP conditions.
+const READY_POLL_INTERVAL_MS = 500;
+
+// Poll a TCP port (on localhost) until it accepts a connection or the deadline
+// passes.
+async function waitForPort(
+  port: number,
+  { deadline }: { deadline: number }
+): Promise<void> {
+  const host = "127.0.0.1";
+  while (true) {
+    if (await tryConnect(host, port)) return;
+    // Only give up once the clock has actually run out, and bound the wait to
+    // the time remaining so a final probe still happens near the deadline. A
+    // fixed `Date.now() + pollIntervalMs >= deadline` check would throw with
+    // time still on the clock on a slow host, skipping a winnable attempt.
+    if (Date.now() >= deadline) {
+      throw new Error(`Port ${port} did not open in time.`);
+    }
+    await backgroundSleep(Math.min(READY_POLL_INTERVAL_MS, deadline - Date.now()));
+  }
+}
+
+// Poll an HTTP endpoint until a GET returns a 2xx status or the deadline passes.
+// Connection errors are swallowed and retried.
+async function waitForHttp(
+  url: string,
+  { deadline }: { deadline: number }
+): Promise<void> {
+  while (true) {
+    try {
+      // Cap the per-request timeout to the time left so a single hung request
+      // can't block past the overall readiness deadline (e.g. timeout: 600).
+      const remaining = deadline - Date.now();
+      const resp = await axios.get(url, {
+        validateStatus: () => true,
+        timeout: Math.max(1, Math.min(5000, remaining)),
+      });
+      if (resp.status >= 200 && resp.status < 300) return;
+    } catch {
+      // Server not up yet (or transient) — retry until the deadline.
+    }
+    if (Date.now() >= deadline) {
+      throw new Error(`HTTP GET ${url} did not return a 2xx status in time.`);
+    }
+    await backgroundSleep(Math.min(READY_POLL_INTERVAL_MS, deadline - Date.now()));
+  }
+}
+
+// Resolve when the process output matches `expected`, or reject when the
+// deadline passes. Mirrors runShell's `stdio` matching exactly: a substring
+// match, or a regular expression when `expected` is wrapped in forward slashes
+// (`/.../`), tested against stdout OR stderr (each stream separately, not a
+// concatenation — so a match can't span the stdout/stderr boundary).
+// Already-buffered output is checked first so a match emitted before
+// subscription isn't missed.
+function waitForStdio(
+  bg: BackgroundProcess,
+  expected: string,
+  { deadline }: { deadline: number }
+): Promise<void> {
+  let regex: RegExp | null = null;
+  if (expected.startsWith("/") && expected.endsWith("/")) {
+    try {
+      regex = new RegExp(expected.slice(1, -1));
+    } catch (error: any) {
+      // Surface a Doc Detective-shaped error instead of the engine's raw
+      // SyntaxError; runShell's stdio matching wraps regex compilation similarly.
+      return Promise.reject(
+        new Error(
+          `waitUntil.stdio: invalid regular expression ${expected}: ${error.message}`
+        )
+      );
+    }
+  }
+  const matchesText = (text: string) =>
+    regex ? regex.test(text) : text.includes(expected);
+  // stdout OR stderr, checked separately (like runShell's stdio).
+  const matched = () => matchesText(bg.getStdout()) || matchesText(bg.getStderr());
+
+  return new Promise((resolve, reject) => {
+    if (matched()) return resolve();
+    let unsubscribe = () => {};
+    const timer = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Expected output (${expected}) not seen in time.`));
+    }, Math.max(0, deadline - Date.now()));
+    unsubscribe = bg.onChunk(() => {
+      if (matched()) {
+        clearTimeout(timer);
+        unsubscribe();
+        resolve();
+      }
+    });
+  });
+}
+
+// Resolve when the process output matches `expected` (substring, or /regex/ via
+// matchesExpectedOutput), or resolve `false` when the deadline passes. Snapshots
+// the already-buffered output first so a match emitted before subscription isn't
+// missed (race guard). Non-throwing: the assertion engine — not an exception —
+// decides PASS/FAIL, unlike waitForStdio which rejects on timeout.
+// Matches against the COMBINED stdout+stderr (getCombined), distinct from
+// waitForReady's stdout-OR-stderr `waitForStdio`.
+function waitForOutputMatch(
+  bg: BackgroundProcess,
+  expected: string,
+  { deadline }: { deadline: number }
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (matchesExpectedOutput(bg.getCombined(), expected)) return resolve(true);
+    let off = () => {};
+    const t = setTimeout(() => {
+      off();
+      resolve(false);
+    }, Math.max(0, deadline - Date.now()));
+    off = bg.onChunk(() => {
+      if (matchesExpectedOutput(bg.getCombined(), expected)) {
+        clearTimeout(t);
+        off();
+        resolve(true);
+      }
+    });
+  });
+}
+
+// Block until every condition in `waitUntil` is met, fail fast if the process
+// exits first, or reject when `timeoutMs` elapses. Conditions are AND-combined
+// (like goTo's `waitUntil`): all the ones present must pass. An absent or empty
+// `waitUntil` means the process is ready as soon as it is spawned.
+async function waitForReady(
+  bg: BackgroundProcess,
+  waitUntil: any,
+  { timeoutMs }: { timeoutMs: number }
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  const probes: Promise<void>[] = [];
+  if (waitUntil && typeof waitUntil.port === "number") {
+    probes.push(waitForPort(waitUntil.port, { deadline }));
+  }
+  if (waitUntil && typeof waitUntil.httpGet === "string") {
+    probes.push(waitForHttp(waitUntil.httpGet, { deadline }));
+  }
+  if (waitUntil && typeof waitUntil.stdio === "string") {
+    probes.push(waitForStdio(bg, waitUntil.stdio, { deadline }));
+  }
+  if (waitUntil && typeof waitUntil.delayMs === "number") {
+    probes.push(backgroundSleep(Math.min(waitUntil.delayMs, timeoutMs)));
+  }
+
+  // All conditions must pass; an empty set resolves immediately.
+  const ready = Promise.all(probes).then(() => undefined);
+
+  // Fail fast if the process dies before becoming ready.
+  const earlyExit = bg.exited.then((code) => {
+    // `exited` resolves null when the process never started (spawn error), so
+    // report a spawn failure rather than a meaningless "exit code null".
+    throw new Error(
+      code === null
+        ? `Process failed to start (spawn error).`
+        : `Process exited before becoming ready (exit code ${code}).`
+    );
+  });
+
+  // The race loser settles later (a probe keeps polling to its own deadline;
+  // earlyExit rejects when the process is eventually killed at teardown).
+  // Attach no-op catches so a late rejection is always considered handled and
+  // never surfaces as an unhandledRejection during normal closeSurface teardown.
+  ready.catch(() => {});
+  earlyExit.catch(() => {});
+  for (const p of probes) p.catch(() => {});
+
+  await Promise.race([ready, earlyExit]);
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {

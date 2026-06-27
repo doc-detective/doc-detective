@@ -23,8 +23,16 @@ unsafe | boolean | Optional. Whether or not the step may be unsafe. Unsafe steps
 outputs | object(Outputs (step)) | Optional. Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence. | ``{}``
 variables | object(Variables (step)) | Optional. Environment variables to set from user-defined expressions. | ``{}``
 breakpoint | boolean | Optional. Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled. | `false`
+if | one of:<br/>- string<br/>- array of string | Optional. A condition expression, or an array of expressions combined with logical AND. | 
+assertions | one of:<br/>- one of:<br/>- string<br/>- array of string<br/>- array of object([assertion](/reference/schemas/assertion)) | Optional. Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom). | 
+onPass | array of object([routing](/reference/schemas/routing)) | Optional. Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. | 
+onFail | array of object([routing](/reference/schemas/routing)) | Optional. Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. | 
+onWarning | array of object([routing](/reference/schemas/routing)) | Optional. Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. | 
+onSkip | array of object([routing](/reference/schemas/routing)) | Optional. Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.) | 
 location | object([Source Location](/reference/schemas/source-location)) | ReadOnly. Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually. | 
 autoScreenshot | string | ReadOnly. Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.<br/><br/>Minimum length: 1. Pattern: `^(?![A-Za-z]:|[\\/])[^\\]+$` | 
+attempts | integer | ReadOnly. Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.<br/><br/>Minimum: 2 | 
+visit | integer | ReadOnly. Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.<br/><br/>Minimum: 2 | 
 
 ## Examples
 
@@ -37,7 +45,14 @@ autoScreenshot | string | ReadOnly. Path, relative to the run's artifact directo
   "outputs": {},
   "variables": {},
   "breakpoint": false,
+  "if": "example",
+  "onPass": [],
+  "onFail": [],
+  "onWarning": [],
+  "onSkip": [],
   "location": {},
-  "autoScreenshot": "example"
+  "autoScreenshot": "example",
+  "attempts": 42,
+  "visit": 42
 }
 ```

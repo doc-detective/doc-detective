@@ -363,9 +363,19 @@ redirects:
     destination: /docs/test-code/standalone
   - source: /docs/tests/standalone
     destination: /docs/test-code/standalone
-  # Input formats → Test your docs
-  - source: /docs/input-formats/:slug
-    destination: /docs/test-docs/input-formats/:slug
+  # Input formats → Test your docs (explicit; Fern redirects match literal paths)
+  - source: /docs/input-formats/overview
+    destination: /docs/test-docs/input-formats/overview
+  - source: /docs/input-formats/markdown
+    destination: /docs/test-docs/input-formats/markdown
+  - source: /docs/input-formats/dita
+    destination: /docs/test-docs/input-formats/dita
+  - source: /docs/input-formats/asciidoc
+    destination: /docs/test-docs/input-formats/asciidoc
+  - source: /docs/input-formats/html
+    destination: /docs/test-docs/input-formats/html
+  - source: /docs/input-formats/custom
+    destination: /docs/test-docs/input-formats/custom
   # Integrations / contexts → tracks
   - source: /docs/integrations/heretto
     destination: /docs/test-docs/heretto
@@ -392,6 +402,8 @@ redirects:
   - source: /docs/agent-tools/other-assistants
     destination: /ai/other-assistants
   # Tutorials tab dissolved into tracks
+  - source: /tutorials
+    destination: /docs/test-docs/overview
   - source: /tutorials/capture-screenshot
     destination: /docs/test-docs/capture-screenshots
   - source: /tutorials/fill-fields
@@ -400,9 +412,31 @@ redirects:
     destination: /docs/test-docs/record-video
   - source: /tutorials/set-up-your-test-environment
     destination: /docs/ci/set-up-environment
-  # Contribute → own tab
-  - source: /docs/contribute/:slug
-    destination: /contribute/:slug
+  # Contribute → own tab (explicit; Fern redirects match literal paths)
+  - source: /docs/contribute/contribute-to-the-docs
+    destination: /contribute/index
+  - source: /docs/contribute/quick-start
+    destination: /contribute/quick-start
+  - source: /docs/contribute/standard-contributions
+    destination: /contribute/standard-contributions
+  - source: /docs/contribute/substantial-contributions
+    destination: /contribute/substantial-contributions
+  - source: /docs/contribute/local-development
+    destination: /contribute/local-development
+  - source: /docs/contribute/review-process
+    destination: /contribute/review-process
+  - source: /docs/contribute/testing
+    destination: /contribute/testing
+  - source: /docs/contribute/how-to
+    destination: /contribute/how-to
+  - source: /docs/contribute/tutorial
+    destination: /contribute/tutorial
+  - source: /docs/contribute/reference
+    destination: /contribute/reference
+  - source: /docs/contribute/feature
+    destination: /contribute/feature
+  - source: /docs/contribute/troubleshooting
+    destination: /contribute/troubleshooting
   # Legal → Support
   - source: /docs/legal/privacy-policy-companion-app
     destination: /legal/privacy-policy-companion

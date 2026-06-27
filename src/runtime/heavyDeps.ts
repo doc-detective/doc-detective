@@ -16,9 +16,29 @@ export const HEAVY_NPM_DEPS = [
   "geckodriver",
   "pixelmatch",
   "pngjs",
+  // API-identical fork of node-pty with prebuilt binaries for macOS (incl.
+  // arm64), Windows, and Linux across Node ABIs. Upstream node-pty has no Windows
+  // prebuild and ships a non-executable macOS spawn-helper, so it can't be relied
+  // on across the CI matrix; the fork can.
+  "@homebridge/node-pty-prebuilt-multiarch",
 ] as const;
 
 export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];
+
+/**
+ * Heavy deps whose install is **best-effort**: a failure to install them (e.g.
+ * no prebuilt binary for the runner's platform/arch + no build toolchain) must
+ * NOT abort the whole `install all` batch. The corresponding feature degrades to
+ * SKIP at runtime instead. The PTY backend is native; even with the
+ * prebuilt-multiarch fork's broad coverage, an exotic platform/arch could miss a
+ * binary, so it is installed on its own, failure-tolerant, as a safety net.
+ */
+// Public type is ReadonlySet<string> so `.has(someString)` callsites compile,
+// but the literal is typed Set<HeavyDepName> so a typo in an entry (a name not in
+// HEAVY_NPM_DEPS) is a compile error.
+export const BEST_EFFORT_NPM_DEPS: ReadonlySet<string> = new Set<HeavyDepName>([
+  "@homebridge/node-pty-prebuilt-multiarch",
+]);
 
 /**
  * Optional peer dependencies that npm will NOT auto-install, but a heavy dep

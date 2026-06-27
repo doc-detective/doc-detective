@@ -25,7 +25,8 @@ directory | string | Optional. Directory to save the command's output. If the di
 maxVariation | number | Optional. Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.<br/><br/>Minimum: 0. Maximum: 1 | `0`
 overwrite | string | Optional. If `true`, overwrites the existing output at `path` if it exists.
 If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | `aboveVariation`
-timeout | integer | Optional. Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. | `60000`
+timeout | integer | Optional. Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails. | `60000`
+background | object | Optional. Start the command as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes. | 
 
 ## Examples
 
@@ -42,6 +43,7 @@ timeout | integer | Optional. Max time in milliseconds the command is allowed to
   "directory": "example",
   "maxVariation": 0,
   "overwrite": "aboveVariation",
-  "timeout": 60000
+  "timeout": 60000,
+  "background": {}
 }
 ```

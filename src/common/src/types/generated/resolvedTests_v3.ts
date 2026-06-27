@@ -35,6 +35,10 @@ export type OpenApi = {
  */
 export type HerettoCMSIntegrations = HerettoCMSIntegration[];
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition = string | [string, ...string[]];
+/**
  * OpenAPI description and configuration.
  */
 export type OpenApi1 =
@@ -356,9 +360,43 @@ export interface RunShellCommandDetailed {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   /**
-   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.
+   * Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.
    */
   timeout?: number;
+  /**
+   * Start the command as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.
+   */
+  background?: {
+    /**
+     * Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.
+     */
+    name: string;
+    /**
+     * Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+     */
+    waitUntil?: {
+      /**
+       * Wait until this TCP port accepts connections on localhost.
+       */
+      port?: number;
+      /**
+       * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+       */
+      stdio?: string;
+      /**
+       * Wait until an HTTP GET request to this URL returns a 2xx status.
+       */
+      httpGet?: string;
+      /**
+       * Wait at least this many milliseconds.
+       */
+      delayMs?: number;
+    };
+    /**
+     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+     */
+    tty?: boolean;
+  };
 }
 /**
  * Options for connecting to external services.
@@ -510,6 +548,7 @@ export interface Specification {
    * Path to the content that the specification is associated with.
    */
   contentPath?: string;
+  if?: Condition;
   /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.
    */
