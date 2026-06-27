@@ -1,0 +1,51 @@
+name: Schema reference drift
+
+# The schema reference pages under docs/fern/pages/reference/schemas/ are generated
+# from the doc-detective-common schemas by docs/.scripts/buildSchemaReferencesV4.js.
+# This check regenerates them and fails if the committed pages have drifted — either
+# because a schema changed without regenerating, or because a page was hand-edited.
+
+on:
+  pull_request:
+    paths:
+      - "src/common/src/schemas/**"
+      - "docs/fern/pages/reference/schemas/**"
+      - "docs/.scripts/buildSchemaReferencesV4.js"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schema-refs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies (no postinstall)
+        run: npm ci --ignore-scripts
+
+      # Regenerates from the committed schema bundle (src/common/.../schemas.json).
+      # Keeping that bundle in sync with the schema sources is the common package's
+      # own concern; this check only verifies the docs pages match the bundle.
+      - name: Regenerate schema reference pages
+        run: npm run docs:build-schema-refs
+
+      - name: Fail if generated pages are out of date
+        run: |
+          untracked="$(git ls-files --others --exclude-standard -- docs/fern/pages/reference/schemas)"
+          if ! git diff --quiet -- docs/fern/pages/reference/schemas || [ -n "$untracked" ]; then
+            echo "::error::Schema reference pages are out of date. Run 'npm run docs:build-schema-refs' and commit the result. Do not hand-edit docs/fern/pages/reference/schemas/*.md."
+            git --no-pager diff --stat -- docs/fern/pages/reference/schemas
+            [ -n "$untracked" ] && { echo "Untracked generated pages:"; echo "$untracked"; }
+            exit 1
+          fi
+          echo "Schema reference pages are up to date."
