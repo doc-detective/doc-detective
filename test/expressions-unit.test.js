@@ -342,3 +342,78 @@ describe("expressions: resolveExpression regressions (default flag, non-breaking
     assert.equal(String(r), "5");
   });
 });
+
+// Finding 3: a multi-line step-output value (containing literal \n / \r) must be
+// escaped when wrapped into a JS string literal for `new Function`. Before the
+// fix the literal newline produced an unterminated-string SyntaxError, the
+// evaluator threw, the error was logged, and the condition silently failed
+// closed. After the fix the value compares correctly.
+describe("expressions: multi-line meta values are escaped (finding 3)", function () {
+  it("a multi-line value (newline) compares equal to an identical value", async function () {
+    // Both operands resolve from step-output meta values that hold the SAME
+    // multi-line string. Each flows through replaceMetaValues' literal-wrapping
+    // and must be \n-escaped so `new Function` sees a valid string literal.
+    const ctx = { outputs: { a: "line1\nline2", b: "line1\nline2" } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, true);
+  });
+
+  it("a multi-line value (newline) compares NOT equal to a different value", async function () {
+    const ctx = { outputs: { a: "line1\nline2", b: "line1\nDIFFERENT" } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, false);
+  });
+
+  it("a value with a carriage return compares equal to itself", async function () {
+    const ctx = { outputs: { a: "x\ry", b: "x\ry" } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, true);
+  });
+
+  it("a multi-line value is 'contains'-comparable without throwing", async function () {
+    // The multi-line subject must not crash the evaluator (the bug made it
+    // throw a SyntaxError and fail closed). Compare against a single-line needle.
+    const ctx = { outputs: { log: "row1\r\n\trow2", needle: "row1\r\n\trow2" } };
+    const r = await evaluateAssertion(
+      "$$outputs.log contains $$outputs.needle",
+      ctx
+    );
+    assert.equal(r, true);
+  });
+});
+
+// Finding 1: the quoted-string-literal regexes used to mask/scan literals are
+// the unrolled-loop form (linear time). Guard against a regression that
+// reintroduces an ambiguous, polynomial-backtracking pattern: a long adversarial
+// input that is a near-miss for a quoted literal must evaluate well under a
+// generous timeout.
+describe("expressions: literal-scan regexes are ReDoS-safe (finding 1)", function () {
+  it("a long unterminated-quote input evaluates quickly (no catastrophic backtracking)", async function () {
+    // n backslash-escape pairs followed by no closing quote is the classic
+    // trigger for the ambiguous `(?:[^"\\]|\\.)*` form. With the unrolled form
+    // this is linear.
+    const evil = '"' + '\\a'.repeat(50000);
+    const ctx = { outputs: { val: 1 } };
+    const start = Date.now();
+    // Embed the adversarial text as a left operand of a comparison so it flows
+    // through preprocessExpression's literal masking + LEFT operand patterns.
+    await evaluateAssertion(`${evil} == $$outputs.val`, ctx);
+    const elapsed = Date.now() - start;
+    assert.ok(
+      elapsed < 2000,
+      `expression evaluation took ${elapsed}ms (possible ReDoS)`
+    );
+  });
+
+  it("a long single-quoted near-miss evaluates quickly", async function () {
+    const evil = "'" + "\\a".repeat(50000);
+    const ctx = { outputs: { val: 1 } };
+    const start = Date.now();
+    await evaluateAssertion(`${evil} == $$outputs.val`, ctx);
+    const elapsed = Date.now() - start;
+    assert.ok(
+      elapsed < 2000,
+      `expression evaluation took ${elapsed}ms (possible ReDoS)`
+    );
+  });
+});
