@@ -108,7 +108,14 @@ describe("runtime/loader", function () {
       const resolved = resolveHeavyDepPath("fake-esm-driver", {
         cacheDir: tmpRoot,
       });
-      expect(resolved).to.equal(path.join(pkgDir, "build", "index.js"));
+      // require.resolve realpath-normalizes its result, so on macOS the tmp dir
+      // (/var/folders -> /private/var/folders symlink) and on Windows any
+      // case/8.3 differences would break an exact string compare. Compare
+      // realpaths so the assertion checks the same file, not the same spelling.
+      expect(resolved).to.not.equal(null);
+      expect(fs.realpathSync(resolved)).to.equal(
+        fs.realpathSync(path.join(pkgDir, "build", "index.js"))
+      );
       // The version walk-up must also work off the fallback-resolved entry.
       expect(resolveHeavyDepVersion("fake-esm-driver", { cacheDir: tmpRoot })).to.equal(
         "3.0.0"
