@@ -22,6 +22,115 @@ runShell | one of:<br/>- string<br/>- object([Run shell command (detailed)](/ref
 
 ```json
 {
-  "runShell": "example"
+  "runShell": "docker run hello-world"
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "echo",
+    "args": [
+      "$USER"
+    ]
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "echo",
+    "args": [
+      "hello-world"
+    ]
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "docker run hello-world",
+    "timeout": 20000,
+    "exitCodes": [
+      0
+    ],
+    "stdio": "Hello from Docker!"
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "false",
+    "exitCodes": [
+      1
+    ]
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "echo",
+    "args": [
+      "setup"
+    ],
+    "exitCodes": [
+      0
+    ],
+    "stdio": "/.*?/"
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "docker run hello-world",
+    "workingDirectory": ".",
+    "exitCodes": [
+      0
+    ],
+    "stdio": "Hello from Docker!",
+    "path": "docker-output.txt",
+    "directory": "output",
+    "maxVariation": 0.1,
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "docker run -p 8080:80 nginx",
+    "background": {
+      "name": "web",
+      "waitUntil": {
+        "httpGet": "http://localhost:8080"
+      }
+    },
+    "timeout": 30000
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "docker run -p 5432:5432 -e POSTGRES_PASSWORD=test postgres:16",
+    "background": {
+      "name": "db",
+      "waitUntil": {
+        "port": 5432,
+        "stdio": "/database system is ready to accept connections/"
+      }
+    },
+    "timeout": 60000
+  }
 }
 ```

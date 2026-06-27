@@ -22,6 +22,6 @@ loadVariables | string | Required. Load environment variables from the specified
 
 ```json
 {
-  "loadVariables": "example"
+  "loadVariables": ".env"
 }
 ```

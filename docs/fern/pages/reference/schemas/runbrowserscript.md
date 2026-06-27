@@ -22,6 +22,67 @@ runBrowserScript | one of:<br/>- string<br/>- object([Run browser script (detail
 
 ```json
 {
-  "runBrowserScript": "example"
+  "runBrowserScript": "return document.title;"
+}
+```
+
+```json
+{
+  "runBrowserScript": {
+    "script": "return document.title;"
+  }
+}
+```
+
+```json
+{
+  "runBrowserScript": {
+    "script": "return arguments[0] + arguments[1];",
+    "args": [
+      "foo",
+      "bar"
+    ]
+  }
+}
+```
+
+```json
+{
+  "runBrowserScript": {
+    "script": "return window.location.href;",
+    "output": "/^https?:\\/\\//"
+  }
+}
+```
+
+```json
+{
+  "runBrowserScript": {
+    "script": "return document.querySelectorAll('a').length;",
+    "output": "5"
+  }
+}
+```
+
+```json
+{
+  "runBrowserScript": {
+    "script": "return JSON.stringify({ ready: document.readyState });",
+    "path": "ready-state.json",
+    "directory": "output",
+    "maxVariation": 0.1,
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+```json
+{
+  "runBrowserScript": {
+    "script": "localStorage.setItem('token', arguments[0]);",
+    "args": [
+      "$AUTH_TOKEN"
+    ]
+  }
 }
 ```

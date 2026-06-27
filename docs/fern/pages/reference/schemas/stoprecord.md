@@ -25,3 +25,17 @@ stopRecord | one of:<br/>- boolean<br/>- null<br/>- string<br/>- object([stopRec
   "stopRecord": true
 }
 ```
+
+```json
+{
+  "stopRecord": "demo"
+}
+```
+
+```json
+{
+  "stopRecord": {
+    "name": "demo"
+  }
+}
+```

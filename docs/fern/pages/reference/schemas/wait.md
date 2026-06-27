@@ -25,3 +25,15 @@ wait | one of:<br/>- number<br/>- string<br/>- boolean | Required. Pause (in mil
   "wait": 5000
 }
 ```
+
+```json
+{
+  "wait": "$WAIT_DURATION"
+}
+```
+
+```json
+{
+  "wait": true
+}
+```

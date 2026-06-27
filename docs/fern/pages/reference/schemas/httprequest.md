@@ -22,6 +22,274 @@ httpRequest | one of:<br/>- string<br/>- object([HTTP request (detailed)](/refer
 
 ```json
 {
-  "httpRequest": "example"
+  "httpRequest": "https://reqres.in/api/users"
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://reqres.in/api/users"
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://reqres.in/api/users/2",
+    "method": "put",
+    "request": {
+      "body": {
+        "name": "morpheus",
+        "job": "zion resident"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://reqres.in/api/users",
+    "method": "post",
+    "request": {
+      "body": {
+        "name": "morpheus",
+        "job": "leader"
+      }
+    },
+    "response": {
+      "body": {
+        "name": "morpheus",
+        "job": "leader"
+      }
+    },
+    "statusCodes": [
+      200,
+      201
+    ]
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://www.api-server.com",
+    "method": "post",
+    "timeout": 30000,
+    "request": {
+      "body": {
+        "field": "value"
+      },
+      "headers": {
+        "header": "value"
+      },
+      "parameters": {
+        "param": "value"
+      }
+    },
+    "response": {
+      "body": {
+        "field": "value"
+      },
+      "headers": {
+        "header": "value"
+      }
+    },
+    "statusCodes": [
+      200
+    ]
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://reqres.in/api/users",
+    "method": "post",
+    "request": {
+      "body": {
+        "name": "morpheus",
+        "job": "leader"
+      }
+    },
+    "response": {
+      "body": {
+        "name": "morpheus",
+        "job": "leader"
+      }
+    },
+    "statusCodes": [
+      200,
+      201
+    ],
+    "path": "response.json",
+    "directory": "media",
+    "maxVariation": 0.05,
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "openApi": "getUserById"
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "openApi": {
+      "name": "Reqres",
+      "operationId": "getUserById"
+    },
+    "request": {
+      "parameters": {
+        "id": 123
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "openApi": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "getUserById"
+    },
+    "request": {
+      "parameters": {
+        "id": 123
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "openApi": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both"
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "openApi": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "updateUser",
+      "useExample": "request",
+      "exampleKey": "acme"
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "openApi": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "updateUser",
+      "useExample": "request",
+      "exampleKey": "acme",
+      "headers": {
+        "Authorization": "Bearer $TOKEN"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://www.api-server.com",
+    "method": "post",
+    "request": {
+      "headers": "Content-Type: application/json\\nAuthorization: Bearer token"
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://api.example.com/users/123",
+    "response": {
+      "required": [
+        "id",
+        "email",
+        "createdAt"
+      ]
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://api.example.com/users/123",
+    "response": {
+      "required": [
+        "user.profile.name",
+        "user.profile.avatar",
+        "user.settings.notifications"
+      ]
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://api.example.com/orders",
+    "response": {
+      "required": [
+        "orders[0].id",
+        "orders[0].total",
+        "orders[0].items[0].productId"
+      ]
+    }
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "https://api.example.com/users",
+    "response": {
+      "required": [
+        "sessionToken",
+        "expiresAt",
+        "user.id"
+      ],
+      "body": {
+        "status": "success",
+        "user": {
+          "role": "admin"
+        }
+      }
+    }
+  }
 }
 ```

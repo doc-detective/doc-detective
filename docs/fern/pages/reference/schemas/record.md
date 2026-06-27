@@ -22,6 +22,44 @@ record | one of:<br/>- string<br/>- object([Record (detailed)](/reference/schema
 
 ```json
 {
-  "record": "example"
+  "record": true
+}
+```
+
+```json
+{
+  "record": "results.mp4"
+}
+```
+
+```json
+{
+  "record": {
+    "path": "results.mp4",
+    "directory": "static/media",
+    "overwrite": "true"
+  }
+}
+```
+
+```json
+{
+  "record": {
+    "path": "results.mp4",
+    "engine": "ffmpeg"
+  }
+}
+```
+
+```json
+{
+  "record": {
+    "path": "results.mp4",
+    "engine": {
+      "name": "ffmpeg",
+      "target": "window",
+      "fps": 60
+    }
+  }
 }
 ```

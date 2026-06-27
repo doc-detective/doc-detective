@@ -22,6 +22,74 @@ find | one of:<br/>- string<br/>- object([Find element (detailed)](/reference/sc
 
 ```json
 {
-  "find": "example"
+  "find": "Find me!"
+}
+```
+
+```json
+{
+  "find": {
+    "selector": "[title=Search]"
+  }
+}
+```
+
+```json
+{
+  "find": {
+    "selector": "[title=Search]",
+    "timeout": 10000,
+    "elementText": "Search",
+    "moveTo": true,
+    "click": true,
+    "type": "shorthair cat"
+  }
+}
+```
+
+```json
+{
+  "find": {
+    "selector": "[title=Search]",
+    "click": {
+      "button": "right"
+    }
+  }
+}
+```
+
+```json
+{
+  "find": {
+    "selector": "[title=Search]",
+    "timeout": 10000,
+    "elementText": "Search",
+    "moveTo": true,
+    "click": true,
+    "type": {
+      "keys": [
+        "shorthair cat"
+      ],
+      "inputDelay": 100
+    }
+  }
+}
+```
+
+```json
+{
+  "find": {
+    "elementId": "/^user-[0-9]+$/",
+    "elementClass": [
+      "admin",
+      "/^level-[1-5]$/"
+    ],
+    "elementAttribute": {
+      "data-active": true,
+      "data-score": "/^[0-9]+$/"
+    },
+    "timeout": 8000,
+    "moveTo": false
+  }
 }
 ```

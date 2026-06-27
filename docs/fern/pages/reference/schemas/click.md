@@ -22,6 +22,31 @@ click | one of:<br/>- string<br/>- object([Click element (detailed)](/reference/
 
 ```json
 {
-  "click": "example"
+  "click": true
+}
+```
+
+```json
+{
+  "click": "Submit"
+}
+```
+
+```json
+{
+  "click": {
+    "button": "left",
+    "elementText": "Element text"
+  }
+}
+```
+
+```json
+{
+  "click": {
+    "selector": "#elementToScreenshot",
+    "elementText": "Element text",
+    "button": "middle"
+  }
 }
 ```

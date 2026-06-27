@@ -19,3 +19,26 @@ Field | Type | Description | Default
 closeSurface | one of:<br/>- one of:<br/>- string<br/>- object([Process surface](/reference/schemas/process-surface))<br/>- array of one of: string, object([Process surface](/reference/schemas/process-surface)) | Required. Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`. | 
 
 ## Examples
+
+```json
+{
+  "closeSurface": "web"
+}
+```
+
+```json
+{
+  "closeSurface": {
+    "process": "web"
+  }
+}
+```
+
+```json
+{
+  "closeSurface": [
+    "web",
+    "api"
+  ]
+}
+```

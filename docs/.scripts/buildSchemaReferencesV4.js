@@ -237,9 +237,32 @@ function generateSchemaMarkdown(schemaId, schema) {
   // Examples
   const examples = ["## Examples", ""];
 
+  // A single-property wrapper schema (e.g. an action like `goTo`) carries its
+  // real examples on the nested property — prefer those over synthesized ones.
+  const eff = getEffectiveProperties(schema);
+  const wrappedProp =
+    eff && Object.keys(eff.properties).length === 1
+      ? Object.entries(eff.properties)[0]
+      : null;
+
   if (schema.examples && schema.examples.length > 0) {
     for (const example of schema.examples) {
       const snippet = ["```json", JSON.stringify(example, null, 2), "```", ""];
+      examples.push(...snippet);
+    }
+  } else if (
+    wrappedProp &&
+    Array.isArray(wrappedProp[1].examples) &&
+    wrappedProp[1].examples.length > 0
+  ) {
+    // Wrap each of the nested property's examples in the parent object.
+    for (const example of wrappedProp[1].examples) {
+      const snippet = [
+        "```json",
+        JSON.stringify({ [wrappedProp[0]]: example }, null, 2),
+        "```",
+        "",
+      ];
       examples.push(...snippet);
     }
   } else {

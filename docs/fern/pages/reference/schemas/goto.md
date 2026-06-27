@@ -22,6 +22,131 @@ goTo | one of:<br/>- string<br/>- object([Go to URL (detailed)](/reference/schem
 
 ```json
 {
-  "goTo": "example"
+  "goTo": "https://www.google.com"
+}
+```
+
+```json
+{
+  "goTo": "/search"
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "https://www.google.com"
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "/search",
+    "origin": "https://www.google.com"
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "/dashboard",
+    "origin": "https://my-app.com",
+    "params": {
+      "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "https://www.example.com",
+    "waitUntil": {
+      "networkIdleTime": 500
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "https://www.example.com/dashboard",
+    "waitUntil": {
+      "find": {
+        "selector": "[data-testid='dashboard-loaded']"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "https://www.example.com/app",
+    "timeout": 60000,
+    "waitUntil": {
+      "networkIdleTime": 500,
+      "domIdleTime": 1000,
+      "find": {
+        "selector": ".main-content",
+        "elementText": "Dashboard"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "https://www.example.com/app",
+    "timeout": 60000,
+    "waitUntil": {
+      "networkIdleTime": null
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "https://www.example.com/status",
+    "waitUntil": {
+      "find": {
+        "elementText": "System operational"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "http://localhost:8092",
+    "waitUntil": {
+      "find": {
+        "selector": "button",
+        "elementText": "Standard Button",
+        "elementTestId": "standard-btn",
+        "elementAria": "Sample Standard Button",
+        "elementId": "standard-btn",
+        "elementClass": [
+          "btn"
+        ],
+        "elementAttribute": {
+          "type": "button",
+          "value": "Standard Button"
+        }
+      }
+    }
+  }
 }
 ```
