@@ -17,8 +17,10 @@ organizer. Diátaxis page *types* may still inform an individual page's shape, b
 sequenced by journey.
 
 **Frontmatter requirement:** every page in `docs/fern/pages/**` must include `title` and `description`
-in its frontmatter (see [`docs/AGENTS.md`](../AGENTS.md)). No level-1 (`#`) headings; no `.md` for
-content pages (use `.mdx`).
+in its frontmatter (see [`docs/AGENTS.md`](../AGENTS.md)) and avoid level-1 (`#`) headings. Author
+hand-written content pages as `.mdx`. Some pages are `.md` by exception: the generated schema
+reference pages under `reference/schemas/`, and a few legacy pages (e.g. `get-started/concepts.md`)
+that predate this convention.
 
 ---
 
@@ -186,10 +188,10 @@ and emits the field/type/default tables.
 - There is **therefore no separate hand-authored "Configuration reference" page** — the generated
   `config.md` *is* it. The Reference shelf links to the generated pages; journey pages deep-link into
   them.
-- **Known gap (infrastructure):** the generator lives in the old Docusaurus repo and writes to
-  `docs/references/schemas/`, not the Fern path `docs/fern/pages/reference/schemas/` this repo uses. It
-  should be **ported into this repo** and re-pointed at the Fern path so schema references regenerate
-  in-repo. Tracked separately from this IA overhaul.
+- **Generator:** the generator is [`docs/.scripts/buildSchemaReferencesV4.js`](../.scripts/buildSchemaReferencesV4.js),
+  run via `npm run docs:build-schema-refs`. It reads this repo's committed schema bundle and writes the
+  Fern pages; a CI drift check (`.github/workflows/docs-schema-refs.yml`) fails the build if the
+  committed pages don't match the regenerated output.
 - The **CLI reference** is *not* schema-driven, so the generator doesn't produce it. It should either
   get its own small generator from `buildYargs()` (preferred, same "generated, not hand-edited"
   principle) or be carefully hand-authored and kept in sync with `src/utils.ts`. Decision pending.
