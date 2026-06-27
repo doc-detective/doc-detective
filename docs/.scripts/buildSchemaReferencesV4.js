@@ -403,13 +403,10 @@ function getTypeString(schema) {
 
     // Handle objects with titles (reference to other schemas)
     if (schema.type === "object" && schema.title) {
-      const schemaId = schema.title;
-      const schemaPath = schemaPaths.get(schemaId);
-      if (schemaPath) {
-        type = `object([${schemaId}](${schemaPath}))`;
-      } else {
-        type = `object(${schemaId})`;
-      }
+      const schemaPath = schemaPaths.get(schema.title);
+      // Only surface the title when it has its own page; otherwise plain `object`
+      // so internal/validation-only titles don't leak as fake links.
+      type = schemaPath ? `object([${schema.title}](${schemaPath}))` : "object";
     }
 
     // Handle arrays
@@ -443,9 +440,7 @@ function getTypeString(schema) {
   // A titled object schema (including one composed via allOf) links to its page.
   if (schema.title && getEffectiveProperties(schema)) {
     const schemaPath = schemaPaths.get(schema.title);
-    return schemaPath
-      ? `object([${schema.title}](${schemaPath}))`
-      : `object(${schema.title})`;
+    return schemaPath ? `object([${schema.title}](${schemaPath}))` : "object";
   }
 
   // allOf without object semantics (e.g. a typed value plus constraint-only or
@@ -474,13 +469,10 @@ function getArrayItemTypeString(items) {
   if (!Array.isArray(items)) {
     // If the item is an object with a title
     if (items.type === "object" && items.title) {
-      const schemaId = items.title;
-      const schemaPath = schemaPaths.get(schemaId);
-      if (schemaPath) {
-        return `object([${schemaId}](${schemaPath}))`;
-      } else {
-        return `object(${schemaId})`;
-      }
+      const schemaPath = schemaPaths.get(items.title);
+      return schemaPath
+        ? `object([${items.title}](${schemaPath}))`
+        : "object";
     }
 
     // Handle anyOf/oneOf
