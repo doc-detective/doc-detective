@@ -61,7 +61,10 @@ Chosen option **A**:
    \`${name}/package.json\`)` (which stays exported) and derive the real entry from the package's
    `exports["."]` (`import` → `require` → `default` → `node`) or `main`. This returns the same
    `…/node_modules/<name>/build/lib/index.js` shape the existing `APPIUM_HOME` derivation and
-   version walk-up already consume, so no downstream call site changes.
+   version walk-up already consume, so no downstream call site changes. Because this bypasses
+   Node's own exports-target validation, a **containment guard** rejects any derived entry that
+   escapes the package directory (a crafted `"../../outside.js"` target), mirroring Node's rule
+   that exports targets stay inside the package.
 2. **Driver bump.** `appium-chromium-driver` → `^3.0.2`, `appium-geckodriver` → `^3.0.6`,
    `appium-safari-driver` → `^5.0.2`.
 

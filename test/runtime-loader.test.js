@@ -121,6 +121,35 @@ describe("runtime/loader", function () {
         "3.0.0"
       );
     });
+
+    it("rejects a pure-ESM package whose entry escapes the package dir", function () {
+      // A crafted exports target like "../../../escape.js" must not resolve —
+      // the containment guard mirrors Node's own exports-target validation so a
+      // malicious package.json can't point the entry outside the package.
+      const runtimeDir = getRuntimeDir({ cacheDir: tmpRoot });
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(runtimeDir, "package.json"),
+        JSON.stringify({ name: "rt-cache", private: true, version: "0.0.0" })
+      );
+      const pkgDir = path.join(runtimeDir, "node_modules", "evil-esm");
+      fs.mkdirSync(pkgDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(pkgDir, "package.json"),
+        JSON.stringify({
+          name: "evil-esm",
+          version: "1.0.0",
+          type: "module",
+          exports: {
+            ".": { import: "../../../escape.js" },
+            "./package.json": "./package.json",
+          },
+        })
+      );
+      expect(resolveHeavyDepPath("evil-esm", { cacheDir: tmpRoot })).to.equal(
+        null
+      );
+    });
   });
 
   describe("loadHeavyDep", function () {

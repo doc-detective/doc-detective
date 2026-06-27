@@ -58,16 +58,32 @@ const requireFromShim = createRequire(import.meta.url);
 function entryFromPackageJson(pkgJsonPath: string): string | null {
   try {
     const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+    // `?? pkg?.exports` also handles the root-level shorthand
+    // `"exports": { "import": "…" }` (no "." key) where the conditions sit
+    // directly on the exports object.
     const dot = pkg?.exports?.["."] ?? pkg?.exports;
     let rel: unknown;
     if (typeof dot === "string") {
       rel = dot;
     } else if (dot && typeof dot === "object") {
+      // `import` wins first: this fallback only runs after require.resolve(name)
+      // already threw, so there is no usable CJS entry — the ESM `import` target
+      // is the only valid one (the inverse of normal CJS condition order).
       rel = dot.import ?? dot.require ?? dot.default ?? dot.node;
     }
     if (typeof rel !== "string") rel = pkg?.main;
     if (typeof rel !== "string") return null;
-    return path.join(path.dirname(pkgJsonPath), rel);
+    // Containment guard: mirror Node's rule that an exports target must stay
+    // inside the package dir. Skipping Node's own validation here means a
+    // crafted "../../outside.js" would otherwise let path.join escape the
+    // package — and the result is both imported and used to anchor APPIUM_HOME.
+    const pkgDir = path.dirname(pkgJsonPath);
+    const entry = path.resolve(pkgDir, rel);
+    const within = path.relative(pkgDir, entry);
+    if (within === "" || within.startsWith("..") || path.isAbsolute(within)) {
+      return null;
+    }
+    return entry;
   } catch {
     return null;
   }
