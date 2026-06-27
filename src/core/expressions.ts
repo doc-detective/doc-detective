@@ -102,9 +102,19 @@ function replaceMetaValues(expression: string, context: any, allowOperators: boo
       if (typeof metaValue === "object") {
         replaceValue = JSON.stringify(metaValue);
       } else if (typeof metaValue === "string" && hasOperators) {
-        // If the meta value is a string and we're in an expression with operators,
-        // only quote it if it contains spaces or special characters
-        if (/[\s\(\)\[\]\{\}\,\;\:\.\+\-\*\/\|\&\!\?\<\>\=]/.test(metaValue)) {
+        // Inline ONLY a bare JS literal (a number, or the boolean/null keywords) so
+        // numeric/boolean comparison semantics are preserved; quote+escape EVERY other
+        // string. Any other string inlined raw (e.g. "O'Reilly", "a@b", "hello world")
+        // is mis-parsed by the downstream literal masking and operator rewrites, or is an
+        // undefined identifier, so `new Function` throws and the assertion fails closed.
+        if (
+          !(
+            /^-?\d+(?:\.\d+)?$/.test(metaValue) ||
+            metaValue === "true" ||
+            metaValue === "false" ||
+            metaValue === "null"
+          )
+        ) {
           // Build a JS string literal for `new Function`. Escape backslashes
           // FIRST, then double-quotes, then literal line terminators. Without
           // the \n/\r escapes a multi-line step-output value produces an

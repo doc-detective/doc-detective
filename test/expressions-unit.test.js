@@ -390,6 +390,37 @@ describe("expressions: multi-line meta values are escaped (finding 3)", function
     const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
     assert.equal(r, true);
   });
+
+  it("a double-quote with no whitespace is quoted, not inlined raw", async function () {
+    // Quote-bearing values must take the escaped-literal path or new Function sees invalid source.
+    const c = String.fromCharCode(34);
+    const v = "a" + c + "b";
+    const ctx = { outputs: { a: v, b: v } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, true);
+  });
+  it("a backslash with no whitespace is quoted, not inlined raw", async function () {
+    // Backslash-bearing values must be quoted/escaped for the same reason.
+    const c = String.fromCharCode(92);
+    const v = "a" + c + "b";
+    const ctx = { outputs: { a: v, b: v } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, true);
+  });
+  it("an apostrophe value (no whitespace) is quoted, not inlined raw", async function () {
+    // Only bare number/boolean/null literals inline raw; everything else is quoted+escaped.
+    const v = "O'Reilly";
+    const ctx = { outputs: { a: v, b: v } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, true);
+  });
+  it("an at-sign value (no whitespace) is quoted, not inlined raw", async function () {
+    // Not a bare literal -> quoted; previously inlined raw and failed closed.
+    const v = "a@b";
+    const ctx = { outputs: { a: v, b: v } };
+    const r = await evaluateAssertion("$$outputs.a == $$outputs.b", ctx);
+    assert.equal(r, true);
+  });
 });
 
 // Finding 1: the quoted-string-literal regexes used to mask/scan literals are
