@@ -206,4 +206,3 @@ CUJs
 Priya
 html
 Xvfb
-untargeted
