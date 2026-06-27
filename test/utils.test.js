@@ -4,6 +4,8 @@ import {
   compileFilter,
   matchesFilter,
   selectSpecsForRun,
+  serializeBrowserResult,
+  matchesExpectedOutput,
 } from "../dist/core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -213,6 +215,91 @@ describe("Util tests", function () {
     expect(configAbsent.dryRun).to.equal(false);
   });
 
+  it("isDebugRequested: returns true only for truthy DOC_DETECTIVE_DEBUG values", async function () {
+    const { isDebugRequested } = await import("../dist/utils.js");
+    const prev = process.env.DOC_DETECTIVE_DEBUG;
+    try {
+      for (const v of ["true", "TRUE", "1", "yes", "Yes", "true ", "  1  ", "\tyes\n"]) {
+        process.env.DOC_DETECTIVE_DEBUG = v;
+        expect(isDebugRequested(), `value: ${JSON.stringify(v)}`).to.equal(true);
+      }
+      for (const v of ["false", "0", "no", "", "off"]) {
+        process.env.DOC_DETECTIVE_DEBUG = v;
+        expect(isDebugRequested()).to.equal(false);
+      }
+      delete process.env.DOC_DETECTIVE_DEBUG;
+      expect(isDebugRequested()).to.equal(false);
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_DEBUG;
+      else process.env.DOC_DETECTIVE_DEBUG = prev;
+    }
+  });
+
+  it("setConfig: accepts a config with the deprecated `debug` field (ignored, not rejected)", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const os = await import("node:os");
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-deprecated-"));
+    try {
+      const configPath = path.join(tmp, ".doc-detective.json");
+      // Old configs that still carry `debug` must keep validating; the
+      // field is deprecated and has no runtime effect.
+      fs.writeFileSync(configPath, JSON.stringify({ debug: true, input: "." }));
+      const config = await setConfig({ configPath, args: {} });
+      expect(config).to.be.an("object");
+      expect(config.input).to.exist;
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("setConfig: throws (does not return null) when an explicit config path can't be read", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const path = await import("node:path");
+    const os = await import("node:os");
+    const missing = path.join(
+      os.tmpdir(),
+      `dd-nonexistent-config-${process.pid}-${Date.now()}.json`
+    );
+    let threw = null;
+    try {
+      await setConfig({ configPath: missing, args: {} });
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw, "expected setConfig to throw on an unreadable config path").to.be.an(
+      "error"
+    );
+    expect(threw.message).to.match(/config file/i);
+  });
+
+  it("setConfig: throws a targeted error when DOC_DETECTIVE_CONFIG is valid JSON but not an object", async function () {
+    this.timeout(5000);
+    const { setConfig } = await import("../dist/utils.js");
+    const prev = process.env.DOC_DETECTIVE_CONFIG;
+    try {
+      for (const bad of ["null", "true", "42", "[1,2]", '"str"']) {
+        process.env.DOC_DETECTIVE_CONFIG = bad;
+        let threw = null;
+        try {
+          await setConfig({ configPath: null, args: {} });
+        } catch (err) {
+          threw = err;
+        }
+        expect(threw, `expected throw for DOC_DETECTIVE_CONFIG=${bad}`).to.be.an(
+          "error"
+        );
+        expect(threw.message).to.match(/DOC_DETECTIVE_CONFIG/);
+      }
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = prev;
+    }
+  });
+
   it("setConfig stores --hints / --no-hints on config.hints.enabled", async function () {
     this.timeout(5000);
     // --no-hints turns hints off
@@ -262,6 +349,62 @@ describe("Util tests", function () {
     expect(configAbsent.autoUpdate).to.equal(true);
   });
 
+  it("Yargs parses --auto-screenshot / --no-auto-screenshot as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--auto-screenshot"]);
+    expect(on.autoScreenshot).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-auto-screenshot"]);
+    expect(off.autoScreenshot).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.autoScreenshot).to.equal(undefined);
+  });
+
+  it("setConfig stores --auto-screenshot on config.autoScreenshot and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--auto-screenshot"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.autoScreenshot).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-auto-screenshot"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.autoScreenshot).to.equal(false);
+
+    // Schema default is false; absent flag yields false via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.autoScreenshot).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.autoScreenshot).to.equal(false);
+  });
+
+  it("Yargs parses --auto-record / --no-auto-record as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--auto-record"]);
+    expect(on.autoRecord).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-auto-record"]);
+    expect(off.autoRecord).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.autoRecord).to.equal(undefined);
+  });
+
+  it("setConfig stores --auto-record on config.autoRecord and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--auto-record"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.autoRecord).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-auto-record"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.autoRecord).to.equal(false);
+
+    // Schema default is false; absent flag yields false via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.autoRecord).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.autoRecord).to.equal(false);
+  });
+
   it("Yargs parses --cache-dir as a string", function () {
     const set = setArgs(["node", "runTests.js", "--cache-dir", "/tmp/ddc"]);
     expect(set.cacheDir).to.equal("/tmp/ddc");
@@ -280,6 +423,81 @@ describe("Util tests", function () {
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
     // No schema default — absent means the cacheDir helper falls back to os.tmpdir().
     expect(configAbsent.cacheDir).to.equal(undefined);
+  });
+
+  it("Yargs parses --concurrent-runners as a string (bare flag yields empty string)", function () {
+    const numeric = setArgs(["node", "runTests.js", "--concurrent-runners", "4"]);
+    expect(numeric.concurrentRunners).to.equal("4");
+
+    // Bare flag — string-typed options yield "" so the CPU-count mode is
+    // distinguishable from an absent flag.
+    const bare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
+    expect(bare.concurrentRunners).to.equal("");
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.concurrentRunners).to.equal(undefined);
+  });
+
+  it("setConfig maps --concurrent-runners to config.concurrentRunners", async function () {
+    this.timeout(5000);
+    const argsNumeric = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "4",
+    ]);
+    const configNumeric = await setConfig({
+      configPath: null,
+      args: argsNumeric,
+    });
+    expect(configNumeric.concurrentRunners).to.equal(4);
+
+    // Bare flag and explicit `true` opt into CPU-count mode (resolved to a
+    // concrete integer by the core runner, not here).
+    const argsBare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
+    const configBare = await setConfig({ configPath: null, args: argsBare });
+    expect(configBare.concurrentRunners).to.equal(true);
+
+    const argsTrue = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "true",
+    ]);
+    const configTrue = await setConfig({ configPath: null, args: argsTrue });
+    expect(configTrue.concurrentRunners).to.equal(true);
+
+    // Case-insensitive — "True" should not fall through to Number() (NaN).
+    const argsTrueCap = setArgs([
+      "node",
+      "runTests.js",
+      "--concurrent-runners",
+      "True",
+    ]);
+    const configTrueCap = await setConfig({
+      configPath: null,
+      args: argsTrueCap,
+    });
+    expect(configTrueCap.concurrentRunners).to.equal(true);
+
+    // Absent flag — schema default 1 via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.concurrentRunners).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.concurrentRunners).to.equal(1);
+  });
+
+  it("setConfig ignores invalid --concurrent-runners values", async function () {
+    this.timeout(5000);
+    // CLI overrides land after config_v3 validation, so the override block
+    // must not let NaN or non-positive counts through (they'd silently
+    // degrade to sequential execution). Invalid values are warned about and
+    // dropped — the validated default stays.
+    for (const bad of ["abc", "1.5", "0"]) {
+      const args = setArgs(["node", "runTests.js", "--concurrent-runners", bad]);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.concurrentRunners, `value: ${bad}`).to.equal(1);
+    }
   });
 
   it("setConfig ignores empty --cache-dir override", async function () {
@@ -322,9 +540,9 @@ describe("Util tests", function () {
     const args = setArgs(["node", "runTests.js", "--input", "."]);
     expect(args.reporters).to.be.undefined;
     const config = await setConfig({ configPath: null, args });
-    // Schema default is ["terminal", "json"] — AJV useDefaults applies it
-    // during validation when the --reporters arg is not provided.
-    expect(config.reporters).to.deep.equal(["terminal", "json"]);
+    // Schema default is ["terminal", "json", "runFolder"] — AJV useDefaults
+    // applies it during validation when the --reporters arg is not provided.
+    expect(config.reporters).to.deep.equal(["terminal", "json", "runFolder"]);
   });
 
   it("outputResults uses config.reporters as source of truth", async function () {
@@ -1335,3 +1553,60 @@ function deepObjectExpect(actual, expected) {
     }
   });
 }
+
+describe("serializeBrowserResult", function () {
+  it("passes strings through unchanged", function () {
+    expect(serializeBrowserResult("hello")).to.equal("hello");
+    expect(serializeBrowserResult("")).to.equal("");
+  });
+
+  it("JSON-serializes objects and arrays", function () {
+    expect(serializeBrowserResult({ a: 1, b: "x" })).to.equal('{"a":1,"b":"x"}');
+    expect(serializeBrowserResult([1, 2, 3])).to.equal("[1,2,3]");
+  });
+
+  it("serializes numbers, booleans, and null", function () {
+    expect(serializeBrowserResult(42)).to.equal("42");
+    expect(serializeBrowserResult(true)).to.equal("true");
+    expect(serializeBrowserResult(null)).to.equal("null");
+  });
+
+  it("preserves non-JSON primitives (NaN, Infinity) rather than coercing to null", function () {
+    expect(serializeBrowserResult(NaN)).to.equal("NaN");
+    expect(serializeBrowserResult(Infinity)).to.equal("Infinity");
+    expect(serializeBrowserResult(-Infinity)).to.equal("-Infinity");
+  });
+
+  it("falls back to String() for undefined and unserializable values", function () {
+    expect(serializeBrowserResult(undefined)).to.equal("undefined");
+    const circular = {};
+    circular.self = circular;
+    expect(serializeBrowserResult(circular)).to.equal("[object Object]");
+  });
+});
+
+describe("matchesExpectedOutput", function () {
+  it("matches a literal substring", function () {
+    expect(matchesExpectedOutput("hello world", "lo wo")).to.equal(true);
+    expect(matchesExpectedOutput("hello world", "absent")).to.equal(false);
+  });
+
+  it("matches a /regex/ pattern", function () {
+    expect(matchesExpectedOutput("https://example.com", "/^https?:\\/\\//")).to.equal(
+      true
+    );
+    expect(matchesExpectedOutput("ftp://example.com", "/^https?:\\/\\//")).to.equal(
+      false
+    );
+  });
+
+  it("treats a plain string with no surrounding slashes as a substring", function () {
+    expect(matchesExpectedOutput("a.b.c", "a.b.c")).to.equal(true);
+    expect(matchesExpectedOutput("axbxc", "a.b.c")).to.equal(false);
+  });
+
+  it("returns false (no throw) for a malformed /regex/ pattern", function () {
+    expect(() => matchesExpectedOutput("anything", "/(unclosed/")).to.not.throw();
+    expect(matchesExpectedOutput("anything", "/(unclosed/")).to.equal(false);
+  });
+});

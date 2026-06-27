@@ -39,13 +39,13 @@
       "default": "."
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`. Custom reporters registered via `registerReporter()` can also be referenced by name.",
+      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (enabled by default) archives each run's results as `<output>/.doc-detective/run-<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Custom reporters registered via `registerReporter()` can also be referenced by name.",
       "type": "array",
       "items": {
         "type": "string",
         "minLength": 1
       },
-      "default": ["terminal", "json"]
+      "default": ["terminal", "json", "runFolder"]
     },
     "specFilter": {
       "description": "Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. Each entry must contain at least one non-whitespace character.",
@@ -402,7 +402,8 @@
       "$ref": "#/components/schemas/environment"
     },
     "debug": {
-      "description": "Enable debugging mode. `true` allows pausing on breakpoints, waiting for user input before continuing. `stepThrough` pauses at every step, waiting for user input before continuing. `false` disables all debugging.",
+      "description": "Deprecated and ignored. Previously reserved for an interactive step-through debugger that was never implemented. Retained so existing configs continue to validate. For diagnostics, run `doc-detective debug` or set the `DOC_DETECTIVE_DEBUG` environment variable.",
+      "deprecated": true,
       "anyOf": [
         {
           "type": "boolean"
@@ -411,11 +412,20 @@
           "type": "string",
           "enum": ["stepThrough"]
         }
-      ],
-      "default": false
+      ]
     },
     "dryRun": {
       "description": "If `true`, fully resolve tests (file/env config merge, schema validation, file detection, inline-test extraction) and emit the resolved test plan as JSON, but do not execute any steps. Equivalent to `--dry-run` on the CLI.",
+      "type": "boolean",
+      "default": false
+    },
+    "autoScreenshot": {
+      "description": "If `true`, captures a screenshot after every step that runs in a browser, in addition to any explicit `screenshot` steps. Images are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.",
+      "type": "boolean",
+      "default": false
+    },
+    "autoRecord": {
+      "description": "If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs (for example, `recordings/<specId>/<testId>/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.",
       "type": "boolean",
       "default": false
     },
@@ -674,12 +684,6 @@
       "debug": false
     },
     {
-      "debug": true
-    },
-    {
-      "debug": "stepThrough"
-    },
-    {
       "integrations": {
         "docDetectiveApi": {
           "apiKey": "your-api-key-here"
@@ -707,6 +711,10 @@
     {
       "testFilter": ["smoke", "login"],
       "specFilter": ["auth"]
+    },
+    {
+      "autoScreenshot": true,
+      "output": "./test-results"
     }
   ]
 }

@@ -1,10 +1,25 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { log } from "../utils.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 
 export { dragAndDropElement };
 
 // Drag and drop an element from source to target.
+//
+// Unified assertion model: the EXISTENCE of the source AND target elements are
+// the two implicit verifications — exposed as `outputs.sourceFound` and
+// `outputs.targetFound` and asserted (in order) via the trivial expressions
+// `$$outputs.sourceFound == true` then `$$outputs.targetFound == true` through
+// the shared engine. Because the engine short-circuits, a missing source records
+// sourceFound FAIL and targetFound SKIPPED. The drag operation itself (the
+// WebDriver.io attempt + HTML5 fallback) is EXECUTION: a failure there sets FAIL
+// with NO extra assertion record. Backward-compat: either element missing →
+// FAIL; drag failure → FAIL; success → PASS.
 async function dragAndDropElement({ config, step, driver }: { config: any; step: any; driver: any }) {
   async function HTML5DragDrop({ driver, sourceElement, targetElement }: { driver: any; sourceElement: any; targetElement: any }) {
     await driver.execute(
@@ -106,12 +121,28 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
       findElement({ config, step: targetFindStep, driver }),
     ]);
 
-    // Check if source or target element search failed
-    if (sourceResult.status === "FAIL") {
-      return sourceResult;
-    }
-    if (targetResult.status === "FAIL") {
-      return targetResult;
+    // Expose distinct existence outputs, then evaluate the two ordered specs
+    // through the shared engine. Short-circuit semantics mean a missing source
+    // records sourceFound FAIL and targetFound SKIPPED.
+    result.outputs.sourceFound = sourceResult.outputs?.found === true;
+    result.outputs.targetFound = targetResult.outputs?.found === true;
+    const specs: ImplicitAssertionSpec[] = [
+      { statement: "$$outputs.sourceFound == true", severity: "fail" },
+      { statement: "$$outputs.targetFound == true", severity: "fail" },
+    ];
+    const { assertions, status } = await evaluateImplicitAssertions(
+      specs,
+      buildConditionContext({ outputs: result.outputs })
+    );
+    result.assertions = assertions;
+    result.status = status;
+
+    // Either element missing → FAIL: stop before the drag EXECUTION.
+    if (status === "FAIL") {
+      result.description = `Couldn't find ${
+        result.outputs.sourceFound ? "target" : "source"
+      } element.`;
+      return result;
     }
     sourceElement = sourceResult.outputs.rawElement;
     targetElement = targetResult.outputs.rawElement;

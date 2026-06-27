@@ -11,6 +11,7 @@ import {
   log,
   getLineNumber,
   getLineStarts,
+  contentHash,
 } from "../dist/detectTests.js";
 import { detectFileTypeFromContent, defaultFileTypes } from "../dist/fileTypes.js";
 
@@ -531,6 +532,152 @@ function readFixture(filename) {
         });
         expect(result).to.have.lengthOf(2);
         expect(result[0].testId).to.not.equal(result[1].testId);
+      });
+
+      it("should generate path + content-hash testIds", async function () {
+        const content =
+          '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->\n' +
+          "<!-- test end -->\n" +
+          '<!-- test {"steps": [{"goTo": {"url": "https://b.com"}}]} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result[0].testId).to.match(/^test\.md~[0-9a-f]{8}$/);
+        expect(result[1].testId).to.match(/^test\.md~[0-9a-f]{8}$/);
+        expect(result[0].testId).to.not.equal(result[1].testId);
+      });
+
+      it("should prefer testIdBase over the file path for generated testIds", async function () {
+        const content =
+          '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "C:\\abs\\docs\\guide.md",
+          fileType: markdownFileType,
+          testIdBase: "docs/guide.md",
+        });
+        expect(result[0].testId).to.match(/^docs\/guide\.md~[0-9a-f]{8}$/);
+      });
+
+      it("should preserve an authored testId that resembles a pending placeholder", async function () {
+        // The internal pending prefix is salted with a content hash, so a
+        // user-authored testId can't accidentally land in the pending set and
+        // get overwritten by the content-hash replacement pass.
+        const content =
+          '<!-- test {"testId": "__dd-pending-deadbeef-1", "steps": [{"goTo": {"url": "https://a.com"}}]} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result[0].testId).to.equal("__dd-pending-deadbeef-1");
+      });
+
+      it("should suffix generated testIds for identical tests in one file", async function () {
+        const content =
+          '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->\n' +
+          "<!-- test end -->\n" +
+          '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(2);
+        expect(result[1].testId).to.equal(`${result[0].testId}-2`);
+      });
+
+      it("should fall back to a 'detected' base when no filePath or testIdBase is given", async function () {
+        const result = await parseContent({
+          config: {},
+          content:
+            '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->',
+          fileType: markdownFileType,
+        });
+        expect(result[0].testId).to.match(/^detected~[0-9a-f]{8}$/);
+      });
+
+      it("should keep generated testIds stable when unrelated content shifts the test's line", async function () {
+        const test =
+          '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->';
+        const original = await parseContent({
+          config: {},
+          content: test,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        const shifted = await parseContent({
+          config: {},
+          content: `Some new paragraph.\n\nAnother line.\n\n${test}`,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(shifted[0].testId).to.equal(original[0].testId);
+      });
+
+      it("contentHash is deterministic and ignores location and ID fields", function () {
+        // String input hashes the raw string.
+        expect(contentHash("abc")).to.match(/^[0-9a-f]{8}$/);
+        expect(contentHash("abc")).to.equal(contentHash("abc"));
+        expect(contentHash("abc")).to.not.equal(contentHash("abd"));
+
+        // Object input ignores volatile/generated fields.
+        const base = { steps: [{ goTo: { url: "https://a.com" } }] };
+        const decorated = {
+          steps: [
+            {
+              goTo: { url: "https://a.com" },
+              location: { line: 12, startIndex: 1, endIndex: 2 },
+              stepId: "explicit",
+            },
+          ],
+          testId: "anything",
+        };
+        expect(contentHash(decorated)).to.equal(contentHash(base));
+      });
+
+      it("contentHash tolerates unserializable input", function () {
+        // JSON.stringify(undefined) returns undefined; the hash must not
+        // crash and must stay deterministic.
+        expect(contentHash(undefined)).to.match(/^[0-9a-f]{8}$/);
+        expect(contentHash(undefined)).to.equal(contentHash(""));
+      });
+
+      it("contentHash degrades to a stable hash on circular / BigInt input", function () {
+        // JSON.stringify throws (not returns undefined) for circular refs and
+        // BigInt; the try/catch must keep ID generation from crashing.
+        const circular = {};
+        circular.self = circular;
+        expect(contentHash(circular)).to.match(/^[0-9a-f]{8}$/);
+        expect(contentHash({ n: 1n })).to.match(/^[0-9a-f]{8}$/);
+      });
+
+      it("should generate identical testIds for identical content across parses", async function () {
+        const content =
+          '<!-- test {"steps": [{"goTo": {"url": "https://a.com"}}]} -->\n' +
+          "<!-- test end -->\n" +
+          '<!-- test {"steps": [{"goTo": {"url": "https://b.com"}}]} -->';
+        const first = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        const second = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(first.map((t) => t.testId)).to.deep.equal(
+          second.map((t) => t.testId)
+        );
       });
 
       it("should parse step inline statements", async function () {

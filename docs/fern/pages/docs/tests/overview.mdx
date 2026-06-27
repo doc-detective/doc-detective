@@ -5,7 +5,7 @@ description: Tests tell Doc Detective what actions to perform, how, and where.
 
 Tests tell Doc Detective what actions to perform, how, and where. Tests are made of three sets of components:
 
-- **Test specification**: The highest-level component, test specifications (or specs) are collection of tests that should run together. [Contexts](/docs/configuration/contexts) defined in the spec are shared by all tests in the spec. Test specifications are equivalent to test suites in other testing frameworks.
+- **Test specification**: The highest-level component, test specifications (or specs) are collection of tests that should run together. [Contexts](/docs/test-docs/platforms-and-browsers) defined in the spec apply to all tests in the spec. Test specifications are equivalent to test suites in other testing frameworks.
 - **Test**: A test to run within a spec. Each test has a name, and a set of steps to perform. Tests are equivalent to test cases in other testing frameworks.
 - **Steps**: A step is a single action to perform within a test. Each individual step acts as an assertion that the step completes as expected. Steps are roughly equivalent to assertions in other testing frameworks.
 
@@ -38,13 +38,14 @@ When Doc Detective runs a test, the result is one of four statuses:
 
 ### Skipped tests
 
-When Doc Detective runs tests, it checks if each [context](/docs/configuration/contexts) matches your current environment. If a context specifies a platform or browser that doesn't match the system running the test, Doc Detective skips that context and its associated test.
+When Doc Detective runs tests, it checks if each [context](/docs/test-docs/platforms-and-browsers) matches your current environment. If a context specifies a platform or browser that doesn't match the system running the test, Doc Detective skips that context and its associated test.
 
 Doc Detective skips tests when:
 
 - **Platform mismatch**: The context specifies a platform (Windows, macOS, or Linux) that doesn't match your current operating system.
 - **Browser unavailable**: The context specifies a browser that isn't installed or available on your system.
 - **All contexts skipped**: If all contexts for a test are skipped, the entire test is marked as SKIPPED (not PASS).
+- **Condition not met**: A spec, test, or step has an [`if` condition](#conditional-execution) that evaluates to false.
 
 When a test is skipped, the results show a SKIPPED status in the output JSON:
 
@@ -147,13 +148,479 @@ The output JSON shows the WARNING status:
 
 This lets you catch and review unexpected changes while your test suite continues running.
 
+## Custom assertions
+
+Every step is already an implicit assertion: if its action fails, the step fails. To check more than the action's built-in result, add custom assertions with the step-level `assertions` field. Doc Detective evaluates them after the action runs and folds the results into the step's status.
+
+An assertion is a condition expression that resolves to true or false. Set `assertions` to a single expression or to an array of expressions. When you provide an array, every expression must pass (logical AND):
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Run a command and assert on its output.",
+          "runShell": {
+            "command": "node -e \"console.log('hello world')\""
+          },
+          "assertions": [
+            "$$outputs.exitCode == 0",
+            "$$outputs.stdio.stdout contains \"hello\""
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Reference the step's outputs
+
+Custom assertions read the current step's outputs through the `$$outputs.*` namespace, plus `$$platform` for the current operating system (`linux`, `mac`, or `windows`). The available outputs depend on the action. For example, `runShell` and `runCode` expose `$$outputs.exitCode` and `$$outputs.stdio`, while `checkLink` exposes `$$outputs.statusCode`. To find out what an action produces, see its reference.
+
+Expressions support the comparison operators `==`, `!=`, `>`, `>=`, `<`, and `<=`, along with the word operators `contains`, `oneOf`, and `matches`:
+
+```json
+{
+  "assertions": [
+    "$$outputs.exitCode oneOf [0, 1]",
+    "$$platform != windows"
+  ]
+}
+```
+
+<Note>
+Custom assertions use the `$$outputs.*` namespace, which is distinct from the bare `$$name` expressions you use to set the step-level `variables` and `outputs` objects.
+</Note>
+
+### How custom assertions affect step status
+
+A step passes only when both its implicit and custom assertions pass. Custom assertions can add a failure, but they can't rescue a step that already failed:
+
+- If the action's implicit check fails, Doc Detective skips the custom assertions and the step stays FAIL.
+- If the action produces no result to assert on—because it was deliberately skipped (for example, `wait: false`) or it errored before producing a result—Doc Detective skips the custom assertions and the step keeps its original status.
+- An expression that can't be resolved fails closed, so the assertion fails and the step fails.
+
+<Note>
+Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported yet. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
+</Note>
+
+## Conditional execution
+
+Use the `if` field to run a spec, test, or step only when a condition is met. When the condition is true, the unit runs as usual. When it's false, Doc Detective marks the unit SKIPPED and doesn't run it. A spec, test, or step without an `if` always runs, so adding `if` never changes existing behavior.
+
+An `if` condition uses the same condition expressions as [custom assertions](#custom-assertions). Set `if` to a single expression or to an array of expressions, where every expression must be true (logical AND).
+
+The following step runs only on Linux and macOS. On Windows, Doc Detective skips it before its action runs:
+
+```json
+{
+  "steps": [
+    {
+      "description": "Install dependencies on Unix-like platforms only.",
+      "if": "$$platform != windows",
+      "runShell": {
+        "command": "./install.sh"
+      }
+    }
+  ]
+}
+```
+
+`if` decides whether a unit runs—it never changes a verdict. A skipped unit is SKIPPED, a reached-but-skipped status that's distinct from FAIL. A skipped step also doesn't stop the test, so the steps after it still run.
+
+### Reference values in conditions
+
+Spec- and test-level conditions can reference `$$platform` for the current operating system (`linux`, `mac`, or `windows`).
+
+Step-level conditions can also read earlier steps' outputs through the `$$steps.<stepId>.outputs.*` namespace, so you can gate a step on what a previous step produced. Give the earlier step a `stepId` to reference it:
+
+```json
+{
+  "steps": [
+    {
+      "stepId": "check",
+      "runShell": {
+        "command": "./preflight.sh"
+      }
+    },
+    {
+      "description": "Run only when the preflight step succeeded.",
+      "if": "$$steps.check.outputs.exitCode == 0",
+      "runShell": {
+        "command": "./deploy.sh"
+      }
+    }
+  ]
+}
+```
+
+A step-level condition can't read its own step's `$$outputs.*`, because Doc Detective evaluates `if` before the step's action runs.
+
+<Note>
+Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that references `$$steps.*` can't resolve and fails closed, so the spec or test is always skipped. Doc Detective logs a warning when it detects this so you can catch the mistake.
+</Note>
+
+### How conditions resolve
+
+- A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it.
+- A false spec condition skips every test and context in the spec. A false test condition skips every context of that test. A false step condition skips only that step.
+- `if` and [contexts](/docs/configuration/contexts) are separate layers. `runOn` selects which platform and browser combinations a unit needs, while `if` decides whether to run a unit at all. Either one can skip a unit.
+
+## Routing handlers
+
+By default, a step's result decides what happens next: a step that passes—or produces a WARNING, or is SKIPPED—continues to the next step, while a step that fails stops the test. Routing handlers let you override that decision. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a step to control whether the test keeps running after that step's result, or to a test to control whether the spec keeps running after that test's result. A step or test without routing handlers behaves exactly as it does today, so adding handlers never changes existing behavior. The sections below describe step-level routing; for test-level routing, see [Route between tests](#route-between-tests).
+
+Each handler is an array of routing entries. An entry has an optional `if` condition plus exactly one action. When the step's result selects a handler, Doc Detective evaluates the entries in order, and the first entry whose `if` matches wins. An entry with no `if` always matches. The `if` condition uses the same expressions as [conditional execution](#conditional-execution) and [custom assertions](#custom-assertions): set it to a single expression or to an array of expressions that must all be true (logical AND). An unresolvable condition fails closed, so the entry doesn't match.
+
+Routing entries support these actions:
+
+- **`continue`**: Run the next step. Set `continue` to `true`.
+- **`stop`**: Stop the test. Set `stop` to the scope at which to stop execution.
+- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. See [Retry a step](#retry-a-step).
+- **`goToStep`**: Jump to another step. Set `goToStep` to the `stepId` of the step to run next. See [Jump to another step](#jump-to-another-step).
+
+The following step keeps the test running after a failure instead of stopping it:
+
+```json
+{
+  "steps": [
+    {
+      "description": "Run a command, but don't stop the test if it fails.",
+      "runShell": {
+        "command": "./optional-check.sh"
+      },
+      "onFail": [
+        {
+          "continue": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+The handler that fires depends on the step's result:
+
+- A step that runs fires `onPass`, `onFail`, or `onWarning`, depending on its result.
+- A step that's reached but skipped—because it's an unsafe step that isn't allowed, or because its [`if` condition](#conditional-execution) is false—fires `onSkip`.
+- A step that's never reached, because an earlier step stopped the test, fires no handler.
+
+### Routing controls flow, not the verdict
+
+Routing decides whether later steps run; it never changes a step's result. A step that fails and routes `continue` stays FAIL, the steps after it still run, and the test still rolls up to FAIL. Likewise, a passing step that routes `stop` stays PASS, and the rest of the test is marked SKIPPED. Use routing to shape execution flow, and use [custom assertions](#custom-assertions) to change a step's result.
+
+### Defaults and matching order
+
+When a handler is absent, empty, or has no matching entry, the step falls back to the default for its result:
+
+- **PASS**, **WARNING**, and **SKIPPED** continue to the next step.
+- **FAIL** stops the test.
+
+These defaults reproduce Doc Detective's standard behavior, so a step with no routing handlers runs identically to one written before routing existed.
+
+Because the first matching entry wins, order your entries from most specific to least specific. List entries with an `if` condition first, and an unconditional fallback last:
+
+```json
+{
+  "steps": [
+    {
+      "runShell": {
+        "command": "./deploy.sh"
+      },
+      "onFail": [
+        {
+          "if": "$$platform == windows",
+          "stop": "test"
+        },
+        {
+          "continue": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Stop scope
+
+At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` can't yet propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests).
+
+### Retry a step
+
+The `retry` action re-runs a step when its result matches the handler. Use it for steps that can fail for transient reasons—a slow page load, a flaky network call, an element that isn't ready yet—so a temporary failure can recover instead of stopping the test.
+
+Set `retry` to an object with a `limit`, plus an optional `delay` and `backoff`:
+
+- **`limit`**: The maximum number of retries. This counts re-runs after the first attempt, so a `limit` of `2` allows up to three runs total. Required, and must be between `1` and `100`.
+- **`delay`**: How long to wait before each retry, in milliseconds. Defaults to `0` (no wait), up to a maximum of `3600000` (one hour).
+- **`backoff`**: How the delay grows between retries. Use `fixed` to wait the same `delay` before every retry, or `exponential` to double the wait each time (`delay`, then `delay × 2`, then `delay × 4`, and so on). Defaults to `fixed`. No matter how many retries you allow, the computed wait never exceeds the one-hour maximum.
+
+When the result matches, Doc Detective re-runs the whole step—including its assertions—up to `limit` times, waiting `delay` between attempts. It stops as soon as the result no longer matches the handler. If a retry passes, the step passes.
+
+The following step retries a flaky command up to three times, waiting one second between attempts:
+
+```json
+{
+  "steps": [
+    {
+      "description": "Retry a flaky check until it succeeds.",
+      "runShell": {
+        "command": "./flaky-check.sh"
+      },
+      "onFail": [
+        {
+          "retry": {
+            "limit": 3,
+            "delay": 1000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Once the retries are used up and the step still matches the handler, Doc Detective resolves routing again with `retry` entries skipped to find the terminal action. The step falls through to the next matching entry, or to the default for its result if no other entry matches. For example:
+
+- `onFail` with a single `retry` entry retries the step, then stops the test (the FAIL default) once retries are exhausted.
+- `onFail` with a `retry` entry followed by a `continue` entry retries the step, then continues to the next step.
+
+This step retries a failed deploy check twice, then continues instead of stopping the test:
+
+```json
+{
+  "steps": [
+    {
+      "runShell": {
+        "command": "./deploy-check.sh"
+      },
+      "onFail": [
+        {
+          "retry": {
+            "limit": 2,
+            "delay": 500,
+            "backoff": "exponential"
+          }
+        },
+        {
+          "continue": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+As with every routing action, `retry` controls flow only and never changes the verdict. The step's reported result is the result of its final attempt, so a step that fails every attempt and then continues still leaves the test FAIL.
+
+When a step is retried, its result includes an `attempts` field with the total number of runs—the first attempt plus every retry. The field is omitted for steps that weren't retried, so reports for those steps are unchanged.
+
+### Jump to another step
+
+The `goToStep` action jumps execution to another step instead of continuing in order. Set `goToStep` to the `stepId` of the step you want to run next, and Doc Detective continues from there. Because `stepId` is optional and otherwise generated automatically, give any step you want to jump to an explicit `stepId` so you can reference it reliably.
+
+A forward jump skips every step between the current step and the target: the skipped steps never run and produce no report. A backward jump returns to an earlier step and re-runs it along with the steps that follow, which lets you repeat part of a test.
+
+The following passing step jumps ahead to a cleanup step, skipping the steps in between:
+
+```json
+{
+  "steps": [
+    {
+      "stepId": "create-resource",
+      "runShell": {
+        "command": "./create-resource.sh"
+      },
+      "onPass": [
+        {
+          "goToStep": "cleanup"
+        }
+      ]
+    },
+    {
+      "stepId": "extra-checks",
+      "runShell": {
+        "command": "./extra-checks.sh"
+      }
+    },
+    {
+      "stepId": "cleanup",
+      "runShell": {
+        "command": "./cleanup.sh"
+      }
+    }
+  ]
+}
+```
+
+As with every routing action, `goToStep` controls flow only and never changes a step's result. A step that fails and routes `goToStep` stays FAIL, the jump still happens, and the test still rolls up to FAIL. An `onSkip` handler can use `goToStep` too, so a step that's reached but skipped can still jump.
+
+If `goToStep` names a `stepId` that doesn't exist in the test, Doc Detective treats it as a routing error instead of skipping the jump silently. It records a FAIL step report that names the missing step and stops the test, so the test rolls up to FAIL. This happens whether the jump comes from an `onPass`, `onFail`, `onWarning`, or `onSkip` handler. Backward jumps are bounded by a per-context limit on how many steps a test can run. If a `goToStep` loop never makes progress and reaches that limit, Doc Detective records a FAIL step report that describes the loop and stops, so a runaway loop fails the test instead of hanging or reporting a passing result.
+
+When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number—`2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
+
+<Note>
+At the step level, the `goToTest` action is valid in routing entries but isn't active yet. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active—see [Jump to another test](#jump-to-another-test).
+</Note>
+
+## Route between tests
+
+Routing handlers work at the test level too. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a test, and once that test finishes, Doc Detective evaluates the matching handler against the test's overall result to decide whether the spec keeps running. Test-level handlers use the same entry shape as step-level handlers—an array of entries, each with an optional `if` condition and exactly one action, where the first entry whose `if` matches wins. Because tests don't run in sequence relative to one another, only `$$platform` is meaningful in a test-level `if`.
+
+At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
+
+`stop` behaves differently at the test level, because the test has already finished by the time its handler runs:
+
+- **`stop: test`** is a no-op. The test already completed, so there's nothing left to stop, and the spec continues with the next test. This is the default when a test fails, which is why a failing test doesn't stop its siblings.
+- **`stop: spec`** halts the spec's remaining tests. Doc Detective records each remaining test as SKIPPED and moves on without running it.
+- **`stop: run`** isn't supported yet. Doc Detective logs a warning and falls back to `stop: spec`, stopping the current spec's remaining tests.
+
+As with step-level routing, test-level routing controls flow only—it never changes a result. A test that fails and routes `continue` stays FAIL, the following tests still run, and the spec still rolls up to FAIL. Adding a routing handler to a test opts its spec into deterministic, in-order test execution; a spec whose tests have no routing handlers runs exactly as it does today.
+
+A spec-level `if` guard takes precedence over test-level routing. When a spec's `if` condition isn't met, Doc Detective skips the whole spec and records every test as SKIPPED without evaluating their routing handlers, so a test's `onSkip` handler doesn't run in that case.
+
+The following test stops the rest of its spec when it fails, skipping the tests that follow:
+
+```json
+{
+  "tests": [
+    {
+      "testId": "smoke",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./smoke-test.sh"
+          }
+        }
+      ],
+      "onFail": [
+        {
+          "stop": "spec"
+        }
+      ]
+    },
+    {
+      "testId": "regression",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./regression-suite.sh"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Jump to another test
+
+The `goToTest` action jumps execution to another test in the spec instead of continuing to the next test in order. Set `goToTest` to the `testId` of the test you want to run next, and Doc Detective continues from there. Because `testId` is optional and otherwise generated automatically, give any test you want to jump to an explicit `testId` so you can reference it reliably.
+
+Targets resolve within the current spec only—`goToTest` can't jump to a test in another spec. If two tests share a `testId`, the jump lands on the first one.
+
+```json
+{
+  "tests": [
+    {
+      "testId": "setup",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./setup.sh"
+          }
+        }
+      ],
+      "onPass": [
+        {
+          "goToTest": "verify"
+        }
+      ]
+    },
+    {
+      "testId": "seed-data",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./seed-data.sh"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "verify",
+      "steps": [
+        {
+          "runShell": {
+            "command": "./verify.sh"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+A forward jump skips the tests between the current test and the target: the skipped tests never run and produce no report. A backward jump re-runs the target test and continues from there.
+
+As with every routing action, `goToTest` controls flow only and never changes a test's result. A test that fails and routes `goToTest` stays FAIL, the jump still happens, and the spec still rolls up to FAIL. A backward jump whose earlier visit failed keeps the spec FAILed too.
+
+If `goToTest` names a `testId` that doesn't exist in the spec, Doc Detective treats it as a routing error instead of skipping the jump silently. It records a FAIL test report that names the missing test and stops the spec's remaining tests, so a typo can't quietly report a passing result. Backward jumps are bounded by a per-spec limit on how many tests a spec can run. If a `goToTest` loop never makes progress and reaches that limit, Doc Detective records a FAIL test report that describes the loop and stops, so a runaway loop fails the spec instead of hanging.
+
+When a backward `goToTest` re-runs a test, each report after the first records a `visit` field with the visit number—`2` for the second visit, `3` for the third, and so on. The field is omitted on a test's first visit, so reports for tests that aren't revisited are unchanged.
+
 ## Define a test
 
 You can define test specs in multiple ways:
 
-- [Standalone JSON files](./standalone-tests): Help you see the entirety of the spec and keep it in a separate, machine-readable format.
-- [Inline JSON](./inline-tests): Define tests directly in your documentation source files.
-- [Detected tests](./detected-tests): Automatically generated by Doc Detective based on your documentation source files and your configuration.
+- [Standalone JSON files](/docs/test-code/standalone): Help you see the entirety of the spec and keep it in a separate, machine-readable format.
+- [Inline JSON](/docs/test-docs/inline): Define tests directly in your documentation source files.
+- [Detected tests](/docs/test-docs/detected): Automatically generated by Doc Detective based on your documentation source files and your configuration.
+
+## Set up and clean up tests
+
+Doc Detective gives you four fields for running setup and cleanup steps around your tests. Two wrap an individual test, and two wrap the entire run. The ordering they guarantee holds no matter how many [concurrent runners](/reference/schemas/config) you configure.
+
+### Set up and clean up individual tests
+
+Use a test's `before` and `after` fields to run setup and cleanup steps around a single test while keeping that test's context:
+
+- **`before`**: Path to a test specification whose steps run before the test. The setup steps are prepended to the test and run under the test's own identifiers, so the report shows a single logical test that starts with those steps.
+- **`after`**: Path to a test specification whose steps run after the test. Cleanup steps always run, even when an earlier step fails, so your environment is always restored. A failing cleanup step doesn't skip the remaining cleanup steps, and cleanup results still count toward the test's result.
+
+Doc Detective uses only the `steps` from the first test in the referenced spec.
+
+```json
+{
+  "before": "setup.json",
+  "after": "cleanup.json",
+  "steps": [
+    {
+      "goTo": "https://www.duckduckgo.com"
+    }
+  ]
+}
+```
+
+### Set up and tear down the whole run
+
+Set `beforeAny` and `afterAll` in your config to run setup and cleanup specs around the entire run:
+
+- **`beforeAny`**: One or more paths to specifications that run before any other test starts. All `beforeAny` specs finish before the rest of the run begins.
+- **`afterAll`**: One or more paths to specifications that run after every test in every spec finishes. These specs run even if earlier tests failed.
+
+```json
+{
+  "beforeAny": "global-setup.json",
+  "afterAll": "global-teardown.json"
+}
+```
+
+### Execution order
+
+Doc Detective runs in three sequential phases: `beforeAny` specs first, then your `input` tests, then `afterAll` specs. Setup always finishes before your tests, and cleanup always runs after them. Within each phase, tests still run concurrently up to your configured number of runners.
 
 ## Run tests
 
