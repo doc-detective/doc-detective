@@ -200,12 +200,12 @@ Or use the CLI flag:
 doc-detective --auto-screenshot
 ```
 
-Auto screenshots are saved to `<output>/.doc-detective/run-<runId>/screenshots/`. The path structure uses stable IDs derived from file paths and content hashes:
+Doc Detective saves auto screenshots to `<output>/.doc-detective/run-<runId>/screenshots/`. The path structure uses stable IDs derived from file paths and content hashes:
 
 ```
-.doc-detective/run-<runId>/
-├── testResults.json
-├── testResults.html
+.doc-detective/run-<runId>/          # <runId> is an ISO timestamp, e.g. run-2026-06-27T04-55-00-000Z
+├── testResults.json                 # or coverageResults.json for coverage runs
+├── testResults.html                 # or coverageResults.html for coverage runs
 └── screenshots/
     └── <specId>/
         └── <testId>/
@@ -215,7 +215,7 @@ Auto screenshots are saved to `<output>/.doc-detective/run-<runId>/screenshots/`
 
 The HTML report provides a human-readable view of the same results, making run folders self-contained artifacts you can share or compare without needing the standalone `html` reporter.
 
-Doc Detective generates deterministic IDs based on content rather than random UUIDs, so the same test step produces the same relative path in every run. This makes it easy to diff two run folders and spot UI changes over time.
+Doc Detective generates deterministic IDs based on content rather than random UUIDs, so the same test step produces the same relative path in every run. This lets you diff two run folders and spot UI changes over time.
 
 <Note>
 Explicit `screenshot` steps are excluded from auto screenshot capture since they already produce an image. Failed steps are still captured—the failure state is often the most useful frame for debugging.
