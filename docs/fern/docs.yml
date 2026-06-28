@@ -385,6 +385,8 @@ redirects:
     destination: /docs/test-docs/standalone
   # Test code & APIs track dissolved into the "Test your docs" umbrella
   # (CLI, code & APIs sub-section). Redirect the former /docs/test-code/* URLs.
+  - source: /docs/test-code
+    destination: /docs/test-docs/overview
   - source: /docs/test-code/overview
     destination: /docs/test-docs/overview
   - source: /docs/test-code/standalone
