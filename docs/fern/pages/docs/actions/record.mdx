@@ -21,14 +21,14 @@ You can specify the recording action in several ways:
   - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
 
-**Stopping the Recording:** You *must* include a `stopRecord` step later in your test to finalize and save the video file.
+**Stopping the Recording:** Include a `stopRecord` step to end a recording at a specific point in your test. Doc Detective automatically finalizes any remaining recordings at the end of the test run.
 
 ## Recording engines
 
 Recording uses one of two engines, selected by the optional `engine` field in the object format:
 
-- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the browser tab and is safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
-- **`ffmpeg`:** Records the screen with FFmpeg, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically as a runtime dependency the first time a recording runs, so you don't need to install it yourself.
+- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the current browser tab and is safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
+- **`ffmpeg`:** Records the screen with FFmpeg, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically, so you don't need to install it yourself.
 
 If you don't set `engine`, Doc Detective chooses one for you. It prefers the `browser` engine when a visible Chrome context is available (coercing an unspecified browser to headed Chrome), and falls back to `ffmpeg` otherwise.
 
@@ -217,7 +217,7 @@ Records the Chrome tab with the `browser` engine instead of letting Doc Detectiv
 }
 ```
 
-### Recording any application with the ffmpeg engine
+### Recording any application with the FFmpeg engine
 
 Records the screen with FFmpeg so the recording isn't limited to Chrome.
 
@@ -292,7 +292,7 @@ Captures a full session while also recording a shorter clip of one step, stoppin
 }
 ```
 
-### Configuring the ffmpeg engine (detailed object)
+### Configuring the FFmpeg engine (detailed object)
 
 Records the active window at 60 fps with FFmpeg.
 
