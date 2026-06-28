@@ -312,7 +312,7 @@ export const HINTS: Hint[] = [
       '{ "concurrentRunners": true }',
       "```",
       "",
-      "Or pass `--concurrent-runners 4` on the CLI. `true` uses your CPU core count (capped at 4). Keep it at `1` if your tests share variables across contexts or record video.",
+      "Or pass `--concurrent-runners 4` on the CLI. `true` uses your CPU core count (capped at 4). Keep it at `1` if your tests share variables across contexts. Recordings are safe to run concurrently: the `browser` engine records each context's own window, and Doc Detective auto-serializes `ffmpeg` recordings with other browser tests for you.",
     ].join("\n"),
     when: (ctx) =>
       ctx.totalContexts >= 5 &&

@@ -2070,10 +2070,17 @@ describe("hints/hints (registry)", function () {
     expect(
       h.when(fakeCtx({ totalContexts: 5, config: { concurrentRunners: 1 } }))
     ).to.equal(true);
-    // Recording runs should stay sequential — wrong advice for them.
+    // This run had no recordings, so the hint doesn't second-guess a run
+    // that already records (the recordConcurrently hint covers that case).
     expect(
       h.when(fakeCtx({ totalContexts: 5, producedRecordings: true }))
     ).to.equal(false);
+    // The body must not tell users to pin concurrentRunners to 1 for
+    // recording: the browser engine is concurrency-safe and ffmpeg
+    // recordings are auto-serialized by the scheduler (#343/#380).
+    expect(h.markdown).to.not.match(/record video/i);
+    // The still-valid shared-variables guidance stays.
+    expect(h.markdown).to.match(/share variables/i);
   });
 
   it("recordConcurrently: fires only when the run serialized recordings", function () {
