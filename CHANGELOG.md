@@ -1,3 +1,11 @@
+## [4.15.3](https://github.com/doc-detective/doc-detective/compare/v4.15.2...v4.15.3) (2026-06-28)
+
+
+### Bug Fixes
+
+* **common:** sync generated schema descriptions with source ([ccd7515](https://github.com/doc-detective/doc-detective/commit/ccd75156547725cecddbbeb427cad2d8049127ac)), closes [#304](https://github.com/doc-detective/doc-detective/issues/304)
+* **hints:** drop stale record-video concurrency warning ([2ebcf8b](https://github.com/doc-detective/doc-detective/commit/2ebcf8b0660b5f295f07a6d9f2054676bef7b2e1)), closes [#343](https://github.com/doc-detective/doc-detective/issues/343) [#380](https://github.com/doc-detective/doc-detective/issues/380) [#344](https://github.com/doc-detective/doc-detective/issues/344)
+
 ## [4.15.2](https://github.com/doc-detective/doc-detective/compare/v4.15.1...v4.15.2) (2026-06-28)
 
 
