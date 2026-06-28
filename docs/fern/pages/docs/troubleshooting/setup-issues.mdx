@@ -1,0 +1,247 @@
+---
+title: Troubleshooting setup issues
+description: Diagnose environment and configuration problems with the debug command.
+---
+
+# Troubleshooting setup issues
+
+When Doc Detective fails to run or behaves unexpectedly, use the built-in diagnostic dump to identify the problem.
+
+## Symptoms
+
+- Tests fail with environment-related errors
+- Browser detection fails or times out
+- Configuration validation errors
+- Missing dependencies or tool version mismatches
+- Tests work locally but fail in CI
+
+## Generate a diagnostic dump
+
+Run the `debug` subcommand to collect diagnostic information about your environment:
+
+```bash
+doc-detective debug
+```
+
+Or use the environment variable (useful in CI):
+
+```bash
+DOC_DETECTIVE_DEBUG=true doc-detective
+```
+
+<Note>
+
+Setting `DOC_DETECTIVE_DEBUG=true` causes Doc Detective to print the diagnostic dump and exit — tests do not run. Unset it before a normal run.
+
+</Note>
+
+The diagnostic dump reports:
+
+- **Findings / next steps**: Likely causes of detected problems, each with a `fix:` command where one applies
+- **System info**: OS, platform, architecture, CPU, memory, and whether you're running in a container
+- **Doc Detective version**: Installed version plus dependency versions
+- **Tool versions**: Node.js, npm, Python, Java, Git, Docker, ffmpeg, and Appium
+- **Detected browsers**: Available browsers and their Appium drivers
+- **Install status**: Installed npm packages and browsers, compared against the versions Doc Detective expects
+- **Appium registration**: Whether each Appium driver is both resolvable from npm and registered with Appium
+- **Cache & runtime**: Resolved cache, runtime, and browser directories, with whether each exists, is writable, and how much disk space is free
+- **Proxy / npm network**: Your proxy and `npm_config_*` environment variables, with credentials redacted
+- **Referenced environment variables**: Variables your config and documentation files reference via `$VAR` syntax
+- **Config provenance**: Where your effective config came from, including the config file path, applied environment variables, and CLI flag overrides
+- **Effective config**: Your merged configuration after file and environment processing
+
+## Start with the findings
+
+The dump opens with a **Findings / next steps** section. Instead of leaving you to interpret the raw data below it, Doc Detective evaluates what it collected and surfaces the likely cause of each problem along with the command that resolves it. Each finding has a severity (`ERROR`, `WARNING`, or `INFO`), a description of what's wrong, and, where one applies, a `fix:` command you can run directly. When nothing looks wrong, the section reports `No problems detected.`
+
+```
+-- Findings / next steps --------------------------------------------
+  [ERROR] Chrome is not available
+    Chrome shows NOT AVAILABLE and its Appium driver
+    (appium-chromium-driver) is missing, so browser tests can't run.
+    fix: doc-detective install runtime
+```
+
+## Include full environment variables
+
+By default, the dump only shows environment variables referenced in your config and docs. To include all environment variables:
+
+```bash
+doc-detective debug --include-env
+```
+
+<Warning>
+
+Review the output before sharing. Secrets are redacted by name (like `TOKEN`, `SECRET`, `PASSWORD`) and by value shape (JWTs, GitHub tokens, AWS keys), but unusual credential formats may slip through.
+
+</Warning>
+
+## Diagnose configuration errors
+
+If your configuration file has validation errors, the dump still runs and shows what went wrong:
+
+```
+-- Config -----------------------------------------------------------
+  === CONFIG INVALID ===
+  Invalid value at path: runOn[0].browsers[0] - must be a string or object
+
+  Best-effort raw config (validation failed):
+  {
+    "input": "docs",
+    "runOn": [{ "browsers": [123] }]
+  }
+```
+
+Fix the issue indicated in the error message, then run `debug` again to verify.
+
+## Common issues revealed by the dump
+
+### Browser detection times out
+
+If the Browsers section shows a timeout:
+
+```
+-- Browsers ---------------------------------------------------------
+  <browser detection timed out after 5000ms — most often means Appium 
+  isn't installed locally, since detection shells out to `npx appium 
+  driver list`>
+```
+
+Install the required browser driver:
+
+```bash
+npm install appium appium-chromium-driver
+```
+
+### Version mismatch warning
+
+If you see a warning about version drift:
+
+```
+-- Doc Detective ----------------------------------------------------
+  doc-detective                2.0.0
+  doc-detective-common         1.9.0
+  
+  ! WARNING: doc-detective (2.0.0) and doc-detective-common (1.9.0) 
+    versions differ — they ship in lockstep, mismatch usually means 
+    a stale install.
+```
+
+Reinstall Doc Detective:
+
+```bash
+npm uninstall -g doc-detective && npm install -g doc-detective
+```
+
+### Missing environment variable
+
+If a variable referenced in your config shows `<unset>`:
+
+```
+-- Referenced environment variables ---------------------------------
+  Scanned 12 documentation file(s) plus config for $VAR references.
+
+  API_KEY = <unset>
+  BASE_URL = https://example.com
+```
+
+Set the missing variable before running tests:
+
+```bash
+export API_KEY=your-key-here
+```
+
+Or add it to your `.env` file and reference it with `loadVariables` in your config.
+
+### Cache directory isn't writable
+
+Doc Detective installs browsers and runtime packages into its cache directory on demand. If that directory isn't writable, those installs have nowhere to go. The **Cache & runtime** section reports `writable: false` for the affected path, and a matching finding points you to the fix:
+
+```
+-- Cache & runtime --------------------------------------------------
+  cacheDir:
+    path:     /opt/doc-detective-cache
+    exists:   true
+    writable: false
+```
+
+Point Doc Detective at a writable cache location with the `DOC_DETECTIVE_CACHE_DIR` environment variable:
+
+```bash
+export DOC_DETECTIVE_CACHE_DIR=~/.doc-detective-cache
+```
+
+### Stale or outdated install
+
+The **Install status** section compares your installed npm packages and browsers against the versions Doc Detective expects and flags any that are `OUTDATED`. A stale or mismatched install is a common source of failures that are otherwise hard to explain:
+
+```
+-- Install status ---------------------------------------------------
+  npm packages:
+    webdriverio              installed  8.39.0  expected 9.2.1  OUTDATED
+```
+
+Reinstall the runtime to bring everything back in sync:
+
+```bash
+doc-detective install runtime
+```
+
+### Appium driver installed but not registered
+
+The **Appium registration** section reconciles the drivers that resolve from npm against the drivers Appium has actually registered, read from its `extensions.yaml` manifest. A driver that resolves from npm but isn't registered usually means `APPIUM_HOME` points at the wrong `node_modules`:
+
+```
+-- Appium registration ----------------------------------------------
+  drivers:
+    appium-chromium-driver   resolvable but not registered
+```
+
+Reinstall the runtime so Appium registers the driver under the active `APPIUM_HOME`:
+
+```bash
+doc-detective install runtime
+```
+
+When the manifest is missing, Doc Detective reports registration as unknown rather than flagging the drivers, so a fresh environment won't trigger a false alarm.
+
+### Lazy install fails behind a proxy
+
+The **Proxy / npm network** section surfaces your proxy and `npm_config_*` environment variables, the most common silent cause of failed on-demand installs. Doc Detective redacts credentials embedded in proxy or registry URLs:
+
+```
+-- Proxy / npm network ----------------------------------------------
+  HTTPS_PROXY = http://proxy.example:8080
+  npm_config_registry = https://registry.example/
+```
+
+If installs fail behind a proxy, confirm the proxy and registry are reachable and that `proxy-agent` is available for browser downloads.
+
+### Effective config isn't what you expect
+
+When your merged configuration doesn't match what you intended, the **Config provenance** section shows where each piece came from: the resolved config file path, whether Doc Detective applied `DOC_DETECTIVE_CONFIG` or `DOC_DETECTIVE_API`, and which CLI flags overrode the validated config.
+
+```
+-- Config provenance ------------------------------------------------
+  config file:          /repo/.doc-detective.json
+  DOC_DETECTIVE_CONFIG: applied (overrides file)
+  DOC_DETECTIVE_API:    not set
+
+  CLI overrides (override file + env):
+    --input → config.input
+    --dry-run → config.dryRun
+```
+
+## Share diagnostics in bug reports
+
+When opening an issue or asking for help, paste the diagnostic output. It contains everything a maintainer needs to understand your environment without back-and-forth questions.
+
+1. Run `doc-detective debug`
+2. Copy the output
+3. Paste it into your [GitHub issue](https://github.com/doc-detective/doc-detective/issues) or [Discord message](https://discord.gg/2M7wXEThfF)
+
+## See also
+
+- [Installation](/docs/get-started/installation)
+- [Configuration reference](/reference/schemas/config)
+- [Contexts](/docs/config/contexts)

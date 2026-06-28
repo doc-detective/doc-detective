@@ -103,6 +103,9 @@ runId
 runFolder
 autoScreenshot
 autoRecord
+Appium
+ffmpeg
+subcommand
 postinstall
 Geckodriver
 ChromeDriver
