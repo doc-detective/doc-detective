@@ -49,7 +49,7 @@ A single context can run more than one recording at once. For example, you can c
 
 Names must be unique among recordings that are active at the same time. If a `record` step reuses the `name` of a recording that's still active, Doc Detective catches the conflict before the run starts and skips that test in every context with a warning, rather than failing partway through.
 
-When two recordings overlap and both would use the `browser` engine, the second one falls back to the `ffmpeg` engine with a `viewport` target and emits a warning, because the `browser` engine can own only one recorder per context. See [Recording engines](#recording-engines) for how engines are selected.
+When two recordings overlap and both would use the `browser` engine, the second one falls back to the `ffmpeg` engine with a `viewport` target and emits a warning, because the `browser` engine can own only one recorder per context. See [Recording engines](#recording-engines) for details on engine selection.
 
 ## Automatic recordings
 
@@ -76,7 +76,7 @@ doc-detective --auto-record
 
 Use `--no-auto-record` to override a config file that enables it.
 
-Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Videos are saved in the per-run artifact folder (`<output>/.doc-detective/run-<runId>/`) at paths derived from the spec, test, and context IDs, so the same context lands on the same relative path in every run's folder:
+Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/run-<runId>/`) at a path derived from the spec, test, and context IDs, so the same context lands on the same relative path in every run's folder:
 
 ```
 .doc-detective/run-<runId>/
