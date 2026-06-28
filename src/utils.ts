@@ -2,6 +2,7 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
+import { getRunOutputDir } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -24,7 +25,22 @@ export {
   reportResults,
   reporters,
   registerReporter,
+  isDebugRequested,
 };
+
+// True when `DOC_DETECTIVE_DEBUG` env var is set to a truthy value.
+// Used by `runTestsHandler` in cli.ts to decide whether to catch
+// setConfig failures and still emit a diagnostic dump.
+//
+// The `--debug` CLI flag was retired in favor of the dedicated
+// `doc-detective debug` subcommand; the subcommand handler does its
+// own setConfig-error handling, so this helper is now env-var-only.
+function isDebugRequested(): boolean {
+  const envVal = process.env.DOC_DETECTIVE_DEBUG;
+  // Trim so a templated/copy-pasted value with stray whitespace (e.g.
+  // `"true "`) still activates debug mode.
+  return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal.trim());
+}
 
 // Log function that respects logLevel
 function log(message: any, level: string = "info", config: any = {}) {
@@ -85,7 +101,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html. Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/run-<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -105,6 +121,31 @@ function buildYargs(args: any): any {
       description:
         "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
       type: "boolean",
+    })
+    .option("auto-screenshot", {
+      description:
+        "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs plus each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
+      type: "boolean",
+    })
+    .option("auto-record", {
+      description:
+        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
+      type: "boolean",
+    })
+    .option("auto-update", {
+      description:
+        "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
+      type: "boolean",
+    })
+    .option("cache-dir", {
+      description:
+        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
+      type: "string",
+    })
+    .option("concurrent-runners", {
+      description:
+        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+      type: "string",
     })
     .version(require("../package.json").version)
     .help()
@@ -203,6 +244,15 @@ async function getConfigFromEnv() {
     // Parse the environment variable as JSON
     envConfig = JSON.parse(process.env.DOC_DETECTIVE_CONFIG);
 
+    // JSON.parse legally yields non-objects (null, arrays, primitives).
+    // validate() would then throw a generic "Object is required." that
+    // doesn't point at the env var — give a targeted message instead.
+    if (envConfig === null || typeof envConfig !== "object" || Array.isArray(envConfig)) {
+      throw new Error(
+        "DOC_DETECTIVE_CONFIG environment variable must be a JSON object."
+      );
+    }
+
     // Validate the environment variable config
     const envValidation = validate({
       schemaKey: "config_v3",
@@ -210,19 +260,19 @@ async function getConfigFromEnv() {
     });
 
     if (!envValidation.valid) {
-      console.error(
-        "Invalid config from DOC_DETECTIVE_CONFIG environment variable.",
-        envValidation.errors
+      throw new Error(
+        `Invalid config from DOC_DETECTIVE_CONFIG environment variable. ${envValidation.errors}`
       );
-      process.exit(1);
     }
 
     log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
   } catch (error: any) {
-    console.error(
-      `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
-    );
-    process.exit(1);
+    if (error instanceof SyntaxError) {
+      throw new Error(
+        `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
+      );
+    }
+    throw error;
   }
   return envConfig;
 }
@@ -233,14 +283,27 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     configPath = args.config;
   }
 
-  // If config file exists, read it
+  // If a config path is given, read it. `readFile` returns null on a read
+  // failure (missing/unreadable file) and may throw on bad input; in both
+  // cases throw a clear error rather than letting a null config fall
+  // through to a generic "Object is required." validation message. Throwing
+  // (rather than returning null) means an unreadable / mistyped config path
+  // follows the same error path as a validation failure: the normal run
+  // exits non-zero via the top-level catch, and the debug flows render it
+  // under the CONFIG INVALID banner.
   let config: any = {};
   if (configPath) {
     try {
       config = await readFile({ fileURLOrPath: configPath });
-    } catch (error) {
-      console.error(`Error reading config file at ${configPath}: ${error}`);
-      return null;
+    } catch (error: any) {
+      throw new Error(
+        `Error reading config file at ${configPath}: ${error?.message || error}`
+      );
+    }
+    if (config === null || config === undefined) {
+      throw new Error(
+        `Could not read config file at ${configPath}. Check that the path exists and is readable.`
+      );
     }
   }
 
@@ -257,9 +320,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     object: config,
   });
   if (!validation.valid) {
-    // Output validation errors
-    console.error("Invalid config.", validation.errors);
-    process.exit(1);
+    throw new Error(`Invalid config. ${validation.errors}`);
   }
 
   // Accept coerced and defaulted values
@@ -333,6 +394,47 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
   }
+  if (typeof args.autoUpdate === "boolean") {
+    config.autoUpdate = args.autoUpdate;
+  }
+  if (typeof args.autoScreenshot === "boolean") {
+    config.autoScreenshot = args.autoScreenshot;
+  }
+  if (typeof args.autoRecord === "boolean") {
+    config.autoRecord = args.autoRecord;
+  }
+  if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
+    // Assignment-only per the documented setConfig contract (the standard
+    // `length > 0` guard, no per-flag sanitization). getCacheDir() in
+    // runtime/cacheDir.ts trims and drops whitespace-only values, so a
+    // `--cache-dir "   "` override is neutralized at the consumption site.
+    config.cacheDir = args.cacheDir;
+  }
+  if (typeof args.concurrentRunners === "string") {
+    // The bare flag ("" after yargs string parsing) and an explicit "true"
+    // select CPU-count mode; anything else must parse as a positive integer.
+    // CLI overrides land after the config_v3 validation above, and the
+    // pre-resolved-tests API path never re-validates, so a garbage value
+    // would otherwise reach the runner as NaN and silently degrade to
+    // sequential execution — warn and keep the validated value instead.
+    if (
+      args.concurrentRunners === "" ||
+      args.concurrentRunners.toLowerCase() === "true"
+    ) {
+      config.concurrentRunners = true;
+    } else {
+      const count = Number(args.concurrentRunners);
+      if (Number.isInteger(count) && count >= 1) {
+        config.concurrentRunners = count;
+      } else {
+        log(
+          `Ignoring invalid --concurrent-runners value '${args.concurrentRunners}'. Expected a positive integer, or no value (or 'true') for CPU-count mode.`,
+          "warning",
+          config
+        );
+      }
+    }
+  }
   // Resolve paths
   config = await resolvePaths({
     config: config,
@@ -343,6 +445,35 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   });
 
   return config;
+}
+
+// Resolve the directory the runFolder reporter's `.doc-detective/` archive
+// root sits under, from its `output`. `output` is normally a directory, but
+// the reporter also accepts a file path (e.g. `results.json`), in which case
+// the run folder belongs *beside* the file, not inside it.
+//
+// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
+// parent, matching getRunOutputDir exactly — even for an existing directory
+// oddly named `reports.json` — so the archive root never diverges from the
+// stamped runDir (a divergence would reject the stamp and break runId/runDir
+// correlation with autoScreenshot). Any other path is then resolved by real
+// filesystem type: an existing file (any extension) archives beside it, an
+// existing or not-yet-created directory (including a dotted name like
+// `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
+// shared getRunOutputDir is unchanged, so autoScreenshot and report stamping
+// are unaffected.
+function runFolderBaseDir(output: any): string {
+  const base = String(output ?? ".") || ".";
+  const reportFileExtensions = [".json", ".html", ".htm"];
+  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+    return path.dirname(base);
+  }
+  try {
+    return fs.statSync(base).isDirectory() ? base : path.dirname(base);
+  } catch {
+    // Not created yet — treat as a directory (matches getRunOutputDir).
+    return base;
+  }
 }
 
 // Internal reporters
@@ -400,6 +531,111 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       // Write results to output file
       fs.writeFileSync(outputFile, data);
       console.log(`See detailed results at ${outputFile}\n`);
+      return outputFile;
+    } catch (err) {
+      console.error(`Error writing results to ${outputFile}. ${err}`);
+      return null;
+    }
+  },
+
+  // runFolder reporter: archives each run's results in its per-run artifact
+  // folder (`<output>/.doc-detective/run-<runId>/`), beside any screenshots
+  // captured during the run. The folder is the timestamp, so the filename
+  // stays constant across runs — diff two run folders to compare results
+  // over time. Runs by default in addition to the flat json reporter.
+  runFolderReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
+    let reportType = "doc-detective-results";
+    if (options.command === "runCoverage") {
+      reportType = "coverageResults";
+    } else if (options.command === "runTests") {
+      reportType = "testResults";
+    }
+
+    // Prefer the run folder stamped on the results (set by runSpecs, shared
+    // with auto screenshots) — but only when it resolves inside this output
+    // path's `.doc-detective/` root. Results can originate outside the local
+    // process (e.g. API runs), and a garbled or malicious runDir must not
+    // redirect the write elsewhere. Otherwise derive a fresh run folder.
+    // Resolve the output to a base directory once (file paths → parent), then
+    // both the confinement root and the fresh-folder fallback below derive
+    // from the same base, so a file-path output archives beside the file.
+    const baseDir = runFolderBaseDir(outputPath || config.output || ".");
+    const expectedRunsRoot = path.resolve(baseDir, ".doc-detective");
+    const stampedRunDir =
+      typeof results?.runDir === "string" && results.runDir.length > 0
+        ? path.resolve(results.runDir)
+        : null;
+    // Confine the stamped runDir to the output's `.doc-detective/` root.
+    // Compare *real* paths (resolving symlinks on both sides) so a runDir
+    // that is — or sits under — a symlink pointing outside the tree can't
+    // slip past a plain string-prefix check and redirect the write. Both
+    // paths exist in the normal local case (getRunOutputDir created them);
+    // a non-existent or unresolvable stamped path (e.g. an external/API
+    // result) throws and falls through to a fresh local folder.
+    let useStampedRunDir = false;
+    if (stampedRunDir) {
+      try {
+        const realRoot = fs.realpathSync(expectedRunsRoot);
+        const realStamped = fs.realpathSync(stampedRunDir);
+        useStampedRunDir =
+          realStamped === realRoot ||
+          realStamped.startsWith(realRoot + path.sep);
+      } catch {
+        useStampedRunDir = false;
+      }
+    }
+    // Pass the already-resolved directory so getRunOutputDir creates the run
+    // folder under it directly (it's a directory, so its report-extension
+    // handling is a no-op) — keeping the fallback consistent with baseDir.
+    const runDir = useStampedRunDir
+      ? stampedRunDir!
+      : getRunOutputDir({ output: baseDir });
+    // When we reject the stamped runDir and write to a fresh folder, rewrite
+    // runDir/runId in the archived JSON so the report describes the folder it
+    // actually sits beside — otherwise consumers resolve `autoScreenshot`
+    // paths against a directory the report no longer lives in.
+    const persistedResults = useStampedRunDir
+      ? results
+      : {
+          ...results,
+          runDir,
+          runId: path.basename(runDir).replace(/^run-/, ""),
+        };
+    const outputFile = path.resolve(runDir, `${reportType}.json`);
+
+    try {
+      fs.mkdirSync(runDir, { recursive: true });
+      fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
+
+      // Archive a human-readable HTML report beside the JSON, so the run folder
+      // is a complete shareable artifact without the standalone `html` reporter.
+      // Best-effort and isolated: an HTML failure must not break the JSON
+      // archive (this reporter's primary contract). Dynamic import keeps the
+      // large inlined CSS/JS off the hot path, matching htmlReporter.
+      const htmlFile = path.resolve(runDir, `${reportType}.html`);
+      try {
+        const { buildHtml } = await import("./reporters/htmlReporter.js");
+        fs.writeFileSync(htmlFile, buildHtml(persistedResults));
+        console.log(`See per-run HTML report at ${htmlFile}\n`);
+      } catch (htmlErr) {
+        // Pass the error as a separate arg so its stack survives (string
+        // interpolation would flatten it, e.g. to "[object Object]").
+        console.error(
+          `Error writing per-run HTML report to ${htmlFile}.`,
+          htmlErr
+        );
+      }
+
+      // Log the JSON path *after* the HTML line so that, within this reporter,
+      // no "...report at <html>" line trails the per-run "results at" line. The
+      // doc-detective GitHub Action resolves the results file by splitting
+      // stdout on "results at " and require()-ing the trimmed last segment; a
+      // trailing HTML line folded into that segment broke the release smoke
+      // test. (Reporters run concurrently, so this line isn't guaranteed to be
+      // the final stdout token overall — but every reporter's "results at" line
+      // is itself a valid results path, so whichever lands last still resolves.)
+      console.log(`See per-run results at ${outputFile}\n`);
+
       return outputFile;
     } catch (err) {
       console.error(`Error writing results to ${outputFile}. ${err}`);
@@ -909,7 +1145,7 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
   // Config is the source of truth. Fall back to options.reporters for
   // programmatic callers that pass them directly, then to defaults.
-  const defaultReporters = ["terminal", "json"];
+  const defaultReporters = ["terminal", "json", "runFolder"];
 
   let activeReporters =
     (config && Array.isArray(config.reporters) && config.reporters.length > 0
@@ -929,6 +1165,8 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
             return "jsonReporter";
           case "html":
             return "htmlReporter";
+          case "runfolder":
+            return "runFolderReporter";
           case "terminal":
             return "terminalReporter";
           default:

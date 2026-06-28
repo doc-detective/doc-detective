@@ -1,4 +1,5 @@
 {
+  "loadVariables": "env",
   "runOn": [
     {
       "platforms": ["windows", "mac", "linux"],
