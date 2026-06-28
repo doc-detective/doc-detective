@@ -190,6 +190,7 @@ startIndex
 endIndex
 runFolder
 ffmpeg
+FFmpeg
 lockfile
 ditamap
 params
@@ -214,3 +215,4 @@ chromedriver
 subcommand
 subcommands
 postinstall
+Xvfb

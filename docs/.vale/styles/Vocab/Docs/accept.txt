@@ -79,6 +79,10 @@ Heretto
 DITA
 CMS
 CCMS
+ffmpeg
+FFmpeg
+Xvfb
+untargeted
 closeSurface
 waitUntil
 httpGet
