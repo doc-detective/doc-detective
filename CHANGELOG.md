@@ -1,3 +1,11 @@
+## [4.15.2](https://github.com/doc-detective/doc-detective/compare/v4.15.1...v4.15.2) (2026-06-28)
+
+
+### Bug Fixes
+
+* **record:** remove hand-edit to generated config schema page ([37d96c2](https://github.com/doc-detective/doc-detective/commit/37d96c2c9dade07343fcf308754fe6081d21598b))
+* resolve base-branch merge conflicts ([dc8e0ec](https://github.com/doc-detective/doc-detective/commit/dc8e0ec5dc71c663ec8cbc10d7aa71e63b77c76c))
+
 ## [4.15.1](https://github.com/doc-detective/doc-detective/compare/v4.15.0...v4.15.1) (2026-06-27)
 
 
