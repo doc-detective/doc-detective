@@ -102,6 +102,7 @@ npm
 env
 webdriverio
 appium
+Appium
 geckodriver
 chromedriver
 subcommand
