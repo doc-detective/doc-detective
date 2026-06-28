@@ -1,10 +1,86 @@
 ---
 title: Docker and headless
-description: Run Doc Detective reliably in containers and headless environments.
+description: Run Doc Detective in the official container and in headless environments, and capture video where no display exists.
 ---
 
+Continuous integration runners are usually headless and often containerized. This guide shows you how to run Doc Detective with the official Docker image, what changes when no display is available, and how to record video in a headless environment.
+
+## Before you begin
+
+- Install Docker if you plan to use the container image.
+- Have a spec or input directory you can run.
+
+## Step 1: Run the official container
+
+The official image is `docdetective/docdetective:linux` on Docker Hub. Its entrypoint is the Doc Detective CLI, so anything you pass after the image name goes straight to `doc-detective`. Mount your project so the container can read your tests and write results back out:
+
+```bash
+docker run -v .:/app docdetective/docdetective:linux --input /app/api.spec.json
+```
+
+The `-v .:/app` flag mounts your current directory to `/app` inside the container. Because the working directory is `/app`, point `--input` and `--output` at paths under `/app` so results and artifacts land back in your project.
+
 <Note>
-This page is a placeholder created during the documentation information-architecture overhaul. Full content is planned — see the content set in `docs/content-strategy/information-architecture.md`.
+Inside the official image, unsafe steps—such as `runCode` snippets detected from Markdown code fences—run automatically without `--allow-unsafe`. The image identifies itself as a container, and Doc Detective allows unsafe steps in that environment by default. To opt out, set `allowUnsafeSteps` to `false` in your config.
 </Note>
 
-Run the official container image or `doc-detective-runner` headless in CI. Warm runtime assets with `doc-detective install`, and use the `ffmpeg` recording engine for headless video capture.
+## Step 2: Understand headless behavior
+
+A headless environment has no display, which affects browser-driven tests:
+
+- **Browser tests** run headless automatically when no display is available. On Ubuntu CI runners, Chrome and Firefox contexts fall back to headless mode.
+- **Video recording** is the main thing that needs a display. The default browser recording engine captures the Chrome viewport and works headless; the `ffmpeg` engine captures the screen and needs a real or virtual display.
+
+If your tests record video with the `ffmpeg` engine on a headless runner, run them on a macOS or Windows runner instead, where a display is available. For engine details, see [Record video](/docs/test-docs/record-video).
+
+## Step 3: Warm runtime assets
+
+Doc Detective installs heavy assets—browsers, drivers, and npm packages—on first use. In CI, install them ahead of time and cache them so each run starts fast.
+
+Point the cache at a workspace path with `DOC_DETECTIVE_CACHE_DIR`, then pre-install everything with `doc-detective install all`:
+
+```bash
+export DOC_DETECTIVE_CACHE_DIR="$PWD/.doc-detective-cache"
+doc-detective install all --yes
+```
+
+On a fresh `npm install`, Doc Detective also pre-warms these assets automatically. To skip that step—for example, to control exactly when assets download in CI—set `DOC_DETECTIVE_AUTOINSTALL=0`. The official container ships with assets already warmed, so you don't need this step inside it.
+
+For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-action#runtime-caching).
+
+## Step 4: Run headless in CI
+
+Put the pieces together in a generic, platform-agnostic pipeline step. Because the CLI doesn't fail on test failures on its own, gate the build explicitly (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-5-fail-ci-when-tests-fail)):
+
+```bash
+docker run -v .:/app \
+  -e DOC_DETECTIVE_AUTOINSTALL=0 \
+  docdetective/docdetective:linux \
+  --input /app/docs --reporters json --output /app/results.json
+```
+
+## Verify it works
+
+- The container run prints a terminal summary and writes results to the mounted output path.
+- Browser tests complete without a display error.
+- If you pre-warmed assets, the run starts without downloading browsers or drivers.
+
+## Troubleshooting
+
+### A recording step is skipped or fails on a headless runner
+
+**Cause:** The `ffmpeg` recording engine needs a display, which a headless Linux runner doesn't have.
+
+**Solution:** Use the browser recording engine for headless captures, or move recording tests to a macOS or Windows runner. See [Record video](/docs/test-docs/record-video).
+
+### Runs are slow because assets download every time
+
+**Cause:** The runtime cache isn't persisted between runs.
+
+**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a path your CI caches, and pre-install with `doc-detective install all --yes`. See [Runtime caching](/docs/ci/github-action#runtime-caching).
+
+## What's next
+
+- [Run Doc Detective in CI with the GitHub Action](/docs/ci/github-action).
+- [Consume results and fail the build correctly with reporters and artifacts](/docs/ci/reporters-and-artifacts).
+- [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview).

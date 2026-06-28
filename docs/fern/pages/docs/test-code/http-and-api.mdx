@@ -1,10 +1,176 @@
 ---
 title: Test HTTP and APIs
-description: Exercise API requests and responses from your tests with httpRequest and checkLink.
+description: Issue the API requests in your docs, assert on the responses, and chain calls together with captured values.
 ---
 
-<Note>
-This page is a placeholder created during the documentation information-architecture overhaul. Full content is planned — see the content set in `docs/content-strategy/information-architecture.md`.
-</Note>
+When your docs show an API request and the response a reader should expect, Doc Detective can issue that request and confirm the response still matches. This guide walks you through a complete journey: make a request, assert on its status and body, capture a value from the response, and reuse that value in a follow-up request. It also shows you how to validate links with `checkLink`.
 
-Use the `httpRequest` action to issue API calls and assert on responses, and `checkLink` to validate URLs. See the [httpRequest](/docs/actions/httprequest) and [checkLink](/docs/actions/checklink) action references.
+For the full set of `httpRequest` fields and more worked examples, see the [`httpRequest`](/docs/actions/httprequest) action reference. This guide walks the path; the reference is where you look things up.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- An API you can call. The examples below use the public [reqres.in](https://reqres.in) test API, so you can run them as written.
+- A directory where you can create a `.spec.json` file.
+
+## Step 1: Make a request
+
+Start with the simplest case: a `GET` request that passes as long as the endpoint returns HTTP `200`. Provide the URL as a string.
+
+Create a file named `api.spec.json` and add the following test:
+
+```json title="api.spec.json"
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Fetch a page of users.",
+          "httpRequest": "https://reqres.in/api/users?page=2"
+        }
+      ]
+    }
+  ]
+}
+```
+
+To use a method other than `GET`, or to send headers, query parameters, or a body, switch to the object form and set `method` and `request`:
+
+```json
+{
+  "description": "Create a user.",
+  "httpRequest": {
+    "url": "https://reqres.in/api/users",
+    "method": "POST",
+    "request": {
+      "body": { "name": "morpheus", "job": "leader" }
+    }
+  }
+}
+```
+
+## Step 2: Assert on the response
+
+A request that returns a response isn't necessarily a request that returned the *right* response. Tighten the step with response expectations.
+
+- Set `statusCodes` to the codes you accept. The step fails if the response code isn't in the list. The default is `[200]`, so set it explicitly when you expect something else, such as `201` for a created resource.
+- Set `response.body` to assert specific values.
+- Set `response.required` to assert that fields exist without pinning their values—useful for timestamps, IDs, and tokens that change every run.
+
+```json
+{
+  "description": "Create a user and validate the response.",
+  "httpRequest": {
+    "url": "https://reqres.in/api/users",
+    "method": "POST",
+    "request": {
+      "body": { "name": "morpheus", "job": "leader" }
+    },
+    "response": {
+      "body": { "name": "morpheus", "job": "leader" },
+      "required": ["id", "createdAt"]
+    },
+    "statusCodes": [201]
+  }
+}
+```
+
+Fields listed in `response.required` use dot notation for nested fields (`user.profile.name`) and bracket notation for array elements (`orders[0].id`). A field with a `null`, `""`, `0`, or `false` value still counts as present.
+
+## Step 3: Capture a value and reuse it
+
+To chain calls—create something, then fetch it—capture part of the response with the step-level `variables` object, then reference the variable with `$NAME` in a later step.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Create a user and capture the ID.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users",
+            "method": "POST",
+            "request": {
+              "body": { "name": "neo", "job": "the one" }
+            },
+            "statusCodes": [201]
+          },
+          "variables": {
+            "USER_ID": "$$response.body.id"
+          }
+        },
+        {
+          "description": "Fetch the user with the captured ID.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users/$USER_ID",
+            "method": "GET"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Response expressions such as `$$response.body`, `$$response.headers`, and `$$response.status` support dot notation for nested JSON fields—for example, `$$response.body.user.id`.
+
+## Step 4: Validate links
+
+To confirm that a URL in your docs is reachable, use `checkLink`. It passes when the URL returns an acceptable status code, so it's a quick way to catch dead links without writing a full request.
+
+```json
+{
+  "description": "Confirm the docs homepage is reachable.",
+  "checkLink": "https://doc-detective.com"
+}
+```
+
+For status-code options, see the [`checkLink`](/docs/actions/checklink) reference.
+
+## Step 5: Run the test
+
+Run the spec and read the result.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+  ```bash
+  npx doc-detective --input api.spec.json
+  ```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+  ```bash
+  docker run -v .:/app docdetective/docdetective --input /app/api.spec.json
+  ```
+
+  </Tab>
+</Tabs>
+
+## Verify it works
+
+Each request that returned an acceptable status code and matched its response expectations reports `PASS`. A mismatched status code or body reports `FAIL` with the expected and actual values. To see where results land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Troubleshooting
+
+### The step fails on a `201` (or other non-`200`) response
+
+**Cause:** `statusCodes` defaults to `[200]`, so any other code fails the step even when the request succeeded.
+
+**Solution:** Set `statusCodes` to the codes your endpoint returns, such as `[201]` for a created resource.
+
+### A response field changes every run and breaks the assertion
+
+**Cause:** `response.body` asserts exact values, so dynamic fields like timestamps or tokens never match.
+
+**Solution:** Move those fields to `response.required` to assert they exist without pinning their values, and keep `response.body` for the stable fields.
+
+## What's next
+
+- [Generate requests from an OpenAPI definition](/docs/actions/httprequest) instead of hand-writing each one—see the OpenAPI examples in the `httpRequest` reference.
+- [Run shell and code steps](/docs/test-docs/run-shell-and-code) to test documented commands.
+- [Run in CI and at scale](/docs/ci/overview) to gate your build on these tests.

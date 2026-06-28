@@ -1,10 +1,97 @@
 ---
 title: Reporters and artifacts
-description: Choose output formats and consume the screenshots, video, and results of a run.
+description: Choose output formats, find the run folder, and gate CI on the results of a run.
 ---
 
-<Note>
-This page is a placeholder created during the documentation information-architecture overhaul. Full content is planned — see the content set in `docs/content-strategy/information-architecture.md`.
-</Note>
+Every Doc Detective run produces output: a summary in your terminal, machine-readable results, and—when your tests capture them—screenshots and recordings. This guide shows you how to choose which reporters run, where each one writes its output, and how to fail a CI build when tests fail.
 
-Doc Detective supports the `terminal`, `json`, `html`, and `runFolder` reporters, configured with the `reporters` option. Each run also produces a run folder with results and captured artifacts.
+For the full list of reporter and output options, see the [`config`](/reference/schemas/config) reference.
+
+## Before you begin
+
+- [Install Doc Detective](/docs/get-started/installation) and have a spec you can run.
+- Know your output directory. Reporters that write files use the `output` config option (or the `--output` flag); it defaults to the current working directory.
+
+## Step 1: Choose your reporters
+
+Doc Detective ships four reporters: `terminal`, `json`, `html`, and `runFolder`. By default, it runs `terminal`, `json`, and `runFolder`. To choose a different combination, set the `reporters` option.
+
+| Reporter | Output |
+|---|---|
+| `terminal` | A colored pass/fail/warning/skipped summary printed to stdout. Writes no files. |
+| `json` | A flat JSON results file with the full step-by-step outcome. |
+| `html` | A self-contained HTML report you can open in a browser. |
+| `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
+
+Select reporters on the command line:
+
+```bash
+doc-detective --input api.spec.json --reporters terminal,json,html
+```
+
+Or set them in your config file so every run uses the same combination:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html"]
+}
+```
+
+## Step 2: Read the terminal summary
+
+The `terminal` reporter prints a summary grouped by specs, tests, contexts, and steps, with counts for passed, failed, warnings, and skipped. When everything passes and at least one test ran, it prints a success banner. When no tests run—because of an empty input or an active filter—it prints a warning instead of a success message, so an empty run never looks like a green run.
+
+## Step 3: Find the JSON results
+
+The `json` reporter writes the full results to a file:
+
+- If `output` ends in `.json`, Doc Detective writes to that path, adding a numeric suffix (`-0.json`, `-1.json`, …) to avoid overwriting an existing file.
+- Otherwise it writes `testResults-<timestamp>.json` in the output directory.
+
+The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-5-fail-ci-when-tests-fail)).
+
+## Step 4: Collect the run folder and artifacts
+
+The `runFolder` reporter archives each run into its own folder so you can attach it to a CI job or diff one run against another:
+
+```
+<output>/.doc-detective/run-<runId>/
+├── testResults.json
+├── testResults.html
+├── screenshots/<specId>/<testId>/<contextId>/<NN>-<action>-<stepId>.png
+└── recordings/<specId>/<testId>/<contextId>.mp4
+```
+
+The file names inside the folder are constant—the run ID lives in the folder name—so two run folders compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder, which makes the whole folder a single artifact to upload from CI for reviewers to inspect.
+
+## Step 5: Fail CI when tests fail
+
+This is the most common mistake when wiring Doc Detective into a pipeline, so read it carefully.
+
+<Warning>
+The standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code reports success even when documentation tests failed.
+</Warning>
+
+To gate your build, choose one of these approaches:
+
+- **Use the GitHub Action.** Set its `exit_on_fail` input to `true` so the job fails when tests fail. See the [GitHub Action guide](/docs/ci/github-action).
+- **Parse the JSON results.** Read the `summary` object from the `json` reporter's output and fail the step yourself when any `fail` count is greater than zero. This works on any CI platform.
+
+```bash
+doc-detective --input ./docs --reporters json --output results.json
+node -e "process.exit(require('./results.json').summary.tests.fail > 0 ? 1 : 0)"
+```
+
+## Verify it works
+
+After a run, confirm that:
+
+- The terminal shows the summary you expect.
+- The `json` reporter wrote a results file at the path you configured.
+- If you enabled `runFolder`, a `.doc-detective/run-<runId>/` folder exists with `testResults.json` and any captured screenshots or recordings.
+
+## What's next
+
+- [Run Doc Detective in CI with the GitHub Action](/docs/ci/github-action).
+- [Run in Docker and headless](/docs/ci/docker-and-headless) for containerized pipelines.
+- [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview) when the results aren't green.
