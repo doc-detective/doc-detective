@@ -1,3 +1,508 @@
+## [4.15.1](https://github.com/doc-detective/doc-detective/compare/v4.15.0...v4.15.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* address PR [#394](https://github.com/doc-detective/doc-detective/issues/394) code-review findings (routing/expressions) ([#398](https://github.com/doc-detective/doc-detective/issues/398)) ([3bfea2b](https://github.com/doc-detective/doc-detective/commit/3bfea2bf0e8802008aa7d65fde3f92ed512720f0))
+* **expressions:** inline only bare literals; quote all other string operands ([#400](https://github.com/doc-detective/doc-detective/issues/400)) ([e86123b](https://github.com/doc-detective/doc-detective/commit/e86123b9e15f2b07050a7c636c62b67b05a1290f))
+
+# [4.15.0](https://github.com/doc-detective/doc-detective/compare/v4.14.1...v4.15.0) (2026-06-27)
+
+
+### Bug Fixes
+
+* **build:** decouple compile-time type from optional webdriverio dep ([#369](https://github.com/doc-detective/doc-detective/issues/369)) ([45d931d](https://github.com/doc-detective/doc-detective/commit/45d931d6a9dbf6cd99a2dc722ee22529c1f029f6))
+* **expressions:** harden against ReDoS and incomplete string escaping ([dc4f705](https://github.com/doc-detective/doc-detective/commit/dc4f705786f6838b8283dc28c1f1c1f1ac22cc4b))
+* **runner:** clear self-kill watchdog when main() completes ([#368](https://github.com/doc-detective/doc-detective/issues/368)) ([ad859a2](https://github.com/doc-detective/doc-detective/commit/ad859a258c4590f57123f24d4fb186aeb6f6ae51))
+* **runtime:** resolve pure-ESM heavy deps so appium v3/v5 drivers load ([4d0e98e](https://github.com/doc-detective/doc-detective/commit/4d0e98e8ab36510b1a8d892daf9a8b06beb85e62))
+* **schema:** bound retry.delay and type assertion expected/actual ([4a4ae70](https://github.com/doc-detective/doc-detective/commit/4a4ae706f3d54c345b7d841d42687e279d55666b))
+
+
+### Features
+
+* **assertions:** convert all step actions to the unified expression model ([2af1ee5](https://github.com/doc-detective/doc-detective/commit/2af1ee539ed5363c6bb52e47206df9c3b848ec09)), closes [#355](https://github.com/doc-detective/doc-detective/issues/355)
+* **assertions:** evaluate author-written custom assertions at runtime ([9b85713](https://github.com/doc-detective/doc-detective/commit/9b857138a8b7cf94f8762c79e34a78c7b0bacc85))
+* dynamic-routing & assertions foundation (schema, expression engine, unified assertions) ([f4230f6](https://github.com/doc-detective/doc-detective/commit/f4230f668e186b411fe331fd03c2e4dffa74c7eb))
+* **hints:** surface custom assertions and retry for transient errors ([#376](https://github.com/doc-detective/doc-detective/issues/376)) ([832629c](https://github.com/doc-detective/doc-detective/commit/832629c6add12b440e60b6e20c2e4381ed02c879))
+* **routing:** spec-, test-, and step-level guard `if` conditional execution ([#362](https://github.com/doc-detective/doc-detective/issues/362)) ([e209ecd](https://github.com/doc-detective/doc-detective/commit/e209ecdc35927ff250619435ac0878ac4185b36c))
+* **routing:** step goToStep action (index-driven step loop) ([#370](https://github.com/doc-detective/doc-detective/issues/370)) ([9a8fdc6](https://github.com/doc-detective/doc-detective/commit/9a8fdc63c06784466c3071d7494c5fa47825df64))
+* **routing:** step retry action (limit/delay/backoff) ([#366](https://github.com/doc-detective/doc-detective/issues/366)) ([778a395](https://github.com/doc-detective/doc-detective/commit/778a39588a6b2658d26dda8aca03275a33f4d567))
+* **routing:** step-level onPass/onFail/onWarning/onSkip handlers (continue/stop) ([#364](https://github.com/doc-detective/doc-detective/issues/364)) ([102e293](https://github.com/doc-detective/doc-detective/commit/102e293a172dcb9f3c0e66d232be3d2d4067c243))
+* **routing:** test-level goToTest action on the sequencer ([#374](https://github.com/doc-detective/doc-detective/issues/374)) ([1b37a27](https://github.com/doc-detective/doc-detective/commit/1b37a27243b2fbdf6e9427d0ee6699bdfe61f379))
+* **routing:** test-level routing handlers (continue/stop) via non-breaking sequencer ([#372](https://github.com/doc-detective/doc-detective/issues/372)) ([32bb7a9](https://github.com/doc-detective/doc-detective/commit/32bb7a9d468b740037aa4555b9721baadcdc0c8e))
+* **runner:** resource-aware scheduler for shared-display recordings ([#380](https://github.com/doc-detective/doc-detective/issues/380)) ([a5a5900](https://github.com/doc-detective/doc-detective/commit/a5a590062767c5e2a0c1893e4bfaa30ba9a0da40)), closes [#379](https://github.com/doc-detective/doc-detective/issues/379) [#379](https://github.com/doc-detective/doc-detective/issues/379)
+* **runner:** run background processes under a PTY for full TUIs (`background.tty`) ([1d12cef](https://github.com/doc-detective/doc-detective/commit/1d12cef2782fac56e50d564d35eb56567beeeda7))
+* **runner:** support long-running background processes for runShell/runCode ([#381](https://github.com/doc-detective/doc-detective/issues/381)) ([7f55a32](https://github.com/doc-detective/doc-detective/commit/7f55a32556f23e6004c7c89e6631b40e1aea0146))
+* **runner:** type keystrokes to background processes via `surface` ([#386](https://github.com/doc-detective/doc-detective/issues/386)) ([cc885c2](https://github.com/doc-detective/doc-detective/commit/cc885c2cbd97df54254a5ac70a5aed5adccad2db)), closes [384/#385](https://github.com/doc-detective/doc-detective/issues/385)
+
+# [4.15.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.14.1...v4.15.0-next.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **build:** decouple compile-time type from optional webdriverio dep ([#369](https://github.com/doc-detective/doc-detective/issues/369)) ([45d931d](https://github.com/doc-detective/doc-detective/commit/45d931d6a9dbf6cd99a2dc722ee22529c1f029f6))
+* **expressions:** harden against ReDoS and incomplete string escaping ([dc4f705](https://github.com/doc-detective/doc-detective/commit/dc4f705786f6838b8283dc28c1f1c1f1ac22cc4b))
+* **runner:** clear self-kill watchdog when main() completes ([#368](https://github.com/doc-detective/doc-detective/issues/368)) ([ad859a2](https://github.com/doc-detective/doc-detective/commit/ad859a258c4590f57123f24d4fb186aeb6f6ae51))
+* **runtime:** resolve pure-ESM heavy deps so appium v3/v5 drivers load ([4d0e98e](https://github.com/doc-detective/doc-detective/commit/4d0e98e8ab36510b1a8d892daf9a8b06beb85e62))
+* **schema:** bound retry.delay and type assertion expected/actual ([4a4ae70](https://github.com/doc-detective/doc-detective/commit/4a4ae706f3d54c345b7d841d42687e279d55666b))
+
+
+### Features
+
+* **assertions:** convert all step actions to the unified expression model ([2af1ee5](https://github.com/doc-detective/doc-detective/commit/2af1ee539ed5363c6bb52e47206df9c3b848ec09)), closes [#355](https://github.com/doc-detective/doc-detective/issues/355)
+* **assertions:** evaluate author-written custom assertions at runtime ([9b85713](https://github.com/doc-detective/doc-detective/commit/9b857138a8b7cf94f8762c79e34a78c7b0bacc85))
+* dynamic-routing & assertions foundation (schema, expression engine, unified assertions) ([f4230f6](https://github.com/doc-detective/doc-detective/commit/f4230f668e186b411fe331fd03c2e4dffa74c7eb))
+* **hints:** surface custom assertions and retry for transient errors ([#376](https://github.com/doc-detective/doc-detective/issues/376)) ([832629c](https://github.com/doc-detective/doc-detective/commit/832629c6add12b440e60b6e20c2e4381ed02c879))
+* **routing:** spec-, test-, and step-level guard `if` conditional execution ([#362](https://github.com/doc-detective/doc-detective/issues/362)) ([e209ecd](https://github.com/doc-detective/doc-detective/commit/e209ecdc35927ff250619435ac0878ac4185b36c))
+* **routing:** step goToStep action (index-driven step loop) ([#370](https://github.com/doc-detective/doc-detective/issues/370)) ([9a8fdc6](https://github.com/doc-detective/doc-detective/commit/9a8fdc63c06784466c3071d7494c5fa47825df64))
+* **routing:** step retry action (limit/delay/backoff) ([#366](https://github.com/doc-detective/doc-detective/issues/366)) ([778a395](https://github.com/doc-detective/doc-detective/commit/778a39588a6b2658d26dda8aca03275a33f4d567))
+* **routing:** step-level onPass/onFail/onWarning/onSkip handlers (continue/stop) ([#364](https://github.com/doc-detective/doc-detective/issues/364)) ([102e293](https://github.com/doc-detective/doc-detective/commit/102e293a172dcb9f3c0e66d232be3d2d4067c243))
+* **routing:** test-level goToTest action on the sequencer ([#374](https://github.com/doc-detective/doc-detective/issues/374)) ([1b37a27](https://github.com/doc-detective/doc-detective/commit/1b37a27243b2fbdf6e9427d0ee6699bdfe61f379))
+* **routing:** test-level routing handlers (continue/stop) via non-breaking sequencer ([#372](https://github.com/doc-detective/doc-detective/issues/372)) ([32bb7a9](https://github.com/doc-detective/doc-detective/commit/32bb7a9d468b740037aa4555b9721baadcdc0c8e))
+* **runner:** resource-aware scheduler for shared-display recordings ([#380](https://github.com/doc-detective/doc-detective/issues/380)) ([a5a5900](https://github.com/doc-detective/doc-detective/commit/a5a590062767c5e2a0c1893e4bfaa30ba9a0da40)), closes [#379](https://github.com/doc-detective/doc-detective/issues/379) [#379](https://github.com/doc-detective/doc-detective/issues/379)
+* **runner:** run background processes under a PTY for full TUIs (`background.tty`) ([1d12cef](https://github.com/doc-detective/doc-detective/commit/1d12cef2782fac56e50d564d35eb56567beeeda7))
+* **runner:** support long-running background processes for runShell/runCode ([#381](https://github.com/doc-detective/doc-detective/issues/381)) ([7f55a32](https://github.com/doc-detective/doc-detective/commit/7f55a32556f23e6004c7c89e6631b40e1aea0146))
+* **runner:** type keystrokes to background processes via `surface` ([#386](https://github.com/doc-detective/doc-detective/issues/386)) ([cc885c2](https://github.com/doc-detective/doc-detective/commit/cc885c2cbd97df54254a5ac70a5aed5adccad2db)), closes [384/#385](https://github.com/doc-detective/doc-detective/issues/385)
+
+## [4.14.1](https://github.com/doc-detective/doc-detective/compare/v4.14.0...v4.14.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **runner:** gate advanced ordering under concurrentRunners ([#377](https://github.com/doc-detective/doc-detective/issues/377)) ([158c83e](https://github.com/doc-detective/doc-detective/commit/158c83e6d64a833aef4bea1bba39475d18c62259))
+
+# [4.14.0](https://github.com/doc-detective/doc-detective/compare/v4.13.0...v4.14.0) (2026-06-18)
+
+
+### Features
+
+* **runner:** add runBrowserScript action to execute JavaScript in the browser context ([#352](https://github.com/doc-detective/doc-detective/issues/352)) ([f010c67](https://github.com/doc-detective/doc-detective/commit/f010c67dbd35e790df1bb8dcd3ae0db054c5e11b))
+
+# [4.13.0](https://github.com/doc-detective/doc-detective/compare/v4.12.1...v4.13.0) (2026-06-17)
+
+
+### Features
+
+* **record:** autoRecord + multiple overlapping recordings ([#349](https://github.com/doc-detective/doc-detective/issues/349)) ([189d197](https://github.com/doc-detective/doc-detective/commit/189d1979319825bc43e10ad43e18bd293c19ece7)), closes [#348](https://github.com/doc-detective/doc-detective/issues/348) [#348](https://github.com/doc-detective/doc-detective/issues/348)
+
+## [4.12.1](https://github.com/doc-detective/doc-detective/compare/v4.12.0...v4.12.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **runner:** skip run-folder creation when no artifacts are written ([#348](https://github.com/doc-detective/doc-detective/issues/348)) ([341b9c5](https://github.com/doc-detective/doc-detective/commit/341b9c5cd01569698901394785351b03f5aaf291))
+
+# [4.12.0](https://github.com/doc-detective/doc-detective/compare/v4.11.1...v4.12.0) (2026-06-17)
+
+
+### Features
+
+* **debug:** cache, install, network, appium, provenance & findings sections for the diagnostic dump ([#347](https://github.com/doc-detective/doc-detective/issues/347)) ([5a9344c](https://github.com/doc-detective/doc-detective/commit/5a9344c5d4f180d595ada13bcfda3a9b02449ea1)), closes [#2](https://github.com/doc-detective/doc-detective/issues/2) [#6](https://github.com/doc-detective/doc-detective/issues/6) [#1](https://github.com/doc-detective/doc-detective/issues/1) [#5](https://github.com/doc-detective/doc-detective/issues/5) [#4](https://github.com/doc-detective/doc-detective/issues/4) [#3](https://github.com/doc-detective/doc-detective/issues/3)
+
+## [4.11.1](https://github.com/doc-detective/doc-detective/compare/v4.11.0...v4.11.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* **reporters:** keep per-run JSON path as the last "results at" token ([#346](https://github.com/doc-detective/doc-detective/issues/346)) ([79f35b8](https://github.com/doc-detective/doc-detective/commit/79f35b85ca6a62fd5c986afb6b9918ec6f222eae)), closes [#341](https://github.com/doc-detective/doc-detective/issues/341)
+
+# [4.11.0](https://github.com/doc-detective/doc-detective/compare/v4.10.0...v4.11.0) (2026-06-16)
+
+
+### Features
+
+* **record:** ffmpeg engine for any-app recording + concurrency-safe Chrome ([#343](https://github.com/doc-detective/doc-detective/issues/343)) ([36a83ba](https://github.com/doc-detective/doc-detective/commit/36a83ba172ac4c259455b167954df0990bf658d8))
+
+# [4.10.0](https://github.com/doc-detective/doc-detective/compare/v4.9.0...v4.10.0) (2026-06-15)
+
+
+### Features
+
+* **reporters:** emit per-run HTML report in runFolder archive ([#341](https://github.com/doc-detective/doc-detective/issues/341)) ([baa83de](https://github.com/doc-detective/doc-detective/commit/baa83dee2b12b10ca38c241a857ac2a5314af423))
+
+# [4.10.0-per-run-html-report.1](https://github.com/doc-detective/doc-detective/compare/v4.9.0...v4.10.0-per-run-html-report.1) (2026-06-15)
+
+
+### Features
+
+* **reporters:** emit per-run HTML report in runFolder archive ([f8ad42a](https://github.com/doc-detective/doc-detective/commit/f8ad42a69c32b918e3315addfe913a2815ec0943))
+
+# [4.9.0](https://github.com/doc-detective/doc-detective/compare/v4.8.0...v4.9.0) (2026-06-14)
+
+
+### Features
+
+* auto screenshots, per-run artifact folders, and stable IDs ([#334](https://github.com/doc-detective/doc-detective/issues/334)) ([0527292](https://github.com/doc-detective/doc-detective/commit/0527292bb5270224548e4e03b22772531c8b33a6))
+
+# [4.8.0](https://github.com/doc-detective/doc-detective/compare/v4.7.0...v4.8.0) (2026-06-14)
+
+
+### Features
+
+* concurrent test runners (parallel context execution) ([#332](https://github.com/doc-detective/doc-detective/issues/332)) ([dd24819](https://github.com/doc-detective/doc-detective/commit/dd24819798f7712067cae64378ba5c59bbbdfc20)), closes [doc-detective/core#337](https://github.com/doc-detective/core/issues/337) [#338](https://github.com/doc-detective/doc-detective/issues/338)
+* **core:** runtime dependency detection + Appium warm-up guard ([#338](https://github.com/doc-detective/doc-detective/issues/338)) ([45adfaf](https://github.com/doc-detective/doc-detective/commit/45adfaf12db31b469916906581344760ce82e785))
+
+# [4.7.0](https://github.com/doc-detective/doc-detective/compare/v4.6.1...v4.7.0) (2026-06-13)
+
+
+### Features
+
+* **debug:** add diagnostic dump via debug subcommand and DOC_DETECTIVE_DEBUG ([#336](https://github.com/doc-detective/doc-detective/issues/336)) ([e417131](https://github.com/doc-detective/doc-detective/commit/e4171311d6abb5322a75746b94a2b30f9b463e8a))
+
+## [4.6.1](https://github.com/doc-detective/doc-detective/compare/v4.6.0...v4.6.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** keep browser detection read-only (no auto-install) ([#330](https://github.com/doc-detective/doc-detective/issues/330)) ([ff32472](https://github.com/doc-detective/doc-detective/commit/ff3247229d9a153d8035972e2181a42e7dd1ddce))
+
+# [4.6.0](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** check stdout+stderr for Appium driver detection ([bfc37c6](https://github.com/doc-detective/doc-detective/commit/bfc37c6687ad2190e8e44fab1f834eee9dfab102))
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([9fbf2b2](https://github.com/doc-detective/doc-detective/commit/9fbf2b2156f7832efc8a64a9098c04cf4cf2b277))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([366202e](https://github.com/doc-detective/doc-detective/commit/366202e65277b223e07466cedfd70b081b3976ed)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* declare node >=22.12.0 engine requirement ([e968059](https://github.com/doc-detective/doc-detective/commit/e9680596df88a17865f7defaf313735e48730ef9))
+* **install:** bound the postinstall runtime pre-warm with a timeout ([#329](https://github.com/doc-detective/doc-detective/issues/329)) ([fb99ca7](https://github.com/doc-detective/doc-detective/commit/fb99ca7a83f6b2213bab71da16f234ac304cbcc7))
+* **install:** clear log hint when the install.log stream errors ([fcb1d9b](https://github.com/doc-detective/doc-detective/commit/fcb1d9bbedaceda13efac618aeb277bcb86ae7c7))
+* **install:** include peer companions in the install report ([19e1912](https://github.com/doc-detective/doc-detective/commit/19e19121603c406f9b04ea6c64be3b178ba00c1b))
+* **install:** report peer companions in dry-run output ([0257797](https://github.com/doc-detective/doc-detective/commit/0257797d2439c5c9c8e98b48a05084af2512208b))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([f995df9](https://github.com/doc-detective/doc-detective/commit/f995df9f12c52152cf1a63982999a49ba21d30cb))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([09b985c](https://github.com/doc-detective/doc-detective/commit/09b985ca26d0b17f0465575899c55f45afb58082))
+* **runtime:** anchor parseSemverCore to the full version string ([23b5463](https://github.com/doc-detective/doc-detective/commit/23b546361f4465962b338dc1a3f33e6e24035130))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([396605c](https://github.com/doc-detective/doc-detective/commit/396605c318cb00a907cb63161f6b1d3bddd73476))
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([339c8b9](https://github.com/doc-detective/doc-detective/commit/339c8b9867979425ab52852e1594aca746103bfa)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([a3a36ca](https://github.com/doc-detective/doc-detective/commit/a3a36ca49261d390b1eda2f48c7197f5663d3425))
+
+
+### Features
+
+* **hints:** add post-run contextual hint system with 25 hints ([#303](https://github.com/doc-detective/doc-detective/issues/303)) ([1e2bf43](https://github.com/doc-detective/doc-detective/commit/1e2bf43245c993744ae1967a064005ffe33b21d5))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([2df7b63](https://github.com/doc-detective/doc-detective/commit/2df7b63c12055ce034909e85df70856fd1c56bbc)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([2b620b2](https://github.com/doc-detective/doc-detective/commit/2b620b24d6cb90766b63550fc91d912848801e3b))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([6811c53](https://github.com/doc-detective/doc-detective/commit/6811c53419ff122872d848eb3d179f32c11d7fad))
+
+
+### Reverts
+
+* Revert "ci(docker): backfill sharp native libs in the linux image" ([33ded97](https://github.com/doc-detective/doc-detective/commit/33ded97ba9bd14ce43419e450e32d0c16b7d704b))
+
+# [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** check stdout+stderr for Appium driver detection ([e2c62f0](https://github.com/doc-detective/doc-detective/commit/e2c62f0cc63e37fde9e79e7a86dff7493b9ce1c6))
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([44bd627](https://github.com/doc-detective/doc-detective/commit/44bd627b46c092c2b3a872f658d8fab044c1fdf9))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([128c429](https://github.com/doc-detective/doc-detective/commit/128c429bb56c890953a53699f1e2e841e835517c)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* **core:** self-provision Chrome runtime in getRunner on first use ([#319](https://github.com/doc-detective/doc-detective/issues/319)) ([9e09458](https://github.com/doc-detective/doc-detective/commit/9e09458a63cc1d32b5f08e122330b7666029fa89))
+* declare node >=22.12.0 engine requirement ([6a04cb6](https://github.com/doc-detective/doc-detective/commit/6a04cb68c19a5410ca079e6a72c7e915eb75b9f1))
+* **install:** bound the postinstall runtime pre-warm with a timeout ([#329](https://github.com/doc-detective/doc-detective/issues/329)) ([5831d6e](https://github.com/doc-detective/doc-detective/commit/5831d6e54b1a14ed682f1d931f50e5511d0f51f7))
+* **install:** clear log hint when the install.log stream errors ([29b50b6](https://github.com/doc-detective/doc-detective/commit/29b50b61d3f0f7b63053eae1f9034f974f7938a8))
+* **install:** include peer companions in the install report ([2507e4b](https://github.com/doc-detective/doc-detective/commit/2507e4be936c16a3303fe9ef455599b7ba3ddb6f))
+* **install:** report peer companions in dry-run output ([d0410d5](https://github.com/doc-detective/doc-detective/commit/d0410d5e5bb7f0d3e12b4a98b5c54bc94a619f70))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([067303f](https://github.com/doc-detective/doc-detective/commit/067303f5c0439b33a4a3e1634bec4c92df165124))
+* re-cut next prerelease after npm publish token failure ([b99a417](https://github.com/doc-detective/doc-detective/commit/b99a4179ce47ffb3c88064055f4931d084a1a9b2))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([b8969d2](https://github.com/doc-detective/doc-detective/commit/b8969d24523b96e9567e4a60c6f31b28cd567663))
+* **runtime:** anchor parseSemverCore to the full version string ([24330a5](https://github.com/doc-detective/doc-detective/commit/24330a5c5cf56edd76d73cfc7e16cf35425e9599))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([13938ad](https://github.com/doc-detective/doc-detective/commit/13938adb7b2d0c22d9e239c88d5650d35ea1003d))
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([152f792](https://github.com/doc-detective/doc-detective/commit/152f792f4961e5ebf285bbe61cdefcb4c4d1a79a)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([80883a6](https://github.com/doc-detective/doc-detective/commit/80883a6cd5b2cf5f9c5f0141ecbf970cb1958ca7))
+
+
+### Features
+
+* **hints:** add post-run contextual hint system with 25 hints ([#303](https://github.com/doc-detective/doc-detective/issues/303)) ([1e2bf43](https://github.com/doc-detective/doc-detective/commit/1e2bf43245c993744ae1967a064005ffe33b21d5))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([fbb13fe](https://github.com/doc-detective/doc-detective/commit/fbb13fe59f139a7c7a25135c8c6b3022b5ee1b44)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([cf15df1](https://github.com/doc-detective/doc-detective/commit/cf15df1f0f193be67326e3679de04a6a5c4501d4))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([1f70780](https://github.com/doc-detective/doc-detective/commit/1f70780384b343bf7de948a1d604478926bc496c))
+
+# [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** check stdout+stderr for Appium driver detection ([e2c62f0](https://github.com/doc-detective/doc-detective/commit/e2c62f0cc63e37fde9e79e7a86dff7493b9ce1c6))
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([44bd627](https://github.com/doc-detective/doc-detective/commit/44bd627b46c092c2b3a872f658d8fab044c1fdf9))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([128c429](https://github.com/doc-detective/doc-detective/commit/128c429bb56c890953a53699f1e2e841e835517c)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* **core:** self-provision Chrome runtime in getRunner on first use ([#319](https://github.com/doc-detective/doc-detective/issues/319)) ([9e09458](https://github.com/doc-detective/doc-detective/commit/9e09458a63cc1d32b5f08e122330b7666029fa89))
+* declare node >=22.12.0 engine requirement ([6a04cb6](https://github.com/doc-detective/doc-detective/commit/6a04cb68c19a5410ca079e6a72c7e915eb75b9f1))
+* **install:** clear log hint when the install.log stream errors ([29b50b6](https://github.com/doc-detective/doc-detective/commit/29b50b61d3f0f7b63053eae1f9034f974f7938a8))
+* **install:** include peer companions in the install report ([2507e4b](https://github.com/doc-detective/doc-detective/commit/2507e4be936c16a3303fe9ef455599b7ba3ddb6f))
+* **install:** report peer companions in dry-run output ([d0410d5](https://github.com/doc-detective/doc-detective/commit/d0410d5e5bb7f0d3e12b4a98b5c54bc94a619f70))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([067303f](https://github.com/doc-detective/doc-detective/commit/067303f5c0439b33a4a3e1634bec4c92df165124))
+* re-cut next prerelease after npm publish token failure ([b99a417](https://github.com/doc-detective/doc-detective/commit/b99a4179ce47ffb3c88064055f4931d084a1a9b2))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([b8969d2](https://github.com/doc-detective/doc-detective/commit/b8969d24523b96e9567e4a60c6f31b28cd567663))
+* **runtime:** anchor parseSemverCore to the full version string ([24330a5](https://github.com/doc-detective/doc-detective/commit/24330a5c5cf56edd76d73cfc7e16cf35425e9599))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([13938ad](https://github.com/doc-detective/doc-detective/commit/13938adb7b2d0c22d9e239c88d5650d35ea1003d))
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([152f792](https://github.com/doc-detective/doc-detective/commit/152f792f4961e5ebf285bbe61cdefcb4c4d1a79a)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([80883a6](https://github.com/doc-detective/doc-detective/commit/80883a6cd5b2cf5f9c5f0141ecbf970cb1958ca7))
+
+
+### Features
+
+* **hints:** add post-run contextual hint system with 25 hints ([#303](https://github.com/doc-detective/doc-detective/issues/303)) ([1e2bf43](https://github.com/doc-detective/doc-detective/commit/1e2bf43245c993744ae1967a064005ffe33b21d5))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([fbb13fe](https://github.com/doc-detective/doc-detective/commit/fbb13fe59f139a7c7a25135c8c6b3022b5ee1b44)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([cf15df1](https://github.com/doc-detective/doc-detective/commit/cf15df1f0f193be67326e3679de04a6a5c4501d4))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([1f70780](https://github.com/doc-detective/doc-detective/commit/1f70780384b343bf7de948a1d604478926bc496c))
+
+# [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([44bd627](https://github.com/doc-detective/doc-detective/commit/44bd627b46c092c2b3a872f658d8fab044c1fdf9))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([128c429](https://github.com/doc-detective/doc-detective/commit/128c429bb56c890953a53699f1e2e841e835517c)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* **core:** self-provision Chrome runtime in getRunner on first use ([#319](https://github.com/doc-detective/doc-detective/issues/319)) ([9e09458](https://github.com/doc-detective/doc-detective/commit/9e09458a63cc1d32b5f08e122330b7666029fa89))
+* declare node >=22.12.0 engine requirement ([6a04cb6](https://github.com/doc-detective/doc-detective/commit/6a04cb68c19a5410ca079e6a72c7e915eb75b9f1))
+* **install:** clear log hint when the install.log stream errors ([29b50b6](https://github.com/doc-detective/doc-detective/commit/29b50b61d3f0f7b63053eae1f9034f974f7938a8))
+* **install:** include peer companions in the install report ([2507e4b](https://github.com/doc-detective/doc-detective/commit/2507e4be936c16a3303fe9ef455599b7ba3ddb6f))
+* **install:** report peer companions in dry-run output ([d0410d5](https://github.com/doc-detective/doc-detective/commit/d0410d5e5bb7f0d3e12b4a98b5c54bc94a619f70))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([067303f](https://github.com/doc-detective/doc-detective/commit/067303f5c0439b33a4a3e1634bec4c92df165124))
+* re-cut next prerelease after npm publish token failure ([b99a417](https://github.com/doc-detective/doc-detective/commit/b99a4179ce47ffb3c88064055f4931d084a1a9b2))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([b8969d2](https://github.com/doc-detective/doc-detective/commit/b8969d24523b96e9567e4a60c6f31b28cd567663))
+* **runtime:** anchor parseSemverCore to the full version string ([24330a5](https://github.com/doc-detective/doc-detective/commit/24330a5c5cf56edd76d73cfc7e16cf35425e9599))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([13938ad](https://github.com/doc-detective/doc-detective/commit/13938adb7b2d0c22d9e239c88d5650d35ea1003d))
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([152f792](https://github.com/doc-detective/doc-detective/commit/152f792f4961e5ebf285bbe61cdefcb4c4d1a79a)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([80883a6](https://github.com/doc-detective/doc-detective/commit/80883a6cd5b2cf5f9c5f0141ecbf970cb1958ca7))
+
+
+### Features
+
+* **hints:** add post-run contextual hint system with 25 hints ([#303](https://github.com/doc-detective/doc-detective/issues/303)) ([1e2bf43](https://github.com/doc-detective/doc-detective/commit/1e2bf43245c993744ae1967a064005ffe33b21d5))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([fbb13fe](https://github.com/doc-detective/doc-detective/commit/fbb13fe59f139a7c7a25135c8c6b3022b5ee1b44)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([cf15df1](https://github.com/doc-detective/doc-detective/commit/cf15df1f0f193be67326e3679de04a6a5c4501d4))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([1f70780](https://github.com/doc-detective/doc-detective/commit/1f70780384b343bf7de948a1d604478926bc496c))
+
+# [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([44bd627](https://github.com/doc-detective/doc-detective/commit/44bd627b46c092c2b3a872f658d8fab044c1fdf9))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([128c429](https://github.com/doc-detective/doc-detective/commit/128c429bb56c890953a53699f1e2e841e835517c)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* **core:** self-provision Chrome runtime in getRunner on first use ([#319](https://github.com/doc-detective/doc-detective/issues/319)) ([9e09458](https://github.com/doc-detective/doc-detective/commit/9e09458a63cc1d32b5f08e122330b7666029fa89))
+* declare node >=22.12.0 engine requirement ([6a04cb6](https://github.com/doc-detective/doc-detective/commit/6a04cb68c19a5410ca079e6a72c7e915eb75b9f1))
+* **install:** report peer companions in dry-run output ([d0410d5](https://github.com/doc-detective/doc-detective/commit/d0410d5e5bb7f0d3e12b4a98b5c54bc94a619f70))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([067303f](https://github.com/doc-detective/doc-detective/commit/067303f5c0439b33a4a3e1634bec4c92df165124))
+* re-cut next prerelease after npm publish token failure ([b99a417](https://github.com/doc-detective/doc-detective/commit/b99a4179ce47ffb3c88064055f4931d084a1a9b2))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([b8969d2](https://github.com/doc-detective/doc-detective/commit/b8969d24523b96e9567e4a60c6f31b28cd567663))
+* **runtime:** anchor parseSemverCore to the full version string ([24330a5](https://github.com/doc-detective/doc-detective/commit/24330a5c5cf56edd76d73cfc7e16cf35425e9599))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([13938ad](https://github.com/doc-detective/doc-detective/commit/13938adb7b2d0c22d9e239c88d5650d35ea1003d))
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([152f792](https://github.com/doc-detective/doc-detective/commit/152f792f4961e5ebf285bbe61cdefcb4c4d1a79a)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([80883a6](https://github.com/doc-detective/doc-detective/commit/80883a6cd5b2cf5f9c5f0141ecbf970cb1958ca7))
+
+
+### Features
+
+* **hints:** add post-run contextual hint system with 25 hints ([#303](https://github.com/doc-detective/doc-detective/issues/303)) ([1e2bf43](https://github.com/doc-detective/doc-detective/commit/1e2bf43245c993744ae1967a064005ffe33b21d5))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([fbb13fe](https://github.com/doc-detective/doc-detective/commit/fbb13fe59f139a7c7a25135c8c6b3022b5ee1b44)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([cf15df1](https://github.com/doc-detective/doc-detective/commit/cf15df1f0f193be67326e3679de04a6a5c4501d4))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([1f70780](https://github.com/doc-detective/doc-detective/commit/1f70780384b343bf7de948a1d604478926bc496c))
+
+# [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([44bd627](https://github.com/doc-detective/doc-detective/commit/44bd627b46c092c2b3a872f658d8fab044c1fdf9))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([128c429](https://github.com/doc-detective/doc-detective/commit/128c429bb56c890953a53699f1e2e841e835517c)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* **core:** self-provision Chrome runtime in getRunner on first use ([#319](https://github.com/doc-detective/doc-detective/issues/319)) ([9e09458](https://github.com/doc-detective/doc-detective/commit/9e09458a63cc1d32b5f08e122330b7666029fa89))
+* declare node >=22.12.0 engine requirement ([6a04cb6](https://github.com/doc-detective/doc-detective/commit/6a04cb68c19a5410ca079e6a72c7e915eb75b9f1))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([067303f](https://github.com/doc-detective/doc-detective/commit/067303f5c0439b33a4a3e1634bec4c92df165124))
+* re-cut next prerelease after npm publish token failure ([b99a417](https://github.com/doc-detective/doc-detective/commit/b99a4179ce47ffb3c88064055f4931d084a1a9b2))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([b8969d2](https://github.com/doc-detective/doc-detective/commit/b8969d24523b96e9567e4a60c6f31b28cd567663))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([13938ad](https://github.com/doc-detective/doc-detective/commit/13938adb7b2d0c22d9e239c88d5650d35ea1003d))
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([152f792](https://github.com/doc-detective/doc-detective/commit/152f792f4961e5ebf285bbe61cdefcb4c4d1a79a)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([80883a6](https://github.com/doc-detective/doc-detective/commit/80883a6cd5b2cf5f9c5f0141ecbf970cb1958ca7))
+
+
+### Features
+
+* **hints:** add post-run contextual hint system with 25 hints ([#303](https://github.com/doc-detective/doc-detective/issues/303)) ([1e2bf43](https://github.com/doc-detective/doc-detective/commit/1e2bf43245c993744ae1967a064005ffe33b21d5))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([fbb13fe](https://github.com/doc-detective/doc-detective/commit/fbb13fe59f139a7c7a25135c8c6b3022b5ee1b44)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([cf15df1](https://github.com/doc-detective/doc-detective/commit/cf15df1f0f193be67326e3679de04a6a5c4501d4))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([1f70780](https://github.com/doc-detective/doc-detective/commit/1f70780384b343bf7de948a1d604478926bc496c))
+
+# [4.6.0-next.11](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.10...v4.6.0-next.11) (2026-06-09)
+
+
+### Bug Fixes
+
+* **runtime:** map webkit alias to safari in inferRuntimeNeeds ([#323](https://github.com/doc-detective/doc-detective/issues/323)) ([1261698](https://github.com/doc-detective/doc-detective/commit/126169873fa4fa0b738374682468658e9cb0740b)), closes [#322](https://github.com/doc-detective/doc-detective/issues/322)
+
+# [4.6.0-next.10](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.9...v4.6.0-next.10) (2026-06-09)
+
+
+### Bug Fixes
+
+* **core:** handle contexts with no resolvable browser ([#320](https://github.com/doc-detective/doc-detective/issues/320)) ([d750045](https://github.com/doc-detective/doc-detective/commit/d7500458effc6d3ffa1b45bc34884254119f3800))
+
+# [4.6.0-next.9](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.8...v4.6.0-next.9) (2026-06-06)
+
+
+### Bug Fixes
+
+* **core:** self-provision Chrome runtime in getRunner on first use ([#319](https://github.com/doc-detective/doc-detective/issues/319)) ([7f08e61](https://github.com/doc-detective/doc-detective/commit/7f08e610ba6a61481b37bc2b27311d9b86cba08d))
+
+# [4.6.0-next.8](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.7...v4.6.0-next.8) (2026-06-06)
+
+
+### Features
+
+* **install:** log full npm output to a file and surface it on failure ([#318](https://github.com/doc-detective/doc-detective/issues/318)) ([f8fec13](https://github.com/doc-detective/doc-detective/commit/f8fec13414b1f6581b3e00e77b569e2335314bf4))
+
+# [4.6.0-install-failure-log.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-install-failure-log.1) (2026-06-05)
+
+
+### Bug Fixes
+
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([65b65fc](https://github.com/doc-detective/doc-detective/commit/65b65fc7bce576639ecf1a63ca363fb27211dbab)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+* **install:** never crash or hang on a log-stream error ([a01b707](https://github.com/doc-detective/doc-detective/commit/a01b7070550a5bfac45d2c4efe245ff5dfc42100))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([ef86d51](https://github.com/doc-detective/doc-detective/commit/ef86d510d5bea0e251eb68e7bb51c351c6febb90))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([82aa6d5](https://github.com/doc-detective/doc-detective/commit/82aa6d58a2e2bd93ec3cf08aed7d1e81b55b42ac))
+
+
+### Features
+
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** log full npm output to a file and surface it on failure ([7c67d99](https://github.com/doc-detective/doc-detective/commit/7c67d99d099bc197ff23d6152dc4b4c746bd0fcf))
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([13e2296](https://github.com/doc-detective/doc-detective/commit/13e22968320eafc16124e8913c10a3811f2f58a8))
+
+# [4.6.0-next.7](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.6...v4.6.0-next.7) (2026-06-05)
+
+
+### Bug Fixes
+
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([65b65fc](https://github.com/doc-detective/doc-detective/commit/65b65fc7bce576639ecf1a63ca363fb27211dbab)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+
+
+### Features
+
+* **install:** pre-install runtime and browsers at postinstall by default ([#316](https://github.com/doc-detective/doc-detective/issues/316)) ([13e2296](https://github.com/doc-detective/doc-detective/commit/13e22968320eafc16124e8913c10a3811f2f58a8))
+
+# [4.6.0-postinstall-runtime-default.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-postinstall-runtime-default.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([#314](https://github.com/doc-detective/doc-detective/issues/314)) ([65b65fc](https://github.com/doc-detective/doc-detective/commit/65b65fc7bce576639ecf1a63ca363fb27211dbab)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+* **install:** buffer npm stream remainders before filtering noise ([2ac5e0a](https://github.com/doc-detective/doc-detective/commit/2ac5e0a2daa3f3e1c218750970ba29d241a0e6b3))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* **postinstall:** guard main() rejection and address review nits ([7a63379](https://github.com/doc-detective/doc-detective/commit/7a6337939591171c305eacadefbc55d1067fb71f))
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([ef86d51](https://github.com/doc-detective/doc-detective/commit/ef86d510d5bea0e251eb68e7bb51c351c6febb90))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([82aa6d5](https://github.com/doc-detective/doc-detective/commit/82aa6d58a2e2bd93ec3cf08aed7d1e81b55b42ac))
+
+
+### Features
+
+* **install:** filter npm deprecation/funding noise from all install output ([06619e1](https://github.com/doc-detective/doc-detective/commit/06619e1afdb7e972cf7d830199f7c952c62333e6))
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+* **install:** pre-install runtime and browsers at postinstall by default ([b2363f4](https://github.com/doc-detective/doc-detective/commit/b2363f41a804f01fd6f43da97c4b3837974203a3))
+
+# [4.6.0-typekeys-lazy-webdriverio.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-typekeys-lazy-webdriverio.1...v4.6.0-typekeys-lazy-webdriverio.2) (2026-06-04)
+
+
+### Bug Fixes
+
+* **core:** only load webdriverio for typeKeys when a special token is present ([ae8faf8](https://github.com/doc-detective/doc-detective/commit/ae8faf84706efa06b1184261305b2d6912825f38))
+
+# [4.6.0-typekeys-lazy-webdriverio.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-typekeys-lazy-webdriverio.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* **core:** fail-soft on key-map load error and add subtract alias ([5901f0b](https://github.com/doc-detective/doc-detective/commit/5901f0b4691739b49df68c4939983151c7ddc1f1))
+* **core:** lazy-load webdriverio Key in typeKeys so lean installs run ([bdc93b0](https://github.com/doc-detective/doc-detective/commit/bdc93b0cbe4d607ae6deb40ae29b982c84f1fd94)), closes [#312](https://github.com/doc-detective/doc-detective/issues/312)
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([ef86d51](https://github.com/doc-detective/doc-detective/commit/ef86d510d5bea0e251eb68e7bb51c351c6febb90))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([82aa6d5](https://github.com/doc-detective/doc-detective/commit/82aa6d58a2e2bd93ec3cf08aed7d1e81b55b42ac))
+
+
+### Features
+
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+
+# [4.6.0-next.6](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.5...v4.6.0-next.6) (2026-06-04)
+
+
+### Bug Fixes
+
+* **release:** apply publish manifest transform before npm reads it ([#312](https://github.com/doc-detective/doc-detective/issues/312)) ([ef86d51](https://github.com/doc-detective/doc-detective/commit/ef86d510d5bea0e251eb68e7bb51c351c6febb90))
+
+# [4.6.0-publish-manifest-before-read.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-publish-manifest-before-read.1...v4.6.0-publish-manifest-before-read.2) (2026-06-03)
+
+
+### Bug Fixes
+
+* **release:** always drop optionalDependencies; harden guardrail with --json ([f555100](https://github.com/doc-detective/doc-detective/commit/f555100b47ff8a85cedefe21ddf4f8372688b6f8))
+* **release:** restore manifest on process.exit() failure paths ([5ff6ae2](https://github.com/doc-detective/doc-detective/commit/5ff6ae2897cfa71e00a05c822cb124466335af29))
+
+# [4.6.0-publish-manifest-before-read.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-publish-manifest-before-read.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+* **release:** apply publish manifest transform before npm reads it ([b53262f](https://github.com/doc-detective/doc-detective/commit/b53262f45e3f184d36d3e9e6cacb0a4bd450cb3a))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([82aa6d5](https://github.com/doc-detective/doc-detective/commit/82aa6d58a2e2bd93ec3cf08aed7d1e81b55b42ac))
+
+
+### Features
+
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+
+# [4.6.0-next.5](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.4...v4.6.0-next.5) (2026-06-01)
+
+
+### Bug Fixes
+
+* **runtime:** skip app detection in dry-run runs ([#311](https://github.com/doc-detective/doc-detective/issues/311)) ([82aa6d5](https://github.com/doc-detective/doc-detective/commit/82aa6d58a2e2bd93ec3cf08aed7d1e81b55b42ac))
+
+# [4.6.0-next.4](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.3...v4.6.0-next.4) (2026-06-01)
+
+
+### Bug Fixes
+
+* declare node >=22.12.0 engine requirement ([999378e](https://github.com/doc-detective/doc-detective/commit/999378e6d3af1ffe9105e6be259ffb9b6884debe))
+
+# [4.6.0-next.3](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.2...v4.6.0-next.3) (2026-06-01)
+
+
+### Bug Fixes
+
+* re-cut next prerelease after npm publish token failure ([197232b](https://github.com/doc-detective/doc-detective/commit/197232b6feb5795e1b134f1b5fbdb39c940c3a43))
+
+# [4.6.0-next.2](https://github.com/doc-detective/doc-detective/compare/v4.6.0-next.1...v4.6.0-next.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **install:** stop heavy deps installing (and warning) on npm i ([#308](https://github.com/doc-detective/doc-detective/issues/308)) ([17a8579](https://github.com/doc-detective/doc-detective/commit/17a85793981ecb8f3255d1db530670f7b98d1ee4))
+* **runtime:** bump @puppeteer/browsers to v3 for node 24 support ([#309](https://github.com/doc-detective/doc-detective/issues/309)) ([21603dd](https://github.com/doc-detective/doc-detective/commit/21603dd653749c71855c004154984fab200ec74c))
+
+# [4.6.0-next.1](https://github.com/doc-detective/doc-detective/compare/v4.5.0...v4.6.0-next.1) (2026-05-12)
+
+
+### Features
+
+* **install:** lazy-install heavy deps and browsers via runtime cache ([#305](https://github.com/doc-detective/doc-detective/issues/305)) ([e7e1623](https://github.com/doc-detective/doc-detective/commit/e7e162364e3b1d6fbd637b5453ba1190f8772de2)), closes [#60](https://github.com/doc-detective/doc-detective/issues/60) [#60](https://github.com/doc-detective/doc-detective/issues/60)
+
 # [4.5.0](https://github.com/doc-detective/doc-detective/compare/v4.4.0...v4.5.0) (2026-05-06)
 
 

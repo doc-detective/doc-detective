@@ -8,12 +8,19 @@ import {
   log,
   getResolvedTestsFromEnv,
   reportResults,
+  isDebugRequested,
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
+import { installCommand } from "./runtime/installCommand.js";
+import { printDebug, defaultDebugDir } from "./debug/index.js";
+import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
+import { createRequire } from "node:module";
+
+const cliRequire = createRequire(import.meta.url);
 
 // Run
 setMeta();
@@ -38,7 +45,12 @@ async function main(argv: string[]) {
       describe: false,
       handler: runTestsHandler,
     })
-    .command(installAgentsCommand)
+    // Hidden alias kept for back-compat with existing scripts and docs:
+    // `doc-detective install-agents` still works, undocumented, and delegates
+    // to the same implementation as `doc-detective install agents`.
+    .command({ ...installAgentsCommand, describe: false } as any)
+    .command(installCommand as any)
+    .command(debugCommand)
     .strict()
     .demandCommand(0)
     // Suppress yargs' default help-dump on failure; surface the concrete error
@@ -56,12 +68,13 @@ async function runTestsHandler(args: any) {
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
   const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-  // Guard `args.config` so the handler falls back to the defaults cleanly
-  // when --config is omitted (args.config is undefined in that case).
+  // Treat any non-empty `--config` as authoritative (resolved to an
+  // absolute path). A mistyped path then fails deterministically via
+  // setConfig rather than silently falling back to auto-discovery.
   const hasExplicitConfig =
-    typeof args.config === "string" && args.config.length > 0 && fs.existsSync(args.config);
+    typeof args.config === "string" && args.config.trim().length > 0;
   const configPath = hasExplicitConfig
-    ? args.config
+    ? path.resolve(args.config.trim())
     : fs.existsSync(configPathJSON)
     ? configPathJSON
     : fs.existsSync(configPathYAML)
@@ -70,8 +83,58 @@ async function runTestsHandler(args: any) {
     ? configPathYML
     : null;
 
+  // Detect env-var debug intent before setConfig so we can still emit
+  // the diagnostic dump when validation fails. `isDebugRequested`
+  // reads `process.env.DOC_DETECTIVE_DEBUG`. Users who want diagnostic
+  // output on the CLI should prefer the dedicated `doc-detective
+  // debug` subcommand (which also supports `--include-env`); this
+  // env-var path stays as the CI-friendly trigger.
+  const debugRequested = isDebugRequested();
+
   // Set config
-  const config: any = await setConfig({ configPath: configPath, args: args });
+  let config: any;
+  try {
+    config = await setConfig({ configPath: configPath, args: args });
+  } catch (err: any) {
+    if (debugRequested) {
+      // Build a minimal stub config so the dump can still render.
+      // `printDebug` tolerates undefined fields; the configError banner
+      // surfaces the underlying validation message.
+      const stubConfig: any = {
+        logLevel: typeof args.logLevel === "string" ? args.logLevel : "info",
+        input: typeof args.input === "string" ? args.input : ".",
+      };
+      await printDebug({
+        config: stubConfig,
+        configPath: configPath,
+        configError: err instanceof Error ? err : new Error(String(err)),
+        outDir: defaultDebugDir(),
+        args,
+      });
+      // The env-var dump replaced a real test run; a broken config must
+      // still fail the process so CI doesn't go green on an unran suite.
+      process.exitCode = 1;
+      return;
+    }
+    throw err;
+  }
+
+  // Diagnostic dump — fires when DOC_DETECTIVE_DEBUG is truthy. The
+  // env-var path intentionally does NOT enable --include-env; users
+  // who want the full process.env must run `doc-detective debug
+  // --include-env` explicitly. (There is no config-file equivalent —
+  // the `debug` config field is deprecated and ignored; diagnostics live
+  // behind this env var and the `debug` subcommand.)
+  if (debugRequested) {
+    await printDebug({
+      config,
+      configPath,
+      configError: null,
+      outDir: defaultDebugDir(),
+      args,
+    });
+    return;
+  }
 
   log(
     `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
@@ -79,6 +142,39 @@ async function runTestsHandler(args: any) {
     config
   );
   log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
+
+  // Self-update on startup. Honors config.autoUpdate (schema default true),
+  // DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 (set by the re-execed child to prevent
+  // loops, and by Docker images), and process.env.CI (CI environments
+  // should pin their version explicitly — surprise updates in CI are bad).
+  if (
+    config.autoUpdate !== false &&
+    !process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE &&
+    !process.env.CI
+  ) {
+    try {
+      const { checkForUpdate, detectInstallMode, selfUpdate } = await import(
+        "./runtime/selfUpdate.js"
+      );
+      const currentVersion: string = cliRequire("../package.json").version;
+      // Route the self-update module's logs through the CLI's existing
+      // log() helper so config.logLevel is respected (transient registry
+      // failures should not flood stdout at the default level). Map
+      // "warn" → "warning" since core/utils.ts uses the latter.
+      const cliLogger = (msg: string, level: string = "info") => {
+        const mapped = level === "warn" ? "warning" : level;
+        log(msg, mapped, config);
+      };
+      const { latest, newer } = await checkForUpdate(currentVersion, {
+        logger: cliLogger,
+      });
+      if (newer && latest) {
+        await selfUpdate(latest, detectInstallMode(), { logger: cliLogger });
+      }
+    } catch (err) {
+      log(`Self-update check skipped: ${String(err)}`, "debug", config);
+    }
+  }
 
   // Check for DOC_DETECTIVE_API environment variable
   const api = await getResolvedTestsFromEnv(config);
