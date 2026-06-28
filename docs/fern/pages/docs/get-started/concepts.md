@@ -30,6 +30,7 @@ An action performs a task in a step. Doc Detective supports a variety of actions
 | [runShell](/docs/actions/runshell)           | Perform a native shell command.                                                                                                                           |
 | [runBrowserScript](/docs/actions/runbrowserscript) | Run JavaScript in the browser page context and capture its return value.                                                                            |
 | [screenshot](/docs/actions/screenshot)       | Take a screenshot in PNG format.                                                                                                                          |
+| [closeSurface](/docs/actions/close-surface)   | Close a surface, such as a background process started by `runShell` or `runCode`.                                                                          |
 | [loadVariables](/docs/actions/loadvariables) | Load environment variables from a `.env` file.                                                                                                            |
 | [saveCookie](/docs/actions/savecookie)       | Save a specific browser cookie to a file or environment variable for later reuse.                                                                         |
 | [loadCookie](/docs/actions/loadcookie)       | Load a specific cookie from a file or environment variable into the browser.                                                                              |
