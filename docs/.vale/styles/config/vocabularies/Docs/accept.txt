@@ -190,6 +190,7 @@ startIndex
 endIndex
 runFolder
 ffmpeg
+FFmpeg
 lockfile
 ditamap
 params
