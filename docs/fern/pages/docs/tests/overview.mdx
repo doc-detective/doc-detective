@@ -761,6 +761,52 @@ You can also set these filters in your configuration file using the `testFilter`
 
 If filters exclude all tests, Doc Detective displays a warning: "No tests were run." This indicates that your filter patterns are too restrictive or don't match any test IDs in your test suite.
 
+### Run tests in parallel
+
+By default, Doc Detective runs test contexts sequentially. For larger test suites with independent tests, you can run multiple contexts in parallel using the `--concurrent-runners` flag.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+```bash
+# Use CPU core count (capped at 4)
+npx doc-detective --concurrent-runners
+
+# Specify an explicit number of runners
+npx doc-detective --concurrent-runners 4
+```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+```bash
+# Use CPU core count (capped at 4)
+docker run -v .:/app docdetective/docdetective --concurrent-runners
+
+# Specify an explicit number of runners
+docker run -v .:/app docdetective/docdetective --concurrent-runners 4
+```
+
+  </Tab>
+</Tabs>
+
+You can also set this in your configuration file using the `concurrentRunners` property:
+
+```json
+{
+  "concurrentRunners": true
+}
+```
+
+Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners.
+
+<Warning>
+Parallel execution has limitations:
+
+- **Cross-context variables**: Tests that share variables via `loadVariables` or `variables` steps between contexts won't work correctly with concurrent runners, as variables write to `process.env` shared across all contexts.
+- **Recording steps**: Concurrent screen recordings can capture the wrong browser window, and output files may overwrite each other if contexts share the same recording path. Keep `concurrentRunners` at `1` for tests that include `record` steps.
+</Warning>
+
 ## Read the results
 
 Doc Detective supports multiple output reporters. By default, it uses `terminal` and `json`. Customize reporters with the `--reporters` (or `-r`) flag:
