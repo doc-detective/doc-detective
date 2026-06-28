@@ -4,17 +4,21 @@ description: Stop capturing a video of test execution.
 ---
 
 
-The `stopRecord` action stops a video recording previously started by a [`record`](record) action and saves the video file.
+The `stopRecord` action stops a video recording started by an earlier [`record`](record) action and saves the video file.
 
-This action takes a boolean value:
+You can choose which recording to stop:
 
-- `stopRecord: true`: Stops the current recording.
+- **Most recent (boolean or null):** `stopRecord: true` or `stopRecord: null` stops the most recently started recording that's still active (last in, first out). Use this when only one recording is active, which is the common case.
+- **By name (string):** `stopRecord: "<name>"` stops the active recording with a matching `name`. Use this to stop a specific recording when several overlap.
+- **By name (object):** `stopRecord: { "name": "<name>" }` is the object form of targeting a recording by `name`.
 
->Note: You must include a `stopRecord: true` step to finalize and save any recording started with the `record` action.
+When you target by name, Doc Detective stops that recording wherever it falls in the active set, not just the most recent one. For more about running several recordings at once, see [Multiple overlapping recordings](record#multiple-overlapping-recordings).
+
+>Note: To finalize and save a recording started with the `record` action, include a `stopRecord` step. An untargeted `stopRecord` skips recordings created by [`autoRecord`](record#automatic-recordings); Doc Detective finalizes those automatically at the end of the context.
 >
 > For comprehensive options, see the [`stopRecord`](/reference/schemas/stoprecord) reference.
 
-## Example
+## Examples
 
 This example starts recording, performs an action, and then stops the recording.
 
@@ -34,6 +38,34 @@ This example starts recording, performs an action, and then stops the recording.
         {
           "description": "Stop the recording.",
           "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+This example stops a specific recording by name while another recording is still running.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start the login clip.",
+          "record": {
+            "path": "./output/login.mp4",
+            "name": "login"
+          }
+        },
+        {
+          "description": "Navigate to the site.",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Stop the login clip by name.",
+          "stopRecord": "login"
         }
       ]
     }

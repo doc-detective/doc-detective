@@ -190,6 +190,7 @@ startIndex
 endIndex
 runFolder
 ffmpeg
+FFmpeg
 lockfile
 ditamap
 params
@@ -208,3 +209,4 @@ html
 postinstall
 Geckodriver
 ChromeDriver
+Xvfb

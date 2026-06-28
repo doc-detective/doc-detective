@@ -79,6 +79,10 @@ Heretto
 DITA
 CMS
 CCMS
+ffmpeg
+FFmpeg
+Xvfb
+untargeted
 closeSurface
 waitUntil
 httpGet
@@ -96,5 +100,4 @@ ignoreMissing
 stopProcess
 postinstall
 Geckodriver
-ffmpeg
 ChromeDriver
