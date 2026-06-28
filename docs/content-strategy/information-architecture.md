@@ -55,7 +55,7 @@ Home — "What do you want to do?" router + 60-second proof
 │   ├─ Authoring: inline · detected · standalone   (where the test lives — surface-neutral)
 │   ├─ UI procedures            (Wren)  → W2   (find/click/type, screenshots, video)
 │   ├─ CLI, code & APIs         (Diego) → D1, D2, D3   (runShell/runCode, httpRequest, OpenAPI)
-│   └─ Formats & surfaces       (W3)    → input formats · platforms/browsers · Heretto
+│   └─ Formats & surfaces  (cross-surface) → input formats · platforms/browsers · Heretto   (W3)
 │
 ├─ Run in CI & at scale  (Priya)        → P1, P2, P3
 │
@@ -146,7 +146,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Track overview / start here | W1, D1 | ★ | Frames the one job, routes by surface (UI vs. CLI/code/API). |
 | Inline tests | W2 | ★ | Tests embedded in a doc source file. |
 | Detected tests | W2 | ★ | Tests inferred from prose. |
-| Standalone test specs | D1 | ★ | `*.spec.json` files kept beside the docs. |
+| Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs — a valid authoring choice for any surface. |
 
 **UI procedures — Wren**
 
@@ -165,7 +165,9 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Cookies & variables | D2 | | `saveCookie` / `loadCookie` / `loadVariables` / outputs. |
 | Generate tests from OpenAPI | D3 | | `openApi` integration. |
 
-**Formats & surfaces — Wren (cross-surface)**
+**Formats & surfaces — cross-surface (W3 anchor)**
+
+These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, not a Wren-only label.
 
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
