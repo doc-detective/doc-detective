@@ -98,6 +98,11 @@ deregisters
 readyWhen
 ignoreMissing
 stopProcess
+UUIDs
+runId
+runFolder
+autoScreenshot
+autoRecord
 npm
 env
 webdriverio
