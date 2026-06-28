@@ -461,7 +461,7 @@ export interface TelemetryOptions {
   userId?: string;
 }
 /**
- * Options for the post-run hints feature. After a test run, Doc Detective may print one short, contextual hint with code samples and links to encourage further engagement (for example, suggesting a CI workflow when none is detected). Hints are shown only on a TTY and only at the default `info` log level.
+ * Options for the post-run hints feature. After a test run, Doc Detective may print one short, contextual hint with code samples and links to encourage further engagement (for example, suggesting a CI workflow when none is detected). Doc Detective displays hints only in an interactive terminal (TTY) and only at the default `info` log level.
  */
 export interface HintsOptions {
   /**
