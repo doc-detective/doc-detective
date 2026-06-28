@@ -5,7 +5,16 @@ import path from "node:path";
 import _Ajv from "ajv";
 const Ajv = _Ajv as unknown as typeof _Ajv.default;
 import { getOperation, loadDescription } from "../openapi.js";
-import { log, calculateFractionalDifference, replaceEnvs } from "../utils.js";
+import {
+  log,
+  calculateFractionalDifference,
+  replaceEnvs,
+} from "../utils.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 
 export { httpRequest };
 
@@ -230,13 +239,43 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     timeout: step.httpRequest.timeout,
   };
 
-  // Validate request payload against OpenAPI definition
+  // ---------------------------------------------------------------------------
+  // Unified assertion model.
+  //
+  // Each implicit verification check is a `$$` runtime EXPRESSION evaluated by
+  // the shared engine (`evaluateImplicitAssertions`), exactly like runShell.ts.
+  // We do NOT compute PASS/FAIL inline. Instead we (1) compute any derived
+  // inputs the expressions reference and EXPOSE them as outputs (simple value
+  // checks become direct expressions; structurally-complex checks compute a
+  // boolean/number with the EXISTING logic and assert a trivial expression over
+  // the exposed output), (2) build the ordered list of APPLICABLE specs IN THE
+  // SAME ORDER as before, then (3) hand them to the shared engine, which does
+  // the in-order evaluation, FAIL short-circuit (later applicable checks become
+  // SKIPPED), and FAIL > WARNING > SKIPPED > PASS roll-up. The exposed computed
+  // outputs are also a deliberate user-facing capability (referenceable in
+  // conditions / custom assertions).
+  //
+  // Execution errors (NOT assertions) still return FAIL with NO records:
+  //   - invalid step / OpenAPI resolution failures (handled above);
+  //   - request-body schema validation failure (no request is made);
+  //   - total network failure with no response at all (no status came back).
+  //
+  // File side effects (write/overwrite) are preserved exactly and run
+  // unconditionally whenever `path` is set, independent of the assertion model.
+  // ---------------------------------------------------------------------------
+  const specs: ImplicitAssertionSpec[] = [];
+  const descriptions: string[] = [];
+
+  // Request body matches OpenAPI schema. APPLICABLE only when
+  // validateAgainstSchema is request/both and a request schema exists. This runs
+  // BEFORE the request is made, so it is a PREFLIGHT / execution gate, NOT an
+  // assertion: a failure means no request is performed and there are no
+  // response/outputs -> FAIL, no records (preserves the prior early return).
   if (
     (step.httpRequest.openApi?.validateAgainstSchema === "request" ||
       step.httpRequest.openApi?.validateAgainstSchema === "both") &&
     operation.schemas.request
   ) {
-    // Validate request payload against OpenAPI definition
     const ajv = new Ajv({
       strictSchema: false,
       useDefaults: true,
@@ -247,8 +286,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     const validateFn = ajv.compile(operation.schemas.request);
     const valid = validateFn(step.httpRequest.request.body);
     if (valid) {
-      result.description = ` Request body matched the OpenAPI schema.`;
+      descriptions.push(`Request body matched the OpenAPI schema.`);
     } else {
+      // Preserve prior behavior: execution error, FAIL, no assertion records.
       result.status = "FAIL";
       result.description = ` Request body didn't match the OpenAPI schema. ${JSON.stringify(
         validateFn.errors,
@@ -270,6 +310,21 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         return { error };
       });
     if (response?.error?.response) response = response.error.response;
+    // Total network failure: no response object came back at all (e.g. DNS
+    // failure, connection refused). Per the locked ruling this is an EXECUTION
+    // error, not an assertion -> FAIL, no records. Only run the statusCode
+    // assertion when a status actually came back (including 4xx/5xx via
+    // error.response).
+    if (typeof response.status === "undefined") {
+      result.outputs.response = {
+        body: response.data,
+        statusCode: response.status,
+        headers: response.headers,
+      };
+      result.status = "FAIL";
+      result.description = `Request to ${step.httpRequest.url} failed: no response received.`;
+      return result;
+    }
     result.outputs.response = {
       body: response.data,
       statusCode: response.status,
@@ -294,45 +349,56 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     response.headers = step.httpRequest?.response?.headers;
   }
 
-  // Compare status codes
+  // (1) statusCode ∈ statusCodes. Always applicable (statusCodes is defaulted)
+  // and always evaluated (a status came back). Simple value check -> DIRECT
+  // expression over the already-exposed `outputs.response.statusCode`.
   if (step.httpRequest.statusCodes) {
-    if (step.httpRequest.statusCodes.indexOf(response.status) >= 0) {
-      result.status = "PASS";
-      result.description = `Returned ${response.status}.`;
-    } else {
-      result.status = "FAIL";
-      result.description = `Returned ${
-        response.status
-      }. Expected one of ${JSON.stringify(step.httpRequest.statusCodes)}.`;
-    }
+    const statusPass =
+      step.httpRequest.statusCodes.indexOf(response.status) >= 0;
+    const statusDescription = statusPass
+      ? `Returned ${response.status}.`
+      : `Returned ${response.status}. Expected one of ${JSON.stringify(
+          step.httpRequest.statusCodes
+        )}.`;
+    specs.push({
+      statement: `$$outputs.response.statusCode oneOf ${JSON.stringify(
+        step.httpRequest.statusCodes
+      )}`,
+      severity: "fail",
+    });
+    descriptions.push(statusDescription);
   }
 
-  // Validate required fields in response
+  // (2) Required response fields present. APPLICABLE only when
+  // response.required is non-empty. Structurally-complex check -> compute the
+  // boolean with the EXISTING logic, EXPOSE it as `outputs.requiredFieldsPresent`,
+  // and assert a trivial expression over it.
   if (step.httpRequest.response?.required?.length > 0) {
     const missingFields: string[] = [];
-
     for (const fieldPath of step.httpRequest.response.required) {
       if (!fieldExistsAtPath(response.data, fieldPath)) {
         missingFields.push(fieldPath);
       }
     }
-
+    result.outputs.requiredFieldsPresent = missingFields.length === 0;
+    specs.push({
+      statement: `$$outputs.requiredFieldsPresent == true`,
+      severity: "fail",
+    });
     if (missingFields.length > 0) {
-      result.status = "FAIL";
-      result.description += ` Missing required fields: ${missingFields.join(
-        ", "
-      )}`;
-      return result;
+      descriptions.push(`Missing required fields: ${missingFields.join(", ")}`);
     }
   }
 
-  // Validate response payload against OpenAPI definition
+  // (3) Response body matches OpenAPI schema. APPLICABLE only when
+  // validateAgainstSchema is response/both and a response schema exists.
+  // Structurally-complex check -> compute the boolean, EXPOSE it as
+  // `outputs.responseSchemaValid`, assert a trivial expression over it.
   if (
     (step.httpRequest.openApi?.validateAgainstSchema === "response" ||
       step.httpRequest.openApi?.validateAgainstSchema === "both") &&
     operation.schemas.response
   ) {
-    // Validate request payload against OpenAPI definition
     const ajv = new Ajv({
       strictSchema: false,
       useDefaults: true,
@@ -342,34 +408,58 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     });
     const validateFn = ajv.compile(operation.schemas.response);
     const valid = validateFn(response.data);
+    result.outputs.responseSchemaValid = !!valid;
+    specs.push({
+      statement: `$$outputs.responseSchemaValid == true`,
+      severity: "fail",
+    });
     if (valid) {
-      result.description += ` Response data matched the OpenAPI schema.`;
+      descriptions.push(`Response data matched the OpenAPI schema.`);
     } else {
-      result.status = "FAIL";
-      result.description += ` Response data didn't match the OpenAPI schema. ${JSON.stringify(
-        validateFn.errors,
-        null,
-        2
-      )}`;
-      return result;
+      descriptions.push(
+        `Response data didn't match the OpenAPI schema. ${JSON.stringify(
+          validateFn.errors,
+          null,
+          2
+        )}`
+      );
     }
   }
 
-  // Compare response.body
+  // (4) No unexpected fields. APPLICABLE only when allowAdditionalFields is
+  // false. Structurally-complex check -> compute the boolean, EXPOSE it as
+  // `outputs.noUnexpectedFields`, assert a trivial expression over it.
   if (!step.httpRequest.allowAdditionalFields) {
-    // Do a deep comparison
-    const dataComparison = objectExistsInObject(
-      step.httpRequest.response.body,
-      response.data
-    );
-    if (dataComparison.result.status === "FAIL") {
-      result.status = "FAIL";
-      result.description += " Response contained unexpected fields.";
-      return result;
+    // `response.body` normally defaults to `{}` via the response-default spread
+    // above, but a step that explicitly sets `response.body` to undefined/null
+    // (or a non-object) would let undefined reach objectExistsInObject, whose
+    // `Object.keys(expected)` would throw. With no expected fields there are no
+    // unexpected fields to flag, so treat that as a PASS (noUnexpectedFields =
+    // true) — matching the prior outcome (FAIL only when there ARE unexpected
+    // fields).
+    const expectedBody = step.httpRequest.response?.body;
+    const noUnexpectedFields =
+      expectedBody && typeof expectedBody === "object"
+        ? objectExistsInObject(expectedBody, response.data).result.status !==
+          "FAIL"
+        : true;
+    result.outputs.noUnexpectedFields = noUnexpectedFields;
+    specs.push({
+      statement: `$$outputs.noUnexpectedFields == true`,
+      severity: "fail",
+    });
+    if (!noUnexpectedFields) {
+      descriptions.push(`Response contained unexpected fields.`);
     }
   }
 
+  // (5) Response body type matches + body match. APPLICABLE only when
+  // response.body is defined. Structurally-complex check -> compute a single
+  // boolean (`bodyMatches`: true iff the type matches AND the existing
+  // object-subset / string-equality comparison passes), EXPOSE it as
+  // `outputs.bodyMatches`, assert a trivial expression over it.
   if (typeof step.httpRequest.response?.body !== "undefined") {
+    let bodyMatches: boolean;
     // Check if response body is the same type
     if (
       typeof step.httpRequest.response.body !== typeof response.data ||
@@ -377,35 +467,49 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         Array.isArray(step.httpRequest.response.body) !==
           Array.isArray(response.data))
     ) {
-      result.status = "FAIL";
-      result.description += ` Expected response body type didn't match actual response body type.`;
-      return result;
-    }
-    // Check if response body is a string or object
-    if (typeof step.httpRequest.response.body === "string") {
-      if (step.httpRequest.response.body !== response.data) {
-        result.status = "FAIL";
-        result.description += ` Expected response body didn't match actual response body.`;
+      bodyMatches = false;
+      descriptions.push(
+        `Expected response body type didn't match actual response body type.`
+      );
+    } else if (typeof step.httpRequest.response.body === "string") {
+      // SANCTIONED (Phase 4a.2a): a matching string body used to `return result`
+      // here, short-circuiting the response.headers check and `path` file save.
+      // That early return was intentionally removed so those checks run too.
+      bodyMatches = step.httpRequest.response.body === response.data;
+      if (!bodyMatches) {
+        descriptions.push(
+          `Expected response body didn't match actual response body.`
+        );
       }
-      return result;
     } else if (typeof step.httpRequest.response.body === "object") {
       const dataComparison = objectExistsInObject(
         step.httpRequest.response.body,
         response.data
       );
-      if (dataComparison.result.status === "PASS") {
-        if (result.status != "FAIL") result.status = "PASS";
-        result.description += ` Expected response body was present in actual response body.`;
+      bodyMatches = dataComparison.result.status === "PASS";
+      if (bodyMatches) {
+        descriptions.push(
+          `Expected response body was present in actual response body.`
+        );
       } else {
-        result.status = "FAIL";
-        result.description =
-          result.description + " " + dataComparison.result.description;
-        return result;
+        descriptions.push(dataComparison.result.description);
       }
+    } else {
+      // Same primitive type but not string/object (number/boolean): the prior
+      // type-match branch fell through without an explicit comparison, treating
+      // it as a (vacuous) pass. Preserve that.
+      bodyMatches = true;
     }
+    result.outputs.bodyMatches = bodyMatches;
+    specs.push({
+      statement: `$$outputs.bodyMatches == true`,
+      severity: "fail",
+    });
   }
 
-  // Compare response.headers
+  // (6) Response headers subset. APPLICABLE only when response.headers is
+  // non-empty. Structurally-complex check -> compute the boolean, EXPOSE it as
+  // `outputs.headersMatch`, assert a trivial expression over it.
   if (
     typeof step.httpRequest.response?.headers !== "undefined" &&
     JSON.stringify(step.httpRequest.response?.headers) != "{}"
@@ -419,21 +523,30 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     Object.keys(response.headers).forEach((key: any) => {
       responseHeaders[key.toLowerCase()] = response.headers[key];
     });
-    // Perform comparison
     const dataComparison = objectExistsInObject(headers, responseHeaders);
-    // Check if headers are present in actual response
-    if (dataComparison.result.status === "PASS") {
-      if (result.status != "FAIL") result.status = "PASS";
-      result.description += ` Expected response headers were present in actual response headers.`;
+    const headersMatch = dataComparison.result.status === "PASS";
+    result.outputs.headersMatch = headersMatch;
+    specs.push({
+      statement: `$$outputs.headersMatch == true`,
+      severity: "fail",
+    });
+    if (headersMatch) {
+      descriptions.push(
+        `Expected response headers were present in actual response headers.`
+      );
     } else {
-      result.status = "FAIL";
-      result.description =
-        result.description + " " + dataComparison.result.description;
-      return result;
+      descriptions.push(dataComparison.result.description);
     }
   }
 
-  // Check if command output is saved to a file
+  // (7) Saved-file variation ≤ maxVariation. APPLICABLE only when path is set
+  // AND an existing file is being compared against. Exceeding the tolerance is a
+  // WARNING (not a FAIL). The file-write/overwrite side effects are preserved
+  // exactly as before and run unconditionally whenever `path` is set; the
+  // assertion is gated on there being a prior file (the "file didn't exist yet
+  // -> write, NO variation assertion" path emits no spec). When applicable the
+  // computed `fractionalDiff` is EXPOSED as `outputs.variation` and the spec is
+  // `$$outputs.variation <= maxVariation` at WARNING severity.
   if (step.httpRequest.path) {
     const dir = path.dirname(step.httpRequest.path);
     // If `dir` doesn't exist, create it
@@ -451,11 +564,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         filePath,
         JSON.stringify(response.data, null, 2)
       );
-      result.description += ` Saved output to file.`;
+      descriptions.push(`Saved output to file.`);
     } else {
       if (step.httpRequest.overwrite == "false") {
         // File already exists
-        result.description += ` Didn't save output. File already exists.`;
+        descriptions.push(`Didn't save output. File already exists.`);
       }
 
       // Read existing file
@@ -468,6 +581,16 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       );
       log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
+      // Expose the computed variation as the output the expression references,
+      // and emit the WARNING-severity spec. The shared engine records WARNING
+      // (not FAIL) when it evaluates false, matching prior behavior.
+      result.outputs.variation = fractionalDiff;
+      specs.push({
+        statement: `$$outputs.variation <= ${step.httpRequest.maxVariation}`,
+        severity: "warning",
+      });
+
+      // File side effects (write/overwrite) are unchanged from prior behavior.
       if (fractionalDiff > step.httpRequest.maxVariation) {
         if (step.httpRequest.overwrite == "aboveVariation") {
           // Overwrite file
@@ -475,26 +598,32 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
             filePath,
             JSON.stringify(response.data, null, 2)
           );
-          result.description += ` Saved response to file.`;
+          descriptions.push(`Saved response to file.`);
         }
-        result.status = "WARNING";
-        result.description += ` The difference between the existing saved response and the new response (${fractionalDiff.toFixed(
-          2
-        )}) is greater than the max accepted variation (${
-          step.httpRequest.maxVariation
-        }).`;
-        return result;
-      }
-
-      if (step.httpRequest.overwrite == "true") {
-        // Overwrite file
-        fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
-        result.description += ` Saved response to file.`;
+        descriptions.push(
+          `The difference between the existing saved response and the new response (${fractionalDiff.toFixed(
+            2
+          )}) is greater than the max accepted variation (${
+            step.httpRequest.maxVariation
+          }).`
+        );
+      } else {
+        if (step.httpRequest.overwrite == "true") {
+          // Overwrite file
+          fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+          descriptions.push(`Saved response to file.`);
+        }
       }
     }
   }
 
-  result.description = result.description.trim();
+  // Evaluate the applicable specs through the shared engine against the current
+  // step's outputs (response + the derived booleans/variation).
+  const ctx = buildConditionContext({ outputs: result.outputs });
+  const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
+  result.assertions = assertions;
+  result.status = status;
+  result.description = descriptions.join(" ").trim();
   return result;
 }
 

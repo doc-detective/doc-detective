@@ -30,17 +30,59 @@ function safeRegExp(pattern: string, flags: string): RegExp | null {
   }
 }
 
-// Web Crypto API compatible UUID generation
-/* c8 ignore next 10 - crypto.randomUUID always available in Node.js; fallback is for browsers */
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+// Keys excluded when hashing a test/step definition for an ID: IDs are what
+// the hash computes (or other generated IDs), and `location` shifts whenever
+// unrelated content above moves in the file — including either would defeat
+// run-over-run stability.
+const HASH_EXCLUDED_KEYS = new Set([
+  "location",
+  "testId",
+  "stepId",
+  "contextId",
+]);
+
+/**
+ * Deterministic 8-hex-char content hash (FNV-1a, 32-bit). Used to derive
+ * stable fallback IDs from a test's or step's authored definition so the same
+ * content produces the same ID on every run — that's what makes run-over-run
+ * result comparison possible. Pure JS (no node:crypto) so it stays
+ * browser-compatible.
+ */
+export function contentHash(value: any): string {
+  // JSON.stringify returns undefined for unserializable inputs (undefined,
+  // functions, symbols) and throws for circular references or BigInt. Fall
+  // back to "" in both cases so ID generation degrades to a stable hash
+  // instead of crashing.
+  let input: string;
+  if (typeof value === "string") {
+    input = value;
+  } else {
+    try {
+      input =
+        JSON.stringify(value, (key, v) =>
+          HASH_EXCLUDED_KEYS.has(key) ? undefined : v
+        ) ?? "";
+    } catch {
+      input = "";
+    }
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+// Pure-string version of core's generateSpecId path normalization (no
+// node:path so it stays browser-compatible). Used as the ID base when the
+// caller doesn't supply `testIdBase`.
+function normalizePathForId(filePath?: string): string {
+  if (!filePath) return "";
+  return filePath
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/[^a-zA-Z0-9._/-]/g, "_");
 }
 
 /**
@@ -97,6 +139,12 @@ export interface DetectTestsInput {
   filePath?: string;
   fileType?: FileType;
   config?: DetectTestsConfig;
+  /**
+   * Base used for generated testIds (`<testIdBase>~<contentHash>`). Callers
+   * that know the spec's stable ID (e.g. core's path-derived specId) should
+   * pass it here; defaults to the normalized filePath.
+   */
+  testIdBase?: string;
 }
 
 /**
@@ -129,6 +177,7 @@ export async function detectTests(input: DetectTestsInput): Promise<DetectedTest
     content: input.content,
     filePath: input.filePath,
     fileType: input.fileType,
+    testIdBase: input.testIdBase,
   });
 }
 
@@ -360,11 +409,13 @@ export async function parseContent({
   content,
   filePath = "",
   fileType,
+  testIdBase,
 }: {
   config?: DetectTestsConfig;
   content: string;
   filePath?: string;
   fileType?: FileType;
+  testIdBase?: string;
 }): Promise<DetectedTest[]> {
   const statements: Array<any> = [];
   const statementTypes = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"];
@@ -447,9 +498,25 @@ export async function parseContent({
   // Sort statements by index
   statements.sort((a, b) => a.sortIndex - b.sortIndex);
 
-  // Process statements into tests and steps
+  // Process statements into tests and steps. Tests without an explicit
+  // testId are grouped under an ephemeral pending ID during processing;
+  // once all steps are collected, the pending IDs are replaced with
+  // content-derived ones (see below) so the emitted IDs are stable across
+  // runs and never positional.
   let tests: DetectedTest[] = [];
-  let testId = generateUUID();
+  const pendingTestIds = new Set<string>();
+  let pendingCounter = 0;
+  // Salt the ephemeral pending-ID prefix with a hash of the file content so a
+  // user can't author a `testId` that collides with one — the replacement
+  // pass below only overwrites IDs in `pendingTestIds`, and an authored value
+  // would have to match this content-derived salt exactly to land there.
+  const pendingSalt = contentHash(content);
+  const nextPendingTestId = () => {
+    const id = `__dd-pending-${pendingSalt}-${++pendingCounter}`;
+    pendingTestIds.add(id);
+    return id;
+  };
+  let testId = nextPendingTestId();
   let ignore = false;
 
   statements.forEach((statement) => {
@@ -501,7 +568,7 @@ export async function parseContent({
       }
 
       case "testEnd":
-        testId = generateUUID();
+        testId = nextPendingTestId();
         ignore = false;
         break;
 
@@ -663,6 +730,29 @@ export async function parseContent({
       default:
         break;
     }
+  });
+
+  // Replace ephemeral pending IDs with content-derived ones:
+  // `<base>~<hash>` where base is the caller-supplied testIdBase (core
+  // passes the spec's path-derived ID) or the normalized file path, and the
+  // hash covers the test's authored definition. Identical tests in one file
+  // get an ordinal suffix so IDs stay unique. Explicit testIds are untouched.
+  const usedTestIds = new Set(
+    tests
+      .filter((test) => test.testId && !pendingTestIds.has(test.testId))
+      .map((test) => test.testId)
+  );
+  const idBase = testIdBase || normalizePathForId(filePath) || "detected";
+  tests.forEach((test) => {
+    if (!test.testId || !pendingTestIds.has(test.testId)) return;
+    const baseId = `${idBase}~${contentHash(test)}`;
+    let id = baseId;
+    let suffix = 2;
+    while (usedTestIds.has(id)) {
+      id = `${baseId}-${suffix++}`;
+    }
+    usedTestIds.add(id);
+    test.testId = id;
   });
 
   // Set contentPath on tests when filePath is provided

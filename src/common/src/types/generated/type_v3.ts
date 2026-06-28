@@ -12,17 +12,30 @@ export type TypeKeys = TypeKeysSimple | TypeKeysDetailed;
  * Sequence of keys to enter.
  */
 export type TypeKeysSimple = string | string[];
-/**
- * Sequence of keys to enter.
- */
-export type TypeKeysSimple1 = string | string[];
-
-export interface TypeKeysDetailed {
+export type TypeKeysDetailed = {
   keys: TypeKeysSimple1;
   /**
-   * Delay in milliseconds between each key press during a recording
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.
    */
   inputDelay?: number;
+  surface?: Surface;
+  /**
+   * After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.
+   */
+  waitUntil?: {
+    /**
+     * Wait until combined stdout+stderr matches. Substring, or /regex/.
+     */
+    stdio?: string;
+    /**
+     * Fixed delay (ms).
+     */
+    delayMs?: number;
+  };
+  /**
+   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
+   */
+  timeout?: number;
   /**
    * Selector for the element to type into. If not specified, the typing occurs in the active element.
    */
@@ -53,4 +66,30 @@ export interface TypeKeysDetailed {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+} & WaitUntilRequiresASurface &
+  AProcessSurfaceForbidsElementTargeting;
+/**
+ * Sequence of keys to enter.
+ */
+export type TypeKeysSimple1 = string | string[];
+/**
+ * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ */
+export type Surface = SurfaceByName | ProcessSurface;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName = string;
+
+export interface ProcessSurface {
+  /**
+   * Name of a background process started by a runShell/runCode `background` step.
+   */
+  process: string;
+}
+export interface WaitUntilRequiresASurface {
+  [k: string]: unknown;
+}
+export interface AProcessSurfaceForbidsElementTargeting {
+  [k: string]: unknown;
 }

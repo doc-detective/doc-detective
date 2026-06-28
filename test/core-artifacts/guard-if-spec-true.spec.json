@@ -1,0 +1,16 @@
+{
+  "specId": "guard-if-spec-true",
+  "description": "Companion to guard-if-spec: a spec whose spec-level `if` is always TRUE runs normally. Proves a present-but-satisfied spec guard does not skip anything. Cross-platform: `$$platform` is never `nonexistentos`, so this guard is true everywhere.",
+  "if": "$$platform != nonexistentos",
+  "tests": [
+    {
+      "testId": "guard-if-spec-true-runs",
+      "description": "Spec-level guard is true, so this test runs to PASS.",
+      "steps": [
+        {
+          "runShell": "node -e \"process.exit(0)\""
+        }
+      ]
+    }
+  ]
+}

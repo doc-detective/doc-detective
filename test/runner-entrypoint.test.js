@@ -915,6 +915,64 @@ describe("runner-entrypoint: main()", () => {
     assert.equal(observed.finalize.status, "succeeded");
   });
 
+  it("clears the self-kill watchdog when main() completes (no leaked process.exit(124))", async function () {
+    // Regression: main() armed an unref'd `setTimeout(() => process.exit(124))`
+    // self-kill watchdog but never cleared it on normal completion. When main()
+    // is called in-process (as this suite does), that timer outlived the call
+    // and, on a host process still alive when it fired, killed the whole
+    // process with exit code 124 — surfacing as an intermittent, slow-runner
+    // (macOS) `npm test` abort. The watchdog only needs to bound a *hung* run;
+    // once main() returns there's nothing to bound, so it must be disarmed.
+    //
+    // This case runs on every platform: it drives the 410 (canceled) path,
+    // which arms the initial self-kill and returns without spawning a child —
+    // so it doesn't need the POSIX-only fake-runner shebang the other main()
+    // cases rely on.
+    await setupSpec(410);
+    // Set env directly rather than via envForRun(): the 410 path returns
+    // before provisioning, so it needs no workspace/runner fixture — and
+    // this keeps the case Windows-safe (beforeEach skips tmpDir setup on
+    // Windows, which would make envForRun()'s path.join throw).
+    process.env.DD_API_BASE = api.base;
+    process.env.DD_RUN_ID = "run-main-1";
+    process.env.DD_RUN_TOKEN = "tok-main-1";
+    // A tiny timeout so the leaked timer (if any) would fire almost
+    // immediately after main() resolves — well within the wait below.
+    process.env.DD_TIMEOUT_SECONDS = "0.05"; // 50ms
+
+    const realExit = process.exit;
+    const exitCalls = [];
+    // Stub process.exit so a fired watchdog records its code instead of
+    // tearing down the mocha process.
+    process.exit = (code) => {
+      exitCalls.push(code);
+    };
+    try {
+      const code = await main();
+      assert.equal(code, 0);
+      // Wait well past the 50ms self-kill window. If main() left the timer
+      // armed, process.exit(124) fires during this wait and is recorded.
+      await new Promise((r) => setTimeout(r, 250));
+      assert.deepEqual(
+        exitCalls,
+        [],
+        `self-kill watchdog leaked: process.exit called with ${exitCalls.join(", ")}`
+      );
+    } finally {
+      process.exit = realExit;
+      // afterEach skips its cleanup on Windows, so close the loopback
+      // server and clear env here to avoid leaking either across tests.
+      if (api) {
+        await closeServer(api.server);
+        api = null;
+      }
+      delete process.env.DD_API_BASE;
+      delete process.env.DD_RUN_ID;
+      delete process.env.DD_RUN_TOKEN;
+      delete process.env.DD_TIMEOUT_SECONDS;
+    }
+  });
+
   it("posts failed finalize with workspace_provision_failed for unsupported source", async function () {
     if (isWindows) this.skip();
     await setupSpec({

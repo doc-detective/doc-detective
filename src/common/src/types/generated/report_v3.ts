@@ -5,6 +5,10 @@
  */
 
 /**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition = string | [string, ...string[]];
+/**
  * OpenAPI description and configuration.
  */
 export type OpenApi =
@@ -30,6 +34,14 @@ export interface Report {
    * Unique identifier for the test specification.
    */
   reportId?: string;
+  /**
+   * Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name (`run-<runId>`). System-populated.
+   */
+  runId?: string;
+  /**
+   * Absolute path to the run's artifact folder (`<output>/.doc-detective/run-<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved. Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.
+   */
+  runDir?: string;
   /**
    * Test specifications that were performed.
    *
@@ -59,11 +71,20 @@ export interface Specification {
    * Path to the content that the specification is associated with.
    */
   contentPath?: string;
+  if?: Condition;
   /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.
    */
   runOn?: Context[];
   openApi?: (OpenApi & OpenAPIDescriptionTest)[];
+  /**
+   * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
+   */
+  autoScreenshot?: boolean;
+  /**
+   * If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level.
+   */
+  autoRecord?: boolean;
   /**
    * [Tests](test) to perform.
    *

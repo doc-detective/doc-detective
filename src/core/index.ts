@@ -66,7 +66,9 @@ async function runTests(config: any, options: any = {}) {
   if (!resolvedTests) {
     resolvedTests = await detectAndResolveTests({ config });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
-      log(config, "warn", "Couldn't resolve any tests.");
+      // log() in src/core/utils.ts recognizes "warning", not "warn" —
+      // see the matching note in the JIT pre-flight catch below.
+      log(config, "warning", "Couldn't resolve any tests.");
       return null;
     }
   }
@@ -80,8 +82,97 @@ async function runTests(config: any, options: any = {}) {
     return resolvedTests;
   }
 
+  // Just-in-time install: inspect the resolved specs to learn which heavy
+  // npm packages and which browser binaries this run will actually use, then
+  // install them in one batched step before any test executes. The lazy
+  // resolver in src/runtime/loader.js is still defensive for any code path
+  // this inference might miss, but the steady-state expectation is that
+  // every loadHeavyDep() call below hits the warm-cache fast path.
+  //
+  // Browser installs are gated by `getAvailableApps()` — if the requested
+  // browser is already detectable (e.g., the legacy ./browser-snapshots/
+  // pre-warm is still in place), we skip the install entirely.
+  //
+  // Skipped entirely for API-backed runs: the orchestration API executes
+  // tests remotely, so installing browsers/runtime locally would burn
+  // network and disk for nothing.
+  const willRunViaApi = Boolean(
+    !process.env.DOC_DETECTIVE_API &&
+      config.integrations &&
+      config.integrations.docDetectiveApi &&
+      config.integrations.docDetectiveApi.apiKey
+  );
+  if (willRunViaApi) {
+    log(
+      config,
+      "debug",
+      "Skipping runtime pre-flight install — run is dispatched via Doc Detective Orchestration API."
+    );
+  } else try {
+    const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
+    const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
+    const needs = inferRuntimeNeeds(resolvedTests);
+    const ctx = { cacheDir: config.cacheDir };
+    // Bridge the runtime modules' logger contract to core/utils.ts:log()
+    // so config.logLevel filters npm install stdout/stderr (which the
+    // runtime logs at "debug") and prevents flooded output during a
+    // routine `doc-detective` run. Map "warn" → "warning" since
+    // core/utils.ts uses the latter.
+    const preflightLogger = (msg: string, level: string = "info") => {
+      const mapped = level === "warn" ? "warning" : level;
+      log(config, mapped, msg);
+    };
+    if (needs.npmPackages.size > 0) {
+      await ensureRuntimeInstalled([...needs.npmPackages], {
+        ctx,
+        deps: { logger: preflightLogger },
+      });
+    }
+    if (needs.browsers.size > 0) {
+      try {
+        const { getAvailableApps, clearAppCache } = await import("./config.js");
+        const { ensureBrowserInstalled, requiredBrowserAssets } = await import(
+          "../runtime/browsers.js"
+        );
+        const available = await getAvailableApps({ config });
+        const availableNames = new Set(available.map((a: any) => a.name));
+        let installedAnything = false;
+        for (const browser of needs.browsers) {
+          if (availableNames.has(browser)) continue;
+          // requiredBrowserAssets returns [] for safari (ships with the OS)
+          // and any unknown name, so the loop body simply no-ops for those.
+          const assets = requiredBrowserAssets(browser);
+          for (const asset of assets) {
+            await ensureBrowserInstalled(asset, { ctx, deps: { logger: preflightLogger } });
+          }
+          if (assets.length > 0) installedAnything = true;
+        }
+        // Invalidate the available-apps cache for this cacheDir so a
+        // subsequent runSpecs/getRunner call re-detects what the
+        // pre-flight just materialized. Without this, the empty
+        // `available` snapshot above would stick and downstream
+        // browser-presence checks would still see "not installed."
+        if (installedAnything) clearAppCache(config);
+      } catch (browserErr: any) {
+        log(
+          config,
+          "debug",
+          `Browser pre-flight check skipped: ${browserErr?.message ?? browserErr}`
+        );
+      }
+    }
+  } catch (err: any) {
+    // log() in src/core/utils.ts recognizes "warning", not "warn" — using
+    // the wrong key would make this branch silent at every log level.
+    log(
+      config,
+      "warning",
+      `Runtime pre-flight install hit an error: ${err?.message ?? err}. Falling back to on-demand resolution.`
+    );
+  }
+
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
-  if (!process.env.DOC_DETECTIVE_API && config.integrations && config.integrations.docDetectiveApi && config.integrations.docDetectiveApi.apiKey) {
+  if (willRunViaApi) {
     // Run test specs via API
     results = await runViaApi({
       resolvedTests,

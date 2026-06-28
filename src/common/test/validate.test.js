@@ -119,6 +119,290 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate a config_v3 object with autoScreenshot set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoScreenshot: true },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoScreenshot).to.equal(true);
+      });
+
+      it("should default autoScreenshot to false when unset", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoScreenshot).to.equal(false);
+      });
+
+      it("should reject a config_v3 object whose autoScreenshot is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoScreenshot: "yes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoScreenshot");
+      });
+
+      it("should validate spec_v3 and test_v3 objects with autoScreenshot overrides", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            autoScreenshot: true,
+            tests: [
+              {
+                autoScreenshot: false,
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoScreenshot).to.equal(true);
+        expect(result.object.tests[0].autoScreenshot).to.equal(false);
+      });
+
+      it("should not default autoScreenshot on specs or tests when unset", function () {
+        // No schema default at the spec/test levels — an absent value must
+        // stay absent so the runtime can defer to the config level.
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoScreenshot).to.equal(undefined);
+        expect(result.object.tests[0].autoScreenshot).to.equal(undefined);
+      });
+
+      it("should reject a test_v3 object whose autoScreenshot is not a boolean", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            autoScreenshot: "yes",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoScreenshot");
+      });
+
+      it("should accept a relative forward-slash step autoScreenshot path", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            autoScreenshot: "screenshots/spec/test/ctx/01-goTo-sabc.png",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject step autoScreenshot paths that are empty, absolute, or backslashed", function () {
+        for (const bad of [
+          "",
+          "/abs/shot.png",
+          "C:\\shot.png",
+          "screenshots\\spec\\01.png",
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { goTo: { url: "https://example.com" }, autoScreenshot: bad },
+          });
+          expect(result.valid, `expected invalid: ${JSON.stringify(bad)}`).to.be
+            .false;
+        }
+      });
+
+      it("should validate a record step with an engine string shorthand", function () {
+        for (const engine of ["browser", "ffmpeg"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", engine } },
+          });
+          expect(result.valid, `engine: ${engine} -> ${result.errors}`).to.be
+            .true;
+        }
+      });
+
+      it("should validate a record step with a detailed engine object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            record: {
+              path: "out.mp4",
+              engine: { name: "ffmpeg", target: "window", fps: 60 },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject a record step with an invalid engine", function () {
+        for (const engine of [
+          "webkit",
+          { name: "vlc" },
+          { name: "ffmpeg", target: "tab" },
+          { name: "ffmpeg", fps: 1.5 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", engine } },
+          });
+          expect(
+            result.valid,
+            `expected invalid engine: ${JSON.stringify(engine)}`
+          ).to.be.false;
+        }
+      });
+
+      it("should validate a config_v3 object with autoRecord set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoRecord: true },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoRecord).to.equal(true);
+      });
+
+      it("should default autoRecord to false when unset", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoRecord).to.equal(false);
+      });
+
+      it("should reject a config_v3 object whose autoRecord is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoRecord: "yes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoRecord");
+      });
+
+      it("should validate spec_v3 and test_v3 objects with autoRecord overrides", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            autoRecord: true,
+            tests: [
+              {
+                autoRecord: false,
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoRecord).to.equal(true);
+        expect(result.object.tests[0].autoRecord).to.equal(false);
+      });
+
+      it("should not default autoRecord on specs or tests when unset", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoRecord).to.equal(undefined);
+        expect(result.object.tests[0].autoRecord).to.equal(undefined);
+      });
+
+      it("should validate a record step with a name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", name: "demo" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.record.name).to.equal("demo");
+      });
+
+      it("should reject a record step whose name is whitespace-only", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", name: "   " } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate stopRecord as boolean, null, a name string, or a name object", function () {
+        for (const stopRecord of [true, null, "demo", { name: "demo" }]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { stopRecord },
+          });
+          expect(
+            result.valid,
+            `stopRecord: ${JSON.stringify(stopRecord)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject stopRecord with an empty name or extra properties", function () {
+        for (const stopRecord of [{ name: "" }, { name: "demo", extra: 1 }]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { stopRecord },
+          });
+          expect(
+            result.valid,
+            `expected invalid stopRecord: ${JSON.stringify(stopRecord)}`
+          ).to.be.false;
+        }
+      });
+
+      it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
+        for (const concurrentRunners of [1, 4, true]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { input: ".", concurrentRunners },
+          });
+
+          expect(result.valid, `concurrentRunners: ${concurrentRunners}`).to.be
+            .true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject config_v3 concurrentRunners of 0, false, or a fraction", function () {
+        for (const concurrentRunners of [0, false, 1.5]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { input: ".", concurrentRunners },
+          });
+
+          expect(result.valid, `concurrentRunners: ${concurrentRunners}`).to.be
+            .false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
       it("should validate a config_v3 object with dryRun set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -139,6 +423,33 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("dryRun");
+      });
+
+      it("should accept a config_v3 object with the deprecated `debug` field (ignored; kept so existing configs still validate)", function () {
+        // `debug` is deprecated and ignored — diagnostics moved to the
+        // DOC_DETECTIVE_DEBUG env var / `doc-detective debug` subcommand —
+        // but old configs that still carry it must keep validating.
+        for (const value of [false, true, "stepThrough"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { debug: value },
+          });
+          expect(result.valid, `debug: ${JSON.stringify(value)}`).to.be.true;
+        }
+      });
+
+      it("should reject a config_v3 object whose deprecated `debug` value is malformed", function () {
+        // The accepted envelope is boolean | "stepThrough". Use values that
+        // are neither (and not AJV-coercible to boolean, so not "true"/"false"
+        // or 0/1) so the deprecated field's contract can't silently widen.
+        for (const value of ["yes", "stepthrough", "enabled", "on"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { debug: value },
+          });
+          expect(result.valid, `debug: ${JSON.stringify(value)}`).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
       });
 
       it("should validate a config_v3 object with hints set", function () {
@@ -173,6 +484,88 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate a config_v3 object with autoUpdate set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoUpdate: false },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.autoUpdate).to.equal(false);
+      });
+
+      it("should default autoUpdate to true when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.autoUpdate).to.equal(true);
+      });
+
+      it("should reject a config_v3 object whose autoUpdate is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { autoUpdate: "no" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("autoUpdate");
+      });
+
+      it("should validate a config_v3 object with cacheDir set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: "/tmp/dd-cache" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.cacheDir).to.equal("/tmp/dd-cache");
+      });
+
+      it("should reject a config_v3 object whose cacheDir is not a string", function () {
+        // AJV's coerceTypes converts scalars to strings, so use an object —
+        // it can't be coerced and forces a true type-mismatch failure.
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: { not: "a string" } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("cacheDir");
+      });
+
+      it("should reject a config_v3 object whose cacheDir is an empty string", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: "" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("cacheDir");
+      });
+
+      it("should reject a config_v3 object whose cacheDir is whitespace-only", function () {
+        // minLength alone accepts whitespace-only strings like "   ";
+        // the schema pairs it with a non-whitespace `pattern` so a
+        // config file / env var carrying a typo can't pass validation
+        // and then silently fail at runtime.
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { cacheDir: "   " },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("cacheDir");
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",
@@ -195,6 +588,120 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.true;
         // The returned object should be the original without validation mutations
         expect(result.object.goTo.url).to.equal("https://example.com");
+      });
+    });
+
+    describe("runBrowserScript step", function () {
+      it("should validate the simple string form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runBrowserScript: "return document.title;" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript).to.equal(
+          "return document.title;"
+        );
+      });
+
+      it("should validate the detailed object form with all fields", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: {
+              script: "return arguments[0] + arguments[1];",
+              args: ["foo", "bar"],
+              output: "foobar",
+              path: "result.json",
+              directory: "output",
+              maxVariation: 0.1,
+              overwrite: "aboveVariation",
+              timeout: 5000,
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript.script).to.equal(
+          "return arguments[0] + arguments[1];"
+        );
+        expect(result.object.runBrowserScript.args).to.deep.equal([
+          "foo",
+          "bar",
+        ]);
+      });
+
+      it("should accept non-string args (numbers, booleans)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: {
+              script: "return arguments[0];",
+              args: [42, true, "x", null],
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.runBrowserScript.args).to.deep.equal([
+          42,
+          true,
+          "x",
+          null,
+        ]);
+      });
+
+      it("should reject the object form when script is missing", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runBrowserScript: { args: ["foo"] } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject maxVariation outside the 0-1 range", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", maxVariation: 2 },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject unknown properties on the object form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", bogus: true },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject a non-positive timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runBrowserScript: { script: "return 1;", timeout: 0 },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
       });
     });
 
@@ -1231,6 +1738,1175 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             },
           })
         ).to.throw(/Invalid object/);
+      });
+    });
+
+    describe("dynamic routing (Phase 1 schema foundation)", function () {
+      // Positive cases — must validate.
+      it("validates a step with onFail conditional goToTest + unconditional stop", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [
+              { if: "$$platform == windows", goToTest: "x" },
+              { stop: "test" },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with onPass continue:true", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onPass: [{ continue: true }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with onFail retry (full) and a retry with only limit", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [
+              { retry: { limit: 3, delay: 1000, backoff: "exponential" } },
+              { retry: { limit: 1 } },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with onWarning and onSkip arrays", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onWarning: [{ continue: true }],
+            onSkip: [{ goToStep: "next-step" }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with if as a string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: "$$platform == linux",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with if as an array (logical AND)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: ["a", "b"],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with assertions as a string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: "$$outputs.exitCode == 0",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a step with assertions as an array", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: ["$$outputs.exitCode == 0", "$$outputs.x == 1"],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a test with onFail and if", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            steps: [{ goTo: { url: "https://example.com" } }],
+            onFail: [{ stop: "spec" }],
+            if: "$$platform == mac",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a spec with if", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+            if: "$$platform == linux",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      // Negative cases — must reject.
+      it("rejects a routing entry with two action keys", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ continue: true, stop: "test" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects a routing entry with an unknown key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ foo: true }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects a routing entry with no action key (if only)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ if: "x" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects goToStep empty string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ goToStep: "" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects goToTest whitespace-only string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ goToTest: "   " }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects stop with an invalid enum value", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ stop: "galaxy" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects retry with limit:0", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 0 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects retry with limit:-1", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: -1 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects retry with limit:1.5", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1.5 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("validates retry with delay:0", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1, delay: 0 } }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates retry with limit:100 (boundary)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 100 } }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects retry with limit:101 (over maximum)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 101 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("accepts a step result carrying the system-populated attempts field", function () {
+        // `attempts` is a result-only, documented step field (like
+        // `autoScreenshot`). The top-level step schema is permissive (anyOf,
+        // no top-level additionalProperties), so this asserts the field is
+        // accepted on a result object — its purpose is schema documentation +
+        // generated types, not a runtime constraint.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { goTo: { url: "https://example.com" }, attempts: 2 },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a step result carrying the system-populated visit field", function () {
+        // `visit` is a result-only, documented step field (like `attempts`) set
+        // when a routing goToStep re-ran the step. Asserts the field is accepted
+        // on a result object.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { goTo: { url: "https://example.com" }, visit: 2 },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates retry with delay at the maximum (3600000)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1, delay: 3600000 } }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects retry with delay above the maximum (3600001)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: { limit: 1, delay: 3600001 } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects continue:false in a routing entry", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ continue: false }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects a retry entry with no limit", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            onFail: [{ retry: {} }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if:null (non-coercible to string)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: null,
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an object (non-coercible to string)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: {},
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an empty array (minItems)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: [],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an array with an empty-string item (pattern)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: [""],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects if as an array with a whitespace-only item (pattern)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: ["  "],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // Level-scoping: test_v3 sets additionalProperties:false, so assertions
+      // (a step-level field) is not allowed at the test level.
+      it("rejects test-level assertions (not a test field)", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            testId: "t",
+            assertions: "$$outputs.exitCode == 0",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // Coercion-by-design regression guards (bug fix): bare numbers/booleans
+      // coerce to strings under the global coerceTypes:true, so string-looking
+      // conditions like "123"/"0"/"true"/"1.5" must validate, not reject.
+      it("validates if as a numeric-looking string", function () {
+        for (const v of ["123", "0", "true", "1.5"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              goTo: { url: "https://example.com" },
+              if: v,
+            },
+          });
+          expect(result.valid, `${v}: ${result.errors}`).to.be.true;
+        }
+      });
+
+      it("validates if:123 (coerced to string by design)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: 123,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates if:true (coerced to string by design)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            if: true,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates assertions as a numeric-looking string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: "0",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+    });
+
+    // Phase 4a.1: articulated assertion records emitted by the runner into the
+    // step result. A reusable `assertion_v3` record shape, plus step_v3 now
+    // accepting an array of those records under `assertions` (the report shape),
+    // while still accepting the custom-input condition string|string[].
+    describe("assertion records (Phase 4a.1)", function () {
+      it("validates a minimal assertion record", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates a full assertion record", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            expected: [0],
+            actual: 0,
+            description: "Returned exit code 0.",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates an assertion record with array expected and number actual", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            expected: [0],
+            actual: 0,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("validates an assertion record with string expected and boolean actual (permissive)", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "value matches",
+            source: "custom",
+            result: "PASS",
+            expected: "x",
+            actual: true,
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects an assertion record with permissive expected/actual but missing required result", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "value matches",
+            source: "custom",
+            expected: "x",
+            actual: true,
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record with an unknown result", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "BOGUS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record with an unknown source", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "runner",
+            result: "PASS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record missing required statement", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            source: "implicit",
+            result: "PASS",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("rejects an assertion record with additional properties", function () {
+        const result = validate({
+          schemaKey: "assertion_v3",
+          object: {
+            statement: "exitCode in [0]",
+            source: "implicit",
+            result: "PASS",
+            severity: "fail",
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("validates step_v3 assertions as an array of records (report shape)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "echo hi" },
+            assertions: [
+              {
+                statement: "exitCode in [0]",
+                source: "implicit",
+                result: "PASS",
+                expected: [0],
+                actual: 0,
+                description: "Returned exit code 0.",
+              },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("still validates step_v3 assertions as a condition string (custom input)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com" },
+            assertions: "$$outputs.exitCode == 0",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects step_v3 assertions as an array of malformed records", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "echo hi" },
+            assertions: [{ source: "implicit", result: "PASS" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+    });
+
+    describe("background processes (runShell/runCode) and closeSurface", function () {
+      it("should validate a background runShell with a port condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "docker run -p 5432:5432 postgres",
+              background: { name: "db", waitUntil: { port: 5432 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with a stdio condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: {
+                name: "srv",
+                waitUntil: { stdio: "/ready to accept/" },
+              },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with an httpGet condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: {
+                name: "web",
+                waitUntil: { httpGet: "http://localhost:8080" },
+              },
+              timeout: 30000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with a delayMs condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { delayMs: 2000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate multiple waitUntil conditions combined", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: {
+                name: "srv",
+                waitUntil: {
+                  port: 5432,
+                  stdio: "/ready/",
+                  httpGet: "http://localhost:8080/health",
+                  delayMs: 1000,
+                },
+              },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background with no waitUntil (ready on spawn)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv" },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runCode with a port condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "javascript",
+              code: "require('http').createServer((q,r)=>r.end('ok')).listen(8088)",
+              background: { name: "api", waitUntil: { port: 8088 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with tty:true", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "claude",
+              background: { name: "x", tty: true },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with tty:false", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "node -i",
+              background: { name: "x", tty: false },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runShell with tty + waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "claude",
+              background: { name: "x", tty: true, waitUntil: { stdio: "/r/" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject a background runShell with a non-boolean tty", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "claude",
+              background: { name: "x", tty: "yes" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should validate a background runCode with tty:true", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: true },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runCode with tty:false", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: false },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a background runCode with tty + waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: true, waitUntil: { stdio: "/r/" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject a background runCode with a non-boolean tty", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: "yes" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should validate a closeSurface step (string name)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: "db" },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a closeSurface step (process object form)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: { process: "db" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a closeSurface step (array of surfaces)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: ["db", { process: "web" }] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an empty closeSurface array", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: [] },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty closeSurface object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: {} },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a closeSurface process object with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: { process: "db", bogus: true } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a background that is not an object (e.g. true)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: { command: "my-server", background: true },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an unknown key inside background", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", bogus: true },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an unknown key inside waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { tcp: 5432 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty waitUntil object (no conditions)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: {} },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty-string stdio condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { stdio: "" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject the old object-shaped port condition", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { port: { port: 5432 } } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a background runShell without a name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { waitUntil: { delayMs: 1000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a background runCode without a name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "bash",
+              code: "sleep 100",
+              background: { waitUntil: { delayMs: 1000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a waitUntil port that is out of range", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "srv", waitUntil: { port: 70000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a whitespace-only closeSurface name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: "   " },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a background process with a whitespace-only name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runShell: {
+              command: "my-server",
+              background: { name: "   ", waitUntil: { delayMs: 1000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("type to a process surface", function () {
+      it("should validate surface as a string", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["2+2", "$ENTER$"], surface: "node" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface as a process object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["2+2", "$ENTER$"], surface: { process: "node" } },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface + waitUntil.stdio + timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["2+2", "$ENTER$"],
+              surface: "node",
+              waitUntil: { stdio: "/4/" },
+              timeout: 5000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate surface + waitUntil.delayMs", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["slow build"],
+              surface: "node",
+              waitUntil: { delayMs: 0 },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an empty surface object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: {} } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a browser surface object (no branch yet)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: { browser: "chrome" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["x"], surface: { process: "n", bogus: 1 } },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty waitUntil (minProperties)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: { keys: ["x"], surface: "node", waitUntil: {} },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a port probe in type waitUntil (service-only)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "node",
+              waitUntil: { port: { port: 3000 } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject waitUntil without a surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], waitUntil: { stdio: "/4/" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface combined with element targeting", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: { process: "node" },
+              selector: "#q",
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
       });
     });
   });

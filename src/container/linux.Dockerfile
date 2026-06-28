@@ -2,9 +2,15 @@
 FROM node:22-slim AS runtime
 ARG PACKAGE_VERSION=latest
 
-# Set environment container to trigger container-based behaviors
+# Set environment container to trigger container-based behaviors. The cache
+# dir is pinned to /opt/doc-detective so the pre-warm step at image build
+# time isn't lost to a per-boot /tmp wipe at runtime. Auto-update is off
+# because the image is the authoritative version-bump signal — image
+# releases bump doc-detective, not runtime self-update.
 ENV DEBIAN_FRONTEND=noninteractive \
-    DOC_DETECTIVE='{"container": "docdetective/docdetective:linux", "version": "'$PACKAGE_VERSION'"}'
+    DOC_DETECTIVE='{"container": "docdetective/docdetective:linux", "version": "'$PACKAGE_VERSION'"}' \
+    DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective \
+    DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
 
 LABEL authors="Doc Detective" \
     description="The official Docker image for Doc Detective. Keep your docs accurate with ease." \
@@ -32,8 +38,49 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Doc Detective from NPM
-RUN npm install -g doc-detective@$PACKAGE_VERSION
+# Install Doc Detective from NPM. By default its postinstall pre-installs the
+# heavy deps (browsers, ffmpeg, webdriverio, appium, sharp) into
+# DOC_DETECTIVE_CACHE_DIR (set above), so this `npm install -g` already warms
+# the cache. The follow-up `doc-detective install all` is then an idempotent
+# safety net — and the cache pre-warm path for older versions whose postinstall
+# predates the auto-install.
+#
+# Detect whether the installed CLI has the new `install <subcommand>`
+# surface by grepping for it in the root `--help` output. yargs always
+# exits 0 from `--help` regardless of whether a subcommand exists, so
+# `install --help` isn't a useful availability probe; matching the
+# command line in root help text IS reliable. Real `install all`
+# failures (transient npm errors, partial cache writes) then propagate
+# normally and fail the build instead of being swallowed.
+RUN npm install -g doc-detective@$PACKAGE_VERSION \
+    && if doc-detective --help 2>&1 | grep -q "install <subcommand>"; then \
+         doc-detective install all --yes; \
+       else \
+         echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \
+       fi
+
+# Repair a sharp/libvips version mismatch in the installed tree. Some published
+# versions pin `@img/sharp-libvips-linux-*` at a newer release than `sharp`'s
+# own platform package needs; npm hoists the newer libvips to the top level,
+# the prebuilt `sharp-linux-*.node` RPATH resolves to it, and the load fails
+# with "libvips-cpp.so.<ver>: cannot open shared object file" — crashing any run
+# that touches an image step. Detect the broken load and pin the top-level
+# libvips back to the version `@img/sharp-linux-<arch>` declares, then re-verify.
+# Guarded on a present-but-unloadable sharp, so it is a no-op both when sharp is
+# healthy and when it is deferred to the lazy runtime cache (not installed here).
+RUN DD=/usr/local/lib/node_modules/doc-detective; \
+    if [ -d "$DD/node_modules/sharp" ] && ! ( cd "$DD" && node -e "require('sharp')" ) >/dev/null 2>&1; then \
+      case "$(uname -m)" in x86_64) CPU=x64 ;; aarch64) CPU=arm64 ;; *) CPU="" ;; esac; \
+      if [ -z "$CPU" ]; then \
+        echo "[sharp] ERROR: unsupported architecture $(uname -m); supported: x86_64, aarch64" >&2; \
+        exit 1; \
+      fi; \
+      LV="@img/sharp-libvips-linux-$CPU"; \
+      REQ="$(node -p "require('$DD/node_modules/@img/sharp-linux-$CPU/package.json').optionalDependencies['$LV']")"; \
+      echo "[sharp] libvips mismatch detected; pinning $LV@$REQ for linux/$CPU"; \
+      npm install --prefix "$DD" --no-save --include=optional --os=linux --cpu="$CPU" --libc=glibc "$LV@$REQ"; \
+      ( cd "$DD" && node -e "const s=require('sharp'); console.log('[sharp] verified OK, libvips', s.versions.vips)" ); \
+    fi
 
 # Install DITA-OT
 ARG DITA_OT_VERSION=4.3.4

@@ -20,7 +20,7 @@
       "description": "This test includes nearly every property across all actions.",
       "steps": [
         {
-          "loadVariables": ".env"
+          "loadVariables": "env"
         },
         {
           "runShell": {
