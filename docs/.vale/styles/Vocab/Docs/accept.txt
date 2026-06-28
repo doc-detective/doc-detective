@@ -94,3 +94,6 @@ deregisters
 readyWhen
 ignoreMissing
 stopProcess
+Appium
+ffmpeg
+subcommand
