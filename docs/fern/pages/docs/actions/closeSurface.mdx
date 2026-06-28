@@ -1,0 +1,96 @@
+---
+title: closeSurface
+description: Close one or more surfaces, such as background processes started by runShell or runCode.
+---
+
+
+The `closeSurface` action closes one or more surfaces. A surface is anything a step can target, such as a background process. `closeSurface` replaces the earlier `stopProcess` action.
+
+Provide a surface as the value for the `closeSurface` key. You can identify a surface in any of these ways:
+
+- **String name:** The `name` of the surface.
+- **Object:** An object that identifies the surface by type and name.
+- **Array:** A list of names or objects to close several surfaces in one step.
+
+Doc Detective trims leading and trailing whitespace from the surface name before matching.
+
+Closing a surface that isn't open, because it was already closed or never started, always passes. Doc Detective never treats a missing surface as a failure, so you can call `closeSurface` defensively without first checking whether the surface is still open.
+
+You don't have to close every surface explicitly. Doc Detective closes any surfaces that are still open when the run finishes. Use `closeSurface` when you want to close a surface before the run ends, such as to free a port for a later test.
+
+The step records which surfaces it closed and which were already absent in its `outputs`: `closed` and `absent` are arrays of surface names, and `closedCount` and `absentCount` are their counts.
+
+> For comprehensive options, see the [`closeSurface`](/reference/schemas/closesurface) reference.
+
+## Examples
+
+Here are a few ways you might use the `closeSurface` action:
+
+### Close a process by name
+
+This example starts a background server and then closes it by name.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start a server in the background.",
+          "runShell": {
+            "command": "npm start",
+            "background": {
+              "name": "web",
+              "waitUntil": {
+                "port": 3000
+              }
+            }
+          }
+        },
+        {
+          "description": "Close the server.",
+          "closeSurface": "web"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Close several surfaces at once
+
+Pass an array of surface identifiers to close more than one surface in a single step.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Close the web and API servers.",
+          "closeSurface": ["web", { "process": "api" }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Close a process that might not be running
+
+Because closing an absent surface passes, you can call `closeSurface` defensively without checking first whether the process is still running.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Close the server if it's still running.",
+          "closeSurface": "web"
+        }
+      ]
+    }
+  ]
+}
+```
