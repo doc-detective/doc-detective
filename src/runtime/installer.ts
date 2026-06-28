@@ -1,5 +1,6 @@
 import {
   HEAVY_NPM_DEPS,
+  BEST_EFFORT_NPM_DEPS,
   getDeclaredVersion,
   withPeerCompanions,
   satisfiesRange,
@@ -27,7 +28,8 @@ export type InstallAction =
   | "updated"
   | "already-up-to-date"
   | "forced"
-  | "dry-run";
+  | "dry-run"
+  | "skipped";
 
 export interface InstallReport {
   assetId: string;
@@ -106,13 +108,33 @@ export async function installRuntime(
   }
 
   // ensureRuntimeInstalled handles the "skip already-present" fast path
-  // internally. We call it once with the full target list — single npm
-  // invocation, all deps resolved together.
-  await ensureRuntimeInstalled(targets, {
+  // internally. Install the CORE deps in a single npm invocation (all resolved
+  // together). Best-effort deps (native, no reliable prebuilds across the matrix
+  // — e.g. node-pty) are installed SEPARATELY and failure-tolerant, so a build
+  // failure on one platform doesn't abort the whole batch; the feature degrades
+  // to SKIP at runtime instead.
+  const coreTargets = targets.filter((t) => !BEST_EFFORT_NPM_DEPS.has(t));
+  const optionalTargets = targets.filter((t) => BEST_EFFORT_NPM_DEPS.has(t));
+
+  await ensureRuntimeInstalled(coreTargets, {
     ctx,
     deps: { logger, spawn: deps.spawn },
     force,
   });
+
+  const bestEffortFailed = new Set<string>();
+  for (const name of optionalTargets) {
+    try {
+      await ensureRuntimeInstalled([name], {
+        ctx,
+        deps: { logger, spawn: deps.spawn },
+        force,
+      });
+    } catch {
+      // Non-fatal: the dep has no installable binary here; runtime SKIPs it.
+      bestEffortFailed.add(name);
+    }
+  }
 
   const after = readInstalledRecord(ctx);
   // ensureRuntimeInstalled also installs and records peer companions (e.g.
@@ -120,6 +142,15 @@ export async function installRuntime(
   // — otherwise the result omits packages that were actually installed, and
   // diverges from the dry-run report.
   for (const name of withPeerCompanions(targets)) {
+    if (bestEffortFailed.has(name)) {
+      reports.push({
+        assetId: name,
+        kind: "npm",
+        action: "skipped",
+        notes: ["optional native dependency; install failed and was skipped"],
+      });
+      continue;
+    }
     const wasInstalled = before.npmPackages[name];
     const nowInstalled = after.npmPackages[name];
     const installedVersion = nowInstalled?.installedVersion;

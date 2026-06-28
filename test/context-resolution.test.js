@@ -3,11 +3,57 @@ import {
   isSupportedContext,
   getDefaultBrowser,
   getDriverCapabilities,
+  combinationKey,
+  warmUpDecision,
 } from "../dist/core/tests.js";
 
 // A step that requires a browser driver, and one that doesn't.
 const driverStep = { goTo: "https://example.com" };
 const nonDriverStep = { runShell: "echo hi" };
+
+describe("combinationKey", function () {
+  it("builds a platform::browser key for a named browser", function () {
+    assert.equal(
+      combinationKey({ platform: "linux", browser: { name: "chrome" } }),
+      "linux::chrome"
+    );
+  });
+
+  it("normalizes webkit to safari", function () {
+    assert.equal(
+      combinationKey({ platform: "mac", browser: { name: "webkit" } }),
+      "mac::safari"
+    );
+  });
+
+  it("uses <none> when no browser is resolved", function () {
+    assert.equal(
+      combinationKey({ platform: "windows" }),
+      "windows::<none>"
+    );
+  });
+
+  it("uses <none> when the browser object has no name", function () {
+    assert.equal(
+      combinationKey({ platform: "linux", browser: {} }),
+      "linux::<none>"
+    );
+  });
+});
+
+describe("warmUpDecision", function () {
+  it("skips a combination that previously failed", function () {
+    assert.equal(warmUpDecision("failed"), "skip");
+  });
+
+  it("attempts a combination that previously succeeded", function () {
+    assert.equal(warmUpDecision("ok"), "attempt");
+  });
+
+  it("attempts a combination not yet seen this run", function () {
+    assert.equal(warmUpDecision(undefined), "attempt");
+  });
+});
 
 describe("isSupportedContext", function () {
   const apps = [{ name: "chrome" }, { name: "firefox" }];

@@ -464,7 +464,7 @@ If tests fail in CI but pass locally:
 2. **Look for environment differences**: Paths, dependencies, timing
 3. **Run tests in Docker** (mimics CI environment):
    ```bash
-   docker run --rm -v $(pwd):/app -w /app node:20 npm run doc-detective
+   docker run --rm -v $(pwd):/app -w /app node:22 npm run doc-detective
    ```
 4. **Ask for help**: Comment on the PR with the error details
 
@@ -482,7 +482,7 @@ In these cases, note in your PR: "Tests not added because [reason]"
 
 ### Resources
 
-- **Doc Detective docs**: [Test documentation](/docs/tests/overview)
+- **Doc Detective docs**: [Test documentation](/docs/get-started/how-testing-works)
 - **Actions reference**: [All available actions](/docs/actions)
 - **Example tests**: Browse `.spec.json` files in this repository
 - **Discord**: Ask in the #documentation channel
@@ -501,5 +501,5 @@ Don't hesitate to ask for help—testing documentation is a unique skill.
 
 - **Write your first test**: Add a test for your contribution
 - **Run tests locally**: Verify tests pass before submitting PR
-- **Learn more**: Read the [full test documentation](/docs/tests/overview)
+- **Learn more**: Read the [full test documentation](/docs/get-started/how-testing-works)
 - **See examples**: Browse existing `.spec.json` files for patterns

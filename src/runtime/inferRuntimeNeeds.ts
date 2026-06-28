@@ -1,3 +1,5 @@
+import { BROWSER_STEP_KEYS } from "./browserStepKeys.js";
+
 export type BrowserName = "chrome" | "firefox" | "safari";
 
 export interface RuntimeNeeds {
@@ -5,24 +7,8 @@ export interface RuntimeNeeds {
   npmPackages: Set<string>;
 }
 
-/**
- * Step keys that require a real browser (i.e., webdriverio + appium + a
- * browser binary). Pure HTTP/CLI steps don't, so they don't show up here.
- */
-const BROWSER_STEP_KEYS = new Set([
-  "goTo",
-  "click",
-  "find",
-  "type",
-  "screenshot",
-  "record",
-  "stopRecord",
-  "dragAndDrop",
-  "saveCookie",
-  "loadCookie",
-  "scroll",
-  "moveMouse",
-]);
+// Set view of the shared canonical list for O(1) membership checks below.
+const BROWSER_STEP_KEY_SET = new Set<string>(BROWSER_STEP_KEYS);
 
 const SCREENSHOT_STEP_KEYS = new Set(["screenshot"]);
 const RECORDING_STEP_KEYS = new Set(["record", "stopRecord"]);
@@ -145,7 +131,7 @@ function classifyStep(step: any): {
   let screenshot = false;
   let recording = false;
   for (const key of Object.keys(step)) {
-    if (BROWSER_STEP_KEYS.has(key)) browser = true;
+    if (BROWSER_STEP_KEY_SET.has(key)) browser = true;
     if (SCREENSHOT_STEP_KEYS.has(key)) screenshot = true;
     if (RECORDING_STEP_KEYS.has(key)) recording = true;
   }

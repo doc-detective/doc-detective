@@ -530,18 +530,26 @@ async function setConfig({ config }: any) {
 
 /**
  * Resolves the concurrentRunners configuration value from various input formats
- * to a concrete integer for the core execution engine.
+ * to a concrete positive integer for the core execution engine. Always returns
+ * an integer >= 1: the CLI/config path is already schema-validated, but API
+ * callers can hand core a pre-resolved config that skipped validation, so an
+ * invalid value (0, NaN, a string, undefined) must not propagate — it would
+ * size the worker pool and the Appium server pool to 0 and hang driver
+ * contexts on an empty pool.
  *
  * @param {Object} config - The configuration object
- * @returns {number} The resolved concurrent runners value
+ * @returns {number} The resolved concurrent runners value (integer >= 1)
  */
 function resolveConcurrentRunners(config: any) {
   if (config.concurrentRunners === true) {
-    // Cap at 4 only for the boolean convenience option
-    return Math.min(os.cpus().length, 4);
+    // Cap at 4 for the boolean convenience option; floor at 1 in case
+    // os.cpus() reports 0 (some restricted containers) so the pool is never
+    // sized to 0.
+    return Math.max(1, Math.min(os.cpus().length, 4));
   }
-  // Respect explicit numeric values and default
-  return config.concurrentRunners ?? 1;
+  // Coerce to a positive integer; fall back to 1 for anything invalid.
+  const runners = Math.floor(Number(config.concurrentRunners));
+  return Number.isFinite(runners) && runners >= 1 ? runners : 1;
 }
 
 /**

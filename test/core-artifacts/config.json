@@ -1,30 +1,20 @@
 {
-  "envVariables": "",
   "input": ".",
   "output": ".",
   "recursive": true,
   "logLevel": "debug",
   "relativePathBase": "file",
-  "runTests": {
-    "input": "./dev/doc-content.md",
-    "output": ".",
-    "setup": "",
-    "cleanup": "",
-    "recursive": true,
-    "detectSteps": false,
-    "mediaDirectory": ".",
-    "downloadDirectory": ".",
-    "contexts": [
-      {
-        "app": { "name": "firefox", "options": { "headless": true } },
-        "platforms": ["mac", "linux"]
-      },
-      {
-        "app": { "name": "firefox", "options": { "headless": true } },
-        "platforms": ["windows"]
-      }
-    ]
-  },
+  "detectSteps": false,
+  "runOn": [
+    {
+      "platforms": ["mac", "linux"],
+      "browsers": [{ "name": "firefox", "headless": true }]
+    },
+    {
+      "platforms": ["windows"],
+      "browsers": [{ "name": "firefox", "headless": true }]
+    }
+  ],
   "integrations": {
     "openApi": [
       {
