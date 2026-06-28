@@ -94,7 +94,7 @@ docker run -v .:/app docdetective/docdetective --config /app/.doc-detective.json
   </Tab>
 </Tabs>
 
-**Note**: All paths are relative to the current working directory, regardless of the config file's location.
+**Note**: By default, paths inside a config file resolve relative to the config file's location, not the current working directory. This is controlled by [`relativePathBase`](/reference/schemas/config), which defaults to `file`; set it to `cwd` to resolve config paths relative to the current working directory instead. Paths passed on the command line with `--input`, `--output`, or `--config` always resolve relative to the current working directory.
 
 You can override config options with command-line arguments. For example, to run tests in a file named `tests.spec.json`, even if that isn't included in your config, run the following command:
 
