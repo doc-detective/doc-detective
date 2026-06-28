@@ -1,0 +1,181 @@
+---
+title: install
+---
+
+The `install` command group manages Doc Detective's runtime assets. By default, `npm i doc-detective` pre-installs these assets at postinstall. Use this command to manually install or reinstall assets, install only specific components, or inspect what's currently installed.
+
+<Note>
+
+If you opted out of postinstall pre-installation with `DOC_DETECTIVE_AUTOINSTALL=0`, assets install lazily on first use. Use `doc-detective install all --yes` to pre-install them manually.
+
+</Note>
+
+## Synopsis
+
+```bash
+doc-detective install <subcommand> [options]
+```
+
+## Subcommands
+
+### `install all`
+
+Install all runtime assets: agent tools, npm packages, and browsers.
+
+```bash
+doc-detective install all [options]
+```
+
+This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays.
+
+### `install agents`
+
+Install agent tools for AI coding assistants. Detects supported agents on your machine, prompts you to choose which to configure, and invokes each agent's native install mechanism.
+
+```bash
+doc-detective install agents [options]
+```
+
+To target a specific agent non-interactively:
+
+```bash
+doc-detective install agents --agent claude --scope project --yes
+```
+
+Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`.
+
+| Option | Description |
+|--------|-------------|
+| `--agent` | Agent to configure. One of `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`. |
+| `--scope` | Where to install the agent integration. One of `project` or `global`. Required with `--yes`. |
+
+The `--agent` and `--scope` options are specific to `install agents`. Using `--yes` non-interactively requires both.
+
+<Note>
+
+The older `doc-detective install-agents` form still works as a hidden alias, so existing scripts and CI jobs don't need to change.
+
+</Note>
+
+### `install runtime`
+
+Install heavy npm packages into the cache directory. Doc Detective downloads these packages (webdriverio, appium, sharp, etc.) on first use if not pre-installed.
+
+```bash
+doc-detective install runtime [packages..] [options]
+```
+
+Without arguments, installs all heavy dependencies. Specify package names to install only specific packages:
+
+```bash
+doc-detective install runtime webdriverio appium
+```
+
+### `install browsers`
+
+Install browsers and their drivers into the cache directory.
+
+```bash
+doc-detective install browsers [names..] [options]
+```
+
+Without arguments, installs Chrome, Firefox, ChromeDriver, and Geckodriver. Specify names to install only specific browsers or drivers:
+
+```bash
+doc-detective install browsers chrome chromedriver
+```
+
+Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
+
+### `install status`
+
+Report what's currently installed in the cache directory versus what the current Doc Detective version expects.
+
+```bash
+doc-detective install status [options]
+```
+
+Because `status` only reads the cache, the install-specific flags (`--yes`, `--force`, `--dry-run`) have no effect on it. Only `--cache-dir`, `--verbose`, and `--silent` change its behavior.
+
+## Shared options
+
+Every `install` subcommand takes these options:
+
+| Option | Description |
+|--------|-------------|
+| `--yes`, `-y` | Skip interactive prompts and auto-install missing assets. |
+| `--force`, `-f` | Reinstall even if assets are already present and current. Prunes older versions from the cache. |
+| `--dry-run` | Report the assets the command would install, without executing. |
+| `--silent`, `--quiet` | Suppress all output except errors. |
+| `--verbose` | Emit debug-level output, including npm stdout/stderr. |
+| `--cache-dir` | Override the cache root for this invocation. Also settable via `DOC_DETECTIVE_CACHE_DIR` env var. |
+
+## Install log
+
+During `install all` and `install runtime`, Doc Detective writes the full npm output to `<cacheDir>/runtime/install.log`. The terminal shows only filtered progress, but the log file captures everything—including deprecation warnings and dependency resolution details.
+
+If installation fails, the error message includes the log path:
+
+```
+npm install exited with code 1 while installing webdriverio@…. See full npm output: /tmp/doc-detective/runtime/install.log
+```
+
+Check this log to diagnose network issues, authentication problems, or native build failures that the filtered terminal output hides.
+
+## Cache directory
+
+By default, runtime assets install to `<os.tmpdir()>/doc-detective/`. This location may not persist across reboots on some systems.
+
+To set a persistent cache location:
+
+1. **Environment variable**: `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`
+2. **Config file**: Set `cacheDir` in `.doc-detective.json`
+3. **CLI flag**: `--cache-dir /opt/doc-detective`
+
+Priority: environment variable > config file > default temp directory.
+
+## Examples
+
+Pre-warm a container image for offline test runs:
+
+```bash
+DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
+```
+
+Install only Chrome for lightweight browser tests:
+
+```bash
+doc-detective install browsers chrome chromedriver
+```
+
+Check what's installed before running tests:
+
+```bash
+doc-detective install status
+```
+
+Force-update all browsers to the latest channel versions:
+
+```bash
+doc-detective install browsers --force
+```
+
+## Troubleshooting installation failures
+
+If `install all` or `install runtime` fails:
+
+1. **Check the install log**: Open `<cacheDir>/runtime/install.log` to see the full npm output, including errors the filtered terminal output hides.
+
+2. **Run with verbose output**: Use `--verbose` to see npm's output in real time:
+
+   ```bash
+   doc-detective install all --verbose
+   ```
+
+3. **Check network and authentication**: The log often reveals proxy issues, registry authentication failures, or network timeouts.
+
+4. **Retry with force**: If a partial install left the cache in a bad state:
+
+   ```bash
+   doc-detective install all --force --yes
+   ```

@@ -286,6 +286,11 @@ navigation:
           - page: CLI commands & flags
             path: pages/reference/cli.mdx
             slug: cli
+          - section: CLI
+            contents:
+              - page: install
+                path: pages/reference/cli/install.mdx
+                slug: install
       - folder: pages/reference/schemas
         title: Schemas
 

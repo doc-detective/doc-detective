@@ -82,46 +82,73 @@ Congratulations! You've run your first test with Doc Detective. :tada:
 
 You should see output in the terminal indicating the progress and results of the test. Results are also saved in a `testResults-<timestamp>.json` file in the current directory (configurable with the `--output` option), and this test saves a screenshot to *example.png*.
 
-## Lazy-install runtime
+## Runtime installation
 
-When you install Doc Detective via npm, the postinstall step downloads browser engines (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them. This keeps a fresh install ready to run tests immediately, including any Docker image built `FROM` it.
+Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—into `<os.tmpdir()>/doc-detective/` (or `DOC_DETECTIVE_CACHE_DIR`). This keeps your install ready to run tests without a separate step.
 
-To skip this initial download and keep the install small, set the `DOC_DETECTIVE_AUTOINSTALL` environment variable before installing:
+The pre-install runs in a child process and captures its output, so npm's deprecation warnings from transitive dependencies won't clutter your terminal.
+
+### Opt out of pre-installation
+
+To skip the heavy asset pre-install, set `DOC_DETECTIVE_AUTOINSTALL=0` (also accepts `false`, `no`, or `off`):
 
 ```bash
-DOC_DETECTIVE_AUTOINSTALL=0 npm i -g doc-detective
+DOC_DETECTIVE_AUTOINSTALL=0 npm i doc-detective
 ```
 
-Accepted values: `0`, `false`, `no`, or `off` (case-insensitive).
+With this option, the CLI install stays small. Heavy assets install lazily the first time a test needs them.
 
-With this setting, runtime assets install lazily the first time a test needs them. You can also install them manually with `doc-detective install all --yes`.
+### Pre-install manually
 
-### Manual installation commands
-
-Install specific runtime components:
+If you opted out or need to reinstall, pre-install all runtime assets:
 
 ```bash
-# Install everything
 doc-detective install all --yes
+```
 
-# Install only specific components
-doc-detective install browsers chrome
+### Install specific components
+
+Install only what your tests need:
+
+```bash
+doc-detective install browsers chrome chromedriver
 doc-detective install runtime webdriverio appium
 doc-detective install agents
+```
 
-# Inspect what's installed vs. expected
+### Check installation status
+
+See what's installed versus what the current version expects:
+
+```bash
 doc-detective install status
 ```
 
-### Custom cache location
+### Override the cache location
 
-By default, runtime assets are stored in `<os.tmpdir()>/doc-detective/` (for example, `/tmp/doc-detective/` on Linux). Override this location with the `DOC_DETECTIVE_CACHE_DIR` environment variable:
+The default cache location (`<os.tmpdir()>/doc-detective/`) may not persist across reboots on some systems. For containers, CI runners, or any environment where you want the cache to survive, set a custom location:
 
 ```bash
 DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
 ```
 
-This is useful in containers and CI environments.
+You can also set `cacheDir` in your `.doc-detective.json` config file or use the `--cache-dir` CLI flag.
+
+## Auto-update
+
+By default, Doc Detective checks the npm registry on startup and updates itself when a newer version is available:
+
+- **Global installs** (`npm i -g doc-detective`): Runs `npm install -g doc-detective@<latest>` and re-executes.
+- **npx invocations**: Re-executes with `npx -y doc-detective@latest`.
+- **Local project installs**: Prints an "update available" message instead of modifying your `package.json`.
+
+To disable auto-update, use any of these methods:
+
+- Pass `--no-auto-update` on the CLI
+- Set `autoUpdate: false` in your `.doc-detective.json` config file
+- Set the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` environment variable
+
+CI environments skip the update check automatically whenever the `CI` environment variable has a value.
 
 ## Next steps
 
