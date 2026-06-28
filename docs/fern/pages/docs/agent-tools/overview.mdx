@@ -48,7 +48,7 @@ Head to the per-agent guide below if you prefer the native install flow or need 
 
 ## Automatic detection during installation
 
-When you run `npm install doc-detective`, the postinstall script detects supported AI coding assistants on your machine. If it finds agents without Doc Detective tools installed, you see a prompt:
+When you run `npm install doc-detective`, the `postinstall` script detects supported AI coding assistants on your machine. If it finds agents without Doc Detective tools installed, you see a prompt:
 
 ```
 Detected coding agents that may be missing doc-detective tools: Claude Code, Gemini CLI.
@@ -59,9 +59,9 @@ Press `y` to launch `install-agents` with those agents pre-selected. You still c
 
 The prompt only appears when:
 
-- You're running in an interactive terminal (stdin and stdout are TTYs)
-- The `CI` environment variable is not set
-- At least one supported agent is detected without tools installed
+- You're running in an interactive terminal (`stdin` and `stdout` are TTYs)
+- The `CI` environment variable isn't set
+- Doc Detective finds at least one supported agent without tools installed
 
 To skip the prompt in scripts or automation, set either environment variable:
 
