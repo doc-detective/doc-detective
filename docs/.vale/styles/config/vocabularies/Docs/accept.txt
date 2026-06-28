@@ -192,6 +192,7 @@ outputPath
 startIndex
 endIndex
 runFolder
+FFmpeg
 lockfile
 ditamap
 params
@@ -207,3 +208,7 @@ frontmatter
 CUJs
 Priya
 html
+postinstall
+Geckodriver
+ChromeDriver
+Xvfb

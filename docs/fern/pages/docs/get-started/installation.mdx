@@ -82,6 +82,47 @@ Congratulations! You've run your first test with Doc Detective. :tada:
 
 You should see output in the terminal indicating the progress and results of the test. Results are also saved in a `testResults-<timestamp>.json` file in the current directory (configurable with the `--output` option), and this test saves a screenshot to *example.png*.
 
+## Lazy-install runtime
+
+When you install Doc Detective via npm, the postinstall step downloads browser engines (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them. This keeps a fresh install ready to run tests immediately, including any Docker image built `FROM` it.
+
+To skip this initial download and keep the install small, set the `DOC_DETECTIVE_AUTOINSTALL` environment variable before installing:
+
+```bash
+DOC_DETECTIVE_AUTOINSTALL=0 npm i -g doc-detective
+```
+
+Accepted values: `0`, `false`, `no`, or `off` (case-insensitive).
+
+With this setting, runtime assets install lazily the first time a test needs them. You can also install them manually with `doc-detective install all --yes`.
+
+### Manual installation commands
+
+Install specific runtime components:
+
+```bash
+# Install everything
+doc-detective install all --yes
+
+# Install only specific components
+doc-detective install browsers chrome
+doc-detective install runtime webdriverio appium
+doc-detective install agents
+
+# Inspect what's installed vs. expected
+doc-detective install status
+```
+
+### Custom cache location
+
+By default, runtime assets are stored in `<os.tmpdir()>/doc-detective/` (for example, `/tmp/doc-detective/` on Linux). Override this location with the `DOC_DETECTIVE_CACHE_DIR` environment variable:
+
+```bash
+DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
+```
+
+This is useful in containers and CI environments.
+
 ## Next steps
 
 Next up, take a look at some of the [concepts](/docs/get-started/concepts) native to Doc Detective, check out the guided walkthroughs in [Test your docs](/docs/test-docs/overview), or explore how to write [tests](/docs/get-started/how-testing-works) and [actions](/docs/actions) to automate your documentation testing.
