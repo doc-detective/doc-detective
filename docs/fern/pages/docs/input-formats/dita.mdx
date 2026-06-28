@@ -97,9 +97,9 @@ Both self-closing tags and explicit closing tags work:
 
 Use `<data>` elements when you want tests that validate with DITA-aware tools, or when your publishing workflow filters out processing instructions.
 
-### XML entity handling
+### XML entity decoding
 
-DITA OT and other XML processors encode special characters in attribute values. Doc Detective decodes these entities before parsing:
+DITA OT and other XML processors encode reserved characters in attribute values. Doc Detective decodes these entities before parsing:
 
 - `&#34;` and `&quot;` become `"`
 - `&#39;` and `&apos;` become `'`
