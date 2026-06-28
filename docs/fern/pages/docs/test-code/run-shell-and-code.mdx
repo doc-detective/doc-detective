@@ -54,10 +54,10 @@ A command that exits cleanly can still print the wrong thing. Use `stdio` to che
 
 ```json
 {
-  "description": "Confirm the CLI reports a 1.x version.",
+  "description": "Confirm the CLI reports a version string.",
   "runShell": {
     "command": "node --version",
-    "stdio": "/^v1\\d\\./"
+    "stdio": "/^v\\d+\\./"
   }
 }
 ```
@@ -130,7 +130,7 @@ Run the spec and read the result.
   <Tab title="Docker" language="docker">
 
   ```bash
-  docker run -v .:/app docdetective/docdetective --input /app/commands.spec.json
+  docker run -v .:/app docdetective/docdetective:linux --input /app/commands.spec.json
   ```
 
   </Tab>
