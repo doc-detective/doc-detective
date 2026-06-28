@@ -1,0 +1,45 @@
+{
+  "description": "Custom user assertions (step.assertions condition form) are evaluated at runtime against the step's outputs. This spec covers the PASSING permutations (string form, string[] AND form, and a custom check layered on top of a passing implicit check). It must resolve PASS on every OS; FAIL/SKIPPED permutations are covered by focused it(...) tests in core-core.test.js. Node is always present, so node -e is cross-platform.",
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "String form: a single passing custom assertion on exitCode.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "assertions": "$$outputs.exitCode == 0"
+        },
+        {
+          "description": "String[] form (AND): every custom assertion must pass.",
+          "runShell": {
+            "command": "node -e \"console.log('hello world')\"",
+            "stdio": "hello world"
+          },
+          "assertions": [
+            "$$outputs.exitCode == 0",
+            "$$outputs.stdio.stdout contains \"hello\""
+          ]
+        },
+        {
+          "description": "Custom check layered on a passing implicit check (exitCodes). Both implicit and custom records should be PASS.",
+          "runShell": {
+            "command": "node -e \"process.exit(0)\"",
+            "exitCodes": [
+              0
+            ]
+          },
+          "assertions": "$$outputs.exitCode oneOf [0]"
+        }
+      ]
+    },
+    {
+      "description": "A deliberately-skipped action (wait: false) that ALSO carries custom assertions must stay SKIPPED — custom assertions must not be evaluated or re-roll the status. The failing custom expr must NOT flip the step to PASS or FAIL.",
+      "steps": [
+        {
+          "description": "wait: false skips the action; the custom assertion (deliberately false) must not be evaluated.",
+          "wait": false,
+          "assertions": "$$outputs.x == 1"
+        }
+      ]
+    }
+  ]
+}

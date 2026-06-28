@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "routing",
+  "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "if": {
+      "title": "Condition",
+      "description": "A condition expression, or an array of expressions combined with logical AND.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        }
+      ]
+    },
+    "continue": {
+      "description": "Continue execution with the next step. Use to explicitly suppress a default handler behavior.",
+      "const": true
+    },
+    "stop": {
+      "description": "Stop execution at the given scope.",
+      "type": "string",
+      "enum": [
+        "test",
+        "spec",
+        "run"
+      ]
+    },
+    "retry": {
+      "description": "Retry the current step.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit"
+      ],
+      "properties": {
+        "limit": {
+          "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "delay": {
+          "description": "Delay in milliseconds before each retry.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
+        },
+        "backoff": {
+          "description": "Backoff strategy applied to the delay between retries.",
+          "type": "string",
+          "enum": [
+            "fixed",
+            "exponential"
+          ]
+        }
+      },
+      "title": "Retry"
+    },
+    "goToStep": {
+      "description": "Identifier of the step to jump to.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "goToTest": {
+      "description": "Identifier of the test to jump to.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "continue"
+      ]
+    },
+    {
+      "required": [
+        "stop"
+      ]
+    },
+    {
+      "required": [
+        "retry"
+      ]
+    },
+    {
+      "required": [
+        "goToStep"
+      ]
+    },
+    {
+      "required": [
+        "goToTest"
+      ]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "condition": {
+        "title": "Condition",
+        "description": "A condition expression, or an array of expressions combined with logical AND.",
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "examples": [
+    {
+      "continue": true
+    },
+    {
+      "stop": "test"
+    },
+    {
+      "if": "$$platform == windows",
+      "goToTest": "cleanup"
+    },
+    {
+      "if": [
+        "$$platform == linux",
+        "$$outputs.exitCode == 0"
+      ],
+      "goToStep": "verify"
+    },
+    {
+      "retry": {
+        "limit": 3,
+        "delay": 1000,
+        "backoff": "exponential"
+      }
+    },
+    {
+      "retry": {
+        "limit": 1
+      }
+    }
+  ]
+}

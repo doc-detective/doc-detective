@@ -1,0 +1,183 @@
+{
+  "specId": "type-to-process",
+  "description": "Exercises the `type` step targeting a background PROCESS surface end-to-end: start `node -i` via runShell `background` with a stdio readiness probe, send keystrokes to its stdin via `type` + `surface`, with each waitUntil shape (stdio match, delayMs-only, none), special-key/$CTRL$ translation, then close it with `closeSurface` (string + idempotent no-op forms). All steps are Node-only (no browser/driver), so they run and PASS on every platform; each test uses unique process names to stay safe under concurrentRunners.",
+  "tests": [
+    {
+      "testId": "type-process-stdio-match",
+      "description": "Start node -i, type an arithmetic expression + Enter, wait until stdout shows the result, then close.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "ttp-repl-1",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "6 * 7",
+              "$ENTER$"
+            ],
+            "surface": "ttp-repl-1",
+            "waitUntil": {
+              "stdio": "/42/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": "ttp-repl-1"
+        }
+      ]
+    },
+    {
+      "testId": "type-process-special-keys",
+      "description": "Start node -i, type a value then use special keys ($CTRL$ + special-key sequence) — a no-wait type that simply PASSES after writing.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "ttp-repl-2",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "1 + 1",
+              "$ENTER$"
+            ],
+            "surface": {
+              "process": "ttp-repl-2"
+            },
+            "waitUntil": {
+              "stdio": "/2/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "$CTRL$",
+              "c"
+            ],
+            "surface": "ttp-repl-2"
+          }
+        },
+        {
+          "closeSurface": "ttp-repl-2"
+        }
+      ]
+    },
+    {
+      "testId": "type-process-delay",
+      "description": "Start node -i, type with a delayMs-only waitUntil (fixed wait, no assertion), then close.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "ttp-repl-3",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "3 * 3",
+              "$ENTER$"
+            ],
+            "surface": "ttp-repl-3",
+            "waitUntil": {
+              "delayMs": 200
+            }
+          }
+        },
+        {
+          "closeSurface": "ttp-repl-3"
+        }
+      ]
+    },
+    {
+      "testId": "type-process-input-delay-zero",
+      "description": "Finding 6 (PR #394): an explicit `inputDelay: 0` (\"type as fast as possible\") must be honored, not silently replaced by the 100ms default. Type into a node -i REPL with inputDelay 0 and assert the result still appears — a PASS on every platform proves the explicit 0 is accepted and used.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "ttp-repl-delay0",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "8 * 8",
+              "$ENTER$"
+            ],
+            "surface": "ttp-repl-delay0",
+            "inputDelay": 0,
+            "waitUntil": {
+              "stdio": "/64/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": "ttp-repl-delay0"
+        }
+      ]
+    },
+    {
+      "testId": "type-process-noop-close",
+      "description": "Start node -i with a named background process, type with no waitUntil, close it by name, then a second close is an idempotent PASS no-op.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "ttp-repl-4"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "2 + 2",
+              "$ENTER$"
+            ],
+            "surface": "ttp-repl-4"
+          }
+        },
+        {
+          "closeSurface": "ttp-repl-4"
+        },
+        {
+          "closeSurface": "ttp-repl-4"
+        }
+      ]
+    }
+  ]
+}

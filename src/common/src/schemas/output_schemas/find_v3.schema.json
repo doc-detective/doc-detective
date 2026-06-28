@@ -412,88 +412,261 @@
                 },
                 {
                   "title": "Type keys (detailed)",
-                  "type": "object",
-                  "properties": {
-                    "keys": {
-                      "title": "Type keys (simple)",
-                      "description": "Sequence of keys to enter.",
-                      "anyOf": [
-                        {
-                          "type": "string"
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "keys": {
+                          "title": "Type keys (simple)",
+                          "description": "Sequence of keys to enter.",
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
                         },
-                        {
-                          "type": "array",
-                          "items": {
+                        "inputDelay": {
+                          "type": "number",
+                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                          "default": 100
+                        },
+                        "surface": {
+                          "$schema": "http://json-schema.org/draft-07/schema#",
+                          "title": "surface",
+                          "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+                          "anyOf": [
+                            {
+                              "title": "Surface (by name)",
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                            },
+                            {
+                              "title": "Process surface",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "process"
+                              ],
+                              "properties": {
+                                "process": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name of a background process started by a runShell/runCode `background` step."
+                                }
+                              }
+                            }
+                          ],
+                          "components": {
+                            "schemas": {
+                              "byName": {
+                                "title": "Surface (by name)",
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                              },
+                              "process": {
+                                "title": "Process surface",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "process"
+                                ],
+                                "properties": {
+                                  "process": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name of a background process started by a runShell/runCode `background` step."
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "examples": [
+                            "node",
+                            {
+                              "process": "node"
+                            }
+                          ]
+                        },
+                        "waitUntil": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "minProperties": 1,
+                          "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+                          "properties": {
+                            "stdio": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                            },
+                            "delayMs": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "description": "Fixed delay (ms)."
+                            }
+                          }
+                        },
+                        "timeout": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 5000,
+                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                        },
+                        "selector": {
+                          "type": "string",
+                          "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
+                        },
+                        "elementText": {
+                          "type": "string",
+                          "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
+                        },
+                        "elementId": {
+                          "type": "string",
+                          "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementTestId": {
+                          "type": "string",
+                          "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementClass": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                        },
+                        "elementAttribute": {
+                          "type": "object",
+                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                          "additionalProperties": {
                             "anyOf": [
                               {
                                 "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
                               }
                             ]
                           }
-                        }
-                      ]
-                    },
-                    "inputDelay": {
-                      "type": "number",
-                      "description": "Delay in milliseconds between each key press during a recording",
-                      "default": 100
-                    },
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
                         },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
+                        "elementAria": {
+                          "type": "string",
+                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                         }
+                      },
+                      "required": [
+                        "keys"
                       ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                      "additionalProperties": false
                     },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
+                    {
+                      "title": "waitUntil requires a surface",
+                      "if": {
+                        "required": [
+                          "waitUntil"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "surface"
                         ]
                       }
                     },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                    {
+                      "title": "A process surface forbids element targeting",
+                      "if": {
+                        "required": [
+                          "surface"
+                        ],
+                        "properties": {
+                          "surface": {
+                            "type": "object",
+                            "required": [
+                              "process"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "not": {
+                          "anyOf": [
+                            {
+                              "required": [
+                                "selector"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "elementText"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "elementId"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "elementTestId"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "elementClass"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "elementAttribute"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "elementAria"
+                              ]
+                            }
+                          ]
+                        }
+                      }
                     }
-                  },
-                  "required": [
-                    "keys"
-                  ],
-                  "additionalProperties": false
+                  ]
                 }
               ],
               "components": {
@@ -519,88 +692,261 @@
                   },
                   "object": {
                     "title": "Type keys (detailed)",
-                    "type": "object",
-                    "properties": {
-                      "keys": {
-                        "title": "Type keys (simple)",
-                        "description": "Sequence of keys to enter.",
-                        "anyOf": [
-                          {
-                            "type": "string"
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "keys": {
+                            "title": "Type keys (simple)",
+                            "description": "Sequence of keys to enter.",
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
                           },
-                          {
-                            "type": "array",
-                            "items": {
+                          "inputDelay": {
+                            "type": "number",
+                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                            "default": 100
+                          },
+                          "surface": {
+                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "title": "surface",
+                            "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+                            "anyOf": [
+                              {
+                                "title": "Surface (by name)",
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                              },
+                              {
+                                "title": "Process surface",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "process"
+                                ],
+                                "properties": {
+                                  "process": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name of a background process started by a runShell/runCode `background` step."
+                                  }
+                                }
+                              }
+                            ],
+                            "components": {
+                              "schemas": {
+                                "byName": {
+                                  "title": "Surface (by name)",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                                },
+                                "process": {
+                                  "title": "Process surface",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "process"
+                                  ],
+                                  "properties": {
+                                    "process": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name of a background process started by a runShell/runCode `background` step."
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "examples": [
+                              "node",
+                              {
+                                "process": "node"
+                              }
+                            ]
+                          },
+                          "waitUntil": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+                            "properties": {
+                              "stdio": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                              },
+                              "delayMs": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Fixed delay (ms)."
+                              }
+                            }
+                          },
+                          "timeout": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 5000,
+                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                          },
+                          "selector": {
+                            "type": "string",
+                            "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
+                          },
+                          "elementText": {
+                            "type": "string",
+                            "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
+                          },
+                          "elementId": {
+                            "type": "string",
+                            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementTestId": {
+                            "type": "string",
+                            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementClass": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ],
+                            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                          },
+                          "elementAttribute": {
+                            "type": "object",
+                            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                            "additionalProperties": {
                               "anyOf": [
                                 {
                                   "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
                                 }
                               ]
                             }
-                          }
-                        ]
-                      },
-                      "inputDelay": {
-                        "type": "number",
-                        "description": "Delay in milliseconds between each key press during a recording",
-                        "default": 100
-                      },
-                      "selector": {
-                        "type": "string",
-                        "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
-                      },
-                      "elementText": {
-                        "type": "string",
-                        "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
-                      },
-                      "elementId": {
-                        "type": "string",
-                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementTestId": {
-                        "type": "string",
-                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementClass": {
-                        "anyOf": [
-                          {
-                            "type": "string"
                           },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
+                          "elementAria": {
+                            "type": "string",
+                            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                           }
+                        },
+                        "required": [
+                          "keys"
                         ],
-                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                        "additionalProperties": false
                       },
-                      "elementAttribute": {
-                        "type": "object",
-                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                        "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                      {
+                        "title": "waitUntil requires a surface",
+                        "if": {
+                          "required": [
+                            "waitUntil"
+                          ]
+                        },
+                        "then": {
+                          "required": [
+                            "surface"
                           ]
                         }
                       },
-                      "elementAria": {
-                        "type": "string",
-                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      {
+                        "title": "A process surface forbids element targeting",
+                        "if": {
+                          "required": [
+                            "surface"
+                          ],
+                          "properties": {
+                            "surface": {
+                              "type": "object",
+                              "required": [
+                                "process"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "selector"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementText"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementId"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementTestId"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementClass"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementAttribute"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementAria"
+                                ]
+                              }
+                            ]
+                          }
+                        }
                       }
-                    },
-                    "required": [
-                      "keys"
-                    ],
-                    "additionalProperties": false
+                    ]
                   }
                 }
               },
@@ -627,6 +973,26 @@
                     "$ENTER$"
                   ],
                   "inputDelay": 500
+                },
+                {
+                  "keys": [
+                    "2+2",
+                    "$ENTER$"
+                  ],
+                  "surface": "node",
+                  "waitUntil": {
+                    "stdio": "/^4$/"
+                  },
+                  "timeout": 5000
+                },
+                {
+                  "keys": [
+                    "$CTRL$",
+                    "c"
+                  ],
+                  "surface": {
+                    "process": "node"
+                  }
                 }
               ]
             },
@@ -1061,88 +1427,261 @@
                   },
                   {
                     "title": "Type keys (detailed)",
-                    "type": "object",
-                    "properties": {
-                      "keys": {
-                        "title": "Type keys (simple)",
-                        "description": "Sequence of keys to enter.",
-                        "anyOf": [
-                          {
-                            "type": "string"
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "keys": {
+                            "title": "Type keys (simple)",
+                            "description": "Sequence of keys to enter.",
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
                           },
-                          {
-                            "type": "array",
-                            "items": {
+                          "inputDelay": {
+                            "type": "number",
+                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                            "default": 100
+                          },
+                          "surface": {
+                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "title": "surface",
+                            "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+                            "anyOf": [
+                              {
+                                "title": "Surface (by name)",
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                              },
+                              {
+                                "title": "Process surface",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "process"
+                                ],
+                                "properties": {
+                                  "process": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name of a background process started by a runShell/runCode `background` step."
+                                  }
+                                }
+                              }
+                            ],
+                            "components": {
+                              "schemas": {
+                                "byName": {
+                                  "title": "Surface (by name)",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                                },
+                                "process": {
+                                  "title": "Process surface",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "process"
+                                  ],
+                                  "properties": {
+                                    "process": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name of a background process started by a runShell/runCode `background` step."
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "examples": [
+                              "node",
+                              {
+                                "process": "node"
+                              }
+                            ]
+                          },
+                          "waitUntil": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+                            "properties": {
+                              "stdio": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                              },
+                              "delayMs": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Fixed delay (ms)."
+                              }
+                            }
+                          },
+                          "timeout": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 5000,
+                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                          },
+                          "selector": {
+                            "type": "string",
+                            "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
+                          },
+                          "elementText": {
+                            "type": "string",
+                            "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
+                          },
+                          "elementId": {
+                            "type": "string",
+                            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementTestId": {
+                            "type": "string",
+                            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementClass": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ],
+                            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                          },
+                          "elementAttribute": {
+                            "type": "object",
+                            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                            "additionalProperties": {
                               "anyOf": [
                                 {
                                   "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
                                 }
                               ]
                             }
-                          }
-                        ]
-                      },
-                      "inputDelay": {
-                        "type": "number",
-                        "description": "Delay in milliseconds between each key press during a recording",
-                        "default": 100
-                      },
-                      "selector": {
-                        "type": "string",
-                        "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
-                      },
-                      "elementText": {
-                        "type": "string",
-                        "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
-                      },
-                      "elementId": {
-                        "type": "string",
-                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementTestId": {
-                        "type": "string",
-                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementClass": {
-                        "anyOf": [
-                          {
-                            "type": "string"
                           },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
+                          "elementAria": {
+                            "type": "string",
+                            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                           }
+                        },
+                        "required": [
+                          "keys"
                         ],
-                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                        "additionalProperties": false
                       },
-                      "elementAttribute": {
-                        "type": "object",
-                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                        "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                      {
+                        "title": "waitUntil requires a surface",
+                        "if": {
+                          "required": [
+                            "waitUntil"
+                          ]
+                        },
+                        "then": {
+                          "required": [
+                            "surface"
                           ]
                         }
                       },
-                      "elementAria": {
-                        "type": "string",
-                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      {
+                        "title": "A process surface forbids element targeting",
+                        "if": {
+                          "required": [
+                            "surface"
+                          ],
+                          "properties": {
+                            "surface": {
+                              "type": "object",
+                              "required": [
+                                "process"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "selector"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementText"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementId"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementTestId"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementClass"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementAttribute"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "elementAria"
+                                ]
+                              }
+                            ]
+                          }
+                        }
                       }
-                    },
-                    "required": [
-                      "keys"
-                    ],
-                    "additionalProperties": false
+                    ]
                   }
                 ],
                 "components": {
@@ -1168,88 +1707,261 @@
                     },
                     "object": {
                       "title": "Type keys (detailed)",
-                      "type": "object",
-                      "properties": {
-                        "keys": {
-                          "title": "Type keys (simple)",
-                          "description": "Sequence of keys to enter.",
-                          "anyOf": [
-                            {
-                              "type": "string"
+                      "allOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "keys": {
+                              "title": "Type keys (simple)",
+                              "description": "Sequence of keys to enter.",
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
                             },
-                            {
-                              "type": "array",
-                              "items": {
+                            "inputDelay": {
+                              "type": "number",
+                              "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                              "default": 100
+                            },
+                            "surface": {
+                              "$schema": "http://json-schema.org/draft-07/schema#",
+                              "title": "surface",
+                              "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+                              "anyOf": [
+                                {
+                                  "title": "Surface (by name)",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                                },
+                                {
+                                  "title": "Process surface",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "process"
+                                  ],
+                                  "properties": {
+                                    "process": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name of a background process started by a runShell/runCode `background` step."
+                                    }
+                                  }
+                                }
+                              ],
+                              "components": {
+                                "schemas": {
+                                  "byName": {
+                                    "title": "Surface (by name)",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+                                  },
+                                  "process": {
+                                    "title": "Process surface",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "process"
+                                    ],
+                                    "properties": {
+                                      "process": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Name of a background process started by a runShell/runCode `background` step."
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "examples": [
+                                "node",
+                                {
+                                  "process": "node"
+                                }
+                              ]
+                            },
+                            "waitUntil": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "minProperties": 1,
+                              "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
+                              "properties": {
+                                "stdio": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                                },
+                                "delayMs": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "description": "Fixed delay (ms)."
+                                }
+                              }
+                            },
+                            "timeout": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "default": 5000,
+                              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                            },
+                            "selector": {
+                              "type": "string",
+                              "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
+                            },
+                            "elementText": {
+                              "type": "string",
+                              "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
+                            },
+                            "elementId": {
+                              "type": "string",
+                              "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                            },
+                            "elementTestId": {
+                              "type": "string",
+                              "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                            },
+                            "elementClass": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              ],
+                              "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                            },
+                            "elementAttribute": {
+                              "type": "object",
+                              "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                              "additionalProperties": {
                                 "anyOf": [
                                   {
                                     "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
                                   }
                                 ]
                               }
-                            }
-                          ]
-                        },
-                        "inputDelay": {
-                          "type": "number",
-                          "description": "Delay in milliseconds between each key press during a recording",
-                          "default": 100
-                        },
-                        "selector": {
-                          "type": "string",
-                          "description": "Selector for the element to type into. If not specified, the typing occurs in the active element."
-                        },
-                        "elementText": {
-                          "type": "string",
-                          "description": "Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria."
-                        },
-                        "elementId": {
-                          "type": "string",
-                          "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                        },
-                        "elementTestId": {
-                          "type": "string",
-                          "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                        },
-                        "elementClass": {
-                          "anyOf": [
-                            {
-                              "type": "string"
                             },
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                            "elementAria": {
+                              "type": "string",
+                              "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                             }
+                          },
+                          "required": [
+                            "keys"
                           ],
-                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                          "additionalProperties": false
                         },
-                        "elementAttribute": {
-                          "type": "object",
-                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                          "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
+                        {
+                          "title": "waitUntil requires a surface",
+                          "if": {
+                            "required": [
+                              "waitUntil"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "surface"
                             ]
                           }
                         },
-                        "elementAria": {
-                          "type": "string",
-                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                        {
+                          "title": "A process surface forbids element targeting",
+                          "if": {
+                            "required": [
+                              "surface"
+                            ],
+                            "properties": {
+                              "surface": {
+                                "type": "object",
+                                "required": [
+                                  "process"
+                                ]
+                              }
+                            }
+                          },
+                          "then": {
+                            "not": {
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "selector"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "elementText"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "elementId"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "elementTestId"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "elementClass"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "elementAttribute"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "elementAria"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
                         }
-                      },
-                      "required": [
-                        "keys"
-                      ],
-                      "additionalProperties": false
+                      ]
                     }
                   }
                 },
@@ -1276,6 +1988,26 @@
                       "$ENTER$"
                     ],
                     "inputDelay": 500
+                  },
+                  {
+                    "keys": [
+                      "2+2",
+                      "$ENTER$"
+                    ],
+                    "surface": "node",
+                    "waitUntil": {
+                      "stdio": "/^4$/"
+                    },
+                    "timeout": 5000
+                  },
+                  {
+                    "keys": [
+                      "$CTRL$",
+                      "c"
+                    ],
+                    "surface": {
+                      "process": "node"
+                    }
                   }
                 ]
               },
