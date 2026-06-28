@@ -102,7 +102,6 @@ npm
 env
 webdriverio
 appium
-ffmpeg
 geckodriver
 chromedriver
 subcommand
@@ -110,3 +109,5 @@ subcommands
 postinstall
 autoUpdate
 cacheDir
+Geckodriver
+ChromeDriver

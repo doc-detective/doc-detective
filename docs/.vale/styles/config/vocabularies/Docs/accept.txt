@@ -215,4 +215,6 @@ chromedriver
 subcommand
 subcommands
 postinstall
+Geckodriver
+ChromeDriver
 Xvfb
