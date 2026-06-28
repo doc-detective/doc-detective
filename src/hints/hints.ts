@@ -92,6 +92,49 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // enableAutoRecord (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "enableAutoRecord",
+    priority: 40,
+    markdown: [
+      "Want a video of every run? Enable `--auto-record` to record each browser context end-to-end with the ffmpeg engine.",
+      "",
+      "Videos are archived per run under `.doc-detective/run-<runId>/` alongside test results, so you can replay exactly what happened.",
+      "",
+      "```bash",
+      "doc-detective --auto-record",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      !ctx.producedRecordings &&
+      !ctx.config?.autoRecord,
+  },
+
+  // ------------------------------------------------------------------
+  // enableAutoScreenshot (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "enableAutoScreenshot",
+    priority: 40,
+    markdown: [
+      "Want a visual record of every run? Enable `--auto-screenshot` to capture an image after each browser step.",
+      "",
+      "Screenshots are archived per run under `.doc-detective/run-<runId>/` alongside test results. Diff two run folders to spot UI changes over time.",
+      "",
+      "```bash",
+      "doc-detective --auto-screenshot",
+      "```",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      !ctx.producedScreenshots &&
+      !ctx.producedAutoScreenshots &&
+      !ctx.config?.autoScreenshot,
+  },
+
+  // ------------------------------------------------------------------
   // enableDebugLog (current-run problem) — shipped in v1
   // ------------------------------------------------------------------
   {
@@ -241,6 +284,44 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // recordConcurrently (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "recordConcurrently",
+    priority: 50,
+    markdown: [
+      "ffmpeg recordings in this run were serialized to protect the shared display (non-driver work still ran in parallel). To let the recordings run concurrently too, record the Chrome viewport with the browser engine, which captures just the browser window:",
+      "",
+      "```json",
+      '{ "record": { "engine": "browser" } }',
+      "```",
+    ].join("\n"),
+    when: (ctx) => ctx.recordingSerialized,
+  },
+
+  // ------------------------------------------------------------------
+  // setConcurrentRunners (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "setConcurrentRunners",
+    priority: 50,
+    markdown: [
+      "This run executed several test contexts one at a time. Independent contexts can run in parallel with `concurrentRunners`:",
+      "",
+      "```json",
+      '{ "concurrentRunners": true }',
+      "```",
+      "",
+      "Or pass `--concurrent-runners 4` on the CLI. `true` uses your CPU core count (capped at 4). Keep it at `1` if your tests share variables across contexts or record video.",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.totalContexts >= 5 &&
+      ctx.config?.concurrentRunners !== true &&
+      !(Number(ctx.config?.concurrentRunners) > 1) &&
+      !ctx.producedRecordings,
+  },
+
+  // ------------------------------------------------------------------
   // setInputScope (advanced)
   // ------------------------------------------------------------------
   {
@@ -331,6 +412,28 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useAssertionsForOutputChecks (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAssertionsForOutputChecks",
+    priority: 40,
+    markdown: [
+      "Steps like `runShell`, `httpRequest`, and `runCode` pass when they execute — but you can also assert on what they produced. Add an `assertions` expression over `$$outputs.*` to check a specific value:",
+      "",
+      "```json",
+      "{ \"runShell\": \"node --version\", \"assertions\": \"$$outputs.stdio.stdout contains v20\" }",
+      "```",
+      "",
+      "A failed assertion fails the step (and the test) — turning \"it ran\" into \"it returned what I expected\". Pass an array of strings to require several.",
+    ].join("\n"),
+    when: (ctx) =>
+      !ctx.usedCustomAssertions &&
+      (ctx.usedStepTypes.has("runShell") ||
+        ctx.usedStepTypes.has("httpRequest") ||
+        ctx.usedStepTypes.has("runCode")),
+  },
+
+  // ------------------------------------------------------------------
   // useCheckLinkStep (feature discovery)
   // ------------------------------------------------------------------
   {
@@ -345,6 +448,24 @@ export const HINTS: Hint[] = [
     ].join("\n"),
     when: (ctx) =>
       !ctx.usedStepTypes.has("checkLink") && ctx.usedStepTypes.has("goTo"),
+  },
+
+  // ------------------------------------------------------------------
+  // useDebugFlag (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useDebugFlag",
+    priority: 20,
+    markdown: [
+      "Stuck on a setup problem? `doc-detective debug` captures your OS, Doc Detective version, browsers, tool versions, and any env vars referenced by your config:",
+      "",
+      "```bash",
+      "doc-detective debug",
+      "```",
+      "",
+      "Review the output before pasting into a bug report — secrets are best-effort-redacted by name and value shape, but values with novel names or shapes (custom URL-style connection strings, in-house token formats) may slip through. `--include-env` opts into a full `process.env` dump if you need it.",
+    ].join("\n"),
+    when: (ctx) => ctx.failedCount > 0,
   },
 
   // ------------------------------------------------------------------
@@ -506,6 +627,47 @@ export const HINTS: Hint[] = [
       ctx.failedCount > 0 &&
       !ctx.producedRecordings &&
       ctx.usedBrowserContexts.size > 0,
+  },
+
+  // ------------------------------------------------------------------
+  // useRetryForTransientErrors (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useRetryForTransientErrors",
+    priority: 20,
+    markdown: [
+      "A request returned a transient server error this run (a 429 rate-limit or a 5xx). `onFail` retry with exponential backoff re-runs the step before failing — the standard way to ride out rate limits and flaky upstreams:",
+      "",
+      "```json",
+      "{ \"httpRequest\": \"https://api.example.com/data\", \"onFail\": [{ \"retry\": { \"limit\": 3, \"delay\": 1000, \"backoff\": \"exponential\" } }] }",
+      "```",
+      "",
+      "The same `onFail` retry works on a `checkLink` step. Retry never changes the verdict — if the upstream is still erroring after the retries, the step still fails, so a real outage isn't masked.",
+    ].join("\n"),
+    when: (ctx) => ctx.failedTransientRequest && !ctx.usedRetry,
+  },
+
+  // ------------------------------------------------------------------
+  // useRunBrowserScriptStep (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useRunBrowserScriptStep",
+    priority: 40,
+    markdown: [
+      "Need to read computed page state or seed the app from a test? `runBrowserScript` runs JavaScript in the live page and captures the return value into `outputs.result`.",
+      "",
+      "Reach for it when an assertion depends on DOM or `window` state the built-in steps don't expose, or when you need to set up state like `localStorage` before continuing.",
+      "",
+      "```json",
+      "{ \"runBrowserScript\": { \"script\": \"return document.title;\", \"output\": \"Welcome\" } }",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/runBrowserScript](https://doc-detective.com/docs/references/schemas/runbrowserscript)",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.usedBrowserContexts.size > 0 &&
+      ctx.usedStepTypes.has("find") &&
+      !ctx.usedStepTypes.has("runBrowserScript"),
   },
 
   // ------------------------------------------------------------------

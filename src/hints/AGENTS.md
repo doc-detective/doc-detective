@@ -11,6 +11,10 @@ When you add a feature anywhere in doc-detective, **consider adding a
 hint** that surfaces it to users who would benefit. This file is the
 playbook.
 
+> A hint is in-product surfacing, not documentation. A user-facing feature
+> still owes a **docs-impact assessment** — see ["Documentation impact"](../../CLAUDE.md#documentation-impact-required)
+> and the [content strategy](../../docs/content-strategy/) in the root guide.
+
 ---
 
 ## When to add a hint (and when not to)

@@ -43,6 +43,10 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         with:
           files: ${{ steps.changed-files.outputs.all_changed_files }}
+          # changed-files emits a space-separated list. Without a matching
+          # separator, vale-action treats the whole string as one path, fails
+          # to resolve it, and silently falls back to linting the entire repo.
+          separator: " "
           version: 3.13.0
           vale_flags: "--config=docs/.vale.ini"
           reporter: github-pr-review
