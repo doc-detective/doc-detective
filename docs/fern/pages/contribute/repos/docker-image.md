@@ -8,14 +8,14 @@ title: docker-image (alpha)
 
 ## Supported platforms
 
-The Docker image is published as a multi-architecture manifest, so `docker pull` automatically selects the right image for your system:
+Doc Detective publishes the Docker image as a multi-architecture manifest, so `docker pull` automatically selects the right image for your system:
 
 | Platform | Architectures |
 |----------|---------------|
-| Linux | amd64 (x86_64), arm64 (Apple Silicon, AWS Graviton, Raspberry Pi) |
+| Linux | amd64 (x86_64), arm64 (Apple Silicon, Amazon Web Services Graviton, Raspberry Pi) |
 | Windows | amd64 (x86_64) only |
 
-Existing tags (`latest`, `linux`, `windows`, version-scoped tags) work the same way—arm64 Linux hosts now receive native images without any tag changes.
+Existing tags (`latest`, `linux`, `windows`, version-scoped tags) work the same way—arm64 Linux hosts receive native images without any tag changes.
 
 ## What's included
 
