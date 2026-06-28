@@ -4,13 +4,11 @@ description: Start capturing a video of test execution.
 ---
 
 
-The `record` action starts recording the browser viewport as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recording continues until a `stopRecord` step is encountered.
+The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recordings are video only, with no audio track. Recording continues until your test reaches a `stopRecord` step.
 
-*Note: Recording is currently only supported in visible Chrome browsers.*
-
-<Warning>
-When using concurrent test runners (`concurrentRunners` > 1), simultaneous screen recordings can capture the wrong browser window, and output files may overwrite each other if contexts share the same recording path. Keep `concurrentRunners` at `1` for tests that include recording.
-</Warning>
+<Note>
+Recording works with concurrent test runners (`concurrentRunners` > 1). The `browser` engine records each context's own window, so it always runs concurrently. The `ffmpeg` engine captures the whole shared display, so Doc Detective serializes `ffmpeg` recordings with other browser-based tests automatically—you don't need to set `concurrentRunners` to `1`. See [Recording engines](#recording-engines) for details.
+</Note>
 
 You can specify the recording action in several ways:
 
@@ -20,8 +18,83 @@ You can specify the recording action in several ways:
   - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
   - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
   - `overwrite`: (Optional) Set to `true` to overwrite an existing file at the target path. Defaults to `false`.
+  - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
+  - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
 
-**Stopping the Recording:** You *must* include a `stopRecord` step later in your test to finalize and save the video file.
+**Stopping the Recording:** Include a `stopRecord` step to end a recording at a specific point in your test. Doc Detective automatically finalizes any remaining recordings at the end of the test run.
+
+## Recording engines
+
+Recording uses one of two engines, selected by the optional `engine` field in the object format:
+
+- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the current browser tab and is safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
+- **`ffmpeg`:** Records the screen with FFmpeg, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically, so you don't need to install it yourself.
+
+If you don't set `engine`, Doc Detective chooses one for you. It prefers the `browser` engine when a visible Chrome context is available (coercing an unspecified browser to headed Chrome), and falls back to `ffmpeg` otherwise.
+
+Set `engine` as a string to select an engine with its defaults (for example, `"engine": "ffmpeg"`), or as an object for more control:
+
+- `name`: (Required) The engine to use, either `browser` or `ffmpeg`.
+- `target`: (Optional, `ffmpeg` only) What the engine captures. Use `display` to record the full screen, `window` to record the active window, or `viewport` to record the browser content area (default: `display`). The `window` and `viewport` targets are best-effort: FFmpeg captures the full screen and then crops the result. The `browser` engine ignores this field and always captures its tab.
+- `fps`: (Optional, `ffmpeg` only) The capture frame rate (default: `30`).
+
+**Recording concurrency** depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own window.
+
+The `ffmpeg` engine captures the whole shared display, so two `ffmpeg` recordings—or an `ffmpeg` recording alongside another browser-driven test—would overwrite each other's output. To prevent this, whenever a run includes an `ffmpeg` recording, Doc Detective serializes that recording with every other browser-based test so they take turns on the display. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel up to `concurrentRunners`. This behavior applies on every platform, including Linux. To run the recordings concurrently as well, use the `browser` engine instead.
+
+On Linux, the `ffmpeg` engine also needs Xvfb to record headless contexts, which have no physical display to capture. Install Xvfb to record in headless mode.
+
+## Multiple overlapping recordings
+
+A single context can run more than one recording at once. For example, you can capture a full test alongside a shorter clip of one workflow inside it. Give each `record` step a `name` so a later `stopRecord` step can target the right one:
+
+- An untargeted `stopRecord` (`true` or `null`) stops the most recently started recording that's still active (last in, first out).
+- To stop a specific recording, target it by `name`, either as a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`). This works for any active recording, not just the most recent one.
+
+Names must be unique among recordings that are active at the same time. If a `record` step reuses the `name` of a recording that's still active, Doc Detective catches the conflict before the run starts and skips that test in every context with a warning, rather than failing partway through.
+
+When two recordings overlap and both would use the `browser` engine, the second one falls back to the `ffmpeg` engine with a `viewport` target and emits a warning, because the `browser` engine can own only one recorder per context. See [Recording engines](#recording-engines) for details on engine selection.
+
+## Automatic recordings
+
+To record every browser-based test context from start to finish, enable the `autoRecord` option. It captures each context end-to-end without explicit `record` steps, which is useful for:
+
+- Building a video archive of every run
+- Replaying exactly what happened when a test fails
+- Comparing behavior from one run to the next
+
+Enable it at the config, spec, or test level (test overrides spec, which overrides config):
+
+```json
+{
+  "autoRecord": true,
+  "output": "./test-results"
+}
+```
+
+Or use the CLI flag:
+
+```bash
+doc-detective --auto-record
+```
+
+Use `--no-auto-record` to override a config file that enables it.
+
+Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/run-<runId>/`) at a path derived from the spec, test, and context IDs, so the same context lands on the same relative path in every run's folder:
+
+```
+.doc-detective/run-<runId>/
+└── recordings/
+    └── <specId>/
+        └── <testId>/
+            └── <contextId>.mp4
+```
+
+An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. Doc Detective finalizes it during end-of-context cleanup.
+
+<Note>
+On Linux, each runner records its own virtual display with Xvfb, so automatic recordings stay isolated even when runs are concurrent. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
+</Note>
 
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 
@@ -98,6 +171,145 @@ Records to `test_video.gif` in the `output/gifs` directory, overwriting if it ex
             "path": "test_video.gif",
             "directory": "./output/gifs",
             "overwrite": true
+          }
+        },
+        {
+          "description": "...",
+          "wait": 2000
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Pinning the browser engine
+
+Records the Chrome tab with the `browser` engine instead of letting Doc Detective pick one, so the recording is safe to run with concurrency.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the Chrome tab with the browser engine.",
+          "record": {
+            "path": "browser_demo.mp4",
+            "engine": "browser"
+          }
+        },
+        {
+          "description": "...",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Recording any application with the FFmpeg engine
+
+Records the screen with FFmpeg so the recording isn't limited to Chrome.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the screen with FFmpeg.",
+          "record": {
+            "path": "demo.mp4",
+            "engine": "ffmpeg"
+          }
+        },
+        {
+          "description": "...",
+          "runShell": "my-cli --help"
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Overlapping recordings targeted by name
+
+Captures a full session while also recording a shorter clip of one step, stopping each by name.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the full session.",
+          "record": {
+            "path": "session.mp4",
+            "name": "session"
+          }
+        },
+        {
+          "description": "Start a clip of the login step.",
+          "record": {
+            "path": "login.mp4",
+            "name": "login"
+          }
+        },
+        {
+          "description": "...",
+          "find": "Login"
+        },
+        {
+          "description": "Stop the login clip.",
+          "stopRecord": "login"
+        },
+        {
+          "description": "...",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Stop the full session.",
+          "stopRecord": { "name": "session" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Configuring the FFmpeg engine (detailed object)
+
+Records the active window at 60 fps with FFmpeg.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the active window.",
+          "record": {
+            "path": "demo.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "window",
+              "fps": 60
+            }
           }
         },
         {
