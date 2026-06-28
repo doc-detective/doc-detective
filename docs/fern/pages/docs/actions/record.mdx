@@ -6,9 +6,9 @@ description: Start capturing a video of test execution.
 
 The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recordings are video only, with no audio track. Recording continues until your test reaches a `stopRecord` step.
 
-<Warning>
-When using concurrent test runners (`concurrentRunners` > 1), simultaneous screen recordings can capture the wrong browser window, and output files may overwrite each other if contexts share the same recording path. Keep `concurrentRunners` at `1` for tests that include recording.
-</Warning>
+<Note>
+Recording works with concurrent test runners (`concurrentRunners` > 1). The `browser` engine records each context's own window, so it always runs concurrently. The `ffmpeg` engine captures the whole shared display, so Doc Detective serializes `ffmpeg` recordings with other browser-based tests automatically—you don't need to set `concurrentRunners` to `1`. See [Recording engines](#recording-engines) for details.
+</Note>
 
 You can specify the recording action in several ways:
 
@@ -28,14 +28,14 @@ You can specify the recording action in several ways:
 Recording uses one of two engines, selected by the optional `engine` field in the object format:
 
 - **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the browser tab and is safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
-- **`ffmpeg`:** Records the screen with ffmpeg, so it works for any application, not just Chrome. Doc Detective installs ffmpeg automatically as a runtime dependency the first time a recording runs, so you don't need to install it yourself.
+- **`ffmpeg`:** Records the screen with FFmpeg, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically as a runtime dependency the first time a recording runs, so you don't need to install it yourself.
 
 If you don't set `engine`, Doc Detective chooses one for you. It prefers the `browser` engine when a visible Chrome context is available (coercing an unspecified browser to headed Chrome), and falls back to `ffmpeg` otherwise.
 
 Set `engine` as a string to select an engine with its defaults (for example, `"engine": "ffmpeg"`), or as an object for more control:
 
 - `name`: (Required) The engine to use, either `browser` or `ffmpeg`.
-- `target`: (Optional, `ffmpeg` only) What the engine captures. Use `display` to record the full screen, `window` to record the active window, or `viewport` to record the browser content area (default: `display`). The `window` and `viewport` targets are best-effort: ffmpeg captures the full screen and then crops the result. The `browser` engine ignores this field and always captures its tab.
+- `target`: (Optional, `ffmpeg` only) What the engine captures. Use `display` to record the full screen, `window` to record the active window, or `viewport` to record the browser content area (default: `display`). The `window` and `viewport` targets are best-effort: FFmpeg captures the full screen and then crops the result. The `browser` engine ignores this field and always captures its tab.
 - `fps`: (Optional, `ffmpeg` only) The capture frame rate (default: `30`).
 
 **Recording concurrency** depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own window.
@@ -219,7 +219,7 @@ Records the Chrome tab with the `browser` engine instead of letting Doc Detectiv
 
 ### Recording any application with the ffmpeg engine
 
-Records the screen with ffmpeg so the recording isn't limited to Chrome.
+Records the screen with FFmpeg so the recording isn't limited to Chrome.
 
 ```json
 {
@@ -227,7 +227,7 @@ Records the screen with ffmpeg so the recording isn't limited to Chrome.
     {
       "steps": [
         {
-          "description": "Start recording the screen with ffmpeg.",
+          "description": "Start recording the screen with FFmpeg.",
           "record": {
             "path": "demo.mp4",
             "engine": "ffmpeg"
@@ -294,7 +294,7 @@ Captures a full session while also recording a shorter clip of one step, stoppin
 
 ### Configuring the ffmpeg engine (detailed object)
 
-Records the active window at 60 fps with ffmpeg.
+Records the active window at 60 fps with FFmpeg.
 
 ```json
 {
