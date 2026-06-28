@@ -802,7 +802,7 @@ Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or s
 Parallel execution has limitations:
 
 - **Cross-context variables**: Tests that share variables via `loadVariables` or `variables` steps between contexts won't work correctly with concurrent runners, as variables write to `process.env` shared across all contexts.
-- **Recording steps**: Concurrent screen recordings can capture the wrong browser window. Keep `concurrentRunners` at `1` for tests that include `record` steps.
+- **Recording steps**: Concurrent screen recordings can capture the wrong browser window, and output files may overwrite each other if contexts share the same recording path. Keep `concurrentRunners` at `1` for tests that include `record` steps.
 </Warning>
 
 ## Read the results

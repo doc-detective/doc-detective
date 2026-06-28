@@ -9,7 +9,7 @@ The `record` action starts recording the browser viewport as a video file (MP4, 
 *Note: Recording is currently only supported in visible Chrome browsers.*
 
 <Warning>
-When using concurrent test runners (`concurrentRunners` > 1), simultaneous screen recordings can capture the wrong browser window. Keep `concurrentRunners` at `1` for tests that include recording.
+When using concurrent test runners (`concurrentRunners` > 1), simultaneous screen recordings can capture the wrong browser window, and output files may overwrite each other if contexts share the same recording path. Keep `concurrentRunners` at `1` for tests that include recording.
 </Warning>
 
 You can specify the recording action in several ways:
