@@ -79,6 +79,10 @@ Heretto
 DITA
 CMS
 CCMS
+ffmpeg
+FFmpeg
+Xvfb
+untargeted
 closeSurface
 waitUntil
 httpGet
@@ -99,3 +103,6 @@ runId
 runFolder
 autoScreenshot
 autoRecord
+postinstall
+Geckodriver
+ChromeDriver
