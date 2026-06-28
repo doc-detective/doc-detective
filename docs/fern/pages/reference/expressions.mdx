@@ -1,0 +1,120 @@
+---
+title: Expressions
+description: Reference runtime values and compare them with operators in variables, conditions, and assertions.
+---
+
+Expressions let you reference values produced during a test run and compare them with operators. Use an expression when you capture a value into a step variable, guard a step or test with a condition, or write a custom assertion.
+
+## Meta-value references
+
+A meta-value reference starts with `$$`, followed by a path into the run's context. Doc Detective resolves the reference to the value at that path before evaluating the rest of the expression.
+
+```json
+{
+  "variables": {
+    "USER_ID": "$$response.body.id"
+  }
+}
+```
+
+Use dot notation to reach nested fields, and bracket notation for array indexes:
+
+- `$$response.body.user.id`
+- `$$response.body.items[0].name`
+- `$$stdio.stdout`
+
+The references you can use depend on the action that produced them. For example, `httpRequest` exposes `$$response.body`, `$$response.headers`, and `$$response.status`, while `runCode` and `runShell` expose `$$stdio.stdout`, `$$stdio.stderr`, and `$$exitCode`. To see the values an action produces, see its [action reference](/docs/actions).
+
+### JSON pointer
+
+To drill into a resolved value, append a JSON pointer with `#/`:
+
+```text
+$$steps.fetch-user.outputs.body#/data/0/email
+```
+
+## Interpolation
+
+To embed an expression inside a larger string, wrap it in double curly braces. Doc Detective replaces each `{{...}}` with the resolved value and leaves the surrounding text intact.
+
+For example, after a prior step with the `stepId` `fetch-user` captures a response, interpolate one of its outputs into a later step:
+
+```json
+{
+  "goTo": "https://example.com/users/{{$$steps.fetch-user.outputs.body.id}}"
+}
+```
+
+## Operators
+
+You can use operators wherever Doc Detective evaluates a condition, such as a step or test `if` guard or a custom assertion. In a plain variable assignment, Doc Detective resolves meta-value references but doesn't evaluate operators, so operator-like text in a captured value stays untouched.
+
+### Comparison operators
+
+To compare two values, use a comparison operator. The expression evaluates to `true` or `false`.
+
+| Operator | Description |
+| --- | --- |
+| `==` | Equal to |
+| `!=` | Not equal to |
+| `>` | Greater than |
+| `<` | Less than |
+| `>=` | Greater than or equal to |
+| `<=` | Less than or equal to |
+
+```text
+$$exitCode == 0
+$$response.status >= 400
+```
+
+### Word operators
+
+Write word operators between the operands, with a space on each side.
+
+- **`contains`**: True when the left operand contains the right operand. Works on strings (substring), arrays (membership), and objects (key presence).
+
+  ```text
+  $$response.body.role contains "admin"
+  ```
+
+- **`oneOf`**: True when the left operand equals one of the values in the array on the right.
+
+  ```text
+  $$exitCode oneOf [0, 1]
+  ```
+
+- **`matches`**: True when the left operand is a string that matches a regular expression.
+
+  ```text
+  $$response.body.email matches /.+@.+/
+  ```
+
+### Function operators
+
+Two function operators are always available, including in a plain variable assignment:
+
+- **`jq(value, query)`**: Apply a [jq](https://jqlang.github.io/jq/) query to a value.
+- **`extract(value, pattern)`**: Return the first capture group of a regular expression match against a string, or the full match when the pattern has no capture group.
+
+## Regular expressions in `matches`
+
+Write the regular expression as a `/pattern/` literal. A pattern can contain spaces, such as `/hello world/`.
+
+Doc Detective preserves backslash escapes inside the pattern, so character classes and escaped metacharacters work as written:
+
+- `$$outputs.code matches /\d/` matches a string that contains a digit.
+- `$$outputs.path matches /a\.c/` matches the literal text `a.c`, not `axc`.
+
+## String literals
+
+Wrap a literal string value in single or double quotes. Quote a value when it contains spaces or characters that Doc Detective would otherwise read as operators.
+
+```text
+$$status == "in progress"
+```
+
+String literals follow standard JavaScript escape rules. To include a quote of the same type inside a literal, escape it with a backslash. Doc Detective compares an escaped quote as written:
+
+```text
+$$message == "he said \"hi\""
+```
