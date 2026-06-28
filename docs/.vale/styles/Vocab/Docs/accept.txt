@@ -98,6 +98,9 @@ deregisters
 readyWhen
 ignoreMissing
 stopProcess
+Appium
+ffmpeg
+subcommand
 postinstall
 Geckodriver
 ChromeDriver
