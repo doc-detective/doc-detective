@@ -111,7 +111,7 @@ doc-detective install all --yes
 Install only what your tests need:
 
 ```bash
-doc-detective install browsers chrome
+doc-detective install browsers chrome chromedriver
 doc-detective install runtime webdriverio appium
 doc-detective install agents
 ```
@@ -148,7 +148,7 @@ To disable auto-update, use any of these methods:
 - Set `autoUpdate: false` in your `.doc-detective.json` config file
 - Set the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` environment variable
 
-CI environments (where `process.env.CI` is set) skip the update check automatically.
+CI environments skip the update check automatically whenever the `CI` environment variable has a value.
 
 ## Next steps
 

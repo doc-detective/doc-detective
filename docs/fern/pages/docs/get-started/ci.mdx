@@ -190,17 +190,28 @@ The `DOC_DETECTIVE_CACHE_DIR` environment variable tells Doc Detective where to 
 For faster first runs or to ensure specific assets are available, pre-install them before running tests:
 
 ```yaml
-steps:
-  - uses: actions/checkout@v4
-  - uses: actions/setup-node@v4
-    with:
-      node-version: 22
-  - run: npm install -g doc-detective
-  - run: doc-detective install all --yes
+jobs:
+  runTests:
+    runs-on: ubuntu-latest
     env:
       DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.doc-detective-cache
-  - uses: doc-detective/github-action@v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: .doc-detective-cache
+          key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            doc-detective-${{ runner.os }}-
+      - run: npm install -g doc-detective
+      - run: doc-detective install all --yes
+      - uses: doc-detective/github-action@v1
 ```
+
+Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so both the pre-install step and the `doc-detective/github-action@v1` step use the same cached directory.
 
 ## Environment variables
 
@@ -209,6 +220,6 @@ These environment variables control Doc Detective behavior in CI:
 | Variable | Description |
 |----------|-------------|
 | `DOC_DETECTIVE_CACHE_DIR` | Override the cache directory for runtime assets. |
-| `DOC_DETECTIVE_AUTOINSTALL` | Set to `0` (or `false`, `no`, `off`) to skip pre-installing heavy runtime assets during `npm install`. Assets will install lazily on first use instead. |
+| `DOC_DETECTIVE_AUTOINSTALL` | Set to `0` (or `false`, `no`, `off`) to skip pre-installing heavy runtime assets during `npm install`. Assets install lazily on first use instead. |
 | `DOC_DETECTIVE_SKIP_AUTO_UPDATE` | Set to `1` to disable auto-update checks. |
 | `CI` | When set (automatically by most CI systems), Doc Detective skips auto-update checks. |

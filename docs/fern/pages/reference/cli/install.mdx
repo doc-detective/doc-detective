@@ -18,7 +18,7 @@ doc-detective install <subcommand> [options]
 
 ## Subcommands
 
-### install all
+### `install all`
 
 Install all runtime assets: agent tools, npm packages, and browsers.
 
@@ -28,7 +28,7 @@ doc-detective install all [options]
 
 This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays.
 
-### install agents
+### `install agents`
 
 Install agent tools for AI coding assistants. Detects supported agents on your machine, prompts you to choose which to configure, and invokes each agent's native install mechanism.
 
@@ -44,15 +44,22 @@ doc-detective install agents --agent claude --scope project --yes
 
 Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`.
 
+| Option | Description |
+|--------|-------------|
+| `--agent` | Agent to configure. One of `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`. |
+| `--scope` | Where to install the agent integration. One of `project` or `global`. Required with `--yes`. |
+
+The `--agent` and `--scope` options are specific to `install agents`. Using `--yes` non-interactively requires both.
+
 <Note>
 
 The older `doc-detective install-agents` form still works as a hidden alias, so existing scripts and CI jobs don't need to change.
 
 </Note>
 
-### install runtime
+### `install runtime`
 
-Install heavy npm packages into the cache directory. These packages (webdriverio, appium, sharp, etc.) are downloaded on first use if not pre-installed.
+Install heavy npm packages into the cache directory. Doc Detective downloads these packages (webdriverio, appium, sharp, etc.) on first use if not pre-installed.
 
 ```bash
 doc-detective install runtime [packages..] [options]
@@ -64,7 +71,7 @@ Without arguments, installs all heavy dependencies. Specify package names to ins
 doc-detective install runtime webdriverio appium
 ```
 
-### install browsers
+### `install browsers`
 
 Install browsers and their drivers into the cache directory.
 
@@ -80,7 +87,7 @@ doc-detective install browsers chrome chromedriver
 
 Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
 
-### install status
+### `install status`
 
 Report what's currently installed in the cache directory versus what the current Doc Detective version expects.
 
@@ -88,15 +95,17 @@ Report what's currently installed in the cache directory versus what the current
 doc-detective install status [options]
 ```
 
+Because `status` only reads the cache, the install-specific flags (`--yes`, `--force`, `--dry-run`) have no effect on it. Only `--cache-dir`, `--verbose`, and `--silent` change its behavior.
+
 ## Shared options
 
-These options are available for all `install` subcommands:
+Every `install` subcommand takes these options:
 
 | Option | Description |
 |--------|-------------|
 | `--yes`, `-y` | Skip interactive prompts and auto-install missing assets. |
 | `--force`, `-f` | Reinstall even if assets are already present and current. Prunes older versions from the cache. |
-| `--dry-run` | Report what would be installed without executing. |
+| `--dry-run` | Report the assets the command would install, without executing. |
 | `--silent`, `--quiet` | Suppress all output except errors. |
 | `--verbose` | Emit debug-level output, including npm stdout/stderr. |
 | `--cache-dir` | Override the cache root for this invocation. Also settable via `DOC_DETECTIVE_CACHE_DIR` env var. |
@@ -155,7 +164,7 @@ doc-detective install browsers --force
 
 If `install all` or `install runtime` fails:
 
-1. **Check the install log**: Open `<cacheDir>/runtime/install.log` to see the full npm output, including errors that were filtered from the terminal.
+1. **Check the install log**: Open `<cacheDir>/runtime/install.log` to see the full npm output, including errors the filtered terminal output hides.
 
 2. **Run with verbose output**: Use `--verbose` to see npm's output in real time:
 
