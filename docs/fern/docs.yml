@@ -216,7 +216,7 @@ navigation:
             path: pages/docs/ci/overview.mdx
             slug: overview
           - page: GitHub Action
-            path: pages/docs/get-started/ci.mdx
+            path: pages/docs/ci/github-action.mdx
             slug: github-action
           - page: Set up your test environment
             path: pages/tutorials/set-up-your-test-environment.mdx
