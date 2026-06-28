@@ -206,4 +206,7 @@ frontmatter
 CUJs
 Priya
 html
+postinstall
+Geckodriver
+ChromeDriver
 Xvfb

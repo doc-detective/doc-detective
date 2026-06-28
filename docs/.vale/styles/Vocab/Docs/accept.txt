@@ -98,3 +98,6 @@ deregisters
 readyWhen
 ignoreMissing
 stopProcess
+postinstall
+Geckodriver
+ChromeDriver
