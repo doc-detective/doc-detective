@@ -94,3 +94,7 @@ deregisters
 readyWhen
 ignoreMissing
 stopProcess
+postinstall
+Geckodriver
+ffmpeg
+ChromeDriver
