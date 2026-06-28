@@ -464,7 +464,7 @@ If tests fail in CI but pass locally:
 2. **Look for environment differences**: Paths, dependencies, timing
 3. **Run tests in Docker** (mimics CI environment):
    ```bash
-   docker run --rm -v $(pwd):/app -w /app node:20 npm run doc-detective
+   docker run --rm -v $(pwd):/app -w /app node:22 npm run doc-detective
    ```
 4. **Ask for help**: Comment on the PR with the error details
 
