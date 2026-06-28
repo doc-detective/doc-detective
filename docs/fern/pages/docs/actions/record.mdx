@@ -4,7 +4,7 @@ description: Start capturing a video of test execution.
 ---
 
 
-The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recordings are video only, with no audio track. Recording continues until a `stopRecord` step is encountered.
+The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recordings are video only, with no audio track. Recording continues until your test reaches a `stopRecord` step.
 
 You can specify the recording action in several ways:
 
@@ -34,7 +34,7 @@ Set `engine` as a string to select an engine with its defaults (for example, `"e
 - `target`: (Optional, `ffmpeg` only) What the engine captures. Use `display` to record the full screen, `window` to record the active window, or `viewport` to record the browser content area (default: `display`). The `window` and `viewport` targets are best-effort: ffmpeg captures the full screen and then crops the result. The `browser` engine ignores this field and always captures its tab.
 - `fps`: (Optional, `ffmpeg` only) The capture frame rate (default: `30`).
 
-**Recording with concurrency:** Concurrency support depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own window.
+**Recording concurrency** depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own window.
 
 The `ffmpeg` engine captures the whole shared display, so two `ffmpeg` recordings—or an `ffmpeg` recording alongside another browser-driven test—would overwrite each other's output. To prevent this, whenever a run includes an `ffmpeg` recording, Doc Detective serializes that recording with every other browser-based test so they take turns on the display. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel up to `concurrentRunners`. This behavior applies on every platform, including Linux. To run the recordings concurrently as well, use the `browser` engine instead.
 
@@ -172,6 +172,36 @@ Records to `test_video.gif` in the `output/gifs` directory, overwriting if it ex
         {
           "description": "...",
           "wait": 2000
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Pinning the browser engine
+
+Records the Chrome tab with the `browser` engine instead of letting Doc Detective pick one, so the recording is safe to run with concurrency.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording the Chrome tab with the browser engine.",
+          "record": {
+            "path": "browser_demo.mp4",
+            "engine": "browser"
+          }
+        },
+        {
+          "description": "...",
+          "goTo": "https://example.com"
         },
         {
           "description": "Stop recording.",
