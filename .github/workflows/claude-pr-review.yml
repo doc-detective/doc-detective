@@ -55,6 +55,7 @@ jobs:
             PR NUMBER: ${{ github.event.pull_request.number }}
             PR TITLE: ${{ github.event.pull_request.title }}
             PR DESCRIPTION: ${{ github.event.pull_request.body }}
+            PR AUTHOR: ${{ github.event.pull_request.user.login }}
 
             Perform a thorough code review of this pull request. Focus areas:
 
@@ -91,6 +92,12 @@ jobs:
               - One-line verdict with reasoning.
               - Issues grouped by severity: **Blocking**, **Important**, **Nit**. Each entry: short description + file:line link.
               - If no issues: confirm PR looks good.
+
+            If PR AUTHOR is `promptless[bot]`, this PR was opened by Promptless, which only
+            responds to review feedback when it is explicitly mentioned. You MUST include the
+            literal trigger text `@Promptless` in the review body (e.g. address the summary to
+            "@Promptless" so it picks up your feedback). Without that trigger text Promptless will
+            not respond, so do not omit it for Promptless-authored PRs.
 
             Prefer the pending-review flow over create_issue_comment / inline_comment tools — we want a single cohesive review on the PR, not scattered comments.
           claude_args: |
