@@ -147,61 +147,67 @@ navigation:
           - page: Detected tests
             path: pages/docs/tests/detected.mdx
             slug: detected
-          - section: Input formats
-            slug: input-formats
-            contents:
-              - page: Overview
-                path: pages/docs/input-formats/overview.mdx
-                slug: overview
-              - page: Markdown
-                path: pages/docs/input-formats/markdown.mdx
-                slug: markdown
-              - page: DITA
-                path: pages/docs/input-formats/dita.mdx
-                slug: dita
-              - page: AsciiDoc
-                path: pages/docs/input-formats/asciidoc.mdx
-                slug: asciidoc
-              - page: HTML
-                path: pages/docs/input-formats/html.mdx
-                slug: html
-              - page: Custom
-                path: pages/docs/input-formats/custom.mdx
-                slug: custom
-          - page: Capture screenshots
-            path: pages/tutorials/capture-screenshot.mdx
-            slug: capture-screenshots
-          - page: Record video
-            path: pages/tutorials/record-video.mdx
-            slug: record-video
-          - page: Fill fields
-            path: pages/tutorials/fill-fields.mdx
-            slug: fill-fields
-          - page: Test across platforms & browsers
-            path: pages/docs/config/contexts.md
-            slug: platforms-and-browsers
-          - page: Heretto
-            path: pages/docs/integrations/heretto.mdx
-            slug: heretto
-
-      - section: Test code & APIs
-        slug: test-code
-        contents:
-          - page: Overview
-            path: pages/docs/test-code/overview.mdx
-            slug: overview
           - page: Standalone tests
             path: pages/docs/tests/standalone.mdx
             slug: standalone
-          - page: Run shell & code
-            path: pages/docs/test-code/run-shell-and-code.mdx
-            slug: run-shell-and-code
-          - page: HTTP & APIs
-            path: pages/docs/test-code/http-and-api.mdx
-            slug: http-and-api
-          - page: Integrations
-            path: pages/docs/get-started/integrations.mdx
-            slug: integrations
+          # Surface sub-sections are visual groupers only (skip-slug keeps page
+          # URLs flat under /docs/test-docs/…). See docs/content-strategy/
+          # information-architecture.md — one "Test your docs" track, split by
+          # the interface the documented procedure drives.
+          - section: UI procedures
+            skip-slug: true
+            contents:
+              - page: Fill fields
+                path: pages/tutorials/fill-fields.mdx
+                slug: fill-fields
+              - page: Capture screenshots
+                path: pages/tutorials/capture-screenshot.mdx
+                slug: capture-screenshots
+              - page: Record video
+                path: pages/tutorials/record-video.mdx
+                slug: record-video
+          - section: CLI, code & APIs
+            skip-slug: true
+            contents:
+              - page: Run shell & code
+                path: pages/docs/test-code/run-shell-and-code.mdx
+                slug: run-shell-and-code
+              - page: HTTP & APIs
+                path: pages/docs/test-code/http-and-api.mdx
+                slug: http-and-api
+              - page: Integrations
+                path: pages/docs/get-started/integrations.mdx
+                slug: integrations
+          - section: Formats & surfaces
+            skip-slug: true
+            contents:
+              - section: Input formats
+                slug: input-formats
+                contents:
+                  - page: Overview
+                    path: pages/docs/input-formats/overview.mdx
+                    slug: overview
+                  - page: Markdown
+                    path: pages/docs/input-formats/markdown.mdx
+                    slug: markdown
+                  - page: DITA
+                    path: pages/docs/input-formats/dita.mdx
+                    slug: dita
+                  - page: AsciiDoc
+                    path: pages/docs/input-formats/asciidoc.mdx
+                    slug: asciidoc
+                  - page: HTML
+                    path: pages/docs/input-formats/html.mdx
+                    slug: html
+                  - page: Custom
+                    path: pages/docs/input-formats/custom.mdx
+                    slug: custom
+              - page: Test across platforms & browsers
+                path: pages/docs/config/contexts.md
+                slug: platforms-and-browsers
+              - page: Heretto
+                path: pages/docs/integrations/heretto.mdx
+                slug: heretto
 
       - section: Run in CI & at scale
         slug: ci
@@ -374,9 +380,21 @@ redirects:
   - source: /docs/tests/detected
     destination: /docs/test-docs/detected
   - source: /docs/tests/standalone-tests
-    destination: /docs/test-code/standalone
+    destination: /docs/test-docs/standalone
   - source: /docs/tests/standalone
-    destination: /docs/test-code/standalone
+    destination: /docs/test-docs/standalone
+  # Test code & APIs track dissolved into the "Test your docs" umbrella
+  # (CLI, code & APIs sub-section). Redirect the former /docs/test-code/* URLs.
+  - source: /docs/test-code/overview
+    destination: /docs/test-docs/overview
+  - source: /docs/test-code/standalone
+    destination: /docs/test-docs/standalone
+  - source: /docs/test-code/run-shell-and-code
+    destination: /docs/test-docs/run-shell-and-code
+  - source: /docs/test-code/http-and-api
+    destination: /docs/test-docs/http-and-api
+  - source: /docs/test-code/integrations
+    destination: /docs/test-docs/integrations
   # Input formats → Test your docs (explicit; Fern redirects match literal paths)
   - source: /docs/input-formats/overview
     destination: /docs/test-docs/input-formats/overview
@@ -395,11 +413,11 @@ redirects:
     destination: /docs/test-docs/heretto
   - source: /docs/configuration/contexts
     destination: /docs/test-docs/platforms-and-browsers
-  # Get started → CI / Test code / AI / Support
+  # Get started → CI / Test your docs / AI / Support
   - source: /docs/get-started/ci
     destination: /docs/ci/github-action
   - source: /docs/get-started/integrations
-    destination: /docs/test-code/integrations
+    destination: /docs/test-docs/integrations
   - source: /docs/get-started/self-healing
     destination: /ai/self-healing
   - source: /docs/get-started/resources

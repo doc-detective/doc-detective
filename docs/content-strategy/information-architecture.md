@@ -7,10 +7,30 @@ persona's job-to-be-done. The landing page is a router — "What do you want to 
 user into the matching track. Reference material is a **flat lookup shelf** that journeys deep-link
 into: it supports navigation, it does not drive it.
 
-Two product priorities shape the top level:
+**One activity, many interfaces.** Doc Detective has a single job: *test documentation*. Everything it
+does — clicking through a UI walkthrough, running a documented shell command, issuing a documented API
+request — is verifying that a **procedure in the docs** still works. The end-user track is therefore a
+single **"Test your docs"** umbrella, organized underneath by the **kind of interface the documented
+procedure drives**:
 
-- **AI & Agents is a first-class pillar** (its own tab), not a sub-section of each persona.
-- **Contribute is its own tab**, kept out of the end-user tracks.
+- **UI procedures** — docs that walk a reader through a graphical interface (browser or app): find,
+  click, type, fill fields, capture screenshots, record video.
+- **CLI, code & APIs** — docs that show commands, code samples, and API calls: `runShell`, `runCode`,
+  `runBrowserScript`, `httpRequest`, `checkLink`, and OpenAPI-generated tests.
+
+This corrects an earlier framing bug: the IA used to split the top level into "Test your docs" **vs.**
+"Test code & APIs," which read as *docs* on one side and *something other than docs* on the other.
+There is no such split — testing a code sample or an API call **is** testing the docs that document
+them. The real axis is the **interface**, so both live under one "Test your docs" track as
+surface-typed sub-sections.
+
+The remaining top-level tracks are **orthogonal** to interface — they are not "another kind of doc to
+test" but a different concern entirely, so they keep their own tracks:
+
+- **Run in CI & at scale** (Priya) — an *operational* concern: where and how the suite runs.
+- **Build with AI agents** (Aria) — an *authoring-method* concern, and a first-class pillar (its own
+  tab), not a sub-section of each persona.
+- **Contribute** — its own tab, kept out of the end-user tracks.
 
 This is explicitly **not** a Diátaxis tutorial/how-to/reference/explanation split as the top-level
 organizer. Diátaxis page *types* may still inform an individual page's shape, but the navigation is
@@ -29,23 +49,32 @@ that predate this convention.
 ```
 Home — "What do you want to do?" router + 60-second proof
 │
-├─ Get started                       (universal on-ramp → feeds W1)
+├─ Get started                          (universal on-ramp → feeds W1)
 │
-├─ Test your docs        (Wren)      → W1, W2, W3      [LEAD track]
-├─ Test code & APIs      (Diego)     → D1, D2, D3
-├─ Run in CI & at scale  (Priya)     → P1, P2, P3
+├─ Test your docs                       → W1, W2, W3, D1, D2, D3   [LEAD track]
+│   ├─ Authoring: inline · detected · standalone   (where the test lives — surface-neutral)
+│   ├─ UI procedures            (Wren)  → W2   (find/click/type, screenshots, video)
+│   ├─ CLI, code & APIs         (Diego) → D1, D2, D3   (runShell/runCode, httpRequest, OpenAPI)
+│   └─ Formats & surfaces       (W3)    → input formats · platforms/browsers · Heretto
 │
-├─ Build with AI agents  (Aria)      → A1, A2          [PILLAR — own tab]
+├─ Run in CI & at scale  (Priya)        → P1, P2, P3
 │
-├─ Troubleshoot          (X-cut)     → X1              (high-traffic)
+├─ Build with AI agents  (Aria)         → A1, A2          [PILLAR — own tab]
 │
-├─ Reference (lookup shelf)          → Concepts/Glossary · Actions · Configuration ·
-│                                       CLI · Contexts & surfaces · Selectors ·
-│                                       Input formats · Schemas
+├─ Troubleshoot          (X-cut)        → X1              (high-traffic)
 │
-├─ Contribute (own tab)              → C1
+├─ Reference (lookup shelf)             → Concepts/Glossary · Actions · Configuration ·
+│                                          CLI · Contexts & surfaces · Selectors ·
+│                                          Input formats · Schemas
+│
+├─ Contribute (own tab)                 → C1
 └─ Support
 ```
+
+Both surface sub-sections sit **inside** the one "Test your docs" track. A reader whose docs mix UI
+walkthroughs and API calls stays in a single track and picks the sub-section that matches the
+procedure in front of them — they never have to decide whether their work counts as "docs" or as
+"code & APIs."
 
 ### Fern realization (tabs vs. sidebar sections)
 
@@ -54,22 +83,24 @@ Six header tabs keep the bar legible while honoring "AI as a pillar" and "Contri
 | Header tab | Sidebar sections |
 |---|---|
 | **Home** | router |
-| **Documentation** | Get started · Test your docs · Test code & APIs · Run in CI & at scale · Troubleshoot |
+| **Documentation** | Get started · Test your docs · Run in CI & at scale · Troubleshoot |
 | **AI & Agents** | A1, A2 (pillar) |
 | **Reference** | the lookup shelf |
 | **Contribute** | C1 |
 | **Support** | Support · Resources · Legal |
 
-**Variant (one-line change in `docs.yml`):** promote the three Documentation tracks to their own
-header tabs (Writers / Developers / CI) for maximum persona prominence — at the cost of ~8 tabs. The
-recommended default keeps them as sidebar sections under **Documentation**.
+The surface split (UI procedures / CLI, code & APIs) is realized as **sub-sections within the
+"Test your docs" sidebar section**, not as separate top-level sections. They are visual groupers; page
+URLs stay flat under `/docs/test-docs/…` so moving a page between surface groups never changes its
+slug.
 
 > **Implementation status.** The nav, tabs, sections, page URLs (via explicit `slug`s in `docs.yml`),
-> and redirects below are **live** — the new IA is in effect and `fern check` passes. To avoid breaking
-> colocated assets (e.g. the tutorials' shared `TestExamples.zip` and `img/`), the **page files have not
-> yet been physically relocated** into the directories in the table below; they keep their current paths
-> while serving the new slugs. Physically moving files to match this map (carrying their assets) is a
-> deferred mechanical pass.
+> and redirects below are **live** — the umbrella "Test your docs" track (with the UI and CLI/code/API
+> sub-sections) is in effect and `fern check` passes. To avoid breaking colocated assets (e.g. the
+> tutorials' shared `TestExamples.zip` and `img/`), the **page files have not yet been physically
+> relocated** into the directories in the table below; they keep their current paths (some still under
+> `pages/docs/test-code/`) while serving the new `/docs/test-docs/…` slugs. Physically moving files to
+> match this map (carrying their assets) is a deferred mechanical pass.
 
 ### Directory mapping (Fern content paths)
 
@@ -77,8 +108,7 @@ recommended default keeps them as sidebar sections under **Documentation**.
 |---|---|
 | Home (router) | `index.mdx` |
 | Get started | `docs/get-started/` |
-| Test your docs | `docs/test-docs/` |
-| Test code & APIs | `docs/test-code/` |
+| Test your docs (UI + CLI/code/API sub-sections) | `docs/test-docs/` (CLI/code/API pages still served from `docs/test-code/` until the deferred file move) |
 | Run in CI & at scale | `docs/ci/` |
 | Troubleshoot | `docs/troubleshoot/` |
 | Build with AI agents | `ai/` |
@@ -105,31 +135,44 @@ author; the rest are existing pages being moved or retitled.
 | How testing works | W1 | ★ | Standalone vs. inline vs. detected — the three test sources. |
 | Sample tests | W1 | | Worked examples. |
 
-### Test your docs — Wren — `docs/test-docs/`
+### Test your docs — Wren (UI) + Diego (CLI/code/API) — `docs/test-docs/`
+
+One track for the whole doc-testing job, sub-divided by the interface the documented procedure drives.
+
+**Track foundations (surface-neutral — where the test lives)**
 
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
-| Track overview / start here (new) | W1 | ★ | Routes Wren through W1→W2→W3. |
-| Inline tests | W2 | ★ | |
-| Detected tests | W2 | ★ | |
-| Input formats (overview + Markdown/DITA/AsciiDoc/HTML/Custom) | W3 | ★ | |
+| Track overview / start here | W1, D1 | ★ | Frames the one job, routes by surface (UI vs. CLI/code/API). |
+| Inline tests | W2 | ★ | Tests embedded in a doc source file. |
+| Detected tests | W2 | ★ | Tests inferred from prose. |
+| Standalone test specs | D1 | ★ | `*.spec.json` files kept beside the docs. |
+
+**UI procedures — Wren**
+
+| Page | CUJ | ★ | Notes |
+|---|---|---|---|
+| Fill fields & UI flows | W2 | | `find`/`click`/`type`/`dragAndDrop`. |
 | Capture screenshots | W2 | ★ | `screenshot`, auto-screenshot. |
 | Record video | W2 | | `record`/`stopRecord`, engines. |
-| Fill fields & UI flows | W2 | | `find`/`click`/`type`/`dragAndDrop`. |
-| Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |
-| Heretto integration | W3 | | |
-| Self-healing for docs *(shared with A2)* | W2 | | |
 
-### Test code & APIs — Diego — `docs/test-code/`
+**CLI, code & APIs — Diego**
 
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
-| Track overview / start here (new) | D1 | ★ | |
-| Standalone test specs | D1 | ★ | |
 | Run shell & code steps | D1 | ★ | `runShell` / `runCode` / `runBrowserScript`, outputs. |
 | HTTP & API testing | D2 | ★ | `httpRequest`, `checkLink`. |
 | Cookies & variables | D2 | | `saveCookie` / `loadCookie` / `loadVariables` / outputs. |
 | Generate tests from OpenAPI | D3 | | `openApi` integration. |
+
+**Formats & surfaces — Wren (cross-surface)**
+
+| Page | CUJ | ★ | Notes |
+|---|---|---|---|
+| Input formats (overview + Markdown/DITA/AsciiDoc/HTML/Custom) | W3 | ★ | Applies to every surface. |
+| Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |
+| Heretto integration | W3 | | |
+| Self-healing for docs *(shared with A2)* | W2 | | |
 
 ### Run in CI & at scale — Priya — `docs/ci/`
 
@@ -220,28 +263,31 @@ Nothing is dropped.
 | Get started / Create your first test | Get started |
 | Get started / Sample tests | Get started / Sample tests |
 | Get started / CI | Run in CI & at scale / GitHub Action recipe |
-| Get started / Integrations | Split: Heretto→Test your docs; OpenAPI→Test code & APIs; orchestration→CI |
+| Get started / Integrations | Split: Heretto→Test your docs (Formats & surfaces); OpenAPI→Test your docs (CLI, code & APIs); orchestration→CI |
 | Get started / Self-healing | AI & Agents / Self-healing (linked into Test your docs) |
 | Get started / Resources | Support / Resources |
 | Agent tools / * | AI & Agents (pillar) |
 | Configuration / Contexts | Reference / Contexts & surfaces |
 | Tests / Overview | Get started / How testing works |
-| Tests / Standalone | Test code & APIs |
-| Tests / Inline, Detected | Test your docs |
-| Input formats / * | Test your docs / Input formats |
-| Integrations / Heretto | Test your docs |
+| Tests / Standalone | Test your docs / CLI, code & APIs |
+| Tests / Inline, Detected | Test your docs (foundations) |
+| Input formats / * | Test your docs / Formats & surfaces / Input formats |
+| Integrations / Heretto | Test your docs / Formats & surfaces |
+| Test code & APIs / * | Test your docs / CLI, code & APIs (the separate "Test code & APIs" track is dissolved into this sub-section) |
 | Actions / * (17) | Reference / Actions (folder unchanged) |
 | Selectors / CSS, XPath | Reference / Selectors |
 | Contribute / * (18) | Contribute (own tab) |
 | Legal / Privacy policy | Support / Legal |
 | Tutorials / Set up your test environment | Run in CI & at scale |
-| Tutorials / Fill fields | Test your docs |
-| Tutorials / Capture screenshot, Record video | Test your docs |
+| Tutorials / Fill fields | Test your docs / UI procedures |
+| Tutorials / Capture screenshot, Record video | Test your docs / UI procedures |
 | Reference / Glossary | Reference / Glossary |
 | Reference / Schemas | Reference / Schemas (folder unchanged) |
 
-The standalone *Tutorials* tab is dissolved into the audience tracks. The `actions/` and
-`reference/schemas/` folders stay in place to avoid churning the ~67 auto-generated pages.
+The standalone *Tutorials* tab is dissolved into the audience tracks, and the former top-level *Test
+code & APIs* track is folded into "Test your docs" as the **CLI, code & APIs** sub-section. The
+`actions/` and `reference/schemas/` folders stay in place to avoid churning the ~67 auto-generated
+pages.
 
 ---
 
@@ -265,9 +311,10 @@ The "source of truth" for those rows is the schema; the page is an artifact.
 
 ## Phased rollout
 
-- **Phase 1 — Launch (★):** content-strategy dir; Home router; Get started on-ramp; the three
-  Documentation track overviews + their ★ pages; AI pillar ★ pages; Troubleshoot; the full Reference
-  shelf including the two net-new pages (Configuration, CLI). Redirects for every moved slug.
+- **Phase 1 — Launch (★):** content-strategy dir; Home router; Get started on-ramp; the "Test your
+  docs" track (foundations + UI and CLI/code/API sub-sections + their ★ pages); the CI track overview
+  + ★ pages; AI pillar ★ pages; Troubleshoot; the full Reference shelf including the two net-new pages
+  (Configuration, CLI). Redirects for every moved slug.
 - **Phase 2 — Depth:** remaining per-track pages (other CI recipes, concurrency, orchestration,
   OpenAPI, agent best-practices, record/fill-fields polish).
 - **Phase 3 — Polish:** prose-quality pass per page; cross-persona refinements.

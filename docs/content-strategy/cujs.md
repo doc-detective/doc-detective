@@ -1,14 +1,21 @@
 # Critical User Journeys (CUJs)
 
 A CUJ is a complete, end-to-end outcome a persona must be able to reach using Doc Detective and its
-documentation. The CUJs are the organizing principle for the IA: each top-level nav track maps to one
-persona's set of journeys, and every page is justified by the CUJ it serves.
+documentation. The CUJs are the organizing principle for the IA, and every page is justified by the
+CUJ it serves.
 
-See `information-architecture.md` for the page-level content set and which pages carry each CUJ.
+Most top-level nav tracks map to one persona's set of journeys. The exception is the lead **"Test your
+docs"** track, which carries **both** Wren's journeys (W1–W3) and Diego's (D1–D3): both are testing
+documentation, so they share one track, split underneath by the **interface the documented procedure
+drives** — UI procedures (Wren) vs. CLI, code & APIs (Diego). See
+`information-architecture.md` for the page-level content set and which pages carry each CUJ.
 
 ---
 
-## Wren — Documentation engineer
+## Wren — Documentation engineer (UI procedures)
+
+Wren's docs walk readers through a graphical interface; her journeys live in the **UI procedures**
+sub-section of the "Test your docs" track.
 
 ### W1 · Stand up doc testing for my docs
 
@@ -35,7 +42,11 @@ trip through the Heretto integration.
 
 ---
 
-## Diego — Example & API testing
+## Diego — Developer (CLI, code & APIs)
+
+Diego is testing docs too — the procedures in his docs are commands, code samples, and API calls
+rather than UI flows. His journeys live in the **CLI, code & APIs** sub-section of the same "Test your
+docs" track.
 
 ### D1 · Verify code samples and CLI commands
 
