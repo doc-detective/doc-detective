@@ -10,6 +10,8 @@ serves. Names are chosen so the Critical User Journey codes are mnemonic (W / D 
 
 Wren owns a large docs-as-code site for a platform product. She is fluent in Markdown, YAML, Git, and
 reading a CI config. She is not a JSON Schema expert and doesn't want to hand-write test internals.
+Her docs mostly walk readers through a **graphical interface**, so she lives in the **UI procedures**
+sub-section of the "Test your docs" track — the same track Diego uses for CLI, code, and API docs.
 
 **Goal:** every procedure, UI flow, and screenshot in the docs stays accurate as the product ships.
 
@@ -32,9 +34,12 @@ contexts → CI in a single coherent path.
 ## Diego — Developer / SDK & API Engineer
 
 Diego maintains code samples and API reference content. He has high technical proficiency and scripts
-freely.
+freely. He is doing the same job as Wren — keeping the docs correct — but the procedures in his docs
+drive a **terminal or an HTTP endpoint** rather than a UI, so he lives in the **CLI, code & APIs**
+sub-section of the shared "Test your docs" track.
 
-**Goal:** prove that every sample, command, and API call in the docs works against the real product.
+**Goal:** prove that every sample, command, and API call documented in the docs works against the real
+product.
 
 **Pains:**
 - Code samples drift from the SDK as it changes.

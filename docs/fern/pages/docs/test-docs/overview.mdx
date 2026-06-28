@@ -1,10 +1,26 @@
 ---
 title: Test your docs
-description: Keep your procedures, screenshots, and UI flows accurate automatically.
+description: Verify that the procedures in your docs stay correct automatically, whether they walk through a UI, run commands and code, or call an API.
 ---
 
 <Note>
-This page is a placeholder created during the documentation information-architecture overhaul. Full content is planned — see the content set in `docs/content-strategy/information-architecture.md`.
+The detailed per-section pages linked from this overview are still in progress. See the content set in `docs/content-strategy/information-architecture.md`.
 </Note>
 
-Start here if you write documentation and want it to stay correct as your product ships. This track walks you through authoring tests in your docs, capturing fresh screenshots and video, testing across formats and platforms, and keeping the suite healthy.
+Doc Detective tests your documentation by running the procedures it describes and checking they still work. Whatever interface a procedure drives (a graphical UI, a command line, or an HTTP API), you're still testing your docs. This track covers all of it, organized by the kind of interface in front of you.
+
+## Where your tests live
+
+You can write your docs however you like and still keep tests **inline** in a source file, let Doc Detective **detect** them from your prose, or maintain them as **standalone** spec files. Start with these regardless of which interface your procedures drive.
+
+## Test UI procedures
+
+For docs that walk a reader through a graphical interface: find and click elements, fill fields, capture fresh screenshots, and record video so visual steps never drift from the product.
+
+## Test CLI, code & APIs
+
+For docs that show commands, code samples, and API calls: run shell and code steps, exercise HTTP endpoints and check links, and generate tests from an OpenAPI spec so a sample that breaks fails the build.
+
+## Across formats and surfaces
+
+All of the above works across input formats (Markdown, DITA, AsciiDoc, HTML, or a custom format) and across platforms and browsers via contexts, so the same docs stay correct everywhere they run.

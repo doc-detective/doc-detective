@@ -92,7 +92,7 @@ You must enable GitHub Actions to create pull requests for your repository. Go t
 
 ## Create issues on test failure
 
-If tests fail, you can automatically create a GitHub issue to track the problem. You can also trigger [integrations](/docs/test-code/integrations) to investigate and fix failures.
+If tests fail, you can automatically create a GitHub issue to track the problem. You can also trigger [integrations](/docs/test-docs/integrations) to investigate and fix failures.
 
 ```yaml
 name: doc-detective
@@ -122,7 +122,7 @@ jobs:
 | `issue_body` | See default | Issue body (`$RESULTS` inserts test results, `$RUN_URL` inserts workflow URL, `$PROMPT` inserts the prompt text) |
 | `issue_labels` | `doc-detective` | Comma-separated labels |
 | `issue_assignees` | None | Comma-separated usernames to assign |
-| `integrations` | None | Comma-separated integrations to trigger (see [Integrations](/docs/test-code/integrations)) |
+| `integrations` | None | Comma-separated integrations to trigger (see [Integrations](/docs/test-docs/integrations)) |
 | `prompt` | See default | Custom prompt to pass to integrations |
 
 ## Action outputs
