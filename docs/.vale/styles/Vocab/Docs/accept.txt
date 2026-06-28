@@ -94,3 +94,8 @@ deregisters
 readyWhen
 ignoreMissing
 stopProcess
+UUIDs
+runId
+runFolder
+autoScreenshot
+autoRecord
