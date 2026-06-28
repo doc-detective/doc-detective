@@ -137,7 +137,7 @@ author; the rest are existing pages being moved or retitled.
 
 ### Test your docs — Wren (UI) + Diego (CLI/code/API) — `docs/test-docs/`
 
-One track for the whole doc-testing job, sub-divided by the interface the documented procedure drives.
+One track for the whole doc-testing job, subdivided by the interface the documented procedure drives.
 
 **Track foundations (surface-neutral — where the test lives)**
 
