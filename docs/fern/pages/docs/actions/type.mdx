@@ -12,7 +12,10 @@ You can specify the keys to type in several ways:
 - **Array Shorthand:** Provide an array of strings. Each string in the array is typed sequentially. This allows mixing regular text with [special keys](#special-keys).
 - **Object Format:** Use an object for more control:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
-  - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible.
+  - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible.
+  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to send keystrokes to a background process instead. See [Type to a background process](#type-to-a-background-process).
+  - `waitUntil`: (Optional) After sending the keys, wait until the process output matches or a fixed delay elapses. Only valid with a process `surface`. See [Type to a background process](#type-to-a-background-process).
+  - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys. Only applies with a process `surface`.
 
 **Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
 
@@ -82,6 +85,50 @@ Here's a list of special keys you can use:
 | F10            | $F10$              |
 | F11            | $F11$              |
 | F12            | $F12$              |
+
+## Type to a background process
+
+By default, `type` sends keystrokes to the active element in the browser. Set `surface` to send them to a background process instead. This lets you drive an interactive CLI or REPL, such as `node -i` or `python -i`, that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. To drive a full-screen terminal UI (TUI) this way, start the process with `background.tty` set to `true` so it runs under a pseudo-terminal. See [Full-screen terminal UIs](/docs/actions/run-shell#full-screen-terminal-uis).
+
+A process surface is the only surface kind supported in this release. Browser and app surfaces aren't supported yet, and targeting one fails the step.
+
+Identify the process with `surface`, using either form:
+
+- **String name:** The process `name` you set on the `runShell` or `runCode` step that started it.
+- **Object:** A `{ "process": "<name>" }` object that names the process explicitly.
+
+Doc Detective writes the keys to the process's standard input, applying `inputDelay` (default `100` ms) between keystrokes. If no background process with that name is running, the step fails. Because the keystrokes go to a process rather than to a page element, you can't use the element-finding fields (`selector`, `elementText`, and the other `element*` fields) when you set a `surface`.
+
+### Control keys for processes
+
+A process surface uses its own key map, separate from the special keys used for browser typing. Use these codes to send control bytes and navigation keys:
+
+| Key       | Code           | Sends                  |
+| :-------- | :------------- | :--------------------- |
+| Enter     | $ENTER$        | Carriage return (`\r`) |
+| Return    | $RETURN$       | Carriage return (`\r`) |
+| Tab       | $TAB$          | Tab (`\t`)             |
+| Escape    | $ESCAPE$       | Escape                 |
+| Backspace | $BACKSPACE$    | Backspace              |
+| Space     | $SPACE$        | Space                  |
+| Delete    | $DELETE$       | Delete                 |
+| Arrow Up    | $ARROW_UP$     | Up arrow               |
+| Arrow Down  | $ARROW_DOWN$   | Down arrow             |
+| Arrow Right | $ARROW_RIGHT$  | Right arrow            |
+| Arrow Left  | $ARROW_LEFT$   | Left arrow             |
+
+`$CTRL$` applies to the next key in the sequence. Followed by a single letter, it sends that control byte, so `["$CTRL$", "c"]` sends `Ctrl+C`. Followed by another code, it sends that code's byte. Any other string passes through to the process as-is.
+
+### Wait for the process to respond
+
+After sending the keys, use `waitUntil` to wait for the process before the step finishes. It's valid only with a process `surface`, and it takes either condition:
+
+- `stdio`: Wait until the process's combined stdout and stderr matches this content. Supports strings and regular expressions; to use a regular expression, start and end the string with a forward slash, as in `/^42$/`.
+- `delayMs`: Wait at least this many milliseconds. An integer, minimum 0.
+
+`timeout` (default `5000` ms) caps how long Doc Detective waits for `waitUntil`. When you set a `stdio` condition, the step asserts that the output matched, so it fails if the expected output doesn't appear before `timeout` elapses. If you omit `waitUntil`, the step sends the keys and finishes without waiting.
+
+The step records the process `name`, the captured `stdout` and `stderr`, and whether the `stdio` condition matched in its `outputs`.
 
 ## Examples
 
@@ -182,6 +229,70 @@ Here's a list of special keys you can use:
         {
           "description": "Stop recording",
           "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Drive an interactive REPL (process surface)
+
+This example starts `node -i` in the background, waits until the prompt appears, types an expression, and waits until the REPL prints `42`. It then closes the process with a [`closeSurface`](/docs/actions/close-surface) step.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start a Node REPL in the background.",
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "repl",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            }
+          }
+        },
+        {
+          "description": "Evaluate an expression and wait for the result.",
+          "type": {
+            "keys": ["6 * 7", "$ENTER$"],
+            "surface": "repl",
+            "waitUntil": {
+              "stdio": "/42/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "description": "Close the REPL.",
+          "closeSurface": "repl"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Send Ctrl+C to a process
+
+This example sends `Ctrl+C` to a running background process. Without a `waitUntil`, the step finishes as soon as the keys are sent.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Interrupt the process.",
+          "type": {
+            "keys": ["$CTRL$", "c"],
+            "surface": { "process": "repl" }
+          }
         }
       ]
     }

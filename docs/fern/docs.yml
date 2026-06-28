@@ -280,6 +280,9 @@ navigation:
           - page: Glossary
             path: pages/reference/glossary.mdx
             slug: glossary
+          - page: Expressions
+            path: pages/reference/expressions.mdx
+            slug: expressions
           - page: CLI commands & flags
             path: pages/reference/cli.mdx
             slug: cli
