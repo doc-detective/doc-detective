@@ -1,0 +1,14 @@
+{
+  "specId": "ordering-cleanup-after",
+  "description": "Test-level cleanup: `after` appends the cleanup spec's steps. Happy path (all steps pass) — the on-failure hard-routing permutation lives in test/core-ordering.test.js because it FAILs by design.",
+  "tests": [
+    {
+      "after": "./_cleanup.spec.json",
+      "steps": [
+        {
+          "runShell": "echo ordering-main"
+        }
+      ]
+    }
+  ]
+}

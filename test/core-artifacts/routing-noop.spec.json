@@ -1,0 +1,50 @@
+{
+  "description": "Phase 1 forward-compat: dynamic-routing fields (onPass/onFail/onWarning/onSkip, if, assertions) validate everywhere and are ignored by the runner. The runShell action re-validates the step against step_v3 internally, so an unrecognized field would FAIL the step. This spec must resolve PASS on every OS.",
+  "if": "true",
+  "tests": [
+    {
+      "if": "true",
+      "onPass": [
+        {
+          "continue": true
+        }
+      ],
+      "onFail": [
+        {
+          "stop": "test"
+        }
+      ],
+      "steps": [
+        {
+          "description": "Cross-platform command (Node is always present). Inert routing attached.",
+          "if": "true",
+          "assertions": "$$outputs.exitCode == 0",
+          "onPass": [
+            {
+              "continue": true
+            }
+          ],
+          "onFail": [
+            {
+              "stop": "test"
+            }
+          ],
+          "onWarning": [
+            {
+              "continue": true
+            }
+          ],
+          "onSkip": [
+            {
+              "continue": true
+            }
+          ],
+          "runShell": {
+            "command": "node -e \"console.log('ok')\"",
+            "stdio": "ok"
+          }
+        }
+      ]
+    }
+  ]
+}

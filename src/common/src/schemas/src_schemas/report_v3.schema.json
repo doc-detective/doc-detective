@@ -10,6 +10,16 @@
       "type": "string",
       "description": "Unique identifier for the test specification."
     },
+    "runId": {
+      "type": "string",
+      "description": "Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name (`run-<runId>`). System-populated.",
+      "readOnly": true
+    },
+    "runDir": {
+      "type": "string",
+      "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/run-<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved. Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
+      "readOnly": true
+    },
     "specs": {
       "description": "Test specifications that were performed.",
       "type": "array",

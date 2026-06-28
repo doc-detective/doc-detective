@@ -1,1 +1,6 @@
+# Schema validation tests compile the fully-dereferenced output schemas, which
+# are large (resolvedTests_v3 ~100k lines once routing/assertions inline at every
+# handler site). AJV validation under c8 instrumentation on CI runners exceeds
+# the 2000ms default, so allow more headroom. See the schema-bloat follow-up.
+timeout: 30000
 exit: true

@@ -54,7 +54,7 @@ export async function htmlReporter(
   }
 }
 
-function buildHtml(results: any): string {
+export function buildHtml(results: any): string {
   const reportJson = JSON.stringify(results, null, 2)
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e")

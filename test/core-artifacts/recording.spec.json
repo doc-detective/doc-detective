@@ -1,13 +1,56 @@
 {
   "specId": "recording",
-  "description": "Tests for screen recording start/stop lifecycle. Non-headless tests require Chrome with screen recording permissions and only run on Windows and macOS. Headless tests verify skip/guard behavior on all platforms.",
+  "description": "Tests for screen recording start/stop lifecycle. Covers both engines on a visible display: the browser (Chrome getDisplayMedia) engine, which is concurrency-safe, and the ffmpeg engine (gdigrab on Windows, avfoundation on macOS). Non-headless tests only run on Windows and macOS; headless tests verify skip/guard behavior on all platforms.",
   "tests": [
+    {
+      "testId": "recording-ffmpeg-display",
+      "description": "Record the full display with the ffmpeg engine (gdigrab/avfoundation).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "recording-ffmpeg-display.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
     {
       "testId": "recording-basic",
       "description": "Start and stop a basic recording.",
       "runOn": [
         {
-          "platforms": ["windows", "mac"],
+          "platforms": [
+            "windows",
+            "mac"
+          ],
           "browsers": {
             "name": "chrome",
             "headless": false
@@ -40,7 +83,10 @@
       "description": "Start and stop recording with mp4 output.",
       "runOn": [
         {
-          "platforms": ["windows", "mac"],
+          "platforms": [
+            "windows",
+            "mac"
+          ],
           "browsers": {
             "name": "chrome",
             "headless": false
@@ -73,7 +119,11 @@
       "description": "Recording should be skipped in headless mode.",
       "runOn": [
         {
-          "platforms": ["windows", "mac", "linux"],
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
           "browsers": {
             "name": "chrome",
             "headless": true
@@ -97,7 +147,11 @@
       "description": "Stopping a recording that was never started should be skipped.",
       "runOn": [
         {
-          "platforms": ["windows", "mac", "linux"],
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
           "browsers": {
             "name": "chrome",
             "headless": true
