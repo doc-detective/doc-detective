@@ -46,7 +46,6 @@ Doc Detective skips tests when:
 
 - **Platform mismatch**: The context specifies a platform (Windows, macOS, or Linux) that doesn't match your current operating system.
 - **Browser unavailable**: The context specifies a browser that isn't installed or available on your system after an automatic installation attempt (see [Automatic browser installation](#automatic-browser-installation)).
-- **Driver startup failure**: A platform and browser combination failed to start a driver session earlier in the same run (see [Driver startup memoization](#driver-startup-memoization)).
 - **All contexts skipped**: If all contexts for a test are skipped, the entire test is marked as SKIPPED (not PASS).
 - **Condition not met**: A spec, test, or step has an [`if` condition](#conditional-execution) that evaluates to false.
 
@@ -94,7 +93,7 @@ This keeps your test reporting accurate and prevents skipped tests from incorrec
 
 #### Automatic browser installation
 
-When a context requires a browser that isn't available, Doc Detective tries to install it automatically before skipping. This works for Chrome and Firefox, which can be downloaded on demand along with their WebDriver components (ChromeDriver for Chrome, geckodriver for Firefox).
+When a context requires a browser that isn't available, Doc Detective tries to install it automatically before skipping. This works for Chrome and Firefox, which Doc Detective can download on demand along with their matching drivers.
 
 The installation process:
 
@@ -103,21 +102,7 @@ The installation process:
 3. Re-checks available browsers
 4. Proceeds with the test if installation succeeded, or skips if it failed
 
-Safari and WebKit don't support automatic installation because Safari ships with macOS. If Safari isn't available on your system, Doc Detective skips those contexts without attempting installation.
-
-Doc Detective remembers installation outcomes during a test run. If an automatic installation fails for a browser, Doc Detective won't retry that installation for other contexts in the same run.
-
-#### Driver startup memoization
-
-Doc Detective tracks which platform and browser combinations successfully start a driver session. If a combination (like `linux::firefox`) fails to start a driver—even after retrying in headless mode—Doc Detective marks it as failed for the rest of the run.
-
-Later contexts using the same combination skip immediately instead of re-attempting driver startup. This prevents repeated slow failures from blocking multiple tests.
-
-The skip message indicates the earlier failure:
-
-```
-Skipping context 'firefox' on 'linux': this context combination could not start a driver earlier in this run.
-```
+Safari doesn't support automatic installation because it ships with macOS. If Safari isn't available on your system, Doc Detective skips those contexts without attempting installation. (Doc Detective resolves the `webkit` browser name to Safari, so `webkit` contexts follow the same rule.)
 
 ### Warning results
 
