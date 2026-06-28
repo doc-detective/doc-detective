@@ -45,6 +45,13 @@ wins; the `defaultConfig` tier is the guaranteed floor.
   pipeline (file/env validated, then CLI overlaid) — the same ordering, formalized through AJV.
 * Bad: `||` fallthrough treats falsy-but-intentional values the same as unset (later refined).
 
+### Confirmation
+
+Shipped in commit `7ec6865a`: the resolution chain `argv > env > config > defaultConfig`, with each
+resolved field (`setEnv`, `input`, `output`, `setup`, `cleanup`) appending `|| defaultConfig.X`.
+Observable as a zero-config invocation succeeding (every field resolves to a default) and any
+higher-priority source overriding a lower one for the same key.
+
 ## Pros and Cons of the Options
 
 ### A. argv > env > config > defaultConfig
