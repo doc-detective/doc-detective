@@ -8,6 +8,7 @@ let buildFallbackCandidates;
 let driverSkipDiagnostic;
 let ensureContextBrowserInstalled;
 let resolveBrowserFallbackPolicy;
+let shouldRepairBeforeFallback;
 
 before(async function () {
   ({
@@ -15,6 +16,7 @@ before(async function () {
     driverSkipDiagnostic,
     ensureContextBrowserInstalled,
     resolveBrowserFallbackPolicy,
+    shouldRepairBeforeFallback,
   } = await import("../dist/core/tests.js"));
 });
 
@@ -165,6 +167,64 @@ describe("resolveBrowserFallbackPolicy (context overrides config)", function () 
 
   it("defaults to 'auto' when neither context nor config sets a policy", function () {
     assert.equal(resolveBrowserFallbackPolicy({ context: {}, config: {} }), "auto");
+  });
+});
+
+describe("shouldRepairBeforeFallback (repair before substituting engines)", function () {
+  it("repairs the requested engine when it has driver assets and wasn't attempted yet", function () {
+    assert.equal(
+      shouldRepairBeforeFallback({
+        candidateName: "firefox",
+        requestedName: "firefox",
+        installAttempts: new Map(),
+      }),
+      true
+    );
+  });
+
+  it("treats webkit/safari as the same engine for the requested-match check", function () {
+    assert.equal(
+      shouldRepairBeforeFallback({
+        candidateName: "safari",
+        requestedName: "webkit",
+        installAttempts: new Map(),
+      }),
+      // safari has no installable driver assets → not repairable
+      false
+    );
+  });
+
+  it("does NOT repair a fallback substitute (candidate != requested)", function () {
+    assert.equal(
+      shouldRepairBeforeFallback({
+        candidateName: "chrome",
+        requestedName: "firefox",
+        installAttempts: new Map(),
+      }),
+      false
+    );
+  });
+
+  it("does NOT repair an engine already attempted this run (memoized)", function () {
+    assert.equal(
+      shouldRepairBeforeFallback({
+        candidateName: "firefox",
+        requestedName: "firefox",
+        installAttempts: new Map([["firefox", "failed"]]),
+      }),
+      false
+    );
+  });
+
+  it("does NOT repair a browser with no installable driver assets (safari)", function () {
+    assert.equal(
+      shouldRepairBeforeFallback({
+        candidateName: "safari",
+        requestedName: "safari",
+        installAttempts: new Map(),
+      }),
+      false
+    );
   });
 });
 

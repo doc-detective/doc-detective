@@ -82,10 +82,16 @@ context (e.g. a Safari-only context) to `off`.
 3. **Self-heal repair** (`src/core/tests.ts`). When a context's browser is unavailable, the on-demand
    install path repairs it — `ensureContextBrowserInstalled({ repair: true })` force-reinstalls the
    *driver* asset (not the browser binary) so a partial/corrupt driver is replaced and re-validated.
+   Repair is attempted at two points so it always precedes a fallback: (a) when Layer 2 *excluded* the
+   requested browser, and (b) when the requested browser was offered but its *session* failed to start
+   — `shouldRepairBeforeFallback` gates a one-time repair-and-retry of the requested engine before the
+   loop substitutes another browser, so a present-but-broken driver Layer 2 couldn't pre-validate
+   doesn't cause an unnecessary fallback.
 4. **Cross-engine fallback** (`src/core/tests.ts`). `buildFallbackCandidates` produces the ordered
    list of engines to attempt — requested first, then every other available engine when policy
-   permits (`webkit` normalized to `safari`). `runContext` tries each headed→headless; the first
-   success wins, and the per-combination warm-up memo is reused so a known-bad engine isn't retried.
+   permits (`webkit` normalized to `safari`). `runContext` tries each headed→headless (repairing the
+   requested engine once on a start failure, per Layer 3); the first success wins, and the
+   per-combination warm-up memo is reused so a known-bad engine isn't retried.
 5. **Graded reporting** (`src/core/tests.ts`). Running on a fallback engine annotates the context
    (`requested unavailable; ran on <engine>`). An auto-selected browser keeps **PASS**; an explicitly
    pinned browser that was substituted is downgraded **PASS → WARNING**. When no engine starts, the

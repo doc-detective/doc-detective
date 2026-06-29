@@ -111,6 +111,7 @@ export {
   buildFallbackCandidates,
   driverSkipDiagnostic,
   resolveBrowserFallbackPolicy,
+  shouldRepairBeforeFallback,
   isSupportedContext,
   resolveAutoScreenshot,
   resolveAutoRecord,
@@ -430,6 +431,32 @@ function resolveBrowserFallbackPolicy({
   config: any;
 }): string {
   return context?.browserFallback || config?.browserFallback || "auto";
+}
+
+/**
+ * Whether to attempt a driver repair before falling back away from a browser
+ * whose session just failed to start. We only repair the *requested* engine
+ * (so a fallback substitute that fails isn't itself repaired), only when it has
+ * installable driver assets (Safari ships with the OS — nothing to repair), and
+ * only once per browser per run (a prior attempt already recorded an outcome in
+ * `installAttempts`). This is what keeps a present-but-broken driver from
+ * causing an unnecessary fallback when a reinstall would have fixed it. Pure
+ * and exported so the decision is unit-testable.
+ */
+function shouldRepairBeforeFallback({
+  candidateName,
+  requestedName,
+  installAttempts,
+}: {
+  candidateName: string;
+  requestedName: string;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+}): boolean {
+  if (normalizeBrowserName(candidateName) !== normalizeBrowserName(requestedName)) {
+    return false;
+  }
+  if (requiredBrowserAssets(candidateName).length === 0) return false;
+  return !installAttempts.has((candidateName ?? "<none>").toLowerCase());
 }
 
 /**
@@ -2719,7 +2746,38 @@ async function runContext({
           lastError = `context combination '${candidateName}' on '${platform}' could not start a driver earlier in this run.`;
           continue;
         }
-        const res = await startDriverForBrowser(candidateName);
+        let res = await startDriverForBrowser(candidateName);
+        // The requested engine's session failed — its driver may be present but
+        // broken (e.g. a partial download Layer 2 couldn't pre-validate). Repair
+        // it once and retry before falling back to a different browser, so we
+        // don't substitute engines unnecessarily.
+        if (
+          !res.ok &&
+          shouldRepairBeforeFallback({
+            candidateName,
+            requestedName: requestedBrowserName,
+            installAttempts,
+          })
+        ) {
+          const outcome = await ensureContextBrowserInstalled({
+            browserName: candidateName,
+            config,
+            installAttempts,
+            deps: {
+              ensureBrowser: (asset, options) =>
+                ensureBrowserInstalled(asset, options),
+              log,
+            },
+            repair: true,
+          });
+          if (outcome === "installed") {
+            clog(
+              "info",
+              `Repaired '${candidateName}' driver after a start failure; retrying before falling back.`
+            );
+            res = await startDriverForBrowser(candidateName);
+          }
+        }
         if (res.ok) {
           driver = res.driver;
           startedName = candidateName;
