@@ -487,7 +487,9 @@ async function ensureBrowserInstalledImpl(
     platform
   );
 
-  // For drivers, validate by execution before recording the install. A
+  // Validate chromedriver by execution before recording the install (this
+  // branch only handles @puppeteer/browsers assets; geckodriver validation
+  // lives in ensureGeckodriver, and Safari's driver ships with macOS). A
   // browser binary (chrome/firefox) is launched by the driver and self-checks
   // at session start, but the driver itself is the thing that, when partially
   // downloaded, runs and fails — so confirm it actually reports a version. On

@@ -62,9 +62,9 @@ async function verifyAppDrivers(
       logger(
         `Excluding ${
           d.app?.name ?? d.driverName
-        } from available browsers: its ${d.driverName} driver is present but non-functional (${
-          res.error
-        }). Likely a partial or corrupt download.`,
+        } from available browsers: its ${d.driverName} driver is present but did not validate (${
+          res.error ?? "no error reported"
+        }). Possible causes include a partial or corrupt download, a permissions issue, or a missing dependency.`,
         "warning"
       );
     }
