@@ -1,3 +1,11 @@
+# [4.17.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0-last-verified-on.1) (2026-06-29)
+
+
+### Features
+
+* **reporter:** nest run artifacts as REST-style runs/specs/tests/contexts tree ([#415](https://github.com/doc-detective/doc-detective/issues/415)) ([cc709be](https://github.com/doc-detective/doc-detective/commit/cc709bec3f370a17d4974fad0d869c36f502e95e))
+* **runner:** write "Last Verified On" dates back into source docs ([4a3848c](https://github.com/doc-detective/doc-detective/commit/4a3848c4178b88292d24b32438fa11e743580e63))
+
 # [4.17.0-nested-run-artifacts.1](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0-nested-run-artifacts.1) (2026-06-29)
 
 
