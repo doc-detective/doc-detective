@@ -2589,7 +2589,10 @@ async function runContext({
       ? `Skipping context '${requestedBrowserName}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
       : driverSkipDiagnostic({
           requestedName: requestedBrowserName ?? "<none>",
-          platform: context.platform,
+          // driverSkipDiagnostic treats `platform` as the *current* runner
+          // platform (as in the !startedName path), so pass that — not the
+          // context's target platform — or the mismatch message mislabels it.
+          platform,
           platformMatches,
           attemptedFallback: false,
         });
