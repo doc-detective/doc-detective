@@ -579,9 +579,19 @@ async function ensureGeckodriver(
     // binary path, not just the cache directory — matches the contract
     // EnsureBrowserResult documents. Tests can inject `geckodriverModule`
     // via deps to skip the real loader; in production we lazy-resolve.
-    const gecko =
-      ctxBag.deps.geckodriverModule ??
-      (await loadGeckodriver(ctxBag.deps, ctxBag.ctx));
+    // geckodriver resolves `.path` from GECKODRIVER_CACHE_DIR at module load,
+    // so point it at our cache before loading (and restore after).
+    const prevEnv = process.env.GECKODRIVER_CACHE_DIR;
+    process.env.GECKODRIVER_CACHE_DIR = cacheDir;
+    let gecko: any;
+    try {
+      gecko =
+        ctxBag.deps.geckodriverModule ??
+        (await loadGeckodriver(ctxBag.deps, ctxBag.ctx));
+    } finally {
+      if (prevEnv === undefined) delete process.env.GECKODRIVER_CACHE_DIR;
+      else process.env.GECKODRIVER_CACHE_DIR = prevEnv;
+    }
     return {
       path: resolveBinaryPath(gecko),
       version: existing.installedVersion,
@@ -597,11 +607,13 @@ async function ensureGeckodriver(
         existing.latestKnownVersion !== existing.installedVersion,
     };
   }
-  const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);
-  // geckodriver writes binaries into the env-var-pointed dir; alias to ours.
+  // geckodriver writes binaries into — and resolves `.path`/version from — the
+  // env-var-pointed dir at module load, so alias it to our cache BEFORE loading
+  // the module; otherwise resolveBinaryPath(gecko) can point at the wrong path.
   const prevEnv = process.env.GECKODRIVER_CACHE_DIR;
   process.env.GECKODRIVER_CACHE_DIR = cacheDir;
   try {
+    const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);
     logger(`Installing geckodriver into ${cacheDir}`, "info");
     await gecko.download();
     // Validate by execution, not just presence: a partial download (seen on

@@ -892,7 +892,9 @@ async function getAvailableApps({ config }: any) {
 
     if (safariVersion.exitCode === 0 && appiumSafari) {
       // safaridriver ships with macOS at a fixed path; verifying it executes
-      // also catches the "Allow Remote Automation" disabled case indirectly.
+      // confirms the binary runs. Note this does NOT prove "Allow Remote
+      // Automation" is enabled — that can still be off and only surface at
+      // session start, where the cross-browser fallback then takes over.
       descriptors.push({
         app: { name: "safari", version: safariVersion.stdout.trim(), path: "" },
         driverName: "safaridriver",

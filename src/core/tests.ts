@@ -371,9 +371,12 @@ function normalizeBrowserName(name: string | undefined): string {
  * heart of the any-browser → any-available-browser fallback. The requested
  * engine is tried first (when it's actually available); then, when the
  * `browserFallback` policy permits, every *other* available engine follows in
- * a stable preference order. Every returned name is present in `availableApps`
- * (so getDriverCapabilities has real binary/driver paths), and `webkit` is
- * normalized to `safari` for dedupe.
+ * a stable preference order. Every returned name maps to an available engine —
+ * the requested name is preserved as authored (so `webkit` can be returned even
+ * though `availableApps` lists it as `safari`), while fallback names come
+ * straight from `availableApps`; `webkit` is normalized to `safari` only for
+ * the availability lookup and dedupe. getDriverCapabilities accepts both
+ * aliases, so either resolves to real binary/driver paths.
  *
  * Policy:
  *  - "auto"     → fall back for both auto-selected and explicitly pinned browsers.
@@ -2736,9 +2739,12 @@ async function runContext({
       }
 
       // Reflect a headless fallback on the context so downstream logic and the
-      // report agree with what actually launched.
+      // report agree with what actually launched. Replacing context.browser
+      // makes a new object, so re-point contextReport.browser (set earlier to
+      // the original) at it or the report keeps stale headless metadata.
       if (startedHeadless) {
         context.browser = { ...context.browser, headless: true };
+        contextReport.browser = context.browser;
       }
       // Cross-engine fallback: re-point the context at the engine that ran so
       // recording, capabilities, and the report all reflect reality, and stash
