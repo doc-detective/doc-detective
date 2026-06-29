@@ -1131,6 +1131,84 @@ function readFixture(filename) {
         expect(result[0].steps).to.have.lengthOf(1);
       });
 
+      it("should attach Heretto sourceIntegration to an inline step screenshot (object screenshot)", async function () {
+        // Inline `step` statement carrying an object-shaped screenshot. With a
+        // matching _herettoPathMapping the step-case attaches sourceIntegration
+        // and the resulting step is valid v3, so it survives alongside the
+        // seeded goTo step.
+        const content =
+          '<!-- test {"steps": [{"goTo": {"url": "https://example.com"}}]} -->\n' +
+          '<!-- step {"screenshot": {"path": "shot.png"}} -->';
+        const result = await parseContent({
+          config: {
+            detectSteps: true,
+            _herettoPathMapping: { "docs/": "my-integration" },
+          },
+          content,
+          filePath: "docs/test.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].steps).to.have.lengthOf(2);
+        const screenshotStep = result[0].steps[1];
+        expect(screenshotStep.screenshot.sourceIntegration).to.deep.equal({
+          type: "heretto",
+          integrationName: "my-integration",
+          filePath: "shot.png",
+          contentPath: "docs/test.md",
+        });
+      });
+
+      it("should normalize an array-shaped inline step screenshot before attaching Heretto integration", async function () {
+        // An array screenshot is not a valid object shape; the helper resets it
+        // to {} before attaching sourceIntegration (Array.isArray branch). The
+        // reset drops any path, so the attached filePath resolves to "".
+        const content =
+          '<!-- test {"steps": [{"goTo": {"url": "https://example.com"}}]} -->\n' +
+          '<!-- step {"screenshot": ["shot.png"]} -->';
+        const result = await parseContent({
+          config: {
+            detectSteps: true,
+            _herettoPathMapping: { "docs/": "my-integration" },
+          },
+          content,
+          filePath: "docs/test.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].steps).to.have.lengthOf(2);
+        const screenshotStep = result[0].steps[1];
+        expect(screenshotStep.screenshot.sourceIntegration).to.deep.equal({
+          type: "heretto",
+          integrationName: "my-integration",
+          filePath: "",
+          contentPath: "docs/test.md",
+        });
+      });
+
+      it("should skip Heretto integration for an inline step screenshot when file not in mapping", async function () {
+        // Step-case screenshot with _herettoPathMapping set but no matching
+        // entry: findHerettoIntegration returns nothing, so no sourceIntegration
+        // is attached.
+        const content =
+          '<!-- test {"steps": [{"goTo": {"url": "https://example.com"}}]} -->\n' +
+          '<!-- step {"screenshot": {"path": "shot.png"}} -->';
+        const result = await parseContent({
+          config: {
+            detectSteps: true,
+            _herettoPathMapping: { "other/": "my-integration" },
+          },
+          content,
+          filePath: "docs/test.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].steps).to.have.lengthOf(2);
+        expect(result[0].steps[1].screenshot).to.not.have.property(
+          "sourceIntegration"
+        );
+      });
+
       it("should handle fileType with no inlineStatements", async function () {
         const result = await parseContent({
           config: {},
