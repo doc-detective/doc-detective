@@ -87,8 +87,9 @@ reclaim ~96 characters, more than offsetting the four added fixed segments (`run
 * Unit (`test/run-artifacts.test.js`): `getRunOutputDir` resolves under `.doc-detective/runs/` with
   the bare-timestamp folder name and ordinal-suffix collisions; the reporter writes into / confines to
   the `runs/` root and derives `runId` as the bare basename; `buildAutoRecordStep` produces the nested
-  `specs/…/tests/…/contexts/<ctx>/recordings/<ctx>.mp4` path; a >32-char id is truncated to its
-  32-char tail.
+  `specs/…/tests/…/contexts/<ctx>/recordings/<ctx>.mp4` path; an over-long id is capped to 32 chars by
+  prepending a deterministic 8-hex hash of the full id and keeping the tail, so two distinct ids that
+  share a 32-char tail still produce distinct (and stable) path segments.
 * Feature fixture (`test/core-artifacts/autoscreenshot.spec.json`, runOn-gated, PASS/SKIPPED only):
   exercises autoScreenshot end-to-end across the precedence permutations (spec-level true inherited,
   a test-level `false` that overrides spec-level true and captures nothing, a truthy-string coercion,
