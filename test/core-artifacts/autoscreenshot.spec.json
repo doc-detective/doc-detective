@@ -4,9 +4,8 @@
   "autoScreenshot": true,
   "tests": [
     {
-      "testId": "autoscreenshot-test-true-headed",
-      "description": "Test-level autoScreenshot:true captures a screenshot after every browser-driven step (goTo, find) on headed Chrome.",
-      "autoScreenshot": true,
+      "testId": "autoscreenshot-spec-inherited-headed",
+      "description": "Spec-level autoScreenshot:true is inherited here (no test-level value), so headed Chrome captures a screenshot after every browser-driven step (goTo, find).",
       "runOn": [
         {
           "platforms": [

@@ -770,19 +770,33 @@ describe("buildAutoRecordStep", function () {
     );
   });
 
-  it("caps each id segment to its 32-char tail so deep trees stay under MAX_PATH", function () {
-    // capPathSegment keeps the tail (content hashes live at the end of generated
-    // ids), so a long specId is truncated to its last 32 chars in the path.
-    const longSpec = { specId: "a".repeat(20) + "0123456789abcdef0123456789" };
+  it("caps an over-long id to 32 chars and stays collision-resistant", function () {
+    // Two distinct specIds that share the same trailing chars must NOT collapse
+    // into the same path segment, or one context could overwrite another's
+    // artifacts. capPathSegment prepends a deterministic hash of the full id, so
+    // the capped segments stay distinct (and stable across runs).
+    const sharedTail = "x".repeat(40);
     const context = {
       contextId: "windows-chrome",
       steps: [{ goTo: { url: "https://example.com" } }],
     };
-    const step = buildAutoRecordStep({ config, spec: longSpec, test, context });
-    const normalized = step.record.path.split(path.sep).join("/");
-    const specSegment = normalized.split("/specs/")[1].split("/tests/")[0];
-    expect(specSegment).to.have.lengthOf(32);
-    expect(longSpec.specId.endsWith(specSegment)).to.equal(true);
+    const specSegmentOf = (specId) => {
+      const step = buildAutoRecordStep({ config, spec: { specId }, test, context });
+      return step.record.path
+        .split(path.sep)
+        .join("/")
+        .split("/specs/")[1]
+        .split("/tests/")[0];
+    };
+    const a = specSegmentOf(`alpha-prefix${sharedTail}`);
+    const b = specSegmentOf(`bravo-prefix${sharedTail}`);
+    // Each capped to the 32-char budget…
+    expect(a).to.have.lengthOf(32);
+    expect(b).to.have.lengthOf(32);
+    // …yet distinct despite identical 32-char tails (no artifact collision)…
+    expect(a).to.not.equal(b);
+    // …and deterministic: the same id maps to the same segment every run.
+    expect(specSegmentOf(`alpha-prefix${sharedTail}`)).to.equal(a);
   });
 
   it("returns null when the context has no driver-required steps", function () {

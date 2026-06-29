@@ -69,7 +69,7 @@ import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
@@ -2329,10 +2329,22 @@ function buildAutoRecordStep({
 // trees can't push the full path past Windows' MAX_PATH. The default cap is
 // 32: the REST artifact tree nests several id segments
 // (specs/<id>/tests/<id>/contexts/<id>/…), so a larger default could exceed
-// MAX_PATH on Windows. Keep the tail — content hashes live at the end of
-// generated IDs.
+// MAX_PATH on Windows.
+//
+// Plain tail truncation alone is unsafe: two distinct ids that share the same
+// trailing `max` characters (e.g. mirror directory trees that differ only in a
+// long prefix) would collapse into the same path segment, so one context's
+// screenshots/recording could overwrite another's and the reported relative
+// path would resolve to the wrong artifact. When a segment exceeds the cap,
+// prepend a short deterministic hash of the *full* segment so distinct ids stay
+// distinct, and keep the trailing chars (where generated ids carry their
+// content hash) for human correlation. Deterministic — the same id maps to the
+// same segment every run, preserving run-over-run comparison.
 function capPathSegment(segment: string, max: number = 32): string {
-  return segment.length <= max ? segment : segment.slice(segment.length - max);
+  if (segment.length <= max) return segment;
+  const hash = createHash("sha1").update(segment).digest("hex").slice(0, 8);
+  const tail = segment.slice(segment.length - (max - hash.length - 1));
+  return `${hash}-${tail}`;
 }
 
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
