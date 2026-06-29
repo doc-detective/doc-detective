@@ -22,6 +22,7 @@ $schema | string | Optional. JSON Schema for this object.<br/><br/>Accepted valu
 contextId | string | Optional. Unique identifier for the context. | 
 platforms | one of:<br/>- string<br/>- array of string | Optional. Platforms to run tests on. | 
 browsers | one of:<br/>- string<br/>- object([Browser](/reference/schemas/browser))<br/>- array of one of: string, object([Browser](/reference/schemas/browser)) | Optional. Browsers to run tests on. | 
+browserFallback | string | Optional. Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).<br/><br/>Accepted values: `auto`, `explicit`, `off` | 
 
 ## Examples
 
