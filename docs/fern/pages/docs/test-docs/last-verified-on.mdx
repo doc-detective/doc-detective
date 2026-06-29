@@ -1,0 +1,153 @@
+---
+title: Show a "Last verified on" date
+description: Place a verified marker in a page so Doc Detective stamps it with the date its test last passed, and optionally renders a freshness badge.
+sidebar-title: Last verified on
+---
+
+A **verified marker** lets a page show when its procedure last passed. You add a static marker that carries the `id` of a test or spec. After a run, Doc Detective resolves that `id` and—only when the referenced unit passed—writes today's date back into the marker in your source file. A failed, skipped, or warning result leaves the date alone, so a stale date tells you the page needs attention.
+
+The feature is always on, and it acts only where a marker exists. There's no config object, no CLI flag, and no schema change—add a marker to a page, and Doc Detective keeps its date current from then on.
+
+<Note>
+This feature is in an [open pull request](https://github.com/doc-detective/doc-detective/pull/417) and isn't released yet. The syntax and behavior below track that PR and may change before it merges.
+</Note>
+
+## Before you begin
+
+- A test or spec with a stable `id`. The marker references a [test](/reference/schemas/test) `testId` or a [spec](/reference/schemas/specification) `specId`. You own the `id`; Doc Detective owns the date.
+- The page you want to stamp, in a [supported format](/docs/test-docs/input-formats/overview): Markdown or MDX, AsciiDoc, HTML, or DITA.
+
+## How it works
+
+- **You own the `id`; Doc Detective owns the date.** The marker anchors to a test or spec `id` you choose, so there's no content-hash guessing and no orphaned stamps.
+- **Doc Detective writes the date only on PASS.** Because Doc Detective writes a date only when the unit passes, the date alone is the trust signal—there's no separate status field. A non-pass result leaves the existing date to age.
+- **Re-runs are idempotent and preserve form.** Running again writes a byte-identical file, and Doc Detective always rewrites a marker in the exact comment form you authored it in. It never rewrites an MDX `{/* */}` marker as an HTML comment, which would break the MDX build.
+- **Doc Detective warns and skips an unknown `id`.** If a marker's `id` matches no test or spec, Doc Detective logs a warning and leaves the marker untouched, so a typo or a deleted test doesn't fail the run.
+- **Coverage spans the whole input set.** Doc Detective scans every file it detected for the run, not just the files that produced a test. A prose-only page can carry a marker that references a test defined in another file and still get stamped.
+
+## Step 1: Add a verified marker
+
+Add an inline comment that names the `id` to track, using the comment style that matches your file format.
+
+**Markdown and MDX** (`.md`, `.markdown`, `.mdx`):
+
+```markdown
+<!-- verified id=my-test -->
+```
+
+```mdx
+{/* verified id=my-test */}
+```
+
+```markdown
+[comment]: # (verified id=my-test)
+```
+
+In MDX, use the `{/* */}` form so the marker is a valid JSX comment.
+
+**HTML** (`.html`, `.htm`):
+
+```html
+<!-- verified id=my-test -->
+```
+
+**AsciiDoc** (`.adoc`, `.asciidoc`, `.asc`):
+
+```asciidoc
+// (verified id=my-test)
+```
+
+**DITA** (`.dita`, `.ditamap`, `.xml`):
+
+```xml
+<!-- verified id=my-test -->
+```
+
+```xml
+<?doc-detective verified id=my-test ?>
+```
+
+The `id` is the only required attribute. Doc Detective ignores a marker without an `id`.
+
+## Step 2: Run your tests
+
+Run Doc Detective as usual:
+
+```bash
+npx doc-detective
+```
+
+When the test or spec named by the marker passes, Doc Detective adds or updates a `date` attribute in place:
+
+```markdown
+<!-- verified id=my-test date=2026-06-26 -->
+```
+
+The date is the calendar day of the run in UTC, formatted as `YYYY-MM-DD`. On the next passing run the date advances. On a non-passing run it stays put.
+
+## Step 3 (optional): Render a freshness badge
+
+To render a visible badge, add the `badge` flag to the marker:
+
+```markdown
+<!-- verified id=my-test badge -->
+```
+
+On a passing run, Doc Detective writes both the date and a [shields.io](https://shields.io) static badge image on the line after the marker:
+
+```markdown
+<!-- verified id=my-test badge date=2026-06-26 -->
+![Last verified 2026-06-26](https://img.shields.io/badge/Last_verified-2026--06--26-brightgreen)
+```
+
+Doc Detective writes only the badge URL—shields.io renders the image client-side, so the page makes no extra network call at build time, and the badge needs no theme work to display. On re-runs, Doc Detective updates the existing badge line in place instead of adding a duplicate. The badge uses the format's native image syntax, so an AsciiDoc page gets an `image:` macro, an HTML page an `<img>` tag, and a DITA page an `<image>` element.
+
+Without `badge`, the marker is data-only. Doc Detective maintains the date in the comment but adds no image.
+
+## Use front matter instead of a comment
+
+For a page-level stamp, declare the marker in the page's YAML front matter instead of an inline comment. You author the `id`, and Doc Detective writes the `date`:
+
+```markdown
+---
+title: My page
+doc-detective:
+  verified:
+    id: my-test
+---
+```
+
+After a passing run, Doc Detective adds the `date` and leaves the rest of the front matter and the page body untouched:
+
+```markdown
+---
+title: My page
+doc-detective:
+  verified:
+    id: my-test
+    date: 2026-06-26
+---
+```
+
+## Surface the change in CI
+
+Because Doc Detective writes the date into your source file, the change shows up in CI as a file change. The [GitHub Action](/docs/ci/github-action)'s `create_pr_on_change` input turns those edits into a pull request for review with no extra setup—the same mechanism that opens a pull request when a run refreshes screenshots or recorded output. See [Open a pull request when files change](/docs/ci/github-action#step-4-open-a-pull-request-when-files-change).
+
+## Troubleshooting
+
+### The date didn't update after a run
+
+**Cause:** Doc Detective writes the date only when the referenced test or spec passes. A failed, skipped, or warning result leaves the existing date in place so it ages.
+
+**Solution:** Check the run results for the unit named by the marker's `id`, then fix the failing or skipped test. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview).
+
+### A warning says the marker references an unknown id
+
+**Cause:** The marker's `id` doesn't match any `testId` or `specId` in the run—usually a typo, or a test you renamed or removed.
+
+**Solution:** Update the marker's `id` to match a test or spec that runs against this set of files. An unknown `id` only warns, and it doesn't fail the run.
+
+## What's next
+
+- [Define inline tests](/docs/test-docs/inline) close to the content they verify.
+- [Run in CI with the GitHub Action](/docs/ci/github-action) and open a pull request when a run changes files.
