@@ -1,3 +1,16 @@
+# [4.17.0-nested-run-artifacts.1](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0-nested-run-artifacts.1) (2026-06-29)
+
+
+### Bug Fixes
+
+* **reporter:** collision-resistant path segments, exercise spec-level autoScreenshot inheritance ([9023d87](https://github.com/doc-detective/doc-detective/commit/9023d87ee7c3daf792e34b685a55c6add6bb1995))
+* **reporter:** require child-of-runs confinement, cap default 32, add boundary tests ([c30dbb7](https://github.com/doc-detective/doc-detective/commit/c30dbb7d50ba896081137a3a990c283f679920be))
+
+
+### Features
+
+* **reporter:** nest run artifacts as REST-style runs/specs/tests/contexts tree ([20ce31e](https://github.com/doc-detective/doc-detective/commit/20ce31eff641e7b6f2d0905ce7afb1d44dc63e16))
+
 # [4.16.0](https://github.com/doc-detective/doc-detective/compare/v4.15.3...v4.16.0) (2026-06-29)
 
 
