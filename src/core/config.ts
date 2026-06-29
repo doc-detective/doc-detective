@@ -869,7 +869,7 @@ async function getAvailableApps({ config }: any) {
     // Resolve the geckodriver binary so Layer 2 can execute it. Best-effort:
     // if it can't be located cheaply, the descriptor carries no driverPath
     // and the app passes through to the runtime fallback (Layer 4).
-    const geckodriverPath = await resolveGeckodriverBinaryPath(config);
+    const geckodriverPath = resolveGeckodriverBinaryPath(config);
     descriptors.push({
       app: {
         name: "firefox",
@@ -921,41 +921,20 @@ async function getAvailableApps({ config }: any) {
 
 /**
  * Best-effort resolution of the geckodriver binary path for Layer 2's
- * functional check. geckodriver computes its `.path` from
- * GECKODRIVER_CACHE_DIR at import, so point that at our browsers cache before
- * loading (autoInstall=false — detection must never trigger an install).
- * Returns undefined on any failure so Firefox detection degrades to the
- * runtime fallback rather than erroring.
+ * functional check. Probes the browsers cache directly for the extracted
+ * `geckodriver(.exe)` binary (root + one level deep) rather than loading the
+ * geckodriver module and mutating the process-wide `GECKODRIVER_CACHE_DIR` —
+ * that env dance would race across concurrent `getAvailableApps()` calls for
+ * different cache dirs. Gated on the geckodriver package being resolvable (so a
+ * lean install without it returns undefined), and returns undefined when the
+ * binary can't be located so Firefox detection degrades to the runtime fallback.
  */
-async function resolveGeckodriverBinaryPath(
-  config: any
-): Promise<string | undefined> {
+function resolveGeckodriverBinaryPath(config: any): string | undefined {
   const installed = resolveHeavyDepPath("geckodriver", {
     cacheDir: config?.cacheDir,
   });
   if (!installed) return undefined;
-  const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });
-  const prev = process.env.GECKODRIVER_CACHE_DIR;
-  process.env.GECKODRIVER_CACHE_DIR = browsersDir;
-  try {
-    const gecko = await loadHeavyDep<any>("geckodriver", {
-      ctx: { cacheDir: config?.cacheDir },
-      autoInstall: false,
-    });
-    const fromModule =
-      gecko && typeof gecko.path === "string" && gecko.path.length > 0
-        ? gecko.path
-        : undefined;
-    // Mirror the install path: when the module exposes no `.path`, probe the
-    // cache for the actual binary so the Layer 2 driver gate still runs for a
-    // present-but-broken geckodriver instead of passing Firefox through.
-    return fromModule ?? geckodriverBinaryInCache(browsersDir);
-  } catch {
-    return undefined;
-  } finally {
-    if (prev === undefined) delete process.env.GECKODRIVER_CACHE_DIR;
-    else process.env.GECKODRIVER_CACHE_DIR = prev;
-  }
+  return geckodriverBinaryInCache(getBrowsersDir({ cacheDir: config?.cacheDir }));
 }
 
 interface BrowserComponent {
