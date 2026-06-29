@@ -762,13 +762,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Only create the folder when something will actually write into it (the
   // runFolder reporter, or autoScreenshot at any of config/spec/test level) —
   // otherwise just resolve the path for the report stamp and leave no empty
-  // `.doc-detective/run-<id>/` behind. Pass the selected specs so per-spec/test
+  // `.doc-detective/runs/<id>/` behind. Pass the selected specs so per-spec/test
   // autoScreenshot reserves the folder atomically up front rather than via the
   // non-atomic memoized branch when the first screenshot fires.
   const runDir = getRunOutputDir(config, {
     create: runArchivesArtifacts(config, specs),
   });
-  const runId = path.basename(runDir).replace(/^run-/, "");
+  // The run folder name IS the runId under the `runs/<id>` layout — no prefix
+  // to strip.
+  const runId = path.basename(runDir);
   const report: any = {
     runId,
     runDir,
@@ -2276,10 +2278,11 @@ function resolveAutoRecord({
 // Build the synthetic full-context recording step for an autoRecord run, or
 // null when the context shouldn't be recorded (no driver-required authored
 // steps). Always uses the ffmpeg engine, and a deterministic path under the
-// run's artifact folder (recordings/<specId>/<testId>/<contextId>.mp4) so the
-// same context lands on the same relative path every run for comparison. The
-// `__autoRecord` marker tags the started handle as synthetic so an untargeted
-// user `stopRecord` won't end it (only end-of-context cleanup does).
+// run's artifact folder following the REST resource tree
+// (specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4)
+// so the same context lands on the same relative path every run for comparison.
+// The `__autoRecord` marker tags the started handle as synthetic so an
+// untargeted user `stopRecord` won't end it (only end-of-context cleanup does).
 function buildAutoRecordStep({
   config,
   spec,
@@ -2298,15 +2301,20 @@ function buildAutoRecordStep({
   // front, so an enabled autoRecord run reserves the folder regardless — same as
   // autoScreenshot.)
   const runDir = getRunOutputDir(config, { create: false });
-  const fileName = `${capPathSegment(
-    sanitizeFilesystemName(String(context.contextId ?? ""), "context")
-  )}.mp4`;
+  const contextSegment = capPathSegment(
+    sanitizeFilesystemName(String(context.contextId ?? ""), "context"),
+    32
+  );
   const recordPath = path.join(
     runDir,
+    "specs",
+    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec"), 32),
+    "tests",
+    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test"), 32),
+    "contexts",
+    contextSegment,
     "recordings",
-    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
-    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
-    fileName
+    `${contextSegment}.mp4`
   );
   return {
     record: { path: recordPath, overwrite: "true", engine: "ffmpeg" },
@@ -2326,13 +2334,13 @@ function capPathSegment(segment: string, max: number = 64): string {
 }
 
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
-// path is derived from stable IDs (spec/test/context) plus the step's
-// order, action, and ID (e.g. screenshots/docs_guide.md/
-// docs_guide.md~3f9a2c1b/windows-chrome/01-goTo-s4f2a91c.png), so the same
-// step lands on the same relative path inside every run's folder — that's
-// what makes run-over-run image comparison possible. Failures are logged as
-// warnings, never thrown: a missed capture must not fail the step it
-// documents.
+// path follows the REST resource tree — stable IDs (spec/test/context) as
+// nested collections plus the step's order, action, and ID (e.g.
+// specs/docs_guide.md/tests/docs_guide.md~3f9a2c1b/contexts/windows-chrome/
+// screenshots/01-goTo-s4f2a91c.png), so the same step lands on the same
+// relative path inside every run's folder — that's what makes run-over-run
+// image comparison possible. Failures are logged as warnings, never thrown: a
+// missed capture must not fail the step it documents.
 async function captureAutoScreenshot({
   config,
   driver,
@@ -2362,12 +2370,16 @@ async function captureAutoScreenshot({
     const runDir = getRunOutputDir(config);
     const dir = path.join(
       runDir,
-      "screenshots",
-      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
-      capPathSegment(sanitizedTestId),
+      "specs",
+      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec"), 32),
+      "tests",
+      capPathSegment(sanitizedTestId, 32),
+      "contexts",
       capPathSegment(
-        sanitizeFilesystemName(String(context.contextId ?? ""), "context")
-      )
+        sanitizeFilesystemName(String(context.contextId ?? ""), "context"),
+        32
+      ),
+      "screenshots"
     );
     // The stepId usually embeds the testId (its parent folder) — strip that
     // prefix so filenames stay short while still carrying the step's ID.

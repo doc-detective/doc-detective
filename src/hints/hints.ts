@@ -100,7 +100,7 @@ export const HINTS: Hint[] = [
     markdown: [
       "Want a video of every run? Enable `--auto-record` to record each browser context end-to-end with the ffmpeg engine.",
       "",
-      "Videos are archived per run under `.doc-detective/run-<runId>/` alongside test results, so you can replay exactly what happened.",
+      "Videos are archived per run under `.doc-detective/runs/<runId>/` alongside test results, so you can replay exactly what happened.",
       "",
       "```bash",
       "doc-detective --auto-record",
@@ -121,7 +121,7 @@ export const HINTS: Hint[] = [
     markdown: [
       "Want a visual record of every run? Enable `--auto-screenshot` to capture an image after each browser step.",
       "",
-      "Screenshots are archived per run under `.doc-detective/run-<runId>/` alongside test results. Diff two run folders to spot UI changes over time.",
+      "Screenshots are archived per run under `.doc-detective/runs/<runId>/` alongside test results. Diff two run folders to spot UI changes over time.",
       "",
       "```bash",
       "doc-detective --auto-screenshot",
