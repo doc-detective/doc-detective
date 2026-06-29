@@ -11,15 +11,15 @@ If no supported browser is available, Doc Detective skips contexts that require 
 
 ## Browser fallback
 
-A browser context can fail to start for reasons beyond "not installed" — most commonly a **broken driver**. For example, a partially downloaded `geckodriver` can exist on disk yet fail to run, which would otherwise make a Firefox context fail and skip. To stay resilient, Doc Detective validates each browser's driver by *executing* it (not just checking that it's present) and, when a context's browser still can't start a session, falls back to another available browser.
+A browser context can fail to start for reasons beyond "not installed," most commonly a **broken driver**. For example, a partially downloaded `geckodriver` can exist on disk yet fail to run, which would otherwise make a Firefox context fail and skip. To stay resilient, Doc Detective validates each browser's driver by *executing* it (not just checking that it's present) and, when a context's browser still can't start a session, falls back to another available browser.
 
-Fallback is controlled by the [`browserFallback`](/reference/schemas/config) config option (or the `--browser-fallback` CLI flag):
+The [`browserFallback`](/reference/schemas/config) config option (or the `--browser-fallback` CLI flag) controls this fallback:
 
-- **`auto`** (default) — fall back to any other available browser. If the browser was **auto-selected** (none was explicitly requested), the context runs on the fallback browser and reports `PASS`. If the browser was **explicitly requested**, the context still runs on the fallback browser but reports `WARNING`, so a degraded run is never mistaken for a clean success.
-- **`explicit`** — fall back only when the browser was auto-selected. An explicitly requested browser whose driver is broken is skipped with a diagnostic reason instead of substituting another engine.
-- **`off`** — never fall back across browsers. Driver validation and the diagnostic skip reason still apply.
+- **`auto`** (default): fall back to any other available browser. If Doc Detective auto-selected the browser (you didn't request one explicitly), the context runs on the fallback browser and reports `PASS`. If you requested the browser explicitly, the context still runs on the fallback browser but reports `WARNING`, so a degraded run never looks like a clean success.
+- **`explicit`**: fall back only when Doc Detective auto-selected the browser. If you requested a browser explicitly and its driver fails to run, Doc Detective skips the context with a diagnostic reason instead of substituting another engine.
+- **`off`**: never fall back across browsers. Driver validation and the diagnostic skip reason still apply.
 
-Fallback is symmetric across every available engine — Chrome, Firefox, and Safari/WebKit can each fall back to one another. When no engine can start a session, the context is skipped with a diagnostic that names the requested browser and the likely cause (for example, a partially downloaded driver) so the failure is actionable rather than generic.
+Fallback works the same in every direction: Chrome, Firefox, and Safari/WebKit can each fall back to one another. When no engine can start a session, Doc Detective skips the context with a diagnostic that names the requested browser and the likely cause (for example, a partially downloaded driver), so the failure stays actionable rather than generic.
 
 You can also set `browserFallback` **per context**, on an individual `runOn` entry. A context-level value takes precedence over the config-level policy for the contexts that entry expands into, so you can, for example, default the whole run to `auto` while forcing one Safari-only context to `off`:
 
