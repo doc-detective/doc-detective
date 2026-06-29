@@ -1,7 +1,7 @@
 import { setConfig } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp } from "./utils.js";
+import { log, cleanTemp, applyVerifiedMarkers } from "./utils.js";
 import { runSpecs, runViaApi, getRunner } from "./tests.js";
 import { telemetryNotice, sendTelemetry } from "./telem.js";
 import { readFile, resolvePaths } from "./files.js";
@@ -33,6 +33,10 @@ async function detectAndResolveTests({ config }: any) {
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
+  // Carry the full qualified input set forward so the verified-marker
+  // write-back can reach prose-only files that produced no spec (see
+  // qualifyFiles' `config._qualifiedFiles`).
+  if (resolvedTests) (resolvedTests as any)._qualifiedFiles = config._qualifiedFiles || [];
   return resolvedTests;
 }
 
@@ -188,6 +192,19 @@ async function runTests(config: any, options: any = {}) {
 
   // Clean up
   cleanTemp();
+
+  // "Last Verified On" write-back: update any `verified` markers in the source
+  // docs with today's date where the referenced test/spec passed. No-op when
+  // no markers exist; never throws (warns and continues on per-file errors).
+  try {
+    applyVerifiedMarkers({
+      config,
+      results,
+      files: (resolvedTests && resolvedTests._qualifiedFiles) || [],
+    });
+  } catch (err: any) {
+    log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
+  }
 
   // Send telemetry
   sendTelemetry(config, "runTests", results);
