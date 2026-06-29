@@ -108,6 +108,10 @@ export {
   selectWarmUpTargets,
   getDriverCapabilities,
   getDefaultBrowser,
+  buildFallbackCandidates,
+  driverSkipDiagnostic,
+  resolveBrowserFallbackPolicy,
+  shouldRepairBeforeFallback,
   isSupportedContext,
   resolveAutoScreenshot,
   resolveAutoRecord,
@@ -354,6 +358,146 @@ function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
     }
   }
   return browser;
+}
+
+// `webkit` is the runtime alias for Safari (context resolution rewrites it),
+// while getAvailableApps reports the engine as `safari`. Normalize so the two
+// names compare and dedupe as one engine.
+function normalizeBrowserName(name: string | undefined): string {
+  return name === "webkit" ? "safari" : name ?? "";
+}
+
+/**
+ * Build the ordered list of browser engines to attempt for a context — the
+ * heart of the any-browser → any-available-browser fallback. The requested
+ * engine is tried first (when it's actually available); then, when the
+ * `browserFallback` policy permits, every *other* available engine follows in
+ * a stable preference order. Every returned name maps to an available engine —
+ * the requested name is preserved as authored (so `webkit` can be returned even
+ * though `availableApps` lists it as `safari`), while fallback names come
+ * straight from `availableApps`; `webkit` is normalized to `safari` only for
+ * the availability lookup and dedupe. getDriverCapabilities accepts both
+ * aliases, so either resolves to real binary/driver paths.
+ *
+ * Policy:
+ *  - "auto"     → fall back for both auto-selected and explicitly pinned browsers.
+ *  - "explicit" → fall back only when the browser was auto-selected (not pinned).
+ *  - "off"      → never fall back; only the requested engine (if available).
+ *
+ * Pure and exported so the precedence is unit-testable without a driver.
+ */
+function buildFallbackCandidates({
+  requestedName,
+  explicit,
+  policy,
+  availableApps,
+}: {
+  requestedName: string;
+  explicit: boolean;
+  policy: string;
+  availableApps: any[];
+}): string[] {
+  const available = new Set(
+    (availableApps || []).map((a: any) => a.name)
+  );
+  const requestedNorm = normalizeBrowserName(requestedName);
+  const candidates: string[] = [];
+
+  // Requested engine first — only if it's actually available (has a working
+  // driver). If it isn't, we go straight to fallbacks (or skip).
+  if (available.has(requestedNorm)) candidates.push(requestedName);
+
+  const fallbackAllowed =
+    policy === "auto" || (policy === "explicit" && !explicit);
+  if (fallbackAllowed) {
+    for (const name of ["firefox", "chrome", "safari"]) {
+      if (name === requestedNorm) continue;
+      if (available.has(name)) candidates.push(name);
+    }
+  }
+  return candidates;
+}
+
+/**
+ * Resolve the effective `browserFallback` policy for a context. A context-level
+ * value (authored on the `runOn` entry) overrides the config-level value, which
+ * itself defaults to `auto`. Pure and exported so the precedence is testable.
+ */
+function resolveBrowserFallbackPolicy({
+  context,
+  config,
+}: {
+  context: any;
+  config: any;
+}): string {
+  return context?.browserFallback || config?.browserFallback || "auto";
+}
+
+/**
+ * Whether to attempt a driver repair before falling back away from a browser
+ * whose session just failed to start. We only repair the *requested* engine
+ * (so a fallback substitute that fails isn't itself repaired), only when it has
+ * installable driver assets (Safari ships with the OS — nothing to repair), and
+ * only once per browser per run (a prior attempt already recorded an outcome in
+ * `installAttempts`). This is what keeps a present-but-broken driver from
+ * causing an unnecessary fallback when a reinstall would have fixed it. Pure
+ * and exported so the decision is unit-testable.
+ */
+function shouldRepairBeforeFallback({
+  candidateName,
+  requestedName,
+  installAttempts,
+}: {
+  candidateName: string;
+  requestedName: string;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+}): boolean {
+  if (normalizeBrowserName(candidateName) !== normalizeBrowserName(requestedName)) {
+    return false;
+  }
+  if (requiredBrowserAssets(candidateName).length === 0) return false;
+  return !installAttempts.has((candidateName ?? "<none>").toLowerCase());
+}
+
+/**
+ * The diagnostic message recorded when no engine could start a session. Names
+ * the requested engine and whether a cross-engine fallback was even attempted,
+ * so a present-but-broken driver reads as actionable rather than a generic
+ * "Failed to start context" skip.
+ */
+function driverSkipDiagnostic({
+  requestedName,
+  platform,
+  platformMatches,
+  attemptedFallback,
+  lastError,
+}: {
+  requestedName: string;
+  platform: string;
+  platformMatches: boolean;
+  attemptedFallback: boolean;
+  lastError?: string;
+}): string {
+  if (!platformMatches) {
+    return `Skipping context on '${platform}': this context targets a different platform.`;
+  }
+  // Name the driver for the actual requested engine so the hint doesn't always
+  // point users at geckodriver when Chrome or Safari is the broken one.
+  const driverHint =
+    normalizeBrowserName(requestedName) === "firefox"
+      ? "geckodriver"
+      : normalizeBrowserName(requestedName) === "chrome"
+        ? "chromedriver"
+        : normalizeBrowserName(requestedName) === "safari"
+          ? "safaridriver"
+          : "driver";
+  let msg = `Skipping context: could not start a browser session for '${requestedName}' on '${platform}'`;
+  msg += attemptedFallback
+    ? `, and no other available browser could start either.`
+    : ` and cross-browser fallback is disabled or unavailable.`;
+  if (lastError) msg += ` Last error: ${lastError}`;
+  msg += ` A present-but-broken driver (for example a partially downloaded ${driverHint}) can cause this; reinstall the driver or its browser.`;
+  return msg;
 }
 
 // Set window size to match target viewport size
@@ -1741,6 +1885,8 @@ async function warmUpContexts({
             ensureBrowserInstalled(asset, options),
           log,
         },
+        // Repair a present-but-broken driver, not just install-if-missing.
+        repair: true,
       });
       if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
         clearAppCache(config);
@@ -2394,6 +2540,10 @@ async function runContext({
   // only fires for a genuinely-missing browser (rare) and the app list only
   // grows, so a sibling reading a slightly stale snapshot still re-detects.
   let freshInstallRedetected = false;
+  // The actual on-demand outcome, so the skip message can distinguish "repaired
+  // but still undetected" from "repair failed" instead of always claiming the
+  // dependency was installed.
+  let freshInstallOutcome: "installed" | "failed" | undefined;
   if (
     !supportedContext &&
     context.platform === platform &&
@@ -2418,12 +2568,17 @@ async function runContext({
           ensureBrowserInstalled(asset, options),
         log,
       },
+      // The browser is unavailable here — possibly because its driver is
+      // present-but-broken — so repair (force a clean driver reinstall +
+      // re-validation), not just install-if-missing.
+      repair: true,
     });
     // Re-detect after a real attempt regardless of outcome: a "failed" install
     // can still have materialized assets before it threw, so a stale snapshot
     // could wrongly skip a now-usable browser.
     if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
       freshInstallRedetected = true;
+      freshInstallOutcome = outcome;
       clearAppCache(config);
       availableApps = await getAvailableApps({ config });
       runnerDetails.availableApps = availableApps;
@@ -2435,16 +2590,57 @@ async function runContext({
     }
   }
 
-  // If context isn't supported, skip it
-  if (!supportedContext) {
-    // Distinguish "we installed the dependency but still can't see it" from a
-    // plain unsupported context, so the skip reason points at the real problem.
+  // Resolve which engine(s) this context can actually run on. Platform is an
+  // absolute gate (a context authored for another OS never runs and never
+  // falls back); engine availability is not — a broken or unavailable browser
+  // falls back to any other available engine when the `browserFallback` policy
+  // permits. `supportedContext` (computed above for the requested browser) is
+  // now just one input: even when it's false, a fallback engine may carry the run.
+  const platformMatches = context.platform === platform;
+  const requestedBrowserName = context.browser?.name;
+  const explicitlyRequested = context.browser?.explicit === true;
+  // Context-level browserFallback (authored on the runOn entry) overrides the
+  // config-level policy; config defaults to "auto".
+  const fallbackPolicy = resolveBrowserFallbackPolicy({ context, config });
+  const driverRequired = isDriverRequired({ test: context });
+
+  const candidateEngines =
+    platformMatches && driverRequired
+      ? buildFallbackCandidates({
+          requestedName: requestedBrowserName,
+          explicit: explicitlyRequested,
+          policy: fallbackPolicy,
+          availableApps,
+        })
+      : [];
+
+  // A driver context with no startable engine is skipped with a diagnostic that
+  // names the requested engine and the partial-download cause.
+  if (driverRequired && candidateEngines.length === 0) {
     const errorMessage = freshInstallRedetected
-      ? `Skipping context '${context.browser?.name}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
-      : `Skipping context. The current system doesn't support this context: {"platform": "${
-          context.platform
-        }", "apps": ${JSON.stringify(context.apps)}}`;
-    clog(freshInstallRedetected ? "warning" : "info", errorMessage);
+      ? freshInstallOutcome === "installed"
+        ? `Skipping context '${requestedBrowserName}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
+        : `Skipping context '${requestedBrowserName}' on '${context.platform}': the on-demand install/repair of its browser dependency failed.`
+      : driverSkipDiagnostic({
+          requestedName: requestedBrowserName ?? "<none>",
+          // driverSkipDiagnostic treats `platform` as the *current* runner
+          // platform (as in the !startedName path), so pass that — not the
+          // context's target platform — or the mismatch message mislabels it.
+          platform,
+          platformMatches,
+          attemptedFallback: false,
+        });
+    clog(platformMatches ? "warning" : "info", errorMessage);
+    contextReport.result = "SKIPPED";
+    contextReport.resultDescription = errorMessage;
+    return contextReport;
+  }
+  // A non-driver context that targets a different platform has nothing to run.
+  if (!driverRequired && !platformMatches) {
+    const errorMessage = `Skipping context. The current system doesn't support this context: {"platform": "${
+      context.platform
+    }", "apps": ${JSON.stringify(context.apps)}}`;
+    clog("info", errorMessage);
     contextReport.result = "SKIPPED";
     contextReport.resultDescription = errorMessage;
     return contextReport;
@@ -2453,7 +2649,11 @@ async function runContext({
 
   let driver: any;
   let appiumPort: number | undefined;
-  const driverRequired = isDriverRequired({ test: context });
+  // Layer 5 bookkeeping: set when the context ran on a different engine than
+  // requested, so the final result can be annotated — and downgraded PASS →
+  // WARNING when an explicitly pinned engine was substituted.
+  let fellBackNote = "";
+  let fellBackPinned = false;
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Driver requested but no Appium server pool was created; " +
@@ -2461,22 +2661,8 @@ async function runContext({
     );
   }
 
-  // Warm-up memoization. The first context of each combination acts as the
-  // warm-up; if that combination already failed to start a driver earlier in
-  // this run, skip it outright instead of paying driverStart's retry/backoff
-  // again. Under concurrency this is a best-effort speedup, not correctness —
-  // same-combo contexts may start before one records a result.
-  const combo = combinationKey(context);
-
   try {
     if (driverRequired) {
-      if (warmUpDecision(warmUpResults.get(combo)) === "skip") {
-        const errorMessage = `Skipping context '${context.browser?.name}' on '${context.platform}': this context combination could not start a driver earlier in this run.`;
-        clog("warning", errorMessage);
-        contextReport.result = "SKIPPED";
-        contextReport.resultDescription = errorMessage;
-        return contextReport;
-      }
       // Check out a server for this context's lifetime — released in the
       // finally so the next queued context can reuse it.
       appiumPort = await appiumPool!.acquire();
@@ -2493,72 +2679,167 @@ async function runContext({
         }
       }
 
-      // Define driver capabilities
-      // TODO: Support custom apps
       // Per-context recording identifiers so concurrent Chrome recordings
       // auto-select their own window and download to their own dir.
       const recordOptions = {
         captureSourceTitle: browserCaptureTitle(context.contextId),
         downloadDir: browserDownloadDir(context.contextId),
       };
-      let caps: any = getDriverCapabilities({
-        runnerDetails: runnerDetails,
-        name: context.browser.name,
-        options: {
-          width: context.browser?.window?.width || 1200,
-          height: context.browser?.window?.height || 800,
-          headless: context.browser?.headless !== false,
-          ...recordOptions,
-        },
-      });
-      clog("debug", "CAPABILITIES:");
-      clog("debug", caps);
 
-      // Instantiate driver
-      try {
-        driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
-      } catch (error: any) {
-        try {
-          // If driver fails to start, try again as headless
-          clog(
-            "warning",
-            `Failed to start context '${context.browser?.name}' on '${platform}'. Retrying as headless.`
-          );
-          context.browser.headless = true;
-          caps = getDriverCapabilities({
-            runnerDetails: runnerDetails,
-            name: context.browser.name,
+      // Start a session for one engine, headed first then (on failure) headless.
+      const startDriverForBrowser = async (
+        browserName: string
+      ): Promise<
+        | { ok: true; driver: any; headless: boolean }
+        | { ok: false; error: string }
+      > => {
+        const wantHeadless = context.browser?.headless !== false;
+        const buildCaps = (headless: boolean) =>
+          getDriverCapabilities({
+            runnerDetails,
+            name: browserName,
             options: {
               width: context.browser?.window?.width || 1200,
               height: context.browser?.window?.height || 800,
-              headless: context.browser?.headless !== false,
+              headless,
               ...recordOptions,
             },
           });
-          driver = await driverStart(caps, appiumPort, 4, { cacheDir: config?.cacheDir });
-        } catch (error: any) {
-          let errorMessage = `Failed to start context '${context.browser?.name}' on '${platform}'.`;
-          // `safari` is normalized to `webkit` during context resolution, so
-          // match both or this Safari-specific hint never fires on real runs.
-          if (
-            context.browser?.name === "safari" ||
-            context.browser?.name === "webkit"
-          )
-            errorMessage =
-              errorMessage +
+        const startFailure = () => {
+          let error = `Failed to start context '${browserName}' on '${platform}'.`;
+          if (browserName === "safari" || browserName === "webkit") {
+            error +=
               " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
-          clog("error", errorMessage);
-          // Record the combination as failed so every later context that shares
-          // it is skipped instantly (see the warm-up check above).
-          if (!warmUpResults.has(combo)) warmUpResults.set(combo, "failed");
-          contextReport.result = "SKIPPED";
-          contextReport.resultDescription = errorMessage;
-          return contextReport;
+          }
+          return { ok: false as const, error };
+        };
+        try {
+          const d = await driverStart(buildCaps(wantHeadless), appiumPort!, 4, {
+            cacheDir: config?.cacheDir,
+          });
+          return { ok: true, driver: d, headless: wantHeadless };
+        } catch {
+          // The headed→headless retry only changes inputs when the first
+          // attempt was headed. If it was already headless, a second identical
+          // attempt would just pay driverStart's backoff again — fail fast.
+          if (wantHeadless) return startFailure();
+          try {
+            clog(
+              "warning",
+              `Failed to start context '${browserName}' on '${platform}'. Retrying as headless.`
+            );
+            const d = await driverStart(buildCaps(true), appiumPort!, 4, {
+              cacheDir: config?.cacheDir,
+            });
+            return { ok: true, driver: d, headless: true };
+          } catch {
+            return startFailure();
+          }
         }
+      };
+
+      // Try the requested engine first, then fall back across every other
+      // available engine (policy permitting). The warm-up memo lets a known-bad
+      // combination be skipped without paying driverStart's backoff again.
+      let startedName: string | undefined;
+      let startedHeadless = false;
+      let lastError = "";
+      for (const candidateName of candidateEngines) {
+        const candidateCombo = combinationKey({
+          platform: context.platform,
+          browser: { name: candidateName },
+        });
+        if (warmUpDecision(warmUpResults.get(candidateCombo)) === "skip") {
+          lastError = `context combination '${candidateName}' on '${platform}' could not start a driver earlier in this run.`;
+          continue;
+        }
+        let res = await startDriverForBrowser(candidateName);
+        // The requested engine's session failed — its driver may be present but
+        // broken (e.g. a partial download Layer 2 couldn't pre-validate). Repair
+        // it once and retry before falling back to a different browser, so we
+        // don't substitute engines unnecessarily.
+        if (
+          !res.ok &&
+          shouldRepairBeforeFallback({
+            candidateName,
+            requestedName: requestedBrowserName,
+            installAttempts,
+          })
+        ) {
+          const outcome = await ensureContextBrowserInstalled({
+            browserName: candidateName,
+            config,
+            installAttempts,
+            deps: {
+              ensureBrowser: (asset, options) =>
+                ensureBrowserInstalled(asset, options),
+              log,
+            },
+            repair: true,
+          });
+          if (outcome === "installed") {
+            clog(
+              "info",
+              `Repaired '${candidateName}' driver after a start failure; retrying before falling back.`
+            );
+            res = await startDriverForBrowser(candidateName);
+          }
+        }
+        if (res.ok) {
+          driver = res.driver;
+          startedName = candidateName;
+          startedHeadless = res.headless;
+          if (!warmUpResults.has(candidateCombo))
+            warmUpResults.set(candidateCombo, "ok");
+          break;
+        }
+        clog("error", res.error);
+        // Record the combination as failed so every later context that shares
+        // it is skipped instantly (see the warm-up check above).
+        if (!warmUpResults.has(candidateCombo))
+          warmUpResults.set(candidateCombo, "failed");
+        lastError = res.error;
       }
-      // Driver started (first attempt or headless retry) — mark this
-      // combination as known-good for the rest of the run.
-      if (!warmUpResults.has(combo)) warmUpResults.set(combo, "ok");
+
+      if (!startedName) {
+        const errorMessage = driverSkipDiagnostic({
+          requestedName: requestedBrowserName ?? "<none>",
+          platform,
+          platformMatches: true,
+          attemptedFallback: candidateEngines.length > 1,
+          lastError,
+        });
+        clog("error", errorMessage);
+        contextReport.result = "SKIPPED";
+        contextReport.resultDescription = errorMessage;
+        return contextReport;
+      }
+
+      // Reflect a headless fallback on the context so downstream logic and the
+      // report agree with what actually launched. Replacing context.browser
+      // makes a new object, so re-point contextReport.browser (set earlier to
+      // the original) at it or the report keeps stale headless metadata.
+      if (startedHeadless) {
+        context.browser = { ...context.browser, headless: true };
+        contextReport.browser = context.browser;
+      }
+      // Cross-engine fallback: re-point the context at the engine that ran so
+      // recording, capabilities, and the report all reflect reality, and stash
+      // the Layer 5 note applied to the context result below.
+      if (
+        normalizeBrowserName(startedName) !==
+        normalizeBrowserName(requestedBrowserName)
+      ) {
+        fellBackNote = `${requestedBrowserName} unavailable; ran on ${startedName}.`;
+        fellBackPinned = explicitlyRequested;
+        context.browser = { ...context.browser, name: startedName };
+        contextReport.browser = context.browser;
+        contextReport.fallback = {
+          requested: requestedBrowserName,
+          used: startedName,
+        };
+        clog("warning", fellBackNote);
+      }
 
       if (
         context.browser?.viewport?.width ||
@@ -3006,6 +3287,18 @@ async function runContext({
   }
 
   contextReport.result = rollUpResults(contextReport.steps);
+  // Layer 5: a context that ran on a fallback engine is annotated so the
+  // substitution is never silent. When the requested engine was explicitly
+  // pinned and the run otherwise passed, downgrade PASS → WARNING so a degraded
+  // run isn't reported as a clean success. An auto-selected browser keeps PASS.
+  if (fellBackNote) {
+    if (fellBackPinned && contextReport.result === "PASS") {
+      contextReport.result = "WARNING";
+    }
+    contextReport.resultDescription = contextReport.resultDescription
+      ? `${fellBackNote} ${contextReport.resultDescription}`
+      : fellBackNote;
+  }
   return contextReport;
 }
 
@@ -3478,6 +3771,7 @@ async function ensureContextBrowserInstalled({
   config,
   installAttempts,
   deps,
+  repair = false,
 }: {
   browserName: string | undefined;
   config: any;
@@ -3486,6 +3780,13 @@ async function ensureContextBrowserInstalled({
     ensureBrowser: (asset: BrowserAssetName, options: any) => Promise<any>;
     log?: (config: any, level: string, msg: string) => void;
   };
+  // Layer 3 self-heal: when the browser is unavailable or its session failed —
+  // because a component is missing OR didn't install correctly — force a clean
+  // reinstall of *every* required asset (the browser binary AND its driver), so
+  // a partial/corrupt component of either kind is replaced and re-validated.
+  // Repair only fires when something is already wrong, so re-downloading a
+  // healthy component is an acceptable cost for a guaranteed-clean state.
+  repair?: boolean;
 }): Promise<"installed" | "failed" | "notInstallable"> {
   const key = (browserName ?? "<none>").toLowerCase();
   const cached = installAttempts.get(key);
@@ -3506,12 +3807,18 @@ async function ensureContextBrowserInstalled({
     deps.log?.(
       config,
       "info",
-      `Browser '${browserName}' is not available; attempting on-demand install of: ${assets.join(
-        ", "
-      )}.`
+      `Browser '${browserName}' is not available; attempting on-demand ${
+        repair ? "repair" : "install"
+      } of: ${assets.join(", ")}.`
     );
     for (const asset of assets) {
-      await deps.ensureBrowser(asset, { ctx, deps: { logger } });
+      // On repair, force every component (browser binary + driver) so a
+      // present-but-broken one is replaced, not just installed-if-missing.
+      await deps.ensureBrowser(asset, {
+        ctx,
+        deps: { logger },
+        force: !!repair,
+      });
     }
     installAttempts.set(key, "installed");
     return "installed";

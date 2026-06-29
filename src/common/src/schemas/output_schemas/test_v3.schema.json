@@ -112,6 +112,11 @@
                         ],
                         "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
                       },
+                      "explicit": {
+                        "type": "boolean",
+                        "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                        "readOnly": true
+                      },
                       "headless": {
                         "type": "boolean",
                         "description": "If `true`, runs the browser in headless mode.",
@@ -186,6 +191,11 @@
                               ],
                               "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
                             },
+                            "explicit": {
+                              "type": "boolean",
+                              "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                              "readOnly": true
+                            },
                             "headless": {
                               "type": "boolean",
                               "description": "If `true`, runs the browser in headless mode.",
@@ -230,6 +240,15 @@
                     }
                   }
                 ]
+              },
+              "browserFallback": {
+                "description": "Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).",
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "explicit",
+                  "off"
+                ]
               }
             },
             "components": {
@@ -271,6 +290,11 @@
                         "webkit"
                       ],
                       "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+                    },
+                    "explicit": {
+                      "type": "boolean",
+                      "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                      "readOnly": true
                     },
                     "headless": {
                       "type": "boolean",
@@ -28373,6 +28397,11 @@
                   "webkit"
                 ],
                 "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+              },
+              "explicit": {
+                "type": "boolean",
+                "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                "readOnly": true
               },
               "headless": {
                 "type": "boolean",

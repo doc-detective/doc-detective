@@ -3,6 +3,8 @@ import {
   getInstalledBrowsers,
   BROWSER_CHANNELS,
   requiredBrowserAssets,
+  verifyDriverBinary,
+  geckodriverBinaryInCache,
 } from "../dist/runtime/browsers.js";
 import {
   readInstalledRecord,
@@ -195,6 +197,32 @@ describe("runtime/browsers", function () {
     expect(record.browsers.chrome.installedVersion).to.equal("124.0.0");
   });
 
+  it("ensureBrowserInstalled('chromedriver') skips validation (stays best-effort) when computeExecutablePath is unavailable", async function () {
+    // locateExecutable falls back to the bare cacheDir on older/alternate
+    // @puppeteer/browsers shapes; validating that directory path would always
+    // fail and turn a best-effort install into a hard failure. Guard skips it.
+    let verifyCalled = false;
+    const browsersModule = {
+      detectBrowserPlatform: () => "linux",
+      resolveBuildId: async () => "124.0.0",
+      install: async () => {},
+      uninstall: async () => {},
+      // No computeExecutablePath.
+    };
+    const verifyExec = async () => {
+      verifyCalled = true;
+      return { code: 0, stdout: "ChromeDriver 124.0.0\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("chromedriver", {
+      deps: { browsersModule, logger: () => {}, verifyExec },
+    });
+    expect(result.version).to.equal("124.0.0");
+    expect(
+      verifyCalled,
+      "validation must be skipped when no real executable path is located"
+    ).to.equal(false);
+  });
+
   it("ensureBrowserInstalled with no record but resolveBuildId fails surfaces the error", async function () {
     const browsersModule = makeFakeBrowsersModule();
     browsersModule.resolveBuildId = async () => {
@@ -259,17 +287,308 @@ describe("runtime/browsers", function () {
     const downloads = [];
     const geckodriverModule = {
       GECKODRIVER_VERSION: "0.36.0",
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
       download: async () => {
         downloads.push("ok");
         return { version: "0.36.0" };
       },
     };
+    // A driver that executes and reports a version passes validation.
+    const verifyExec = async () => ({
+      code: 0,
+      stdout: "geckodriver 0.36.0\n",
+      stderr: "",
+    });
     const result = await ensureBrowserInstalled("geckodriver", {
-      deps: { geckodriverModule, logger: () => {} },
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
     });
     expect(downloads).to.have.lengthOf(1);
     expect(result.version).to.equal("0.36.0");
     const record = readInstalledRecord({});
     expect(record.browsers.geckodriver.installedVersion).to.equal("0.36.0");
+  });
+
+  it("ensureBrowserInstalled('geckodriver') probes the cache for the binary when the module exposes no `.path`", async function () {
+    // Regression: when gecko.path is empty, resolveBinaryPath used to fall back
+    // to the bare cache dir, which then failed driver-binary validation and
+    // broke `install all`. It must locate the downloaded binary instead.
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const binPath = path.join(browsersDir, binName);
+    const geckodriverModule = {
+      // No `path` field.
+      download: async () => {
+        fs.writeFileSync(binPath, "#!/bin/sh\n"); // simulate the extracted binary
+      },
+    };
+    let verifiedPath;
+    const verifyExec = async (p) => {
+      verifiedPath = p;
+      return { code: 0, stdout: "geckodriver 0.37.0\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(verifiedPath).to.equal(binPath);
+    expect(result.path).to.equal(binPath);
+    expect(result.version).to.equal("0.37.0");
+  });
+
+  it("ensureBrowserInstalled('geckodriver') ignores a `.path` pointing outside the current cache dir (import-cached module)", async function () {
+    // The geckodriver module is import-cached, so a non-empty `.path` can point
+    // at a different cache dir. resolveBinaryPath must reject it and use the
+    // binary in the current cache instead.
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const binPath = path.join(browsersDir, binName);
+    const geckodriverModule = {
+      // Stale path from another cache dir entirely.
+      path: path.join(os.tmpdir(), "some-other-cache", binName),
+      download: async () => {
+        fs.writeFileSync(binPath, "#!/bin/sh\n");
+      },
+    };
+    let verifiedPath;
+    const verifyExec = async (p) => {
+      verifiedPath = p;
+      return { code: 0, stdout: "geckodriver 0.37.0\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(verifiedPath).to.equal(binPath);
+    expect(result.path).to.equal(binPath);
+  });
+
+  it("serializes GECKODRIVER_CACHE_DIR across concurrent geckodriver installs for different cache dirs", async function () {
+    // Without serialization, two concurrent installs for different cache dirs
+    // would clobber the process-wide env and one download() would see the
+    // other's path. Drop DOC_DETECTIVE_CACHE_DIR so ctx.cacheDir is honored.
+    const savedEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+    const savedGeckoCacheDir = process.env.GECKODRIVER_CACHE_DIR;
+    delete process.env.DOC_DETECTIVE_CACHE_DIR;
+    const dirA = fs.mkdtempSync(path.join(os.tmpdir(), "dd-gkA-"));
+    const dirB = fs.mkdtempSync(path.join(os.tmpdir(), "dd-gkB-"));
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const seen = {};
+    const makeModule = (cacheDir, key) => {
+      const browsersDir = path.join(cacheDir, "browsers");
+      const binPath = path.join(browsersDir, binName);
+      return {
+        path: binPath,
+        download: async () => {
+          // Yield so the two downloads would interleave if not serialized,
+          // then record what the env points at during this download.
+          await new Promise((r) => setTimeout(r, 15));
+          seen[key] = process.env.GECKODRIVER_CACHE_DIR;
+          fs.mkdirSync(browsersDir, { recursive: true });
+          fs.writeFileSync(binPath, "x");
+        },
+      };
+    };
+    const verifyExec = async () => ({
+      code: 0,
+      stdout: "geckodriver 0.37.0\n",
+      stderr: "",
+    });
+    try {
+      await Promise.all([
+        ensureBrowserInstalled("geckodriver", {
+          ctx: { cacheDir: dirA },
+          deps: { geckodriverModule: makeModule(dirA, "A"), verifyExec, logger: () => {} },
+        }),
+        ensureBrowserInstalled("geckodriver", {
+          ctx: { cacheDir: dirB },
+          deps: { geckodriverModule: makeModule(dirB, "B"), verifyExec, logger: () => {} },
+        }),
+      ]);
+      // Each download saw its OWN cache dir, not the other's.
+      expect(seen.A).to.equal(path.join(dirA, "browsers"));
+      expect(seen.B).to.equal(path.join(dirB, "browsers"));
+    } finally {
+      if (savedEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+      else process.env.DOC_DETECTIVE_CACHE_DIR = savedEnv;
+      // Restore GECKODRIVER_CACHE_DIR too — ensureBrowserInstalled mutates it,
+      // and a leaked value would taint later tests.
+      if (savedGeckoCacheDir === undefined) delete process.env.GECKODRIVER_CACHE_DIR;
+      else process.env.GECKODRIVER_CACHE_DIR = savedGeckoCacheDir;
+      fs.rmSync(dirA, { recursive: true, force: true });
+      fs.rmSync(dirB, { recursive: true, force: true });
+    }
+  });
+
+  describe("geckodriverBinaryInCache", function () {
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+
+    it("finds the binary at the cache root", function () {
+      const bin = path.join(tmpRoot, binName);
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("finds the binary nested one level deep (version dir)", function () {
+      const nestedDir = path.join(tmpRoot, "0.37.0");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const bin = path.join(nestedDir, binName);
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("returns undefined when the binary isn't present", function () {
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+  });
+
+  describe("verifyDriverBinary", function () {
+    it("returns ok with the parsed version when the driver executes and reports a version", async function () {
+      for (const [driver, output] of [
+        ["geckodriver", "geckodriver 0.36.0\n"],
+        ["chromedriver", "ChromeDriver 124.0.6367.207 (abc)\n"],
+        ["safaridriver", "Included with Safari 17.4 (19618.1.15.11.14)\n"],
+      ]) {
+        const res = await verifyDriverBinary(driver, "/fake/" + driver, {
+          exec: async () => ({ code: 0, stdout: output, stderr: "" }),
+        });
+        expect(res.ok, `${driver}: ${res.error}`).to.equal(true);
+        expect(res.version).to.be.a("string");
+      }
+    });
+
+    it("returns not-ok when the driver exits non-zero", async function () {
+      const res = await verifyDriverBinary("geckodriver", "/fake/geckodriver", {
+        exec: async () => ({ code: 1, stdout: "", stderr: "boom" }),
+      });
+      expect(res.ok).to.equal(false);
+      expect(res.error).to.be.a("string");
+    });
+
+    it("returns not-ok when the driver exits 0 but reports no parseable version (partial download)", async function () {
+      // The Windows partial-download symptom: the binary runs but emits
+      // nothing version-shaped, so presence must not be mistaken for health.
+      const res = await verifyDriverBinary("geckodriver", "/fake/geckodriver", {
+        exec: async () => ({ code: 0, stdout: "", stderr: "" }),
+      });
+      expect(res.ok).to.equal(false);
+    });
+
+    it("returns not-ok when the driver cannot be executed at all", async function () {
+      const res = await verifyDriverBinary("geckodriver", "/fake/geckodriver", {
+        exec: async () => {
+          throw Object.assign(new Error("spawn ENOENT"), { code: "ENOENT" });
+        },
+      });
+      expect(res.ok).to.equal(false);
+    });
+
+    it("returns not-ok when given no binary path", async function () {
+      const res = await verifyDriverBinary("geckodriver", "");
+      expect(res.ok).to.equal(false);
+    });
+
+    it("refuses to execute a path that isn't a recognized driver binary", async function () {
+      let execCalled = false;
+      const exec = async () => {
+        execCalled = true;
+        return { code: 0, stdout: "geckodriver 0.36.0\n", stderr: "" };
+      };
+      // A non-driver basename — must be rejected before any child process runs.
+      const res = await verifyDriverBinary("geckodriver", "/tmp/evil.sh", { exec });
+      expect(res.ok).to.equal(false);
+      expect(res.error).to.match(/recognized driver/i);
+      expect(execCalled, "exec must not run for a disallowed path").to.equal(false);
+    });
+
+    it("refuses a relative driver path (must be absolute)", async function () {
+      const res = await verifyDriverBinary("geckodriver", "geckodriver", {
+        exec: async () => ({ code: 0, stdout: "geckodriver 0.36.0\n", stderr: "" }),
+      });
+      expect(res.ok).to.equal(false);
+    });
+
+    it("reports a spawn failure (code null) as a spawn error, not 'exited with code null'", async function () {
+      const res = await verifyDriverBinary(
+        "geckodriver",
+        path.join(os.tmpdir(), "geckodriver"),
+        { exec: async () => ({ code: null, stdout: "", stderr: "ENOENT" }) }
+      );
+      expect(res.ok).to.equal(false);
+      expect(res.error).to.match(/spawn failed/i);
+      expect(res.error).to.not.match(/code null/i);
+    });
+  });
+
+  it("ensureBrowserInstalled('geckodriver') records the binary-reported version, never 'unknown'", async function () {
+    // Even when the module/download don't expose a version, the validated
+    // binary's own --version output is the source of truth.
+    const geckodriverModule = {
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
+      download: async () => ({}),
+    };
+    const verifyExec = async () => ({
+      code: 0,
+      stdout: "geckodriver 0.35.0\n",
+      stderr: "",
+    });
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(result.version).to.equal("0.35.0");
+    const record = readInstalledRecord({});
+    expect(record.browsers.geckodriver.installedVersion).to.equal("0.35.0");
+    expect(record.browsers.geckodriver.installedVersion).to.not.equal("unknown");
+  });
+
+  it("ensureBrowserInstalled('geckodriver') re-downloads once when the first download fails validation, then succeeds", async function () {
+    let downloads = 0;
+    const geckodriverModule = {
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
+      download: async () => {
+        downloads++;
+        return {};
+      },
+    };
+    let verifyCalls = 0;
+    const verifyExec = async () => {
+      verifyCalls++;
+      // First validation fails (partial download), second succeeds.
+      return verifyCalls === 1
+        ? { code: 0, stdout: "", stderr: "" }
+        : { code: 0, stdout: "geckodriver 0.36.0\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(downloads).to.equal(2);
+    expect(result.version).to.equal("0.36.0");
+  });
+
+  it("ensureBrowserInstalled('geckodriver') throws when the driver is non-functional after a re-download", async function () {
+    let downloads = 0;
+    const geckodriverModule = {
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
+      download: async () => {
+        downloads++;
+        return {};
+      },
+    };
+    // Always broken — exits 0 but never reports a version.
+    const verifyExec = async () => ({ code: 0, stdout: "", stderr: "" });
+    let threw = false;
+    try {
+      await ensureBrowserInstalled("geckodriver", {
+        deps: { geckodriverModule, logger: () => {}, verifyExec },
+      });
+    } catch (err) {
+      threw = true;
+      expect(String(err.message)).to.match(/non-functional|partial/i);
+    }
+    expect(threw).to.equal(true);
+    expect(downloads).to.equal(2); // initial + one re-download
   });
 });

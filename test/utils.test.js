@@ -425,6 +425,36 @@ describe("Util tests", function () {
     expect(configAbsent.cacheDir).to.equal(undefined);
   });
 
+  it("Yargs parses --browser-fallback as a string", function () {
+    const set = setArgs(["node", "runTests.js", "--browser-fallback", "off"]);
+    expect(set.browserFallback).to.equal("off");
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.browserFallback).to.equal(undefined);
+  });
+
+  it("setConfig stores --browser-fallback on config.browserFallback; absent uses the schema default 'auto'", async function () {
+    this.timeout(5000);
+    for (const mode of ["auto", "explicit", "off"]) {
+      const args = setArgs(["node", "runTests.js", "--browser-fallback", mode]);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.browserFallback, `mode: ${mode}`).to.equal(mode);
+    }
+
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.browserFallback).to.equal("auto");
+  });
+
+  it("setConfig ignores an invalid --browser-fallback value, keeping the validated config value", async function () {
+    this.timeout(5000);
+    const args = setArgs(["node", "runTests.js", "--browser-fallback", "sometimes"]);
+    const config = await setConfig({ configPath: null, args });
+    // Invalid CLI overrides are dropped (the schema-side enum is the contract);
+    // the validated default survives.
+    expect(config.browserFallback).to.equal("auto");
+  });
+
   it("Yargs parses --concurrent-runners as a string (bare flag yields empty string)", function () {
     const numeric = setArgs(["node", "runTests.js", "--concurrent-runners", "4"]);
     expect(numeric.concurrentRunners).to.equal("4");

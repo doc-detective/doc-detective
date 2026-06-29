@@ -147,6 +147,11 @@ function buildYargs(args: any): any {
         "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
       type: "string",
     })
+    .option("browser-fallback", {
+      description:
+        "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage.",
+      type: "string",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -409,6 +414,23 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // runtime/cacheDir.ts trims and drops whitespace-only values, so a
     // `--cache-dir "   "` override is neutralized at the consumption site.
     config.cacheDir = args.cacheDir;
+  }
+  if (typeof args.browserFallback === "string" && args.browserFallback.length > 0) {
+    // Only accept a known mode. Unlike most overrides, the schema validation
+    // above can't catch a bad CLI value (it runs before this block), and a
+    // garbage mode would reach the runner unvalidated on the pre-resolved-tests
+    // API path — so drop unknown values and keep the validated config value
+    // (which defaults to "auto").
+    const mode = args.browserFallback.trim().toLowerCase();
+    if (mode === "auto" || mode === "explicit" || mode === "off") {
+      config.browserFallback = mode;
+    } else {
+      log(
+        `Ignoring invalid --browser-fallback value '${args.browserFallback}'. Expected one of: auto, explicit, off.`,
+        "warning",
+        config
+      );
+    }
   }
   if (typeof args.concurrentRunners === "string") {
     // The bare flag ("" after yargs string parsing) and an explicit "true"

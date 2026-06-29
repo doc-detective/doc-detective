@@ -566,6 +566,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("cacheDir");
       });
 
+      it("should validate a config_v3 object with each browserFallback mode", function () {
+        for (const browserFallback of ["auto", "explicit", "off"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { browserFallback },
+          });
+
+          expect(result.valid, `browserFallback: ${browserFallback}`).to.be.true;
+          expect(result.errors).to.equal("");
+          expect(result.object.browserFallback).to.equal(browserFallback);
+        }
+      });
+
+      it("should default browserFallback to 'auto' when addDefaults=true", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { input: "." },
+          addDefaults: true,
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.browserFallback).to.equal("auto");
+      });
+
+      it("should reject a config_v3 object whose browserFallback is not a known mode", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { browserFallback: "sometimes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("browserFallback");
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",
@@ -1238,6 +1273,29 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.runOn[0].platforms).to.deep.equal(["linux"]);
         expect(result.runOn[0].browsers[0].name).to.equal("chrome");
         expect(result.runOn[0].browsers[0].headless).to.equal(true);
+      });
+    });
+
+    describe("context_v3 browserFallback", function () {
+      it("should validate a context_v3 object with each browserFallback mode", function () {
+        for (const browserFallback of ["auto", "explicit", "off"]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], browsers: ["firefox"], browserFallback },
+          });
+          expect(result.valid, `browserFallback: ${browserFallback}`).to.be.true;
+          expect(result.object.browserFallback).to.equal(browserFallback);
+        }
+      });
+
+      it("should reject a context_v3 object whose browserFallback is not a known mode", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"], browserFallback: "sometimes" },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("browserFallback");
       });
     });
 

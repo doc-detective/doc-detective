@@ -116,6 +116,10 @@ export interface Context {
     | ("chrome" | "firefox" | "safari" | "webkit")
     | Browser
     | (("chrome" | "firefox" | "safari" | "webkit") | Browser1)[];
+  /**
+   * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
+   */
+  browserFallback?: "auto" | "explicit" | "off";
 }
 /**
  * Browser configuration.
@@ -125,6 +129,10 @@ export interface Browser {
    * Name of the browser.
    */
   name: "chrome" | "firefox" | "safari" | "webkit";
+  /**
+   * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
+   */
+  explicit?: boolean;
   /**
    * If `true`, runs the browser in headless mode.
    */
@@ -166,6 +174,10 @@ export interface Browser1 {
    * Name of the browser.
    */
   name: "chrome" | "firefox" | "safari" | "webkit";
+  /**
+   * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
+   */
+  explicit?: boolean;
   /**
    * If `true`, runs the browser in headless mode.
    */

@@ -18,6 +18,7 @@ Browser configuration.
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 name | string | Required. Name of the browser.<br/><br/>Accepted values: `chrome`, `firefox`, `safari`, `webkit` | 
+explicit | boolean | ReadOnly. Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned). | 
 headless | boolean | Optional. If `true`, runs the browser in headless mode. | `true`
 window | object([Browser Window](/reference/schemas/browser-window)) | Optional. Browser dimensions. | 
 viewport | object([Browser Viewport](/reference/schemas/browser-viewport)) | Optional. Viewport dimensions. | 

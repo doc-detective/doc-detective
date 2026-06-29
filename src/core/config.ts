@@ -6,13 +6,71 @@ import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { getBrowsersDir, readInstalledRecord } from "../runtime/cacheDir.js";
+import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browsers.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache };
+export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, verifyAppDrivers };
+
+/**
+ * A candidate browser app plus the driver binary that must be functional for
+ * it to be offered. `driverPath`/`driverName` may be absent when the binary
+ * can't be located cheaply — in that case the app passes through and the
+ * runtime session attempt (plus cross-browser fallback) is the safety net.
+ */
+interface AppDriverDescriptor {
+  app: any;
+  driverName?: string;
+  driverPath?: string;
+}
+
+/**
+ * Layer 2 of the driver-resilience strategy: gate each candidate browser on
+ * its driver *executing*, not merely existing on disk. A present-but-broken
+ * driver (e.g. a partially downloaded geckodriver on Windows) is excluded so
+ * the runner never builds a doomed session for it; the default-browser picker
+ * then moves to the next available engine. Drivers without a resolvable path
+ * pass through unchecked. Pure and injectable so it unit-tests without real
+ * binaries.
+ */
+async function verifyAppDrivers(
+  descriptors: AppDriverDescriptor[],
+  {
+    verify,
+    logger,
+  }: {
+    verify: (
+      driverName: string,
+      driverPath: string
+    ) => Promise<{ ok: boolean; error?: string }>;
+    logger?: (msg: string, level?: string) => void;
+  }
+): Promise<any[]> {
+  const out: any[] = [];
+  for (const d of descriptors) {
+    if (!d.driverName || !d.driverPath) {
+      out.push(d.app);
+      continue;
+    }
+    const res = await verify(d.driverName, d.driverPath);
+    if (res.ok) {
+      out.push(d.app);
+    } else if (logger) {
+      logger(
+        `Excluding ${
+          d.app?.name ?? d.driverName
+        } from available browsers: its ${d.driverName} driver is present but did not validate (${
+          res.error ?? "no error reported"
+        }). Possible causes include a partial or corrupt download, a permissions issue, or a missing dependency.`,
+        "warning"
+      );
+    }
+  }
+  return out;
+}
 
 /**
  * Deep merge two objects, with override properties taking precedence
@@ -766,8 +824,13 @@ async function getAvailableApps({ config }: any) {
     await probeBrowserEnvironment({ config, browsersDir });
 
   // Note: Edge/Microsoft Edge detection is intentionally excluded
-  // Only Chrome, Firefox, and Safari are supported browsers
-  const apps: any[] = [];
+  // Only Chrome, Firefox, and Safari are supported browsers.
+  //
+  // Build candidate apps with the driver binary each needs, then gate them on
+  // the driver actually executing (Layer 2). Presence in `installed.json` /
+  // `appium driver list` is necessary but not sufficient — a partially
+  // downloaded driver passes presence checks yet can't start a session.
+  const descriptors: AppDriverDescriptor[] = [];
 
   // Detect Chrome
   const chrome = installedBrowsers.find(
@@ -782,11 +845,15 @@ async function getAvailableApps({ config }: any) {
   );
 
   if (chrome && chromedriver && appiumChromium) {
-    apps.push({
-      name: "chrome",
-      version: chromeVersion,
-      path: chrome.executablePath,
-      driver: chromedriver.executablePath,
+    descriptors.push({
+      app: {
+        name: "chrome",
+        version: chromeVersion,
+        path: chrome.executablePath,
+        driver: chromedriver.executablePath,
+      },
+      driverName: "chromedriver",
+      driverPath: chromedriver.executablePath,
     });
   }
 
@@ -799,10 +866,18 @@ async function getAvailableApps({ config }: any) {
   );
 
   if (firefox && appiumFirefox) {
-    apps.push({
-      name: "firefox",
-      version: firefox.buildId,
-      path: firefox.executablePath,
+    // Resolve the geckodriver binary so Layer 2 can execute it. Best-effort:
+    // if it can't be located cheaply, the descriptor carries no driverPath
+    // and the app passes through to the runtime fallback (Layer 4).
+    const geckodriverPath = resolveGeckodriverBinaryPath(config, browsersDir);
+    descriptors.push({
+      app: {
+        name: "firefox",
+        version: firefox.buildId,
+        path: firefox.executablePath,
+      },
+      driverName: geckodriverPath ? "geckodriver" : undefined,
+      driverPath: geckodriverPath,
     });
   }
 
@@ -816,7 +891,15 @@ async function getAvailableApps({ config }: any) {
     );
 
     if (safariVersion.exitCode === 0 && appiumSafari) {
-      apps.push({ name: "safari", version: safariVersion.stdout.trim(), path: "" });
+      // safaridriver ships with macOS at a fixed path; verifying it executes
+      // confirms the binary runs. Note this does NOT prove "Allow Remote
+      // Automation" is enabled — that can still be off and only surface at
+      // session start, where the cross-browser fallback then takes over.
+      descriptors.push({
+        app: { name: "safari", version: safariVersion.stdout.trim(), path: "" },
+        driverName: "safaridriver",
+        driverPath: "/usr/bin/safaridriver",
+      });
     }
   }
 
@@ -824,10 +907,40 @@ async function getAvailableApps({ config }: any) {
   // Detect Android Studio
   // Detect iOS Simulator
 
+  const apps = await verifyAppDrivers(descriptors, {
+    verify: (driverName, driverPath) =>
+      verifyDriverBinary(driverName, driverPath),
+    logger: (msg, level) => log(config, level ?? "warning", msg),
+  });
+
   // Don't cache a result built on a failed browser detection — a transient
   // failure must not suppress later successful detection in this process.
   if (!browserDetectionFailed) cachedAppsByDir.set(key, apps);
   return apps;
+}
+
+/**
+ * Best-effort resolution of the geckodriver binary path for Layer 2's
+ * functional check. Probes the browsers cache directly for the extracted
+ * `geckodriver(.exe)` binary (root + one level deep) rather than loading the
+ * geckodriver module and mutating the process-wide `GECKODRIVER_CACHE_DIR` —
+ * that env dance would race across concurrent `getAvailableApps()` calls for
+ * different cache dirs. Gated on the geckodriver package being resolvable (so a
+ * lean install without it returns undefined), and returns undefined when the
+ * binary can't be located so Firefox detection degrades to the runtime fallback.
+ */
+function resolveGeckodriverBinaryPath(
+  config: any,
+  browsersDir: string
+): string | undefined {
+  const installed = resolveHeavyDepPath("geckodriver", {
+    cacheDir: config?.cacheDir,
+  });
+  if (!installed) return undefined;
+  // Use the caller's already-resolved browsersDir — getAvailableApps resolves
+  // it before probeBrowserEnvironment may chdir, so recomputing here could
+  // point at a different cache tree than installedBrowsers and the cache key.
+  return geckodriverBinaryInCache(browsersDir);
 }
 
 interface BrowserComponent {
