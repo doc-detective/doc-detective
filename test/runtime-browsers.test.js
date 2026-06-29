@@ -309,6 +309,59 @@ describe("runtime/browsers", function () {
     expect(result.version).to.equal("0.37.0");
   });
 
+  it("serializes GECKODRIVER_CACHE_DIR across concurrent geckodriver installs for different cache dirs", async function () {
+    // Without serialization, two concurrent installs for different cache dirs
+    // would clobber the process-wide env and one download() would see the
+    // other's path. Drop DOC_DETECTIVE_CACHE_DIR so ctx.cacheDir is honored.
+    const savedEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+    delete process.env.DOC_DETECTIVE_CACHE_DIR;
+    const dirA = fs.mkdtempSync(path.join(os.tmpdir(), "dd-gkA-"));
+    const dirB = fs.mkdtempSync(path.join(os.tmpdir(), "dd-gkB-"));
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const seen = {};
+    const makeModule = (cacheDir, key) => {
+      const browsersDir = path.join(cacheDir, "browsers");
+      const binPath = path.join(browsersDir, binName);
+      return {
+        path: binPath,
+        download: async () => {
+          // Yield so the two downloads would interleave if not serialized,
+          // then record what the env points at during this download.
+          await new Promise((r) => setTimeout(r, 15));
+          seen[key] = process.env.GECKODRIVER_CACHE_DIR;
+          fs.mkdirSync(browsersDir, { recursive: true });
+          fs.writeFileSync(binPath, "x");
+        },
+      };
+    };
+    const verifyExec = async () => ({
+      code: 0,
+      stdout: "geckodriver 0.37.0\n",
+      stderr: "",
+    });
+    try {
+      await Promise.all([
+        ensureBrowserInstalled("geckodriver", {
+          ctx: { cacheDir: dirA },
+          deps: { geckodriverModule: makeModule(dirA, "A"), verifyExec, logger: () => {} },
+        }),
+        ensureBrowserInstalled("geckodriver", {
+          ctx: { cacheDir: dirB },
+          deps: { geckodriverModule: makeModule(dirB, "B"), verifyExec, logger: () => {} },
+        }),
+      ]);
+      // Each download saw its OWN cache dir, not the other's.
+      expect(seen.A).to.equal(path.join(dirA, "browsers"));
+      expect(seen.B).to.equal(path.join(dirB, "browsers"));
+    } finally {
+      if (savedEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+      else process.env.DOC_DETECTIVE_CACHE_DIR = savedEnv;
+      fs.rmSync(dirA, { recursive: true, force: true });
+      fs.rmSync(dirB, { recursive: true, force: true });
+    }
+  });
+
   describe("verifyDriverBinary", function () {
     it("returns ok with the parsed version when the driver executes and reports a version", async function () {
       for (const [driver, output] of [
