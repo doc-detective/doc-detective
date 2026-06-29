@@ -1,3 +1,10 @@
+# [4.16.0](https://github.com/doc-detective/doc-detective/compare/v4.15.3...v4.16.0) (2026-06-29)
+
+
+### Features
+
+* **runner:** validate browser drivers and fall back across browsers ([#413](https://github.com/doc-detective/doc-detective/issues/413)) ([c52c5c3](https://github.com/doc-detective/doc-detective/commit/c52c5c38fd6437527d7d17d9ec697f553ebe2037))
+
 ## [4.15.3](https://github.com/doc-detective/doc-detective/compare/v4.15.2...v4.15.3) (2026-06-28)
 
 
