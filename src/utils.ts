@@ -587,21 +587,23 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       typeof results?.runDir === "string" && results.runDir.length > 0
         ? path.resolve(results.runDir)
         : null;
-    // Confine the stamped runDir to the output's `.doc-detective/runs/` root.
-    // Compare *real* paths (resolving symlinks on both sides) so a runDir
-    // that is — or sits under — a symlink pointing outside the tree can't
-    // slip past a plain string-prefix check and redirect the write. Both
-    // paths exist in the normal local case (getRunOutputDir created them);
-    // a non-existent or unresolvable stamped path (e.g. an external/API
-    // result) throws and falls through to a fresh local folder.
+    // Confine the stamped runDir to a child run folder *under* the output's
+    // `.doc-detective/runs/` root. Compare *real* paths (resolving symlinks on
+    // both sides) so a runDir that is — or sits under — a symlink pointing
+    // outside the tree can't slip past a plain string-prefix check and redirect
+    // the write. The stamped path must be a strict child (`startsWith(root +
+    // sep)`), never the `runs/` collection root itself: an equal-to-root match
+    // would archive to `.doc-detective/runs/testResults.json` and mix every
+    // run's results into one file. Both paths exist in the normal local case
+    // (getRunOutputDir created them); a non-existent or unresolvable stamped
+    // path (e.g. an external/API result) throws and falls through to a fresh
+    // local folder.
     let useStampedRunDir = false;
     if (stampedRunDir) {
       try {
         const realRoot = fs.realpathSync(expectedRunsRoot);
         const realStamped = fs.realpathSync(stampedRunDir);
-        useStampedRunDir =
-          realStamped === realRoot ||
-          realStamped.startsWith(realRoot + path.sep);
+        useStampedRunDir = realStamped.startsWith(realRoot + path.sep);
       } catch {
         useStampedRunDir = false;
       }

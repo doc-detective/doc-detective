@@ -2302,15 +2302,14 @@ function buildAutoRecordStep({
   // autoScreenshot.)
   const runDir = getRunOutputDir(config, { create: false });
   const contextSegment = capPathSegment(
-    sanitizeFilesystemName(String(context.contextId ?? ""), "context"),
-    32
+    sanitizeFilesystemName(String(context.contextId ?? ""), "context")
   );
   const recordPath = path.join(
     runDir,
     "specs",
-    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec"), 32),
+    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
     "tests",
-    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test"), 32),
+    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
     "contexts",
     contextSegment,
     "recordings",
@@ -2327,9 +2326,12 @@ function buildAutoRecordStep({
 }
 
 // Directory/file segments built from IDs are capped so deeply nested doc
-// trees can't push the full screenshot path past Windows' MAX_PATH. Keep the
-// tail — content hashes live at the end of generated IDs.
-function capPathSegment(segment: string, max: number = 64): string {
+// trees can't push the full path past Windows' MAX_PATH. The default cap is
+// 32: the REST artifact tree nests several id segments
+// (specs/<id>/tests/<id>/contexts/<id>/…), so a larger default could exceed
+// MAX_PATH on Windows. Keep the tail — content hashes live at the end of
+// generated IDs.
+function capPathSegment(segment: string, max: number = 32): string {
   return segment.length <= max ? segment : segment.slice(segment.length - max);
 }
 
@@ -2371,13 +2373,12 @@ async function captureAutoScreenshot({
     const dir = path.join(
       runDir,
       "specs",
-      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec"), 32),
+      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
       "tests",
-      capPathSegment(sanitizedTestId, 32),
+      capPathSegment(sanitizedTestId),
       "contexts",
       capPathSegment(
-        sanitizeFilesystemName(String(context.contextId ?? ""), "context"),
-        32
+        sanitizeFilesystemName(String(context.contextId ?? ""), "context")
       ),
       "screenshots"
     );

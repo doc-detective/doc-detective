@@ -21,8 +21,11 @@ before(async function () {
 
 // Run folder uses the same ISO instant token as the debug dump's filenames.
 // REST layout: the run id is the folder name directly under `.doc-detective/runs/`
-// (no `run-` prefix). Module-scoped so every describe block can share it.
-const RUN_ID_RE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/;
+// (no `run-` prefix). The optional `-<n>` tail covers the ordinal suffix
+// getRunOutputDir appends on a same-millisecond collision (`<id>-2`, `<id>-3`,
+// …), so directory-scan assertions still match a collided run folder.
+// Module-scoped so every describe block can share it.
+const RUN_ID_RE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(-\d+)?$/;
 
 describe("getRunOutputDir", function () {
   let tempBase;
@@ -354,8 +357,8 @@ describe("runFolder reporter", function () {
     expect(parsed.runId).to.equal("20260612-130000");
   });
 
-  it("rejects a stamped runDir that symlinks outside the .doc-detective root", async function () {
-    // A runDir that lives under .doc-detective/ but is a symlink resolving
+  it("rejects a stamped runDir that symlinks outside the .doc-detective/runs/ root", async function () {
+    // A runDir that lives under .doc-detective/runs/ but is a symlink resolving
     // outside the output tree must not slip past the confinement check.
     const runsRoot = path.resolve(tempBase, ".doc-detective", "runs");
     fs.mkdirSync(runsRoot, { recursive: true });
@@ -389,6 +392,51 @@ describe("runFolder reporter", function () {
     } finally {
       fs.rmSync(outsideTarget, { recursive: true, force: true });
     }
+  });
+
+  it("rejects a stamped runDir from the old run-<id>/ layout (under .doc-detective/ but not runs/)", async function () {
+    // The confinement root tightened from `.doc-detective/` to
+    // `.doc-detective/runs/`. A legacy runDir stamped in the old flat layout
+    // (`.doc-detective/run-<id>/`, a sibling of `runs/`, not a child of it)
+    // must now be rejected and re-derived to a fresh in-tree `runs/<id>` folder
+    // rather than written to beside the report it no longer matches.
+    const oldLayoutDir = path.join(
+      tempBase,
+      ".doc-detective",
+      "run-20260612-130000"
+    );
+    fs.mkdirSync(oldLayoutDir, { recursive: true });
+    const written = await reporters.runFolderReporter(
+      {},
+      tempBase,
+      { runDir: oldLayoutDir, summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    // Not written into the old-layout folder…
+    expect(path.dirname(written)).to.not.equal(oldLayoutDir);
+    expect(fs.readdirSync(oldLayoutDir)).to.have.lengthOf(0);
+    // …but into a fresh folder under the new `runs/` collection.
+    expect(
+      path.relative(path.resolve(tempBase, ".doc-detective", "runs"), written)
+    ).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(-\d+)?[\\/]/);
+  });
+
+  it("rejects a stamped runDir equal to the runs/ collection root (must be a child)", async function () {
+    // A stamped runDir that IS the `runs/` root (not a child run folder) would,
+    // if accepted, archive to `.doc-detective/runs/testResults.json` and mix
+    // every run's results into one file. The confinement requires a strict
+    // child, so this is rejected and re-derived to a fresh `runs/<id>` folder.
+    const runsRoot = path.resolve(tempBase, ".doc-detective", "runs");
+    fs.mkdirSync(runsRoot, { recursive: true });
+    const written = await reporters.runFolderReporter(
+      {},
+      tempBase,
+      { runDir: runsRoot, summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    // The archive is a child of runs/, never runs/testResults.json itself.
+    expect(path.dirname(written)).to.not.equal(runsRoot);
+    expect(path.basename(path.dirname(written))).to.match(RUN_ID_RE);
   });
 
   it("ignores a results.runDir outside the output's .doc-detective root", async function () {

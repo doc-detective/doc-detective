@@ -61,7 +61,7 @@
     },
     {
       "testId": "autoscreenshot-string-truthy",
-      "description": "A truthy string autoScreenshot value (API/coercion path) resolves to true and captures screenshots on headed Chrome.",
+      "description": "Intentionally passes a STRING (not boolean) autoScreenshot value to exercise the runtime-coercion path: resolveAutoScreenshot calls Boolean(...), so a truthy string from an API caller resolves to true and captures screenshots on headed Chrome.",
       "autoScreenshot": "true",
       "runOn": [
         {
