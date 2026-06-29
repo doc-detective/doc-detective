@@ -35,11 +35,11 @@ export interface Report {
    */
   reportId?: string;
   /**
-   * Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name (`run-<runId>`). System-populated.
+   * Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name under `.doc-detective/runs/<runId>/`. System-populated.
    */
   runId?: string;
   /**
-   * Absolute path to the run's artifact folder (`<output>/.doc-detective/run-<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved. Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.
+   * Absolute path to the run's artifact folder (`<output>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.
    */
   runDir?: string;
   /**

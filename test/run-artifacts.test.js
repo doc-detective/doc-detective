@@ -19,6 +19,14 @@ before(async function () {
   global.expect = expect;
 });
 
+// Run folder uses the same ISO instant token as the debug dump's filenames.
+// REST layout: the run id is the folder name directly under `.doc-detective/runs/`
+// (no `run-` prefix). The optional `-<n>` tail covers the ordinal suffix
+// getRunOutputDir appends on a same-millisecond collision (`<id>-2`, `<id>-3`,
+// …), so directory-scan assertions still match a collided run folder.
+// Module-scoped so every describe block can share it.
+const RUN_ID_RE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(-\d+)?$/;
+
 describe("getRunOutputDir", function () {
   let tempBase;
 
@@ -30,14 +38,11 @@ describe("getRunOutputDir", function () {
     fs.rmSync(tempBase, { recursive: true, force: true });
   });
 
-  // run folder uses the same ISO instant token as the debug dump's filenames.
-  const RUN_ID_RE = /^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/;
-
-  it("creates a .doc-detective/run-<runId> folder under config.output", function () {
+  it("creates a .doc-detective/runs/<runId> folder under config.output", function () {
     const config = { output: tempBase };
     const dir = getRunOutputDir(config);
     expect(path.dirname(dir)).to.equal(
-      path.resolve(tempBase, ".doc-detective")
+      path.resolve(tempBase, ".doc-detective", "runs")
     );
     expect(path.basename(dir)).to.match(RUN_ID_RE);
     expect(fs.existsSync(dir)).to.equal(true);
@@ -54,15 +59,15 @@ describe("getRunOutputDir", function () {
     const stamp = "2026-06-12T12-00-00-000Z";
     const first = getRunOutputDir({ output: tempBase, __runTimestamp: stamp });
     const second = getRunOutputDir({ output: tempBase, __runTimestamp: stamp });
-    expect(path.basename(first)).to.equal(`run-${stamp}`);
-    expect(path.basename(second)).to.equal(`run-${stamp}-2`);
+    expect(path.basename(first)).to.equal(stamp);
+    expect(path.basename(second)).to.equal(`${stamp}-2`);
   });
 
   it("creates the run folder next to a report-file output path", function () {
     const config = { output: path.join(tempBase, "results.json") };
     const dir = getRunOutputDir(config);
     expect(path.dirname(dir)).to.equal(
-      path.resolve(tempBase, ".doc-detective")
+      path.resolve(tempBase, ".doc-detective", "runs")
     );
   });
 
@@ -72,7 +77,7 @@ describe("getRunOutputDir", function () {
     const config = { output: { toString: () => tempBase } };
     const dir = getRunOutputDir(config);
     expect(path.dirname(dir)).to.equal(
-      path.resolve(tempBase, ".doc-detective")
+      path.resolve(tempBase, ".doc-detective", "runs")
     );
     expect(fs.existsSync(dir)).to.equal(true);
   });
@@ -81,7 +86,7 @@ describe("getRunOutputDir", function () {
     const config = { output: tempBase };
     const dir = getRunOutputDir(config, { create: false });
     expect(path.dirname(dir)).to.equal(
-      path.resolve(tempBase, ".doc-detective")
+      path.resolve(tempBase, ".doc-detective", "runs")
     );
     expect(path.basename(dir)).to.match(RUN_ID_RE);
     // No folder — not even the .doc-detective root — should touch disk.
@@ -286,10 +291,10 @@ describe("runSpecs run-folder creation", function () {
     await runSpecs({
       resolvedTests: fixture({ reporters: ["terminal", "json", "runFolder"] }),
     });
-    const runsRoot = path.resolve(tempBase, ".doc-detective");
+    const runsRoot = path.resolve(tempBase, ".doc-detective", "runs");
     expect(fs.existsSync(runsRoot)).to.equal(true);
     expect(
-      fs.readdirSync(runsRoot).some((name) => name.startsWith("run-"))
+      fs.readdirSync(runsRoot).some((name) => RUN_ID_RE.test(name))
     ).to.equal(true);
   });
 
@@ -314,10 +319,10 @@ describe("runSpecs run-folder creation", function () {
     const resolved = fixture({ reporters: ["terminal", "json"] });
     resolved.specs[0].tests[0].autoScreenshot = true;
     await runSpecs({ resolvedTests: resolved });
-    const runsRoot = path.resolve(tempBase, ".doc-detective");
+    const runsRoot = path.resolve(tempBase, ".doc-detective", "runs");
     expect(fs.existsSync(runsRoot)).to.equal(true);
     expect(
-      fs.readdirSync(runsRoot).some((name) => name.startsWith("run-"))
+      fs.readdirSync(runsRoot).some((name) => RUN_ID_RE.test(name))
     ).to.equal(true);
   });
 });
@@ -334,7 +339,12 @@ describe("runFolder reporter", function () {
   });
 
   it("writes testResults.json into the run folder stamped on the results", async function () {
-    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-130000");
+    const runDir = path.join(
+      tempBase,
+      ".doc-detective",
+      "runs",
+      "20260612-130000"
+    );
     // runSpecs creates the run folder before the reporter runs; the reporter's
     // confinement check resolves real paths, so the folder must exist on disk.
     fs.mkdirSync(runDir, { recursive: true });
@@ -347,13 +357,13 @@ describe("runFolder reporter", function () {
     expect(parsed.runId).to.equal("20260612-130000");
   });
 
-  it("rejects a stamped runDir that symlinks outside the .doc-detective root", async function () {
-    // A runDir that lives under .doc-detective/ but is a symlink resolving
+  it("rejects a stamped runDir that symlinks outside the .doc-detective/runs/ root", async function () {
+    // A runDir that lives under .doc-detective/runs/ but is a symlink resolving
     // outside the output tree must not slip past the confinement check.
-    const runsRoot = path.resolve(tempBase, ".doc-detective");
+    const runsRoot = path.resolve(tempBase, ".doc-detective", "runs");
     fs.mkdirSync(runsRoot, { recursive: true });
     const outsideTarget = fs.mkdtempSync(path.join(os.tmpdir(), "dd-escape-"));
-    const linkPath = path.join(runsRoot, "run-escape");
+    const linkPath = path.join(runsRoot, "2026-06-12T13-00-00-000Z");
     let symlinkSupported = true;
     try {
       fs.symlinkSync(outsideTarget, linkPath, "junction");
@@ -384,6 +394,51 @@ describe("runFolder reporter", function () {
     }
   });
 
+  it("rejects a stamped runDir from the old run-<id>/ layout (under .doc-detective/ but not runs/)", async function () {
+    // The confinement root tightened from `.doc-detective/` to
+    // `.doc-detective/runs/`. A legacy runDir stamped in the old flat layout
+    // (`.doc-detective/run-<id>/`, a sibling of `runs/`, not a child of it)
+    // must now be rejected and re-derived to a fresh in-tree `runs/<id>` folder
+    // rather than written to beside the report it no longer matches.
+    const oldLayoutDir = path.join(
+      tempBase,
+      ".doc-detective",
+      "run-20260612-130000"
+    );
+    fs.mkdirSync(oldLayoutDir, { recursive: true });
+    const written = await reporters.runFolderReporter(
+      {},
+      tempBase,
+      { runDir: oldLayoutDir, summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    // Not written into the old-layout folder…
+    expect(path.dirname(written)).to.not.equal(oldLayoutDir);
+    expect(fs.readdirSync(oldLayoutDir)).to.have.lengthOf(0);
+    // …but into a fresh folder under the new `runs/` collection.
+    expect(
+      path.relative(path.resolve(tempBase, ".doc-detective", "runs"), written)
+    ).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(-\d+)?[\\/]/);
+  });
+
+  it("rejects a stamped runDir equal to the runs/ collection root (must be a child)", async function () {
+    // A stamped runDir that IS the `runs/` root (not a child run folder) would,
+    // if accepted, archive to `.doc-detective/runs/testResults.json` and mix
+    // every run's results into one file. The confinement requires a strict
+    // child, so this is rejected and re-derived to a fresh `runs/<id>` folder.
+    const runsRoot = path.resolve(tempBase, ".doc-detective", "runs");
+    fs.mkdirSync(runsRoot, { recursive: true });
+    const written = await reporters.runFolderReporter(
+      {},
+      tempBase,
+      { runDir: runsRoot, summary: {}, specs: [] },
+      { command: "runTests" }
+    );
+    // The archive is a child of runs/, never runs/testResults.json itself.
+    expect(path.dirname(written)).to.not.equal(runsRoot);
+    expect(path.basename(path.dirname(written))).to.match(RUN_ID_RE);
+  });
+
   it("ignores a results.runDir outside the output's .doc-detective root", async function () {
     // Results can originate outside the local process (API runs); a garbled
     // or malicious runDir must not redirect the write outside the output.
@@ -396,8 +451,8 @@ describe("runFolder reporter", function () {
     );
     expect(written).to.not.include(path.join("elsewhere", "run-x"));
     expect(
-      path.relative(path.resolve(tempBase, ".doc-detective"), written)
-    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+      path.relative(path.resolve(tempBase, ".doc-detective", "runs"), written)
+    ).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
     expect(fs.existsSync(evilDir)).to.equal(false);
   });
 
@@ -410,8 +465,8 @@ describe("runFolder reporter", function () {
     );
     expect(written).to.match(/testResults\.json$/);
     expect(
-      path.relative(path.resolve(tempBase, ".doc-detective"), written)
-    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+      path.relative(path.resolve(tempBase, ".doc-detective", "runs"), written)
+    ).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 
   it("archives beside an existing file-path output, not inside it (any extension)", async function () {
@@ -427,8 +482,8 @@ describe("runFolder reporter", function () {
       { command: "runTests" }
     );
     expect(
-      path.relative(path.resolve(tempBase, ".doc-detective"), written)
-    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+      path.relative(path.resolve(tempBase, ".doc-detective", "runs"), written)
+    ).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 
   it("keeps a report-extension output beside its parent even if it exists as a directory", async function () {
@@ -445,8 +500,8 @@ describe("runFolder reporter", function () {
     );
     // Archived beside `reports.json`, i.e. under <tempBase>/.doc-detective.
     expect(
-      path.relative(path.resolve(tempBase, ".doc-detective"), written)
-    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+      path.relative(path.resolve(tempBase, ".doc-detective", "runs"), written)
+    ).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
     expect(
       fs.existsSync(path.join(dirOutput, ".doc-detective"))
     ).to.equal(false);
@@ -464,12 +519,17 @@ describe("runFolder reporter", function () {
       { command: "runTests" }
     );
     expect(
-      path.relative(path.resolve(dirOutput, ".doc-detective"), written)
-    ).to.match(/^run-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
+      path.relative(path.resolve(dirOutput, ".doc-detective", "runs"), written)
+    ).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z[\\/]/);
   });
 
   it("also writes an HTML report beside the JSON in the run folder", async function () {
-    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-140000");
+    const runDir = path.join(
+      tempBase,
+      ".doc-detective",
+      "runs",
+      "20260612-140000"
+    );
     fs.mkdirSync(runDir, { recursive: true });
     const results = { runId: "20260612-140000", runDir, summary: {}, specs: [] };
     const written = await reporters.runFolderReporter({}, tempBase, results, {
@@ -491,7 +551,12 @@ describe("runFolder reporter", function () {
     // <html>") must therefore print *before* the per-run JSON line
     // ("...results at <json>") — otherwise the action folds the trailing HTML
     // line into the path and the require() fails the release smoke test.
-    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-170000");
+    const runDir = path.join(
+      tempBase,
+      ".doc-detective",
+      "runs",
+      "20260612-170000"
+    );
     fs.mkdirSync(runDir, { recursive: true });
     const results = { runId: "20260612-170000", runDir, summary: {}, specs: [] };
 
@@ -517,7 +582,12 @@ describe("runFolder reporter", function () {
   });
 
   it("names the HTML file to match the command's JSON report type", async function () {
-    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-150000");
+    const runDir = path.join(
+      tempBase,
+      ".doc-detective",
+      "runs",
+      "20260612-150000"
+    );
     fs.mkdirSync(runDir, { recursive: true });
     const results = { runId: "20260612-150000", runDir, summary: {}, specs: [] };
     await reporters.runFolderReporter({}, tempBase, results, {
@@ -549,7 +619,12 @@ describe("runFolder reporter", function () {
   });
 
   it("keeps the JSON archive when the HTML write fails (best-effort)", async function () {
-    const runDir = path.join(tempBase, ".doc-detective", "run-20260612-160000");
+    const runDir = path.join(
+      tempBase,
+      ".doc-detective",
+      "runs",
+      "20260612-160000"
+    );
     fs.mkdirSync(runDir, { recursive: true });
     // Force only the HTML write to fail without mocking internals: occupy the
     // HTML path with a directory so fs.writeFileSync throws (EISDIR/EPERM),
@@ -687,9 +762,41 @@ describe("buildAutoRecordStep", function () {
     expect(step.record.engine).to.equal("ffmpeg");
     expect(step.record.overwrite).to.equal("true");
     expect(step.__autoRecord).to.equal(true);
-    // Deterministic path ending in recordings/<spec>/<test>/<context>.mp4.
+    // Deterministic REST path ending in
+    // specs/<spec>/tests/<test>/contexts/<context>/recordings/<context>.mp4.
     const normalized = step.record.path.split(path.sep).join("/");
-    expect(normalized).to.match(/recordings\/.+\/.+\/windows-chrome\.mp4$/);
+    expect(normalized).to.match(
+      /specs\/.+\/tests\/.+\/contexts\/windows-chrome\/recordings\/windows-chrome\.mp4$/
+    );
+  });
+
+  it("caps an over-long id to 32 chars and stays collision-resistant", function () {
+    // Two distinct specIds that share the same trailing chars must NOT collapse
+    // into the same path segment, or one context could overwrite another's
+    // artifacts. capPathSegment prepends a deterministic hash of the full id, so
+    // the capped segments stay distinct (and stable across runs).
+    const sharedTail = "x".repeat(40);
+    const context = {
+      contextId: "windows-chrome",
+      steps: [{ goTo: { url: "https://example.com" } }],
+    };
+    const specSegmentOf = (specId) => {
+      const step = buildAutoRecordStep({ config, spec: { specId }, test, context });
+      return step.record.path
+        .split(path.sep)
+        .join("/")
+        .split("/specs/")[1]
+        .split("/tests/")[0];
+    };
+    const a = specSegmentOf(`alpha-prefix${sharedTail}`);
+    const b = specSegmentOf(`bravo-prefix${sharedTail}`);
+    // Each capped to the 32-char budget…
+    expect(a).to.have.lengthOf(32);
+    expect(b).to.have.lengthOf(32);
+    // …yet distinct despite identical 32-char tails (no artifact collision)…
+    expect(a).to.not.equal(b);
+    // …and deterministic: the same id maps to the same segment every run.
+    expect(specSegmentOf(`alpha-prefix${sharedTail}`)).to.equal(a);
   });
 
   it("returns null when the context has no driver-required steps", function () {

@@ -200,17 +200,20 @@ Or use the CLI flag:
 doc-detective --auto-screenshot
 ```
 
-Doc Detective saves auto screenshots to `<output>/.doc-detective/run-<runId>/screenshots/`. The path structure uses stable IDs derived from file paths and content hashes:
+Doc Detective saves auto screenshots under `<output>/.doc-detective/runs/<runId>/`, nested in the REST-style resource tree. The path structure uses stable IDs derived from file paths and content hashes:
 
 ```
-.doc-detective/run-<runId>/          # <runId> is an ISO timestamp, for example run-2026-06-27T04-55-00-000Z
+.doc-detective/runs/<runId>/         # <runId> is an ISO timestamp, for example 2026-06-27T04-55-00-000Z
 ├── testResults.json                 # or coverageResults.json for coverage runs
 ├── testResults.html                 # or coverageResults.html for coverage runs
-└── screenshots/
+└── specs/
     └── <specId>/
-        └── <testId>/
-            └── <contextId>/
-                └── 01-goTo-s4f2a91c.png
+        └── tests/
+            └── <testId>/
+                └── contexts/
+                    └── <contextId>/
+                        └── screenshots/
+                            └── 01-goTo-s4f2a91c.png
 ```
 
 The HTML report provides a human-readable view of the same results, making run folders self-contained artifacts you can share or compare without needing the standalone `html` reporter.

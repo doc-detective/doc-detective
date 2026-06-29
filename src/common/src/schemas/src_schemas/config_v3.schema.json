@@ -39,7 +39,7 @@
       "default": "."
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/run-<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
+      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
       "type": "array",
       "items": {
         "type": "string",
@@ -420,12 +420,12 @@
       "default": false
     },
     "autoScreenshot": {
-      "description": "If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.",
+      "description": "If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.",
       "type": "boolean",
       "default": false
     },
     "autoRecord": {
-      "description": "If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs (for example, `recordings/<specId>/<testId>/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.",
+      "description": "If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.",
       "type": "boolean",
       "default": false
     },

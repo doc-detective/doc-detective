@@ -80,14 +80,18 @@ doc-detective --auto-record
 
 Use `--no-auto-record` to override a config file that enables it.
 
-Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/run-<runId>/`) at a path derived from the spec, test, and context IDs, so the same context lands on the same relative path in every run's folder:
+Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, so the same context lands on the same relative path in every run's folder:
 
 ```
-.doc-detective/run-<runId>/
-└── recordings/
+.doc-detective/runs/<runId>/
+└── specs/
     └── <specId>/
-        └── <testId>/
-            └── <contextId>.mp4
+        └── tests/
+            └── <testId>/
+                └── contexts/
+                    └── <contextId>/
+                        └── recordings/
+                            └── <contextId>.mp4
 ```
 
 An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. Doc Detective finalizes it during end-of-context cleanup.

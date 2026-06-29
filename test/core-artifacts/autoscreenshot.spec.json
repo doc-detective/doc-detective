@@ -1,0 +1,119 @@
+{
+  "specId": "autoscreenshot",
+  "description": "Exercises autoScreenshot end-to-end through the real runner and the nested REST artifact tree (specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/<NN>-<action>-<stepId>.png). Covers the precedence permutations: spec-level true inherited by a test, a test-level false that overrides the spec-level true (captures nothing), a truthy string coercion, and headless capture. autoScreenshot is set at the spec level so the per-test false demonstrates the override. Browser capture needs headed Chrome (Windows/macOS); the headless permutation runs everywhere.",
+  "autoScreenshot": true,
+  "tests": [
+    {
+      "testId": "autoscreenshot-spec-inherited-headed",
+      "description": "Spec-level autoScreenshot:true is inherited here (no test-level value), so headed Chrome captures a screenshot after every browser-driven step (goTo, find).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "autoscreenshot-test-false-overrides-spec-true",
+      "description": "Test-level autoScreenshot:false overrides the spec-level true, so no screenshots are captured; the test still passes.",
+      "autoScreenshot": false,
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "autoscreenshot-string-truthy",
+      "description": "Intentionally passes a STRING (not boolean) autoScreenshot value to exercise the string input form end-to-end: schema validation (Ajv coerceTypes) coerces \"true\" to boolean true, so it resolves to true and captures screenshots on headed Chrome rather than being rejected as a type error.",
+      "autoScreenshot": "true",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "autoscreenshot-headless",
+      "description": "Headless Chrome still captures auto screenshots into the nested tree; runs on every platform.",
+      "autoScreenshot": true,
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        }
+      ]
+    }
+  ]
+}

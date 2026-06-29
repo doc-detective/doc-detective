@@ -12,12 +12,12 @@
     },
     "runId": {
       "type": "string",
-      "description": "Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name (`run-<runId>`). System-populated.",
+      "description": "Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name under `.doc-detective/runs/<runId>/`. System-populated.",
       "readOnly": true
     },
     "runDir": {
       "type": "string",
-      "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/run-<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved. Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
+      "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
       "readOnly": true
     },
     "specs": {

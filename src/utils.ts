@@ -101,7 +101,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/run-<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -124,12 +124,12 @@ function buildYargs(args: any): any {
     })
     .option("auto-screenshot", {
       description:
-        "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs plus each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
+        "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
       type: "boolean",
     })
     .option("auto-record", {
       description:
-        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/run-<runId>/) at paths derived from spec/test/context IDs, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
+        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
       type: "boolean",
     })
     .option("auto-update", {
@@ -561,7 +561,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   },
 
   // runFolder reporter: archives each run's results in its per-run artifact
-  // folder (`<output>/.doc-detective/run-<runId>/`), beside any screenshots
+  // folder (`<output>/.doc-detective/runs/<runId>/`), beside any screenshots
   // captured during the run. The folder is the timestamp, so the filename
   // stays constant across runs — diff two run folders to compare results
   // over time. Runs by default in addition to the flat json reporter.
@@ -575,33 +575,35 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
 
     // Prefer the run folder stamped on the results (set by runSpecs, shared
     // with auto screenshots) — but only when it resolves inside this output
-    // path's `.doc-detective/` root. Results can originate outside the local
-    // process (e.g. API runs), and a garbled or malicious runDir must not
+    // path's `.doc-detective/runs/` root. Results can originate outside the
+    // local process (e.g. API runs), and a garbled or malicious runDir must not
     // redirect the write elsewhere. Otherwise derive a fresh run folder.
     // Resolve the output to a base directory once (file paths → parent), then
     // both the confinement root and the fresh-folder fallback below derive
     // from the same base, so a file-path output archives beside the file.
     const baseDir = runFolderBaseDir(outputPath || config.output || ".");
-    const expectedRunsRoot = path.resolve(baseDir, ".doc-detective");
+    const expectedRunsRoot = path.resolve(baseDir, ".doc-detective", "runs");
     const stampedRunDir =
       typeof results?.runDir === "string" && results.runDir.length > 0
         ? path.resolve(results.runDir)
         : null;
-    // Confine the stamped runDir to the output's `.doc-detective/` root.
-    // Compare *real* paths (resolving symlinks on both sides) so a runDir
-    // that is — or sits under — a symlink pointing outside the tree can't
-    // slip past a plain string-prefix check and redirect the write. Both
-    // paths exist in the normal local case (getRunOutputDir created them);
-    // a non-existent or unresolvable stamped path (e.g. an external/API
-    // result) throws and falls through to a fresh local folder.
+    // Confine the stamped runDir to a child run folder *under* the output's
+    // `.doc-detective/runs/` root. Compare *real* paths (resolving symlinks on
+    // both sides) so a runDir that is — or sits under — a symlink pointing
+    // outside the tree can't slip past a plain string-prefix check and redirect
+    // the write. The stamped path must be a strict child (`startsWith(root +
+    // sep)`), never the `runs/` collection root itself: an equal-to-root match
+    // would archive to `.doc-detective/runs/testResults.json` and mix every
+    // run's results into one file. Both paths exist in the normal local case
+    // (getRunOutputDir created them); a non-existent or unresolvable stamped
+    // path (e.g. an external/API result) throws and falls through to a fresh
+    // local folder.
     let useStampedRunDir = false;
     if (stampedRunDir) {
       try {
         const realRoot = fs.realpathSync(expectedRunsRoot);
         const realStamped = fs.realpathSync(stampedRunDir);
-        useStampedRunDir =
-          realStamped === realRoot ||
-          realStamped.startsWith(realRoot + path.sep);
+        useStampedRunDir = realStamped.startsWith(realRoot + path.sep);
       } catch {
         useStampedRunDir = false;
       }
@@ -621,7 +623,8 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       : {
           ...results,
           runDir,
-          runId: path.basename(runDir).replace(/^run-/, ""),
+          // The run folder name IS the runId under the `runs/<id>` layout.
+          runId: path.basename(runDir),
         };
     const outputFile = path.resolve(runDir, `${reportType}.json`);
 

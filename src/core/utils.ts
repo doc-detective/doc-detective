@@ -1173,13 +1173,15 @@ function getOrInitRunTimestamp(config: any): string {
   return config.__runTimestamp;
 }
 
-// Per-run artifact directory: `<output>/.doc-detective/run-<runId>/`, where
+// Per-run artifact directory: `<output>/.doc-detective/runs/<runId>/`, where
 // runId is the run timestamp — plus an ordinal suffix (`-2`, `-3`, …) on the
 // rare same-millisecond collision, so the effective runId stamped in the
-// report can carry that suffix. Memoized on the config object so auto
-// screenshots and the runFolder reporter all land in the same folder for the
-// duration of a run. If `config.output` points at a report file (reporters
-// accept `.json`/`.html` paths), the run folder is created next to it.
+// report can carry that suffix. `runs/` is the REST-style collection segment;
+// nested resources (specs/tests/contexts) hang off the run folder. Memoized on
+// the config object so auto screenshots and the runFolder reporter all land in
+// the same folder for the duration of a run. If `config.output` points at a
+// report file (reporters accept `.json`/`.html` paths), the run folder is
+// created next to it.
 //
 // When `create` is true, creation is atomic (non-recursive mkdir, EEXIST →
 // ordinal suffix) so two runs starting in the same millisecond each reserve
@@ -1208,13 +1210,13 @@ function getRunOutputDir(
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     base = path.dirname(base);
   }
-  const runsRoot = path.resolve(base, ".doc-detective");
+  const runsRoot = path.resolve(base, ".doc-detective", "runs");
   const runId = getOrInitRunTimestamp(config);
-  let dir = path.join(runsRoot, `run-${runId}`);
+  let dir = path.join(runsRoot, runId);
   // create: false just resolves and memoizes the path — no folder is left on
   // disk. A run that neither archives results (runFolder reporter) nor writes
   // auto screenshots has nothing to put here, so creating it would only leave
-  // an empty `.doc-detective/run-<id>/` behind. The eager-creation branch
+  // an empty `.doc-detective/runs/<id>/` behind. The eager-creation branch
   // below still runs for the writers, and a later create:true call (via the
   // memoized branch above) materializes the folder if a write does occur.
   if (create) {
@@ -1229,7 +1231,7 @@ function getRunOutputDir(
         break;
       } catch (error: any) {
         if (error?.code !== "EEXIST") throw error;
-        dir = path.join(runsRoot, `run-${runId}-${suffix++}`);
+        dir = path.join(runsRoot, `${runId}-${suffix++}`);
       }
     }
   }
@@ -1238,7 +1240,7 @@ function getRunOutputDir(
 }
 
 // Whether a run will write anything into its per-run artifact folder
-// (`<output>/.doc-detective/run-<id>/`). The folder holds runFolder reporter
+// (`<output>/.doc-detective/runs/<id>/`). The folder holds runFolder reporter
 // archives, autoScreenshot images, and autoRecord videos, so when none is
 // active the runner skips creating it (see runSpecs) instead of leaving an
 // empty folder behind.
