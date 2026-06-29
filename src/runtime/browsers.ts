@@ -41,23 +41,21 @@ const DRIVER_VERIFY_TIMEOUT_MS = 10_000;
 
 // The only executables `verifyDriverBinary` is ever allowed to run. The path it
 // receives is derived from the (user-configurable) cache dir, so before it
-// reaches a child-process call we constrain it to an absolute path whose
-// basename is a recognized WebDriver. This is defense-in-depth — it refuses to
-// execute an arbitrarily-named binary that happened to resolve under the cache
-// dir — and it bounds the command to a known set rather than free-form input.
-const ALLOWED_DRIVER_BASENAMES = new Set([
-  "geckodriver",
-  "geckodriver.exe",
-  "chromedriver",
-  "chromedriver.exe",
-  "safaridriver",
-]);
+// reaches a child-process call we constrain the value itself: it must be an
+// absolute path ending in a recognized WebDriver filename (a path separator
+// immediately precedes the name, so it's the final segment). Testing the whole
+// path with a single anchored regex — rather than a derived basename — both
+// refuses an arbitrarily-named binary and gives static analysis a barrier on
+// the exact value that reaches the child process.
+const ALLOWED_DRIVER_PATH =
+  /[\\/](?:geckodriver|chromedriver|safaridriver)(?:\.exe)?$/i;
 
 function isAllowedDriverPath(binaryPath: string): boolean {
-  if (typeof binaryPath !== "string" || !path.isAbsolute(binaryPath)) {
-    return false;
-  }
-  return ALLOWED_DRIVER_BASENAMES.has(path.basename(binaryPath).toLowerCase());
+  return (
+    typeof binaryPath === "string" &&
+    path.isAbsolute(binaryPath) &&
+    ALLOWED_DRIVER_PATH.test(binaryPath)
+  );
 }
 
 // A version is any dotted numeric run in the output ("geckodriver 0.36.0",
