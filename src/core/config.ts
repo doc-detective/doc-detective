@@ -869,7 +869,7 @@ async function getAvailableApps({ config }: any) {
     // Resolve the geckodriver binary so Layer 2 can execute it. Best-effort:
     // if it can't be located cheaply, the descriptor carries no driverPath
     // and the app passes through to the runtime fallback (Layer 4).
-    const geckodriverPath = resolveGeckodriverBinaryPath(config);
+    const geckodriverPath = resolveGeckodriverBinaryPath(config, browsersDir);
     descriptors.push({
       app: {
         name: "firefox",
@@ -929,12 +929,18 @@ async function getAvailableApps({ config }: any) {
  * lean install without it returns undefined), and returns undefined when the
  * binary can't be located so Firefox detection degrades to the runtime fallback.
  */
-function resolveGeckodriverBinaryPath(config: any): string | undefined {
+function resolveGeckodriverBinaryPath(
+  config: any,
+  browsersDir: string
+): string | undefined {
   const installed = resolveHeavyDepPath("geckodriver", {
     cacheDir: config?.cacheDir,
   });
   if (!installed) return undefined;
-  return geckodriverBinaryInCache(getBrowsersDir({ cacheDir: config?.cacheDir }));
+  // Use the caller's already-resolved browsersDir — getAvailableApps resolves
+  // it before probeBrowserEnvironment may chdir, so recomputing here could
+  // point at a different cache tree than installedBrowsers and the cache key.
+  return geckodriverBinaryInCache(browsersDir);
 }
 
 interface BrowserComponent {

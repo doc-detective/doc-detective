@@ -462,23 +462,6 @@ async function ensureBrowserInstalledImpl(
     cacheDir,
   });
 
-  // If we're replacing an existing buildId, prune the old install so old
-  // versions don't accumulate.
-  if (existing && existing.installedVersion !== latest) {
-    try {
-      await browsersModule.uninstall({
-        browser: name,
-        buildId: existing.installedVersion,
-        cacheDir,
-      });
-    } catch (err) {
-      logger(
-        `Failed to prune old ${name} buildId ${existing.installedVersion}: ${String(err)}`,
-        "debug"
-      );
-    }
-  }
-
   let path = await locateExecutable(
     browsersModule,
     name,
@@ -513,6 +496,24 @@ async function ensureBrowserInstalledImpl(
     if (!verify.ok) {
       throw new Error(
         `${name} ${latest} is present but non-functional after a reinstall (${verify.error}). It may be a partial or corrupt download; delete ${path} or reinstall.`
+      );
+    }
+  }
+
+  // Prune the previous buildId only after the replacement is known-good, so a
+  // failed validation (above) leaves the old build intact as a rollback rather
+  // than deleting it for a corrupt download.
+  if (existing && existing.installedVersion !== latest) {
+    try {
+      await browsersModule.uninstall({
+        browser: name,
+        buildId: existing.installedVersion,
+        cacheDir,
+      });
+    } catch (err) {
+      logger(
+        `Failed to prune old ${name} buildId ${existing.installedVersion}: ${String(err)}`,
+        "debug"
       );
     }
   }
@@ -575,6 +576,18 @@ async function withGeckodriverCacheDir<T>(
   }
 }
 
+// True when `child` resolves to `dir` itself or a path nested under it. Used to
+// confirm a (possibly import-cached) geckodriver `.path` belongs to the current
+// cache dir before trusting it.
+function isPathInside(child: string, dir: string): boolean {
+  const resolvedDir = path.resolve(dir);
+  const resolvedChild = path.resolve(child);
+  return (
+    resolvedChild === resolvedDir ||
+    resolvedChild.startsWith(resolvedDir + path.sep)
+  );
+}
+
 /**
  * Probe a browsers cache dir for the geckodriver binary a download wrote.
  * Returns its path if found at the cache root or one level deep (some layouts
@@ -620,13 +633,18 @@ async function ensureGeckodriver(
   logger: Logger
 ): Promise<EnsureBrowserResult> {
   const cacheDir = getBrowsersDir(ctxBag.ctx);
-  // Resolve the actual geckodriver binary path. The npm package exports
-  // a `.path` field that points at the resolved binary; when it's missing
-  // (it can be empty until/at download), probe the cache for the real binary
-  // before falling back to the bare cache directory.
+  // Resolve the actual geckodriver binary path. The npm package exports a
+  // `.path` field computed at module load from GECKODRIVER_CACHE_DIR — but the
+  // module is import-cached, so a non-empty `.path` can point at a *different*
+  // cache dir than this call's. Only trust it when it resolves inside the
+  // current cacheDir; otherwise probe the cache for the real binary, then fall
+  // back to the bare cache directory.
   const resolveBinaryPath = (gecko: any): string => {
     const fromModule =
-      gecko && typeof gecko.path === "string" && gecko.path.length > 0
+      gecko &&
+      typeof gecko.path === "string" &&
+      gecko.path.length > 0 &&
+      isPathInside(gecko.path, cacheDir)
         ? gecko.path
         : null;
     return fromModule ?? geckodriverBinaryInCache(cacheDir) ?? cacheDir;

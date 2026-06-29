@@ -261,7 +261,7 @@ describe("runtime/browsers", function () {
     const downloads = [];
     const geckodriverModule = {
       GECKODRIVER_VERSION: "0.36.0",
-      path: path.join(tmpRoot, "geckodriver"),
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
       download: async () => {
         downloads.push("ok");
         return { version: "0.36.0" };
@@ -310,11 +310,40 @@ describe("runtime/browsers", function () {
     expect(result.version).to.equal("0.37.0");
   });
 
+  it("ensureBrowserInstalled('geckodriver') ignores a `.path` pointing outside the current cache dir (import-cached module)", async function () {
+    // The geckodriver module is import-cached, so a non-empty `.path` can point
+    // at a different cache dir. resolveBinaryPath must reject it and use the
+    // binary in the current cache instead.
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const binPath = path.join(browsersDir, binName);
+    const geckodriverModule = {
+      // Stale path from another cache dir entirely.
+      path: path.join(os.tmpdir(), "some-other-cache", binName),
+      download: async () => {
+        fs.writeFileSync(binPath, "#!/bin/sh\n");
+      },
+    };
+    let verifiedPath;
+    const verifyExec = async (p) => {
+      verifiedPath = p;
+      return { code: 0, stdout: "geckodriver 0.37.0\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(verifiedPath).to.equal(binPath);
+    expect(result.path).to.equal(binPath);
+  });
+
   it("serializes GECKODRIVER_CACHE_DIR across concurrent geckodriver installs for different cache dirs", async function () {
     // Without serialization, two concurrent installs for different cache dirs
     // would clobber the process-wide env and one download() would see the
     // other's path. Drop DOC_DETECTIVE_CACHE_DIR so ctx.cacheDir is honored.
     const savedEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+    const savedGeckoCacheDir = process.env.GECKODRIVER_CACHE_DIR;
     delete process.env.DOC_DETECTIVE_CACHE_DIR;
     const dirA = fs.mkdtempSync(path.join(os.tmpdir(), "dd-gkA-"));
     const dirB = fs.mkdtempSync(path.join(os.tmpdir(), "dd-gkB-"));
@@ -358,6 +387,10 @@ describe("runtime/browsers", function () {
     } finally {
       if (savedEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
       else process.env.DOC_DETECTIVE_CACHE_DIR = savedEnv;
+      // Restore GECKODRIVER_CACHE_DIR too — ensureBrowserInstalled mutates it,
+      // and a leaked value would taint later tests.
+      if (savedGeckoCacheDir === undefined) delete process.env.GECKODRIVER_CACHE_DIR;
+      else process.env.GECKODRIVER_CACHE_DIR = savedGeckoCacheDir;
       fs.rmSync(dirA, { recursive: true, force: true });
       fs.rmSync(dirB, { recursive: true, force: true });
     }
@@ -468,7 +501,7 @@ describe("runtime/browsers", function () {
     // Even when the module/download don't expose a version, the validated
     // binary's own --version output is the source of truth.
     const geckodriverModule = {
-      path: path.join(tmpRoot, "geckodriver"),
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
       download: async () => ({}),
     };
     const verifyExec = async () => ({
@@ -488,7 +521,7 @@ describe("runtime/browsers", function () {
   it("ensureBrowserInstalled('geckodriver') re-downloads once when the first download fails validation, then succeeds", async function () {
     let downloads = 0;
     const geckodriverModule = {
-      path: path.join(tmpRoot, "geckodriver"),
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
       download: async () => {
         downloads++;
         return {};
@@ -512,7 +545,7 @@ describe("runtime/browsers", function () {
   it("ensureBrowserInstalled('geckodriver') throws when the driver is non-functional after a re-download", async function () {
     let downloads = 0;
     const geckodriverModule = {
-      path: path.join(tmpRoot, "geckodriver"),
+      path: path.join(tmpRoot, "browsers", "geckodriver"),
       download: async () => {
         downloads++;
         return {};
