@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 import {
   getBrowsersDir,
   readInstalledRecord,
@@ -37,6 +38,27 @@ const DRIVER_VERSION_ARGS: Record<string, string[]> = {
 };
 
 const DRIVER_VERIFY_TIMEOUT_MS = 10_000;
+
+// The only executables `verifyDriverBinary` is ever allowed to run. The path it
+// receives is derived from the (user-configurable) cache dir, so before it
+// reaches a child-process call we constrain it to an absolute path whose
+// basename is a recognized WebDriver. This is defense-in-depth — it refuses to
+// execute an arbitrarily-named binary that happened to resolve under the cache
+// dir — and it bounds the command to a known set rather than free-form input.
+const ALLOWED_DRIVER_BASENAMES = new Set([
+  "geckodriver",
+  "geckodriver.exe",
+  "chromedriver",
+  "chromedriver.exe",
+  "safaridriver",
+]);
+
+function isAllowedDriverPath(binaryPath: string): boolean {
+  if (typeof binaryPath !== "string" || !path.isAbsolute(binaryPath)) {
+    return false;
+  }
+  return ALLOWED_DRIVER_BASENAMES.has(path.basename(binaryPath).toLowerCase());
+}
 
 // A version is any dotted numeric run in the output ("geckodriver 0.36.0",
 // "ChromeDriver 124.0.6367.207", "Included with Safari 17.4 ..."). A binary
@@ -84,6 +106,15 @@ export async function verifyDriverBinary(
 ): Promise<DriverVerifyResult> {
   if (!binaryPath || typeof binaryPath !== "string") {
     return { ok: false, error: "No driver binary path to verify." };
+  }
+  // Constrain the executable to a known WebDriver at an absolute path before it
+  // reaches a child process. The path derives from the user-configurable cache
+  // dir, so refuse anything that isn't a recognized driver binary.
+  if (!isAllowedDriverPath(binaryPath)) {
+    return {
+      ok: false,
+      error: `Refusing to execute '${binaryPath}': not a recognized driver binary path.`,
+    };
   }
   const key = String(driverName ?? "").toLowerCase();
   const args = DRIVER_VERSION_ARGS[key] ?? ["--version"];

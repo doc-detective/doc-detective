@@ -326,6 +326,26 @@ describe("runtime/browsers", function () {
       const res = await verifyDriverBinary("geckodriver", "");
       expect(res.ok).to.equal(false);
     });
+
+    it("refuses to execute a path that isn't a recognized driver binary", async function () {
+      let execCalled = false;
+      const exec = async () => {
+        execCalled = true;
+        return { code: 0, stdout: "geckodriver 0.36.0\n", stderr: "" };
+      };
+      // A non-driver basename — must be rejected before any child process runs.
+      const res = await verifyDriverBinary("geckodriver", "/tmp/evil.sh", { exec });
+      expect(res.ok).to.equal(false);
+      expect(res.error).to.match(/recognized driver/i);
+      expect(execCalled, "exec must not run for a disallowed path").to.equal(false);
+    });
+
+    it("refuses a relative driver path (must be absolute)", async function () {
+      const res = await verifyDriverBinary("geckodriver", "geckodriver", {
+        exec: async () => ({ code: 0, stdout: "geckodriver 0.36.0\n", stderr: "" }),
+      });
+      expect(res.ok).to.equal(false);
+    });
   });
 
   it("ensureBrowserInstalled('geckodriver') records the binary-reported version, never 'unknown'", async function () {
