@@ -52,6 +52,11 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
           browser = { name: browser };
         }
         if (browser.name === "safari") browser.name = "webkit";
+        // Mark the engine as explicitly requested by the author. The runner's
+        // cross-engine fallback uses this to decide PASS vs WARNING when it has
+        // to substitute another browser: an auto-selected default falls back
+        // silently (PASS), a pinned engine reports a degraded run (WARNING).
+        browser.explicit = true;
         return browser;
       });
     }

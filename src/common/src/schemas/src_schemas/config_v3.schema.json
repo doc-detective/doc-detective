@@ -439,6 +439,12 @@
       "type": "string",
       "minLength": 1,
       "pattern": "\\S"
+    },
+    "browserFallback": {
+      "description": "Controls whether a context whose browser cannot start a driver session falls back to another available browser instead of being skipped. Drivers are validated by execution (not just presence) so a present-but-broken driver — for example a partially downloaded geckodriver — no longer silently skips Firefox coverage. `auto` (default): fall back to any other available browser for both auto-selected and explicitly requested browsers; a fallback away from an explicitly requested browser reports the context as `WARNING` rather than `PASS`. `explicit`: fall back only when the browser was auto-selected; an explicitly requested browser whose driver is broken is skipped with a diagnostic reason. `off`: never fall back across browsers (driver validation and diagnostic skip reasons still apply). Equivalent to `--browser-fallback` on the CLI.",
+      "type": "string",
+      "enum": ["auto", "explicit", "off"],
+      "default": "auto"
     }
   },
   "components": {

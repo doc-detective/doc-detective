@@ -60,7 +60,7 @@ export interface Config {
    */
   output?: string;
   /**
-   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (enabled by default) archives each run's results as `<output>/.doc-detective/run-<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Custom reporters registered via `registerReporter()` can also be referenced by name.
+   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/run-<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.
    */
   reporters?: string[];
   /**
@@ -147,7 +147,7 @@ export interface Config {
    */
   dryRun?: boolean;
   /**
-   * If `true`, captures a screenshot after every step that runs in a browser, in addition to any explicit `screenshot` steps. Images are saved in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
+   * If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/run-<runId>/`) at paths derived from spec, test, and context IDs plus the step's order, action, and ID (for example, `screenshots/<specId>/<testId>/<contextId>/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
    */
   autoScreenshot?: boolean;
   /**
@@ -162,6 +162,10 @@ export interface Config {
    * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `<os.tmpdir()>/doc-detective/`. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI when the default temp location is unsuitable (e.g., baked container images where temp gets cleared on reboot).
    */
   cacheDir?: string;
+  /**
+   * Controls whether a context whose browser cannot start a driver session falls back to another available browser instead of being skipped. Drivers are validated by execution (not just presence) so a present-but-broken driver — for example a partially downloaded geckodriver — no longer silently skips Firefox coverage. `auto` (default): fall back to any other available browser for both auto-selected and explicitly requested browsers; a fallback away from an explicitly requested browser reports the context as `WARNING` rather than `PASS`. `explicit`: fall back only when the browser was auto-selected; an explicitly requested browser whose driver is broken is skipped with a diagnostic reason. `off`: never fall back across browsers (driver validation and diagnostic skip reasons still apply). Equivalent to `--browser-fallback` on the CLI.
+   */
+  browserFallback?: "auto" | "explicit" | "off";
 }
 /**
  * A context in which to perform tests. If no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For example, if a browser isn't specified but is required by steps in the test, Doc Detective will search for and use a supported browser available in the current environment.
@@ -186,6 +190,10 @@ export interface Context {
     | ("chrome" | "firefox" | "safari" | "webkit")
     | Browser
     | (("chrome" | "firefox" | "safari" | "webkit") | Browser1)[];
+  /**
+   * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
+   */
+  browserFallback?: "auto" | "explicit" | "off";
 }
 /**
  * Browser configuration.
@@ -195,6 +203,10 @@ export interface Browser {
    * Name of the browser.
    */
   name: "chrome" | "firefox" | "safari" | "webkit";
+  /**
+   * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
+   */
+  explicit?: boolean;
   /**
    * If `true`, runs the browser in headless mode.
    */
@@ -236,6 +248,10 @@ export interface Browser1 {
    * Name of the browser.
    */
   name: "chrome" | "firefox" | "safari" | "webkit";
+  /**
+   * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
+   */
+  explicit?: boolean;
   /**
    * If `true`, runs the browser in headless mode.
    */

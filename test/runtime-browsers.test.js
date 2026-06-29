@@ -3,6 +3,7 @@ import {
   getInstalledBrowsers,
   BROWSER_CHANNELS,
   requiredBrowserAssets,
+  verifyDriverBinary,
 } from "../dist/runtime/browsers.js";
 import {
   readInstalledRecord,
@@ -259,17 +260,140 @@ describe("runtime/browsers", function () {
     const downloads = [];
     const geckodriverModule = {
       GECKODRIVER_VERSION: "0.36.0",
+      path: path.join(tmpRoot, "geckodriver"),
       download: async () => {
         downloads.push("ok");
         return { version: "0.36.0" };
       },
     };
+    // A driver that executes and reports a version passes validation.
+    const verifyExec = async () => ({
+      code: 0,
+      stdout: "geckodriver 0.36.0\n",
+      stderr: "",
+    });
     const result = await ensureBrowserInstalled("geckodriver", {
-      deps: { geckodriverModule, logger: () => {} },
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
     });
     expect(downloads).to.have.lengthOf(1);
     expect(result.version).to.equal("0.36.0");
     const record = readInstalledRecord({});
     expect(record.browsers.geckodriver.installedVersion).to.equal("0.36.0");
+  });
+
+  describe("verifyDriverBinary", function () {
+    it("returns ok with the parsed version when the driver executes and reports a version", async function () {
+      for (const [driver, output] of [
+        ["geckodriver", "geckodriver 0.36.0\n"],
+        ["chromedriver", "ChromeDriver 124.0.6367.207 (abc)\n"],
+        ["safaridriver", "Included with Safari 17.4 (19618.1.15.11.14)\n"],
+      ]) {
+        const res = await verifyDriverBinary(driver, "/fake/" + driver, {
+          exec: async () => ({ code: 0, stdout: output, stderr: "" }),
+        });
+        expect(res.ok, `${driver}: ${res.error}`).to.equal(true);
+        expect(res.version).to.be.a("string");
+      }
+    });
+
+    it("returns not-ok when the driver exits non-zero", async function () {
+      const res = await verifyDriverBinary("geckodriver", "/fake/geckodriver", {
+        exec: async () => ({ code: 1, stdout: "", stderr: "boom" }),
+      });
+      expect(res.ok).to.equal(false);
+      expect(res.error).to.be.a("string");
+    });
+
+    it("returns not-ok when the driver exits 0 but reports no parseable version (partial download)", async function () {
+      // The Windows partial-download symptom: the binary runs but emits
+      // nothing version-shaped, so presence must not be mistaken for health.
+      const res = await verifyDriverBinary("geckodriver", "/fake/geckodriver", {
+        exec: async () => ({ code: 0, stdout: "", stderr: "" }),
+      });
+      expect(res.ok).to.equal(false);
+    });
+
+    it("returns not-ok when the driver cannot be executed at all", async function () {
+      const res = await verifyDriverBinary("geckodriver", "/fake/geckodriver", {
+        exec: async () => {
+          throw Object.assign(new Error("spawn ENOENT"), { code: "ENOENT" });
+        },
+      });
+      expect(res.ok).to.equal(false);
+    });
+
+    it("returns not-ok when given no binary path", async function () {
+      const res = await verifyDriverBinary("geckodriver", "");
+      expect(res.ok).to.equal(false);
+    });
+  });
+
+  it("ensureBrowserInstalled('geckodriver') records the binary-reported version, never 'unknown'", async function () {
+    // Even when the module/download don't expose a version, the validated
+    // binary's own --version output is the source of truth.
+    const geckodriverModule = {
+      path: path.join(tmpRoot, "geckodriver"),
+      download: async () => ({}),
+    };
+    const verifyExec = async () => ({
+      code: 0,
+      stdout: "geckodriver 0.35.0\n",
+      stderr: "",
+    });
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(result.version).to.equal("0.35.0");
+    const record = readInstalledRecord({});
+    expect(record.browsers.geckodriver.installedVersion).to.equal("0.35.0");
+    expect(record.browsers.geckodriver.installedVersion).to.not.equal("unknown");
+  });
+
+  it("ensureBrowserInstalled('geckodriver') re-downloads once when the first download fails validation, then succeeds", async function () {
+    let downloads = 0;
+    const geckodriverModule = {
+      path: path.join(tmpRoot, "geckodriver"),
+      download: async () => {
+        downloads++;
+        return {};
+      },
+    };
+    let verifyCalls = 0;
+    const verifyExec = async () => {
+      verifyCalls++;
+      // First validation fails (partial download), second succeeds.
+      return verifyCalls === 1
+        ? { code: 0, stdout: "", stderr: "" }
+        : { code: 0, stdout: "geckodriver 0.36.0\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(downloads).to.equal(2);
+    expect(result.version).to.equal("0.36.0");
+  });
+
+  it("ensureBrowserInstalled('geckodriver') throws when the driver is non-functional after a re-download", async function () {
+    let downloads = 0;
+    const geckodriverModule = {
+      path: path.join(tmpRoot, "geckodriver"),
+      download: async () => {
+        downloads++;
+        return {};
+      },
+    };
+    // Always broken — exits 0 but never reports a version.
+    const verifyExec = async () => ({ code: 0, stdout: "", stderr: "" });
+    let threw = false;
+    try {
+      await ensureBrowserInstalled("geckodriver", {
+        deps: { geckodriverModule, logger: () => {}, verifyExec },
+      });
+    } catch (err) {
+      threw = true;
+      expect(String(err.message)).to.match(/non-functional|partial/i);
+    }
+    expect(threw).to.equal(true);
+    expect(downloads).to.equal(2); // initial + one re-download
   });
 });
