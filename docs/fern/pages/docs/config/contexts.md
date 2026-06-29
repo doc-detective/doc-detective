@@ -19,7 +19,7 @@ The [`browserFallback`](/reference/schemas/config) config option (or the `--brow
 - **`explicit`**: fall back only when Doc Detective auto-selected the browser. If you requested a browser explicitly and its driver fails to run, Doc Detective skips the context with a diagnostic reason instead of substituting another engine.
 - **`off`**: never fall back across browsers. Driver validation and the diagnostic skip reason still apply.
 
-Fallback works the same in every direction: Chrome, Firefox, and Safari/WebKit can each fall back to one another. When no engine can start a session, Doc Detective skips the context with a diagnostic that names the requested browser and the likely cause (for example, a partially downloaded driver), so the failure stays actionable rather than generic.
+Fallback works the same in every direction, so Chrome, Firefox, and Safari/WebKit can each fall back to one another. When no engine can start a session, Doc Detective skips the context with a diagnostic that names the requested browser and the likely cause (for example, a partially downloaded driver), so the failure stays actionable rather than generic.
 
 You can also set `browserFallback` **per context**, on an individual `runOn` entry. A context-level value takes precedence over the config-level policy for the contexts that entry expands into, so you can, for example, default the whole run to `auto` while forcing one Safari-only context to `off`:
 

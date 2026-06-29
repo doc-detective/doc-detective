@@ -127,6 +127,16 @@ export async function verifyDriverBinary(
   } catch (err) {
     return { ok: false, error: `Failed to execute ${driverName}: ${String(err)}` };
   }
+  if (res.code === null) {
+    // No exit code means the process never ran (ENOENT, EACCES, timeout, …) —
+    // report it as a spawn failure rather than the misleading "exited with
+    // code null".
+    const detail = (res.stderr || res.stdout || "").trim();
+    return {
+      ok: false,
+      error: `${driverName} could not be executed (spawn failed)${detail ? `: ${detail}` : ""}`,
+    };
+  }
   if (res.code !== 0) {
     const detail = (res.stderr || res.stdout || "").trim();
     return {

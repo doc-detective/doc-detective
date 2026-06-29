@@ -346,6 +346,17 @@ describe("runtime/browsers", function () {
       });
       expect(res.ok).to.equal(false);
     });
+
+    it("reports a spawn failure (code null) as a spawn error, not 'exited with code null'", async function () {
+      const res = await verifyDriverBinary(
+        "geckodriver",
+        path.join(os.tmpdir(), "geckodriver"),
+        { exec: async () => ({ code: null, stdout: "", stderr: "ENOENT" }) }
+      );
+      expect(res.ok).to.equal(false);
+      expect(res.error).to.match(/spawn failed/i);
+      expect(res.error).to.not.match(/code null/i);
+    });
   });
 
   it("ensureBrowserInstalled('geckodriver') records the binary-reported version, never 'unknown'", async function () {

@@ -2656,12 +2656,24 @@ async function runContext({
               ...recordOptions,
             },
           });
+        const startFailure = () => {
+          let error = `Failed to start context '${browserName}' on '${platform}'.`;
+          if (browserName === "safari" || browserName === "webkit") {
+            error +=
+              " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
+          }
+          return { ok: false as const, error };
+        };
         try {
           const d = await driverStart(buildCaps(wantHeadless), appiumPort!, 4, {
             cacheDir: config?.cacheDir,
           });
           return { ok: true, driver: d, headless: wantHeadless };
         } catch {
+          // The headed→headless retry only changes inputs when the first
+          // attempt was headed. If it was already headless, a second identical
+          // attempt would just pay driverStart's backoff again — fail fast.
+          if (wantHeadless) return startFailure();
           try {
             clog(
               "warning",
@@ -2672,12 +2684,7 @@ async function runContext({
             });
             return { ok: true, driver: d, headless: true };
           } catch {
-            let error = `Failed to start context '${browserName}' on '${platform}'.`;
-            if (browserName === "safari" || browserName === "webkit") {
-              error +=
-                " Make sure you've run `safaridriver --enable` in a terminal and enabled 'Allow Remote Automation' in Safari's Develop menu.";
-            }
-            return { ok: false, error };
+            return startFailure();
           }
         }
       };
