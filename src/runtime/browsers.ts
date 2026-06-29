@@ -477,7 +477,12 @@ async function ensureBrowserInstalledImpl(
   // at session start, but the driver itself is the thing that, when partially
   // downloaded, runs and fails — so confirm it actually reports a version. On
   // failure, reinstall exactly once (force a clean extract), then give up.
-  if (name === "chromedriver") {
+  //
+  // Only when we actually located a chromedriver executable: locateExecutable
+  // falls back to the bare cacheDir when computeExecutablePath is unavailable
+  // (older/alternate @puppeteer/browsers), and validating a directory path
+  // would always fail and turn a best-effort install into a hard failure.
+  if (name === "chromedriver" && isAllowedDriverPath(path)) {
     let verify = await verifyDriverBinary(name, path, { exec: deps.verifyExec });
     if (!verify.ok) {
       logger(

@@ -197,6 +197,32 @@ describe("runtime/browsers", function () {
     expect(record.browsers.chrome.installedVersion).to.equal("124.0.0");
   });
 
+  it("ensureBrowserInstalled('chromedriver') skips validation (stays best-effort) when computeExecutablePath is unavailable", async function () {
+    // locateExecutable falls back to the bare cacheDir on older/alternate
+    // @puppeteer/browsers shapes; validating that directory path would always
+    // fail and turn a best-effort install into a hard failure. Guard skips it.
+    let verifyCalled = false;
+    const browsersModule = {
+      detectBrowserPlatform: () => "linux",
+      resolveBuildId: async () => "124.0.0",
+      install: async () => {},
+      uninstall: async () => {},
+      // No computeExecutablePath.
+    };
+    const verifyExec = async () => {
+      verifyCalled = true;
+      return { code: 0, stdout: "ChromeDriver 124.0.0\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("chromedriver", {
+      deps: { browsersModule, logger: () => {}, verifyExec },
+    });
+    expect(result.version).to.equal("124.0.0");
+    expect(
+      verifyCalled,
+      "validation must be skipped when no real executable path is located"
+    ).to.equal(false);
+  });
+
   it("ensureBrowserInstalled with no record but resolveBuildId fails surfaces the error", async function () {
     const browsersModule = makeFakeBrowsersModule();
     browsersModule.resolveBuildId = async () => {
