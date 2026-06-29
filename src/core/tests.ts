@@ -3773,11 +3773,12 @@ async function ensureContextBrowserInstalled({
     ensureBrowser: (asset: BrowserAssetName, options: any) => Promise<any>;
     log?: (config: any, level: string, msg: string) => void;
   };
-  // Layer 3 self-heal: when the browser is unavailable because its driver is
-  // present-but-broken (not merely missing), force a clean reinstall of the
-  // driver assets so the partial/corrupt binary is replaced and re-validated.
-  // Only the driver is forced — the browser binary is left to its normal
-  // freshness path so we don't redundantly re-download Chrome/Firefox.
+  // Layer 3 self-heal: when the browser is unavailable or its session failed —
+  // because a component is missing OR didn't install correctly — force a clean
+  // reinstall of *every* required asset (the browser binary AND its driver), so
+  // a partial/corrupt component of either kind is replaced and re-validated.
+  // Repair only fires when something is already wrong, so re-downloading a
+  // healthy component is an acceptable cost for a guaranteed-clean state.
   repair?: boolean;
 }): Promise<"installed" | "failed" | "notInstallable"> {
   const key = (browserName ?? "<none>").toLowerCase();
@@ -3795,8 +3796,6 @@ async function ensureContextBrowserInstalled({
   // "warn" → "warning" the same way provisionChromeRuntime does.
   const logger = (msg: string, level: string = "info") =>
     deps.log?.(config, level === "warn" ? "warning" : level, msg);
-  const isDriverAsset = (asset: BrowserAssetName) =>
-    asset === "chromedriver" || asset === "geckodriver";
   try {
     deps.log?.(
       config,
@@ -3806,10 +3805,12 @@ async function ensureContextBrowserInstalled({
       } of: ${assets.join(", ")}.`
     );
     for (const asset of assets) {
+      // On repair, force every component (browser binary + driver) so a
+      // present-but-broken one is replaced, not just installed-if-missing.
       await deps.ensureBrowser(asset, {
         ctx,
         deps: { logger },
-        force: repair && isDriverAsset(asset),
+        force: !!repair,
       });
     }
     installAttempts.set(key, "installed");

@@ -281,7 +281,7 @@ describe("driverSkipDiagnostic", function () {
 });
 
 describe("ensureContextBrowserInstalled repair (Layer 3)", function () {
-  it("forces a clean reinstall of the driver asset (not the browser binary) when repair=true", async function () {
+  it("forces a clean reinstall of EVERY component (browser + driver) when repair=true", async function () {
     const calls = [];
     const result = await ensureContextBrowserInstalled({
       browserName: "firefox",
@@ -295,9 +295,10 @@ describe("ensureContextBrowserInstalled repair (Layer 3)", function () {
       repair: true,
     });
     assert.equal(result, "installed");
-    // Driver asset forced; browser binary not forced.
+    // Both the browser binary and its driver are forced — a partial/corrupt
+    // component of either kind gets replaced, not just installed-if-missing.
     assert.deepEqual(calls, [
-      { asset: "firefox", force: false },
+      { asset: "firefox", force: true },
       { asset: "geckodriver", force: true },
     ]);
   });

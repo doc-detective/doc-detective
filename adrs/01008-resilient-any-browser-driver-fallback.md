@@ -80,8 +80,11 @@ context (e.g. a Safari-only context) to `off`.
    `appium driver list`. A browser whose driver can't be located cheaply passes through to the
    runtime fallback rather than erroring.
 3. **Self-heal repair** (`src/core/tests.ts`). When a context's browser is unavailable, the on-demand
-   install path repairs it — `ensureContextBrowserInstalled({ repair: true })` force-reinstalls the
-   *driver* asset (not the browser binary) so a partial/corrupt driver is replaced and re-validated.
+   install path repairs it — `ensureContextBrowserInstalled({ repair: true })` force-reinstalls
+   *every* required component (the browser binary **and** its driver), so a partial/corrupt component
+   of either kind — missing or installed-incorrectly — is replaced and re-validated rather than just
+   installed-if-missing. Repair only fires when something is already wrong, so re-downloading a
+   healthy component is an acceptable cost for a guaranteed-clean state.
    Repair is attempted at two points so it always precedes a fallback: (a) when Layer 2 *excluded* the
    requested browser, and (b) when the requested browser was offered but its *session* failed to start
    — `shouldRepairBeforeFallback` gates a one-time repair-and-retry of the requested engine before the
