@@ -24,15 +24,23 @@ describe("verifyAppDrivers (Layer 2 functional gate)", function () {
       }
     );
     expect(apps).to.deep.equal([]);
-    expect(warnings.join("\n")).to.match(/firefox|geckodriver/i);
+    // The warning should name both the app and the broken driver.
+    const warningText = warnings.join("\n");
+    expect(warningText).to.match(/firefox/i);
+    expect(warningText).to.match(/geckodriver/i);
   });
 
   it("passes through an app that has no driver path to check (left to runtime fallback)", async function () {
     const apps = await verifyAppDrivers(
       [{ app: { name: "firefox" } }],
-      { verify: async () => ({ ok: false }) }
+      {
+        // verify must not even be consulted when there's no driver path —
+        // throwing locks that contract.
+        verify: async () => {
+          throw new Error("verify should not be called without a driverPath");
+        },
+      }
     );
-    // verify must not even be consulted; the app passes through.
     expect(apps.map((a) => a.name)).to.deep.equal(["firefox"]);
   });
 

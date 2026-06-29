@@ -180,6 +180,23 @@ describe("driverSkipDiagnostic", function () {
     assert.match(msg, /partial/i);
   });
 
+  it("names the driver for the actual requested engine (not always geckodriver)", function () {
+    const chrome = driverSkipDiagnostic({
+      requestedName: "chrome",
+      platform: "linux",
+      platformMatches: true,
+      attemptedFallback: false,
+    });
+    assert.match(chrome, /chromedriver/);
+    const webkit = driverSkipDiagnostic({
+      requestedName: "webkit",
+      platform: "mac",
+      platformMatches: true,
+      attemptedFallback: false,
+    });
+    assert.match(webkit, /safaridriver/);
+  });
+
   it("notes when a cross-browser fallback was attempted but exhausted", function () {
     const msg = driverSkipDiagnostic({
       requestedName: "firefox",

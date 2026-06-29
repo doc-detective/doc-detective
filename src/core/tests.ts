@@ -454,13 +454,22 @@ function driverSkipDiagnostic({
   if (!platformMatches) {
     return `Skipping context on '${platform}': this context targets a different platform.`;
   }
+  // Name the driver for the actual requested engine so the hint doesn't always
+  // point users at geckodriver when Chrome or Safari is the broken one.
+  const driverHint =
+    normalizeBrowserName(requestedName) === "firefox"
+      ? "geckodriver"
+      : normalizeBrowserName(requestedName) === "chrome"
+        ? "chromedriver"
+        : normalizeBrowserName(requestedName) === "safari"
+          ? "safaridriver"
+          : "driver";
   let msg = `Skipping context: could not start a browser session for '${requestedName}' on '${platform}'`;
   msg += attemptedFallback
     ? `, and no other available browser could start either.`
     : ` and cross-browser fallback is disabled or unavailable.`;
   if (lastError) msg += ` Last error: ${lastError}`;
-  msg +=
-    " A present-but-broken driver (for example a partially downloaded geckodriver) can cause this; reinstall the driver or its browser.";
+  msg += ` A present-but-broken driver (for example a partially downloaded ${driverHint}) can cause this; reinstall the driver or its browser.`;
   return msg;
 }
 

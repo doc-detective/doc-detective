@@ -571,7 +571,31 @@ async function ensureGeckodriver(
       gecko && typeof gecko.path === "string" && gecko.path.length > 0
         ? gecko.path
         : null;
-    return fromModule ?? cacheDir;
+    if (fromModule) return fromModule;
+    // The geckodriver module doesn't always expose `.path` (it can be empty
+    // until/at download). Probe the cache for the actual binary the download
+    // wrote — the bare cacheDir would otherwise fail the driver-binary
+    // validation and trigger an avoidable reinstall+throw. Look at the cache
+    // root and one level deep (some layouts nest under a version dir).
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const rootCandidate = path.join(cacheDir, binName);
+    try {
+      if (fs.existsSync(rootCandidate)) return rootCandidate;
+    } catch {
+      // ignore and fall through to the shallow scan
+    }
+    try {
+      for (const entry of fs.readdirSync(cacheDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const nested = path.join(cacheDir, entry.name, binName);
+        if (fs.existsSync(nested)) return nested;
+      }
+    } catch {
+      // cacheDir unreadable/missing — fall back to the dir (validation will
+      // then surface a clear "non-functional" error, which is accurate).
+    }
+    return cacheDir;
   };
 
   if (!ctxBag.force && existing && isStillFresh(existing.latestCheckedAt, ctxBag.now)) {
