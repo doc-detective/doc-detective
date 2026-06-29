@@ -1,10 +1,164 @@
 ---
 title: Run shell and code steps
-description: Execute commands and scripts and assert on their output.
+description: Execute the commands and code snippets in your docs, then assert on their exit codes and output.
 ---
 
-<Note>
-This page is a placeholder created during the documentation information-architecture overhaul. Full content is planned — see the content set in `docs/content-strategy/information-architecture.md`.
-</Note>
+When your docs tell a reader to run a command or paste a code snippet, Doc Detective can run that same command or snippet and confirm it still behaves the way the docs claim. This guide walks you through testing a documented command with `runShell`, testing a documented code snippet with `runCode`, and passing a value from one step to the next.
 
-Use `runShell` for native commands, `runCode` for inline code, and `runBrowserScript` for JavaScript in the browser. See the [runShell](/docs/actions/runshell), [runCode](/docs/actions/runcode), and [runBrowserScript](/docs/actions/runbrowserscript) action references.
+Use `runShell` for native shell commands, `runCode` for inline snippets in JavaScript, Python, or Bash, and `runBrowserScript` for JavaScript that runs in the page. This guide focuses on `runShell` and `runCode`. For the full list of fields, see the [`runShell`](/docs/actions/runshell), [`runCode`](/docs/actions/runcode), and [`runBrowserScript`](/docs/actions/runbrowserscript) action references.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A runtime for any language you test: Node.js for `javascript`, Python for `python`, and a Bash shell for `bash`. (`bash` isn't supported on Windows.)
+- A directory where you can create a `.spec.json` file.
+
+## Step 1: Test a documented command
+
+Start with a command your docs ask the reader to run. Add a `runShell` step that runs it and confirms it exits cleanly.
+
+Create a file named `commands.spec.json` and add the following test:
+
+```json title="commands.spec.json"
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Check the installed Node.js version.",
+          "runShell": "node --version"
+        }
+      ]
+    }
+  ]
+}
+```
+
+By default, `runShell` passes only when the command exits with code `0`. If your docs intentionally show a command that should fail, list the codes you expect with `exitCodes`:
+
+```json
+{
+  "description": "Expect a missing file to exit with code 1.",
+  "runShell": {
+    "command": "cat does-not-exist.txt",
+    "exitCodes": [1]
+  }
+}
+```
+
+## Step 2: Assert on the output
+
+A command that exits cleanly can still print the wrong thing. Use `stdio` to check the command's combined stdout and stderr against a string or a regular expression. To match a regular expression, wrap the pattern in forward slashes.
+
+```json
+{
+  "description": "Confirm the CLI reports a version string.",
+  "runShell": {
+    "command": "node --version",
+    "stdio": "/^v\\d+\\./"
+  }
+}
+```
+
+If the output doesn't contain the expected text, the step fails. This is what turns a copy-paste command in your docs into a real assertion.
+
+## Step 3: Test a documented code snippet
+
+When your docs embed a code sample instead of a shell command, use `runCode`. Set the `language` and pass the snippet as a string in `code`. The same `exitCodes` and `stdio` assertions apply.
+
+```json
+{
+  "description": "Run the documented Python snippet and check its output.",
+  "runCode": {
+    "language": "python",
+    "code": "print('hello from the docs')",
+    "stdio": "hello from the docs"
+  }
+}
+```
+
+`runCode` supports `javascript`, `python`, and `bash`, each run with the interpreter installed on the machine.
+
+## Step 4: Carry a value into the next step
+
+To reuse a command's output later in the test, capture it with the step-level `variables` object. Assign a runtime expression such as `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`, then reference the variable in a later step with `$NAME`.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Capture the current commit SHA.",
+          "runShell": {
+            "command": "git rev-parse --short HEAD",
+            "stdio": "/.+/"
+          },
+          "variables": {
+            "COMMIT": "$$stdio.stdout"
+          }
+        },
+        {
+          "description": "Use the captured SHA in a later command.",
+          "runShell": {
+            "command": "echo Testing against $COMMIT",
+            "stdio": "Testing against"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+For more on expressions and where variables come from, see [Expressions](/reference/expressions) and the [`runShell`](/docs/actions/runshell) reference.
+
+## Step 5: Run the test
+
+Run the spec and read the result.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+  ```bash
+  npx doc-detective --input commands.spec.json
+  ```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+  ```bash
+  docker run -v .:/app docdetective/docdetective:linux --input /app/commands.spec.json
+  ```
+
+  </Tab>
+</Tabs>
+
+## Verify it works
+
+Each step that ran a command and matched its assertions reports `PASS` in the terminal summary and in the results file. A step whose exit code or `stdio` didn't match reports `FAIL` with a description of what was expected. To see where results and artifacts land, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Long-running processes
+
+Some docs ask the reader to start a server or container and leave it running while they do something else. Add a `background` object to `runShell` or `runCode` to start a long-running process: the step returns as soon as the process is ready, and the process keeps running for later steps. Stop it with a [`closeSurface`](/docs/actions/closesurface) step. For readiness conditions and interactive processes, see [Background processes](/docs/actions/runshell#background-processes).
+
+## Troubleshooting
+
+### A step fails even though the command works by hand
+
+**Cause:** `runShell` runs in the context of the current user and a fresh environment. A command that relies on shell aliases, a sourced profile, or a variable set in your interactive session can behave differently.
+
+**Solution:** Reference values explicitly with environment variables and [`loadVariables`](/docs/actions/loadvariables), or set `workingDirectory` so the command runs where it expects to.
+
+### A `bash` `runCode` step is skipped on Windows
+
+**Cause:** `runCode` with `language: bash` isn't supported on Windows.
+
+**Solution:** Use `runShell` with a Windows-native command, or gate the test to non-Windows platforms with [contexts](/docs/test-docs/platforms-and-browsers).
+
+## What's next
+
+- [Test HTTP and APIs](/docs/test-docs/http-and-api) to exercise documented requests and responses.
+- [Run in CI and at scale](/docs/ci/overview) to gate your build on these tests.

@@ -1,10 +1,80 @@
 ---
 title: Troubleshoot a failing or flaky test
-description: Map a failure to its cause, fix it, and handle flakiness.
+description: Map a failure to the step that caused it, fix it, and stabilize tests that pass and fail intermittently.
 ---
 
-<Note>
-This page is a placeholder created during the documentation information-architecture overhaul. Full content is planned — see the content set in `docs/content-strategy/information-architecture.md`.
-</Note>
+When a test fails, the result tells you which step broke and why. This guide shows you how to read that result, fix the most common causes, and stabilize a flaky test—one that passes on some runs and fails on others. If Doc Detective won't run at all, or it fails with environment errors, start with [Troubleshooting setup issues](/docs/troubleshooting/setup-issues) instead.
 
-When a test fails, trace it to the step, selector, or context that caused it. For flaky tests, reach for `maxVariation`, explicit waits, and headed-versus-headless context tuning.
+## Step 1: Read the result and find the failing step
+
+Doc Detective reports a result for every step. Open the terminal summary or the JSON results file (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts)) and find the step whose `result` is `FAIL`. Each step includes a `resultDescription` that states what was expected and what happened.
+
+Note which action failed—`find`, `httpRequest`, `runShell`, and so on. The action determines what to check next.
+
+## Step 2: Fix the most common causes
+
+Find the cause that matches the failing action.
+
+### An element wasn't found (`find`, `click`, `type`)
+
+The selector or text no longer matches the page, or the element hadn't rendered yet.
+
+- Confirm the selector still matches the current UI. See [CSS selectors](/docs/selectors/css) and [XPath selectors](/docs/selectors/xpath).
+- If the element appears after a delay, raise the step's `timeout` (it defaults to 5000 milliseconds). `find` waits up to `timeout` for the element to exist.
+
+```json
+{
+  "description": "Wait up to 10 seconds for a slow element.",
+  "find": {
+    "selector": "nav > ul > li > a",
+    "elementText": "Downloads",
+    "timeout": 10000
+  }
+}
+```
+
+### A request returned an unexpected status or body (`httpRequest`)
+
+- If the status code is wrong, set `statusCodes` to the codes you actually expect. The default is `[200]`.
+- If a dynamic field such as a timestamp or token breaks a `response.body` assertion, move it to `response.required` to assert that it exists without pinning its value. See [Test HTTP and APIs](/docs/test-docs/http-and-api#step-2-assert-on-the-response).
+
+### A command returned the wrong exit code or output (`runShell`, `runCode`)
+
+- If the command exits non-zero on purpose, list the expected codes in `exitCodes`.
+- If the output changed, check your `stdio` pattern. See [Run shell and code steps](/docs/test-docs/run-shell-and-code).
+
+## Step 3: Stabilize a flaky test
+
+A flaky test usually depends on timing, on output that drifts slightly between runs, or on the difference between a headed and a headless browser.
+
+### Wait for the right condition
+
+Wait for a condition rather than for a fixed time. Raise a step's `timeout` so it waits for the element or state it needs, instead of inserting a [`wait`](/docs/actions/wait) for a fixed number of milliseconds. A fixed wait is either too short (still flaky) or too long (slow).
+
+### Retry a step that's occasionally slow
+
+If a step occasionally fails for transient reasons, attach a retry handler so Doc Detective re-runs it before giving up. Set a `limit` for the number of retries, and optionally a `delay` and a `backoff` strategy. See the [retry](/reference/schemas/retry) reference.
+
+### Allow expected output variation
+
+When you save command, code, or response output to a reference file, small run-to-run differences can fail an exact comparison. Set `maxVariation` so a difference within your threshold passes, and use `overwrite` to control whether the reference file updates. See the [`runShell`](/docs/actions/runshell) reference for the output-comparison fields.
+
+### Account for headed versus headless
+
+A test that passes locally in a headed browser but fails headless in CI is often hitting a rendering or sizing difference. Recording with the `ffmpeg` engine, in particular, needs a display. See [Docker and headless](/docs/ci/docker-and-headless#step-2-understand-headless-behavior).
+
+## Step 4: Re-run and confirm
+
+Re-run only the test you're fixing with the `--test` filter, so you don't wait for the whole suite:
+
+```bash
+doc-detective --input ./docs --test "my test name"
+```
+
+When the step you changed reports `PASS`, run the full suite once more to confirm the fix didn't shift the failure elsewhere.
+
+## What's next
+
+- [Troubleshooting setup issues](/docs/troubleshooting/setup-issues) for environment, browser, and configuration problems.
+- [Reporters and artifacts](/docs/ci/reporters-and-artifacts) to read results and capture screenshots from a failed run.
+- [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) to control where a test runs.
