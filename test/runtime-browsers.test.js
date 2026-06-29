@@ -4,6 +4,7 @@ import {
   BROWSER_CHANNELS,
   requiredBrowserAssets,
   verifyDriverBinary,
+  geckodriverBinaryInCache,
 } from "../dist/runtime/browsers.js";
 import {
   readInstalledRecord,
@@ -360,6 +361,29 @@ describe("runtime/browsers", function () {
       fs.rmSync(dirA, { recursive: true, force: true });
       fs.rmSync(dirB, { recursive: true, force: true });
     }
+  });
+
+  describe("geckodriverBinaryInCache", function () {
+    const binName =
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+
+    it("finds the binary at the cache root", function () {
+      const bin = path.join(tmpRoot, binName);
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("finds the binary nested one level deep (version dir)", function () {
+      const nestedDir = path.join(tmpRoot, "0.37.0");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const bin = path.join(nestedDir, binName);
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("returns undefined when the binary isn't present", function () {
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
   });
 
   describe("verifyDriverBinary", function () {

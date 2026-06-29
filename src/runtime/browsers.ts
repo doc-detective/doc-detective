@@ -575,6 +575,35 @@ async function withGeckodriverCacheDir<T>(
   }
 }
 
+/**
+ * Probe a browsers cache dir for the geckodriver binary a download wrote.
+ * Returns its path if found at the cache root or one level deep (some layouts
+ * nest under a version dir), else undefined. Exported so the availability probe
+ * (Layer 2 in core/config) can resolve the same binary the install path uses
+ * when the geckodriver module exposes no `.path` — otherwise the functional
+ * driver gate would silently not run for a present-but-broken geckodriver.
+ */
+export function geckodriverBinaryInCache(cacheDir: string): string | undefined {
+  const binName =
+    process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+  const rootCandidate = path.join(cacheDir, binName);
+  try {
+    if (fs.existsSync(rootCandidate)) return rootCandidate;
+  } catch {
+    // ignore and fall through to the shallow scan
+  }
+  try {
+    for (const entry of fs.readdirSync(cacheDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const nested = path.join(cacheDir, entry.name, binName);
+      if (fs.existsSync(nested)) return nested;
+    }
+  } catch {
+    // cacheDir unreadable/missing — caller falls back appropriately.
+  }
+  return undefined;
+}
+
 // Geckodriver lives in its own npm package (not under @puppeteer/browsers).
 // Channel resolution is "always latest stable from Mozilla" via
 // geckodriver.download(); the package's GECKODRIVER_VERSION env var would
@@ -592,39 +621,15 @@ async function ensureGeckodriver(
 ): Promise<EnsureBrowserResult> {
   const cacheDir = getBrowsersDir(ctxBag.ctx);
   // Resolve the actual geckodriver binary path. The npm package exports
-  // a `.path` field that points at the resolved binary; if that's
-  // missing (older versions, future shape changes), fall back to the
-  // cache directory so callers at least have a useful starting point.
+  // a `.path` field that points at the resolved binary; when it's missing
+  // (it can be empty until/at download), probe the cache for the real binary
+  // before falling back to the bare cache directory.
   const resolveBinaryPath = (gecko: any): string => {
     const fromModule =
       gecko && typeof gecko.path === "string" && gecko.path.length > 0
         ? gecko.path
         : null;
-    if (fromModule) return fromModule;
-    // The geckodriver module doesn't always expose `.path` (it can be empty
-    // until/at download). Probe the cache for the actual binary the download
-    // wrote — the bare cacheDir would otherwise fail the driver-binary
-    // validation and trigger an avoidable reinstall+throw. Look at the cache
-    // root and one level deep (some layouts nest under a version dir).
-    const binName =
-      process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
-    const rootCandidate = path.join(cacheDir, binName);
-    try {
-      if (fs.existsSync(rootCandidate)) return rootCandidate;
-    } catch {
-      // ignore and fall through to the shallow scan
-    }
-    try {
-      for (const entry of fs.readdirSync(cacheDir, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        const nested = path.join(cacheDir, entry.name, binName);
-        if (fs.existsSync(nested)) return nested;
-      }
-    } catch {
-      // cacheDir unreadable/missing — fall back to the dir (validation will
-      // then surface a clear "non-functional" error, which is accurate).
-    }
-    return cacheDir;
+    return fromModule ?? geckodriverBinaryInCache(cacheDir) ?? cacheDir;
   };
 
   if (!ctxBag.force && existing && isStillFresh(existing.latestCheckedAt, ctxBag.now)) {

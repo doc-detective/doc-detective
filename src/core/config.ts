@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { getBrowsersDir, readInstalledRecord } from "../runtime/cacheDir.js";
-import { verifyDriverBinary } from "../runtime/browsers.js";
+import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browsers.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
@@ -934,18 +934,22 @@ async function resolveGeckodriverBinaryPath(
     cacheDir: config?.cacheDir,
   });
   if (!installed) return undefined;
+  const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });
   const prev = process.env.GECKODRIVER_CACHE_DIR;
-  process.env.GECKODRIVER_CACHE_DIR = getBrowsersDir({
-    cacheDir: config?.cacheDir,
-  });
+  process.env.GECKODRIVER_CACHE_DIR = browsersDir;
   try {
     const gecko = await loadHeavyDep<any>("geckodriver", {
       ctx: { cacheDir: config?.cacheDir },
       autoInstall: false,
     });
-    return gecko && typeof gecko.path === "string" && gecko.path.length > 0
-      ? gecko.path
-      : undefined;
+    const fromModule =
+      gecko && typeof gecko.path === "string" && gecko.path.length > 0
+        ? gecko.path
+        : undefined;
+    // Mirror the install path: when the module exposes no `.path`, probe the
+    // cache for the actual binary so the Layer 2 driver gate still runs for a
+    // present-but-broken geckodriver instead of passing Firefox through.
+    return fromModule ?? geckodriverBinaryInCache(browsersDir);
   } catch {
     return undefined;
   } finally {
