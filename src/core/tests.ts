@@ -2540,6 +2540,10 @@ async function runContext({
   // only fires for a genuinely-missing browser (rare) and the app list only
   // grows, so a sibling reading a slightly stale snapshot still re-detects.
   let freshInstallRedetected = false;
+  // The actual on-demand outcome, so the skip message can distinguish "repaired
+  // but still undetected" from "repair failed" instead of always claiming the
+  // dependency was installed.
+  let freshInstallOutcome: "installed" | "failed" | undefined;
   if (
     !supportedContext &&
     context.platform === platform &&
@@ -2574,6 +2578,7 @@ async function runContext({
     // could wrongly skip a now-usable browser.
     if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
       freshInstallRedetected = true;
+      freshInstallOutcome = outcome;
       clearAppCache(config);
       availableApps = await getAvailableApps({ config });
       runnerDetails.availableApps = availableApps;
@@ -2613,7 +2618,9 @@ async function runContext({
   // names the requested engine and the partial-download cause.
   if (driverRequired && candidateEngines.length === 0) {
     const errorMessage = freshInstallRedetected
-      ? `Skipping context '${requestedBrowserName}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
+      ? freshInstallOutcome === "installed"
+        ? `Skipping context '${requestedBrowserName}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
+        : `Skipping context '${requestedBrowserName}' on '${context.platform}': the on-demand install/repair of its browser dependency failed.`
       : driverSkipDiagnostic({
           requestedName: requestedBrowserName ?? "<none>",
           // driverSkipDiagnostic treats `platform` as the *current* runner

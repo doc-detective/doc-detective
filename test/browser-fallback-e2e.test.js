@@ -34,7 +34,11 @@ function writeSafariSpec(tmpDir, contextFallback) {
     tests: [
       {
         runOn: [runOnEntry],
-        steps: [{ goTo: "https://example.com" }],
+        // Local echo server (started by the test harness) rather than a live
+        // external URL, so a fallback-success run exercises fallback behavior,
+        // not DNS/outbound-network. goTo only accepts http(s)/relative/$VAR, so
+        // about:blank/data:/file: aren't options here.
+        steps: [{ goTo: "http://localhost:8092" }],
       },
     ],
   };
