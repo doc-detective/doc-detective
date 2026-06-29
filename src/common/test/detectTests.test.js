@@ -1161,7 +1161,8 @@ function readFixture(filename) {
 
       it("should normalize an array-shaped inline step screenshot before attaching Heretto integration", async function () {
         // An array screenshot is not a valid object shape; the helper resets it
-        // to {} before attaching sourceIntegration (Array.isArray branch).
+        // to {} before attaching sourceIntegration (Array.isArray branch). The
+        // reset drops any path, so the attached filePath resolves to "".
         const content =
           '<!-- test {"steps": [{"goTo": {"url": "https://example.com"}}]} -->\n' +
           '<!-- step {"screenshot": ["shot.png"]} -->';
