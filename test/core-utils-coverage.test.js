@@ -278,12 +278,8 @@ describe("core/utils coverage", function () {
       "fc00::1", // unique local fc
       "fd00::1", // unique local fd
       "fe80::1", // IPv6 link-local
-      // NOTE: the IPv4-mapped IPv6 private case (e.g. ::ffff:10.0.0.1) is NOT
-      // asserted here because it currently BYPASSES the guard — see the skipped
-      // test below and issue #427. The WHATWG URL parser normalizes
-      // ::ffff:10.0.0.1 to hex form ::ffff:a00:1; the source then strips
-      // "::ffff:" and re-tests "a00:1", which is neither a valid IPv4 nor IPv6,
-      // so isPrivateOrLoopbackAddress returns false (treated as public).
+      // IPv4-mapped IPv6 private addresses are asserted in the mappedPrivate
+      // set below (the #427 fix); historically they bypassed the guard.
     ];
     for (const ip of privateLiterals) {
       it(`rejects private literal ${ip}`, async function () {
@@ -291,7 +287,14 @@ describe("core/utils coverage", function () {
         await assert.rejects(() => assertUrlHostIsPublic(url), /refusing|private\/loopback/i);
       });
     }
-    const publicLiterals = ["8.8.8.8", "1.1.1.1", "2606:4700:4700::1111", "::ffff:8.8.8.8"];
+    const publicLiterals = [
+      "8.8.8.8",
+      "1.1.1.1",
+      "2606:4700:4700::1111",
+      "::ffff:8.8.8.8", // dotted public mapped (parser normalizes to hex)
+      "::ffff:808:808", // hex public mapped form (8.8.8.8) stays allowed
+      "::ffff:1", // a normal IPv6 address, not IPv4-mapped → not private
+    ];
     for (const ip of publicLiterals) {
       it(`allows public literal ${ip}`, async function () {
         const url = ip.includes(":") ? `http://[${ip}]/x` : `http://${ip}/x`;
@@ -299,16 +302,24 @@ describe("core/utils coverage", function () {
       });
     }
 
-    // KNOWN SECURITY GAP (issue #427): IPv4-mapped IPv6 private addresses bypass
-    // the SSRF guard. http://[::ffff:a00:1]/x is 10.0.0.1 mapped, but the source
-    // recurses on the hex tail "a00:1" (neither valid IPv4 nor IPv6) and returns
-    // "public". Unskip once src/core/utils.ts parses the mapped 32-bit tail.
-    it.skip("[#427] should reject the IPv4-mapped form of a private address", async function () {
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://[::ffff:a00:1]/x"), // ::ffff:10.0.0.1
-        /private\/loopback/
-      );
-    });
+    // #427 fix: IPv4-mapped IPv6 private addresses must be rejected. The WHATWG
+    // URL parser normalizes ::ffff:10.0.0.1 to hex form (::ffff:a00:1); the guard
+    // now reconstructs the dotted v4 from the hex tail before classifying.
+    const mappedPrivate = [
+      "::ffff:a00:1", // 10.0.0.1
+      "::ffff:7f00:1", // 127.0.0.1
+      "::ffff:a9fe:a9fe", // 169.254.169.254 (cloud metadata)
+      "::ffff:c0a8:1", // 192.168.0.1
+      "::ffff:0:1", // 0.0.0.1 (real mapped form of 0.0.0.x, high group is 0)
+    ];
+    for (const ip of mappedPrivate) {
+      it(`rejects IPv4-mapped private literal [${ip}]`, async function () {
+        await assert.rejects(
+          () => assertUrlHostIsPublic(`http://[${ip}]/x`),
+          /private\/loopback/
+        );
+      });
+    }
   });
 
   describe("log (level filtering + 2-arg form)", function () {

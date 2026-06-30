@@ -922,8 +922,33 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
     if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
     if (normalized.startsWith("fe80:")) return true; // link-local
     if (normalized.startsWith("::ffff:")) {
-      // IPv4-mapped: recurse on the embedded v4
-      return isPrivateOrLoopbackAddress(normalized.replace("::ffff:", ""));
+      // IPv4-mapped IPv6. The WHATWG URL parser normalizes the embedded v4 to
+      // hex (::ffff:10.0.0.1 → ::ffff:a00:1, and ::ffff:0.0.0.1 → ::ffff:0:1),
+      // so reconstruct the dotted v4 from the two hex groups and apply the v4
+      // ranges above; otherwise a mapped private address (e.g.
+      // http://[::ffff:a00:1]/x = 10.0.0.1) silently bypasses the guard.
+      const tail = normalized.slice("::ffff:".length);
+      // Defensive: a dotted-decimal tail (::ffff:10.0.0.1) is a valid IPv6
+      // literal but current callers pass URL-normalized hosts (always hex), so
+      // this path is unreachable in practice. Handle it anyway — fail CLOSED by
+      // classifying the embedded v4 rather than slipping past as "public".
+      /* c8 ignore start - URL normalization always yields the hex form below */
+      if (net.isIPv4(tail)) {
+        return isPrivateOrLoopbackAddress(tail);
+      }
+      /* c8 ignore stop */
+      // The genuine IPv4-mapped form the URL parser emits is two hex groups
+      // (::ffff:HHHH:LLLL = the embedded 32-bit v4); reconstruct and re-check.
+      const hexMatch = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+      if (hexMatch) {
+        const hi = parseInt(hexMatch[1], 16);
+        const lo = parseInt(hexMatch[2], 16);
+        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+        return isPrivateOrLoopbackAddress(dotted);
+      }
+      // Any other ::ffff: form (e.g. ::ffff:1) is a normal IPv6 address, not an
+      // IPv4-mapped one, and matches none of the private prefixes above → public.
+      return false;
     }
     return false;
   }
