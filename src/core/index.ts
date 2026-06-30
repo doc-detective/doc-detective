@@ -1,7 +1,7 @@
 import { setConfig } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp } from "./utils.js";
+import { log, cleanTemp, applyVerifiedMarkers } from "./utils.js";
 import { runSpecs, runViaApi, getRunner } from "./tests.js";
 import { telemetryNotice, sendTelemetry } from "./telem.js";
 import { readFile, resolvePaths } from "./files.js";
@@ -33,6 +33,10 @@ async function detectAndResolveTests({ config }: any) {
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
+  // Carry the full qualified input set forward so the verified-marker
+  // write-back can reach prose-only files that produced no spec (see
+  // qualifyFiles' `config._qualifiedFiles`).
+  if (resolvedTests) (resolvedTests as any)._qualifiedFiles = config._qualifiedFiles || [];
   return resolvedTests;
 }
 
@@ -188,6 +192,27 @@ async function runTests(config: any, options: any = {}) {
 
   // Clean up
   cleanTemp();
+
+  // "Last Verified On" write-back: update any `verified` markers in the source
+  // docs with today's date where the referenced test/spec passed. No-op when
+  // no markers exist; never throws (warns and continues on per-file errors).
+  try {
+    // resolvedTests is always set here (runTests returns early otherwise), so the
+    // only fallback needed is for the pre-resolved (DOC_DETECTIVE_API) path, which
+    // never populates _qualifiedFiles — there, the write-back is limited to the
+    // report's content paths and can't reach prose-only pages.
+    const qualifiedFiles = resolvedTests._qualifiedFiles || [];
+    if (options.resolvedTests && qualifiedFiles.length === 0) {
+      log(
+        config,
+        "debug",
+        "Verified write-back: pre-resolved run has no qualified-file list; only report content paths are scanned (prose-only pages skipped)."
+      );
+    }
+    applyVerifiedMarkers({ config, results, files: qualifiedFiles });
+  } catch (err: any) {
+    log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
+  }
 
   // Send telemetry
   sendTelemetry(config, "runTests", results);
