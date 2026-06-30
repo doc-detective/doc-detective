@@ -75,6 +75,10 @@ Behavior decided:
   another file — is still updated. The detected input set is side-channelled from `qualifyFiles`
   (`config._qualifiedFiles`) through `resolvedTests._qualifiedFiles` into the writer, reusing the exact
   file discovery the run already performed (no re-enumeration, no duplicated globbing).
+  * **Exception — pre-resolved (`DOC_DETECTIVE_API`) runs:** when `runTests` is given caller-supplied
+    `resolvedTests`, `_qualifiedFiles` is never populated, so the candidate set falls back to the
+    report's content paths alone. Markers on the tested pages are still updated; prose-only pages that
+    reference a test defined elsewhere are not, and a `debug` line notes this.
 * Trade-off: `verified` markers must round-trip in the exact comment form they were authored in; the
   writer never rewrites an MDX `{/* */}` marker as `<!-- -->` (which would break the MDX build).
 

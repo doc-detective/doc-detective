@@ -214,11 +214,14 @@ describe("Last Verified On — write-back integration", function () {
       expect(read(f)).to.contain("verified: true");
       expect(read(f)).to.not.match(/date:/);
     });
-    it("leaves flow-style doc-detective front matter untouched (block-style only)", function () {
+    it("writes the date for flow-style doc-detective front matter (YAML fallback)", function () {
       const f = write("a.md", "---\ndoc-detective: {verified: {id: test~1}}\n---\n\n# Doc\n");
       applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.contain("doc-detective: {verified: {id: test~1}}");
-      expect(read(f)).to.not.match(/\bdate:/);
+      const out = read(f);
+      // Flow-style can't be edited surgically, so the YAML fallback writes the
+      // (quoted) date; the value lands and is read as a string, not a Date.
+      expect(out).to.contain(TODAY);
+      expect(out).to.match(/date:\s*["']\d{4}-\d{2}-\d{2}["']/);
     });
   });
 
@@ -275,7 +278,7 @@ describe("Last Verified On — write-back integration", function () {
       const out = read(f);
       // The unrelated top-level scalar is untouched; the date lands under doc-detective.
       expect(out).to.contain("verified: true");
-      expect(out).to.match(/doc-detective:\r?\n {2}verified:\r?\n {4}id: test~1\r?\n {4}date: \d{4}-\d{2}-\d{2}/);
+      expect(out).to.match(/doc-detective:\r?\n {2}verified:\r?\n {4}id: test~1\r?\n {4}date: "\d{4}-\d{2}-\d{2}"/);
     });
   });
 });

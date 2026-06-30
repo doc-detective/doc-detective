@@ -141,6 +141,10 @@ describe("Last Verified On — pure helpers", function () {
       expect(resolveVerifiedId({}, "x")).to.equal(null);
       expect(resolveVerifiedId({ specs: [{ specId: "s", tests: [] }] }, "x")).to.equal(null);
     });
+    it("gives specId precedence over a same-named testId", function () {
+      const r = { specs: [{ specId: "dup", result: "PASS", tests: [{ testId: "dup", result: "FAIL" }] }] };
+      expect(resolveVerifiedId(r, "dup")).to.equal("PASS");
+    });
   });
 
   describe("branch & edge coverage", function () {

@@ -1378,13 +1378,44 @@ function frontMatterVerifiedId(content: string): string | null {
   }
 }
 
+// Fallback for non-block-style (e.g. flow) front matter: re-serialize the block
+// via the YAML parser so the date is still written (honoring the marker
+// contract), accepting that a flow collection may be reformatted. The date is a
+// double-quoted string so YAML 1.1 readers (e.g. js-yaml) don't coerce it to a
+// timestamp.
+function upsertFrontMatterViaYaml(
+  content: string,
+  fm: RegExpMatchArray,
+  eol: string,
+  date: string
+): string {
+  let doc: any;
+  try {
+    doc = YAML.parseDocument(fm[1]);
+  } catch {
+    return content;
+  }
+  if (doc.getIn(["doc-detective", "verified", "id"]) == null) return content;
+  const node = doc.createNode(date);
+  node.type = "QUOTE_DOUBLE";
+  doc.setIn(["doc-detective", "verified", "date"], node);
+  const newBlock = doc.toString().replace(/\r?\n$/, "").replace(/\r?\n/g, eol);
+  return (
+    content.slice(0, fm.index!) +
+    `---${eol}` +
+    newBlock +
+    `${eol}---` +
+    content.slice(fm.index! + fm[0].length)
+  );
+}
+
 // Set `doc-detective.verified.date` in the leading front matter. The id is read
-// with the YAML parser (robust), but the write is a *surgical text edit* of only
-// the `date:` line within the block-style `verified:` mapping — never a re-stringify
-// of the whole document. Re-serializing reflows unrelated fields (e.g. an inline
-// `tags: [a, b]` gains inner padding), which would create noisy, unintended diffs.
-// Returns the original content unchanged if there is no front-matter verified block,
-// no date to write, or the block isn't the supported block-style shape.
+// with the YAML parser (robust). For the common block-style shape the write is a
+// *surgical text edit* of only the `date:` line — never a re-stringify of the
+// whole document, which would reflow unrelated fields (e.g. an inline
+// `tags: [a, b]` gains inner padding). Flow-style / unusual shapes fall back to
+// upsertFrontMatterViaYaml so the date is still written. The value is quoted so
+// downstream YAML 1.1 parsers don't coerce it to a Date.
 function upsertFrontMatterVerified(content: string, dates: Map<string, string>): string {
   const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fm) return content;
@@ -1410,7 +1441,7 @@ function upsertFrontMatterVerified(content: string, dates: Map<string, string>):
       break;
     }
   }
-  if (ddIndex === -1) return content; // flow style / unusual shape — leave untouched
+  if (ddIndex === -1) return upsertFrontMatterViaYaml(content, fm, eol, date); // flow style
 
   // Find the block-style `verified:` key among doc-detective's children and the
   // extent of its own child lines (those indented deeper than the key).
@@ -1427,7 +1458,7 @@ function upsertFrontMatterVerified(content: string, dates: Map<string, string>):
       break;
     }
   }
-  if (vIndex === -1) return content; // flow style / unusual shape — leave untouched
+  if (vIndex === -1) return upsertFrontMatterViaYaml(content, fm, eol, date); // unusual shape
 
   let childIndent: string | null = null;
   let idIndex = -1;
@@ -1445,10 +1476,10 @@ function upsertFrontMatterVerified(content: string, dates: Map<string, string>):
   if (childIndent === null) childIndent = `${vIndent}  `;
 
   if (dateIndex !== -1) {
-    lines[dateIndex] = lines[dateIndex].replace(/^(\s*date:\s*).*$/, `$1${date}`);
+    lines[dateIndex] = lines[dateIndex].replace(/^(\s*date:\s*).*$/, `$1"${date}"`);
   } else {
     const insertAfter = idIndex !== -1 ? idIndex : lastChildIndex;
-    lines.splice(insertAfter + 1, 0, `${childIndent}date: ${date}`);
+    lines.splice(insertAfter + 1, 0, `${childIndent}date: "${date}"`);
   }
 
   return (
@@ -1492,16 +1523,13 @@ function applyVerifiedMarkers({
 }): void {
   if (!results || !Array.isArray(results.specs)) return;
 
-  const resultById = new Map<string, string>();
   const files = new Set<string>();
   for (const file of detectedFiles) {
     if (file) files.add(file);
   }
   for (const spec of results.specs) {
-    if (spec?.specId) resultById.set(spec.specId, spec.result);
     if (spec?.contentPath) files.add(spec.contentPath);
     for (const test of spec?.tests || []) {
-      if (test?.testId) resultById.set(test.testId, test.result);
       if (test?.contentPath) files.add(test.contentPath);
     }
   }
@@ -1527,11 +1555,14 @@ function applyVerifiedMarkers({
 
       const dates = new Map<string, string>();
       for (const id of ids) {
-        if (!resultById.has(id)) {
+        // Resolve through resolveVerifiedId so the bulk path gives specId
+        // precedence over testId, consistent with the single-lookup helper.
+        const result = resolveVerifiedId(results, id);
+        if (result === null) {
           log(config, "warning", `verified marker references unknown id '${id}' in ${file}; skipping.`);
           continue;
         }
-        if (resultById.get(id) === "PASS") dates.set(id, today);
+        if (result === "PASS") dates.set(id, today);
         // Non-pass: leave the existing date to age.
       }
 
