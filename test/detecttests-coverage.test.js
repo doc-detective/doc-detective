@@ -38,6 +38,11 @@ describe("detectTests coverage", function () {
     return filePath;
   }
 
+  // The minimal valid spec used by most fixtures: one test, one goTo step.
+  function specJSON(url) {
+    return JSON.stringify({ tests: [{ steps: [{ goTo: url }] }] });
+  }
+
   async function makeConfig(overrides) {
     return setConfig({
       config: { logLevel: "silent", ...overrides },
@@ -57,38 +62,38 @@ describe("detectTests coverage", function () {
     });
 
     it("recurses a directory and collects valid spec files", async function () {
-      write("top.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
-      write("nested/deep.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://b.com" }] }] }));
+      write("top.json", specJSON("https://a.com"));
+      write("nested/deep.json", specJSON("https://b.com"));
       const config = await makeConfig({ input: [tmpDir] });
       const specs = await detectTests({ config });
       assert.equal(specs.length, 2);
     });
 
     it("skips node_modules entries during directory recursion", async function () {
-      write("keep.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
-      write("node_modules/pkg.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://b.com" }] }] }));
+      write("keep.json", specJSON("https://a.com"));
+      write("node_modules/pkg.json", specJSON("https://b.com"));
       const config = await makeConfig({ input: [tmpDir] });
       const specs = await detectTests({ config });
       assert.equal(specs.length, 1);
     });
 
     it("does not recurse subdirectories when config.recursive is false", async function () {
-      write("top.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
-      write("nested/deep.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://b.com" }] }] }));
+      write("top.json", specJSON("https://a.com"));
+      write("nested/deep.json", specJSON("https://b.com"));
       const config = await makeConfig({ input: [tmpDir], recursive: false });
       const specs = await detectTests({ config });
       assert.equal(specs.length, 1);
     });
 
     it("dedupes a file listed more than once", async function () {
-      const f = write("a.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
+      const f = write("a.json", specJSON("https://a.com"));
       const config = await makeConfig({ input: [f, f] });
       const specs = await detectTests({ config });
       assert.equal(specs.length, 1);
     });
 
     it("skips a missing input path", async function () {
-      const f = write("a.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
+      const f = write("a.json", specJSON("https://a.com"));
       const config = await makeConfig({
         input: [f, path.join(tmpDir, "does-not-exist.json")],
       });
@@ -99,8 +104,8 @@ describe("detectTests coverage", function () {
     it("skips an unstattable input path (e.g. a glob pattern) with a warning", async function () {
       // qualifyFiles fs.statSync's the raw source string; a glob pattern is not
       // a real path, so statSync throws and the source is skipped (catch branch).
-      write("one.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
-      const real = write("two.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://b.com" }] }] }));
+      write("one.json", specJSON("https://a.com"));
+      const real = write("two.json", specJSON("https://b.com"));
       const config = await makeConfig({
         input: [path.join(tmpDir, "*.json").split(path.sep).join("/"), real],
       });
@@ -110,7 +115,7 @@ describe("detectTests coverage", function () {
     });
 
     it("processes a single explicit file path", async function () {
-      const f = write("solo.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
+      const f = write("solo.json", specJSON("https://a.com"));
       const config = await makeConfig({ input: [f] });
       const specs = await detectTests({ config });
       assert.equal(specs.length, 1);
@@ -118,7 +123,7 @@ describe("detectTests coverage", function () {
 
     it("stamps the beforeAny / main / afterAll phase onto detected specs", async function () {
       const before = write("before.md", "# B\n\n<!-- step {\"goTo\": \"https://b.com\"} -->\n");
-      const main = write("main.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://m.com" }] }] }));
+      const main = write("main.json", specJSON("https://m.com"));
       const after = write("after.md", "# A\n\n<!-- step {\"goTo\": \"https://a.com\"} -->\n");
       const config = await makeConfig({
         input: [main],
@@ -296,7 +301,7 @@ describe("detectTests coverage", function () {
 
   describe("parseTests JSON/YAML branches", function () {
     it("parses a valid JSON spec and assigns specId / contentPath", async function () {
-      const f = write("valid.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
+      const f = write("valid.json", specJSON("https://a.com"));
       const config = await makeConfig({ input: [f] });
       const specs = await parseTests({ config, files: [f] });
       assert.equal(specs.length, 1);
@@ -346,7 +351,7 @@ describe("detectTests coverage", function () {
     });
 
     it("defaults _phase to main when no phase map is present", async function () {
-      const f = write("nophase.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
+      const f = write("nophase.json", specJSON("https://a.com"));
       const config = await makeConfig({ input: [f] });
       // Call parseTests directly without qualifyFiles, so config._phaseByFile
       // is absent and the `?? "main"` fallback runs.
