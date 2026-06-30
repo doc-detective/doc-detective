@@ -1,3 +1,10 @@
+# [4.17.0-last-verified-on.2](https://github.com/doc-detective/doc-detective/compare/v4.17.0-last-verified-on.1...v4.17.0-last-verified-on.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* **runner:** preserve EOL and avoid front-matter reflow in verified write-back ([0007f15](https://github.com/doc-detective/doc-detective/commit/0007f1509a7d2d2b97f3884a6777f554d7a18f90))
+
 # [4.17.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0-last-verified-on.1) (2026-06-29)
 
 
