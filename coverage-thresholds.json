@@ -1,0 +1,8 @@
+{
+  "description": "Coverage baseline thresholds for the root doc-detective package. These values should only increase, never decrease. PLACEHOLDER: the four metrics are 0 until the first CI run of the `Coverage ratchet (root)` job reports the real full-suite coverage; replace them with those measured numbers to lock in the true baseline.",
+  "lastUpdated": "2026-06-30",
+  "lines": 0,
+  "statements": 0,
+  "functions": 0,
+  "branches": 0
+}
