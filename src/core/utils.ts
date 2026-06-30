@@ -1389,13 +1389,10 @@ function upsertFrontMatterViaYaml(
   eol: string,
   date: string
 ): string {
-  let doc: any;
-  try {
-    doc = YAML.parseDocument(fm[1]);
-  } catch {
-    return content;
-  }
-  if (doc.getIn(["doc-detective", "verified", "id"]) == null) return content;
+  // Only reached after frontMatterVerifiedId() already parsed the id from this
+  // same block, so the parse succeeds and the id path exists; any unexpected
+  // throw is caught by applyVerifiedMarkers' per-file guard.
+  const doc: any = YAML.parseDocument(fm[1]);
   const node = doc.createNode(date);
   node.type = "QUOTE_DOUBLE";
   doc.setIn(["doc-detective", "verified", "date"], node);
