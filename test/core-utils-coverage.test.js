@@ -164,7 +164,7 @@ describe("core/utils coverage", function () {
       assert.equal(sanitizeFilesystemName("..", "fb"), "fb");
     });
     it("replaces reserved/control chars with underscores", function () {
-      // a <b> : " / \ | ? * c  → 8 reserved chars around the embedded "b"
+      // a<b>:"/\|?*c → the 9 reserved chars (< > : " / \ | ? *) around "b"
       assert.equal(sanitizeFilesystemName('a<b>:"/\\|?*c', "fb"), "a_b________c");
     });
     it("returns fallback if result is all-dots", function () {
@@ -216,6 +216,11 @@ describe("core/utils coverage", function () {
       await assertUrlHostIsPublic("https://8.8.8.8/x");
     });
     it("rejects localhost and *.localhost hostnames before any DNS lookup", async function () {
+      // Stub dns.lookup so we can prove the guard short-circuits *before* it.
+      sandbox = sinon.createSandbox();
+      const lookup = sandbox
+        .stub(dnsPromises, "lookup")
+        .resolves([{ address: "8.8.8.8" }]);
       await assert.rejects(
         () => assertUrlHostIsPublic("http://localhost/x"),
         /Refusing to fetch localhost/
@@ -224,6 +229,7 @@ describe("core/utils coverage", function () {
         () => assertUrlHostIsPublic("http://app.localhost/x"),
         /Refusing to fetch localhost/
       );
+      assert.equal(lookup.callCount, 0);
     });
 
     // The DNS-resolution branch is covered hermetically by stubbing
@@ -517,6 +523,9 @@ describe("core/utils coverage", function () {
       // Force a non-linux platform so the spawn branch is skipped.
       // IN_CONTAINER is already cleared by beforeEach.
       sandbox.stub(process, "platform").value("win32");
+      // process.platform is read-only; if the stub didn't take, skip rather than
+      // run the real Linux spawnCommand path and break hermeticity on CI.
+      if (process.platform !== "win32") this.skip();
       assert.equal(await inContainer(), false);
     });
   });
