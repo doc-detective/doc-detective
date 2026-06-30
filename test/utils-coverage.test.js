@@ -54,6 +54,11 @@ function captureConsole(sandbox) {
 }
 
 describe("utils.ts coverage", function () {
+  // Some cases validate fetched/merged payloads against AJV schemas
+  // (resolvedTests_v3, config_v3). Compiling those the first time can take
+  // ~1.5s, which brushes mocha's 2000ms default and times out on a loaded CI
+  // runner — give generous headroom (still well below any real hang).
+  this.timeout(15000);
   let sandbox;
   const tmpDirs = [];
 
