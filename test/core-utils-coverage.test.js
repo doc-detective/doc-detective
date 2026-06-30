@@ -299,16 +299,23 @@ describe("core/utils coverage", function () {
       });
     }
 
-    // KNOWN SECURITY GAP (issue #427): IPv4-mapped IPv6 private addresses bypass
-    // the SSRF guard. http://[::ffff:a00:1]/x is 10.0.0.1 mapped, but the source
-    // recurses on the hex tail "a00:1" (neither valid IPv4 nor IPv6) and returns
-    // "public". Unskip once src/core/utils.ts parses the mapped 32-bit tail.
-    it.skip("[#427] should reject the IPv4-mapped form of a private address", async function () {
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://[::ffff:a00:1]/x"), // ::ffff:10.0.0.1
-        /private\/loopback/
-      );
-    });
+    // #427 fix: IPv4-mapped IPv6 private addresses must be rejected. The WHATWG
+    // URL parser normalizes ::ffff:10.0.0.1 to hex form (::ffff:a00:1); the guard
+    // now reconstructs the dotted v4 from the hex tail before classifying.
+    const mappedPrivate = [
+      "::ffff:a00:1", // 10.0.0.1
+      "::ffff:7f00:1", // 127.0.0.1
+      "::ffff:a9fe:a9fe", // 169.254.169.254 (cloud metadata)
+      "::ffff:c0a8:1", // 192.168.0.1
+    ];
+    for (const ip of mappedPrivate) {
+      it(`rejects IPv4-mapped private literal [${ip}]`, async function () {
+        await assert.rejects(
+          () => assertUrlHostIsPublic(`http://[${ip}]/x`),
+          /private\/loopback/
+        );
+      });
+    }
   });
 
   describe("log (level filtering + 2-arg form)", function () {
