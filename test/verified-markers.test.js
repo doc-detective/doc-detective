@@ -136,5 +136,39 @@ describe("Last Verified On — pure helpers", function () {
     it("returns null for an unknown id", function () {
       expect(resolveVerifiedId(results, "nope")).to.equal(null);
     });
+    it("returns null for null / non-array-specs inputs", function () {
+      expect(resolveVerifiedId(null, "x")).to.equal(null);
+      expect(resolveVerifiedId({}, "x")).to.equal(null);
+      expect(resolveVerifiedId({ specs: [{ specId: "s", tests: [] }] }, "x")).to.equal(null);
+    });
+  });
+
+  describe("branch & edge coverage", function () {
+    it("shieldsBadge honors a custom label and color", function () {
+      expect(shieldsBadge("markdown", "2026-06-26", { label: "Verified", color: "green" })).to.equal(
+        "![Verified 2026-06-26](https://img.shields.io/badge/Verified-2026--06--26-green)"
+      );
+    });
+    it("parseVerifiedMarkers falls back to markdown patterns for an unknown format", function () {
+      const m = parseVerifiedMarkers("<!-- verified id=a -->", "totally-unknown");
+      expect(m).to.have.length(1);
+      expect(m[0].id).to.equal("a");
+    });
+    it("parseVerifiedAttrs handles badge=false, quoted values, and bare non-attr tokens", function () {
+      const m = parseVerifiedMarkers('<!-- verified extra id="a" badge=false -->', "markdown");
+      expect(m[0]).to.include({ id: "a", badge: false });
+    });
+    it("applyVerifiedToContent badge uses the markdown image body for an unknown format", function () {
+      const out = applyVerifiedToContent(
+        "<!-- verified id=a badge -->\n",
+        "unknown",
+        new Map([["a", "2026-06-26"]])
+      );
+      expect(out).to.contain("![Last verified 2026-06-26](https://img.shields.io/badge/");
+    });
+    it("applyVerifiedToContent is a no-op when no marker id is in the date map", function () {
+      const input = "<!-- verified id=other date=2025-01-01 -->";
+      expect(applyVerifiedToContent(input, "markdown", new Map([["a", "2026-06-26"]]))).to.equal(input);
+    });
   });
 });

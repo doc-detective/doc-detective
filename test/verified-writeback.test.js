@@ -188,6 +188,40 @@ describe("Last Verified On — write-back integration", function () {
     });
   });
 
+  describe("skip paths", function () {
+    it("no-ops when results has no specs array", function () {
+      applyVerifiedMarkers({ config: silent, results: {} });
+      applyVerifiedMarkers({ config: silent, results: null });
+    });
+    it("skips a non-existent content path without throwing", function () {
+      const missing = path.join(tmpDir, "nope.md");
+      applyVerifiedMarkers({ config: silent, results: report(missing) });
+      expect(fs.existsSync(missing)).to.equal(false);
+    });
+    it("skips a non-doc extension", function () {
+      const f = write("a.txt", "<!-- verified id=test~1 -->\n");
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.equal("<!-- verified id=test~1 -->\n");
+    });
+    it("fast-paths a doc with no `verified` marker", function () {
+      const f = write("a.md", "# Just docs\n");
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.equal("# Just docs\n");
+    });
+    it("leaves a top-level (non doc-detective) verified key untouched", function () {
+      const f = write("a.md", "---\ntitle: Doc\nverified: true\n---\n\n# Doc\n");
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.contain("verified: true");
+      expect(read(f)).to.not.match(/date:/);
+    });
+    it("leaves flow-style doc-detective front matter untouched (block-style only)", function () {
+      const f = write("a.md", "---\ndoc-detective: {verified: {id: test~1}}\n---\n\n# Doc\n");
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.contain("doc-detective: {verified: {id: test~1}}");
+      expect(read(f)).to.not.match(/\bdate:/);
+    });
+  });
+
   describe("end-to-end via runTests", function () {
     it("updates a data-only marker after a passing inline wait test", async function () {
       this.timeout(120000);
