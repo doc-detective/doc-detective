@@ -1392,11 +1392,29 @@ function upsertFrontMatterVerified(content: string, dates: Map<string, string>):
   const eol = fm[0].includes("\r\n") ? "\r\n" : "\n";
   const lines = fm[1].split(/\r?\n/);
 
-  // Locate the block-style `verified:` key and the extent of its child lines
-  // (those indented deeper than the key).
+  // Locate the `doc-detective:` mapping first, then the `verified:` key nested
+  // within it — so an unrelated top-level `verified:` elsewhere in the front
+  // matter can't be matched by mistake.
+  let ddIndex = -1;
+  let ddIndent = "";
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^([ \t]*)(?:"doc-detective"|'doc-detective'|doc-detective):[ \t]*$/);
+    if (m) {
+      ddIndex = i;
+      ddIndent = m[1];
+      break;
+    }
+  }
+  if (ddIndex === -1) return content; // flow style / unusual shape — leave untouched
+
+  // Find the block-style `verified:` key among doc-detective's children and the
+  // extent of its own child lines (those indented deeper than the key).
   let vIndex = -1;
   let vIndent = "";
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = ddIndex + 1; i < lines.length; i++) {
+    const indentMatch = lines[i].match(/^([ \t]*)\S/);
+    if (!indentMatch) continue; // blank line within the block
+    if (indentMatch[1].length <= ddIndent.length) break; // dedent ends doc-detective
     const m = lines[i].match(/^([ \t]*)verified:[ \t]*$/);
     if (m) {
       vIndex = i;
