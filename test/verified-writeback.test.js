@@ -9,7 +9,10 @@ before(async function () {
   global.expect = expect;
 });
 
-const TODAY = verifiedDate();
+// Recomputed before each test (see beforeEach) rather than captured once at
+// module load, so a suite that spans a UTC midnight boundary can't drift from
+// the date the writer actually stamps.
+let TODAY;
 let tmpDir;
 
 function write(name, content) {
@@ -37,6 +40,7 @@ const silent = { logLevel: "silent" };
 
 describe("Last Verified On — write-back integration", function () {
   beforeEach(function () {
+    TODAY = verifiedDate();
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-verified-"));
   });
   afterEach(function () {
@@ -93,6 +97,29 @@ describe("Last Verified On — write-back integration", function () {
       applyVerifiedMarkers({ config: silent, results: report(f) });
       expect(read(f)).to.equal(once); // no duplicate image, no drift
     });
+    it("asciidoc badge inserts the image macro and is byte-idempotent", function () {
+      const f = write("a.adoc", "= Doc\n\n// (verified id=test~1 badge)\n\nMore.\n");
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      const once = read(f);
+      expect(once).to.contain(
+        `image:https://img.shields.io/badge/Last_verified-${TODAY.replace(/-/g, "--")}-brightgreen[Last verified ${TODAY}]`
+      );
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.equal(once);
+    });
+    it("dita badge inserts the image element and is byte-idempotent", function () {
+      const f = write(
+        "a.dita",
+        "<topic><title>Doc</title></topic>\n<!-- verified id=test~1 badge -->\n\nMore.\n"
+      );
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      const once = read(f);
+      expect(once).to.contain(
+        `<image href="https://img.shields.io/badge/Last_verified-${TODAY.replace(/-/g, "--")}-brightgreen">`
+      );
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.equal(once);
+    });
   });
 
   describe("front matter (doc-detective.verified)", function () {
@@ -102,11 +129,25 @@ describe("Last Verified On — write-back integration", function () {
         "---\ntitle: Doc\ndoc-detective:\n  verified:\n    id: test~1\n---\n\n# Doc\n"
       );
       applyVerifiedMarkers({ config: silent, results: report(f) });
-      const out = read(f);
-      expect(out).to.match(/date:\s*['"]?2\d{3}-\d{2}-\d{2}['"]?/);
-      expect(out).to.contain(TODAY);
+      const once = read(f);
+      expect(once).to.match(/date:\s*['"]?2\d{3}-\d{2}-\d{2}['"]?/);
+      expect(once).to.contain(TODAY);
       // body untouched
-      expect(out).to.contain("# Doc");
+      expect(once).to.contain("# Doc");
+      // re-run is byte-identical (date replaced in place, not appended)
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.equal(once);
+    });
+    it("preserves sibling front-matter fields (inline array stays inline)", function () {
+      const f = write(
+        "a.md",
+        "---\ntitle: My Guide\ntags: [api, rest]\ndoc-detective:\n  verified:\n    id: test~1\n---\n\n# Doc\n"
+      );
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      const out = read(f);
+      expect(out).to.contain("tags: [api, rest]"); // not reflowed to block style
+      expect(out).to.contain("title: My Guide");
+      expect(out).to.contain(TODAY);
     });
   });
 

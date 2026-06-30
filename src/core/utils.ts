@@ -1326,6 +1326,9 @@ function applyVerifiedToContent(
   format: string,
   dates: Map<string, string>
 ): string {
+  // Match the file's existing newline style so a CRLF-authored doc doesn't get
+  // an LF badge line spliced in (which would break byte-idempotency on Windows).
+  const eol = content.includes("\r\n") ? "\r\n" : "\n";
   const markers = parseVerifiedMarkers(content, format);
   for (const marker of [...markers].sort((a, b) => b.start - a.start)) {
     const date = dates.get(marker.id);
@@ -1342,7 +1345,7 @@ function applyVerifiedToContent(
         content =
           content.slice(0, marker.end) + mm[1] + img + content.slice(marker.end + mm[0].length);
       } else {
-        content = content.slice(0, marker.end) + "\n" + img + content.slice(marker.end);
+        content = content.slice(0, marker.end) + eol + img + content.slice(marker.end);
       }
     }
     const newAttrs = setVerifiedAttrDate(marker.attrs, date);
@@ -1370,30 +1373,66 @@ function frontMatterVerifiedId(content: string): string | null {
   }
 }
 
-// Set `doc-detective.verified.date` in the leading front matter, re-serializing
-// only the front-matter block (preserving the rest of the file). Returns the new
-// content, or the original if there is no front-matter verified block or no date
-// to write for its id.
+// Set `doc-detective.verified.date` in the leading front matter. The id is read
+// with the YAML parser (robust), but the write is a *surgical text edit* of only
+// the `date:` line within the block-style `verified:` mapping — never a re-stringify
+// of the whole document. Re-serializing reflows unrelated fields (e.g. an inline
+// `tags: [a, b]` gains inner padding), which would create noisy, unintended diffs.
+// Returns the original content unchanged if there is no front-matter verified block,
+// no date to write, or the block isn't the supported block-style shape.
 function upsertFrontMatterVerified(content: string, dates: Map<string, string>): string {
   const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fm) return content;
-  let doc: any;
-  try {
-    doc = YAML.parseDocument(fm[1]);
-  } catch {
-    return content;
-  }
-  const id = doc.getIn(["doc-detective", "verified", "id"]);
+  const id = frontMatterVerifiedId(content);
   if (id == null) return content;
-  const date = dates.get(String(id));
+  const date = dates.get(id);
   if (!date) return content;
-  doc.setIn(["doc-detective", "verified", "date"], date);
-  const newBlock = doc.toString().replace(/\r?\n$/, "");
+
+  // Preserve the front matter's newline style (see applyVerifiedToContent).
+  const eol = fm[0].includes("\r\n") ? "\r\n" : "\n";
+  const lines = fm[1].split(/\r?\n/);
+
+  // Locate the block-style `verified:` key and the extent of its child lines
+  // (those indented deeper than the key).
+  let vIndex = -1;
+  let vIndent = "";
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^([ \t]*)verified:[ \t]*$/);
+    if (m) {
+      vIndex = i;
+      vIndent = m[1];
+      break;
+    }
+  }
+  if (vIndex === -1) return content; // flow style / unusual shape — leave untouched
+
+  let childIndent: string | null = null;
+  let idIndex = -1;
+  let dateIndex = -1;
+  let lastChildIndex = vIndex;
+  for (let i = vIndex + 1; i < lines.length; i++) {
+    const indentMatch = lines[i].match(/^([ \t]*)\S/);
+    if (!indentMatch) continue; // blank line within the block
+    if (indentMatch[1].length <= vIndent.length) break; // dedent ends the block
+    if (childIndent === null) childIndent = indentMatch[1];
+    lastChildIndex = i;
+    if (/^\s*id:/.test(lines[i])) idIndex = i;
+    if (/^\s*date:/.test(lines[i])) dateIndex = i;
+  }
+  if (childIndent === null) childIndent = `${vIndent}  `;
+
+  if (dateIndex !== -1) {
+    lines[dateIndex] = lines[dateIndex].replace(/^(\s*date:\s*).*$/, `$1${date}`);
+  } else {
+    const insertAfter = idIndex !== -1 ? idIndex : lastChildIndex;
+    lines.splice(insertAfter + 1, 0, `${childIndent}date: ${date}`);
+  }
+
   return (
     content.slice(0, fm.index!) +
-    "---\n" +
-    newBlock +
-    "\n---" +
+    `---${eol}` +
+    lines.join(eol) +
+    `${eol}---` +
     content.slice(fm.index! + fm[0].length)
   );
 }
@@ -1453,6 +1492,10 @@ function applyVerifiedMarkers({
       if (!format) continue;
 
       const original = fs.readFileSync(file, "utf8");
+      // Cheap fast-path: both the inline keyword and the front-matter key are the
+      // literal "verified", so a file without it has no markers to update — skip
+      // the regex scans and YAML parse entirely (the common case on large sets).
+      if (!original.includes("verified")) continue;
       const inline = parseVerifiedMarkers(original, format);
       const fmId = frontMatterVerifiedId(original);
       const ids = new Set(inline.map((m) => m.id));
