@@ -177,8 +177,13 @@ describe("core/utils coverage", function () {
   });
 
   describe("assertUrlHostIsPublic (IP literal + scheme + allow-list paths)", function () {
+    let prevAllow;
+    beforeEach(function () {
+      prevAllow = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+    });
     afterEach(function () {
-      delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+      if (prevAllow === undefined) delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+      else process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = prevAllow;
     });
 
     it("short-circuits when DOC_DETECTIVE_ALLOW_LOCAL_URLS=true", async function () {
@@ -267,10 +272,12 @@ describe("core/utils coverage", function () {
       "fc00::1", // unique local fc
       "fd00::1", // unique local fd
       "fe80::1", // IPv6 link-local
-      // NOTE: a bracketed "::ffff:10.0.0.1" URL is normalized by the WHATWG URL
-      // parser to hex form ("::ffff:a00:1"), so the IPv4-mapped *recursion*
-      // branch of isPrivateOrLoopbackAddress is unreachable through a real URL
-      // and is intentionally not asserted here.
+      // NOTE: the IPv4-mapped IPv6 private case (e.g. ::ffff:10.0.0.1) is NOT
+      // asserted here because it currently BYPASSES the guard — see the skipped
+      // test below and issue #427. The WHATWG URL parser normalizes
+      // ::ffff:10.0.0.1 to hex form ::ffff:a00:1; the source then strips
+      // "::ffff:" and re-tests "a00:1", which is neither a valid IPv4 nor IPv6,
+      // so isPrivateOrLoopbackAddress returns false (treated as public).
     ];
     for (const ip of privateLiterals) {
       it(`rejects private literal ${ip}`, async function () {
@@ -285,6 +292,17 @@ describe("core/utils coverage", function () {
         await assertUrlHostIsPublic(url);
       });
     }
+
+    // KNOWN SECURITY GAP (issue #427): IPv4-mapped IPv6 private addresses bypass
+    // the SSRF guard. http://[::ffff:a00:1]/x is 10.0.0.1 mapped, but the source
+    // recurses on the hex tail "a00:1" (neither valid IPv4 nor IPv6) and returns
+    // "public". Unskip once src/core/utils.ts parses the mapped 32-bit tail.
+    it.skip("[#427] should reject the IPv4-mapped form of a private address", async function () {
+      await assert.rejects(
+        () => assertUrlHostIsPublic("http://[::ffff:a00:1]/x"), // ::ffff:10.0.0.1
+        /private\/loopback/
+      );
+    });
   });
 
   describe("log (level filtering + 2-arg form)", function () {
@@ -293,6 +311,10 @@ describe("core/utils coverage", function () {
       sandbox = sinon.createSandbox();
       logged = [];
       sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+    });
+    afterEach(function () {
+      sandbox.restore();
+      sandbox = undefined;
     });
 
     it("error level only logs error", async function () {
@@ -336,6 +358,8 @@ describe("core/utils coverage", function () {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-utils-out-"));
     });
     afterEach(function () {
+      sandbox.restore();
+      sandbox = undefined;
       try {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       } catch {}
@@ -352,9 +376,16 @@ describe("core/utils coverage", function () {
   });
 
   describe("replaceEnvs", function () {
+    let prevVal, prevObj;
+    beforeEach(function () {
+      prevVal = process.env.DD_TEST_VAL;
+      prevObj = process.env.DD_TEST_OBJ;
+    });
     afterEach(function () {
-      delete process.env.DD_TEST_VAL;
-      delete process.env.DD_TEST_OBJ;
+      if (prevVal === undefined) delete process.env.DD_TEST_VAL;
+      else process.env.DD_TEST_VAL = prevVal;
+      if (prevObj === undefined) delete process.env.DD_TEST_OBJ;
+      else process.env.DD_TEST_OBJ = prevObj;
     });
     it("returns falsy input unchanged", function () {
       assert.equal(replaceEnvs(""), "");
@@ -372,12 +403,24 @@ describe("core/utils coverage", function () {
       process.env.DD_TEST_OBJ = JSON.stringify({ k: "v" });
       assert.deepEqual(replaceEnvs("$DD_TEST_OBJ"), { k: "v" });
     });
-    it("recurses through object values and skips prototype-polluting keys", function () {
+    it("recurses through nested object values", function () {
       process.env.DD_TEST_VAL = "X";
       const input = { a: "$DD_TEST_VAL", nested: { b: "$DD_TEST_VAL" } };
       const out = replaceEnvs(input);
       assert.equal(out.a, "X");
       assert.equal(out.nested.b, "X");
+    });
+    it("skips prototype-polluting keys (no Object.prototype mutation)", function () {
+      process.env.DD_TEST_VAL = "X";
+      // JSON.parse produces __proto__ as an OWN enumerable key, which is what
+      // the source guard must skip; assert the prototype is left untouched.
+      const malicious = JSON.parse(
+        '{"__proto__":{"polluted":true},"a":"$DD_TEST_VAL"}'
+      );
+      const out = replaceEnvs(malicious);
+      assert.equal(out.a, "X");
+      assert.equal(Object.prototype.polluted, undefined);
+      assert.equal(({}).polluted, undefined);
     });
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
@@ -451,8 +494,14 @@ describe("core/utils coverage", function () {
   });
 
   describe("inContainer", function () {
-    afterEach(function () {
+    let prevInContainer;
+    beforeEach(function () {
+      prevInContainer = process.env.IN_CONTAINER;
       delete process.env.IN_CONTAINER;
+    });
+    afterEach(function () {
+      if (prevInContainer === undefined) delete process.env.IN_CONTAINER;
+      else process.env.IN_CONTAINER = prevInContainer;
     });
     it("returns true when IN_CONTAINER=true", async function () {
       process.env.IN_CONTAINER = "true";
@@ -461,17 +510,24 @@ describe("core/utils coverage", function () {
     it("returns false on non-linux without the env flag", async function () {
       sandbox = sinon.createSandbox();
       // Force a non-linux platform so the spawn branch is skipped.
+      // IN_CONTAINER is already cleared by beforeEach.
       sandbox.stub(process, "platform").value("win32");
-      delete process.env.IN_CONTAINER;
       assert.equal(await inContainer(), false);
     });
   });
 
   describe("findFreePort", function () {
-    it("resolves an ephemeral loopback port that is then released", async function () {
+    it("resolves an ephemeral loopback port that is then released (rebindable)", async function () {
       const port = await findFreePort();
       assert.equal(typeof port, "number");
       assert.ok(port > 0 && port < 65536);
+      // Prove the port was actually released: we can bind it ourselves.
+      const { createServer } = await import("node:net");
+      await new Promise((resolve, reject) => {
+        const server = createServer();
+        server.once("error", reject);
+        server.listen(port, "127.0.0.1", () => server.close(() => resolve()));
+      });
     });
   });
 });
