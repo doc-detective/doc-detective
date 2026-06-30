@@ -2,18 +2,24 @@
 
 /**
  * Coverage Ratchet Script
- * 
+ *
  * Compares current coverage against baseline thresholds.
  * Fails if any metric has decreased.
- * 
- * Usage: node scripts/check-coverage-ratchet.cjs
+ *
+ * Shared by both the root `doc-detective` package and the `src/common`
+ * subpackage. Paths resolve from the invoking package's directory, so each
+ * package reads its own `coverage-thresholds.json` and `coverage/`:
+ *   - root:       node scripts/check-coverage-ratchet.cjs
+ *   - src/common: node ../../scripts/check-coverage-ratchet.cjs   (cwd = src/common)
+ * An explicit base directory can also be passed as the first argument.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const THRESHOLDS_FILE = path.join(__dirname, '..', 'coverage-thresholds.json');
-const COVERAGE_SUMMARY_FILE = path.join(__dirname, '..', 'coverage', 'coverage-summary.json');
+const baseDir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
+const THRESHOLDS_FILE = path.join(baseDir, 'coverage-thresholds.json');
+const COVERAGE_SUMMARY_FILE = path.join(baseDir, 'coverage', 'coverage-summary.json');
 
 /**
  * Load and parse JSON from the given path, exiting the process with code 1 if the file is missing or cannot be parsed.
