@@ -1345,7 +1345,12 @@ function applyVerifiedToContent(
         content =
           content.slice(0, marker.end) + mm[1] + img + content.slice(marker.end + mm[0].length);
       } else {
-        content = content.slice(0, marker.end) + eol + img + content.slice(marker.end);
+        // Indent the new badge line to match the marker's own line, so a marker
+        // inside an indented construct (e.g. a nested list item) doesn't get a
+        // column-0 badge that breaks out of it. Re-runs preserve this via mm[1].
+        const lineStart = content.lastIndexOf("\n", marker.start - 1) + 1;
+        const indent = (content.slice(lineStart, marker.start).match(/^[ \t]*/) || [""])[0];
+        content = content.slice(0, marker.end) + eol + indent + img + content.slice(marker.end);
       }
     }
     const newAttrs = setVerifiedAttrDate(marker.attrs, date);

@@ -107,6 +107,15 @@ describe("Last Verified On — write-back integration", function () {
       applyVerifiedMarkers({ config: silent, results: report(f) });
       expect(read(f)).to.equal(once);
     });
+    it("indents an inserted badge to match the marker's line and stays idempotent", function () {
+      const f = write("a.md", "- item\n  <!-- verified id=test~1 badge -->\n");
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      const once = read(f);
+      // badge image is indented two spaces to match the marker line
+      expect(once).to.match(/\n {2}!\[Last verified \d{4}-\d{2}-\d{2}\]\(https:\/\/img\.shields\.io/);
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.equal(once);
+    });
     it("dita badge inserts the image element and is byte-idempotent", function () {
       const f = write(
         "a.dita",
