@@ -928,13 +928,27 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
       // ranges above; otherwise a mapped private address (e.g.
       // http://[::ffff:a00:1]/x = 10.0.0.1) silently bypasses the guard.
       const tail = normalized.slice("::ffff:".length);
-      const hexMatch = tail.match(/^(?:([0-9a-f]{1,4}):)?([0-9a-f]{1,4})$/);
-      /* c8 ignore next - net.isIPv6 above guarantees a 1–2 hex-group tail */
-      if (!hexMatch) return false;
-      const hi = hexMatch[1] ? parseInt(hexMatch[1], 16) : 0;
-      const lo = parseInt(hexMatch[2], 16);
-      const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-      return isPrivateOrLoopbackAddress(dotted);
+      // Defensive: a dotted-decimal tail (::ffff:10.0.0.1) is a valid IPv6
+      // literal but current callers pass URL-normalized hosts (always hex), so
+      // this path is unreachable in practice. Handle it anyway — fail CLOSED by
+      // classifying the embedded v4 rather than slipping past as "public".
+      /* c8 ignore start - URL normalization always yields the hex form below */
+      if (net.isIPv4(tail)) {
+        return isPrivateOrLoopbackAddress(tail);
+      }
+      /* c8 ignore stop */
+      // The genuine IPv4-mapped form the URL parser emits is two hex groups
+      // (::ffff:HHHH:LLLL = the embedded 32-bit v4); reconstruct and re-check.
+      const hexMatch = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+      if (hexMatch) {
+        const hi = parseInt(hexMatch[1], 16);
+        const lo = parseInt(hexMatch[2], 16);
+        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+        return isPrivateOrLoopbackAddress(dotted);
+      }
+      // Any other ::ffff: form (e.g. ::ffff:1) is a normal IPv6 address, not an
+      // IPv4-mapped one, and matches none of the private prefixes above → public.
+      return false;
     }
     return false;
   }

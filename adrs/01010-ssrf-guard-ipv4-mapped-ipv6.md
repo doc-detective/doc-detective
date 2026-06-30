@@ -52,11 +52,12 @@ not a contract change.
 ## Decision Outcome
 
 Chosen: **reconstruct the dotted IPv4 from the mapped tail in-place**. For a `::ffff:` address (whose
-IPv6 validity is already established), parse the one-or-two hex groups the WHATWG URL parser leaves in
-the tail (`a00:1`, or `1` when the high group is zero) as the low 32 bits, rebuild `a.b.c.d`, and
-recurse through the existing IPv4 range checks. The parser always emits the hex form, so a
-dotted-decimal tail is never produced; the only non-hex path is a defensive `!hexMatch` guard that
-`net.isIPv6` already precludes (marked `c8 ignore`).
+IPv6 validity is already established), the WHATWG URL parser emits the embedded v4 as **two hex
+groups** (`::ffff:10.0.0.1` → `::ffff:a00:1`; `::ffff:0.0.0.1` → `::ffff:0:1`). Parse those two groups
+as the low 32 bits, rebuild `a.b.c.d`, and recurse through the existing IPv4 range checks. A
+dotted-decimal tail can't arrive via the URL-normalizing caller, but is still handled (fail **closed**)
+for defense in depth and marked `c8 ignore`. Any other `::ffff:` form (e.g. `::ffff:1`) is a normal
+IPv6 address, not IPv4-mapped, and falls through to the public classification.
 
 ### Consequences
 
