@@ -208,7 +208,7 @@ describe("expressions coverage: resolveEmbeddedExpressions branches", function (
   });
 });
 
-describe("expressions coverage: evaluateExpression operator helpers", function () {
+describe("expressions coverage: operator helpers via the public API (contains/matches/oneOf/extract)", function () {
   // Line 380: contains() with an object operand uses `b in a`.
   it("contains() on an object checks key membership (true)", async function () {
     const r = await evaluateAssertion("$$obj contains key", {
@@ -300,7 +300,9 @@ describe("expressions coverage: extract infix preprocessing", function () {
   // (allowOperators=true) so the whole expression is evaluated.
   it("infix 'extract' rewrites bare operands and compares the extracted value", async function () {
     // "abc123 extract [0-9]+" rewrites to extract("abc123","[0-9]+") -> "123",
-    // then compared to 123 (the bare RHS is quoted to "123").
+    // then compared to the numeric literal 123. The identifier-quoting pass only
+    // matches alpha-start tokens, so 123 stays a number; the comparison passes
+    // via JS loose equality ("123" == 123).
     const r = await evaluateAssertion("abc123 extract [0-9]+ == 123", {});
     assert.equal(r, true);
   });
