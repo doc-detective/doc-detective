@@ -1,3 +1,17 @@
+# [4.18.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.17.0...v4.18.0-last-verified-on.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **runner:** indent inserted verified badge to match the marker line ([048205d](https://github.com/doc-detective/doc-detective/commit/048205d8219dd22e35b768c29b322c5aa48270d1))
+* **runner:** preserve EOL and avoid front-matter reflow in verified write-back ([e98508a](https://github.com/doc-detective/doc-detective/commit/e98508abec673f544c6cde4a00bd0faec8888022))
+* **runner:** scope front-matter verified lookup to doc-detective block ([7999695](https://github.com/doc-detective/doc-detective/commit/799969537c226b441888a9679b8c5cb3f54cf0b8))
+
+
+### Features
+
+* **runner:** write "Last Verified On" dates back into source docs ([a264196](https://github.com/doc-detective/doc-detective/commit/a264196c4ea44d964949c45e1d03608b42d94084))
+
 # [4.17.0](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0) (2026-06-30)
 
 
