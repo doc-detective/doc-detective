@@ -101,3 +101,53 @@ jobs:
       - run: npm run build:common
       - run: npm run test:coverage:ratchet
         working-directory: src/common
+
+  # Coverage ratchet for the ROOT doc-detective package. Unlike the common
+  # ratchet above, root coverage exercises the end-to-end runner, so this job
+  # mirrors the matrix's heavy setup (build + `install all` + HERETTO secrets)
+  # and runs `npm run test:coverage` (c8 over the root suite, `test/*.test.js`)
+  # on a single platform, then enforces coverage-thresholds.json. Only root code
+  # counts toward this number: the `npm run build` step does run the common
+  # workspace's own tests (via build:common), but that coverage is measured
+  # against src/common/dist and dist/common/** is excluded from .c8rc.json, and
+  # the root `test:common` script is intentionally not part of test:coverage —
+  # common is gated by its own ratchet job above. Kept off the OS/node matrix
+  # because one measured run is the baseline; both callers (PR gate + release
+  # gate) wait on it, so a coverage regression blocks merges and releases. The
+  # coverage report is uploaded so the measured percentage is always visible.
+  # timeout-minutes matches the matrix (90) since c8 instrumentation adds
+  # overhead to the E2E run.
+  coverage-ratchet-root:
+    name: Coverage ratchet (root)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      # Pre-warm the browser cache the same way the matrix does, so E2E tests
+      # that drive Chrome are exercised (and counted) under coverage.
+      - run: node ./bin/doc-detective.js install all --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+      # c8 mocha over the full root suite -> coverage/coverage-summary.json.
+      - run: npm run test:coverage
+        env:
+          HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
+          HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
+          HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+      - run: npm run test:coverage:ratchet
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-coverage
+          path: coverage/
+          retention-days: 7
