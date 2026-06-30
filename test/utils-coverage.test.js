@@ -532,12 +532,16 @@ describe("utils.ts coverage", function () {
   describe("registerReporter", function () {
     it("registers a function and makes it available via outputResults", async function () {
       const spy = sinon.spy(async () => "done");
-      assert.equal(registerReporter("myCustom", spy), true);
-      assert.equal(typeof reporters.myCustom, "function");
-      await outputResults({ reporters: ["myCustom"] }, "out", { x: 1 }, {});
-      assert.ok(spy.calledOnce);
-      // Clean up the global registry mutation.
-      delete reporters.myCustom;
+      try {
+        assert.equal(registerReporter("myCustom", spy), true);
+        assert.equal(typeof reporters.myCustom, "function");
+        await outputResults({ reporters: ["myCustom"] }, "out", { x: 1 }, {});
+        assert.ok(spy.calledOnce);
+      } finally {
+        // Always clean up the global registry mutation, even if an assertion
+        // above throws, so the stale spy can't leak into later tests.
+        delete reporters.myCustom;
+      }
     });
     it("throws when given a non-function", function () {
       assert.throws(() => registerReporter("bad", 123), /Reporter must be a function/);
@@ -898,7 +902,7 @@ describe("utils.ts coverage", function () {
       }
     });
 
-    it("checks discovered doc-detective-* dependencies (ok / mismatch / not-found / error paths)", function () {
+    it("checks discovered doc-detective-* dependencies (ok / mismatch / not-found paths)", function () {
       // Simulate a node_modules with several doc-detective-* packages plus a
       // non-matching dir (filtered out) and the main package (also filtered).
       sandbox.stub(fs, "existsSync").callsFake((p) => {
@@ -911,10 +915,9 @@ describe("utils.ts coverage", function () {
       sandbox
         .stub(fs, "readdirSync")
         .returns(["doc-detective", "doc-detective-ok", "doc-detective-error", "not-ours"]);
-      sandbox.stub(fs, "readFileSync").callsFake((p) => {
-        const s = String(p);
-        if (s.includes("doc-detective-throws")) throw new Error("read boom");
+      sandbox.stub(fs, "readFileSync").callsFake(() => {
         // A version that won't match the main package's declared range → mismatch.
+        // (The read-throws error path is covered by the dedicated test below.)
         return JSON.stringify({ version: "0.0.0-test" });
       });
       const data = getVersionData();
