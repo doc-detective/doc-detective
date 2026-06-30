@@ -1,3 +1,10 @@
+# [4.18.0-last-verified-on.2](https://github.com/doc-detective/doc-detective/compare/v4.18.0-last-verified-on.1...v4.18.0-last-verified-on.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* **runner:** support flow-style front matter, spec-id precedence, quoted dates ([b039b25](https://github.com/doc-detective/doc-detective/commit/b039b255e4bb1ccc59f07cd72112082b5a6238f2))
+
 # [4.18.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.17.0...v4.18.0-last-verified-on.1) (2026-06-30)
 
 
