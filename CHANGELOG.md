@@ -1,3 +1,10 @@
+# [4.17.0](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0) (2026-06-30)
+
+
+### Features
+
+* **reporter:** nest run artifacts as REST-style runs/specs/tests/contexts tree ([#415](https://github.com/doc-detective/doc-detective/issues/415)) ([cc709be](https://github.com/doc-detective/doc-detective/commit/cc709bec3f370a17d4974fad0d869c36f502e95e))
+
 # [4.17.0-nested-run-artifacts.1](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0-nested-run-artifacts.1) (2026-06-29)
 
 
