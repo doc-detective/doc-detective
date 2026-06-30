@@ -421,6 +421,11 @@ describe("core/utils coverage", function () {
       assert.equal(out.a, "X");
       assert.equal(Object.prototype.polluted, undefined);
       assert.equal(({}).polluted, undefined);
+      // The assertion that actually catches a removed guard: without it,
+      // result["__proto__"] = … would set out's OWN [[Prototype]] (so
+      // out.polluted === true) while leaving Object.prototype untouched.
+      assert.equal(Object.getPrototypeOf(out), Object.prototype);
+      assert.equal(out.polluted, undefined);
     });
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
