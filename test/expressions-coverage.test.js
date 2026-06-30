@@ -68,6 +68,10 @@ describe("expressions coverage: replaceMetaValues bare-literal inline branch", f
     const out = replaceMetaValues("$$b == true", { b: "true" }, true);
     assert.equal(out, "true == true");
   });
+  it("inlines the boolean literal 'false' raw when operators are present", function () {
+    const out = replaceMetaValues("$$b == false", { b: "false" }, true);
+    assert.equal(out, "false == false");
+  });
   it("inlines the 'null' literal raw when operators are present", function () {
     const out = replaceMetaValues("$$x == null", { x: "null" }, true);
     assert.equal(out, "null == null");
@@ -189,20 +193,17 @@ describe("expressions coverage: resolveEmbeddedExpressions branches", function (
     assert.equal(r, "n=5");
   });
 
-  // Lines 272-278: the catch branch inside the embedded loop. resolveExpression
-  // swallows its own errors (returns the original string), so to force the
-  // embedded catch we need the inner resolveExpression to THROW. A function
-  // operator that throws synchronously inside containsOperators? Not possible.
-  // Instead, exercise a jq() inside {{...}} with invalid jq: the inner
-  // resolveExpression catches it and returns the original, so the outer string
-  // still renders deterministically (covers the object/scalar paths around it).
-  it("an embedded jq with invalid syntax renders without crashing", async function () {
+  // An embedded jq() whose query string is invalid (but quoted, so the inner
+  // expression is still syntactically valid JS — exercising jq's error path, not
+  // a JS SyntaxError). The inner resolveExpression catches the jq failure and
+  // returns the sub-expression unchanged, which the embedded loop renders in
+  // place — deterministic, no crash. Asserts the exact output, not a prefix.
+  it("an embedded jq with an invalid query renders the sub-expression verbatim", async function () {
     const r = await resolveExpression({
-      expression: "r={{jq($$d, @@@invalid)}}",
+      expression: 'r={{jq($$d, "@@@invalid")}}',
       context: { d: { a: 1 } },
     });
-    assert.equal(typeof r, "string");
-    assert.ok(r.startsWith("r="));
+    assert.equal(r, 'r=jq($$d, "@@@invalid")');
   });
 });
 
@@ -279,9 +280,14 @@ describe("expressions coverage: evaluateExpression operator helpers", function (
     assert.equal(r, false);
   });
 
-  // oneOf() with a non-array options operand returns false.
+  // oneOf() returns false when the options operand resolves to a non-array
+  // value (here a plain string), exercising the !Array.isArray(options) guard
+  // directly rather than an undefined-identifier ReferenceError.
   it("oneOf() returns false when options is not an array", async function () {
-    const r = await evaluateAssertion("$$v oneOf notanarray", { v: "x" });
+    const r = await evaluateAssertion("$$v oneOf $$opts", {
+      v: "x",
+      opts: "notanarray",
+    });
     assert.equal(r, false);
   });
 });
