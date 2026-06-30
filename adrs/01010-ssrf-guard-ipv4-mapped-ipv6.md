@@ -51,9 +51,12 @@ not a contract change.
 
 ## Decision Outcome
 
-Chosen: **reconstruct the dotted IPv4 from the mapped tail in-place**. For a `::ffff:` address, take
-the tail and: if it is already dotted-decimal, recurse as before; otherwise parse the one-or-two hex
-groups as the low 32 bits and rebuild `a.b.c.d`, then recurse through the existing IPv4 range checks.
+Chosen: **reconstruct the dotted IPv4 from the mapped tail in-place**. For a `::ffff:` address (whose
+IPv6 validity is already established), parse the one-or-two hex groups the WHATWG URL parser leaves in
+the tail (`a00:1`, or `1` when the high group is zero) as the low 32 bits, rebuild `a.b.c.d`, and
+recurse through the existing IPv4 range checks. The parser always emits the hex form, so a
+dotted-decimal tail is never produced; the only non-hex path is a defensive `!hexMatch` guard that
+`net.isIPv6` already precludes (marked `c8 ignore`).
 
 ### Consequences
 

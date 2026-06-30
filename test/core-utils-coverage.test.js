@@ -303,10 +303,11 @@ describe("core/utils coverage", function () {
     // URL parser normalizes ::ffff:10.0.0.1 to hex form (::ffff:a00:1); the guard
     // now reconstructs the dotted v4 from the hex tail before classifying.
     const mappedPrivate = [
-      "::ffff:a00:1", // 10.0.0.1
+      "::ffff:a00:1", // 10.0.0.1 (two hex groups)
       "::ffff:7f00:1", // 127.0.0.1
       "::ffff:a9fe:a9fe", // 169.254.169.254 (cloud metadata)
       "::ffff:c0a8:1", // 192.168.0.1
+      "::ffff:1", // 0.0.0.1 — single hex group (high group defaults to 0)
     ];
     for (const ip of mappedPrivate) {
       it(`rejects IPv4-mapped private literal [${ip}]`, async function () {

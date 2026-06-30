@@ -922,23 +922,19 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
     if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
     if (normalized.startsWith("fe80:")) return true; // link-local
     if (normalized.startsWith("::ffff:")) {
-      // IPv4-mapped IPv6. The embedded v4 may be dotted-decimal ("10.0.0.1")
-      // or — after WHATWG URL normalization, which is what real input arrives
-      // as — two hex groups ("a00:1"). Reconstruct the dotted form so the v4
-      // ranges above are actually applied; otherwise a mapped private address
-      // (e.g. http://[::ffff:a00:1]/x = 10.0.0.1) silently bypasses the guard.
+      // IPv4-mapped IPv6. The WHATWG URL parser normalizes the embedded v4 to
+      // hex (::ffff:10.0.0.1 → ::ffff:a00:1, and ::ffff:0.0.0.1 → ::ffff:1), so
+      // reconstruct the dotted v4 from the 1–2 hex groups and apply the v4
+      // ranges above; otherwise a mapped private address (e.g.
+      // http://[::ffff:a00:1]/x = 10.0.0.1) silently bypasses the guard.
       const tail = normalized.slice("::ffff:".length);
-      if (net.isIPv4(tail)) {
-        return isPrivateOrLoopbackAddress(tail);
-      }
       const hexMatch = tail.match(/^(?:([0-9a-f]{1,4}):)?([0-9a-f]{1,4})$/);
-      if (hexMatch) {
-        const hi = hexMatch[1] ? parseInt(hexMatch[1], 16) : 0;
-        const lo = parseInt(hexMatch[2], 16);
-        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-        return isPrivateOrLoopbackAddress(dotted);
-      }
-      return false;
+      /* c8 ignore next - net.isIPv6 above guarantees a 1–2 hex-group tail */
+      if (!hexMatch) return false;
+      const hi = hexMatch[1] ? parseInt(hexMatch[1], 16) : 0;
+      const lo = parseInt(hexMatch[2], 16);
+      const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+      return isPrivateOrLoopbackAddress(dotted);
     }
     return false;
   }
