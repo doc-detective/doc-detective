@@ -196,7 +196,9 @@ describe("Last Verified On — write-back integration", function () {
         ].join("\n")
       );
       await runTests({ input: f, logLevel: "silent" });
-      expect(read(f)).to.contain(`<!-- verified id=wait-demo date=${TODAY} -->`);
+      // Assert the date shape, not a pre-captured value: the runner computes the
+      // date itself, so an exact-TODAY compare could flake across a UTC rollover.
+      expect(read(f)).to.match(/<!-- verified id=wait-demo date=\d{4}-\d{2}-\d{2} -->/);
     });
 
     it("updates a prose-only file whose marker references a test defined elsewhere", async function () {
@@ -216,7 +218,21 @@ describe("Last Verified On — write-back integration", function () {
       );
       const prose = write("badge-page.md", "# Badge page\n\n<!-- verified id=cross-file-demo -->\n");
       await runTests({ input: tmpDir, logLevel: "silent" });
-      expect(read(prose)).to.contain(`<!-- verified id=cross-file-demo date=${TODAY} -->`);
+      expect(read(prose)).to.match(/<!-- verified id=cross-file-demo date=\d{4}-\d{2}-\d{2} -->/);
+    });
+  });
+
+  describe("front-matter scoping", function () {
+    it("targets doc-detective.verified, not an unrelated top-level verified: key", function () {
+      const f = write(
+        "a.md",
+        "---\nverified: true\ndoc-detective:\n  verified:\n    id: test~1\n---\n\n# Doc\n"
+      );
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      const out = read(f);
+      // The unrelated top-level scalar is untouched; the date lands under doc-detective.
+      expect(out).to.contain("verified: true");
+      expect(out).to.match(/doc-detective:\r?\n {2}verified:\r?\n {4}id: test~1\r?\n {4}date: \d{4}-\d{2}-\d{2}/);
     });
   });
 });
