@@ -1,3 +1,11 @@
+# [4.17.0-last-verified-on.3](https://github.com/doc-detective/doc-detective/compare/v4.17.0-last-verified-on.2...v4.17.0-last-verified-on.3) (2026-06-30)
+
+
+### Bug Fixes
+
+* **runner:** indent inserted verified badge to match the marker line ([2e0a688](https://github.com/doc-detective/doc-detective/commit/2e0a688f3cf555a00215b43495cfeea056db3adc))
+* **runner:** scope front-matter verified lookup to doc-detective block ([7811ced](https://github.com/doc-detective/doc-detective/commit/7811ceda717db8acd2f193b157effc82924fbe81))
+
 # [4.17.0-last-verified-on.2](https://github.com/doc-detective/doc-detective/compare/v4.17.0-last-verified-on.1...v4.17.0-last-verified-on.2) (2026-06-30)
 
 
