@@ -129,17 +129,13 @@ describe("core/openapi coverage", function () {
       assert.equal(result.schemas.request, undefined);
     });
 
-    it("throws when getSchemas finds no responses defined", async function () {
-      // getSchemas throws "No responses defined" when responseCode is empty and
-      // definition.responses is missing/empty. compileExample runs first, so we
-      // need it to survive: give it a usable response under an explicit code,
-      // then pass a non-matching responseCode... but getSchemas uses the same
-      // operation. Instead, exercise getSchemas' throw directly by giving the
-      // operation a single response code and requesting schemas with no code,
-      // which succeeds — so here we assert the TypeError path of an empty
-      // responses object (compileExample dereferences responses[undefined]).
+    it("rejects with a TypeError when the operation has an empty responses object", async function () {
+      // With `responses: {}` and no responseCode, compileExample sets
+      // responseCode = Object.keys(responses)[0] (undefined), then reads
+      // operation.responses[undefined].headers — a TypeError, raised before
+      // getSchemas' own "No responses defined" branch is reached.
       const definition = defWith({ responses: {} });
-      await assert.rejects(() => getOperation(definition, "getWidgets"));
+      await assert.rejects(() => getOperation(definition, "getWidgets"), TypeError);
     });
   });
 
@@ -148,15 +144,19 @@ describe("core/openapi coverage", function () {
       const requestSchema = {
         type: "object",
         required: ["name"],
+        // Constraints force json-schema-faker to generate NON-falsy values:
+        // openapi.ts drops falsy generated values (`if (objectExample)`), so an
+        // unconstrained integer→0 / boolean→false / string→"" would be omitted
+        // and make these presence assertions flaky.
         properties: {
-          name: { type: "string" },
-          age: { type: "integer" },
-          score: { type: "number" },
-          active: { type: "boolean" },
-          tags: { type: "array", items: { type: "string" } },
+          name: { type: "string", minLength: 1 },
+          age: { type: "integer", minimum: 1 },
+          score: { type: "number", minimum: 1 },
+          active: { type: "boolean", enum: [true] },
+          tags: { type: "array", items: { type: "string", minLength: 1 } },
           nested: {
             type: "object",
-            properties: { inner: { type: "string" } },
+            properties: { inner: { type: "string", minLength: 1 } },
           },
         },
       };
@@ -244,8 +244,11 @@ describe("core/openapi coverage", function () {
                   { name: "widgetId", in: "path", example: "w-123" },
                   { name: "verbose", in: "query", example: "true" },
                   { name: "X-Trace", in: "header", example: "trace-abc" },
-                  // A parameter whose example resolves falsy -> skipped (no push).
-                  { name: "empty", in: "query", schema: { type: "string" }, example: "" },
+                  // A parameter with no schema/example/type resolves to null from
+                  // getExample, so getExampleParameters skips it (no push). (Uses
+                  // null rather than an empty-string example, which is a valid
+                  // OpenAPI value we shouldn't encode as "always dropped".)
+                  { name: "noval", in: "query" },
                 ],
                 responses: jsonResponse({ type: "string", example: "ok" }),
               },
@@ -257,8 +260,8 @@ describe("core/openapi coverage", function () {
       assert.equal(result.example.url, "https://api.example.com/widgets/w-123");
       assert.equal(result.example.request.parameters.verbose, "true");
       assert.equal(result.example.request.headers["X-Trace"], "trace-abc");
-      // The empty-value query param was dropped.
-      assert.equal(result.example.request.parameters.empty, undefined);
+      // The null-valued query param was dropped.
+      assert.equal(result.example.request.parameters.noval, undefined);
     });
 
     it("generates a param value from a parameter schema (no example present)", async function () {
@@ -270,7 +273,9 @@ describe("core/openapi coverage", function () {
               get: {
                 operationId: "getWidgets",
                 parameters: [
-                  { name: "limit", in: "query", schema: { type: "integer" } },
+                  // minimum:1 so the faked value is non-falsy (a 0 would be
+                  // dropped by getExampleParameters' `if (value)` guard).
+                  { name: "limit", in: "query", schema: { type: "integer", minimum: 1 } },
                 ],
                 responses: jsonResponse({ type: "string", example: "ok" }),
               },
@@ -298,9 +303,11 @@ describe("core/openapi coverage", function () {
                   items: {
                     type: "object",
                     required: ["id", "qty"],
+                    // Non-falsy constraints (see requestBody test): a 0/"" would
+                    // be dropped from the generated item object.
                     properties: {
-                      id: { type: "string" },
-                      qty: { type: "integer" },
+                      id: { type: "string", minLength: 1 },
+                      qty: { type: "integer", minimum: 1 },
                     },
                   },
                 },
@@ -377,7 +384,8 @@ describe("core/openapi coverage", function () {
               get: {
                 operationId: "getWidgets",
                 parameters: [
-                  { name: "n", in: "query", required: true, type: "integer" },
+                  // minimum:1 so the top-level-typed faked value is non-falsy.
+                  { name: "n", in: "query", required: true, type: "integer", minimum: 1 },
                 ],
                 responses: jsonResponse({ type: "string", example: "ok" }),
               },
