@@ -60,6 +60,17 @@ function main() {
   const current = coverageSummary.total;
   const metrics = ['lines', 'statements', 'functions', 'branches'];
 
+  // Optional per-package noise tolerance (percentage points). A metric only
+  // fails when it drops MORE than `tolerance` below baseline, and is only
+  // suggested for a bump when it rises MORE than `tolerance` above. This
+  // absorbs sub-tolerance run-to-run wobble from a non-deterministic suite
+  // (the root package measures coverage over the full E2E run). Defaults to 0,
+  // so packages that omit it — e.g. src/common at a strict 100% — are exact.
+  const tolerance =
+    typeof thresholds.tolerance === 'number' && thresholds.tolerance >= 0
+      ? thresholds.tolerance
+      : 0;
+
   // Placeholder guard: thresholds of all-zero pass against any coverage, making
   // the gate a silent no-op. Warn loudly (but still run) so a forgotten baseline
   // surfaces in the CI log instead of quietly disabling enforcement.
@@ -86,13 +97,14 @@ function main() {
     const diff = (currentValue - baseline).toFixed(2);
     
     let status;
-    if (currentValue < baseline) {
+    if (currentValue < baseline - tolerance) {
       status = `FAIL (${diff}%)`;
       failed = true;
-    } else if (currentValue > baseline) {
+    } else if (currentValue > baseline + tolerance) {
       status = `PASS (+${diff}%)`;
     } else {
-      status = 'PASS';
+      // Within ±tolerance of baseline — neither a regression nor a real gain.
+      status = tolerance > 0 ? `PASS (~${diff}%)` : 'PASS';
     }
     
     const baselineStr = `${baseline.toFixed(2)}%`.padEnd(8);
@@ -118,8 +130,9 @@ function main() {
     process.exit(1);
   }
   
-  // Check if we can bump thresholds
-  const canBump = results.filter(r => r.current > r.baseline);
+  // Check if we can bump thresholds (only on a real gain beyond the tolerance,
+  // so sub-tolerance noise doesn't churn the baseline up and down).
+  const canBump = results.filter(r => r.current > r.baseline + tolerance);
   if (canBump.length > 0) {
     console.log('Coverage has improved! Consider updating thresholds:');
     console.log('');
