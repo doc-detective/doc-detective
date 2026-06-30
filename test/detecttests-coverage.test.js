@@ -80,10 +80,17 @@ describe("detectTests coverage", function () {
       assert.equal(specs.length, 1);
     });
 
-    it("dedupes a file listed more than once and skips a missing input path", async function () {
+    it("dedupes a file listed more than once", async function () {
+      const f = write("a.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
+      const config = await makeConfig({ input: [f, f] });
+      const specs = await detectTests({ config });
+      assert.equal(specs.length, 1);
+    });
+
+    it("skips a missing input path", async function () {
       const f = write("a.json", JSON.stringify({ tests: [{ steps: [{ goTo: "https://a.com" }] }] }));
       const config = await makeConfig({
-        input: [f, f, path.join(tmpDir, "does-not-exist.json")],
+        input: [f, path.join(tmpDir, "does-not-exist.json")],
       });
       const specs = await detectTests({ config });
       assert.equal(specs.length, 1);
@@ -173,15 +180,13 @@ describe("detectTests coverage", function () {
     });
 
     it("skips a spec whose test.before points to a missing file (relativePathBase=cwd)", async function () {
+      // An absolute path under the (wiped-per-test) tmpDir is hermetically
+      // guaranteed not to exist — unlike a bare cwd-relative name.
+      const missing = path.join(tmpDir, "nonexistent-before.json");
       write(
         "missing-before-cwd.json",
         JSON.stringify({
-          tests: [
-            {
-              before: "this-file-truly-does-not-exist-xyz.json",
-              steps: [{ goTo: "https://a.com" }],
-            },
-          ],
+          tests: [{ before: missing, steps: [{ goTo: "https://a.com" }] }],
         })
       );
       const config = await makeConfig({ input: [tmpDir], relativePathBase: "cwd" });
@@ -190,15 +195,11 @@ describe("detectTests coverage", function () {
     });
 
     it("skips a spec whose test.after points to a missing file (relativePathBase=cwd)", async function () {
+      const missing = path.join(tmpDir, "nonexistent-after.json");
       write(
         "missing-after-cwd.json",
         JSON.stringify({
-          tests: [
-            {
-              after: "this-after-truly-does-not-exist-xyz.json",
-              steps: [{ goTo: "https://a.com" }],
-            },
-          ],
+          tests: [{ after: missing, steps: [{ goTo: "https://a.com" }] }],
         })
       );
       const config = await makeConfig({ input: [tmpDir], relativePathBase: "cwd" });
@@ -261,7 +262,7 @@ describe("detectTests coverage", function () {
       assert.equal(specs.length, 0);
     });
 
-    it("converts a file into a runShell step via a custom runShell fileType", async function () {
+    it("builds a runShell step from a custom runShell fileType (currently drops the spec — bug #435)", async function () {
       const script = write("run.task", "echo task");
       const config = await makeConfig({
         input: [script],
@@ -269,8 +270,11 @@ describe("detectTests coverage", function () {
           { name: "task", extensions: ["task"], runShell: { command: "echo", args: ["ran"] } },
         ],
       });
-      // The runShell branch builds + validates the test but `continue`s without
-      // pushing the spec, so it resolves to zero specs without throwing.
+      // TODO(bug #435): the runShell branch builds + validates the test and
+      // pushes it onto spec.tests, but then `continue`s past the spec_v3
+      // validation + specs.push(spec) finalization — so a runShell-typed file
+      // produces NO output spec. We assert the current (buggy) behavior here;
+      // flip this to expect a 1-spec/1-runShell-step result once #435 is fixed.
       const specs = await parseTests({ config, files: [script] });
       assert.deepEqual(specs, []);
     });
