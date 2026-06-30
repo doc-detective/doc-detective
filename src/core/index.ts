@@ -197,11 +197,19 @@ async function runTests(config: any, options: any = {}) {
   // docs with today's date where the referenced test/spec passed. No-op when
   // no markers exist; never throws (warns and continues on per-file errors).
   try {
-    applyVerifiedMarkers({
-      config,
-      results,
-      files: (resolvedTests && resolvedTests._qualifiedFiles) || [],
-    });
+    // resolvedTests is always set here (runTests returns early otherwise), so the
+    // only fallback needed is for the pre-resolved (DOC_DETECTIVE_API) path, which
+    // never populates _qualifiedFiles — there, the write-back is limited to the
+    // report's content paths and can't reach prose-only pages.
+    const qualifiedFiles = resolvedTests._qualifiedFiles || [];
+    if (options.resolvedTests && qualifiedFiles.length === 0) {
+      log(
+        config,
+        "debug",
+        "Verified write-back: pre-resolved run has no qualified-file list; only report content paths are scanned (prose-only pages skipped)."
+      );
+    }
+    applyVerifiedMarkers({ config, results, files: qualifiedFiles });
   } catch (err: any) {
     log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
   }

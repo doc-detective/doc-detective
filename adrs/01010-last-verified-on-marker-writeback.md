@@ -54,7 +54,7 @@ Behavior decided:
    `status` field is recorded.
 4. **Two marker forms.** An inline comment (per format: markdown/MDX `{/* */}`, `<!-- -->`, and
    `[comment]: #`; AsciiDoc `// ( )`; HTML/DITA comments) and a page-level YAML front-matter object
-   `doc-detective.verified.{id → date}`.
+   `doc-detective.verified` with sibling `id` (author-set) and `date` (Doc Detective-written) keys.
 5. **Optional `badge`.** An inline marker with the `badge` attribute additionally maintains a
    **shields.io static badge image** (`![Last verified …](https://img.shields.io/badge/…)`) on the line
    after the marker, so it renders without theme work. Doc Detective only writes the URL — shields.io
