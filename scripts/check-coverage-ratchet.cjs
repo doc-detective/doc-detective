@@ -94,7 +94,10 @@ function main() {
       process.exit(1);
     }
     const currentValue = currentMetric.pct;
-    const diff = (currentValue - baseline).toFixed(2);
+    // Round to 2dp and fold -0 into 0 so a tiny negative delta doesn't print as
+    // a confusing "-0.00%" (e.g. PASS (~-0.00%)) within the tolerance band.
+    const rounded = Math.round((currentValue - baseline) * 100) / 100;
+    const diff = (rounded === 0 ? 0 : rounded).toFixed(2);
     
     let status;
     if (currentValue < baseline - tolerance) {
