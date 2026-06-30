@@ -196,8 +196,9 @@ describe("expressions coverage: resolveEmbeddedExpressions branches", function (
   // An embedded jq() whose query string is invalid (but quoted, so the inner
   // expression is still syntactically valid JS — exercising jq's error path, not
   // a JS SyntaxError). The inner resolveExpression catches the jq failure and
-  // returns the sub-expression unchanged, which the embedded loop renders in
-  // place — deterministic, no crash. Asserts the exact output, not a prefix.
+  // returns its original pre-substitution expression string (so $$d stays
+  // unexpanded), which the embedded loop renders in place — deterministic, no
+  // crash. Asserts the exact output, not a prefix.
   it("an embedded jq with an invalid query renders the sub-expression verbatim", async function () {
     const r = await resolveExpression({
       expression: 'r={{jq($$d, "@@@invalid")}}',
