@@ -1,8 +1,8 @@
 {
   "description": "Coverage baseline thresholds for the root doc-detective package, measured from the full root test suite (test/*.test.js) under c8 in CI. These values should only increase, never decrease.",
   "lastUpdated": "2026-06-30",
-  "lines": 82.25,
-  "statements": 82.25,
+  "lines": 82.45,
+  "statements": 82.45,
   "functions": 85.94,
-  "branches": 79.95
+  "branches": 80.54
 }
