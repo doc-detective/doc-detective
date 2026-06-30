@@ -59,7 +59,15 @@ function main() {
   
   const current = coverageSummary.total;
   const metrics = ['lines', 'statements', 'functions', 'branches'];
-  
+
+  // Placeholder guard: thresholds of all-zero pass against any coverage, making
+  // the gate a silent no-op. Warn loudly (but still run) so a forgotten baseline
+  // surfaces in the CI log instead of quietly disabling enforcement.
+  if (metrics.every((m) => thresholds[m] === 0)) {
+    console.warn('\nWARNING: all coverage thresholds are 0 — these look like placeholders.');
+    console.warn('Update coverage-thresholds.json with the real measured baseline before relying on this gate.\n');
+  }
+
   let failed = false;
   const results = [];
   

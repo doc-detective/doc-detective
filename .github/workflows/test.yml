@@ -103,17 +103,20 @@ jobs:
         working-directory: src/common
 
   # Coverage ratchet for the ROOT doc-detective package. Unlike the common
-  # ratchet above, root coverage reflects the FULL end-to-end suite, so this
-  # job mirrors the matrix's heavy setup (build + `install all` + HERETTO
-  # secrets) and runs the whole suite once under c8 on a single platform, then
-  # enforces coverage-thresholds.json. Kept off the OS/node matrix because one
-  # measured run is the baseline; both callers (PR gate + release gate) wait on
-  # it, so a coverage regression blocks merges and releases. The coverage report
-  # is uploaded so the honest full percentage is always visible.
+  # ratchet above, root coverage exercises the end-to-end runner, so this job
+  # mirrors the matrix's heavy setup (build + `install all` + HERETTO secrets)
+  # and runs `npm run test:coverage` (c8 over the root suite, `test/*.test.js`)
+  # on a single platform, then enforces coverage-thresholds.json. It does NOT
+  # run `test:common` — the common workspace has its own ratchet and is excluded
+  # from .c8rc.json. Kept off the OS/node matrix because one measured run is the
+  # baseline; both callers (PR gate + release gate) wait on it, so a coverage
+  # regression blocks merges and releases. The coverage report is uploaded so the
+  # measured percentage is always visible. timeout-minutes matches the matrix
+  # (90) since c8 instrumentation adds overhead to the E2E run.
   coverage-ratchet-root:
     name: Coverage ratchet (root)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
