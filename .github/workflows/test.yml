@@ -74,3 +74,30 @@ jobs:
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
           HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+  # Coverage ratchet for the doc-detective-common subpackage. The matrix above
+  # builds common on every cell but never measures coverage; this single
+  # platform-independent job does. It enforces coverage-thresholds.json — c8
+  # coverage must never fall below the baseline (see src/common/AGENTS.md).
+  # Kept out of the matrix because line coverage is OS/node-independent, so one
+  # run is enough. Both callers (PR gate + release gate) wait on this job, so a
+  # coverage regression blocks merges and releases alike.
+  coverage-ratchet:
+    name: Coverage ratchet (src/common)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+      # build:common compiles dist and runs `c8 mocha`, writing
+      # src/common/coverage/coverage-summary.json that the ratchet reads.
+      - run: npm run build:common
+      - run: npm run test:coverage:ratchet
+        working-directory: src/common
