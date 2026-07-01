@@ -445,18 +445,25 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     // true) — matching the prior outcome (FAIL only when there ARE unexpected
     // fields).
     const expectedBody = step.httpRequest.response?.body;
-    const noUnexpectedFields =
-      expectedBody && typeof expectedBody === "object"
-        ? objectExistsInObject(expectedBody, response.data).result.status !==
-          "FAIL"
-        : true;
+    // Honor allowAdditionalFields:false by reporting keys in the response that
+    // the author didn't declare (#437 — the old subset check ignored extras).
+    // An unset/empty ROOT body imposes no constraint (response.body defaults to
+    // {}), so only a non-empty expected object is checked; nested {} still
+    // rejects extras. Value mismatches stay the concern of the body-match check.
+    const unexpectedKeys =
+      isPlainObject(expectedBody) && Object.keys(expectedBody).length > 0
+        ? findUnexpectedKeys(expectedBody, response.data)
+        : [];
+    const noUnexpectedFields = unexpectedKeys.length === 0;
     result.outputs.noUnexpectedFields = noUnexpectedFields;
     specs.push({
       statement: `$$outputs.noUnexpectedFields == true`,
       severity: "fail",
     });
     if (!noUnexpectedFields) {
-      descriptions.push(`Response contained unexpected fields.`);
+      descriptions.push(
+        `Response contained unexpected fields: ${unexpectedKeys.join(", ")}.`
+      );
     }
   }
 
@@ -775,6 +782,47 @@ function arrayExistsInArray(expected: any, actual: any): any {
   }
   const result = { status, description };
   return { result };
+}
+
+function isPlainObject(value: any): boolean {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Collects the dot-paths of keys present in `actual` but NOT declared in
+ * `expected`, recursing into nested plain objects. Used to enforce
+ * `allowAdditionalFields: false`: the response must not carry fields beyond
+ * those the spec author declared in `response.body`. An empty array means "no
+ * unexpected fields".
+ *
+ * Only object-vs-object shapes are compared key-by-key; when either side isn't a
+ * plain object (primitive, array, null, mismatched shape) there is no object
+ * key-set to compare, so it contributes no extra keys. Value comparison and
+ * type/shape matching are handled elsewhere (the body-match check); this
+ * function is concerned solely with the presence of unexpected keys.
+ *
+ * NOTE: this does NOT special-case an empty `expected` object — an explicitly
+ * declared nested `{}` means "this object must be empty", so any key in the
+ * corresponding `actual` is reported as unexpected. The ROOT unset/empty body is
+ * handled by the caller (`response.body` defaults to `{}`, which must impose no
+ * constraint), not here.
+ */
+function findUnexpectedKeys(expected: any, actual: any, prefix = ""): string[] {
+  if (!isPlainObject(expected) || !isPlainObject(actual)) {
+    return [];
+  }
+  const extras: string[] = [];
+  for (const key of Object.keys(actual)) {
+    const p = prefix ? `${prefix}.${key}` : key;
+    if (!Object.prototype.hasOwnProperty.call(expected, key)) {
+      // `actual` has a key the author didn't declare -> unexpected field.
+      extras.push(p);
+    } else if (isPlainObject(expected[key]) && isPlainObject(actual[key])) {
+      // Recurse into nested plain objects to flag extras at any depth.
+      extras.push(...findUnexpectedKeys(expected[key], actual[key], p));
+    }
+  }
+  return extras;
 }
 
 function objectExistsInObject(expected: any, actual: any): any {
