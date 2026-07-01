@@ -45,6 +45,8 @@ For example, after a prior step with the `stepId` `fetch-user` captures a respon
 }
 ```
 
+If Doc Detective can't resolve an embedded expression, such as one that contains a malformed `jq` query, it leaves the original `{{...}}` text in place instead of substituting a partial or internal value, and logs a warning. Any other `{{...}}` expressions in the same string still resolve normally.
+
 ## Operators
 
 You can use operators wherever Doc Detective evaluates a condition, such as a step or test `if` guard or a custom assertion. In a plain variable assignment, Doc Detective resolves meta-value references but doesn't evaluate operators, so operator-like text in a captured value stays untouched.
