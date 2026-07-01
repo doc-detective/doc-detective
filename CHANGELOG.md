@@ -1,3 +1,14 @@
+## [4.17.1](https://github.com/doc-detective/doc-detective/compare/v4.17.0...v4.17.1) (2026-07-01)
+
+
+### Bug Fixes
+
+* **core:** detect IPv4-mapped IPv6 private addresses in the SSRF guard ([#428](https://github.com/doc-detective/doc-detective/issues/428)) ([66c5860](https://github.com/doc-detective/doc-detective/commit/66c5860f9433e21bd55274e9a55e750429ce7a62)), closes [#427](https://github.com/doc-detective/doc-detective/issues/427)
+* **core:** emit the spec for runShell-fileType files ([#435](https://github.com/doc-detective/doc-detective/issues/435)) ([1b0fa75](https://github.com/doc-detective/doc-detective/commit/1b0fa75177b8c759be438d0b478298d978d61339))
+* **core:** split string headers on the first colon only ([#438](https://github.com/doc-detective/doc-detective/issues/438)) ([bf8a9ee](https://github.com/doc-detective/doc-detective/commit/bf8a9ee11074bc4077790ba195f30f861d4e7f03))
+* **expressions:** preserve original {{...}} on embedded-expression failure ([#446](https://github.com/doc-detective/doc-detective/issues/446)) ([91909ec](https://github.com/doc-detective/doc-detective/commit/91909ec7da44f4b19c8eedbb9c7336da6e2fa8ea)), closes [#423](https://github.com/doc-detective/doc-detective/issues/423) [#424](https://github.com/doc-detective/doc-detective/issues/424)
+* **httpRequest:** report nested unexpected fields by dot-path ([#443](https://github.com/doc-detective/doc-detective/issues/443)) ([0060d29](https://github.com/doc-detective/doc-detective/commit/0060d297e859a6e89eae4158f64fec9281773bfe))
+
 # [4.17.0](https://github.com/doc-detective/doc-detective/compare/v4.16.0...v4.17.0) (2026-06-30)
 
 
