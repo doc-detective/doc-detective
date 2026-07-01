@@ -32,48 +32,75 @@ const META_TOKEN_SOURCE = "\\$\\$([\\w.\\[\\]\\-~]+(?:#\\/[\\w\\/\\[\\]]+)*)";
  * @returns {*} - The resolved value of the expression.
  */
 async function resolveExpression({ expression, context, allowOperators = false }: { expression: any; context: any; allowOperators?: boolean }): Promise<any> {
+  try {
+    return await resolveExpressionOrThrow({ expression, context, allowOperators });
+  } catch (error: any) {
+    // Back-compat swallow for the STANDALONE path (step.variables and any direct
+    // caller): a malformed/failing expression degrades to its literal input text
+    // rather than crashing the step. Logged at "warning" (an intentional swallow,
+    // not a surfaced failure). The embedded {{...}} loop does NOT rely on this —
+    // it calls resolveExpressionOrThrow directly so it can preserve the author's
+    // original {{...}} on failure instead of leaking the internal sub-expression
+    // (#423/#424). See adrs/01014-expression-error-contract.md.
+    log(
+      `Could not resolve expression '${expression}': ${error.message}`,
+      "warning"
+    );
+    return expression;
+  }
+}
+
+/**
+ * Core resolver: the real work behind resolveExpression, WITHOUT the back-compat
+ * error swallow. Errors that escape evaluateExpression propagate to the caller so
+ * structured callers can react. In practice that means an ASYNC operator
+ * rejection — a bad jq() query rejects after evaluateExpression's synchronous
+ * try/catch has already returned, so the awaiting worker surfaces it. (A
+ * SYNCHRONOUS eval error, e.g. a `new Function` SyntaxError, is caught inside
+ * evaluateExpression and becomes `undefined`, which does NOT throw here — the
+ * embedded loop renders it as an empty string rather than preserving {{...}}.)
+ * The public resolveExpression wraps this and swallows for back-compat;
+ * resolveEmbeddedExpressions calls it directly so it can preserve the original
+ * {{...}} when an async failure propagates.
+ * @param {string} expression - The expression to resolve.
+ * @param {object} context - Context object containing meta values.
+ * @returns {*} - The resolved value of the expression.
+ */
+async function resolveExpressionOrThrow({ expression, context, allowOperators = false }: { expression: any; context: any; allowOperators?: boolean }): Promise<any> {
   if (typeof expression !== "string") {
     return expression;
   }
 
-  try {
-    // First check if this is a string with embedded expressions {{...}}
-    if (expression.includes("{{") && expression.includes("}}")) {
-      return await resolveEmbeddedExpressions(expression, context);
-    }
-
-    // For standalone expressions, replace all meta values
-    let resolvedExpression = replaceMetaValues(expression, context, allowOperators);
-
-    // Check if the expression is a single meta value with no operators
-    if (
-      resolvedExpression !== expression &&
-      !containsOperators(resolvedExpression, allowOperators)
-    ) {
-      return resolvedExpression;
-    }
-
-    // Evaluate the expression if it contains operators
-    if (containsOperators(resolvedExpression, allowOperators)) {
-      let evaluatedExpression = await evaluateExpression(
-        resolvedExpression,
-        context
-      );
-      // If the evaluated expression is an object, convert it to a string
-      if (typeof evaluatedExpression === "object") {
-        evaluatedExpression = JSON.stringify(evaluatedExpression);
-      }
-      return evaluatedExpression;
-    }
-
-    return resolvedExpression;
-  } catch (error: any) {
-    log(
-      `Error resolving expression '${expression}': ${error.message}`,
-      "error"
-    );
-    return expression;
+  // First check if this is a string with embedded expressions {{...}}
+  if (expression.includes("{{") && expression.includes("}}")) {
+    return await resolveEmbeddedExpressions(expression, context);
   }
+
+  // For standalone expressions, replace all meta values
+  let resolvedExpression = replaceMetaValues(expression, context, allowOperators);
+
+  // Check if the expression is a single meta value with no operators
+  if (
+    resolvedExpression !== expression &&
+    !containsOperators(resolvedExpression, allowOperators)
+  ) {
+    return resolvedExpression;
+  }
+
+  // Evaluate the expression if it contains operators
+  if (containsOperators(resolvedExpression, allowOperators)) {
+    let evaluatedExpression = await evaluateExpression(
+      resolvedExpression,
+      context
+    );
+    // If the evaluated expression is an object, convert it to a string
+    if (typeof evaluatedExpression === "object") {
+      evaluatedExpression = JSON.stringify(evaluatedExpression);
+    }
+    return evaluatedExpression;
+  }
+
+  return resolvedExpression;
 }
 
 /**
@@ -245,6 +272,7 @@ function resolvePathTemplateVariables(path: string, context: any): string {
  * @returns {string} - The string with embedded expressions replaced with their evaluated values.
  */
 async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> {
+  /* c8 ignore next 3 - defensive: the only caller (resolveExpressionOrThrow) already guards typeof !== "string" before reaching here */
   if (typeof str !== "string") {
     return str;
   }
@@ -255,8 +283,11 @@ async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> 
   for (const m of str.matchAll(expressionRegex)) {
     parts.push(str.slice(lastIdx, m.index));
     try {
-      // Resolve any meta values within the expression
-      const resolvedExpression = await resolveExpression({
+      // Resolve any meta values within the expression. Use the THROWING worker
+      // (not the swallowing public resolveExpression) so a genuine failure lands
+      // in the catch below and preserves the author's original {{...}}, rather
+      // than leaking the half-resolved internal sub-expression (#423/#424).
+      const resolvedExpression = await resolveExpressionOrThrow({
         expression: m[1].trim(),
         context: context,
       });
@@ -264,6 +295,7 @@ async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> 
       // Convert the result to string for embedding
       if (resolvedExpression === undefined || resolvedExpression === null) {
         parts.push("");
+        /* c8 ignore next 2 - defensive: resolveExpressionOrThrow already JSON.stringifies any object result, so an object never reaches here */
       } else if (typeof resolvedExpression === "object") {
         parts.push(JSON.stringify(resolvedExpression));
       } else {
@@ -271,10 +303,10 @@ async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> 
       }
     } catch (error: any) {
       log(
-        `Error evaluating embedded expression '${m[1]}': ${error.message}`,
-        "error"
+        `Could not evaluate embedded expression '${m[1]}'; preserving it verbatim: ${error.message}`,
+        "warning"
       );
-      parts.push(m[0]); // Return the original expression if evaluation fails
+      parts.push(m[0]); // Preserve the original {{...}} when evaluation fails.
     }
     lastIdx = m.index! + m[0].length;
   }
@@ -418,14 +450,14 @@ async function evaluateExpression(expression: string, context: any): Promise<any
           return null;
         }
       },
-      jq: (json: any, query: string) => {
-        try {
-          return jq.then((jq: any) => jq.json(json, query));
-        } catch (e: any) {
-          log(`jq error: ${e.message}`, "error");
-          return null;
-        }
-      },
+      // jq-web resolves to the module, then jq.json(...) does the query. A bad
+      // query REJECTS asynchronously, so a synchronous try/catch here could never
+      // catch it (it was dead code, #425). Let the rejection propagate: the
+      // awaiting resolveExpressionOrThrow surfaces it, so the embedded loop
+      // preserves the original {{...}}. (The condition path — evaluateAssertion —
+      // still calls the swallowing resolveExpression boundary, so a jq error
+      // there is unchanged by this PR; reconciling that path is out of scope.)
+      jq: (json: any, query: string) => jq.then((j: any) => j.json(json, query)),
     };
 
     // Use Function constructor for safer evaluation. The expression's string
