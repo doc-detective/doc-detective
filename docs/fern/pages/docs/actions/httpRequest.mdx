@@ -21,6 +21,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
     - `headers`: (Optional) Key-value pairs for expected response headers. Values must be strings.
     - `body`: (Optional) Expected response body. Can be a string or JSON object.
     - `required`: (Optional) Array of field paths that must exist in the response body. Uses dot notation for nested fields (for example, `user.name`) and bracket notation for array indices (for example, `items[0].id`). Fields can have any value, including `null`.
+  - `allowAdditionalFields`: (Optional) Whether the response may contain fields beyond those declared in `response.body`. Defaults to `true`. Set it to `false` to fail the step when the response includes any field not present in `response.body`. This check applies only when `response.body` declares fields; if `response.body` is unset or empty, nothing counts as unexpected and the check passes.
   - `statusCodes`: (Optional) An array of acceptable HTTP status codes. If the response code is not in this list, the step fails (default: `[200]`).
   - `openApi`: (Optional) Define the request based on an OpenAPI definition. Can be a string (operation ID) or an object:
     - `name`: (Optional) Name of the registered OpenAPI definition (if multiple are loaded).
@@ -420,6 +421,35 @@ You can use both `response.required` and `response.body` together to validate th
 ```
 
 > **Note:** Fields with `null`, `""`, `0`, or `false` values are considered to exist and will pass validation.
+
+### Reject unexpected response fields
+
+Set `allowAdditionalFields` to `false` to assert that the response contains only the fields you declared in `response.body`. The step fails if the response includes any extra field.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Fail if the response returns fields beyond those declared.",
+          "httpRequest": {
+            "url": "https://api.example.com/users/123",
+            "method": "GET",
+            "response": {
+              "body": {
+                "id": 123,
+                "name": "morpheus"
+              }
+            },
+            "allowAdditionalFields": false
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 
 
