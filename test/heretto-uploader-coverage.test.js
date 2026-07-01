@@ -350,6 +350,8 @@ describe("HerettoUploader (hermetic HTTP)", function () {
       const u = new HerettoUploader();
       const res = await u.createDocument({ apiBaseUrl, apiToken, username, parentFolderId: "pf", filename: "b.png", mimeType: "image/png", log: silentLog });
       assert.deepEqual(res, { created: true, documentId: "new-doc-1" });
+      // Spot-check auth on a mutating request (built the same way in every method).
+      assert.match(state.calls[0].headers.Authorization, /^Basic /);
     });
     it("resolves created=true on 201", async function () {
       const state = installHttpStub();
@@ -592,6 +594,7 @@ describe("HerettoUploader (hermetic HTTP)", function () {
       state.queue.push({ response: { statusCode: 200, body: "ok" } });
       const u = new HerettoUploader();
       await u.uploadFile({ apiBaseUrl, apiToken, username, documentId: "d", content: Buffer.from("data"), contentType: "image/png", log: silentLog });
+      assert.match(state.calls[0].headers.Authorization, /^Basic /);
     });
     it("rejects on non-2xx", async function () {
       const state = installHttpStub();
@@ -945,7 +948,10 @@ describe("HerettoUploader (hermetic HTTP)", function () {
       const res = await u.upload({
         config: {},
         integrationConfig: { organizationId: "acme", apiToken: "tok", username: "u" },
-        localFilePath: path.join(os.tmpdir(), "does-not-exist-xyz.png"),
+        // Use the suite's fresh tmpDir (only b.png exists in it) so this path is
+        // guaranteed absent — no stub is installed here, so a pre-existing file
+        // would make upload() attempt a real uploadFile HTTP call.
+        localFilePath: path.join(tmpDir, "does-not-exist-xyz.png"),
         sourceIntegration: { filePath: "images/b.png", fileId: "known-id" },
         log: silentLog,
       });
