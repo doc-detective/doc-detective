@@ -454,7 +454,9 @@ async function evaluateExpression(expression: string, context: any): Promise<any
       // query REJECTS asynchronously, so a synchronous try/catch here could never
       // catch it (it was dead code, #425). Let the rejection propagate: the
       // awaiting resolveExpressionOrThrow surfaces it, so the embedded loop
-      // preserves the original {{...}} and the condition path fails closed.
+      // preserves the original {{...}}. (The condition path — evaluateAssertion —
+      // still calls the swallowing resolveExpression boundary, so a jq error
+      // there is unchanged by this PR; reconciling that path is out of scope.)
       jq: (json: any, query: string) => jq.then((j: any) => j.json(json, query)),
     };
 
