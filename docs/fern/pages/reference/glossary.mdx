@@ -53,6 +53,10 @@ The highest-level component of a test suite, also called a test spec. A specific
 
 A single action within a [test](#test). Each step performs one action and acts as an assertion that the action completes as expected. See [Tests overview](/docs/get-started/how-testing-works).
 
+## Surface
+
+A target that a step can act on: a browser window or tab, or a background process started by `runShell` or `runCode`. Actions accept an optional `surface` field to choose which one to use. Omit it to act on the active surface. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows) and [`closeSurface`](/docs/actions/close-surface).
+
 ## Test
 
 A sequence of [steps](#step) to perform as part of a test specification. Each test has a name and a set of steps that validate documentation accuracy. See [Tests overview](/docs/get-started/how-testing-works).
