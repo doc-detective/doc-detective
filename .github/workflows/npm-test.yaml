@@ -12,8 +12,19 @@ on:
       - opened
       - reopened
       - synchronize
-    paths-ignore:
-      - 'docs/**'
+    # Only run the full matrix when product code (src/**, which the test suite
+    # exercises) or the build & dependency inputs change. Docs-only,
+    # samples-only, or test-fixture-only (test/**) PRs skip it.
+    # `src/**` also covers the doc-detective-common workspace (src/common).
+    # Use `workflow_dispatch` to run the matrix on demand for excluded paths.
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'bin/**'
+      - 'scripts/**'
+      - '.github/workflows/npm-test.yaml'
+      - '.github/workflows/test.yml'
   workflow_dispatch:
 
 concurrency:
