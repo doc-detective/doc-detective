@@ -97,11 +97,13 @@ leaked sub-expression to the preserved `{{…}}`.
 * Neutral: a **synchronous** eval error inside an embedded expression (e.g. the malformed
   `{{jq(}}`) still resolves to `undefined` and renders as an empty string — that path returns
   `undefined` without throwing, so it is not the preserved-`{{…}}` path. Documented and tested.
-* Neutral: expressions.ts logging is a pre-existing latent no-op — `log` is imported as
-  `log(config, level, message)` but called `log(message, level)` (no `config` is threaded into
-  `resolveExpression`). Fixing the signature is out of scope here (it requires threading `config`
-  through the resolver); the new calls follow the file's existing 2-arg convention. Tracked
-  separately.
+* Neutral: expressions.ts logging is a pre-existing latent no-op. `log(config, level, message)`
+  explicitly supports the 2-arg form the file uses — when `message` is `undefined` it shifts
+  (`message = config; config = {}`) — so `log(message, level)` is a *supported* call, not a
+  signature bug. The no-op is that the defaulted `config` (`{}`) carries no `logLevel`, so no level
+  ever matches and nothing is emitted. The fix is therefore to thread a real `config` (carrying
+  `logLevel`) into `resolveExpression` so these warnings actually surface — out of scope here and
+  tracked separately.
 
 ### Confirmation
 
