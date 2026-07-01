@@ -1,7 +1,11 @@
 import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
-import { switchToSurface, registerOpenedHandle } from "./browserSurface.js";
+import {
+  switchToSurface,
+  registerOpenedHandle,
+  syncHandles,
+} from "./browserSurface.js";
 import {
   resolveRecordPlan,
   safeContextId,
@@ -284,6 +288,9 @@ async function startRecording({ config, context, step, driver }: { config: any; 
       log(config, "error", result.description);
       await driver.closeWindow();
       await driver.switchToWindow(originalTab);
+      // Prune the aborted recorder tab from the window/tab registry (mirrors
+      // stopRecording's cleanup) so the registry never carries a dead handle.
+      await syncHandles(driver);
       await driver.execute((documentTitle: any) => {
         document.title = documentTitle;
       }, documentTitle);

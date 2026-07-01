@@ -97,14 +97,6 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     }
   }
 
-  // Fill in defaults for any missing properties
-  if (step.goTo.waitUntil.networkIdleTime === undefined) {
-    step.goTo.waitUntil.networkIdleTime = 500;
-  }
-  if (step.goTo.waitUntil.domIdleTime === undefined) {
-    step.goTo.waitUntil.domIdleTime = 1000;
-  }
-
   // Multi-surface Phase 3: focus the requested window/tab, and open a new
   // tab/window when asked. goTo is the ONLY step that opens windows/tabs.
   const newTab = normalizeOpener(step.goTo.newTab);
@@ -314,14 +306,14 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
           })()
         );
       } else {
-waitResults.elementFound.passed = true;
+        waitResults.elementFound.passed = true;
         waitResults.elementFound.message = "Element search not requested";
       }
 
-        // Wait for all checks to complete
-        if (parallelChecks.length > 0) {
-          const results = await Promise.allSettled(parallelChecks);
-          // Check if any checks failed
+      // Wait for all checks to complete
+      if (parallelChecks.length > 0) {
+        const results = await Promise.allSettled(parallelChecks);
+        // Check if any checks failed
         const failures = results.filter((r) => r.status === "rejected");
         if (failures.length > 0) {
           // Throw the first error to trigger the catch block

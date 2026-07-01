@@ -68,13 +68,13 @@ function parseSurfaceRef(surface: any): ParsedSurface {
     return { kind: "process", name: surface.process.trim() };
   }
   if (typeof surface === "object" && typeof surface.browser === "string") {
-    const parsed: ParsedSurface = {
+    const parsed: Extract<ParsedSurface, { kind: "browser" }> = {
       kind: "browser",
       engine: surface.browser.toLowerCase(),
+      ...(surface.name !== undefined ? { name: surface.name } : {}),
+      ...(surface.window !== undefined ? { window: surface.window } : {}),
+      ...(surface.tab !== undefined ? { tab: surface.tab } : {}),
     };
-    if (surface.name !== undefined) (parsed as any).name = surface.name;
-    if (surface.window !== undefined) (parsed as any).window = surface.window;
-    if (surface.tab !== undefined) (parsed as any).tab = surface.tab;
     return parsed;
   }
   // Any other object shape (app) is a future surface kind.
@@ -459,12 +459,13 @@ async function resolveCloseTargets(
     };
   }
 
-  // Tab close (optionally window-scoped).
+  // Tab close (optionally window-scoped). Phase 3 limit errors were returned
+  // above, so a !ok here means the selector matched nothing — an idempotent
+  // no-op. resolveWindowTarget already restored focus on that path; only the
+  // SUCCESS path leaves focus on the matched tab and needs restoring here
+  // (closeHandle re-derives focus itself).
   const resolved = await resolveWindowTarget(driver, ref);
   if (!resolved.ok) {
-    // Distinguish "matched nothing" (idempotent no-op) from Phase 3 limit
-    // errors, which were already returned above.
-    if (original) await driver.switchToWindow(original);
     return { ok: true, handles: [] };
   }
   if (original) await driver.switchToWindow(original);
