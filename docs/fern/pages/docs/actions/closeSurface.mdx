@@ -9,7 +9,7 @@ The `closeSurface` action closes one or more surfaces. A surface is anything a s
 Provide a surface as the value for the `closeSurface` key. You can identify a surface in any of these ways:
 
 - **String name:** The `name` of the surface.
-- **Object:** An object that identifies the surface by type — `{ "process": … }` for a background process, or `{ "browser": …, "tab": … }` / `{ "browser": …, "window": … }` for a browser tab or window.
+- **Object:** An object that identifies the surface by type: `{ "process": … }` for a background process, or `{ "browser": …, "tab": … }` / `{ "browser": …, "window": … }` for a browser tab or window.
 - **Array:** A list of names or objects to close several surfaces in one step.
 
 Doc Detective trims leading and trailing whitespace from the surface name before matching.
@@ -97,7 +97,7 @@ Because closing an absent surface passes, you can call `closeSurface` defensivel
 
 ### Close a browser tab or window
 
-A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs. Selectors accept a name, an index in creation order (`-1` is the newest), or `{ title, url }` criteria — see [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
+A browser reference with a `tab` selector closes that tab. A `window` selector closes the window and its tabs. Selectors accept a name, an index in creation order (`-1` is the newest), or `{ title, url }` criteria. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
 
 ```json
 {
@@ -122,4 +122,4 @@ A browser reference with a `tab` selector closes that tab; with a `window` selec
 }
 ```
 
-Two guardrails: Doc Detective refuses to close the **last open tab** (that would end the browser session, which the run owns), and closing a **whole browser** (`"closeSurface": "chrome"`) is reserved for multi-browser targeting in a later phase — both fail with guidance rather than half-working.
+Two guardrails apply. Doc Detective refuses to close the **last open tab**, because that would end the browser session that the run owns. Closing a **whole browser** (`"closeSurface": "chrome"`) belongs to multi-browser targeting in a later phase. Both fail with guidance rather than half-working.

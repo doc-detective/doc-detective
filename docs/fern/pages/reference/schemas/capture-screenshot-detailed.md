@@ -14,6 +14,7 @@ description: "Reference for the `Capture screenshot (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface)) | Optional. The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward. | 
 path | string | Optional. File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.<br/><br/>Pattern: `^(?:https?:\/\/.+\.(?:png|PNG)(?:\?.*)?|[A-Za-z]:[\/\\].*\.(?:png|PNG)|[\/\\]?[A-Za-z0-9_.\/\\-]*\.(?:png|PNG)|\$[A-Za-z0-9_]+)$` | 
 directory | string | Optional. Directory of the PNG file. If the directory doesn't exist, creates the directory. | 
 maxVariation | number | Optional. Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.<br/><br/>Minimum: 0. Maximum: 1 | `0.05`
@@ -25,6 +26,7 @@ sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegrat
 
 ```json
 {
+  "surface": "example",
   "path": "example",
   "directory": "example",
   "maxVariation": 0.05,

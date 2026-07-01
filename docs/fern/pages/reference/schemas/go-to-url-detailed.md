@@ -16,6 +16,9 @@ Navigate to an HTTP or HTTPS URL.
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface)) | Optional. The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in. | 
+newTab | one of:<br/>- boolean<br/>- string<br/>- object | Optional. Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`. | 
+newWindow | one of:<br/>- boolean<br/>- string<br/>- object | Optional. Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`. | 
 url | string | Required. URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.<br/><br/>Pattern: `(^(http://|https://|/).*|\$[A-Za-z0-9_]+)` | 
 origin | string | Optional. Protocol and domain to navigate to. Prepended to `url`. | 
 params | object | Optional. Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports. | ``{}``
@@ -26,6 +29,9 @@ waitUntil | object | Optional. Configuration for waiting conditions after naviga
 
 ```json
 {
+  "surface": "example",
+  "newTab": true,
+  "newWindow": true,
   "url": "example",
   "origin": "example",
   "params": {},

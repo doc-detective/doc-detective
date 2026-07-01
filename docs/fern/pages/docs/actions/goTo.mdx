@@ -170,7 +170,7 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 `goTo` is the only action that opens new tabs and windows. Name what you open, then any later step can act in it with a [`surface`](/docs/test-docs/multiple-tabs-and-windows) reference.
 
 - `newTab`: Open the URL in a new tab of the target window and focus it. `true` opens an anonymous tab; a string (or `{ "name": … }`) names the tab. `false` disables.
-- `newWindow`: Open the URL in a new window and focus it. `true`, a name string, or `{ "name": …, "tab": … }` — `tab` names the window's first tab. `false` disables.
+- `newWindow`: Open the URL in a new window and focus it. `true`, a name string, or `{ "name": …, "tab": … }`, where `tab` names the window's first tab. `false` disables.
 - `newTab` and `newWindow` are mutually exclusive on one step.
 - `surface`: Without an opener, selects the existing window or tab to navigate. With `newTab`, selects the window the tab opens in.
 
@@ -241,7 +241,7 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 }
 ```
 
-For the full selector grammar (names, indexes, `-1` for newest, title/URL criteria) and how tabs a page opens itself are addressed, see [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
+For the full selector grammar (names, indexes, `-1` for newest, title/URL criteria) and how to address tabs a page opens itself, see [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
 
 ## Wait conditions
 

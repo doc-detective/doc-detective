@@ -17,8 +17,8 @@ Field | Type | Description | Default
 :-- | :-- | :-- | :--
 keys | one of:<br/>- string<br/>- array of string | Required. Sequence of keys to enter. | 
 inputDelay | number | Optional. Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. | `100`
-surface | one of:<br/>- string<br/>- object([Process surface](/reference/schemas/process-surface)) | Optional. The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases. | 
-waitUntil | object | Optional. After sending the keys, wait until the process surface is ready. Only valid with a process `surface`. | 
+surface | one of:<br/>- string<br/>- object([Process surface](/reference/schemas/process-surface))<br/>- object([Browser surface](/reference/schemas/browser-surface)) | Optional. The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase. | 
+waitUntil | one of:<br/>- object([Process readiness](/reference/schemas/process-readiness))<br/>- object([Browser readiness](/reference/schemas/browser-readiness)) | Optional. After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default. | 
 timeout | integer | Optional. Maximum time in milliseconds to wait for `waitUntil` after sending the keys.<br/><br/>Minimum: 0 | `5000`
 selector | string | Optional. Selector for the element to type into. If not specified, the typing occurs in the active element. | 
 elementText | string | Optional. Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria. | 
