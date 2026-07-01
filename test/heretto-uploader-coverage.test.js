@@ -278,6 +278,11 @@ describe("HerettoUploader (hermetic HTTP)", function () {
       const u = new HerettoUploader();
       const id = await u.getChildFolderByName({ apiBaseUrl, apiToken, username, parentFolderId: "pf", folderName: "images", log: silentLog });
       assert.equal(id, "abc-123");
+      // Verify the RIGHT request was sent (method/path/auth), not just that a
+      // response was handled — catches auth-header or URL-path regressions.
+      assert.equal(state.calls[0].method, "GET");
+      assert.equal(state.calls[0].path, "/rest/all-files/pf");
+      assert.match(state.calls[0].headers.Authorization, /^Basic /);
     });
     it("resolves null when folder not present in body", async function () {
       const state = installHttpStub();
@@ -309,10 +314,22 @@ describe("HerettoUploader (hermetic HTTP)", function () {
     });
     it("escapes regex special chars in the folder name", async function () {
       const state = installHttpStub();
-      state.queue.push({ response: { statusCode: 200, body: '<folder name="a.b+c" id="special-1"/>' } });
+      // The decoy "aXbc" would match an UNESCAPED /a.b+c/ pattern (`.`→X, `b+`→b)
+      // and appears first, so returning "special-1" proves the folder name was
+      // escaped before being built into the lookup regex.
+      state.queue.push({ response: { statusCode: 200, body: '<folders><folder name="aXbc" id="decoy"/><folder name="a.b+c" id="special-1"/></folders>' } });
       const u = new HerettoUploader();
       const id = await u.getChildFolderByName({ apiBaseUrl, apiToken, username, parentFolderId: "pf", folderName: "a.b+c", log: silentLog });
       assert.equal(id, "special-1");
+    });
+    it("returns null when id precedes name (attribute-order limitation)", async function () {
+      const state = installHttpStub();
+      // The source regex matches `name="..." id="..."` only in that order.
+      // Documents that id-before-name yields null (getFileInFolder handles both).
+      state.queue.push({ response: { statusCode: 200, body: '<folder id="abc-123" name="images"/>' } });
+      const u = new HerettoUploader();
+      const id = await u.getChildFolderByName({ apiBaseUrl, apiToken, username, parentFolderId: "pf", folderName: "images", log: silentLog });
+      assert.equal(id, null);
     });
     it("uses http for an http base URL", async function () {
       const state = installHttpStub();
@@ -703,7 +720,6 @@ describe("HerettoUploader (hermetic HTTP)", function () {
   describe("upload", function () {
     let tmpFile;
     let tmpDir;
-    const captureLog = () => {};
 
     before(function () {
       // mkdtempSync avoids cross-process collisions in parallel/worker runs.
@@ -721,21 +737,21 @@ describe("HerettoUploader (hermetic HTTP)", function () {
         integrationConfig: { organizationId: "acme", apiToken: "tok", username: "u", ...overrides.integrationConfig },
         localFilePath: tmpFile,
         sourceIntegration: { filePath: "images/b.png", ...overrides.sourceIntegration },
-        log: captureLog,
+        log: silentLog,
         ...overrides,
       };
     }
 
     it("fails when no integration config is provided", async function () {
       const u = new HerettoUploader();
-      const res = await u.upload({ config: {}, integrationConfig: null, localFilePath: tmpFile, sourceIntegration: {}, log: captureLog });
+      const res = await u.upload({ config: {}, integrationConfig: null, localFilePath: tmpFile, sourceIntegration: {}, log: silentLog });
       assert.equal(res.status, "FAIL");
       assert.match(res.description, /No Heretto integration configuration/);
     });
 
     it("fails when organizationId/apiToken are missing", async function () {
       const u = new HerettoUploader();
-      const res = await u.upload({ config: {}, integrationConfig: { organizationId: "acme" }, localFilePath: tmpFile, sourceIntegration: { filePath: "a.png" }, log: captureLog });
+      const res = await u.upload({ config: {}, integrationConfig: { organizationId: "acme" }, localFilePath: tmpFile, sourceIntegration: { filePath: "a.png" }, log: silentLog });
       assert.equal(res.status, "FAIL");
       assert.match(res.description, /missing organizationId or apiToken/);
     });
@@ -904,7 +920,7 @@ describe("HerettoUploader (hermetic HTTP)", function () {
         integrationConfig: { organizationId: "acme", apiToken: "tok", username: "u" },
         localFilePath: path.join(os.tmpdir(), "does-not-exist-xyz.png"),
         sourceIntegration: { filePath: "images/b.png", fileId: "known-id" },
-        log: captureLog,
+        log: silentLog,
       });
       assert.equal(res.status, "FAIL");
       assert.match(res.description, /Local file not found/);
