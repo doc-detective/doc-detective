@@ -52,10 +52,16 @@ async function resolveExpression({ expression, context, allowOperators = false }
 
 /**
  * Core resolver: the real work behind resolveExpression, WITHOUT the back-compat
- * error swallow. Genuine evaluation errors (jq rejection, `new Function` throw)
- * propagate to the caller so structured callers can react to failure. The public
- * resolveExpression wraps this and swallows for back-compat; resolveEmbeddedExpressions
- * calls it directly so it can preserve the original {{...}} on failure.
+ * error swallow. Errors that escape evaluateExpression propagate to the caller so
+ * structured callers can react. In practice that means an ASYNC operator
+ * rejection — a bad jq() query rejects after evaluateExpression's synchronous
+ * try/catch has already returned, so the awaiting worker surfaces it. (A
+ * SYNCHRONOUS eval error, e.g. a `new Function` SyntaxError, is caught inside
+ * evaluateExpression and becomes `undefined`, which does NOT throw here — the
+ * embedded loop renders it as an empty string rather than preserving {{...}}.)
+ * The public resolveExpression wraps this and swallows for back-compat;
+ * resolveEmbeddedExpressions calls it directly so it can preserve the original
+ * {{...}} when an async failure propagates.
  * @param {string} expression - The expression to resolve.
  * @param {object} context - Context object containing meta values.
  * @returns {*} - The resolved value of the expression.

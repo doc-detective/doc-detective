@@ -58,8 +58,12 @@ error arms (#425). One contract decision resolves all three.
 Chosen: **Option A — preserve the original `{{…}}`**, implemented by splitting the resolver into a
 **worker** and a **boundary**:
 
-* `resolveExpressionOrThrow(...)` — the core resolver, WITHOUT the swallow. Genuine evaluation errors
-  (a `jq` rejection, a `new Function` `SyntaxError`) propagate to the caller.
+* `resolveExpressionOrThrow(...)` — the core resolver, WITHOUT the swallow. Errors that escape
+  `evaluateExpression` propagate to the caller. In practice that is an **async** operator rejection
+  (a bad `jq()` query rejects *after* `evaluateExpression`'s synchronous `try/catch` has returned, so
+  the awaiting worker surfaces it). A **synchronous** eval error (e.g. a `new Function` `SyntaxError`)
+  is caught inside `evaluateExpression` and becomes `undefined`, so it does not propagate — see the
+  neutral consequence below.
 * `resolveExpression(...)` — the public boundary. It wraps the worker in a `try/catch` that, for
   back-compat on the standalone path (`step.variables` and direct callers), returns the input
   unchanged and logs at `warning` (an intentional swallow, not a surfaced failure).
