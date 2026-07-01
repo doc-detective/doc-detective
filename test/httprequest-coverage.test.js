@@ -825,7 +825,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.equal(result.outputs.noUnexpectedFields, true);
     });
 
-    it("PASSes noUnexpectedFields when the expected body is a superset match", async function () {
+    it("PASSes noUnexpectedFields when the response exactly matches the expected keys", async function () {
       stubResponse({ status: 200, data: { a: 1, b: 2 } });
       const result = await httpRequest({
         config,
@@ -841,6 +841,71 @@ describe("httpRequest coverage (stubbed axios)", function () {
       });
       assert.equal(result.status, "PASS", result.description);
       assert.equal(result.outputs.noUnexpectedFields, true);
+    });
+
+    it("PASSes noUnexpectedFields when the expected body is unset (no key constraint)", async function () {
+      // response.body defaults to {} when omitted; an empty ROOT expectation
+      // imposes no key constraint, so any response shape is accepted.
+      stubResponse({ status: 200, data: { a: 1, b: 2 } });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+            allowAdditionalFields: false,
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.noUnexpectedFields, true);
+    });
+
+    it("[bug #437] rejects an extra field nested inside an object and names its dot-path", async function () {
+      // The extra key lives one level deep (user.extra). A shallow key-set check
+      // would miss it; the recursive check must descend into matching objects and
+      // report the fully-qualified path.
+      stubResponse({
+        status: 200,
+        data: { user: { name: "Jo", extra: 99 } },
+      });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+            allowAdditionalFields: false,
+            response: { body: { user: { name: "Jo" } } },
+          },
+        },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.outputs.noUnexpectedFields, false);
+      assert.match(result.description, /user\.extra/);
+    });
+
+    it("rejects extras under a nested empty object (short-circuit is root-only)", async function () {
+      // Expected { user: {} }: the empty object is NESTED, not the root, so it
+      // still constrains — the response's user.id is unexpected and must FAIL.
+      stubResponse({ status: 200, data: { user: { id: 7 } } });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+            allowAdditionalFields: false,
+            response: { body: { user: {} } },
+          },
+        },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.outputs.noUnexpectedFields, false);
+      assert.match(result.description, /user\.id/);
     });
   });
 

@@ -46,28 +46,34 @@ reject additional fields. The subset check was simply the wrong tool for the job
 
 * **Add the reverse subset direction** — also require `objectExistsInObject(response.data,
   expectedBody)` to PASS (every actual key present in expected).
-* **Dedicated recursive key-set comparison** — a new `objectHasNoExtraKeys(expected, actual)` that
-  walks the actual object's keys and flags any not declared in expected, recursing into nested plain
-  objects.
+* **Dedicated recursive key-collection** — a new `findUnexpectedKeys(expected, actual)` that walks
+  the actual object's keys, collects any not declared in expected (as dot-paths), and recurses into
+  nested plain objects.
 
 ## Decision Outcome
 
-Chosen: **dedicated recursive key-set comparison** (`objectHasNoExtraKeys`). Reusing
-`objectExistsInObject` in reverse would conflate two concerns: that helper FAILs on value mismatches
-too, so `objectExistsInObject(actual, expected)` would flag a value disagreement as an "unexpected
-field", double-counting what the body-match check already reports and producing a misleading
-description. A purpose-built function keeps `noUnexpectedFields` strictly about the presence of
-undeclared **keys**.
+Chosen: **dedicated recursive key-collection** (`findUnexpectedKeys`, plus a small `isPlainObject`
+helper). Reusing `objectExistsInObject` in reverse would conflate two concerns: that helper FAILs on
+value mismatches too, so `objectExistsInObject(actual, expected)` would flag a value disagreement as
+an "unexpected field", double-counting what the body-match check already reports and producing a
+misleading description. A purpose-built function keeps `noUnexpectedFields` strictly about the
+presence of undeclared **keys**.
 
-`objectHasNoExtraKeys`:
+`findUnexpectedKeys(expected, actual, prefix)` returns the list of undeclared keys as dot-paths
+(e.g. `user.extra`):
 
 * Compares key-by-key only when both sides are plain objects; if either side isn't (primitive,
-  array, `null`, mismatched shape), there are no object keys to compare, so it reports "no extra
-  keys" (`true`) and defers any shape/value disagreement to the body-match check.
-* Treats an **empty** expected object as "no declared fields ⇒ no key constraint" (`true`) at any
-  depth. This preserves the unset-body behavior: `response.body` defaults to `{}`, and an unset body
-  must never flag the entire response as unexpected.
-* Recurses into nested plain objects so extras are flagged at any depth.
+  array, `null`, mismatched shape), there are no object keys to compare, so it returns `[]` (no
+  extras) and defers any shape/value disagreement to the body-match check.
+* Recurses into nested plain objects so extras are flagged — and named — at any depth.
+* Does **not** special-case an empty expected object: a nested `{}` still constrains, so extras under
+  it are reported.
+
+The **root** empty/unset case is handled by the *caller*, not the helper: `findUnexpectedKeys` runs
+only when the expected body is a plain object with at least one key. This preserves the unset-body
+behavior (`response.body` defaults to `{}` ⇒ no key constraint ⇒ PASS) while still letting a nested
+`{}` reject extras. The verdict is `noUnexpectedFields = unexpectedKeys.length === 0`, and the
+failure description **names** the offending paths: `Response contained unexpected fields: <a, b.c>.`
 
 The guard for a non-object / undefined expected body (`noUnexpectedFields = true`) is unchanged.
 Behavior when `allowAdditionalFields` is `true` or absent is unchanged (the check block only runs
@@ -91,13 +97,17 @@ when it is falsy).
 ### Confirmation
 
 Unit coverage in [test/httprequest-coverage.test.js](../test/httprequest-coverage.test.js): the
-`[bug #437]` test now asserts that expected `{ a: 1 }` vs actual `{ a: 1, extra: 99 }` with
-`allowAdditionalFields: false` FAILs with `noUnexpectedFields === false` and a description mentioning
-unexpected fields. Sibling tests confirm an exact-match superset still PASSes, a non-object expected
-body still short-circuits to PASS, and a same-key-set value mismatch FAILs via `bodyMatches` with
-`noUnexpectedFields` true. Server-based tests in
+`[bug #437]` test asserts that expected `{ a: 1 }` vs actual `{ a: 1, extra: 99 }` with
+`allowAdditionalFields: false` FAILs with `noUnexpectedFields === false` and a description naming the
+unexpected field. A companion `[bug #437]` test drives the **recursion** path — expected
+`{ user: { name: "Jo" } }` vs actual `{ user: { name: "Jo", extra: 99 } }` FAILs with the dot-path
+`user.extra` in the description. A nested-empty test confirms the short-circuit is **root-only**:
+expected `{ user: {} }` vs actual `{ user: { id: 7 } }` FAILs (naming `user.id`), while an
+**unset** expected body accepts any response shape (PASS). Sibling tests confirm an exact key-set
+match PASSes, a non-object expected body short-circuits to PASS, and a same-key-set value mismatch
+FAILs via `bodyMatches` with `noUnexpectedFields` true. Server-based tests in
 [test/httpRequest-assertions.test.js](../test/httpRequest-assertions.test.js) confirm the unset-body
-(`{}`) case still PASSes. All three files pass (`npm run build` then
+(`{}`) case still PASSes. All pass (`npm run build` then
 `npx mocha --exit test/httprequest-coverage.test.js test/httpRequest.test.js
 test/httpRequest-assertions.test.js`).
 
