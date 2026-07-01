@@ -19,27 +19,27 @@ export type SurfaceByName = string;
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector = ByName | ByIndex | ByCriteria;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
- */
-export type ByName = string;
+export type WindowTabSelector = ByIndex | ByName | ByCriteria;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
 export type ByIndex = number;
 /**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName = string;
+/**
  * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type WindowTabSelector1 = ByName1 | ByIndex1 | ByCriteria1;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
- */
-export type ByName1 = string;
+export type WindowTabSelector1 = ByIndex1 | ByName1 | ByCriteria1;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
 export type ByIndex1 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName1 = string;
 
 export interface RunBrowserScriptDetailed {
   /**

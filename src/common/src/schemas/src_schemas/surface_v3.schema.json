@@ -86,6 +86,11 @@
         "title": "Window/tab selector",
         "anyOf": [
           {
+            "title": "By index",
+            "type": "integer",
+            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+          },
+          {
             "title": "By name",
             "type": "string",
             "minLength": 1,
@@ -93,12 +98,7 @@
             "transform": [
               "trim"
             ],
-            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
-          },
-          {
-            "title": "By index",
-            "type": "integer",
-            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
           },
           {
             "title": "By criteria",
