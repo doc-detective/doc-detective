@@ -79,7 +79,17 @@ function installHttpStub() {
   const state = { queue: [], calls: [] };
   const handler = function (options, cb) {
     state.calls.push(options);
-    const plan = state.queue.shift() || { response: { statusCode: 200, body: "", headers: {} } };
+    if (state.queue.length === 0) {
+      // Fail fast on an unexpected request so a test can't silently pass while
+      // HerettoUploader makes an extra/unordered call — every expected request
+      // must be enqueued explicitly.
+      throw new Error(
+        `Unexpected HTTP request (${options.method || "GET"} ${
+          options.path || options.hostname || ""
+        }): no response was enqueued.`
+      );
+    }
+    const plan = state.queue.shift();
     return makeFakeRequest(plan, cb);
   };
   sinon.stub(https, "request").callsFake(handler);
@@ -692,14 +702,17 @@ describe("HerettoUploader (hermetic HTTP)", function () {
   // ─── upload orchestrator ────────────────────────────────────────────────────
   describe("upload", function () {
     let tmpFile;
+    let tmpDir;
     const captureLog = () => {};
 
     before(function () {
-      tmpFile = path.join(os.tmpdir(), `heretto-cov-${Date.now()}.png`);
+      // mkdtempSync avoids cross-process collisions in parallel/worker runs.
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "heretto-cov-"));
+      tmpFile = path.join(tmpDir, "b.png");
       fs.writeFileSync(tmpFile, Buffer.from("PNGDATA"));
     });
     after(function () {
-      try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
     });
 
     function baseArgs(overrides = {}) {
