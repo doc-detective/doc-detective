@@ -16,7 +16,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import sinon from "sinon";
 import axios from "axios";
 import { httpRequest } from "../dist/core/tests/httpRequest.js";
 
@@ -31,14 +30,12 @@ function findAssertion(assertions, token) {
 describe("httpRequest coverage (stubbed axios)", function () {
   this.timeout(30000);
 
-  let sandbox;
   let originalAdapter;
   let lastRequestConfig;
   let tmpDirs;
   let savedEnv;
 
   beforeEach(function () {
-    sandbox = sinon.createSandbox();
     originalAdapter = axios.defaults.adapter;
     lastRequestConfig = undefined;
     tmpDirs = [];
@@ -46,10 +43,8 @@ describe("httpRequest coverage (stubbed axios)", function () {
   });
 
   afterEach(function () {
-    // Restore the axios adapter and any sinon stubs.
+    // Restore the axios adapter (all interception is via the adapter swap).
     axios.defaults.adapter = originalAdapter;
-    if (sandbox) sandbox.restore();
-    sandbox = undefined;
     // Clean up temp dirs.
     for (const dir of tmpDirs) {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -96,8 +91,24 @@ describe("httpRequest coverage (stubbed axios)", function () {
   }
 
   function setEnv(key, value) {
-    if (!(key in savedEnv)) savedEnv[key] = process.env[key];
+    // Own-property check so an unusual env name (e.g. one shadowing a prototype
+    // key) is still saved exactly once.
+    if (!Object.prototype.hasOwnProperty.call(savedEnv, key)) {
+      savedEnv[key] = process.env[key];
+    }
     process.env[key] = value;
+  }
+
+  // Read a header from a captured axios request config. axios v1 normalizes
+  // request headers into an AxiosHeaders instance (case-insensitive .get());
+  // fall back to plain-object access for a bare object.
+  function reqHeader(reqConfig, name) {
+    const h = reqConfig?.headers;
+    if (h && typeof h.get === "function") return h.get(name);
+    if (!h) return undefined;
+    // Case-insensitive plain-object lookup.
+    const hit = Object.keys(h).find((k) => k.toLowerCase() === name.toLowerCase());
+    return hit === undefined ? undefined : h[hit];
   }
 
   // ---------------------------------------------------------------------------
@@ -138,7 +149,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.equal(lastRequestConfig.timeout, 1234);
       // axios wraps headers in an AxiosHeaders instance and adds defaults, so
       // assert our custom header is present rather than requiring exact equality.
-      assert.equal(lastRequestConfig.headers["X-Custom"], "abc");
+      assert.equal(reqHeader(lastRequestConfig, "X-Custom"), "abc");
       assert.deepEqual(lastRequestConfig.params, { q: "search" });
       // axios serializes an object JSON body to a string before the adapter runs.
       assert.equal(lastRequestConfig.data, JSON.stringify({ field: "value" }));
@@ -163,10 +174,10 @@ describe("httpRequest coverage (stubbed axios)", function () {
       // The string headers block was parsed into an object; axios re-wraps it in
       // AxiosHeaders, so assert the parsed pairs are present (case-insensitive
       // header lookup) rather than requiring exact object equality.
-      assert.equal(lastRequestConfig.headers["Content-Type"], "application/json");
-      assert.equal(lastRequestConfig.headers["Authorization"], "Bearer token");
+      assert.equal(reqHeader(lastRequestConfig, "Content-Type"), "application/json");
+      assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer token");
       // The colon-less line was dropped by the parser.
-      assert.ok(!("bad-line-without-colon" in lastRequestConfig.headers));
+      assert.ok(reqHeader(lastRequestConfig, "bad-line-without-colon") === undefined);
     });
 
     it("parses a stringified-JSON request body into an object", async function () {
@@ -223,7 +234,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
         },
       });
       assert.equal(result.status, "PASS", result.description);
-      assert.equal(lastRequestConfig.headers.Authorization, "Bearer secret-123");
+      assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer secret-123");
     });
 
     it("defaults method to get and statusCodes to [200,201] when omitted", async function () {
@@ -723,7 +734,11 @@ describe("httpRequest coverage (stubbed axios)", function () {
   // allowAdditionalFields
   // ---------------------------------------------------------------------------
   describe("allowAdditionalFields", function () {
-    it("FAILs when the response contains fields not in the expected body", async function () {
+    it("FAILs when an expected field's value does not match (drives noUnexpectedFields false)", async function () {
+      // NOTE: this is a VALUE mismatch (expected unexpected:3, actual :2), not an
+      // extra-field case — the object subset comparison FAILs, which drives
+      // noUnexpectedFields false. The genuine extra-field behavior is covered by
+      // the #437 test below.
       stubResponse({ status: 200, data: { a: 1, unexpected: 2 } });
       const result = await httpRequest({
         config,
@@ -737,10 +752,33 @@ describe("httpRequest coverage (stubbed axios)", function () {
           },
         },
       });
-      // The expected body has `unexpected: 3` but actual is 2 -> the object
-      // comparison FAILs, which drives noUnexpectedFields false.
       assert.equal(result.status, "FAIL");
       assert.equal(result.outputs.noUnexpectedFields, false);
+    });
+
+    it("[bug #437] does not yet reject a response with fields beyond the expected body", async function () {
+      // Expected { a: 1 }, actual { a: 1, extra: 99 } — every expected value
+      // matches but the response has an EXTRA field. allowAdditionalFields:false
+      // SHOULD FAIL ("Response contained unexpected fields"), but the source uses
+      // a subset check (objectExistsInObject(expected, actual)) that ignores
+      // extras, so noUnexpectedFields stays true and the step PASSes. Documents
+      // current behavior; flip to expect FAIL once #437 is fixed.
+      stubResponse({ status: 200, data: { a: 1, extra: 99 } });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+            allowAdditionalFields: false,
+            response: { body: { a: 1 } },
+          },
+        },
+      });
+      // TODO(bug #437): should be FAIL / noUnexpectedFields === false.
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.noUnexpectedFields, true);
     });
 
     it("PASSes noUnexpectedFields when the expected body is a non-object (string)", async function () {
@@ -1176,6 +1214,31 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.match(result.description, /Response data didn't match the OpenAPI schema/);
     });
 
+    it("validates BOTH request and response schemas with validateAgainstSchema: 'both'", async function () {
+      // 'both' runs the request-body preflight gate AND the response-body
+      // assertion; a valid request + valid response passes both.
+      stubResponse({ status: 201, data: { id: 7 } });
+      const p = writeDefinition(sampleDefinition());
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            openApi: {
+              descriptionPath: p,
+              operationId: "createUser",
+              validateAgainstSchema: "both",
+              statusCode: 201,
+            },
+            request: { body: { name: "Valid Name" } },
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.responseSchemaValid, true);
+      assert.match(result.description, /Request body matched the OpenAPI schema/);
+      assert.match(result.description, /Response data matched the OpenAPI schema/);
+    });
+
     it("merges openApi.headers into request headers", async function () {
       stubResponse({ status: 201, data: { id: 7 } });
       const p = writeDefinition(sampleDefinition());
@@ -1195,7 +1258,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
         },
       });
       assert.equal(result.status, "PASS", result.description);
-      assert.equal(lastRequestConfig.headers.Authorization, "Bearer abc");
+      assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer abc");
     });
 
     it("mockResponse uses an explicit response.body over the example", async function () {
@@ -1277,7 +1340,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
       // Path param filled from example, query + header params merged into request.
       assert.equal(lastRequestConfig.url, "http://api.example.com/users/u1");
       assert.deepEqual(lastRequestConfig.params, { q: "searchval" });
-      assert.equal(lastRequestConfig.headers["X-Req"], "hval");
+      assert.equal(reqHeader(lastRequestConfig, "X-Req"), "hval");
     });
 
     it("merges request/response examples with pre-existing step values", async function () {
@@ -1342,8 +1405,8 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.equal(result.status, "PASS", result.description);
       // Example + step values coexist on the outgoing request.
       assert.deepEqual(lastRequestConfig.params, { q: "qex", extra: "e" });
-      assert.equal(lastRequestConfig.headers["X-Req"], "hex");
-      assert.equal(lastRequestConfig.headers["X-Own"], "own");
+      assert.equal(reqHeader(lastRequestConfig, "X-Req"), "hex");
+      assert.equal(reqHeader(lastRequestConfig, "X-Own"), "own");
     });
 
     it("handles useExample:'both' for an operation with no request examples", async function () {
