@@ -27,10 +27,10 @@
           }
         },
         {
-          "description": "An invalid embedded expression (jq syntax error) is preserved verbatim, not leaked.",
+          "description": "An invalid embedded expression (jq syntax error) is preserved verbatim, not leaked. The jq argument is a literal (no $$token), so consuming the value below via a $VAR arg can't collapse a $$ into $.",
           "runBrowserScript": "return 'xyz';",
           "variables": {
-            "BAD_VAR": "keep-{{jq($$result, \"@@@invalid\")}}"
+            "BAD_VAR": "keep-{{jq(1, \"@@@invalid\")}}"
           }
         },
         {
@@ -40,7 +40,7 @@
             "args": [
               "$BAD_VAR"
             ],
-            "output": "/keep-\\{\\{jq\\(\\$\\$result, \"@@@invalid\"\\)\\}\\}/"
+            "output": "/keep-\\{\\{jq\\(1, \"@@@invalid\"\\)\\}\\}/"
           }
         }
       ]
