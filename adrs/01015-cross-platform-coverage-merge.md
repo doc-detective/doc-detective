@@ -75,6 +75,11 @@ and OS-specific — is handled by two small, dependency-free scripts:
 * Caveat: the gating check's name changes from `Coverage ratchet (root)` to
   `Coverage ratchet (root, cross-platform)`. If it was added as a **required status check** in branch
   protection, the maintainer must update the required-check name (a repo setting, outside this PR).
+* Requirement: raw V8 coverage encodes character offsets into the emitted `dist/**/*.js`, so the
+  merge only maps correctly if every cell's `dist` is **byte-identical** to the merge machine's.
+  `tsc` defaults to CRLF on Windows, which would shift every Windows offset; `tsconfig.json` now
+  pins `newLine: "lf"` so `dist` is LF on all platforms. (`.gitattributes` normalizes checked-in
+  sources, but `dist` is built, not committed, so the compiler setting is what guarantees this.)
 
 ### Confirmation
 

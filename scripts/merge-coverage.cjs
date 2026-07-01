@@ -35,6 +35,10 @@ let outDir = path.join("coverage", "tmp");
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--out") {
     outDir = args[++i];
+    if (typeof outDir !== "string" || outDir.length === 0) {
+      console.error("merge-coverage: --out requires a directory value.");
+      process.exit(1);
+    }
   } else {
     inputDirs.push(args[i]);
   }
@@ -48,7 +52,18 @@ if (inputDirs.length === 0) {
   process.exit(1);
 }
 
+// Safety: the output directory is wiped below (rmSync -r -f), so refuse any
+// value that isn't a real subdirectory of the cwd — a typo like `--out .` or
+// `--out /` must never delete the working tree or filesystem root.
 outDir = path.resolve(outDir);
+const rel = path.relative(process.cwd(), outDir);
+if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) {
+  console.error(
+    `merge-coverage: refusing --out "${outDir}" — it must be a subdirectory of ${process.cwd()}.`
+  );
+  process.exit(1);
+}
+
 // The merge machine's absolute file:// prefix for the repo's dist.
 const distPrefix = pathToFileURL(path.resolve("dist")).href;
 
@@ -92,9 +107,13 @@ for (const dir of inputDirs) {
       }
     }
 
-    // Namespace the filename by source directory so identically-named raw files
-    // from different cells never collide in the merged directory.
-    const outName = `${path.basename(resolvedDir)}-${name}`;
+    // Namespace by source directory so identically-named raw files from
+    // different cells never collide — but KEEP the `coverage-` prefix, since
+    // `c8 report` discovers raw V8 files by globbing `coverage-*.json`.
+    const outName = `coverage-${path.basename(resolvedDir)}-${name.replace(
+      /^coverage-/,
+      ""
+    )}`;
     fs.writeFileSync(path.join(outDir, outName), JSON.stringify(data));
     mergedFiles++;
   }
