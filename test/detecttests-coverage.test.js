@@ -267,7 +267,7 @@ describe("detectTests coverage", function () {
       assert.equal(specs.length, 0);
     });
 
-    it("builds a runShell step from a custom runShell fileType (currently drops the spec — bug #435)", async function () {
+    it("emits a spec with a runShell step from a custom runShell fileType (#435)", async function () {
       const script = write("run.task", "echo task");
       const config = await makeConfig({
         input: [script],
@@ -275,13 +275,15 @@ describe("detectTests coverage", function () {
           { name: "task", extensions: ["task"], runShell: { command: "echo", args: ["ran"] } },
         ],
       });
-      // TODO(bug #435): the runShell branch builds + validates the test and
-      // pushes it onto spec.tests, but then `continue`s past the spec_v3
-      // validation + specs.push(spec) finalization — so a runShell-typed file
-      // produces NO output spec. We assert the current (buggy) behavior here;
-      // flip this to expect a 1-spec/1-runShell-step result once #435 is fixed.
+      // The runShell branch builds + validates the test, then finalizes the
+      // spec (spec_v3 validation + resolvePaths + specs.push) just like the
+      // non-runShell path — so a runShell-typed file emits one spec whose single
+      // test has a single runShell step.
       const specs = await parseTests({ config, files: [script] });
-      assert.deepEqual(specs, []);
+      assert.equal(specs.length, 1);
+      assert.equal(specs[0].tests.length, 1);
+      assert.equal(specs[0].tests[0].steps.length, 1);
+      assert.ok(specs[0].tests[0].steps[0].runShell, "step should be a runShell step");
     });
 
     it("skips a file when its runShell template produces an invalid step", async function () {

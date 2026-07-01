@@ -685,6 +685,35 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         }
 
         spec.tests.push(test);
+
+        // Finalize the spec the same way the non-runShell path does below:
+        // validate spec_v3, then on success resolve paths, re-stamp the phase,
+        // and push. Previously this branch `continue`d straight past the
+        // shared finalization, so a runShell-typed file built a valid test but
+        // never emitted a spec (#435). Skip parseContent — runShell files carry
+        // no inline statements to parse.
+        const specValidation = validate({
+          schemaKey: "spec_v3",
+          object: spec,
+          addDefaults: false,
+        });
+        if (!specValidation.valid) {
+          log(
+            config,
+            "warning",
+            `Tests from ${file} don't create a valid test specification. Skipping.`
+          );
+        } else {
+          spec = await resolvePaths({
+            config: config,
+            object: spec,
+            filePath: file,
+          });
+          // Re-stamp the phase: resolvePaths isn't guaranteed to preserve
+          // unknown keys. Mirrors the JSON/YAML and text branches.
+          spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
+          specs.push(spec);
+        }
         continue;
       }
 
