@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { switchToSurface } from "./browserSurface.js";
 import {
   log,
   calculateFractionalDifference,
@@ -64,6 +65,16 @@ async function runBrowserScript({
     result.description =
       "No browser available. runBrowserScript requires a browser context.";
     return result;
+  }
+
+  // Multi-surface Phase 3: focus the window/tab the script runs in.
+  if (step.runBrowserScript.surface !== undefined) {
+    const switched = await switchToSurface(driver, step.runBrowserScript.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
   }
 
   // Execute script in the page, racing against a timeout.

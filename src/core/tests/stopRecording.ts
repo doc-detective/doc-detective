@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
+import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
@@ -73,6 +74,17 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     if (recording.type === "MediaRecorder") {
       // Browser engine.
 
+      // Remember the focused content tab so multi-tab tests return to the tab
+      // they were on, not an arbitrary surviving handle.
+      let returnTab: string | null = null;
+      try {
+        returnTab = await driver.getWindowHandle();
+      } catch {
+        /* stale focus; fall back to any survivor below */
+      }
+      const pickReturnHandle = (remaining: string[]) =>
+        returnTab && remaining.includes(returnTab) ? returnTab : remaining[0];
+
       // Switch to recording tab
       await driver.switchToWindow(recording.tab);
 
@@ -90,8 +102,9 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
           (h: string) => h !== recording.tab
         );
         if (remainingHandles.length > 0) {
-          await driver.switchToWindow(remainingHandles[0]);
+          await driver.switchToWindow(pickReturnHandle(remainingHandles));
         }
+        await syncHandles(driver);
         dropHandle();
         return result;
       }
@@ -120,8 +133,10 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         (h: string) => h !== recording.tab
       );
       if (remainingHandles.length > 0) {
-        await driver.switchToWindow(remainingHandles[0]);
+        await driver.switchToWindow(pickReturnHandle(remainingHandles));
       }
+      // Drop the recorder tab from the window/tab registry.
+      await syncHandles(driver);
 
       // Convert the downloaded .webm into the target format/location.
       await transcode({

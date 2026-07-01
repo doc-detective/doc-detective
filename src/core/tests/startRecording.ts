@@ -1,6 +1,7 @@
 import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
+import { switchToSurface, registerOpenedHandle } from "./browserSurface.js";
 import {
   resolveRecordPlan,
   safeContextId,
@@ -41,6 +42,20 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     result.status = "SKIPPED";
     result.description = "Recording is disabled (record: false).";
     return result;
+  }
+
+  // Multi-surface Phase 3: focus the window/tab to record.
+  if (
+    typeof step.record === "object" &&
+    step.record !== null &&
+    step.record.surface !== undefined
+  ) {
+    const switched = await switchToSurface(driver, step.record.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
   }
 
   // Convert boolean to string
@@ -172,6 +187,9 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     await instantiateCursor(driver, { position: "center" });
     // Create new tab
     const recorderTab = await driver.createWindow("tab");
+    // Register the recorder tab as INTERNAL so window/tab selectors (index,
+    // -1/newest, criteria) never see it (multi-surface Phase 3).
+    registerOpenedHandle(driver, { handle: recorderTab.handle, internal: true });
     // Switch to new tab
     await driver.switchToWindow(recorderTab.handle);
     await driver.url("chrome://new-tab-page");

@@ -2168,15 +2168,21 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("type to a browser-engine surface (chrome) FAILs with 'surface kind not yet supported'", async () => {
-    // A reserved browser engine keyword is a future surface kind; Phase 1 must
-    // FAIL at runtime rather than mis-routing it to a process or element.
+  it("type to a browser surface of a DIFFERENT engine FAILs naming the active browser (Phase 3)", async () => {
+    // Phase 3 resolves engine keywords to the ACTIVE browser. Pin the context
+    // to firefox so `surface: "chrome"` is deterministically a mismatch, and
+    // assert the loud engine-mismatch FAIL (forward-compatible: the same spec
+    // starts working when multi-browser lands).
     const t = {
       tests: [
         {
-          steps: [
-            { type: { keys: ["hello"], surface: "chrome" } },
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "firefox", headless: true }],
+            },
           ],
+          steps: [{ type: { keys: ["hello"], surface: "chrome" } }],
         },
       ],
     };
@@ -2189,7 +2195,41 @@ describe("getRunner() function", function () {
       assert.equal(result.summary.steps.fail, 1);
       const step = result.specs[0].tests[0].contexts[0].steps[0];
       assert.equal(step.result, "FAIL");
-      assert.match(step.resultDescription, /surface kind not yet supported/);
+      assert.match(step.resultDescription, /not the active browser/);
+      assert.match(step.resultDescription, /firefox/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("type to a NAMED browser surface FAILs as a later-phase feature (Phase 3)", async () => {
+    // The `name` field is reserved for multi-browser targeting. The check is
+    // categorical (runs before the engine check), so the message is stable on
+    // any engine.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              type: {
+                keys: ["hello"],
+                surface: { browser: "firefox", name: "secondary" },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-named-surface.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /later phase/);
     } finally {
       fs.unlinkSync(tempFilePath);
     }
