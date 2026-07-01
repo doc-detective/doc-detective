@@ -732,13 +732,16 @@ describe("HerettoUploader (hermetic HTTP)", function () {
     });
 
     function baseArgs(overrides = {}) {
+      // Spread overrides FIRST so the merged integrationConfig/sourceIntegration
+      // below win — otherwise a partial override (e.g. { sourceIntegration:
+      // { fileId } }) would drop the default filePath and crash upload().
       return {
         config: {},
+        ...overrides,
         integrationConfig: { organizationId: "acme", apiToken: "tok", username: "u", ...overrides.integrationConfig },
-        localFilePath: tmpFile,
+        localFilePath: overrides.localFilePath ?? tmpFile,
         sourceIntegration: { filePath: "images/b.png", ...overrides.sourceIntegration },
         log: silentLog,
-        ...overrides,
       };
     }
 
@@ -794,6 +797,30 @@ describe("HerettoUploader (hermetic HTTP)", function () {
       }));
       assert.equal(res.status, "PASS");
       assert.match(res.description, /existing-file/);
+    });
+
+    it("falls through getChildFolderByName (null) → searchFolderByName → global search, then FAILs", async function () {
+      const state = installHttpStub();
+      // deps supply a ditamap parent + target folder name but no direct folder
+      // match, so upload() calls getChildFolderByName; all three lookups miss.
+      state.queue.push({ response: { statusCode: 200, body: "<folders></folders>" } }); // getChildFolderByName → null
+      state.queue.push({ response: { statusCode: 200, body: "" } }); // searchFolderByName → null
+      state.queue.push({ response: { statusCode: 200, body: "" } }); // searchFileByName (global) → null
+      const u = new HerettoUploader();
+      const res = await u.upload(baseArgs({
+        integrationConfig: {
+          organizationId: "acme", apiToken: "tok", username: "u",
+          resourceDependencies: {
+            _ditamapParentFolderId: "dmp-parent",
+            "unrelated/other/x.png": { uuid: "x", parentFolderId: "otherfolder" },
+          },
+        },
+        sourceIntegration: { filePath: "images/b.png" },
+      }));
+      assert.equal(res.status, "FAIL");
+      assert.match(res.description, /Could not find file or parent folder/);
+      // getChildFolderByName was invoked against the ditamap's parent folder.
+      assert.equal(state.calls[0].path, "/rest/all-files/dmp-parent");
     });
 
     it("creates a new document when not found in the target folder", async function () {
