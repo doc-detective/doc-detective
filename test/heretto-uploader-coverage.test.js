@@ -75,8 +75,13 @@ function makeFakeRequest(plan, cb) {
  * Returns an object with a `queue` array; each entry is a plan (see above).
  * Requests consume plans FIFO. `calls` records the options passed.
  */
+// Tracks the stub installed by the current test so afterEach can assert its
+// queue was fully drained — fail-fast catches EXTRA calls; this catches FEWER.
+let activeStub = null;
+
 function installHttpStub() {
   const state = { queue: [], calls: [] };
+  activeStub = state;
   const handler = function (options, cb) {
     state.calls.push(options);
     if (state.queue.length === 0) {
@@ -105,6 +110,16 @@ describe("HerettoUploader (hermetic HTTP)", function () {
   const username = "user@example.com";
 
   afterEach(function () {
+    // Every enqueued response must have been consumed — catches an
+    // implementation that makes FEWER requests than the test expects.
+    if (activeStub) {
+      assert.equal(
+        activeStub.queue.length,
+        0,
+        "all queued HTTP responses must be consumed"
+      );
+      activeStub = null;
+    }
     sinon.restore();
   });
 
@@ -359,6 +374,7 @@ describe("HerettoUploader (hermetic HTTP)", function () {
       const u = new HerettoUploader();
       const res = await u.createDocument({ apiBaseUrl, apiToken, username, parentFolderId: "pf", filename: "b.png", mimeType: "image/png", log: silentLog });
       assert.equal(res.documentId, "new-doc-2");
+      assert.equal(res.created, true);
     });
     it("rejects when the ID cannot be parsed from a success body", async function () {
       const state = installHttpStub();
