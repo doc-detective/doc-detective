@@ -50,7 +50,7 @@ For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-actio
 
 ## Step 4: Run headless in CI
 
-Put the pieces together in a generic, platform-agnostic pipeline step. Because the CLI doesn't fail on test failures on its own, gate the build explicitly (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-5-fail-ci-when-tests-fail)):
+Put the pieces together in a generic, platform-agnostic pipeline step. Because the CLI doesn't fail on test failures on its own, gate the build explicitly (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail)):
 
 ```bash
 docker run -v .:/app \
