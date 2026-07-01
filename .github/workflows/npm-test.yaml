@@ -12,8 +12,9 @@ on:
       - opened
       - reopened
       - synchronize
-    # Only run the full matrix when product/test code or the build & dependency
-    # inputs change. Docs-only, samples-only, or test-fixture-only PRs skip it.
+    # Only run the full matrix when product code (src/**, which the test suite
+    # exercises) or the build & dependency inputs change. Docs-only,
+    # samples-only, or test-fixture-only (test/**) PRs skip it.
     # `src/**` also covers the doc-detective-common workspace (src/common).
     # Use `workflow_dispatch` to run the matrix on demand for excluded paths.
     paths:
