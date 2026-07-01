@@ -107,13 +107,13 @@ for (const dir of inputDirs) {
       }
     }
 
-    // Namespace by source directory so identically-named raw files from
-    // different cells never collide — but KEEP the `coverage-` prefix, since
-    // `c8 report` discovers raw V8 files by globbing `coverage-*.json`.
-    const outName = `coverage-${path.basename(resolvedDir)}-${name.replace(
-      /^coverage-/,
-      ""
-    )}`;
+    // Namespace by a per-cell index AND source directory so raw files never
+    // collide — even if two input dirs share a trailing name — but KEEP the
+    // `coverage-` prefix, since `c8 report` discovers raw V8 files by globbing
+    // `coverage-*.json`.
+    const outName = `coverage-${cells}-${path.basename(
+      resolvedDir
+    )}-${name.replace(/^coverage-/, "")}`;
     fs.writeFileSync(path.join(outDir, outName), JSON.stringify(data));
     mergedFiles++;
   }
