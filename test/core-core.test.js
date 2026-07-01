@@ -2202,6 +2202,47 @@ describe("getRunner() function", function () {
     }
   });
 
+  it("a tab selector that matches nothing FAILs naming the selector (Phase 3)", async () => {
+    // Acting on a missing tab is a targeting error and must name the selector
+    // so the author can see what didn't resolve. (Contrast closeSurface, where
+    // a no-match is an idempotent PASS no-op.)
+    const t = {
+      tests: [
+        {
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "firefox", headless: true }],
+            },
+          ],
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              find: {
+                elementText: "anything",
+                surface: { browser: "firefox", tab: "missing-tab" },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-find-missing-tab.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      const step = result.specs[0].tests[0].contexts[0].steps[1];
+      assert.equal(step.result, "FAIL");
+      assert.match(step.resultDescription, /No tab matched/);
+      assert.match(step.resultDescription, /missing-tab/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("type to a NAMED browser surface FAILs as a later-phase feature (Phase 3)", async () => {
     // The `name` field is reserved for multi-browser targeting. The check is
     // categorical (runs before the engine check), so the message is stable on
