@@ -70,12 +70,33 @@ jobs:
       - run: node ./bin/doc-detective.js install all --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+      # NODE_V8_COVERAGE makes Node emit raw V8 coverage for the root suite (and
+      # every node subprocess it spawns) into coverage/tmp — the matrix cells
+      # double as cross-platform coverage collectors so no separate full-suite
+      # run is needed. An absolute path keeps subprocesses with a different cwd
+      # writing to the same directory.
       - run: npm test
         env:
           HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
           HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+          NODE_V8_COVERAGE: ${{ github.workspace }}/coverage/tmp
+
+      # Shrink the raw V8 coverage to the repo's own dist entries and rewrite
+      # their paths to be OS-agnostic, so the coverage-merge job can re-root and
+      # union them regardless of which OS produced them. Runs even if a test
+      # failed so a flaky cell still contributes what it measured.
+      - if: always()
+        run: node scripts/prune-coverage.cjs coverage/tmp
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-coverage-${{ matrix.os }}-node${{ matrix.node }}
+          path: coverage/tmp
+          retention-days: 3
+          if-no-files-found: warn
 
   # Coverage ratchet for the doc-detective-common subpackage. The matrix above
   # builds common on every cell but never measures coverage; this single
@@ -106,25 +127,22 @@ jobs:
       - run: npm run test:coverage:ratchet
         working-directory: src/common
 
-  # Coverage ratchet for the ROOT doc-detective package. Unlike the common
-  # ratchet above, root coverage exercises the end-to-end runner, so this job
-  # mirrors the matrix's heavy setup (build + `install all` + HERETTO secrets)
-  # and runs `npm run test:coverage` (c8 over the root suite, `test/*.test.js`)
-  # on a single platform, then enforces coverage-thresholds.json. Only root code
-  # counts toward this number: the `npm run build` step does run the common
-  # workspace's own tests (via build:common), but that coverage is measured
-  # against src/common/dist and dist/common/** is excluded from .c8rc.json, and
-  # the root `test:common` script is intentionally not part of test:coverage —
-  # common is gated by its own ratchet job above. Kept off the OS/node matrix
-  # because one measured run is the baseline; both callers (PR gate + release
-  # gate) wait on it, so a coverage regression blocks merges and releases. The
-  # coverage report is uploaded so the measured percentage is always visible.
-  # timeout-minutes matches the matrix (90) since c8 instrumentation adds
-  # overhead to the E2E run.
-  coverage-ratchet-root:
-    name: Coverage ratchet (root)
+  # Coverage ratchet for the ROOT doc-detective package — cross-platform union.
+  # Every matrix cell above collects raw V8 coverage (NODE_V8_COVERAGE) from the
+  # full end-to-end run and uploads its pruned, OS-agnostic slice. This job waits
+  # on the whole matrix, re-roots each cell's paths to its own dist, and runs
+  # `c8 report` over the UNION — so Windows/macOS-only branches that a single-OS
+  # run could never reach now count toward the measured percentage, and the
+  # ratchet enforces coverage-thresholds.json against that honest union. Both
+  # callers (PR gate + release gate) wait on the whole reusable workflow, so a
+  # coverage regression blocks merges and releases. Reusing the matrix's runs
+  # means no separate full-suite coverage run is needed. The merged report is
+  # uploaded so the measured percentage is always visible.
+  coverage-merge:
+    name: Coverage ratchet (root, cross-platform)
+    needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -137,20 +155,23 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - run: npm ci
+      # Build so dist/**/*.js + sourcemaps + src/** exist: c8 report remaps each
+      # raw dist entry through its sourcemap back to the original src/** file,
+      # exactly as the single-OS job did.
       - run: npm run build
-      # Pre-warm the browser cache the same way the matrix does, so E2E tests
-      # that drive Chrome are exercised (and counted) under coverage.
-      - run: node ./bin/doc-detective.js install all --yes
-        env:
-          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
-      # c8 mocha over the full root suite -> coverage/coverage-summary.json.
-      - run: npm run test:coverage
-        env:
-          HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
-          HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
-          HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
-          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      # Pull every cell's raw-coverage-* artifact into its own subdirectory.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: raw-coverage-*
+          path: raw-coverage
+
+      # Re-root each cell's OS-agnostic dist paths to this machine's dist and
+      # collect them into coverage/tmp, then let c8 report the union.
+      - run: node scripts/merge-coverage.cjs raw-coverage/* --out coverage/tmp
+      - run: npx c8 report --temp-directory coverage/tmp --reporter json-summary --reporter text --reporter lcov
       - run: npm run test:coverage:ratchet
+
       - if: always()
         uses: actions/upload-artifact@v4
         with:

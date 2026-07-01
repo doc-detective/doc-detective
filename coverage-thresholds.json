@@ -1,6 +1,6 @@
 {
-  "description": "Coverage baseline thresholds for the root doc-detective package, measured from the full root test suite (test/*.test.js) under c8 in CI. These values should only increase, never decrease. 'tolerance' absorbs sub-tolerance run-to-run branch wobble from the non-deterministic E2E suite — a metric only fails when it drops MORE than 'tolerance' percentage points below baseline.",
-  "lastUpdated": "2026-06-30",
+  "description": "Coverage baseline thresholds for the root doc-detective package, measured as the CROSS-PLATFORM UNION of the full end-to-end test suite: every OS/node matrix cell collects raw V8 coverage (NODE_V8_COVERAGE) and the coverage-merge job re-roots and reports their union via c8, so OS-gated (Windows/macOS) branches count. These values should only increase, never decrease. 'tolerance' absorbs sub-tolerance run-to-run branch wobble from the non-deterministic E2E suite — a metric only fails when it drops MORE than 'tolerance' percentage points below baseline.",
+  "lastUpdated": "2026-07-01",
   "tolerance": 0.1,
   "lines": 86.86,
   "statements": 86.86,
