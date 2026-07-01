@@ -211,7 +211,14 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     // Example string: "Content-Type: application/json\nAuthorization: Bearer token"
     const headers: any = {};
     step.httpRequest.request.headers.split("\n").forEach((header: any) => {
-      const [key, value] = header.split(":").map((s: any) => s.trim());
+      // Split on the FIRST colon only. Values commonly contain colons (URLs,
+      // timestamps like "12:00:00 GMT", host:port), so splitting on every colon
+      // truncates the value at the second colon. A colon-less line has no
+      // key/value pair and is skipped (preserving prior behavior).
+      const idx = header.indexOf(":");
+      if (idx === -1) return;
+      const key = header.slice(0, idx).trim();
+      const value = header.slice(idx + 1).trim();
       if (key && value) {
         headers[key] = value;
       }

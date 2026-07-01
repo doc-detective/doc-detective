@@ -180,6 +180,28 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.ok(reqHeader(lastRequestConfig, "bad-line-without-colon") === undefined);
     });
 
+    it("keeps colons in string-header values (splits on the first colon only)", async function () {
+      stubResponse({ status: 200, data: { ok: true } });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+            request: {
+              // A value that itself contains colons (a URL) plus a normal value.
+              headers: "X-Callback: https://example.com/cb\nAuthorization: Bearer t",
+            },
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      // The full URL survives; splitting on every colon would truncate it to "https".
+      assert.equal(reqHeader(lastRequestConfig, "X-Callback"), "https://example.com/cb");
+      assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer t");
+    });
+
     it("parses a stringified-JSON request body into an object", async function () {
       stubResponse({ status: 200, data: { ok: true } });
       const result = await httpRequest({
