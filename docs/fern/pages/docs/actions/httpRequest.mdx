@@ -14,7 +14,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
   - `method`: (Optional) The HTTP method (for example, `GET`, `POST`, `PUT`, `DELETE`). Defaults to `GET`.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the request to complete.
   - `request`: (Optional) An object defining the request details:
-    - `headers`: (Optional) Key-value pairs for request headers.
+    - `headers`: (Optional) Request headers, as either key-value pairs or a newline-separated string block (for example, `Content-Type: application/json\nAuthorization: Bearer token`). In the string form, Doc Detective splits each line on its first colon, so header values can contain colons themselves—for example, full URLs, timestamps like `12:00:00 GMT`, or `host:port` values.
     - `parameters`: (Optional) Key-value pairs for query string parameters.
     - `body`: (Optional) The request body. Can be a string or JSON object.
   - `response`: (Optional) An object defining expected response validation:
@@ -132,6 +132,35 @@ Here are a few ways you might use the `httpRequest` action:
               "body": {
                 "name": "morpheus",
                 "job": "zion resident"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Send request headers as a string block
+
+You can also provide `request.headers` as a single newline-separated string instead of an object. Doc Detective splits each line on its first colon into a name and value, so values that contain colons—such as callback URLs or timestamps—stay intact.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Send request headers as a newline-separated string.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users",
+            "method": "POST",
+            "request": {
+              "headers": "Content-Type: application/json\nX-Callback: https://example.com/cb",
+              "body": {
+                "name": "morpheus",
+                "job": "leader"
               }
             }
           }
