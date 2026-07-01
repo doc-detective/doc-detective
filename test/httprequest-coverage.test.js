@@ -756,11 +756,12 @@ describe("httpRequest coverage (stubbed axios)", function () {
   // allowAdditionalFields
   // ---------------------------------------------------------------------------
   describe("allowAdditionalFields", function () {
-    it("FAILs when an expected field's value does not match (drives noUnexpectedFields false)", async function () {
-      // NOTE: this is a VALUE mismatch (expected unexpected:3, actual :2), not an
-      // extra-field case — the object subset comparison FAILs, which drives
-      // noUnexpectedFields false. The genuine extra-field behavior is covered by
-      // the #437 test below.
+    it("FAILs on a value mismatch via the body-match check, not noUnexpectedFields", async function () {
+      // VALUE mismatch (expected unexpected:3, actual :2) with the SAME key-set.
+      // The corrected noUnexpectedFields check is purely about extra KEYS, so it
+      // stays true here — the step still FAILs, but via the body-match check
+      // (bodyMatches false), which owns value comparison. The genuine extra-field
+      // behavior is covered by the #437 test below.
       stubResponse({ status: 200, data: { a: 1, unexpected: 2 } });
       const result = await httpRequest({
         config,
@@ -775,16 +776,17 @@ describe("httpRequest coverage (stubbed axios)", function () {
         },
       });
       assert.equal(result.status, "FAIL");
-      assert.equal(result.outputs.noUnexpectedFields, false);
+      assert.equal(result.outputs.noUnexpectedFields, true);
+      assert.equal(result.outputs.bodyMatches, false);
     });
 
-    it("[bug #437] does not yet reject a response with fields beyond the expected body", async function () {
+    it("[bug #437] rejects a response with fields beyond the expected body", async function () {
       // Expected { a: 1 }, actual { a: 1, extra: 99 } — every expected value
-      // matches but the response has an EXTRA field. allowAdditionalFields:false
-      // SHOULD FAIL ("Response contained unexpected fields"), but the source uses
-      // a subset check (objectExistsInObject(expected, actual)) that ignores
-      // extras, so noUnexpectedFields stays true and the step PASSes. Documents
-      // current behavior; flip to expect FAIL once #437 is fixed.
+      // matches but the response has an EXTRA field. With allowAdditionalFields:
+      // false this MUST FAIL: the response contains a key absent from the
+      // expected body. Previously a subset check (objectExistsInObject(expected,
+      // actual)) ignored extras and wrongly PASSed (#437); the fixed check now
+      // flags the extra field.
       stubResponse({ status: 200, data: { a: 1, extra: 99 } });
       const result = await httpRequest({
         config,
@@ -798,9 +800,9 @@ describe("httpRequest coverage (stubbed axios)", function () {
           },
         },
       });
-      // TODO(bug #437): should be FAIL / noUnexpectedFields === false.
-      assert.equal(result.status, "PASS", result.description);
-      assert.equal(result.outputs.noUnexpectedFields, true);
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.outputs.noUnexpectedFields, false);
+      assert.match(result.description, /unexpected fields/);
     });
 
     it("PASSes noUnexpectedFields when the expected body is a non-object (string)", async function () {

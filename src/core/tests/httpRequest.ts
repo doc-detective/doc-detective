@@ -445,10 +445,17 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     // true) — matching the prior outcome (FAIL only when there ARE unexpected
     // fields).
     const expectedBody = step.httpRequest.response?.body;
+    // `objectExistsInObject(expected, actual)` is a SUBSET check: it verifies the
+    // response CONTAINS every expected key, but ignores EXTRA keys, so it can
+    // never flag additional fields (#437). To honor allowAdditionalFields:false
+    // the response must contain NO keys absent from the expected body — checked
+    // recursively for nested objects by `objectHasNoExtraKeys`. A non-object /
+    // undefined expected body has no keys to compare against, so there are no
+    // "unexpected" fields to flag (PASS). Value mismatches remain the concern of
+    // the body-match check (5) below, not of this key-set check.
     const noUnexpectedFields =
       expectedBody && typeof expectedBody === "object"
-        ? objectExistsInObject(expectedBody, response.data).result.status !==
-          "FAIL"
+        ? objectHasNoExtraKeys(expectedBody, response.data)
         : true;
     result.outputs.noUnexpectedFields = noUnexpectedFields;
     specs.push({
@@ -775,6 +782,51 @@ function arrayExistsInArray(expected: any, actual: any): any {
   }
   const result = { status, description };
   return { result };
+}
+
+/**
+ * Returns true iff `actual` contains no keys that are absent from `expected`,
+ * recursively for nested plain objects. Used to enforce
+ * `allowAdditionalFields: false`: the response must not carry fields beyond
+ * those the spec author declared in `response.body`.
+ *
+ * Only object-vs-object shapes are compared key-by-key; when either side isn't a
+ * plain object (primitive, array, null, mismatched shape) there are no object
+ * keys to compare, so it reports no extra keys (true). Value comparison and
+ * type/shape matching are handled elsewhere (the body-match check); this
+ * function is concerned solely with the presence of unexpected keys.
+ *
+ * An EMPTY expected object declares no fields, so it imposes no key constraint:
+ * it reports no extra keys (true) at any depth. This preserves the unset-body
+ * behavior (`response.body` defaults to `{}`), where "no expected fields" must
+ * never flag the whole response as unexpected.
+ */
+function objectHasNoExtraKeys(expected: any, actual: any): boolean {
+  const isPlainObject = (value: any) =>
+    typeof value === "object" && value !== null && !Array.isArray(value);
+  // If either side isn't a plain object, there is no object key-set to compare;
+  // treat as "no extra keys" and defer any shape/value disagreement to the
+  // dedicated body-match check.
+  if (!isPlainObject(expected) || !isPlainObject(actual)) {
+    return true;
+  }
+  // No declared fields -> no constraint on which keys may appear.
+  if (Object.keys(expected).length === 0) {
+    return true;
+  }
+  for (const key of Object.keys(actual)) {
+    if (!Object.prototype.hasOwnProperty.call(expected, key)) {
+      // `actual` has a key the author didn't declare -> unexpected field.
+      return false;
+    }
+    // Recurse into nested plain objects to flag extras at any depth.
+    if (isPlainObject(expected[key]) && isPlainObject(actual[key])) {
+      if (!objectHasNoExtraKeys(expected[key], actual[key])) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 function objectExistsInObject(expected: any, actual: any): any {
