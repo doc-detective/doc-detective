@@ -2,8 +2,8 @@
   "description": "Coverage baseline thresholds for the root doc-detective package, measured from the full root test suite (test/*.test.js) under c8 in CI. These values should only increase, never decrease. 'tolerance' absorbs sub-tolerance run-to-run branch wobble from the non-deterministic E2E suite — a metric only fails when it drops MORE than 'tolerance' percentage points below baseline.",
   "lastUpdated": "2026-06-30",
   "tolerance": 0.1,
-  "lines": 85.87,
-  "statements": 85.87,
+  "lines": 86.86,
+  "statements": 86.86,
   "functions": 87.94,
-  "branches": 82.48
+  "branches": 83.25
 }
