@@ -29,6 +29,17 @@
       "object": {
         "type": "object",
         "properties": {
+          "surface": {
+            "description": "The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.",
+            "anyOf": [
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/byName"
+              },
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/browser"
+              }
+            ]
+          },
           "path": {
             "type": "string",
             "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",

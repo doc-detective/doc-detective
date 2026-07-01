@@ -540,6 +540,129 @@ export type GoTo1 = GoToURLSimple | GoToURLDetailed;
  */
 export type GoToURLSimple = string;
 /**
+ * Navigate to an HTTP or HTTPS URL.
+ */
+export type GoToURLDetailed = {
+  /**
+   * The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.
+   */
+  surface?: SurfaceByName | BrowserSurface;
+  /**
+   * Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.
+   */
+  newTab?:
+    | boolean
+    | string
+    | {
+        /**
+         * Name for the new tab.
+         */
+        name?: string;
+      };
+  /**
+   * Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.
+   */
+  newWindow?:
+    | boolean
+    | string
+    | {
+        /**
+         * Name for the new window.
+         */
+        name?: string;
+        /**
+         * Name for the new window's first tab.
+         */
+        tab?: string;
+      };
+  /**
+   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
+   */
+  url: string;
+  /**
+   * Protocol and domain to navigate to. Prepended to `url`.
+   */
+  origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   */
+  timeout?: number;
+  /**
+   * Configuration for waiting conditions after navigation.
+   */
+  waitUntil?: {
+    /**
+     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
+     */
+    networkIdleTime?: number | null;
+    /**
+     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
+     */
+    domIdleTime?: number | null;
+    /**
+     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
+     */
+    find?:
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        };
+  };
+} & NewTabAndNewWindowAreMutuallyExclusive &
+  NewTabConflictsWithASurfaceTabSelector &
+  NewWindowConflictsWithASurfaceWindowOrTabSelector;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector = ByName | ByIndex | ByCriteria;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector1 = ByName1 | ByIndex1 | ByCriteria1;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName1 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex1 = number;
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition9 = string | [string, ...string[]];
@@ -911,6 +1034,34 @@ export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetaile
  */
 export type RunBrowserScriptSimple = string;
 /**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName1 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector2 = ByName2 | ByIndex2 | ByCriteria2;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName2 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex2 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector3 = ByName3 | ByIndex3 | ByCriteria3;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName3 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex3 = number;
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition17 = string | [string, ...string[]];
@@ -1010,18 +1161,9 @@ export type TypeKeysDetailed = {
   inputDelay?: number;
   surface?: Surface;
   /**
-   * After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.
+   * After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.
    */
-  waitUntil?: {
-    /**
-     * Wait until combined stdout+stderr matches. Substring, or /regex/.
-     */
-    stdio?: string;
-    /**
-     * Fixed delay (ms).
-     */
-    delayMs?: number;
-  };
+  waitUntil?: ProcessReadiness | BrowserReadiness;
   /**
    * Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
    */
@@ -1057,19 +1199,45 @@ export type TypeKeysDetailed = {
    */
   elementAria?: string;
 } & WaitUntilRequiresASurface &
-  AProcessSurfaceForbidsElementTargeting;
+  AProcessSurfaceForbidsElementTargeting &
+  AProcessSurfaceTakesProcessReadiness &
+  ABrowserSurfaceTakesBrowserReadiness;
 /**
  * Sequence of keys to enter.
  */
 export type TypeKeysSimple1 = string | string[];
 /**
- * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
  */
-export type Surface = SurfaceByName | ProcessSurface;
+export type Surface = SurfaceByName2 | ProcessSurface | BrowserSurface2;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
  */
-export type SurfaceByName = string;
+export type SurfaceByName2 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector4 = ByName4 | ByIndex4 | ByCriteria4;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName4 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex4 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector5 = ByName5 | ByIndex5 | ByCriteria5;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName5 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex5 = number;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1162,6 +1330,34 @@ export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | Capture
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName3 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector6 = ByName6 | ByIndex6 | ByCriteria6;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName6 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex6 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector7 = ByName7 | ByIndex7 | ByCriteria7;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName7 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex7 = number;
 /**
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
@@ -1391,6 +1587,34 @@ export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
  */
 export type RecordSimple = string;
 /**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName4 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector8 = ByName8 | ByIndex8 | ByCriteria8;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName8 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex8 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector9 = ByName9 | ByIndex9 | ByCriteria9;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName9 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex9 = number;
+/**
  * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
  */
 export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
@@ -1587,25 +1811,73 @@ export type Routing59 =
       [k: string]: unknown;
     };
 /**
- * Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
+ * Close one or more surfaces: background processes, or browser windows/tabs. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
  */
 export type CloseSurface1 = Surface1 | [Surface2, ...Surface2[]];
 /**
- * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
  */
-export type Surface1 = SurfaceByName1 | ProcessSurface1;
+export type Surface1 = SurfaceByName5 | ProcessSurface1 | BrowserSurface5;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
  */
-export type SurfaceByName1 = string;
+export type SurfaceByName5 = string;
 /**
- * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ * Which window to act on. Omit to use the active window.
  */
-export type Surface2 = SurfaceByName2 | ProcessSurface2;
+export type WindowTabSelector10 = ByName10 | ByIndex10 | ByCriteria10;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName10 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex10 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector11 = ByName11 | ByIndex11 | ByCriteria11;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName11 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex11 = number;
+/**
+ * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
+ */
+export type Surface2 = SurfaceByName6 | ProcessSurface2 | BrowserSurface6;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
  */
-export type SurfaceByName2 = string;
+export type SurfaceByName6 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector12 = ByName12 | ByIndex12 | ByCriteria12;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName12 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex12 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector13 = ByName13 | ByIndex13 | ByCriteria13;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName13 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex13 = number;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1830,6 +2102,34 @@ export type ElementDetailed1 =
   | {
       [k: string]: unknown;
     };
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName7 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector14 = ByName14 | ByIndex14 | ByCriteria14;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName14 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex14 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector15 = ByName15 | ByIndex15 | ByCriteria15;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName15 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex15 = number;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -2460,6 +2760,129 @@ export type GoTo3 = GoToURLSimple1 | GoToURLDetailed1;
  */
 export type GoToURLSimple1 = string;
 /**
+ * Navigate to an HTTP or HTTPS URL.
+ */
+export type GoToURLDetailed1 = {
+  /**
+   * The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.
+   */
+  surface?: SurfaceByName8 | BrowserSurface8;
+  /**
+   * Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.
+   */
+  newTab?:
+    | boolean
+    | string
+    | {
+        /**
+         * Name for the new tab.
+         */
+        name?: string;
+      };
+  /**
+   * Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.
+   */
+  newWindow?:
+    | boolean
+    | string
+    | {
+        /**
+         * Name for the new window.
+         */
+        name?: string;
+        /**
+         * Name for the new window's first tab.
+         */
+        tab?: string;
+      };
+  /**
+   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
+   */
+  url: string;
+  /**
+   * Protocol and domain to navigate to. Prepended to `url`.
+   */
+  origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   */
+  timeout?: number;
+  /**
+   * Configuration for waiting conditions after navigation.
+   */
+  waitUntil?: {
+    /**
+     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
+     */
+    networkIdleTime?: number | null;
+    /**
+     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
+     */
+    domIdleTime?: number | null;
+    /**
+     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
+     */
+    find?:
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        };
+  };
+} & NewTabAndNewWindowAreMutuallyExclusive1 &
+  NewTabConflictsWithASurfaceTabSelector1 &
+  NewWindowConflictsWithASurfaceWindowOrTabSelector1;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName8 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector16 = ByName16 | ByIndex16 | ByCriteria16;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName16 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex16 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector17 = ByName17 | ByIndex17 | ByCriteria17;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName17 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex17 = number;
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition45 = string | [string, ...string[]];
@@ -2831,6 +3254,34 @@ export type RunBrowserScript3 = RunBrowserScriptSimple1 | RunBrowserScriptDetail
  */
 export type RunBrowserScriptSimple1 = string;
 /**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName9 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector18 = ByName18 | ByIndex18 | ByCriteria18;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName18 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex18 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector19 = ByName19 | ByIndex19 | ByCriteria19;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName19 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex19 = number;
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition53 = string | [string, ...string[]];
@@ -2930,18 +3381,9 @@ export type TypeKeysDetailed1 = {
   inputDelay?: number;
   surface?: Surface3;
   /**
-   * After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.
+   * After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.
    */
-  waitUntil?: {
-    /**
-     * Wait until combined stdout+stderr matches. Substring, or /regex/.
-     */
-    stdio?: string;
-    /**
-     * Fixed delay (ms).
-     */
-    delayMs?: number;
-  };
+  waitUntil?: ProcessReadiness1 | BrowserReadiness1;
   /**
    * Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
    */
@@ -2977,19 +3419,45 @@ export type TypeKeysDetailed1 = {
    */
   elementAria?: string;
 } & WaitUntilRequiresASurface1 &
-  AProcessSurfaceForbidsElementTargeting1;
+  AProcessSurfaceForbidsElementTargeting1 &
+  AProcessSurfaceTakesProcessReadiness1 &
+  ABrowserSurfaceTakesBrowserReadiness1;
 /**
  * Sequence of keys to enter.
  */
 export type TypeKeysSimple3 = string | string[];
 /**
- * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
  */
-export type Surface3 = SurfaceByName3 | ProcessSurface3;
+export type Surface3 = SurfaceByName10 | ProcessSurface3 | BrowserSurface10;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
  */
-export type SurfaceByName3 = string;
+export type SurfaceByName10 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector20 = ByName20 | ByIndex20 | ByCriteria20;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName20 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex20 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector21 = ByName21 | ByIndex21 | ByCriteria21;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName21 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex21 = number;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3082,6 +3550,34 @@ export type Screenshot3 = ScreenshotSimple2 | CaptureScreenshotDetailed1 | Captu
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple2 = string;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName11 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector22 = ByName22 | ByIndex22 | ByCriteria22;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName22 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex22 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector23 = ByName23 | ByIndex23 | ByCriteria23;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName23 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex23 = number;
 /**
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
@@ -3311,6 +3807,34 @@ export type Record3 = RecordSimple1 | RecordDetailed1 | RecordBoolean1;
  */
 export type RecordSimple1 = string;
 /**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName12 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector24 = ByName24 | ByIndex24 | ByCriteria24;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName24 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex24 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector25 = ByName25 | ByIndex25 | ByCriteria25;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName25 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex25 = number;
+/**
  * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
  */
 export type RecordingEngine1 = RecordingEngineSimple1 | RecordingEngineDetailed1;
@@ -3507,25 +4031,73 @@ export type Routing131 =
       [k: string]: unknown;
     };
 /**
- * Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
+ * Close one or more surfaces: background processes, or browser windows/tabs. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
  */
 export type CloseSurface3 = Surface4 | [Surface5, ...Surface5[]];
 /**
- * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
  */
-export type Surface4 = SurfaceByName4 | ProcessSurface4;
+export type Surface4 = SurfaceByName13 | ProcessSurface4 | BrowserSurface13;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
  */
-export type SurfaceByName4 = string;
+export type SurfaceByName13 = string;
 /**
- * The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.
+ * Which window to act on. Omit to use the active window.
  */
-export type Surface5 = SurfaceByName5 | ProcessSurface5;
+export type WindowTabSelector26 = ByName26 | ByIndex26 | ByCriteria26;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName26 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex26 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector27 = ByName27 | ByIndex27 | ByCriteria27;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName27 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex27 = number;
+/**
+ * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
+ */
+export type Surface5 = SurfaceByName14 | ProcessSurface5 | BrowserSurface14;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
  */
-export type SurfaceByName5 = string;
+export type SurfaceByName14 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector28 = ByName28 | ByIndex28 | ByCriteria28;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName28 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex28 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector29 = ByName29 | ByIndex29 | ByCriteria29;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName29 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex29 = number;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3750,6 +4322,34 @@ export type ElementDetailed3 =
   | {
       [k: string]: unknown;
     };
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ */
+export type SurfaceByName15 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector30 = ByName30 | ByIndex30 | ByCriteria30;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName30 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex30 = number;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector31 = ByName31 | ByIndex31 | ByCriteria31;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`).
+ */
+export type ByName31 = string;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex31 = number;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -4703,66 +5303,62 @@ export interface GoTo {
   goTo: GoTo1;
   [k: string]: unknown;
 }
-/**
- * Navigate to an HTTP or HTTPS URL.
- */
-export interface GoToURLDetailed {
+export interface BrowserSurface {
   /**
-   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
    */
-  url: string;
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
    */
-  origin?: string;
+  name?: string;
+  window?: WindowTabSelector;
+  tab?: WindowTabSelector1;
+}
+export interface ByCriteria {
   /**
-   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   * Name assigned when the window/tab was opened.
    */
-  params?: {
-    [k: string]: string;
-  };
+  name?: string;
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Index in creation order. Negative counts from the end.
    */
-  timeout?: number;
+  index?: number;
   /**
-   * Configuration for waiting conditions after navigation.
+   * Page title to match. Substring, or /regex/.
    */
-  waitUntil?: {
-    /**
-     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
-     */
-    networkIdleTime?: number | null;
-    /**
-     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
-     */
-    domIdleTime?: number | null;
-    /**
-     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
-     */
-    find?:
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        };
-  };
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria1 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface NewTabAndNewWindowAreMutuallyExclusive {
+  [k: string]: unknown;
+}
+export interface NewTabConflictsWithASurfaceTabSelector {
+  [k: string]: unknown;
+}
+export interface NewWindowConflictsWithASurfaceWindowOrTabSelector {
+  [k: string]: unknown;
 }
 export interface Common4 {
   /**
@@ -5529,6 +6125,10 @@ export interface RunBrowserScript {
 }
 export interface RunBrowserScriptDetailed {
   /**
+   * The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName1 | BrowserSurface1;
+  /**
    * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
   script: string;
@@ -5561,6 +6161,54 @@ export interface RunBrowserScriptDetailed {
    * Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.
    */
   timeout?: number;
+}
+export interface BrowserSurface1 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector2;
+  tab?: WindowTabSelector3;
+}
+export interface ByCriteria2 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria3 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface Common8 {
   /**
@@ -5719,10 +6367,109 @@ export interface ProcessSurface {
    */
   process: string;
 }
+export interface BrowserSurface2 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector4;
+  tab?: WindowTabSelector5;
+}
+export interface ByCriteria4 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria5 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ProcessReadiness {
+  /**
+   * Wait until combined stdout+stderr matches. Substring, or /regex/.
+   */
+  stdio?: string;
+  /**
+   * Fixed delay (ms).
+   */
+  delayMs?: number;
+}
+export interface BrowserReadiness {
+  /**
+   * Wait for network activity to be idle (no new requests) for this duration in milliseconds.
+   */
+  networkIdleTime?: number;
+  /**
+   * Wait for DOM mutations to stop for this duration in milliseconds.
+   */
+  domIdleTime?: number;
+  /**
+   * Wait for a specific element to be present in the DOM. At least one finding field must be specified.
+   */
+  find?:
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      };
+}
 export interface WaitUntilRequiresASurface {
   [k: string]: unknown;
 }
 export interface AProcessSurfaceForbidsElementTargeting {
+  [k: string]: unknown;
+}
+export interface AProcessSurfaceTakesProcessReadiness {
+  [k: string]: unknown;
+}
+export interface ABrowserSurfaceTakesBrowserReadiness {
   [k: string]: unknown;
 }
 export interface Common9 {
@@ -5877,6 +6624,10 @@ export interface Screenshot {
   [k: string]: unknown;
 }
 export interface CaptureScreenshotDetailed {
+  /**
+   * The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName3 | BrowserSurface3;
   path?: ScreenshotSimple1;
   /**
    * Directory of the PNG file. If the directory doesn't exist, creates the directory.
@@ -5893,6 +6644,54 @@ export interface CaptureScreenshotDetailed {
   overwrite?: "true" | "false" | "aboveVariation";
   crop?: CropByElementSimple | CropByElementDetailed;
   sourceIntegration?: SourceIntegration;
+}
+export interface BrowserSurface3 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector6;
+  tab?: WindowTabSelector7;
+}
+export interface ByCriteria6 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria7 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 /**
  * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
@@ -6223,6 +7022,10 @@ export interface Record {
 }
 export interface RecordDetailed {
   /**
+   * The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName4 | BrowserSurface4;
+  /**
    * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
   path?: string;
@@ -6240,6 +7043,54 @@ export interface RecordDetailed {
   name?: string;
   engine?: RecordingEngine;
   [k: string]: unknown;
+}
+export interface BrowserSurface4 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector8;
+  tab?: WindowTabSelector9;
+}
+export interface ByCriteria8 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria9 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface RecordingEngineDetailed {
   /**
@@ -6569,11 +7420,107 @@ export interface ProcessSurface1 {
    */
   process: string;
 }
+export interface BrowserSurface5 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector10;
+  tab?: WindowTabSelector11;
+}
+export interface ByCriteria10 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria11 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
 export interface ProcessSurface2 {
   /**
    * Name of a background process started by a runShell/runCode `background` step.
    */
   process: string;
+}
+export interface BrowserSurface6 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector12;
+  tab?: WindowTabSelector13;
+}
+export interface ByCriteria12 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria13 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface Common14 {
   /**
@@ -6893,7 +7840,59 @@ export interface DragAndDrop1 {
    * Duration of the drag operation in milliseconds.
    */
   duration?: number;
+  /**
+   * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName7 | BrowserSurface7;
   [k: string]: unknown;
+}
+export interface BrowserSurface7 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector14;
+  tab?: WindowTabSelector15;
+}
+export interface ByCriteria14 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria15 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface Common16 {
   /**
@@ -7897,66 +8896,62 @@ export interface GoTo2 {
   goTo: GoTo3;
   [k: string]: unknown;
 }
-/**
- * Navigate to an HTTP or HTTPS URL.
- */
-export interface GoToURLDetailed1 {
+export interface BrowserSurface8 {
   /**
-   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
    */
-  url: string;
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
    */
-  origin?: string;
+  name?: string;
+  window?: WindowTabSelector16;
+  tab?: WindowTabSelector17;
+}
+export interface ByCriteria16 {
   /**
-   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   * Name assigned when the window/tab was opened.
    */
-  params?: {
-    [k: string]: string;
-  };
+  name?: string;
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Index in creation order. Negative counts from the end.
    */
-  timeout?: number;
+  index?: number;
   /**
-   * Configuration for waiting conditions after navigation.
+   * Page title to match. Substring, or /regex/.
    */
-  waitUntil?: {
-    /**
-     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
-     */
-    networkIdleTime?: number | null;
-    /**
-     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
-     */
-    domIdleTime?: number | null;
-    /**
-     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
-     */
-    find?:
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        };
-  };
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria17 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface NewTabAndNewWindowAreMutuallyExclusive1 {
+  [k: string]: unknown;
+}
+export interface NewTabConflictsWithASurfaceTabSelector1 {
+  [k: string]: unknown;
+}
+export interface NewWindowConflictsWithASurfaceWindowOrTabSelector1 {
+  [k: string]: unknown;
 }
 export interface Common22 {
   /**
@@ -8723,6 +9718,10 @@ export interface RunBrowserScript2 {
 }
 export interface RunBrowserScriptDetailed1 {
   /**
+   * The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName9 | BrowserSurface9;
+  /**
    * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
   script: string;
@@ -8755,6 +9754,54 @@ export interface RunBrowserScriptDetailed1 {
    * Maximum time in milliseconds the script may run. If the script runs longer than this, the step fails.
    */
   timeout?: number;
+}
+export interface BrowserSurface9 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector18;
+  tab?: WindowTabSelector19;
+}
+export interface ByCriteria18 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria19 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface Common26 {
   /**
@@ -8913,10 +9960,109 @@ export interface ProcessSurface3 {
    */
   process: string;
 }
+export interface BrowserSurface10 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector20;
+  tab?: WindowTabSelector21;
+}
+export interface ByCriteria20 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria21 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ProcessReadiness1 {
+  /**
+   * Wait until combined stdout+stderr matches. Substring, or /regex/.
+   */
+  stdio?: string;
+  /**
+   * Fixed delay (ms).
+   */
+  delayMs?: number;
+}
+export interface BrowserReadiness1 {
+  /**
+   * Wait for network activity to be idle (no new requests) for this duration in milliseconds.
+   */
+  networkIdleTime?: number;
+  /**
+   * Wait for DOM mutations to stop for this duration in milliseconds.
+   */
+  domIdleTime?: number;
+  /**
+   * Wait for a specific element to be present in the DOM. At least one finding field must be specified.
+   */
+  find?:
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      }
+    | {
+        [k: string]: unknown;
+      };
+}
 export interface WaitUntilRequiresASurface1 {
   [k: string]: unknown;
 }
 export interface AProcessSurfaceForbidsElementTargeting1 {
+  [k: string]: unknown;
+}
+export interface AProcessSurfaceTakesProcessReadiness1 {
+  [k: string]: unknown;
+}
+export interface ABrowserSurfaceTakesBrowserReadiness1 {
   [k: string]: unknown;
 }
 export interface Common27 {
@@ -9071,6 +10217,10 @@ export interface Screenshot2 {
   [k: string]: unknown;
 }
 export interface CaptureScreenshotDetailed1 {
+  /**
+   * The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName11 | BrowserSurface11;
   path?: ScreenshotSimple3;
   /**
    * Directory of the PNG file. If the directory doesn't exist, creates the directory.
@@ -9087,6 +10237,54 @@ export interface CaptureScreenshotDetailed1 {
   overwrite?: "true" | "false" | "aboveVariation";
   crop?: CropByElementSimple1 | CropByElementDetailed1;
   sourceIntegration?: SourceIntegration1;
+}
+export interface BrowserSurface11 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector22;
+  tab?: WindowTabSelector23;
+}
+export interface ByCriteria22 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria23 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 /**
  * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
@@ -9417,6 +10615,10 @@ export interface Record2 {
 }
 export interface RecordDetailed1 {
   /**
+   * The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName12 | BrowserSurface12;
+  /**
    * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
   path?: string;
@@ -9434,6 +10636,54 @@ export interface RecordDetailed1 {
   name?: string;
   engine?: RecordingEngine1;
   [k: string]: unknown;
+}
+export interface BrowserSurface12 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector24;
+  tab?: WindowTabSelector25;
+}
+export interface ByCriteria24 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria25 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface RecordingEngineDetailed1 {
   /**
@@ -9763,11 +11013,107 @@ export interface ProcessSurface4 {
    */
   process: string;
 }
+export interface BrowserSurface13 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector26;
+  tab?: WindowTabSelector27;
+}
+export interface ByCriteria26 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria27 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
 export interface ProcessSurface5 {
   /**
    * Name of a background process started by a runShell/runCode `background` step.
    */
   process: string;
+}
+export interface BrowserSurface14 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector28;
+  tab?: WindowTabSelector29;
+}
+export interface ByCriteria28 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria29 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface Common32 {
   /**
@@ -10087,7 +11433,59 @@ export interface DragAndDrop3 {
    * Duration of the drag operation in milliseconds.
    */
   duration?: number;
+  /**
+   * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
+   */
+  surface?: SurfaceByName15 | BrowserSurface15;
   [k: string]: unknown;
+}
+export interface BrowserSurface15 {
+  /**
+   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   */
+  name?: string;
+  window?: WindowTabSelector30;
+  tab?: WindowTabSelector31;
+}
+export interface ByCriteria30 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria31 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
 }
 export interface Common34 {
   /**

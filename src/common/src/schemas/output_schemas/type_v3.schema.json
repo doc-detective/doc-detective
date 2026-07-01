@@ -55,7 +55,7 @@
             "surface": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "surface",
-              "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+              "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
               "anyOf": [
                 {
                   "title": "Surface (by name)",
@@ -83,6 +83,134 @@
                         "trim"
                       ],
                       "description": "Name of a background process started by a runShell/runCode `background` step."
+                    }
+                  }
+                },
+                {
+                  "title": "Browser surface",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "browser"
+                  ],
+                  "properties": {
+                    "browser": {
+                      "type": "string",
+                      "enum": [
+                        "chrome",
+                        "firefox",
+                        "safari",
+                        "webkit",
+                        "edge"
+                      ],
+                      "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S",
+                      "transform": [
+                        "trim"
+                      ],
+                      "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                    },
+                    "window": {
+                      "description": "Which window to act on. Omit to use the active window.",
+                      "title": "Window/tab selector",
+                      "anyOf": [
+                        {
+                          "title": "By name",
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                        },
+                        {
+                          "title": "By index",
+                          "type": "integer",
+                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                        },
+                        {
+                          "title": "By criteria",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "minProperties": 1,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "description": "Name assigned when the window/tab was opened."
+                            },
+                            "index": {
+                              "type": "integer",
+                              "description": "Index in creation order. Negative counts from the end."
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Page title to match. Substring, or /regex/."
+                            },
+                            "url": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Page URL to match. Substring, or /regex/."
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "tab": {
+                      "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                      "title": "Window/tab selector",
+                      "anyOf": [
+                        {
+                          "title": "By name",
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                        },
+                        {
+                          "title": "By index",
+                          "type": "integer",
+                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                        },
+                        {
+                          "title": "By criteria",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "minProperties": 1,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "description": "Name assigned when the window/tab was opened."
+                            },
+                            "index": {
+                              "type": "integer",
+                              "description": "Index in creation order. Negative counts from the end."
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Page title to match. Substring, or /regex/."
+                            },
+                            "url": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Page URL to match. Substring, or /regex/."
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 }
@@ -117,6 +245,182 @@
                         "description": "Name of a background process started by a runShell/runCode `background` step."
                       }
                     }
+                  },
+                  "browser": {
+                    "title": "Browser surface",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "browser"
+                    ],
+                    "properties": {
+                      "browser": {
+                        "type": "string",
+                        "enum": [
+                          "chrome",
+                          "firefox",
+                          "safari",
+                          "webkit",
+                          "edge"
+                        ],
+                        "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                      },
+                      "window": {
+                        "description": "Which window to act on. Omit to use the active window.",
+                        "title": "Window/tab selector",
+                        "anyOf": [
+                          {
+                            "title": "By name",
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                          },
+                          {
+                            "title": "By index",
+                            "type": "integer",
+                            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                          },
+                          {
+                            "title": "By criteria",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "description": "Name assigned when the window/tab was opened."
+                              },
+                              "index": {
+                                "type": "integer",
+                                "description": "Index in creation order. Negative counts from the end."
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page title to match. Substring, or /regex/."
+                              },
+                              "url": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page URL to match. Substring, or /regex/."
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "tab": {
+                        "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                        "title": "Window/tab selector",
+                        "anyOf": [
+                          {
+                            "title": "By name",
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                          },
+                          {
+                            "title": "By index",
+                            "type": "integer",
+                            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                          },
+                          {
+                            "title": "By criteria",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "description": "Name assigned when the window/tab was opened."
+                              },
+                              "index": {
+                                "type": "integer",
+                                "description": "Index in creation order. Negative counts from the end."
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page title to match. Substring, or /regex/."
+                              },
+                              "url": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page URL to match. Substring, or /regex/."
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "windowOrTabSelector": {
+                    "title": "Window/tab selector",
+                    "anyOf": [
+                      {
+                        "title": "By name",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                      },
+                      {
+                        "title": "By index",
+                        "type": "integer",
+                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                      },
+                      {
+                        "title": "By criteria",
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "description": "Name assigned when the window/tab was opened."
+                          },
+                          "index": {
+                            "type": "integer",
+                            "description": "Index in creation order. Negative counts from the end."
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Page title to match. Substring, or /regex/."
+                          },
+                          "url": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Page URL to match. Substring, or /regex/."
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               },
@@ -124,26 +428,160 @@
                 "node",
                 {
                   "process": "node"
+                },
+                "chrome",
+                {
+                  "browser": "chrome",
+                  "tab": "cart"
+                },
+                {
+                  "browser": "chrome",
+                  "window": "admin",
+                  "tab": -1
+                },
+                {
+                  "browser": "firefox",
+                  "tab": {
+                    "title": "/Checkout/"
+                  }
                 }
               ]
             },
             "waitUntil": {
-              "type": "object",
-              "additionalProperties": false,
-              "minProperties": 1,
-              "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
-              "properties": {
-                "stdio": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+              "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.",
+              "anyOf": [
+                {
+                  "title": "Process readiness",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "stdio": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                    },
+                    "delayMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Fixed delay (ms)."
+                    }
+                  }
                 },
-                "delayMs": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Fixed delay (ms)."
+                {
+                  "title": "Browser readiness",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "networkIdleTime": {
+                      "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "domIdleTime": {
+                      "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "find": {
+                      "type": "object",
+                      "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                      "additionalProperties": false,
+                      "anyOf": [
+                        {
+                          "required": [
+                            "selector"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementText"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementTestId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementClass"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAttribute"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAria"
+                          ]
+                        }
+                      ],
+                      "properties": {
+                        "selector": {
+                          "type": "string",
+                          "description": "CSS selector for the element to wait for."
+                        },
+                        "elementText": {
+                          "type": "string",
+                          "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementId": {
+                          "type": "string",
+                          "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementTestId": {
+                          "type": "string",
+                          "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementClass": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                        },
+                        "elementAttribute": {
+                          "type": "object",
+                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                          "additionalProperties": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ]
+                          }
+                        },
+                        "elementAria": {
+                          "type": "string",
+                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                        }
+                      }
+                    }
+                  }
                 }
-              }
+              ]
             },
             "timeout": {
               "type": "integer",
@@ -277,6 +715,179 @@
               ]
             }
           }
+        },
+        {
+          "title": "A process surface takes process readiness",
+          "if": {
+            "required": [
+              "surface",
+              "waitUntil"
+            ],
+            "properties": {
+              "surface": {
+                "type": "object",
+                "required": [
+                  "process"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "waitUntil": {
+                "title": "Process readiness",
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "stdio": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                  },
+                  "delayMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Fixed delay (ms)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "A browser surface takes browser readiness",
+          "if": {
+            "required": [
+              "surface",
+              "waitUntil"
+            ],
+            "properties": {
+              "surface": {
+                "type": "object",
+                "required": [
+                  "browser"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "waitUntil": {
+                "title": "Browser readiness",
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "networkIdleTime": {
+                    "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "domIdleTime": {
+                    "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "find": {
+                    "type": "object",
+                    "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                    "additionalProperties": false,
+                    "anyOf": [
+                      {
+                        "required": [
+                          "selector"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementText"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementId"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementTestId"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementClass"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementAttribute"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementAria"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "selector": {
+                        "type": "string",
+                        "description": "CSS selector for the element to wait for."
+                      },
+                      "elementText": {
+                        "type": "string",
+                        "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementId": {
+                        "type": "string",
+                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementTestId": {
+                        "type": "string",
+                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementClass": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ],
+                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                      },
+                      "elementAttribute": {
+                        "type": "object",
+                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                        "additionalProperties": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        }
+                      },
+                      "elementAria": {
+                        "type": "string",
+                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     }
@@ -335,7 +946,7 @@
               "surface": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "surface",
-                "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+                "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
                 "anyOf": [
                   {
                     "title": "Surface (by name)",
@@ -363,6 +974,134 @@
                           "trim"
                         ],
                         "description": "Name of a background process started by a runShell/runCode `background` step."
+                      }
+                    }
+                  },
+                  {
+                    "title": "Browser surface",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "browser"
+                    ],
+                    "properties": {
+                      "browser": {
+                        "type": "string",
+                        "enum": [
+                          "chrome",
+                          "firefox",
+                          "safari",
+                          "webkit",
+                          "edge"
+                        ],
+                        "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                      },
+                      "window": {
+                        "description": "Which window to act on. Omit to use the active window.",
+                        "title": "Window/tab selector",
+                        "anyOf": [
+                          {
+                            "title": "By name",
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                          },
+                          {
+                            "title": "By index",
+                            "type": "integer",
+                            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                          },
+                          {
+                            "title": "By criteria",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "description": "Name assigned when the window/tab was opened."
+                              },
+                              "index": {
+                                "type": "integer",
+                                "description": "Index in creation order. Negative counts from the end."
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page title to match. Substring, or /regex/."
+                              },
+                              "url": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page URL to match. Substring, or /regex/."
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "tab": {
+                        "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                        "title": "Window/tab selector",
+                        "anyOf": [
+                          {
+                            "title": "By name",
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                          },
+                          {
+                            "title": "By index",
+                            "type": "integer",
+                            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                          },
+                          {
+                            "title": "By criteria",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "description": "Name assigned when the window/tab was opened."
+                              },
+                              "index": {
+                                "type": "integer",
+                                "description": "Index in creation order. Negative counts from the end."
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page title to match. Substring, or /regex/."
+                              },
+                              "url": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Page URL to match. Substring, or /regex/."
+                              }
+                            }
+                          }
+                        ]
                       }
                     }
                   }
@@ -397,6 +1136,182 @@
                           "description": "Name of a background process started by a runShell/runCode `background` step."
                         }
                       }
+                    },
+                    "browser": {
+                      "title": "Browser surface",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "browser"
+                      ],
+                      "properties": {
+                        "browser": {
+                          "type": "string",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
+                          "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                        },
+                        "window": {
+                          "description": "Which window to act on. Omit to use the active window.",
+                          "title": "Window/tab selector",
+                          "anyOf": [
+                            {
+                              "title": "By name",
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                            },
+                            {
+                              "title": "By index",
+                              "type": "integer",
+                              "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                            },
+                            {
+                              "title": "By criteria",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "minProperties": 1,
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "description": "Name assigned when the window/tab was opened."
+                                },
+                                "index": {
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end."
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Page title to match. Substring, or /regex/."
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Page URL to match. Substring, or /regex/."
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "tab": {
+                          "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                          "title": "Window/tab selector",
+                          "anyOf": [
+                            {
+                              "title": "By name",
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                            },
+                            {
+                              "title": "By index",
+                              "type": "integer",
+                              "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                            },
+                            {
+                              "title": "By criteria",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "minProperties": 1,
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "description": "Name assigned when the window/tab was opened."
+                                },
+                                "index": {
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end."
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Page title to match. Substring, or /regex/."
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Page URL to match. Substring, or /regex/."
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "windowOrTabSelector": {
+                      "title": "Window/tab selector",
+                      "anyOf": [
+                        {
+                          "title": "By name",
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                        },
+                        {
+                          "title": "By index",
+                          "type": "integer",
+                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                        },
+                        {
+                          "title": "By criteria",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "minProperties": 1,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "description": "Name assigned when the window/tab was opened."
+                            },
+                            "index": {
+                              "type": "integer",
+                              "description": "Index in creation order. Negative counts from the end."
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Page title to match. Substring, or /regex/."
+                            },
+                            "url": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Page URL to match. Substring, or /regex/."
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 },
@@ -404,26 +1319,160 @@
                   "node",
                   {
                     "process": "node"
+                  },
+                  "chrome",
+                  {
+                    "browser": "chrome",
+                    "tab": "cart"
+                  },
+                  {
+                    "browser": "chrome",
+                    "window": "admin",
+                    "tab": -1
+                  },
+                  {
+                    "browser": "firefox",
+                    "tab": {
+                      "title": "/Checkout/"
+                    }
                   }
                 ]
               },
               "waitUntil": {
-                "type": "object",
-                "additionalProperties": false,
-                "minProperties": 1,
-                "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
-                "properties": {
-                  "stdio": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.",
+                "anyOf": [
+                  {
+                    "title": "Process readiness",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "properties": {
+                      "stdio": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                      },
+                      "delayMs": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Fixed delay (ms)."
+                      }
+                    }
                   },
-                  "delayMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Fixed delay (ms)."
+                  {
+                    "title": "Browser readiness",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "properties": {
+                      "networkIdleTime": {
+                        "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "domIdleTime": {
+                        "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "find": {
+                        "type": "object",
+                        "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                        "additionalProperties": false,
+                        "anyOf": [
+                          {
+                            "required": [
+                              "selector"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementText"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementTestId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementClass"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAttribute"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAria"
+                            ]
+                          }
+                        ],
+                        "properties": {
+                          "selector": {
+                            "type": "string",
+                            "description": "CSS selector for the element to wait for."
+                          },
+                          "elementText": {
+                            "type": "string",
+                            "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementId": {
+                            "type": "string",
+                            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementTestId": {
+                            "type": "string",
+                            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementClass": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ],
+                            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                          },
+                          "elementAttribute": {
+                            "type": "object",
+                            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                }
+                              ]
+                            }
+                          },
+                          "elementAria": {
+                            "type": "string",
+                            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                          }
+                        }
+                      }
+                    }
                   }
-                }
+                ]
               },
               "timeout": {
                 "type": "integer",
@@ -557,6 +1606,179 @@
                 ]
               }
             }
+          },
+          {
+            "title": "A process surface takes process readiness",
+            "if": {
+              "required": [
+                "surface",
+                "waitUntil"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "object",
+                  "required": [
+                    "process"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "waitUntil": {
+                  "title": "Process readiness",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "stdio": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                    },
+                    "delayMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Fixed delay (ms)."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "title": "A browser surface takes browser readiness",
+            "if": {
+              "required": [
+                "surface",
+                "waitUntil"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "object",
+                  "required": [
+                    "browser"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "waitUntil": {
+                  "title": "Browser readiness",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "networkIdleTime": {
+                      "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "domIdleTime": {
+                      "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "find": {
+                      "type": "object",
+                      "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                      "additionalProperties": false,
+                      "anyOf": [
+                        {
+                          "required": [
+                            "selector"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementText"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementTestId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementClass"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAttribute"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAria"
+                          ]
+                        }
+                      ],
+                      "properties": {
+                        "selector": {
+                          "type": "string",
+                          "description": "CSS selector for the element to wait for."
+                        },
+                        "elementText": {
+                          "type": "string",
+                          "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementId": {
+                          "type": "string",
+                          "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementTestId": {
+                          "type": "string",
+                          "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementClass": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                        },
+                        "elementAttribute": {
+                          "type": "object",
+                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                          "additionalProperties": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ]
+                          }
+                        },
+                        "elementAria": {
+                          "type": "string",
+                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         ]
       }
@@ -605,6 +1827,23 @@
       "surface": {
         "process": "node"
       }
+    },
+    {
+      "keys": [
+        "kittens",
+        "$ENTER$"
+      ],
+      "selector": "#search",
+      "surface": {
+        "browser": "chrome",
+        "tab": "cart"
+      },
+      "waitUntil": {
+        "find": {
+          "selector": ".results"
+        }
+      },
+      "timeout": 10000
     }
   ]
 }

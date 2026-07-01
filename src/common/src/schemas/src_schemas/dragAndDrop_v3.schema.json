@@ -3,7 +3,10 @@
   "title": "dragAndDrop",
   "description": "Drag and drop an element from source to target.",
   "type": "object",
-  "required": ["source", "target"],
+  "required": [
+    "source",
+    "target"
+  ],
   "properties": {
     "source": {
       "$ref": "#/components/schemas/elementSpecification",
@@ -18,6 +21,17 @@
       "description": "Duration of the drag operation in milliseconds.",
       "default": 1000,
       "minimum": 0
+    },
+    "surface": {
+      "description": "The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.",
+      "anyOf": [
+        {
+          "$ref": "surface_v3.schema.json#/components/schemas/byName"
+        },
+        {
+          "$ref": "surface_v3.schema.json#/components/schemas/browser"
+        }
+      ]
     }
   },
   "components": {

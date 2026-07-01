@@ -231,6 +231,149 @@
       "description": "Duration of the drag operation in milliseconds.",
       "default": 1000,
       "minimum": 0
+    },
+    "surface": {
+      "description": "The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.",
+      "anyOf": [
+        {
+          "title": "Surface (by name)",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "transform": [
+            "trim"
+          ],
+          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+        },
+        {
+          "title": "Browser surface",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "browser"
+          ],
+          "properties": {
+            "browser": {
+              "type": "string",
+              "enum": [
+                "chrome",
+                "firefox",
+                "safari",
+                "webkit",
+                "edge"
+              ],
+              "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "transform": [
+                "trim"
+              ],
+              "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+            },
+            "window": {
+              "description": "Which window to act on. Omit to use the active window.",
+              "title": "Window/tab selector",
+              "anyOf": [
+                {
+                  "title": "By name",
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "transform": [
+                    "trim"
+                  ],
+                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                },
+                {
+                  "title": "By index",
+                  "type": "integer",
+                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                },
+                {
+                  "title": "By criteria",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S",
+                      "description": "Name assigned when the window/tab was opened."
+                    },
+                    "index": {
+                      "type": "integer",
+                      "description": "Index in creation order. Negative counts from the end."
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Page title to match. Substring, or /regex/."
+                    },
+                    "url": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Page URL to match. Substring, or /regex/."
+                    }
+                  }
+                }
+              ]
+            },
+            "tab": {
+              "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+              "title": "Window/tab selector",
+              "anyOf": [
+                {
+                  "title": "By name",
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "transform": [
+                    "trim"
+                  ],
+                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`)."
+                },
+                {
+                  "title": "By index",
+                  "type": "integer",
+                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                },
+                {
+                  "title": "By criteria",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S",
+                      "description": "Name assigned when the window/tab was opened."
+                    },
+                    "index": {
+                      "type": "integer",
+                      "description": "Index in creation order. Negative counts from the end."
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Page title to match. Substring, or /regex/."
+                    },
+                    "url": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Page URL to match. Substring, or /regex/."
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   },
   "components": {
