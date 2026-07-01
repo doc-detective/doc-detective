@@ -31,6 +31,7 @@ The `dragAndDrop` action requires an object with the following properties:
 
 - `source`: (Required) The element to drag from. Can be a string (element text or selector) or a detailed object.
 - `target`: (Required) The element to drop onto. Can be a string (element text or selector) or a detailed object.
+- `surface`: (Optional) The browser window or tab the source and target elements live in, e.g. `{ "browser": "chrome", "tab": "board" }`. Omit to act on the active tab. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
 
 ### Source and target element properties
 

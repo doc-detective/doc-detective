@@ -1,0 +1,113 @@
+---
+title: Test across multiple tabs and windows
+description: Open, address, and close browser tabs and windows in one test with goTo, the surface field, and closeSurface.
+---
+
+Documented procedures often span more than one tab: "click the link, which opens the invoice in a new tab", "keep the admin console open in a second window while you work". Doc Detective tests can follow those procedures exactly — one browser session, any number of tabs and windows, each addressable by name, position, or what's on its page.
+
+Three pieces work together:
+
+- **[`goTo`](/docs/actions/goTo) opens tabs and windows** with `newTab` / `newWindow` — it's the only action that opens them. Name what you open.
+- **The `surface` field addresses them.** Every browser action (`find`, `click`, `type`, `dragAndDrop`, `runBrowserScript`, `screenshot`, `record`, `goTo`) accepts a `surface` that says *which* window/tab to act on. Omit it to act on the active tab, exactly as before.
+- **[`closeSurface`](/docs/actions/closeSurface) closes them** at tab or window granularity, idempotently.
+
+## Open and name tabs and windows
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://my-app.com" },
+        {
+          "description": "Open the checkout in a new tab named 'cart'.",
+          "goTo": { "url": "/checkout", "newTab": "cart" }
+        },
+        {
+          "description": "Open the admin console in a new window; name its first tab too.",
+          "goTo": {
+            "url": "/admin",
+            "newWindow": { "name": "admin", "tab": "overview" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Both openers focus what they open, take `true` (anonymous), a name string, or an object form, and are mutually exclusive on one step. Names must be unique within the browser and survive later navigation.
+
+## Address a tab or window
+
+`surface` is the same shape on every action: the engine plus optional `window` and `tab` selectors.
+
+```json
+{ "find": { "elementText": "Order #1234", "surface": { "browser": "chrome", "tab": "cart" } } }
+```
+
+`window` and `tab` share one selector grammar:
+
+| Form | Meaning |
+|---|---|
+| *(omitted)* | The active window / active tab |
+| `"cart"` | The window/tab with that assigned name |
+| `0`, `1`, … | By index in creation order |
+| `-1` | The newest (negative counts from the end) |
+| `{ "title": "/Invoice/" }` | By page title — substring or `/regex/` |
+| `{ "url": "checkout" }` | By page URL — substring or `/regex/` |
+| `{ "name": …, "index": …, "title": …, "url": … }` | Combined criteria; all must match |
+
+Two behaviors to know:
+
+- **Focus follows the surface.** A step that names a `surface` leaves that tab focused, so following surface-less steps act there too. That's also how you point surface-less concerns at a tab: focus it with any surfaced step first.
+- **Tabs the page opens are addressable too.** A `target="_blank"` link or `window.open` call creates a tab Doc Detective didn't open — it has no name, but you can reach it by `title`, `url`, or index (`-1` is handy right after the click). Give the page a moment (a [`wait`](/docs/actions/wait) step) so the new tab has loaded before addressing it by title/URL.
+
+```json
+{
+  "steps": [
+    { "click": "View invoice" },
+    { "wait": 2000 },
+    {
+      "find": {
+        "elementText": "Invoice total",
+        "surface": { "browser": "chrome", "tab": { "title": "/Invoice/" } }
+      }
+    }
+  ]
+}
+```
+
+## Type with readiness conditions
+
+`type` into a browser surface can wait for the page to react to the keystrokes — the same conditions `goTo` uses after navigation, but nothing applies by default:
+
+```json
+{
+  "type": {
+    "keys": ["doc detective", "$ENTER$"],
+    "selector": "#search",
+    "surface": { "browser": "chrome", "tab": "cart" },
+    "waitUntil": { "find": { "selector": ".results" } },
+    "timeout": 10000
+  }
+}
+```
+
+`waitUntil` on a browser surface accepts `networkIdleTime`, `domIdleTime`, and `find` — see the [`type`](/reference/schemas/type) reference.
+
+## Close tabs and windows
+
+```json
+{ "closeSurface": { "browser": "chrome", "tab": "cart" } }
+{ "closeSurface": { "browser": "chrome", "window": "admin" } }
+{ "closeSurface": { "browser": "chrome", "tab": -1 } }
+```
+
+A `tab` reference closes that tab; a `window` reference closes the window and its tabs. Closing something that's already closed (or that never matched) is a PASS no-op, so cleanup steps are safe to repeat. Doc Detective refuses to close the last open tab — that would end the browser session, which the test run owns.
+
+## Current limits
+
+One test context drives **one browser at a time**. A `surface` that names a different engine than the context's active browser, sets a browser `name`, or closes a whole browser (`"closeSurface": "chrome"`) fails with a "lands in a later phase" message — those forms are reserved for multi-browser targeting, and the same spec will start working when it lands. Cross-browser coverage today comes from the [`runOn` matrix](/docs/test-docs/platforms-and-browsers), which runs the whole test once per engine.
+
+Indexes reflect **creation order** (the order Doc Detective first saw each tab), not on-screen tab order.
