@@ -1,5 +1,22 @@
 import { matchesExpectedOutput } from "../utils.js";
 
+// Multi-surface Phase 3 (ADR 01016): windows & tabs in the active browser.
+// One WebDriver session, many flat W3C handles. This module owns the
+// per-context handle registry (`driver.state.surfaces`) and every selector
+// resolution rule, so step actions only ever call switchToSurface /
+// resolveCloseTargets. The driver is injected, never imported — the module
+// stays webdriverio-free and unit-testable with a stub.
+
+// Declared before the export list so the binding exists when the list is
+// evaluated (a `const` isn't hoisted like a function declaration).
+const RESERVED_ENGINE_KEYWORDS = new Set([
+  "chrome",
+  "firefox",
+  "safari",
+  "webkit",
+  "edge",
+]);
+
 export {
   RESERVED_ENGINE_KEYWORDS,
   parseSurfaceRef,
@@ -11,21 +28,6 @@ export {
   closeHandle,
   resolveCloseTargets,
 };
-
-// Multi-surface Phase 3 (ADR 01016): windows & tabs in the active browser.
-// One WebDriver session, many flat W3C handles. This module owns the
-// per-context handle registry (`driver.state.surfaces`) and every selector
-// resolution rule, so step actions only ever call switchToSurface /
-// resolveCloseTargets. The driver is injected, never imported — the module
-// stays webdriverio-free and unit-testable with a stub.
-
-const RESERVED_ENGINE_KEYWORDS = new Set([
-  "chrome",
-  "firefox",
-  "safari",
-  "webkit",
-  "edge",
-]);
 
 // context_v3 transforms edge → chrome before the runner sees it, so the
 // engine check must treat them as the same engine or `surface: "edge"`
