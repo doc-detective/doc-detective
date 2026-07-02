@@ -882,7 +882,10 @@ async function getAvailableApps({ config }: any) {
   }
 
   // Detect Safari
-  if (config.environment.platform === "mac") {
+  // config.environment may be absent for a pre-resolved DOC_DETECTIVE_API
+  // config, which skips setConfig() — see ADR 01018.
+  const currentPlatform = config?.environment?.platform ?? getEnvironment().platform;
+  if (currentPlatform === "mac") {
     const safariVersion = await spawnCommand(
       "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
     );
