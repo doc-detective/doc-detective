@@ -1,10 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "surface",
-  "description": "The surface a step acts on. Omit to act on the active surface. Phase 1 supports background processes; browser/app surfaces are added in later phases.",
+  "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
   "anyOf": [
-    { "$ref": "#/components/schemas/byName" },
-    { "$ref": "#/components/schemas/process" }
+    {
+      "$ref": "#/components/schemas/byName"
+    },
+    {
+      "$ref": "#/components/schemas/process"
+    },
+    {
+      "$ref": "#/components/schemas/browser"
+    }
   ],
   "components": {
     "schemas": {
@@ -13,25 +20,156 @@
         "type": "string",
         "minLength": 1,
         "pattern": "\\S",
-        "transform": ["trim"],
-        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime."
+        "transform": [
+          "trim"
+        ],
+        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+      },
+      "byEngineName": {
+        "title": "Surface (by browser engine)",
+        "type": "string",
+        "enum": [
+          "chrome",
+          "firefox",
+          "safari",
+          "webkit",
+          "edge"
+        ],
+        "transform": [
+          "trim"
+        ],
+        "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
       },
       "process": {
         "title": "Process surface",
         "type": "object",
         "additionalProperties": false,
-        "required": ["process"],
+        "required": [
+          "process"
+        ],
         "properties": {
           "process": {
             "type": "string",
             "minLength": 1,
             "pattern": "\\S",
-            "transform": ["trim"],
+            "transform": [
+              "trim"
+            ],
             "description": "Name of a background process started by a runShell/runCode `background` step."
           }
         }
+      },
+      "browser": {
+        "title": "Browser surface",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "browser"
+        ],
+        "properties": {
+          "browser": {
+            "type": "string",
+            "enum": [
+              "chrome",
+              "firefox",
+              "safari",
+              "webkit",
+              "edge"
+            ],
+            "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ],
+            "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+          },
+          "window": {
+            "$ref": "#/components/schemas/windowOrTabSelector",
+            "description": "Which window to act on. Omit to use the active window."
+          },
+          "tab": {
+            "$ref": "#/components/schemas/windowOrTabSelector",
+            "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself."
+          }
+        }
+      },
+      "windowOrTabSelector": {
+        "title": "Window/tab selector",
+        "anyOf": [
+          {
+            "title": "By index",
+            "type": "integer",
+            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+          },
+          {
+            "title": "By name",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ],
+            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+          },
+          {
+            "title": "By criteria",
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ],
+                "description": "Name assigned when the window/tab was opened."
+              },
+              "index": {
+                "type": "integer",
+                "description": "Index in creation order. Negative counts from the end."
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Page title to match. Substring, or /regex/."
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Page URL to match. Substring, or /regex/."
+              }
+            }
+          }
+        ]
       }
     }
   },
-  "examples": ["node", { "process": "node" }]
+  "examples": [
+    "node",
+    {
+      "process": "node"
+    },
+    "chrome",
+    {
+      "browser": "chrome",
+      "tab": "cart"
+    },
+    {
+      "browser": "chrome",
+      "window": "admin",
+      "tab": -1
+    },
+    {
+      "browser": "firefox",
+      "tab": {
+        "title": "/Checkout/"
+      }
+    }
+  ]
 }

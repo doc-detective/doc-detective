@@ -166,6 +166,26 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     assert.match(r.stderr + r.stdout, /Unknown argument|definitelyNotAFlag/i);
   });
 
+  it("discovers a .doc-detective.json config from the cwd when no --config is given", function () {
+    const dir = mkTmp("dd-cli-json-");
+    try {
+      // A minimal valid JSON config in the cwd exercises the auto-discovery
+      // branch that checks fs.existsSync(configPathJSON) BEFORE falling
+      // through to yaml/yml. Point input at the (empty) dir so nothing runs.
+      fs.writeFileSync(
+        path.join(dir, ".doc-detective.json"),
+        JSON.stringify({ logLevel: "silent", input: dir })
+      );
+      const r = runCli(["--logLevel", "silent"], { cwd: dir });
+      assert.ok(
+        !/Unknown argument/.test(r.stderr + r.stdout),
+        `unexpected yargs error: ${r.stderr}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("discovers a .doc-detective.yaml config from the cwd when no --config is given", function () {
     const dir = mkTmp("dd-cli-yaml-");
     try {
@@ -200,6 +220,29 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
         !/Unknown argument/.test(r.stderr + r.stdout),
         `unexpected yargs error: ${r.stderr}`
       );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("evaluates the CI short-circuit of the self-update guard without unsetting DOC_DETECTIVE_SKIP_AUTO_UPDATE", function () {
+    // The self-update `if` is a short-circuited `&&` chain:
+    //   config.autoUpdate !== false && !SKIP_AUTO_UPDATE && !CI
+    // Every other test in this suite sets SKIP_AUTO_UPDATE="1", so the chain
+    // always short-circuits at the *second* term and the third term
+    // (`!process.env.CI`) is never evaluated. Clearing SKIP_AUTO_UPDATE here
+    // (empty string is falsy) while keeping CI="1" lets evaluation reach the
+    // third term, which is still truthy-CI → still short-circuits false, so
+    // the self-update body (real network) never runs. Fully offline.
+    const dir = mkTmp("dd-cli-ci-guard-");
+    try {
+      const spec = path.join(dir, "w.spec.json");
+      fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+      const r = runCli(
+        ["--input", spec, "--output", dir, "--logLevel", "silent"],
+        { env: { DOC_DETECTIVE_SKIP_AUTO_UPDATE: "" } }
+      );
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -310,6 +353,87 @@ describe("core/index.ts — runTests offline branches", function () {
     );
     assert.ok(result.resolvedTestsId, "expected the resolved-tests shape back");
     assert.equal(result.summary, undefined, "must not have executed");
+  });
+
+  it("merges against an empty {} when resolvedTests.config is absent (|| {} fallback)", async function () {
+    // Exercises the `resolvedTests.config || {}` fallback — resolvedTests
+    // carries no embedded config at all (a caller could hand-build a
+    // resolvedTests payload without one). Passes dryRun:true via the caller
+    // config so this short-circuits before runSpecs/getAvailableApps, which
+    // — unrelated to this merge line — currently throws on an
+    // under-populated config when a pre-resolved context lacks the platform
+    // info local resolution adds (tracked separately; out of scope here).
+    const spec = path.join(tmpDir, "noconfig.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    captured.length = 0;
+
+    const tampered = JSON.parse(JSON.stringify(seed));
+    delete tampered.config; // resolvedTests.config absent -> the || {} fires
+
+    const result = await runTests(
+      { dryRun: true, logLevel: "silent", telemetry: { send: false } },
+      { resolvedTests: tampered }
+    );
+    assert.ok(result.resolvedTestsId, "expected the resolved-tests shape back");
+    assert.equal(result.summary, undefined, "must not have executed");
+  });
+
+  it("dispatches to runViaApi (not runSpecs) when integrations.docDetectiveApi.apiKey is set", async function () {
+    // Exercises core/index.ts's `willRunViaApi` branch and its
+    // `results = await runViaApi(...)` dispatch line. runViaApi itself makes
+    // no HTTP request here: a testFilter matching nothing hits its own
+    // short-circuit (see "runViaApi filter short-circuit" in
+    // test/utils.test.js), so this stays fully offline while still proving
+    // core/index.ts picked the API path over the local runSpecs path.
+    const spec = path.join(tmpDir, "api.spec.json");
+    fs.writeFileSync(
+      spec,
+      JSON.stringify({ tests: [{ testId: "t1", steps: [{ wait: 5 }] }] })
+    );
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    captured.length = 0;
+
+    const tampered = JSON.parse(JSON.stringify(seed));
+    tampered.config.dryRun = false;
+
+    const originalApiEnv = process.env.DOC_DETECTIVE_API;
+    delete process.env.DOC_DETECTIVE_API; // willRunViaApi requires this unset
+    try {
+      const result = await runTests(
+        {
+          dryRun: false,
+          logLevel: "silent",
+          telemetry: { send: false },
+          testFilter: ["definitely-not-a-real-test-id"],
+          integrations: { docDetectiveApi: { apiKey: "fake-key" } },
+        },
+        { resolvedTests: tampered }
+      );
+      // runViaApi's filter short-circuit shape: empty specs, zeroed summary —
+      // proves the API path ran (not the local runSpecs executed-result shape).
+      assert.deepEqual(result.specs, []);
+      assert.equal(result.summary.tests.pass, 0);
+      assert.equal(result.summary.tests.fail, 0);
+    } finally {
+      if (originalApiEnv !== undefined) {
+        process.env.DOC_DETECTIVE_API = originalApiEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_API;
+      }
+    }
   });
 });
 
@@ -588,6 +712,208 @@ describe("CopilotCliAdapter — coverage top-up", function () {
         existsSync: () => false,
       });
       await assert.rejects(adapter.install(baseOpts()), /not authenticated.*copilot login/s);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// gemini-cli.ts — targeted gaps (unparseable JSON/manifest catches, enrich
+// catch, install error/exit-code branches). Mirrors the qwen-code /
+// copilot-cli "coverage top-up" sections above; this adapter had no prior
+// coverage pass (see test/agents-gemini.test.js for the happy-path suite).
+// ---------------------------------------------------------------------------
+
+describe("GeminiCliAdapter — coverage top-up", function () {
+  let GeminiCliAdapter;
+  before(async function () {
+    ({ GeminiCliAdapter } = await import("../dist/agents/adapters/gemini-cli.js"));
+  });
+
+  const HOME = path.join(path.sep, "home", "test");
+  const MANIFEST = path.join(
+    HOME, ".gemini", "extensions", "doc-detective", "gemini-extension.json"
+  );
+
+  function makeAdapter(overrides) {
+    return new GeminiCliAdapter({
+      run: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+      existsSync: () => false,
+      readFileSync: () => {
+        throw new Error("not stubbed");
+      },
+      homedir: () => HOME,
+      fetchLatestVersion: async () => undefined,
+      ...overrides,
+    });
+  }
+
+  const baseOpts = (over = {}) => ({
+    scope: "global",
+    force: false,
+    dryRun: false,
+    logger: () => {},
+    ...over,
+  });
+
+  describe("getInstallState — unparseable JSON/manifest catches", function () {
+    it("falls through to the filesystem when `extensions list` prints unparseable JSON", async function () {
+      const adapter = makeAdapter({
+        run: async () => ({ stdout: "{ not valid json", stderr: "", exitCode: 0 }),
+        existsSync: (p) => p === MANIFEST,
+        readFileSync: (p) =>
+          p === MANIFEST ? JSON.stringify({ version: "4.4.4" }) : (() => {
+            throw new Error("unexpected " + p);
+          })(),
+      });
+      const state = await adapter.getInstallState("global");
+      assert.equal(state.installed, true);
+      assert.equal(state.installedVersion, "4.4.4");
+    });
+
+    it("treats an unparseable manifest as not-installed", async function () {
+      const adapter = makeAdapter({
+        run: async () => { throw new Error("gemini not found"); },
+        existsSync: (p) => p === MANIFEST,
+        readFileSync: () => "{ not valid json",
+      });
+      const state = await adapter.getInstallState("global");
+      assert.equal(state.installed, false);
+    });
+
+    it("treats a non-string version in `extensions list` JSON as installed-without-version", async function () {
+      const listJson = JSON.stringify([{ name: "doc-detective", version: 42 }]);
+      const adapter = makeAdapter({
+        run: async () => ({ stdout: listJson, stderr: "", exitCode: 0 }),
+      });
+      const state = await adapter.getInstallState("global");
+      assert.equal(state.installed, true);
+      assert.equal(state.installedVersion, undefined);
+    });
+
+    it("treats a non-string version in the manifest fallback as installed-without-version", async function () {
+      const adapter = makeAdapter({
+        run: async () => { throw new Error("gemini not found"); },
+        existsSync: (p) => p === MANIFEST,
+        readFileSync: () => JSON.stringify({ version: 42 }),
+      });
+      const state = await adapter.getInstallState("global");
+      assert.equal(state.installed, true);
+      assert.equal(state.installedVersion, undefined);
+    });
+  });
+
+  it("enrichWithLatest swallows a throwing fetchLatestVersion (installed → latest unknown)", async function () {
+    const adapter = makeAdapter({
+      run: async () => { throw new Error("gemini not found"); },
+      existsSync: (p) => p === MANIFEST,
+      readFileSync: () => JSON.stringify({ version: "1.0.0" }),
+      fetchLatestVersion: async () => {
+        throw new Error("network down");
+      },
+    });
+    const state = await adapter.getInstallState("global");
+    assert.equal(state.installed, true);
+    assert.equal(state.latestVersion, undefined);
+    assert.equal(state.upToDate, undefined);
+  });
+
+  it("enrichWithLatest leaves upToDate undefined when installedVersion is unknown but latest resolves", async function () {
+    // list output omits version → installedVersion undefined; latest resolves
+    // to a real string. Exercises the ternary's `: undefined` else-branch.
+    const listJson = JSON.stringify([{ name: "doc-detective" }]);
+    const adapter = makeAdapter({
+      run: async () => ({ stdout: listJson, stderr: "", exitCode: 0 }),
+      fetchLatestVersion: async () => "9.0.0",
+    });
+    const state = await adapter.getInstallState("global");
+    assert.equal(state.installed, true);
+    assert.equal(state.installedVersion, undefined);
+    assert.equal(state.latestVersion, "9.0.0");
+    assert.equal(state.upToDate, undefined);
+  });
+
+  describe("install() — spawn error + non-zero exit branches", function () {
+    it("maps an ENOENT spawn error to an actionable install hint", async function () {
+      const adapter = makeAdapter({
+        run: async (cmd, args) => {
+          if (args[0] === "extensions" && args[1] === "list") {
+            return { stdout: "[]", stderr: "", exitCode: 0 };
+          }
+          throw Object.assign(new Error("spawn gemini ENOENT"), { code: "ENOENT" });
+        },
+        existsSync: () => false, // fresh install path
+      });
+      await assert.rejects(
+        adapter.install(baseOpts()),
+        /not installed or not on PATH.*@google\/gemini-cli/s
+      );
+    });
+
+    it("rethrows a non-ENOENT spawn error unchanged", async function () {
+      const adapter = makeAdapter({
+        run: async (cmd, args) => {
+          if (args[0] === "extensions" && args[1] === "list") {
+            return { stdout: "[]", stderr: "", exitCode: 0 };
+          }
+          throw new Error("EACCES permission denied");
+        },
+        existsSync: () => false,
+      });
+      await assert.rejects(adapter.install(baseOpts()), /EACCES permission denied/);
+    });
+
+    it("throws with the stderr when a command exits non-zero", async function () {
+      const adapter = makeAdapter({
+        run: async (cmd, args) => {
+          if (args[0] === "extensions" && args[1] === "list") {
+            return { stdout: "[]", stderr: "", exitCode: 0 };
+          }
+          return { stdout: "some progress", stderr: "boom failure", exitCode: 3 };
+        },
+        existsSync: () => false,
+      });
+      await assert.rejects(
+        adapter.install(baseOpts()),
+        /exited with code 3[\s\S]*boom failure/
+      );
+    });
+
+    it("throws without a trailing colon when a non-zero exit has empty stderr", async function () {
+      const adapter = makeAdapter({
+        run: async (cmd, args) => {
+          if (args[0] === "extensions" && args[1] === "list") {
+            return { stdout: "[]", stderr: "", exitCode: 0 };
+          }
+          return { stdout: "", stderr: "", exitCode: 2 };
+        },
+        existsSync: () => false,
+      });
+      await assert.rejects(adapter.install(baseOpts()), (err) => {
+        assert.match(err.message, /exited with code 2$/, `expected no stderr suffix; got: ${err.message}`);
+        return true;
+      });
+    });
+
+    it("logs command stdout at debug before a successful fresh install", async function () {
+      const logged = [];
+      const adapter = makeAdapter({
+        run: async (cmd, args) => {
+          if (args[0] === "extensions" && args[1] === "list") {
+            return { stdout: "[]", stderr: "", exitCode: 0 };
+          }
+          return { stdout: "installed ok", stderr: "", exitCode: 0 };
+        },
+        existsSync: () => false,
+        fetchLatestVersion: async () => "7.0.0",
+      });
+      const report = await adapter.install(
+        baseOpts({ logger: (m, lvl) => logged.push([m, lvl]) })
+      );
+      assert.equal(report.action, "installed");
+      assert.ok(
+        logged.some(([m]) => /installed ok/.test(m)),
+        "expected command stdout to be logged"
+      );
     });
   });
 });

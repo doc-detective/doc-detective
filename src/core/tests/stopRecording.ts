@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
+import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
@@ -73,6 +74,35 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     if (recording.type === "MediaRecorder") {
       // Browser engine.
 
+      // Remember the focused content tab so multi-tab tests return to the tab
+      // they were on, not an arbitrary surviving handle.
+      let returnTab: string | null = null;
+      try {
+        returnTab = await driver.getWindowHandle();
+      } catch {
+        /* stale focus; fall back to any survivor below */
+      }
+      const pickReturnHandle = (remaining: string[]) =>
+        returnTab && remaining.includes(returnTab) ? returnTab : remaining[0];
+
+      // Close the recorder tab, return focus to the content tab, and prune the
+      // recorder handle from the window/tab registry. Every MediaRecorder exit
+      // path (recorder-missing, download-timeout, success) needs this exact
+      // sequence; sharing one helper keeps them from drifting apart (the
+      // download-timeout path once omitted it, leaving later steps focused in
+      // the recorder tab).
+      const closeRecorderTabAndRestoreFocus = async () => {
+        const allHandles = await driver.getWindowHandles();
+        await driver.closeWindow();
+        const remainingHandles = allHandles.filter(
+          (h: string) => h !== recording.tab
+        );
+        if (remainingHandles.length > 0) {
+          await driver.switchToWindow(pickReturnHandle(remainingHandles));
+        }
+        await syncHandles(driver);
+      };
+
       // Switch to recording tab
       await driver.switchToWindow(recording.tab);
 
@@ -84,14 +114,7 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         result.status = "FAIL";
         result.description =
           "Recording was not properly started. The recorder object doesn't exist in the browser context.";
-        const allHandles = await driver.getWindowHandles();
-        await driver.closeWindow();
-        const remainingHandles = allHandles.filter(
-          (h: string) => h !== recording.tab
-        );
-        if (remainingHandles.length > 0) {
-          await driver.switchToWindow(remainingHandles[0]);
-        }
+        await closeRecorderTabAndRestoreFocus();
         dropHandle();
         return result;
       }
@@ -108,20 +131,17 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       if (!downloaded) {
         result.status = "FAIL";
         result.description = "Recording download timed out.";
+        // We're still focused inside the recorder tab (from switchToWindow
+        // above), so close it and restore focus before returning — otherwise
+        // later steps run in the recorder tab.
+        await closeRecorderTabAndRestoreFocus();
         // Clear the state so the auto-stop in runContext doesn't re-invoke
         // a doomed second stop (the recorder was already told to stop).
         dropHandle();
         return result;
       }
-      // Close recording tab and switch back to the original content tab
-      const allHandles = await driver.getWindowHandles();
-      await driver.closeWindow();
-      const remainingHandles = allHandles.filter(
-        (h: string) => h !== recording.tab
-      );
-      if (remainingHandles.length > 0) {
-        await driver.switchToWindow(remainingHandles[0]);
-      }
+      // Close recording tab and switch back to the original content tab.
+      await closeRecorderTabAndRestoreFocus();
 
       // Convert the downloaded .webm into the target format/location.
       await transcode({

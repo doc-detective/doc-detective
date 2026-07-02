@@ -102,3 +102,25 @@ type | one of:<br/>- one of:<br/>- string<br/>- array of string<br/>- object([Ty
   }
 }
 ```
+
+```json
+{
+  "type": {
+    "keys": [
+      "kittens",
+      "$ENTER$"
+    ],
+    "selector": "#search",
+    "surface": {
+      "browser": "chrome",
+      "tab": "cart"
+    },
+    "waitUntil": {
+      "find": {
+        "selector": ".results"
+      }
+    },
+    "timeout": 10000
+  }
+}
+```

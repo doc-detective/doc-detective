@@ -59,6 +59,17 @@
         ],
         "additionalProperties": false,
         "properties": {
+          "surface": {
+            "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+            "anyOf": [
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
+              },
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/browser"
+              }
+            ]
+          },
           "elementText": {
             "type": "string",
             "description": "Display text of the element to find. If combined with other element finding fields, the element must match all specified criteria."
@@ -198,7 +209,10 @@
     },
     {
       "elementId": "/^user-[0-9]+$/",
-      "elementClass": ["admin", "/^level-[1-5]$/"],
+      "elementClass": [
+        "admin",
+        "/^level-[1-5]$/"
+      ],
       "elementAttribute": {
         "data-active": true,
         "data-score": "/^[0-9]+$/"

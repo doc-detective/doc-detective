@@ -195,6 +195,18 @@ describe("config.ts — getAvailableApps (empty cache dir)", function () {
     const apps = await getAvailableApps({ config });
     assert.ok(Array.isArray(apps));
   });
+
+  // Regression: tests resolved by the DOC_DETECTIVE_API orchestration path
+  // arrive with resolvedTests.config as-is — it never passes through
+  // setConfig(), so config.environment is never populated the way a locally
+  // resolved run's config is. getAvailableApps must tolerate that instead of
+  // throwing "Cannot read properties of undefined (reading 'platform')".
+  it("does not throw when config.environment is absent (pre-resolved API config)", async function () {
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir };
+    const apps = await getAvailableApps({ config });
+    assert.ok(Array.isArray(apps));
+  });
 });
 
 describe("config.ts — getBrowserDiagnostics", function () {

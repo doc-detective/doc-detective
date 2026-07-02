@@ -1,10 +1,39 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "closeSurface",
-  "description": "Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.",
+  "description": "Close one or more surfaces: background processes, or browser windows/tabs. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.",
   "anyOf": [
-    { "$ref": "surface_v3.schema.json#" },
-    { "type": "array", "minItems": 1, "items": { "$ref": "surface_v3.schema.json#" } }
+    {
+      "$ref": "surface_v3.schema.json#"
+    },
+    {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "surface_v3.schema.json#"
+      }
+    }
   ],
-  "examples": ["web", { "process": "web" }, ["web", "api"]]
+  "examples": [
+    "web",
+    {
+      "process": "web"
+    },
+    [
+      "web",
+      "api"
+    ],
+    {
+      "browser": "chrome",
+      "tab": "cart"
+    },
+    {
+      "browser": "chrome",
+      "window": "admin"
+    },
+    {
+      "browser": "chrome",
+      "tab": -1
+    }
+  ]
 }

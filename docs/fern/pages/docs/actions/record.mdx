@@ -20,6 +20,7 @@ You can specify the recording action in several ways:
   - `overwrite`: (Optional) Set to `true` to overwrite an existing file at the target path. Defaults to `false`.
   - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
+  - `surface`: (Optional) The browser window or tab to record, for example `{ "browser": "chrome", "tab": "demo" }`. Omit to record the active tab. The recorder's own internal tab is never addressable by window/tab selectors. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
 
 **Stopping the Recording:** Include a `stopRecord` step to end a recording at a specific point in your test. Doc Detective automatically finalizes any remaining recordings at the end of the test run.
 
