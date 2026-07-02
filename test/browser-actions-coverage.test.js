@@ -515,6 +515,39 @@ describe("dragAndDrop action (coverage)", function () {
     assert.equal(result.outputs.sourceFound, false);
     assert.match(result.description, /Couldn't find source element/);
   });
+
+  it("outer catch: malformed regex shorthand throws synchronously inside findElement -> FAIL with the raw error message", async () => {
+    // findElement's own internals are defensive: findElementByCriteria wraps
+    // driver.$$ in a try/catch that swallows a rejection and just keeps
+    // polling until timeout (degrading to a FAIL *result*, not a throw). The
+    // one genuinely unguarded throw inside findElement's call graph is
+    // `new RegExp(...)` in findElementByShorthand's regex branch -- an
+    // invalid `/pattern/` shorthand (e.g. an unterminated character class)
+    // throws a SyntaxError synchronously, before any try/catch, which
+    // propagates out of Promise.all and is caught by dragAndDropElement's
+    // OWN outer try/catch (around the two concurrent findElement calls).
+    // This is distinct from the "element not found" FAIL path, which returns
+    // a result object rather than throwing.
+    const driver = {
+      $$: async () => [],
+      $: async () => null,
+      pause: async () => {},
+      keys: async () => {},
+      execute: async () => true,
+    };
+    const result = await dragAndDropElement({
+      config,
+      step: {
+        dragAndDrop: { source: "/[/", target: "#b" },
+      },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid regular expression/);
+    // The outer catch fires before outputs.sourceFound/targetFound are ever
+    // assigned (unlike the "element not found" FAIL path).
+    assert.deepEqual(result.outputs, {});
+  });
 });
 
 // ---------------------------------------------------------------------------

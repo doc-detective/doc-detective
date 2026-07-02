@@ -324,17 +324,25 @@ async function resolveCropGeometry({
   target: string;
 }): Promise<{ x: number; y: number; w: number; h: number } | null> {
   if (target === "viewport") {
-    const m = await driver.execute(() => {
-      return {
-        sx: (window as any).screenX,
-        sy: (window as any).screenY,
-        iw: (window as any).innerWidth,
-        ih: (window as any).innerHeight,
-        ow: (window as any).outerWidth,
-        oh: (window as any).outerHeight,
-        dpr: (window as any).devicePixelRatio || 1,
-      };
-    });
+    const m = await driver.execute(
+      /* c8 ignore start - runs inside the browser via driver.execute(): this callback body
+       * reads `window.*` metrics, which are serialized and evaluated by the WebDriver session
+       * in the browser process, never in the Node process c8 instruments. It IS exercised by the
+       * real E2E recording fixtures (viewport-target crop), just not visible to Node's coverage
+       * tool (ADR 01017). */
+      () => {
+        return {
+          sx: (window as any).screenX,
+          sy: (window as any).screenY,
+          iw: (window as any).innerWidth,
+          ih: (window as any).innerHeight,
+          ow: (window as any).outerWidth,
+          oh: (window as any).outerHeight,
+          dpr: (window as any).devicePixelRatio || 1,
+        };
+      }
+      /* c8 ignore stop */
+    );
     const dpr = m.dpr || 1;
     // screenX/screenY is the window's outer top-left, which sits above the
     // browser chrome (tabs, address bar, infobars). Offset to the content
@@ -561,11 +569,17 @@ async function getFfmpegPath(ctx: { cacheDir?: string } = {}): Promise<string> {
   // guard before handing it to a child process so a malformed install fails
   // with an actionable message instead of a confusing deep node error.
   const candidate = mod && (mod.path ?? mod.default?.path);
+  /* c8 ignore start - real subprocess/install-dependent: the installed @ffmpeg-installer/ffmpeg
+   * package in this repo's node_modules always exposes a well-formed `.path`, and tryResolveFromShim
+   * in loader.ts always wins over any injected cacheDir override, so there is no hermetic way to
+   * make loadHeavyDep() return a malformed module here without corrupting a real, shared dependency.
+   * Only reachable with a genuinely broken/tampered @ffmpeg-installer/ffmpeg install (ADR 01017). */
   if (typeof candidate !== "string" || candidate.length === 0) {
     throw new Error(
       "ffmpeg binary path is missing or malformed in the installed @ffmpeg-installer/ffmpeg package. Try `doc-detective install runtime --force` to reinstall."
     );
   }
+  /* c8 ignore stop */
   return candidate;
 }
 
@@ -594,9 +608,14 @@ async function detectMacScreenIndex(
       settled = true;
       try {
         proc?.kill();
+        /* c8 ignore start - structurally defensive: proc is either null (spawn threw, so
+         * kill() is never reached) or a real ChildProcess whose kill() reliably returns
+         * false rather than throwing (no signal permission/platform quirk reproduces a
+         * throw hermetically) (ADR 01017). */
       } catch {
         /* ignore */
       }
+      /* c8 ignore stop */
       resolve(v);
     };
     try {
@@ -633,17 +652,27 @@ async function detectX11ScreenSize(display?: string): Promise<string | null> {
       settled = true;
       try {
         proc?.kill();
+        /* c8 ignore start - structurally defensive: proc is either null (spawn threw, so
+         * kill() is never reached) or a real ChildProcess whose kill() reliably returns
+         * false rather than throwing (no signal permission/platform quirk reproduces a
+         * throw hermetically) (ADR 01017). */
       } catch {
         /* ignore */
       }
+      /* c8 ignore stop */
       resolve(v);
     };
     try {
       const env = display ? { ...process.env, DISPLAY: display } : process.env;
       proc = spawn("xdpyinfo", [], { env, stdio: ["ignore", "pipe", "ignore"] });
+      /* c8 ignore start - real subprocess-dependent: this data handler only fires when a real
+       * xdpyinfo process is installed and writes to stdout. xdpyinfo is an X11 utility not present
+       * on this dev machine or most CI runners (no network/browser fixture can substitute for it),
+       * so the callback body is exercised only on a Linux host with the real binary (ADR 01017). */
       proc.stdout?.on("data", (d: any) => {
         out += d.toString();
       });
+      /* c8 ignore stop */
       proc.on("error", () => done(null));
       proc.on("close", () => {
         const m = /dimensions:\s+(\d+x\d+)\s+pixels/i.exec(out);
@@ -714,12 +743,23 @@ async function startXvfb(
     if (proc.exitCode !== null)
       throw new Error(`Xvfb exited early on ${display} (code ${proc.exitCode})`);
     try {
+      /* c8 ignore next - real subprocess-dependent: this success return only fires once a
+       * genuine Xvfb process has created its X lock file. Xvfb is a Linux-only virtual
+       * framebuffer binary not present on this dev machine or non-Linux CI runners, and there is
+       * no hermetic, offline way to fabricate a real X lock file's readiness signal (ADR 01017). */
       if (fs.statSync(lock).mtimeMs >= startMs) return proc;
     } catch {
       /* lock not present yet */
     }
     await new Promise((r) => setTimeout(r, 100));
   }
+  /* c8 ignore start - real subprocess-dependent: this 5s-exhausted cleanup+throw only runs when
+   * spawn() neither errors nor creates the lock file for the full timeout window -- i.e. a real
+   * Xvfb binary is present but hangs. Reproducing that hermetically would require either a real
+   * Xvfb install or an OS-specific long-lived fake binary on PATH (Windows spawn() without
+   * shell:true does not resolve .cmd wrappers by name), which is not a safe cross-platform test
+   * (ADR 01017). On every machine without Xvfb installed (this dev box, most CI runners), spawn()
+   * throws ENOENT asynchronously well before this loop exhausts, so `spawnErr` is thrown instead. */
   try {
     proc.kill();
   } catch {
@@ -727,3 +767,6 @@ async function startXvfb(
   }
   throw new Error(`Xvfb did not become ready on ${display} within 5s.`);
 }
+/* c8 ignore stop - trailing closing brace after the unconditional throw above; a V8 phantom
+ * statement with nothing left to execute (same pattern as detectTests.ts's documented
+ * `c8 ignore start - V8 phantom branch on if-else/switch-case`, ADR 01017). */
