@@ -37,6 +37,12 @@ export function defaultGeminiCliDeps(): GeminiCliDeps {
     existsSync: fs.existsSync,
     readFileSync: (p, enc = "utf8") => fs.readFileSync(p, enc),
     homedir: os.homedir,
+    /* c8 ignore next 7 - real network call (axios.get) with no injectable seam
+     * inside the default-deps factory itself; adapter methods are always
+     * exercised through an injected `fetchLatestVersion` fake instead (see
+     * test/agents-gemini.test.js and test/agents-gemini-coverage.test.js).
+     * Matches the established pattern for sibling adapters' defaultXxxDeps
+     * (qwen-code, copilot-cli, codex, opencode, claude-code). */
     fetchLatestVersion: async () => {
       const response = await axios.get(LATEST_MANIFEST_URL, {
         timeout: 5000,
