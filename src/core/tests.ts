@@ -117,6 +117,7 @@ export {
   resolveAutoRecord,
   buildAutoRecordStep,
   specIsRouted,
+  killTree,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -125,6 +126,24 @@ export {
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
+// Tree-kill a pid and resolve only once the kill has actually completed.
+// `tree-kill` is asynchronous (it shells out to `taskkill /T /F` on Windows,
+// or walks `ps` on POSIX) — callers that fire it without awaiting can move on
+// (and the process can exit) before the tree is actually gone, orphaning a
+// still-running browser that the pid's Appium server owned via its
+// chromedriver/geckodriver child. Every place that tears down an Appium
+// server process must await this instead of calling `kill()` bare.
+function killTree(pid?: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (!pid) return resolve();
+    try {
+      kill(pid, "SIGTERM", () => resolve());
+    } catch {
+      resolve();
+    }
+  });
+}
 
 /**
  * Stable identity for a "context combination" — the platform + browser pairing
@@ -1071,6 +1090,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const xvfbProcesses: any[] = [];
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
+
   if (driverJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     // Resolve appium's actual JS entrypoint via `require.resolve` (shim
@@ -1109,13 +1129,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         );
       }
     } catch (error) {
-      for (const server of appiumServers) {
-        try {
-          kill(server.process.pid);
-        } catch {
-          // best-effort
-        }
-      }
+      await Promise.all(
+        appiumServers.map((server) => killTree(server.process?.pid))
+      );
       for (const xvfb of xvfbProcesses) {
         try {
           xvfb.kill();
@@ -1140,18 +1156,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // survive across specs/tests and are torn down once — by a closeSurface step
   // or the run-end sweep in the `finally` below.
   const processRegistry = new Map<string, any>();
-
-  // Tree-kill a pid and resolve when the kill has actually completed (callback
-  // form), so callers can await termination before exiting/returning.
-  const killTree = (pid?: number) =>
-    new Promise<void>((resolve) => {
-      if (!pid) return resolve();
-      try {
-        kill(pid, "SIGTERM", () => resolve());
-      } catch {
-        resolve();
-      }
-    });
 
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
@@ -1382,15 +1386,18 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // stop (via closeSurface) so they don't leak. Awaited so the trees are gone
     // before runSpecs returns.
     await killAllRegistered();
-    // Close every Appium server we started.
-    for (const server of appiumServers) {
-      log(config, "debug", `Closing Appium server on port ${server.port}`);
-      try {
-        kill(server.process.pid);
-      } catch {
-        // Process may already be terminated
-      }
-    }
+    // Close every Appium server we started. Awaited (via killTree) so each
+    // server's chromedriver/geckodriver child — and the browser it in turn
+    // owns — is actually gone before runSpecs returns. tree-kill is async
+    // (shells out to `taskkill /T /F` on Windows); firing it without
+    // awaiting let the run finish before the browser was really dead,
+    // orphaning it.
+    await Promise.all(
+      appiumServers.map((server) => {
+        log(config, "debug", `Closing Appium server on port ${server.port}`);
+        return killTree(server.process?.pid);
+      })
+    );
     // Tear down any Xvfb virtual displays started for recording.
     for (const xvfb of xvfbProcesses) {
       try {
@@ -3589,12 +3596,10 @@ async function startAppiumServer(
   } catch (error) {
     // appiumIsReady threw or timed out — the spawned child is still alive and
     // would leak (orphan process, port still bound). Tear it down before
-    // propagating so subsequent runs don't trip on the stale state.
-    try {
-      if (proc && proc.pid) kill(proc.pid);
-    } catch {
-      // best-effort cleanup; the parent error is what matters
-    }
+    // propagating so subsequent runs don't trip on the stale state. Awaited
+    // so the process is confirmed gone before this function returns control
+    // to the caller.
+    await killTree(proc?.pid);
     throw error;
   }
   log(config, "debug", `Appium is ready on port ${port}.`);
