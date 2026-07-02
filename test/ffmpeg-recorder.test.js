@@ -868,11 +868,18 @@ describe("ffmpegRecorder", function () {
     this.timeout(10000);
 
     it("throws when the Xvfb binary does not exist (ENOENT surfaces via the spawnErr poll check)", async function () {
-      // Xvfb is not installed on this (or most non-Linux CI) machines, so
-      // spawn() emits an async 'error' event; the readiness-poll loop picks
-      // up `spawnErr` on its next iteration (after the first 100ms wait) and
-      // re-throws it -- exercising the spawn call, the error-listener wiring,
-      // and the spawnErr throw branch, all without a real Xvfb.
+      // This asserts the spawnErr throw branch by relying on `Xvfb` being
+      // ABSENT from PATH: spawn() then emits an async 'error' event, the
+      // readiness-poll loop picks up `spawnErr` on its next iteration, and
+      // re-throws it. That absence holds on macOS/Windows CI (Xvfb is a
+      // Linux-only package), which cover this branch in the cross-platform
+      // coverage union. It does NOT hold on the Linux legs, where
+      // `install all` provisions a real Xvfb and startXvfb would instead
+      // succeed (or time out) -- so skip there rather than assert a throw
+      // that can't happen. startXvfb hardcodes the "Xvfb" binary with no
+      // injection seam, so pointing it at a guaranteed-missing binary isn't
+      // possible without a source change; the union already covers the line.
+      if (process.platform === "linux") this.skip();
       const start = Date.now();
       let threw = null;
       try {
