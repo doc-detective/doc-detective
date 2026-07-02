@@ -61,13 +61,12 @@ Both openers focus what they open, take `true` (anonymous), a name string, or an
 Two behaviors to know:
 
 - **Focus follows the surface.** A step that names a `surface` leaves that tab focused, so following surface-less steps act there too. That's also how you point surface-less concerns at a tab: focus it with any surfaced step first.
-- **Tabs the page opens are addressable too.** A `target="_blank"` link or `window.open` call creates a tab Doc Detective didn't open. It has no name, but you can reach it by `title`, `url`, or index (`-1` is handy right after the click). Give the page a moment (a [`wait`](/docs/actions/wait) step) so the new tab has loaded before addressing it by title/URL.
+- **Tabs the page opens are addressable too.** A `target="_blank"` link or `window.open` call creates a tab Doc Detective didn't open. It has no name, but you can reach it by `title`, `url`, or index (`-1` is handy right after the click). You don't need a manual [`wait`](/docs/actions/wait) step first: if a selector doesn't match yet — the tab hasn't been created, or its title/URL hasn't loaded — Doc Detective retries for up to 2 seconds before failing, so addressing it in the very next step works.
 
 ```json
 {
   "steps": [
     { "click": { "elementText": "View invoice" } },
-    { "wait": 2000 },
     {
       "find": {
         "elementText": "Invoice total",
@@ -77,6 +76,8 @@ Two behaviors to know:
   ]
 }
 ```
+
+If the tab you're targeting genuinely doesn't exist — a typo in the name, or a step that never opens what you expect — this 2-second retry is also how long that step takes to fail. It's the same trade-off as any other Doc Detective timeout: bounded and predictable, not indefinite.
 
 ## Type with readiness conditions
 
@@ -104,7 +105,7 @@ Two behaviors to know:
 { "closeSurface": { "browser": "chrome", "tab": -1 } }
 ```
 
-A `tab` reference closes that tab. A `window` reference closes the window and its tabs. Closing something that's already closed (or that never matched) is a PASS no-op, so cleanup steps are safe to repeat. Doc Detective refuses to close the last open tab, because that would end the browser session that the test run owns.
+A `tab` reference closes that tab. A `window` reference closes the window and its tabs. Closing something that's already closed (or that never matched, after the same brief retry described above) is a PASS no-op, so cleanup steps are safe to repeat. Doc Detective refuses to close the last open tab, because that would end the browser session that the test run owns.
 
 ## Current limits
 

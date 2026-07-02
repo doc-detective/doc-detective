@@ -304,13 +304,38 @@ function requireDriver(driver: any): string | null {
   return null;
 }
 
+// Bounded retry for surface discovery (ADR 01017): a page-opened tab
+// (target=_blank / window.open) isn't created synchronously with the click
+// that triggers it, and its title/url may still be loading. Rather than
+// FAILing on the first attempt, resolveWindowTarget re-syncs and re-matches
+// for up to `maxWaitMs`. Production call sites never override these — the
+// values are internal, not an authored field; tests shrink them to keep
+// negative-match assertions fast, or use small deterministic values to
+// verify the bound is honored.
+export interface SurfaceResolveOptions {
+  maxWaitMs?: number;
+  pollIntervalMs?: number;
+}
+const DEFAULT_MAX_WAIT_MS = 2000;
+const DEFAULT_POLL_INTERVAL_MS = 150;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Resolve the window/tab selectors of a browser surface reference to a single
-// W3C handle. Focus may move while criteria are evaluated; it is restored on
+// W3C handle. A selector that doesn't match is retried — re-syncing the live
+// handle list and re-evaluating title/url criteria against the current page —
+// until it matches or `maxWaitMs` elapses. The first attempt never sleeps, so
+// the common case (an already-focused or already-registered surface) resolves
+// with no added latency; only a failed attempt triggers a wait before the
+// next one. Focus may move while criteria are evaluated; it is restored on
 // failure and left on the resolved handle on success (the caller switches to
 // it anyway).
 async function resolveWindowTarget(
   driver: any,
-  ref: ParsedSurface
+  ref: ParsedSurface,
+  opts: SurfaceResolveOptions = {}
 ): Promise<Resolution> {
   if (ref.kind !== "browser") {
     return { ok: false, message: "Not a browser surface reference." };
@@ -320,56 +345,77 @@ async function resolveWindowTarget(
   const limit = checkPhase3Limits(driver, ref);
   if (limit) return { ok: false, message: limit };
 
-  const state = await syncHandles(driver);
+  const maxWaitMs = opts.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
+  const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+  const deadline = Date.now() + maxWaitMs;
   const original = await currentHandleSafe(driver);
-  const allTabs = userTabs(state);
 
-  // Window scope: leads only. A window selector narrows the tab search to
-  // that window's lead + the tabs opened in it. Page-opened tabs have no
-  // parent and are only reachable without a window selector.
-  let tabScope = allTabs;
-  let windowLead: WindowEntry | null = null;
-  if (ref.window !== undefined) {
-    const leads = allTabs.filter((w) => w.isWindowLead);
-    windowLead = await matchSelector(driver, leads, ref.window, "windowName");
-    if (!windowLead) {
-      if (original) await driver.switchToWindow(original);
-      return {
-        ok: false,
-        message: `No window matched ${JSON.stringify(ref.window)} in the active browser.`,
-      };
+  while (true) {
+    const state = await syncHandles(driver);
+    const allTabs = userTabs(state);
+
+    // Window scope: leads only. A window selector narrows the tab search to
+    // that window's lead + the tabs opened in it. Page-opened tabs have no
+    // parent and are only reachable without a window selector.
+    let tabScope = allTabs;
+    let windowLead: WindowEntry | null = null;
+    let notFoundMessage: string | null = null;
+
+    if (ref.window !== undefined) {
+      windowLead = await matchSelector(
+        driver,
+        allTabs.filter((w) => w.isWindowLead),
+        ref.window,
+        "windowName"
+      );
+      if (!windowLead) {
+        notFoundMessage = `No window matched ${JSON.stringify(ref.window)} in the active browser.`;
+      } else {
+        const lead = windowLead;
+        tabScope = allTabs.filter(
+          (w) => w.handle === lead.handle || w.parentWindow === lead.handle
+        );
+      }
     }
-    const lead = windowLead;
-    tabScope = allTabs.filter(
-      (w) => w.handle === lead.handle || w.parentWindow === lead.handle
-    );
-  }
 
-  if (ref.tab === undefined) {
-    // No tab selector: the window's lead (when a window was named), else the
-    // current tab.
-    if (windowLead) return { ok: true, handle: windowLead.handle };
-    if (original) return { ok: true, handle: original };
-    const fallback = allTabs[allTabs.length - 1];
-    return fallback
-      ? { ok: true, handle: fallback.handle }
-      : { ok: false, message: "No open tabs to act on." };
-  }
+    if (!notFoundMessage) {
+      if (ref.tab === undefined) {
+        // No tab selector: the window's lead (when a window was named), else
+        // the current tab.
+        if (windowLead) return { ok: true, handle: windowLead.handle };
+        if (original) return { ok: true, handle: original };
+        const fallback = allTabs[allTabs.length - 1];
+        if (fallback) return { ok: true, handle: fallback.handle };
+        // No tabs exist at all — not a "hasn't appeared yet" situation
+        // (nothing will create one on its own), so fail without burning the
+        // retry budget on a dead session.
+        return { ok: false, message: "No open tabs to act on." };
+      }
 
-  const tab = await matchSelector(driver, tabScope, ref.tab, "tabName");
-  if (!tab) {
+      const tab = await matchSelector(driver, tabScope, ref.tab, "tabName");
+      if (tab) return { ok: true, handle: tab.handle };
+      notFoundMessage = `No tab matched ${JSON.stringify(ref.tab)} in the active browser.`;
+    }
+
+    if (Date.now() >= deadline) {
+      if (original) await driver.switchToWindow(original);
+      // notFoundMessage is always set here: every branch above either returns
+      // directly (a match, or the no-tabs-at-all case) or sets it before
+      // falling through to this deadline check.
+      return { ok: false, message: notFoundMessage! };
+    }
     if (original) await driver.switchToWindow(original);
-    return {
-      ok: false,
-      message: `No tab matched ${JSON.stringify(ref.tab)} in the active browser.`,
-    };
+    await sleep(pollIntervalMs);
   }
-  return { ok: true, handle: tab.handle };
 }
 
 // Resolve a raw `surface` value and focus the resulting tab. The one-call
 // entry point for step actions.
-async function switchToSurface(driver: any, surface: any): Promise<Resolution> {
+async function switchToSurface(
+  driver: any,
+  surface: any,
+  opts: SurfaceResolveOptions = {}
+): Promise<Resolution> {
   const ref = parseSurfaceRef(surface);
   if (ref.kind === "browser") {
     const missingDriver = requireDriver(driver);
@@ -387,7 +433,7 @@ async function switchToSurface(driver: any, surface: any): Promise<Resolution> {
       message: `Surface ${JSON.stringify(surface)} is not a browser surface.`,
     };
   }
-  const resolved = await resolveWindowTarget(driver, ref);
+  const resolved = await resolveWindowTarget(driver, ref, opts);
   if (!resolved.ok) return resolved;
   const current = await currentHandleSafe(driver);
   if (current !== resolved.handle) {
@@ -449,10 +495,13 @@ async function closeHandle(
 // resolves to an empty list — closing an absent surface is an idempotent
 // no-op, consistent with the process kind. A reference without window/tab
 // selectors means "close the whole browser", which is a multi-browser
-// (later-phase) operation.
+// (later-phase) operation. Selector resolution is bounded-retried the same
+// as any other surface reference (ADR 01017) — closing a tab shortly after
+// the page that opened it appears works without a manual `wait` first.
 async function resolveCloseTargets(
   driver: any,
-  ref: ParsedSurface
+  ref: ParsedSurface,
+  opts: SurfaceResolveOptions = {}
 ): Promise<
   { ok: true; handles: string[] } | { ok: false; message: string }
 > {
@@ -471,20 +520,22 @@ async function resolveCloseTargets(
     };
   }
 
-  const state = await syncHandles(driver);
-  const original = await currentHandleSafe(driver);
-  const allTabs = userTabs(state);
-
   if (ref.window !== undefined && ref.tab === undefined) {
-    // Close a whole window: its tabs first, the lead last.
-    const leads = allTabs.filter((w) => w.isWindowLead);
-    const lead = await matchSelector(driver, leads, ref.window, "windowName");
+    // Close a whole window: its tabs first, the lead last. Delegate the lead
+    // lookup to resolveWindowTarget — with `tab` omitted it already resolves
+    // to the window's lead handle — so this inherits the retry instead of
+    // duplicating the loop.
+    const original = await currentHandleSafe(driver);
+    const resolved = await resolveWindowTarget(driver, ref, opts);
+    if (!resolved.ok) return { ok: true, handles: [] };
     if (original) await driver.switchToWindow(original);
-    if (!lead) return { ok: true, handles: [] };
-    const children = allTabs.filter((w) => w.parentWindow === lead.handle);
+    const state = await syncHandles(driver);
+    const children = userTabs(state).filter(
+      (w) => w.parentWindow === resolved.handle
+    );
     return {
       ok: true,
-      handles: [...children.map((w) => w.handle), lead.handle],
+      handles: [...children.map((w) => w.handle), resolved.handle],
     };
   }
 
@@ -493,7 +544,8 @@ async function resolveCloseTargets(
   // no-op. resolveWindowTarget already restored focus on that path; only the
   // SUCCESS path leaves focus on the matched tab and needs restoring here
   // (closeHandle re-derives focus itself).
-  const resolved = await resolveWindowTarget(driver, ref);
+  const original = await currentHandleSafe(driver);
+  const resolved = await resolveWindowTarget(driver, ref, opts);
   if (!resolved.ok) {
     return { ok: true, handles: [] };
   }

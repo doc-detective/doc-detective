@@ -277,9 +277,13 @@ describe("browserSurface: resolveWindowTarget", function () {
   it("restores focus when criteria match nothing, and names the selector", async function () {
     const driver = await threeTabs();
     await driver.switchToWindow("h0");
+    // maxWaitMs: 0 preserves the original single-attempt semantics for this
+    // negative-match assertion (the retry loop itself is covered separately —
+    // see "browserSurface: bounded discovery retry").
     const res = await resolveWindowTarget(
       driver,
-      parseSurfaceRef({ browser: "firefox", tab: { title: "Nope" } })
+      parseSurfaceRef({ browser: "firefox", tab: { title: "Nope" } }),
+      { maxWaitMs: 0 }
     );
     assert.equal(res.ok, false);
     assert.match(res.message, /Nope/);
@@ -288,7 +292,11 @@ describe("browserSurface: resolveWindowTarget", function () {
 
   it("reports an out-of-range index naming the selector", async function () {
     const driver = await threeTabs();
-    const res = await resolveWindowTarget(driver, parseSurfaceRef({ browser: "firefox", tab: 9 }));
+    const res = await resolveWindowTarget(
+      driver,
+      parseSurfaceRef({ browser: "firefox", tab: 9 }),
+      { maxWaitMs: 0 }
+    );
     assert.equal(res.ok, false);
     assert.match(res.message, /9/);
   });
@@ -304,7 +312,8 @@ describe("browserSurface: resolveWindowTarget", function () {
     assert.equal(newest.handle, "t2");
     const byTitle = await resolveWindowTarget(
       driver,
-      parseSurfaceRef({ browser: "firefox", tab: { title: "RECORDER" } })
+      parseSurfaceRef({ browser: "firefox", tab: { title: "RECORDER" } }),
+      { maxWaitMs: 0 }
     );
     assert.equal(byTitle.ok, false);
   });
@@ -335,7 +344,8 @@ describe("browserSurface: resolveWindowTarget", function () {
 
     const noWindow = await resolveWindowTarget(
       driver,
-      parseSurfaceRef({ browser: "firefox", window: "missing" })
+      parseSurfaceRef({ browser: "firefox", window: "missing" }),
+      { maxWaitMs: 0 }
     );
     assert.equal(noWindow.ok, false);
     assert.match(noWindow.message, /missing/);
@@ -476,7 +486,8 @@ describe("browserSurface: resolveCloseTargets", function () {
     await syncHandles(driver);
     const res = await resolveCloseTargets(
       driver,
-      parseSurfaceRef({ browser: "firefox", tab: "never-existed" })
+      parseSurfaceRef({ browser: "firefox", tab: "never-existed" }),
+      { maxWaitMs: 0 }
     );
     assert.equal(res.ok, true);
     assert.deepEqual(res.handles, []);
@@ -499,5 +510,95 @@ describe("browserSurface: resolveCloseTargets", function () {
     const res = await resolveCloseTargets(driver, parseSurfaceRef({ browser: "firefox", tab: -1 }));
     assert.equal(res.ok, false);
     assert.match(res.message, /not the active browser/);
+  });
+});
+
+describe("browserSurface: bounded discovery retry (ADR 01017)", function () {
+  // A page-opened tab (target=_blank / window.open) isn't created synchronously
+  // with the triggering click, and its title/url may still be loading. These
+  // tests simulate that by making the handle (or its title) appear only after
+  // a few getWindowHandles() polls, and assert resolution succeeds within the
+  // bounded retry window instead of failing on the first attempt.
+
+  it("discovers a tab that appears a few polls after the first attempt", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    let calls = 0;
+    const rawGetWindowHandles = driver.getWindowHandles.bind(driver);
+    driver.getWindowHandles = async () => {
+      calls++;
+      if (calls === 3) {
+        pageOpens(driver, "late", { title: "Late Arrival" });
+      }
+      return rawGetWindowHandles();
+    };
+    const res = await resolveWindowTarget(
+      driver,
+      parseSurfaceRef({ browser: "firefox", tab: { title: "Late Arrival" } }),
+      { maxWaitMs: 500, pollIntervalMs: 10 }
+    );
+    assert.equal(res.ok, true);
+    assert.equal(res.handle, "late");
+    assert.ok(calls >= 2, `expected multiple polls, got ${calls}`);
+  });
+
+  it("retries multiple times before giving up once maxWaitMs elapses", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    let calls = 0;
+    const rawGetWindowHandles = driver.getWindowHandles.bind(driver);
+    driver.getWindowHandles = async () => {
+      calls++;
+      return rawGetWindowHandles();
+    };
+    const res = await resolveWindowTarget(
+      driver,
+      parseSurfaceRef({ browser: "firefox", tab: "never-appears" }),
+      { maxWaitMs: 100, pollIntervalMs: 20 }
+    );
+    assert.equal(res.ok, false);
+    assert.match(res.message, /never-appears/);
+    // ~100ms / 20ms poll interval implies several attempts, not just one —
+    // proves the bound is enforced by elapsed time, not a single retry.
+    assert.ok(calls >= 2, `expected multiple retry attempts, got ${calls}`);
+  });
+
+  it("resolves on the first attempt with no added latency when the selector already matches", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    let calls = 0;
+    const rawGetWindowHandles = driver.getWindowHandles.bind(driver);
+    driver.getWindowHandles = async () => {
+      calls++;
+      return rawGetWindowHandles();
+    };
+    const res = await resolveWindowTarget(
+      driver,
+      parseSurfaceRef({ browser: "firefox", tab: 0 }),
+      { maxWaitMs: 2000, pollIntervalMs: 10 }
+    );
+    assert.equal(res.ok, true);
+    assert.equal(calls, 1, "should resolve without retrying");
+  });
+
+  it("resolveCloseTargets inherits the same bounded discovery retry", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    let calls = 0;
+    const rawGetWindowHandles = driver.getWindowHandles.bind(driver);
+    driver.getWindowHandles = async () => {
+      calls++;
+      if (calls === 2) {
+        pageOpens(driver, "late", { title: "Invoice" });
+      }
+      return rawGetWindowHandles();
+    };
+    const res = await resolveCloseTargets(
+      driver,
+      parseSurfaceRef({ browser: "firefox", tab: { title: "Invoice" } }),
+      { maxWaitMs: 500, pollIntervalMs: 10 }
+    );
+    assert.equal(res.ok, true);
+    assert.deepEqual(res.handles, ["late"]);
   });
 });

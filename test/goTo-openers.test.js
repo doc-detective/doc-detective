@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import sinon from "sinon";
 import { goTo } from "../dist/core/tests/goTo.js";
 import { closeSurface } from "../dist/core/tests/closeSurface.js";
 import { ensureSurfaceState } from "../dist/core/tests/browserSurface.js";
@@ -182,9 +183,24 @@ describe("closeSurface browser forms (step level)", function () {
     await openNamedTab(driver, "cart");
     const step = { closeSurface: { browser: "firefox", tab: "cart" } };
     await closeSurface({ config: {}, step: JSON.parse(JSON.stringify(step)), driver });
-    const result = await closeSurface({ config: {}, step: JSON.parse(JSON.stringify(step)), driver });
-    assert.equal(result.status, "PASS");
-    assert.equal(result.outputs.absentCount, 1);
+    // The second close doesn't find "cart" (already closed) and retries for
+    // up to the production 2s bound (ADR 01017) before resolving as absent.
+    // Fake timers fast-forward that wait instead of costing real wall-clock
+    // time — same pattern as the stopRecording download-timeout test.
+    const clock = sinon.useFakeTimers();
+    try {
+      const promise = closeSurface({
+        config: {},
+        step: JSON.parse(JSON.stringify(step)),
+        driver,
+      });
+      await clock.tickAsync(2100);
+      const result = await promise;
+      assert.equal(result.status, "PASS");
+      assert.equal(result.outputs.absentCount, 1);
+    } finally {
+      clock.restore();
+    }
   });
 
   it("closes a named window with its tabs (children first, lead last)", async function () {

@@ -1,6 +1,6 @@
 {
   "specId": "multi-tab",
-  "description": "Exercises browser multi-tab and multi-window targeting (multi-surface Phase 3) end-to-end: every goTo newTab/newWindow shape (true | name | object | false), tab and window selection by name, index, -1/newest, and {title,url,index} criteria (with /regex/), page-opened tabs (target=_blank and window.open) addressed by url/title/index, `surface` on find/click/dragAndDrop/type/runBrowserScript/screenshot/goTo, type's browser readiness waitUntil (find + domIdleTime/networkIdleTime), active-follows-focus semantics, and closeSurface tab/window forms including idempotent re-close and never-matched selectors. Tests run in the default headless-firefox context; each test gets its own session, so tab state never leaks across tests. The recording-interplay permutation (recorder tab must be invisible to selectors) is gated to headed Chrome on Windows/macOS like recording.spec.json.",
+  "description": "Exercises browser multi-tab and multi-window targeting (multi-surface Phase 3) end-to-end: every goTo newTab/newWindow shape (true | name | object | false), tab and window selection by name, index, -1/newest, and {title,url,index} criteria (with /regex/), page-opened tabs (target=_blank and window.open) addressed by url/title/index with no manual wait (the bounded discovery retry from ADR 01017 covers the tab's own load time), `surface` on find/click/dragAndDrop/type/runBrowserScript/screenshot/goTo, type's browser readiness waitUntil (find + domIdleTime/networkIdleTime), active-follows-focus semantics, and closeSurface tab/window forms including idempotent re-close and never-matched selectors. Tests run in the default headless-firefox context; each test gets its own session, so tab state never leaks across tests. The recording-interplay permutation (recorder tab must be invisible to selectors) is gated to headed Chrome on Windows/macOS like recording.spec.json.",
   "tests": [
     {
       "testId": "multi-tab-newtab-forms",
@@ -272,7 +272,7 @@
     },
     {
       "testId": "multi-tab-page-opened",
-      "description": "Tabs the PAGE opens (target=_blank link, window.open) are addressable by url/title criteria and index even though they have no assigned name or parent window.",
+      "description": "Tabs the PAGE opens (target=_blank link, window.open) are addressable by url/title criteria and index even though they have no assigned name or parent window. No manual wait is needed before addressing them: a selector that doesn't match yet is retried for up to 2 seconds (ADR 01017), covering the moment between the click and the new tab finishing its own navigation.",
       "steps": [
         {
           "goTo": "http://localhost:8092/multi-tab.html"
@@ -284,10 +284,7 @@
           }
         },
         {
-          "wait": 3000
-        },
-        {
-          "description": "Address the page-opened tab by url criteria",
+          "description": "Address the page-opened tab by url criteria, with no manual wait first — the built-in discovery retry covers the tab's own load time",
           "find": {
             "elementText": "PAGE linked",
             "surface": {
@@ -315,10 +312,7 @@
           }
         },
         {
-          "wait": 3000
-        },
-        {
-          "description": "Address the window.open tab by title /regex/",
+          "description": "Address the window.open tab by title /regex/, again with no manual wait",
           "find": {
             "elementText": "PAGE opened",
             "surface": {
