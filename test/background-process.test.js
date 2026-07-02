@@ -561,13 +561,22 @@ describe("resolveSurface", function () {
     });
   });
 
-  it("flags a reserved browser engine keyword as unsupported", function () {
-    assert.equal(resolveSurface("chrome").kind, "unsupported");
-    assert.equal(resolveSurface("firefox").kind, "unsupported");
+  it("resolves a reserved browser engine keyword to a browser surface (Phase 3)", function () {
+    assert.equal(resolveSurface("chrome").kind, "browser");
+    assert.equal(resolveSurface("chrome").engine, "chrome");
+    assert.equal(resolveSurface("firefox").kind, "browser");
   });
 
-  it("flags a non-process object as unsupported", function () {
-    assert.equal(resolveSurface({ browser: "chrome" }).kind, "unsupported");
+  it("resolves a browser object to a browser surface (Phase 3)", function () {
+    assert.equal(resolveSurface({ browser: "chrome" }).kind, "browser");
+    assert.equal(
+      resolveSurface({ browser: "chrome", tab: "cart" }).tab,
+      "cart"
+    );
+  });
+
+  it("flags an unknown surface object kind as unsupported", function () {
+    assert.equal(resolveSurface({ app: "calc" }).kind, "unsupported");
   });
 
   it("returns none for an absent surface", function () {

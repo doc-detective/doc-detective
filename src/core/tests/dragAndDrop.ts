@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
+import { switchToSurface } from "./browserSurface.js";
 import { log } from "../utils.js";
 import {
   buildConditionContext,
@@ -93,6 +94,16 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
+
+  // Multi-surface Phase 3: focus the window/tab the source and target live in.
+  if (step.dragAndDrop.surface !== undefined) {
+    const switched = await switchToSurface(driver, step.dragAndDrop.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+  }
 
   // Set default duration if not provided
   const duration = step.dragAndDrop.duration || 1000;

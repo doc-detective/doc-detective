@@ -2866,6 +2866,15 @@ async function runContext({
         clog("warning", fellBackNote);
       }
 
+      // Multi-surface Phase 3: stash the engine the session actually runs so
+      // browser `surface` references can be checked against it at step time.
+      // Initialize `state` if a step hasn't yet, so the engine is recorded even
+      // when the very first surfaced step is the one to read it.
+      if (driver) {
+        driver.state = driver.state ?? {};
+        driver.state.engine = String(startedName).toLowerCase();
+      }
+
       if (
         context.browser?.viewport?.width ||
         context.browser?.viewport?.height
@@ -3475,7 +3484,7 @@ async function runStep({
   } else if (typeof step.runShell !== "undefined") {
     actionResult = await runShell({ config: config, step: step, processRegistry });
   } else if (typeof step.closeSurface !== "undefined") {
-    actionResult = await closeSurface({ config: config, step: step, processRegistry });
+    actionResult = await closeSurface({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
       config: config,

@@ -166,6 +166,9 @@ navigation:
               - page: Record video
                 path: pages/tutorials/record-video.mdx
                 slug: record-video
+              - page: Multiple tabs & windows
+                path: pages/tutorials/multiple-tabs-and-windows.mdx
+                slug: multiple-tabs-and-windows
           - section: CLI, code & APIs
             skip-slug: true
             contents:

@@ -56,6 +56,7 @@ async function dereferenceSchemas() {
     "test_v3.schema.json",
     "type_v3.schema.json",
     "wait_v3.schema.json",
+    "waitUntil_v3.schema.json",
     // v2 schemas
     "checkLink_v2.schema.json",
     "config_v2.schema.json",

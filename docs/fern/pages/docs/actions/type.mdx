@@ -13,9 +13,9 @@ You can specify the keys to type in several ways:
 - **Object Format:** Use an object for more control:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
   - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible.
-  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to send keystrokes to a background process instead. See [Type to a background process](#type-to-a-background-process).
-  - `waitUntil`: (Optional) After sending the keys, wait until the process output matches or a fixed delay elapses. Only valid with a process `surface`. See [Type to a background process](#type-to-a-background-process).
-  - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys. Only applies with a process `surface`.
+  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to a browser window/tab reference (for example `{ "browser": "chrome", "tab": "cart" }`) to type in a specific tab, or to a process name to send keystrokes to a background process. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows) and [Type to a background process](#type-to-a-background-process).
+  - `waitUntil`: (Optional) After sending the keys, wait until the surface is ready. Requires a `surface`, and the conditions depend on its kind: a process surface accepts `stdio`/`delayMs`, and a browser surface accepts `networkIdleTime`/`domIdleTime`/`find` (no condition applies by default). See [Type to a background process](#type-to-a-background-process) and [Type with readiness conditions](/docs/test-docs/multiple-tabs-and-windows#type-with-readiness-conditions).
+  - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
 
 **Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
 

@@ -27,6 +27,17 @@
         ],
         "additionalProperties": false,
         "properties": {
+          "surface": {
+            "description": "The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.",
+            "anyOf": [
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
+              },
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/browser"
+              }
+            ]
+          },
           "script": {
             "type": "string",
             "description": "JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on)."
@@ -84,7 +95,10 @@
     },
     {
       "script": "return arguments[0] + arguments[1];",
-      "args": ["foo", "bar"]
+      "args": [
+        "foo",
+        "bar"
+      ]
     },
     {
       "script": "return window.location.href;",
@@ -103,7 +117,9 @@
     },
     {
       "script": "localStorage.setItem('token', arguments[0]);",
-      "args": ["$AUTH_TOKEN"]
+      "args": [
+        "$AUTH_TOKEN"
+      ]
     }
   ]
 }

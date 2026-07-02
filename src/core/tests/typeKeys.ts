@@ -5,6 +5,8 @@ import {
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
 import { waitForOutputMatch } from "../utils.js";
+import { parseSurfaceRef, switchToSurface } from "./browserSurface.js";
+import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -12,17 +14,6 @@ import {
 import type { ImplicitAssertionSpec } from "../routing.js";
 
 export { typeKeys, translateProcessKeys, resolveSurface, resolveInputDelay };
-
-// Browser engine keywords reserved for the (later-phase) browser surface kind.
-// A bare-string surface that matches one of these targets a browser, which is
-// not yet supported as a `type` target — so it FAILs at runtime in Phase 1.
-const RESERVED_ENGINE_KEYWORDS = new Set([
-  "chrome",
-  "firefox",
-  "safari",
-  "webkit",
-  "edge",
-]);
 
 // Control-byte map for keystrokes sent to a PROCESS surface (stdin pipe). Kept
 // module-level and webdriverio-free so the process path never loads the heavy
@@ -99,28 +90,17 @@ function translateProcessKeys(keys: string[]): string[] {
   return out;
 }
 
-// Resolve a `type.surface` value to a target descriptor. Phase 1 only resolves
-// the PROCESS kind:
+// Resolve a `type.surface` value to a target descriptor. Since Phase 3 this
+// is the shared parser from browserSurface.js:
 //   { process: "name" }       → { kind: "process", name }
 //   "name" (not an engine kw) → { kind: "process", name }
-//   "chrome"|… (engine kw)    → { kind: "unsupported" } (browser, later phase)
-//   { browser|app: … }        → { kind: "unsupported" }
+//   "chrome"|… (engine kw)    → { kind: "browser", engine } (active browser)
+//   { browser, window?, tab? }→ { kind: "browser", … }
+//   { app: … }                → { kind: "unsupported" } (future kind)
 //   undefined                 → { kind: "none" } (active-element/element path)
-function resolveSurface(
-  surface: any
-): { kind: "process" | "none" | "unsupported"; name?: string } {
-  if (surface === undefined || surface === null) return { kind: "none" };
-  if (typeof surface === "string") {
-    const name = surface.trim();
-    if (RESERVED_ENGINE_KEYWORDS.has(name.toLowerCase()))
-      return { kind: "unsupported" };
-    return { kind: "process", name };
-  }
-  if (typeof surface === "object" && typeof surface.process === "string") {
-    return { kind: "process", name: surface.process.trim() };
-  }
-  // Any other object shape (browser/app) is a future surface kind.
-  return { kind: "unsupported" };
+// Kept as a named export — tests exercise the type-step resolution through it.
+function resolveSurface(surface: any) {
+  return parseSurfaceRef(surface);
 }
 
 // webdriverio is a heavy runtime dep that a lean install does not ship (it is
@@ -387,7 +367,33 @@ async function typeKeys({
     return result;
   }
   if (resolved.kind === "process") {
+    // A bare-string surface can't be kind-checked by the schema; reject
+    // browser readiness conditions that slipped through it loudly instead of
+    // silently ignoring them.
+    const wu = step.type.waitUntil;
+    if (wu && (wu.networkIdleTime !== undefined || wu.domIdleTime !== undefined || wu.find !== undefined)) {
+      result.status = "FAIL";
+      result.description = `Browser readiness conditions (networkIdleTime/domIdleTime/find) don't apply to the process surface "${resolved.name}".`;
+      return result;
+    }
     return await typeToProcess({ step, name: resolved.name!, processRegistry });
+  }
+  if (resolved.kind === "browser") {
+    // Browser-surface branch (Phase 3): focus the requested window/tab, then
+    // fall through to the unchanged element/active-element typing path.
+    const wu = step.type.waitUntil;
+    if (wu && (wu.stdio !== undefined || wu.delayMs !== undefined)) {
+      result.status = "FAIL";
+      result.description =
+        "Process readiness conditions (stdio/delayMs) don't apply to a browser surface.";
+      return result;
+    }
+    const switched = await switchToSurface(driver, step.type.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
   }
 
   // Find element to type into if any criteria are specified
@@ -505,6 +511,92 @@ async function typeKeys({
     return result;
   }
 
+  // Browser readiness (Phase 3): after typing into a browser surface, wait on
+  // the requested page conditions. Unlike goTo, nothing applies by default —
+  // only the conditions the author names run, all bounded by `timeout`.
+  if (resolved.kind === "browser" && step.type.waitUntil) {
+    const readiness = await waitForBrowserReadiness({
+      driver,
+      waitUntil: step.type.waitUntil,
+      timeout: typeof step.type.timeout === "number" ? step.type.timeout : 5000,
+    });
+    if (!readiness.ok) {
+      result.status = "FAIL";
+      result.description = `Typed keys, but readiness conditions weren't met: ${readiness.message}`;
+      return result;
+    }
+    result.description = "Typed keys; readiness conditions met.";
+  }
+
   // PASS
   return result;
+}
+
+// Run the browser-surface readiness conditions of a `type` step: network
+// idle, DOM stable, and element presence, in parallel, each bounded by the
+// shared deadline. Mirrors goTo's post-navigation waits (same probes), minus
+// goTo's defaults — absent conditions simply don't run.
+async function waitForBrowserReadiness({
+  driver,
+  waitUntil,
+  timeout,
+}: {
+  driver: any;
+  waitUntil: any;
+  timeout: number;
+}): Promise<{ ok: boolean; message: string }> {
+  const failures: string[] = [];
+  const checks: Promise<void>[] = [];
+  if (typeof waitUntil.networkIdleTime === "number") {
+    checks.push(
+      waitForNetworkIdle(driver, waitUntil.networkIdleTime, timeout).catch(
+        (error: any) => {
+          failures.push(`network idle: ${error.message}`);
+          throw error;
+        }
+      )
+    );
+  }
+  if (typeof waitUntil.domIdleTime === "number") {
+    checks.push(
+      waitForDOMStable(driver, waitUntil.domIdleTime, timeout).catch(
+        (error: any) => {
+          failures.push(`DOM stable: ${error.message}`);
+          throw error;
+        }
+      )
+    );
+  }
+  if (waitUntil.find) {
+    const find = { ...waitUntil.find };
+    if (find.elementClass && !Array.isArray(find.elementClass)) {
+      find.elementClass = [find.elementClass];
+    }
+    checks.push(
+      (async () => {
+        const { element, error } = await findElementByCriteria({
+          selector: find.selector,
+          elementText: find.elementText,
+          elementId: find.elementId,
+          elementTestId: find.elementTestId,
+          elementClass: find.elementClass,
+          elementAttribute: find.elementAttribute,
+          elementAria: find.elementAria,
+          timeout,
+          driver,
+        });
+        if (!element) {
+          const message = `element not found (${JSON.stringify(waitUntil.find)})`;
+          failures.push(error ? `${message}: ${error}` : message);
+          throw new Error(message);
+        }
+      })()
+    );
+  }
+  if (!checks.length) return { ok: true, message: "No conditions to wait on." };
+  const settled = await Promise.allSettled(checks);
+  if (settled.some((r) => r.status === "rejected")) {
+    return { ok: false, message: failures.join("; ") };
+  }
+  return { ok: true, message: "All conditions met." };
 }

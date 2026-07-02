@@ -16,7 +16,7 @@ description: "Reference for the `closeSurface` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-closeSurface | one of:<br/>- one of:<br/>- string<br/>- object([Process surface](/reference/schemas/process-surface))<br/>- array of one of: string, object([Process surface](/reference/schemas/process-surface)) | Required. Close one or more surfaces (Phase 1: background processes). Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`. | 
+closeSurface | one of:<br/>- one of:<br/>- string<br/>- object([Process surface](/reference/schemas/process-surface))<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- array of one of: string, object([Process surface](/reference/schemas/process-surface)), object([Browser surface](/reference/schemas/browser-surface)) | Required. Close one or more surfaces: background processes, or browser windows/tabs. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`. | 
 
 ## Examples
 
@@ -40,5 +40,32 @@ closeSurface | one of:<br/>- one of:<br/>- string<br/>- object([Process surface]
     "web",
     "api"
   ]
+}
+```
+
+```json
+{
+  "closeSurface": {
+    "browser": "chrome",
+    "tab": "cart"
+  }
+}
+```
+
+```json
+{
+  "closeSurface": {
+    "browser": "chrome",
+    "window": "admin"
+  }
+}
+```
+
+```json
+{
+  "closeSurface": {
+    "browser": "chrome",
+    "tab": -1
+  }
 }
 ```

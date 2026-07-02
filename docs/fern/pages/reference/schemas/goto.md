@@ -130,6 +130,43 @@ goTo | one of:<br/>- string<br/>- object([Go to URL (detailed)](/reference/schem
 ```json
 {
   "goTo": {
+    "url": "/checkout",
+    "origin": "https://my-app.com",
+    "newTab": "cart"
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "/admin",
+    "origin": "https://my-app.com",
+    "newWindow": {
+      "name": "admin",
+      "tab": "overview"
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
+    "url": "/orders",
+    "origin": "https://my-app.com",
+    "surface": {
+      "browser": "chrome",
+      "window": "admin",
+      "tab": "overview"
+    }
+  }
+}
+```
+
+```json
+{
+  "goTo": {
     "url": "http://localhost:8092",
     "waitUntil": {
       "find": {
