@@ -7,7 +7,7 @@ Documented procedures often span more than one tab: "click the link, which opens
 
 Three pieces work together:
 
-- **[`goTo`](/docs/actions/goTo) opens tabs and windows** with `newTab` / `newWindow`. It's the only action that opens them, so name what you open.
+- **[`goTo`](/docs/actions/goTo) opens tabs and windows** with `newTab` / `newWindow`. It's the only action that opens tabs and windows you can address, so name what you open.
 - **The `surface` field addresses them.** Every browser action (`find`, `click`, `type`, `dragAndDrop`, `runBrowserScript`, `screenshot`, `record`, `goTo`) accepts a `surface` that says *which* window/tab to act on. Omit it to act on the active tab, exactly as before.
 - **[`closeSurface`](/docs/actions/closeSurface) closes them** at tab or window granularity. Closing something that's already closed passes, so cleanup steps are safe to repeat.
 

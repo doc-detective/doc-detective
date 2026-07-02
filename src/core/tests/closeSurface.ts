@@ -94,10 +94,12 @@ async function closeSurface({
         absent.push(label);
         continue;
       }
-      // Batch-level last-tab preflight: a window close resolves to several
-      // handles (its tabs, then the lead). Refuse the whole batch upfront if it
-      // would leave zero user tabs, so we never close some tabs and then FAIL
-      // on the last one with the session already mutated.
+      // Last-tab preflight for THIS close target: a window close resolves to
+      // several handles (its tabs, then the lead). Refuse this target's handles
+      // upfront if closing them would leave zero user tabs, so we never close
+      // some tabs and then FAIL on the last one with the session already
+      // mutated. (Multi-item closeSurface is not atomic — each array entry is
+      // resolved and closed in turn; this guard is per-entry.)
       const state = await syncHandles(driver);
       const closing = new Set(targets.handles);
       const survivors = state.windows.filter(

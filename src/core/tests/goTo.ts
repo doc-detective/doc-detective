@@ -98,7 +98,8 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
   }
 
   // Multi-surface Phase 3: focus the requested window/tab, and open a new
-  // tab/window when asked. goTo is the ONLY step that opens windows/tabs.
+  // tab/window when asked. goTo is the only step that opens USER-ADDRESSABLE
+  // windows/tabs (`record` opens an internal, non-addressable recorder tab).
   const newTab = normalizeOpener(step.goTo.newTab);
   const newWindow = normalizeOpener(step.goTo.newWindow);
   if (step.goTo.surface !== undefined) {
