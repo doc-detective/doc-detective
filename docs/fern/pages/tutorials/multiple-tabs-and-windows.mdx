@@ -149,8 +149,8 @@ How references resolve:
 
 Two caveats:
 
-- **Pin a browser OR fan out — not both.** Cross-browser coverage for browser-*agnostic* tests still comes from the [`runOn` matrix](/docs/test-docs/platforms-and-browsers), which runs the whole test once per engine. A test that pins `surface: { "browser": "firefox" }` inside its steps should pin a single `runOn` browser too, or it opens firefox alongside every matrix engine.
-- **Safari allows one automation session at a time** (a safaridriver limit), so a second concurrent Safari isn't available; pair Safari with other engines instead.
+- **Pin a browser OR fan out — not both.** Cross-browser coverage for browser-*agnostic* tests still comes from the [`runOn` matrix](/docs/test-docs/platforms-and-browsers), which runs the whole test once per engine. A test that pins `surface: { "browser": "firefox" }` inside its steps should pin a single `runOn` browser too, or it opens Firefox alongside every matrix engine.
+- **Safari allows one automation session at a time** (a `safaridriver` limit), so a second concurrent Safari isn't available; pair Safari with other engines instead.
 
 ## Current limits
 
