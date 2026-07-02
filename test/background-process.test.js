@@ -558,6 +558,7 @@ describe("resolveSurface", function () {
     assert.deepEqual(resolveSurface({ process: "repl" }), {
       kind: "process",
       name: "repl",
+      explicit: true,
     });
   });
 

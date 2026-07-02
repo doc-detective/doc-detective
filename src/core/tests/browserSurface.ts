@@ -40,7 +40,10 @@ export {
 
 export type ParsedSurface =
   | { kind: "none" }
-  | { kind: "process"; name: string }
+  // `explicit` marks the object form `{ process: … }` — an unambiguous process
+  // reference that must NEVER be reinterpreted as a browser. A bare string is
+  // identity-only (explicit undefined) and may resolve to a browser session.
+  | { kind: "process"; name: string; explicit?: boolean }
   | {
       kind: "browser";
       engine?: string;
@@ -66,7 +69,9 @@ function parseSurfaceRef(surface: any): ParsedSurface {
     return { kind: "process", name };
   }
   if (typeof surface === "object" && typeof surface.process === "string") {
-    return { kind: "process", name: surface.process.trim() };
+    // Explicit process reference — the user named the kind, so it is never
+    // reinterpreted as a browser session (see reinterpretForSessions).
+    return { kind: "process", name: surface.process.trim(), explicit: true };
   }
   if (typeof surface === "object" && typeof surface.browser === "string") {
     const parsed: Extract<ParsedSurface, { kind: "browser" }> = {
@@ -82,14 +87,19 @@ function parseSurfaceRef(surface: any): ParsedSurface {
   return { kind: "unsupported" };
 }
 
-// Phase 4: a bare-string surface is identity-only — the kind resolves at
-// runtime. parseSurfaceRef defaults non-engine names to the process kind;
-// when the context's session registry owns the name, reinterpret it as that
-// browser surface. (Cross-kind name collisions are rejected at open time, so
-// registry-first is unambiguous.)
+// Phase 4: only a BARE-STRING surface is identity-only — its kind resolves at
+// runtime. parseSurfaceRef defaults a non-engine bare string to the process
+// kind; when the context's session registry owns the name, reinterpret it as
+// that browser surface (registry-first precedence). An EXPLICIT `{ process: … }`
+// reference is never reinterpreted — the user named the kind — so a process
+// stays reachable by its explicit form even if a browser session shares the
+// name. (Opening a browser over an existing process name is rejected up front,
+// so the only way the two coexist is a process started after a same-named
+// browser; that process is then reached with `{ process: … }`.)
 function reinterpretForSessions(driver: any, ref: ParsedSurface): ParsedSurface {
   if (
     ref.kind === "process" &&
+    !ref.explicit &&
     driver?.state?.sessionRegistry?.sessions?.has(ref.name)
   ) {
     return { kind: "browser", name: ref.name };

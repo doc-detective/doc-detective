@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   parseSurfaceRef,
+  reinterpretForSessions,
   ensureSurfaceState,
   syncHandles,
   seedWindowLead,
@@ -90,6 +91,7 @@ describe("browserSurface: parseSurfaceRef", function () {
     assert.deepEqual(parseSurfaceRef({ process: " db " }), {
       kind: "process",
       name: "db",
+      explicit: true,
     });
   });
 
@@ -112,6 +114,40 @@ describe("browserSurface: parseSurfaceRef", function () {
   it("maps anything else to unsupported", function () {
     assert.equal(parseSurfaceRef(42).kind, "unsupported");
     assert.equal(parseSurfaceRef({ app: "calc" }).kind, "unsupported");
+  });
+
+  it("tags an explicit { process } reference so it is never reinterpreted", function () {
+    assert.equal(parseSurfaceRef({ process: "web" }).explicit, true);
+    // A bare string carries no explicit tag.
+    assert.equal(parseSurfaceRef("web").explicit, undefined);
+  });
+});
+
+describe("browserSurface: reinterpretForSessions", function () {
+  // A driver whose session registry owns a browser surface named "web".
+  function driverWithSession(name) {
+    return { state: { sessionRegistry: { sessions: new Map([[name, {}]]) } } };
+  }
+
+  it("reinterprets a BARE-STRING process ref as a browser session it owns", function () {
+    const driver = driverWithSession("web");
+    const ref = reinterpretForSessions(driver, parseSurfaceRef("web"));
+    assert.equal(ref.kind, "browser");
+    assert.equal(ref.name, "web");
+  });
+
+  it("never reinterprets an EXPLICIT { process } ref, so the process stays reachable", function () {
+    const driver = driverWithSession("web");
+    const ref = reinterpretForSessions(driver, parseSurfaceRef({ process: "web" }));
+    assert.equal(ref.kind, "process");
+    assert.equal(ref.name, "web");
+  });
+
+  it("leaves a bare string as a process when no browser session owns the name", function () {
+    const driver = driverWithSession("chrome");
+    const ref = reinterpretForSessions(driver, parseSurfaceRef("web"));
+    assert.equal(ref.kind, "process");
+    assert.equal(ref.name, "web");
   });
 });
 
