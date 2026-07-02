@@ -127,22 +127,50 @@ export {
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
 
-// Tree-kill a pid and resolve only once the kill has actually completed.
+// Tree-kill a pid and resolve only once the target process is actually gone.
 // `tree-kill` is asynchronous (it shells out to `taskkill /T /F` on Windows,
-// or walks `ps` on POSIX) — callers that fire it without awaiting can move on
-// (and the process can exit) before the tree is actually gone, orphaning a
-// still-running browser that the pid's Appium server owned via its
-// chromedriver/geckodriver child. Every place that tears down an Appium
-// server process must await this instead of calling `kill()` bare.
-function killTree(pid?: number): Promise<void> {
+// or walks `ps`/sends signals on POSIX) — callers that fire it without
+// awaiting can move on (and the process can exit) before the tree is
+// actually gone, orphaning a still-running browser that the pid's Appium
+// server owned via its chromedriver/geckodriver child. Every place that
+// tears down an Appium server process must await this instead of calling
+// `kill()` bare.
+//
+// tree-kill's own completion callback isn't sufficient on its own: on
+// Windows it fires after `taskkill /T /F` (a forceful, synchronous
+// termination) exits, so the pid really is gone by then. On POSIX it fires
+// once the SIGTERM signal has been *sent* to every pid in the tree, not once
+// the OS has actually reaped them — a process can take a moment to exit
+// after receiving SIGTERM. So after tree-kill's callback, poll
+// `process.kill(pid, 0)` (which throws ESRCH once the pid no longer exists)
+// with a bounded timeout, rather than trusting the callback alone.
+function killTree(pid?: number, timeoutMs: number = 5000): Promise<void> {
   return new Promise<void>((resolve) => {
     if (!pid) return resolve();
+    const waitForExit = async () => {
+      const start = Date.now();
+      while (isPidAlive(pid) && Date.now() - start < timeoutMs) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      resolve();
+    };
     try {
-      kill(pid, "SIGTERM", () => resolve());
+      kill(pid, "SIGTERM", () => waitForExit());
     } catch {
       resolve();
     }
   });
+}
+
+// Whether `pid` still refers to a live process. `process.kill(pid, 0)` sends
+// no signal — it just probes: it throws ESRCH once the pid no longer exists.
+function isPidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -1130,7 +1158,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       }
     } catch (error) {
       await Promise.all(
-        appiumServers.map((server) => killTree(server.process?.pid))
+        appiumServers.map((server) => {
+          log(
+            config,
+            "debug",
+            `Closing Appium server on port ${server.port} after startup failure`
+          );
+          return killTree(server.process?.pid);
+        })
       );
       for (const xvfb of xvfbProcesses) {
         try {
