@@ -61,7 +61,7 @@ Both openers focus what they open, take `true` (anonymous), a name string, or an
 Two behaviors to know:
 
 - **Focus follows the surface.** A step that names a `surface` leaves that tab focused, so following surface-less steps act there too. That's also how you point surface-less concerns at a tab: focus it with any surfaced step first.
-- **Tabs the page opens are addressable too.** A `target="_blank"` link or `window.open` call creates a tab Doc Detective didn't open. It has no name, but you can reach it by `title`, `url`, or index (`-1` is handy right after the click). You don't need a manual [`wait`](/docs/actions/wait) step first. If a selector doesn't match yet, because the tab hasn't been created or its title/URL hasn't loaded, Doc Detective retries for up to 2 seconds before failing, so addressing it in the very next step works.
+- **Tabs the page opens are addressable too.** A `target="_blank"` link or `window.open` call creates a tab Doc Detective didn't open. It has no name, but you can reach it by `title`, `url`, or index (`-1` is handy right after the click). You don't need a manual [`wait`](/docs/actions/wait) step first. If a selector doesn't match yet, because the tab doesn't exist yet or its title/URL hasn't finished loading, Doc Detective retries for up to 2 seconds before failing, so addressing it in the very next step works.
 
 ```json
 {
