@@ -48,6 +48,17 @@ async function runTests(config: any, options: any = {}) {
     // come pre-resolved (DOC_DETECTIVE_API path). Without this merge, a
     // user running `--dry-run` against an orchestration-supplied resolved
     // payload would silently execute tests.
+    //
+    // Note: the `resolvedTests.config || {}` fallback is covered (see
+    // test/cli-index-adapters-coverage.test.js — a resolvedTests payload
+    // with no embedded config). The second fallback, `config || {}`,
+    // requires the caller to pass a falsy `config` (e.g. `runTests(undefined,
+    // {resolvedTests})`); that shape currently proceeds into the runner with
+    // no dryRun/logLevel signal and hits a pre-existing, unrelated defect (a
+    // pre-resolved context missing platform info local resolution normally
+    // adds — see the follow-up task spawned for that bug), so it isn't
+    // exercised here. Left un-ignored since most of this line IS covered;
+    // the residual branch is a known, tracked gap, not annotated dead code.
     config = { ...(resolvedTests.config || {}), ...(config || {}) };
     resolvedTests.config = config;
   }
@@ -118,6 +129,31 @@ async function runTests(config: any, options: any = {}) {
     // runtime logs at "debug") and prevents flooded output during a
     // routine `doc-detective` run. Map "warn" → "warning" since
     // core/utils.ts uses the latter.
+    // c8 ignore justification (preflightLogger through the matching `if
+    // (needs.browsers.size > 0)` block below, per ADR 01017): the outer
+    // shell above (willRunViaApi dispatch, the try/inferRuntimeNeeds setup)
+    // is exercised offline in test/cli-index-adapters-coverage.test.js with
+    // `wait`-only specs, whose inferred needs are empty
+    // (npmPackages.size === 0, browsers.size === 0) — proving the shell runs
+    // without proving this logger or either preflight body does.
+    // `preflightLogger` is only ever CALLED from inside these bodies (passed
+    // as `deps.logger` to ensureRuntimeInstalled/ensureBrowserInstalled), so
+    // it's defined-but-never-invoked for every offline spec. Actually
+    // entering either `if` body requires a resolved spec whose steps need a
+    // heavy npm package (e.g. pngjs for screenshot diffing) or an
+    // uninstalled browser, and `ensureRuntimeInstalled`/
+    // `ensureBrowserInstalled` are called from HERE with only `deps.logger`
+    // bridged — not `deps.spawn` — so there is no injectable seam at this
+    // exact call site to fake the real npm install / browser download those
+    // functions perform (their own spawn/fetch seams are exercised directly
+    // in test/runtime-helpers-coverage.test.js,
+    // test/runtime-infer-needs.test.js, and test/runtime-loader.test.js).
+    // Forcing this block in a unit test would mean either a real network
+    // install (slow, flaky, mutates the shared cache dir) or re-stubbing the
+    // same seam its own module tests already prove — the latter wouldn't be
+    // testing core/index.ts's orchestration, just re-asserting loader.ts's
+    // contract.
+    /* c8 ignore start */
     const preflightLogger = (msg: string, level: string = "info") => {
       const mapped = level === "warn" ? "warning" : level;
       log(config, mapped, msg);
@@ -161,7 +197,15 @@ async function runTests(config: any, options: any = {}) {
         );
       }
     }
+    /* c8 ignore stop */
   } catch (err: any) {
+    /* c8 ignore start - this catch's only practical trigger today is a
+     * throw from inside the c8-ignored preflight block above (a real npm
+     * install / browser download failure); inferRuntimeNeeds() is
+     * documented pure/non-throwing (degrades to "no need" on malformed
+     * input — see runtime/inferRuntimeNeeds.ts) so it cannot reach this
+     * catch on its own. No hermetic path to this line without the same
+     * un-injectable network/spawn dependency as the block it guards. */
     // log() in src/core/utils.ts recognizes "warning", not "warn" — using
     // the wrong key would make this branch silent at every log level.
     log(
@@ -170,6 +214,7 @@ async function runTests(config: any, options: any = {}) {
       `Runtime pre-flight install hit an error: ${err?.message ?? err}. Falling back to on-demand resolution.`
     );
   }
+  /* c8 ignore stop */
 
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
   if (willRunViaApi) {

@@ -44,6 +44,11 @@ export async function fetchAgentToolsZip(
   ref: string = "main",
   deps: FetchDeps = {}
 ): Promise<FetchResult> {
+  // c8 ignore justification (next line): real network GET to GitHub codeload;
+  // no injectable seam at this exact spot (this closure IS the seam every
+  // test injects a fake `get` for). Exercising it would require a live
+  // network peer, which would make the suite flaky/non-hermetic per ADR 01017.
+  /* c8 ignore next */
   const get = deps.get ?? ((url, config) => axios.get(url, config));
   const mkdtempSync =
     deps.mkdtempSync ?? ((prefix: string) => fs.mkdtempSync(prefix));
@@ -67,9 +72,17 @@ export async function fetchAgentToolsZip(
 
     const resolvedBase = path.resolve(tempDir);
     for (const entry of entries) {
+      // c8 ignore justification for the `: entry.entryName` else-branch below:
+      // `prefix` is computed by commonTopLevelPrefix() FROM this exact
+      // `entries` array two lines above, which only returns a non-"" prefix
+      // when it has verified every entry name starts with that candidate
+      // (see its own `for (const n of names) if (!n.startsWith(candidate))`
+      // guard). So for every entry in this loop, `entry.entryName.startsWith(
+      // prefix)` is true by construction — the false branch is structurally
+      // unreachable from this call site, not just untested.
       const rel = entry.entryName.startsWith(prefix)
         ? entry.entryName.slice(prefix.length)
-        : entry.entryName;
+        : /* c8 ignore next */ entry.entryName;
       if (!rel) continue; // skip the wrapper dir itself
 
       // Belt-and-suspenders zip-slip guards. The first checks the *entry name*
@@ -89,6 +102,15 @@ export async function fetchAgentToolsZip(
       }
       const resolvedDest = path.resolve(resolvedBase, rel);
       const relativeFromBase = path.relative(resolvedBase, resolvedDest);
+      /* c8 ignore start - second (belt-and-suspenders) zip-slip guard: by this
+       * point `rel` has already passed the first guard above (not absolute,
+       * no literal ".." path segment, no drive-letter prefix), so
+       * path.resolve(resolvedBase, rel) is structurally confined to
+       * resolvedBase on every platform this runs on — there is no crafted
+       * `rel` string that clears the first guard yet still resolves outside
+       * the root. Kept as defense-in-depth against a future symlink-like
+       * canonicalization edge case (see the comment above), not something
+       * reachable via a plain zip entry name today. */
       if (
         relativeFromBase.startsWith("..") ||
         path.isAbsolute(relativeFromBase)
@@ -97,6 +119,7 @@ export async function fetchAgentToolsZip(
           `Refusing to extract zip entry outside extraction root: ${entry.entryName}`
         );
       }
+      /* c8 ignore stop */
 
       if (entry.isDirectory) {
         fs.mkdirSync(resolvedDest, { recursive: true });

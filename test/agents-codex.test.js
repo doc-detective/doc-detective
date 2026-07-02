@@ -86,6 +86,49 @@ describe("fetchAgentToolsZip", function () {
     );
   });
 
+  it("accepts an ArrayBuffer response body (the non-Buffer branch of Buffer.isBuffer)", async function () {
+    // axios can hand back an ArrayBuffer for responseType:"arraybuffer"
+    // depending on the adapter; fetchAgentToolsZip must wrap it with
+    // Buffer.from rather than assume Buffer.isBuffer is always true.
+    const zipBuf = buildFakeZipBuffer("main");
+    const arrayBuffer = zipBuf.buffer.slice(
+      zipBuf.byteOffset,
+      zipBuf.byteOffset + zipBuf.byteLength
+    );
+    assert.equal(Buffer.isBuffer(arrayBuffer), false);
+    const result = await fetchAgentToolsZip("main", {
+      get: async () => ({ data: arrayBuffer }),
+    });
+    try {
+      assert.equal(
+        fs.existsSync(path.join(result.tempDir, "skills", "doc-detective-init", "SKILL.md")),
+        true
+      );
+    } finally {
+      try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  it("wraps a cleanup rmSync failure without losing the original download error", async function () {
+    // When the download/extraction itself fails AND the best-effort cleanup
+    // rmSync also throws, the catch{} around rmSync must swallow the cleanup
+    // error so the ORIGINAL failure (not an rmSync error) surfaces to the caller.
+    const originalRmSync = fs.rmSync;
+    fs.rmSync = () => {
+      throw new Error("simulated rmSync failure during cleanup");
+    };
+    try {
+      await assert.rejects(
+        fetchAgentToolsZip("main", {
+          get: async () => { throw new Error("simulated download failure"); },
+        }),
+        /simulated download failure/
+      );
+    } finally {
+      fs.rmSync = originalRmSync;
+    }
+  });
+
   it("rejects zip entries that escape the extraction root (Zip Slip guard)", async function () {
     // Construct a zip where an entry's path traverses outside the root.
     // adm-zip normalizes traversal in addFile(), so we set entryName directly
@@ -101,6 +144,128 @@ describe("fetchAgentToolsZip", function () {
       fetchAgentToolsZip("main", { get: async () => ({ data: zipBuf }) }),
       /outside|extraction|refus/i
     );
+  });
+
+  it("extracts an explicit directory entry via mkdirSync (entry.isDirectory branch)", async function () {
+    // adm-zip's addFile() with a trailing-slash name creates a real directory
+    // entry (entry.isDirectory === true) distinct from the implicit parent
+    // dirs mkdirSync({recursive:true}) creates for file entries — exercises
+    // the `if (entry.isDirectory)` branch directly.
+    const zip = new AdmZip();
+    zip.addFile("agent-tools-main/", Buffer.alloc(0));
+    zip.addFile("agent-tools-main/empty-dir/", Buffer.alloc(0));
+    zip.addFile("agent-tools-main/README.md", Buffer.from("hi"));
+    const zipBuf = zip.toBuffer();
+
+    const result = await fetchAgentToolsZip("main", {
+      get: async () => ({ data: zipBuf }),
+    });
+    try {
+      assert.equal(
+        fs.existsSync(path.join(result.tempDir, "empty-dir")),
+        true,
+        `expected empty-dir/ to be created via the isDirectory branch; contents: ${fs.readdirSync(result.tempDir).join(", ")}`
+      );
+      assert.equal(fs.statSync(path.join(result.tempDir, "empty-dir")).isDirectory(), true);
+    } finally {
+      try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  it("preserves the unix permission bits a zip entry carries (chmod branch)", async function () {
+    const zip = new AdmZip();
+    zip.addFile("agent-tools-main/script.sh", Buffer.from("#!/bin/sh\necho hi\n"));
+    const entries = zip.getEntries();
+    // Set the external-attributes field to a regular file (0100000) with
+    // 0755 permissions, matching what GitHub codeload zips carry for
+    // executable files in the source repo.
+    entries[0].attr = (0o100755 << 16) >>> 0;
+    const zipBuf = zip.toBuffer();
+
+    const result = await fetchAgentToolsZip("main", {
+      get: async () => ({ data: zipBuf }),
+    });
+    try {
+      const scriptPath = path.join(result.tempDir, "script.sh");
+      assert.equal(fs.existsSync(scriptPath), true);
+      // chmodSync is a real no-op-ish operation on Windows (no POSIX
+      // permission bits), so only assert the executable bit on POSIX
+      // platforms — the point of this test is that the `unixMode !== 0`
+      // branch ran (chmodSync was attempted), not a specific octal value.
+      if (process.platform !== "win32") {
+        const mode = fs.statSync(scriptPath).mode & 0o777;
+        assert.equal(mode, 0o755, `expected mode 0755, got ${mode.toString(8)}`);
+      }
+    } finally {
+      try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  it("swallows a chmodSync failure without failing the extraction", async function () {
+    // Simulate a platform/filesystem where chmodSync throws (e.g. a FS that
+    // doesn't support the operation) — the `catch {}` around chmodSync must
+    // not propagate, and extraction must still succeed.
+    const zip = new AdmZip();
+    zip.addFile("agent-tools-main/script.sh", Buffer.from("#!/bin/sh\necho hi\n"));
+    const entries = zip.getEntries();
+    entries[0].attr = (0o100755 << 16) >>> 0;
+    const zipBuf = zip.toBuffer();
+
+    const originalChmodSync = fs.chmodSync;
+    fs.chmodSync = () => {
+      throw new Error("simulated chmodSync failure");
+    };
+    try {
+      const result = await fetchAgentToolsZip("main", {
+        get: async () => ({ data: zipBuf }),
+      });
+      try {
+        assert.equal(fs.existsSync(path.join(result.tempDir, "script.sh")), true);
+      } finally {
+        try {
+          // Restore chmodSync before cleanup so rmSync isn't affected by the stub.
+          fs.chmodSync = originalChmodSync;
+        } finally {
+          try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
+        }
+      }
+    } finally {
+      fs.chmodSync = originalChmodSync;
+    }
+  });
+
+  it("returns an empty prefix for a zip with zero entries (commonTopLevelPrefix([]))", async function () {
+    const zip = new AdmZip();
+    const zipBuf = zip.toBuffer();
+    const result = await fetchAgentToolsZip("main", {
+      get: async () => ({ data: zipBuf }),
+    });
+    try {
+      // No entries extracted, but the call must still resolve cleanly with
+      // an (empty) tempDir rather than throw on an empty entries array.
+      assert.equal(fs.existsSync(result.tempDir), true);
+      assert.deepEqual(fs.readdirSync(result.tempDir), []);
+    } finally {
+      try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  it("treats a zip with no wrapper directory as already-stripped (commonTopLevelPrefix slash===-1)", async function () {
+    // A zip whose first entry is a top-level file (no "/" at all) has no
+    // shared wrapper dir to strip — commonTopLevelPrefix must return "" via
+    // its `slash === -1` guard rather than mis-slicing the entry name.
+    const zip = new AdmZip();
+    zip.addFile("README.md", Buffer.from("# no wrapper dir here"));
+    const zipBuf = zip.toBuffer();
+
+    const result = await fetchAgentToolsZip("main", {
+      get: async () => ({ data: zipBuf }),
+    });
+    try {
+      assert.equal(fs.existsSync(path.join(result.tempDir, "README.md")), true);
+    } finally {
+      try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
+    }
   });
 });
 
