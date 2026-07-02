@@ -1446,4 +1446,24 @@ describe("debug/* remaining coverage", function () {
       }
     });
   });
+
+  describe("render.ts formatValue branches", function () {
+    it("renders null and plain-object values distinctly from undefined/array/string/number", async function () {
+      const { renderKeyValues } = await import("../dist/debug/render.js");
+      const lines = renderKeyValues([
+        ["a", undefined],
+        ["b", null],
+        ["c", "text"],
+        ["d", ["x", "y"]],
+        ["e", { k: "v" }],
+        ["f", 42],
+      ]);
+      assert.match(lines[0], /<unset>/);
+      assert.match(lines[1], /<null>/);
+      assert.match(lines[2], /text/);
+      assert.match(lines[3], /\["x","y"\]/);
+      assert.match(lines[4], /\{"k":"v"\}/);
+      assert.match(lines[5], /42/);
+    });
+  });
 });
