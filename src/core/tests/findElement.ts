@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { switchToSurface } from "./browserSurface.js";
 import {
   findElementByShorthand,
   findElementByCriteria,
@@ -59,6 +60,18 @@ async function findElement({ config, step, driver, click }: { config: any; step:
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
+
+  // Multi-surface Phase 3: focus the requested window/tab first. The tab stays
+  // focused afterward (active = most recently focused). click delegates here,
+  // so its `surface` rides along in the constructed find step.
+  if (typeof step.find === "object" && step.find.surface !== undefined) {
+    const switched = await switchToSurface(driver, step.find.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+  }
 
   // Handle combo selector/text string
   if (typeof step.find === "string") {

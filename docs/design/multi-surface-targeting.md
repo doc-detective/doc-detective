@@ -111,9 +111,14 @@ complexity, and in conditional *validation*, not *structure*.
 | `goTo` | ✓ | — | — |
 | `runBrowserScript` | ✓ | — | — |
 | `find` / `click` / `dragAndDrop` | ✓ | ✓ | — |
+| `screenshot` | ✓ | ✓ | — (no pixels) |
 | `record` | ✓ | ✓ | — (no pixels) |
 | `type` | ✓ (element/active) | ✓ | ✓ (stdin) |
 | `closeSurface` | ✓ | ✓ | ✓ |
+
+> `screenshot` was added to the matrix during Phase 3 (ADR 01016): focus-follow
+> made it nearly free and "screenshot the cart tab" is a materially better
+> authoring experience than the focus-a-surface-first workaround.
 
 `process` is only ever a `type` / `closeSurface` target. Multi-window does not push
 `process` onto the DOM/spatial actions.
@@ -379,12 +384,17 @@ driver**, which is the natural seam.
 
 ### Block B — browser surfaces (no new deps; current Appium drivers)
 
-- **Phase 3 — windows & tabs in the active browser.** Add the **browser branch**
-  to `surface` with `window` + `tab` selectors; wire `surface` into the
-  browser-targeting steps (goTo/type/click/find/dragAndDrop/runBrowserScript/record);
-  add `goTo` `newTab`/`newWindow`. One driver, multiple handles — extends the
-  existing recorder-tab machinery (`createWindow`/`switchToWindow`). Registry tracks
-  handles we open.
+- **Phase 3 — windows & tabs in the active browser.** ✅ **Shipped** (ADR 01016).
+  Added the **browser branch** to `surface` with `window` + `tab` selectors; wired
+  `surface` into the browser-targeting steps
+  (goTo/type/click/find/dragAndDrop/runBrowserScript/record/screenshot);
+  added `goTo` `newTab`/`newWindow`. One driver, multiple handles — extends the
+  existing recorder-tab machinery (`createWindow`/`switchToWindow`); the
+  per-context registry (`driver.state.surfaces`) tracks handles by first-seen
+  order and hides the recorder tab. `type` gained the kind-shaped browser
+  `waitUntil` (`networkIdleTime`/`domIdleTime`/`find`); `closeSurface` closes
+  tabs/windows idempotently. Engine mismatch, browser `name`, and whole-browser
+  close FAIL loudly with "lands in a later phase" guidance.
 - **Phase 4 — multiple browser surfaces at once.** Registry holds several driver
   sessions keyed by surface name; `surface:{browser:engine,name}` opens/selects
   additional browsers; `runOn.browsers` reinterpreted as the default surface (+ the
