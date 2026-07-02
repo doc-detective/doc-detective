@@ -67,7 +67,16 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
           input: typeof args.input === "string" ? args.input : ".",
         },
         configPath,
+        /* c8 ignore start */
+        // setConfig (src/utils.ts) is a real, complex function that always
+        // throws genuine Error instances (AJV validation errors, fs
+        // errors, JSON.parse errors); it never throws a non-Error value,
+        // and it's imported dynamically by name here (`const { setConfig }
+        // = await import("../utils.js")`), so sinon can't stub the binding
+        // to synthesize a non-Error throw ("ES Modules cannot be
+        // stubbed"). Defensive-only fallback.
         configError: err instanceof Error ? err : new Error(String(err)),
+        /* c8 ignore stop */
         includeEnv,
         outDir,
         args,
