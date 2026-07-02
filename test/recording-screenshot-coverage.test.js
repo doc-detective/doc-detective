@@ -968,6 +968,15 @@ describe("stopRecording: guards + MediaRecorder", function () {
         async execute() {
           return true; // recorder exists; recorder.stop() is a no-op here.
         },
+        // On timeout, stopRecording now closes the recorder tab and restores
+        // focus (so later steps don't run in it), which needs these methods.
+        async getWindowHandle() {
+          return "content-tab";
+        },
+        async getWindowHandles() {
+          return ["rec-tab", "content-tab"];
+        },
+        async closeWindow() {},
       };
       const promise = stopRecording({ config, step: { stopRecord: true }, driver });
       // waitForStableFile polls every 500ms for maxSeconds*2 (=120) iterations.

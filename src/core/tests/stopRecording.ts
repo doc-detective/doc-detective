@@ -121,6 +121,18 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
       if (!downloaded) {
         result.status = "FAIL";
         result.description = "Recording download timed out.";
+        // We're still focused inside the recorder tab (from switchToWindow
+        // above), so close it and restore focus before returning — otherwise
+        // later steps run in the recorder tab. Mirror the success path.
+        const allHandles = await driver.getWindowHandles();
+        await driver.closeWindow();
+        const remainingHandles = allHandles.filter(
+          (h: string) => h !== recording.tab
+        );
+        if (remainingHandles.length > 0) {
+          await driver.switchToWindow(pickReturnHandle(remainingHandles));
+        }
+        await syncHandles(driver);
         // Clear the state so the auto-stop in runContext doesn't re-invoke
         // a doomed second stop (the recorder was already told to stop).
         dropHandle();
