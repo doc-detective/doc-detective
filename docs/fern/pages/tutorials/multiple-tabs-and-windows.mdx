@@ -1,9 +1,9 @@
 ---
-title: Test across multiple tabs and windows
-description: Open, address, and close browser tabs and windows in one test with goTo, the surface field, and closeSurface.
+title: Test across multiple tabs, windows, and browsers
+description: Open, address, and close browser tabs, windows, and whole browsers in one test with goTo, the surface field, and closeSurface.
 ---
 
-Documented procedures often span more than one tab: "click the link, which opens the invoice in a new tab," or "keep the admin console open in a second window while you work." Doc Detective tests can follow those procedures exactly, using one browser session with any number of tabs and windows, each addressable by name, position, or what's on its page.
+Documented procedures often span more than one tab: "click the link, which opens the invoice in a new tab," or "keep the admin console open in a second window while you work" — sometimes even more than one browser: "log in as the shopper in one browser and approve the order from the admin account in another." Doc Detective tests can follow those procedures exactly, using any number of browsers, each with any number of tabs and windows, all addressable by name, position, or what's on the page.
 
 Three pieces work together:
 
@@ -107,8 +107,55 @@ If the tab you're targeting genuinely doesn't exist, because of a typo in the na
 
 A `tab` reference closes that tab. A `window` reference closes the window and its tabs. Closing something that's already closed (or that never matched, after the same brief retry described above) is a PASS no-op, so cleanup steps are safe to repeat. Doc Detective refuses to close the last open tab, because that would end the browser session that the test run owns.
 
+## Drive multiple browsers at once
+
+A test can hold several browsers open at the same time — a second window of the same engine for a different account, or a different engine entirely. Like tabs and windows, **only `goTo` opens browsers**: a `goTo` whose `surface` names a browser that isn't open yet launches it (with the same headless setting as the test's default browser) and navigates it. Every other action requires the browser to already be open and fails pointing you at `goTo`.
+
+```json
+{
+  "steps": [
+    { "goTo": "https://my-app.com" },
+    {
+      "description": "Open a SECOND browser session, named 'admin'.",
+      "goTo": {
+        "url": "https://my-app.com/admin",
+        "surface": { "browser": "firefox", "name": "admin" }
+      }
+    },
+    {
+      "description": "A bare engine keyword opens (or selects) a browser of that engine.",
+      "goTo": { "url": "https://my-app.com/checkout", "surface": "chrome" }
+    },
+    {
+      "description": "Act in a specific browser — session, window, and tab selectors compose.",
+      "find": {
+        "elementText": "Pending approval",
+        "surface": { "browser": "firefox", "name": "admin", "tab": 0 }
+      }
+    },
+    {
+      "description": "Close a whole browser by name (or engine keyword).",
+      "closeSurface": "admin"
+    }
+  ]
+}
+```
+
+How references resolve:
+
+- The test's **default browser registers under its engine name** (`"chrome"`, `"firefox"`, …), so `surface: "firefox"` selects it like any named surface. A browser opened with `name` is addressed by that name; without one, it defaults to its engine name.
+- **Focus follows the surface across browsers too.** A step that names a browser leaves it active, so following surface-less steps act there. The *active surface* is always the most recently opened or focused browser.
+- **`closeSurface` with no `window`/`tab` selector closes the whole browser** — bare name, engine keyword, or `{ "browser": …, "name": … }`. Closing an unopened browser is a PASS no-op; focus falls back to the most recently focused surviving browser. A browser with an active recording refuses to close until you `stopRecord`.
+
+Two caveats:
+
+- **Pin a browser OR fan out — not both.** Cross-browser coverage for browser-*agnostic* tests still comes from the [`runOn` matrix](/docs/test-docs/platforms-and-browsers), which runs the whole test once per engine. A test that pins `surface: { "browser": "firefox" }` inside its steps should pin a single `runOn` browser too, or it opens firefox alongside every matrix engine.
+- **Safari allows one automation session at a time** (a safaridriver limit), so a second concurrent Safari isn't available; pair Safari with other engines instead.
+
 ## Current limits
 
-One test context drives **one browser at a time**. A `surface` that names a different engine than the context's active browser, sets a browser `name`, or closes a whole browser (`"closeSurface": "chrome"`) fails with a "lands in a later phase" message. Those forms belong to multi-browser targeting, and the same spec starts working when it lands. Cross-browser coverage today comes from the [`runOn` matrix](/docs/test-docs/platforms-and-browsers), which runs the whole test once per engine.
+Native app surfaces (and the generic `startSurface` provisioner) land in later phases of the [multi-surface design](https://github.com/doc-detective/doc-detective/blob/main/docs/design/multi-surface-targeting.md).
 
 Indexes reflect **creation order** (the order Doc Detective first saw each tab), not on-screen tab order.
+
+Recording with the default (ffmpeg) engine captures by window title, which can't tell two same-engine browsers apart — start the recording before opening a same-engine twin, or record with the browser engine, which is always per-session.
