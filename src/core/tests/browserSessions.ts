@@ -81,8 +81,12 @@ function activate(
   registry.activeName = entry.name;
 }
 
-// Register a live session and activate it. Throws on duplicate names — names
-// must be unique per context so `surface` references stay unambiguous.
+// Register a live session and activate it. Throws on a duplicate name, or on a
+// name already taken by another surface kind (e.g. a background process) —
+// names must be unique per context, ACROSS kinds, so `surface` references stay
+// unambiguous. resolveSessionForRef pre-checks the cross-kind collision on the
+// open path and returns a friendly error; this throw is the backstop for any
+// other caller (e.g. the default-session registration at context start).
 function registerSession(
   registry: BrowserSessionRegistry,
   { name, engine, driver }: { name: string; engine: string; driver: any }
@@ -91,6 +95,11 @@ function registerSession(
   if (registry.sessions.has(key)) {
     throw new Error(
       `A browser surface named "${key}" already exists in this context. Surface names must be unique.`
+    );
+  }
+  if (registry.isNameTaken?.(key)) {
+    throw new Error(
+      `The surface name "${key}" is already in use by another surface (e.g. a background process). Surface names must be unique across kinds.`
     );
   }
   driver.state = driver.state ?? {};

@@ -135,12 +135,11 @@ async function closeSurface({
       }
       // A ref with BOTH window and tab closes the selected TAB (the window
       // only scopes the search — see resolveCloseTargets), so label by what
-      // actually closes: tab whenever a tab selector is present.
+      // actually closes: tab whenever a tab selector is present. `item` is
+      // always an object here — a bare-string surface has no window/tab
+      // selector and is handled by the whole-browser close above.
       const closesTab = item.tab !== undefined;
-      const label =
-        typeof item === "string"
-          ? item
-          : `${ref.engine} ${closesTab ? "tab" : "window"} ${JSON.stringify(closesTab ? item.tab : item.window)}`;
+      const label = `${ref.engine} ${closesTab ? "tab" : "window"} ${JSON.stringify(closesTab ? item.tab : item.window)}`;
       if (!targets.handles.length) {
         // Idempotent: nothing matched the selector — a no-op, still PASS.
         absent.push(label);

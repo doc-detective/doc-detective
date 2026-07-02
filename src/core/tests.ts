@@ -2897,7 +2897,7 @@ async function runContext({
         });
         registerSession(browserSessions, {
           name: String(startedName).toLowerCase(),
-          engine: String(startedName),
+          engine: String(startedName).toLowerCase(),
           driver,
         });
       }
@@ -3155,12 +3155,17 @@ async function runContext({
       // step report. Used by the initial run and each retry attempt.
       // Surface-less steps act on the ACTIVE browser surface (Phase 4) —
       // re-resolved per attempt, since a step can change the active session.
+      // With a registry present, use its active driver: when every session has
+      // been closed (activeName === null) this is `undefined`, so browser steps
+      // hit their own "no browser" guard instead of acting on the already-
+      // deleted default driver. Only a registry-less (driverless) context falls
+      // back to `driver`.
       const runStepOnce = async () => {
         const r = await runStep({
           config: config,
           context: context,
           step: step,
-          driver: activeDriver(browserSessions) ?? driver,
+          driver: browserSessions ? activeDriver(browserSessions) : driver,
           metaValues: metaValues,
           options: {
             openApiDefinitions: context.openApi || [],
@@ -3244,15 +3249,18 @@ async function runContext({
       // Note: the filename derives from `stepIndex`, so a backward `goToStep`
       // re-visit of the same step overwrites the prior visit's image
       // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
+      const autoScreenshotDriver = browserSessions
+        ? activeDriver(browserSessions)
+        : driver;
       if (
         autoScreenshotEnabled &&
-        (activeDriver(browserSessions) ?? driver) &&
+        autoScreenshotDriver &&
         typeof step.screenshot === "undefined" &&
         isDriverRequired({ test: { steps: [step] } })
       ) {
         const capturedPath = await captureAutoScreenshot({
           config,
-          driver: activeDriver(browserSessions) ?? driver,
+          driver: autoScreenshotDriver,
           spec,
           test,
           context,
@@ -3383,7 +3391,13 @@ function sessionDrivers(
   registry: BrowserSessionRegistry | undefined,
   fallback: any
 ): any[] {
-  if (registry && registry.sessions.size > 0) {
+  // A live registry is the source of truth: its sessions are exactly the open
+  // drivers. An EMPTY-but-present registry means every session was explicitly
+  // closed (closeSurface, which refuses while a recording is active), so the
+  // default driver is already deleted AND no recording can be pending — return
+  // nothing rather than sweep a dead session. The fallback is only for a
+  // context that never built a registry (driverless, or a driver-start throw).
+  if (registry) {
     return [...registry.sessions.values()].map((s) => s.driver);
   }
   return fallback ? [fallback] : [];

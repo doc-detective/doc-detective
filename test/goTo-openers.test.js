@@ -357,7 +357,9 @@ describe("multi-browser sessions (Phase 4, step level)", function () {
     assert.match(result.description, /no such driver installed/);
   });
 
-  it("non-goTo steps FAIL on an unopened surface instead of opening it", async function () {
+  it("closeSurface never opens a browser — an unopened tab close is an absent no-op", async function () {
+    // Only goTo opens sessions. A tab close in a browser that isn't open is an
+    // idempotent absent no-op (never-fail-on-missing), and never launches one.
     const driver = stubDriver({ engine: "firefox" });
     const { registry, launches } = stubRegistry(driver);
     const result = await closeSurface({
@@ -365,10 +367,8 @@ describe("multi-browser sessions (Phase 4, step level)", function () {
       step: { closeSurface: { browser: "chrome", tab: "cart" } },
       driver,
     });
-    // A tab close in a browser that isn't open is an absent no-op…
     assert.equal(result.status, "PASS");
     assert.equal(result.outputs.absentCount, 1);
-    // …and never launches anything.
     assert.deepEqual(launches, []);
     assert.equal(registry.sessions.size, 1);
   });

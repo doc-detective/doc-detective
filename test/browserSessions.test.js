@@ -123,6 +123,19 @@ describe("browserSessions: registration", function () {
       /already/
     );
   });
+
+  it("rejects a name already taken by another surface kind", function () {
+    const { registry } = stubRegistry({ isNameTaken: (n) => n === "api" });
+    assert.throws(
+      () =>
+        registerSession(registry, {
+          name: "api",
+          engine: "chrome",
+          driver: stubDriver(),
+        }),
+      /across kinds/
+    );
+  });
 });
 
 describe("browserSessions: resolveSessionForRef", function () {
