@@ -86,7 +86,7 @@ export type GoToURLDetailed = {
   NewTabConflictsWithASurfaceTabSelector &
   NewWindowConflictsWithASurfaceWindowOrTabSelector;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName = string;
 /**

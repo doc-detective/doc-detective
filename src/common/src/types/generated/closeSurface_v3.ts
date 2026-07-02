@@ -13,7 +13,7 @@ export type CloseSurface = Surface | [Surface1, ...Surface1[]];
  */
 export type Surface = SurfaceByName | ProcessSurface | BrowserSurface;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName = string;
 /**
@@ -45,7 +45,7 @@ export type ByName1 = string;
  */
 export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface1;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName1 = string;
 /**

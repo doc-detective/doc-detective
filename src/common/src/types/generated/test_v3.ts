@@ -635,7 +635,7 @@ export type GoToURLDetailed = {
   NewTabConflictsWithASurfaceTabSelector &
   NewWindowConflictsWithASurfaceWindowOrTabSelector;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName = string;
 /**
@@ -1034,7 +1034,7 @@ export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetaile
  */
 export type RunBrowserScriptSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName1 = string;
 /**
@@ -1212,7 +1212,7 @@ export type TypeKeysSimple1 = string | string[];
  */
 export type Surface = SurfaceByName2 | ProcessSurface | BrowserSurface2;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName2 = string;
 /**
@@ -1332,7 +1332,7 @@ export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | Capture
  */
 export type ScreenshotSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName3 = string;
 /**
@@ -1588,7 +1588,7 @@ export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
  */
 export type RecordSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName4 = string;
 /**
@@ -1820,7 +1820,7 @@ export type CloseSurface1 = Surface1 | [Surface2, ...Surface2[]];
  */
 export type Surface1 = SurfaceByName5 | ProcessSurface1 | BrowserSurface5;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName5 = string;
 /**
@@ -1852,7 +1852,7 @@ export type ByName11 = string;
  */
 export type Surface2 = SurfaceByName6 | ProcessSurface2 | BrowserSurface6;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName6 = string;
 /**
@@ -2104,7 +2104,7 @@ export type ElementDetailed1 =
       [k: string]: unknown;
     };
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName7 = string;
 /**
@@ -2856,7 +2856,7 @@ export type GoToURLDetailed1 = {
   NewTabConflictsWithASurfaceTabSelector1 &
   NewWindowConflictsWithASurfaceWindowOrTabSelector1;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName8 = string;
 /**
@@ -3255,7 +3255,7 @@ export type RunBrowserScript3 = RunBrowserScriptSimple1 | RunBrowserScriptDetail
  */
 export type RunBrowserScriptSimple1 = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName9 = string;
 /**
@@ -3433,7 +3433,7 @@ export type TypeKeysSimple3 = string | string[];
  */
 export type Surface3 = SurfaceByName10 | ProcessSurface3 | BrowserSurface10;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName10 = string;
 /**
@@ -3553,7 +3553,7 @@ export type Screenshot3 = ScreenshotSimple2 | CaptureScreenshotDetailed1 | Captu
  */
 export type ScreenshotSimple2 = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName11 = string;
 /**
@@ -3809,7 +3809,7 @@ export type Record3 = RecordSimple1 | RecordDetailed1 | RecordBoolean1;
  */
 export type RecordSimple1 = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName12 = string;
 /**
@@ -4041,7 +4041,7 @@ export type CloseSurface3 = Surface4 | [Surface5, ...Surface5[]];
  */
 export type Surface4 = SurfaceByName13 | ProcessSurface4 | BrowserSurface13;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName13 = string;
 /**
@@ -4073,7 +4073,7 @@ export type ByName27 = string;
  */
 export type Surface5 = SurfaceByName14 | ProcessSurface5 | BrowserSurface14;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName14 = string;
 /**
@@ -4325,7 +4325,7 @@ export type ElementDetailed3 =
       [k: string]: unknown;
     };
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names an existing surface, with its kind resolved at runtime.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName15 = string;
 /**
