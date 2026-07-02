@@ -171,6 +171,14 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       // Check that tests were run
       assert.ok(testResult.summary);
       assert.ok(testResult.specs);
+      // The API-fetched config sets logLevel "info"; only the
+      // DOC_DETECTIVE_CONFIG override raises it to "debug", which is the only
+      // thing that would make the runner emit "(DEBUG)"-prefixed log lines.
+      assert.match(
+        result.stdout,
+        /\(DEBUG\)/,
+        `Expected debug-level log output, indicating the DOC_DETECTIVE_CONFIG logLevel override was applied. Full stdout:\n${result.stdout}`
+      );
     } finally {
       // Restore original env
       if (originalApiEnv !== undefined) {
