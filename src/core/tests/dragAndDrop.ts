@@ -23,6 +23,11 @@ export { dragAndDropElement };
 async function dragAndDropElement({ config, step, driver }: { config: any; step: any; driver: any }) {
   async function HTML5DragDrop({ driver, sourceElement, targetElement }: { driver: any; sourceElement: any; targetElement: any }) {
     await driver.execute(
+      /* c8 ignore start - runs inside the browser via driver.execute(): the callback body
+       * (including the nested simulateHTML5DragDrop helper) is serialized and evaluated by the
+       * WebDriver session in the browser process, never in the Node process c8 instruments. It IS
+       * exercised by the real E2E drag-and-drop fixtures, just not visible to Node's coverage tool
+       * (ADR 01017). */
       (sourceElement: any, targetElement: any) => {
         // Create a helper function to simulate HTML5 drag and drop
         function simulateHTML5DragDrop(source: any, target: any) {
@@ -73,6 +78,7 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
 
         return simulateHTML5DragDrop(sourceElement, targetElement);
       },
+      /* c8 ignore stop */
       sourceElement,
       targetElement
     );
