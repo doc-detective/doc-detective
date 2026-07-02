@@ -70,7 +70,26 @@ async function findElement({ config, step, driver, click }: { config: any; step:
       result.description += ` Found element by ${foundBy}.`;
       result.outputs = await setElementOutputs({ element });
       result.outputs.found = true;
-      return await finalizeFound({ result });
+      await finalizeFound({ result });
+      // Caller-requested click (e.g. `{ click: "text" }` delegating through
+      // clickElement) is an EXECUTION sub-effect, same as on the criteria
+      // path below. The shorthand string can't carry sub-effect fields of its
+      // own, so only the `click` param applies and the button defaults to
+      // left.
+      if (click) {
+        try {
+          await element.click({ button: "left" });
+          result.description += " Clicked element.";
+        } catch (error: any) {
+          result.status = "FAIL";
+          result.description += ` Couldn't click element. Error: ${error.message}`;
+          return result;
+        }
+      }
+      if (isRecordingActive(driver)) {
+        await wait({ config: config, step: { wait: 2000 }, driver: driver });
+      }
+      return result;
     } else {
       // No matching elements: expose found=false and still evaluate so the
       // existence assertion FAILs (don't early-return before the spec).
