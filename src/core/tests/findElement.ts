@@ -71,11 +71,7 @@ async function findElement({ config, step, driver, click }: { config: any; step:
       result.outputs = await setElementOutputs({ element });
       result.outputs.found = true;
       await finalizeFound({ result });
-      // Caller-requested click (e.g. `{ click: "text" }` delegating through
-      // clickElement) is an EXECUTION sub-effect, same as on the criteria
-      // path below. The shorthand string can't carry sub-effect fields of its
-      // own, so only the `click` param applies and the button defaults to
-      // left.
+      // Shorthand carries no sub-effect fields, so button defaults to left.
       if (click) {
         try {
           await element.click({ button: "left" });
