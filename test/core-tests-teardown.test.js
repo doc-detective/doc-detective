@@ -32,12 +32,14 @@ describe("killTree", function () {
 
       await killTree(proc.pid);
 
-      // No polling/setTimeout here on purpose: killTree() is supposed to only
-      // resolve once tree-kill's own completion callback fires, so the
-      // process must already be gone the instant the await returns. Before
-      // the fix, the run-end teardown fired `kill()` without awaiting this
-      // completion, so control returned (and the run could exit) while the
-      // process was still alive.
+      // No polling/setTimeout here on purpose: killTree() resolves only once
+      // the pid is confirmed gone — after tree-kill's callback it polls
+      // `process.kill(pid, 0)` on POSIX (where the callback only means the
+      // signal was sent, not that the process exited) until the pid no
+      // longer exists. So the process must already be dead the instant the
+      // await returns. Before the fix, the run-end teardown fired `kill()`
+      // without awaiting this at all, so control returned (and the run could
+      // exit) while the process was still alive.
       assert.equal(
         isAlive(proc.pid),
         false,

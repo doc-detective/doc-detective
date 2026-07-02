@@ -166,7 +166,12 @@ function killTree(pid?: number, timeoutMs: number = 5000): Promise<void> {
       resolve();
     };
     try {
-      kill(pid, "SIGTERM", () => waitForExit());
+      // Guard waitForExit(): it's async, so any future edit that lets it
+      // reject would otherwise become an unhandled rejection and leave the
+      // outer Promise pending forever, hanging teardown. Catch and resolve.
+      kill(pid, "SIGTERM", () => {
+        waitForExit().catch(() => resolve());
+      });
     } catch {
       resolve();
     }
