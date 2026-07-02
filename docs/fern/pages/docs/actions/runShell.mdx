@@ -19,7 +19,7 @@ You can specify the command directly as a string or use an object for more optio
   - `exitCodes`: (Optional) An array of acceptable exit codes. If the command's exit code is not in this list, the step fails (default: `[0]`).
   - `stdio`: (Optional) A string or regular expression to validate against the command's combined stdout and stderr. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^hello world.*/`).
   - `background`: (Optional) An object that starts the command as a long-running background process and returns as soon as it's ready, instead of waiting for it to exit. Including this object enables background mode; omit it for a normal blocking run. See [Background processes](#background-processes).
-    - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/close-surface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
+    - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/closesurface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
     - `waitUntil`: (Optional) The conditions that must be met before the process is considered ready. See [Wait conditions](#wait-conditions).
     - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
   - *Output Saving:* You can also save the command's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runShell`](/reference/schemas/runshell) reference for details.
@@ -38,7 +38,7 @@ This lets tests continue executing while flagging output changes that exceed you
 
 ## Background processes
 
-To start a long-running process, such as a Docker container, development server, or database, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/close-surface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`.
+To start a long-running process, such as a Docker container, development server, or database, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/closesurface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`.
 
 When you add a `background` object:
 
@@ -190,7 +190,7 @@ The first step echoes "setup", validates the output using a regex, and captures 
 
 ### Start a background process and stop it later
 
-This example starts an nginx container in the background, waits until `http://localhost:8080` returns a `200` status code, and then stops the container with a [`closeSurface`](/docs/actions/close-surface) step.
+This example starts an nginx container in the background, waits until `http://localhost:8080` returns a `200` status code, and then stops the container with a [`closeSurface`](/docs/actions/closesurface) step.
 
 ```json
 {
@@ -255,7 +255,7 @@ This example starts a Postgres container in the background and waits until both 
 
 ### Drive a full-screen TUI under a PTY
 
-This example starts a full-screen terminal UI under a pseudo-terminal by setting `tty` to `true`, waits for its prompt, drives it with [`type`](/docs/actions/type) steps, and stops it with a [`closeSurface`](/docs/actions/close-surface) step. If `@homebridge/node-pty-prebuilt-multiarch` isn't installed, the start step is skipped rather than failing.
+This example starts a full-screen terminal UI under a pseudo-terminal by setting `tty` to `true`, waits for its prompt, drives it with [`type`](/docs/actions/type) steps, and stops it with a [`closeSurface`](/docs/actions/closesurface) step. If `@homebridge/node-pty-prebuilt-multiarch` isn't installed, the start step is skipped rather than failing.
 
 ```json
 {
