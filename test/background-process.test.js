@@ -714,6 +714,29 @@ describe("runShell/runCode background (integration)", function () {
     assert.match(result.description, /already running/);
   });
 
+  it("runShell fails when the name is already an open browser surface", async function () {
+    // Cross-kind uniqueness (Phase 4): a process can't reuse a browser
+    // surface's name, or a bare-string surface would route to the browser.
+    const registry = new Map();
+    const driver = {
+      state: { sessionRegistry: { sessions: new Map([["web", {}]]) } },
+    };
+    const result = await runShell({
+      config: {},
+      step: {
+        runShell: {
+          command: "echo hi",
+          background: { name: "web", waitUntil: { delayMs: 10 } },
+        },
+      },
+      driver,
+      processRegistry: registry,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /browser surface named "web"/);
+    assert.equal(registry.has("web"), false);
+  });
+
   it("runShell fails and deregisters when readiness times out", async function () {
     const port = await findFreePort(); // nothing will ever listen here
     const tmp = path.join(os.tmpdir(), `dd-noready-${process.pid}.js`);

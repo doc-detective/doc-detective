@@ -3155,17 +3155,17 @@ async function runContext({
       // step report. Used by the initial run and each retry attempt.
       // Surface-less steps act on the ACTIVE browser surface (Phase 4) —
       // re-resolved per attempt, since a step can change the active session.
-      // With a registry present, use its active driver: when every session has
-      // been closed (activeName === null) this is `undefined`, so browser steps
-      // hit their own "no browser" guard instead of acting on the already-
-      // deleted default driver. Only a registry-less (driverless) context falls
-      // back to `driver`.
+      // The `?? driver` fallback matters when every session has been explicitly
+      // closed: `driver` is then deleted, but it still carries
+      // `state.sessionRegistry`, so a later goTo can re-open a browser through
+      // it. Surface-less browser steps in that (pathological) state fail on the
+      // dead session — acceptable; the run closed its own browser mid-test.
       const runStepOnce = async () => {
         const r = await runStep({
           config: config,
           context: context,
           step: step,
-          driver: browserSessions ? activeDriver(browserSessions) : driver,
+          driver: activeDriver(browserSessions) ?? driver,
           metaValues: metaValues,
           options: {
             openApiDefinitions: context.openApi || [],
@@ -3249,9 +3249,7 @@ async function runContext({
       // Note: the filename derives from `stepIndex`, so a backward `goToStep`
       // re-visit of the same step overwrites the prior visit's image
       // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
-      const autoScreenshotDriver = browserSessions
-        ? activeDriver(browserSessions)
-        : driver;
+      const autoScreenshotDriver = activeDriver(browserSessions) ?? driver;
       if (
         autoScreenshotEnabled &&
         autoScreenshotDriver &&
@@ -3541,7 +3539,7 @@ async function runStep({
       driver.state.recordings.push(handle);
     }
   } else if (typeof step.runCode !== "undefined") {
-    actionResult = await runCode({ config: config, step: step, processRegistry });
+    actionResult = await runCode({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.runBrowserScript !== "undefined") {
     actionResult = await runBrowserScript({
       config: config,
@@ -3549,7 +3547,7 @@ async function runStep({
       driver: driver,
     });
   } else if (typeof step.runShell !== "undefined") {
-    actionResult = await runShell({ config: config, step: step, processRegistry });
+    actionResult = await runShell({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.closeSurface !== "undefined") {
     actionResult = await closeSurface({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.screenshot !== "undefined") {

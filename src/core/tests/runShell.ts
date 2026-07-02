@@ -26,10 +26,12 @@ export { runShell };
 async function runShell({
   config,
   step,
+  driver,
   processRegistry,
 }: {
   config: any;
   step: any;
+  driver?: any;
   processRegistry?: Map<string, any>;
 }) {
   // Promisify and execute command
@@ -95,6 +97,16 @@ async function runShell({
     if (processRegistry.has(name)) {
       result.status = "FAIL";
       result.description = `A background process named "${name}" is already running.`;
+      return result;
+    }
+    // Cross-kind uniqueness (multi-surface Phase 4): a background process must
+    // not reuse a name an open browser surface already holds. Otherwise a
+    // bare-string `surface: "<name>"` would resolve registry-first to the
+    // browser and the process would be unreachable by that name. The browser
+    // side enforces the mirror of this at open time.
+    if (driver?.state?.sessionRegistry?.sessions?.has(name)) {
+      result.status = "FAIL";
+      result.description = `A browser surface named "${name}" is already open in this context. Surface names must be unique across kinds; give the background process a different name.`;
       return result;
     }
 

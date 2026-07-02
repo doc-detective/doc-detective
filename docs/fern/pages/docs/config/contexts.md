@@ -346,6 +346,6 @@ Specify contexts in the test's `runOn` array. These override config- and spec-le
 
 ## Contexts and multiple browsers
 
-`browsers` does two jobs: it names the test's **default browser surface**, and — when it lists several engines — it fans the test out to run once per engine. Tests can also open **additional** browsers at runtime with a `goTo` step's `surface` field (see [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows)). Steps open those browsers, and `runOn` never lists them.
+`browsers` does two jobs: it names the test's **default browser surface**, and — when it lists several engines — it fans the test out to run once per engine. A test can also open **additional** browsers at runtime with a `goTo` step's `surface` field (see [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows)). Only `goTo` opens those browsers, and `runOn` never lists them.
 
 Pin a browser **or** fan out — not both. The engine fan-out suits browser-*agnostic* tests. A test that pins `surface: { "browser": "firefox" }` in its steps would open Firefox alongside every matrix engine, so give it a single `browsers` entry instead.
