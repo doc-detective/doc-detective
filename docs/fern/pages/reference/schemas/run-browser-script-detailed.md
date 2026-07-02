@@ -28,7 +28,7 @@ timeout | integer | Optional. Maximum time in milliseconds the script may run. I
 
 ```json
 {
-  "surface": "example",
+  "surface": "chrome",
   "script": "example",
   "args": [],
   "output": "example",

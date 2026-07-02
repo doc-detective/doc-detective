@@ -4036,14 +4036,19 @@
                       "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                       "anyOf": [
                         {
-                          "title": "Surface (by name)",
+                          "title": "Surface (by browser engine)",
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
                           "transform": [
                             "trim"
                           ],
-                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                         },
                         {
                           "title": "Browser surface",
@@ -4308,14 +4313,19 @@
                         "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                         "anyOf": [
                           {
-                            "title": "Surface (by name)",
+                            "title": "Surface (by browser engine)",
                             "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
                             "transform": [
                               "trim"
                             ],
-                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                           },
                           {
                             "title": "Browser surface",
@@ -5527,14 +5537,19 @@
                       "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                       "anyOf": [
                         {
-                          "title": "Surface (by name)",
+                          "title": "Surface (by browser engine)",
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
                           "transform": [
                             "trim"
                           ],
-                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                         },
                         {
                           "title": "Browser surface",
@@ -5800,14 +5815,19 @@
                                   "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                                   "anyOf": [
                                     {
-                                      "title": "Surface (by name)",
+                                      "title": "Surface (by browser engine)",
                                       "type": "string",
-                                      "minLength": 1,
-                                      "pattern": "\\S",
+                                      "enum": [
+                                        "chrome",
+                                        "firefox",
+                                        "safari",
+                                        "webkit",
+                                        "edge"
+                                      ],
                                       "transform": [
                                         "trim"
                                       ],
-                                      "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                      "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                     },
                                     {
                                       "title": "Browser surface",
@@ -6072,14 +6092,19 @@
                                     "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                                     "anyOf": [
                                       {
-                                        "title": "Surface (by name)",
+                                        "title": "Surface (by browser engine)",
                                         "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
+                                        "enum": [
+                                          "chrome",
+                                          "firefox",
+                                          "safari",
+                                          "webkit",
+                                          "edge"
+                                        ],
                                         "transform": [
                                           "trim"
                                         ],
-                                        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                        "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                       },
                                       {
                                         "title": "Browser surface",
@@ -6540,6 +6565,21 @@
                                               "trim"
                                             ],
                                             "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                          },
+                                          "byEngineName": {
+                                            "title": "Surface (by browser engine)",
+                                            "type": "string",
+                                            "enum": [
+                                              "chrome",
+                                              "firefox",
+                                              "safari",
+                                              "webkit",
+                                              "edge"
+                                            ],
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                           },
                                           "process": {
                                             "title": "Process surface",
@@ -7585,6 +7625,21 @@
                                               ],
                                               "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                             },
+                                            "byEngineName": {
+                                              "title": "Surface (by browser engine)",
+                                              "type": "string",
+                                              "enum": [
+                                                "chrome",
+                                                "firefox",
+                                                "safari",
+                                                "webkit",
+                                                "edge"
+                                              ],
+                                              "transform": [
+                                                "trim"
+                                              ],
+                                              "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                                            },
                                             "process": {
                                               "title": "Process surface",
                                               "type": "object",
@@ -8534,14 +8589,19 @@
                         "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                         "anyOf": [
                           {
-                            "title": "Surface (by name)",
+                            "title": "Surface (by browser engine)",
                             "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
                             "transform": [
                               "trim"
                             ],
-                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                           },
                           {
                             "title": "Browser surface",
@@ -8807,14 +8867,19 @@
                                     "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                                     "anyOf": [
                                       {
-                                        "title": "Surface (by name)",
+                                        "title": "Surface (by browser engine)",
                                         "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
+                                        "enum": [
+                                          "chrome",
+                                          "firefox",
+                                          "safari",
+                                          "webkit",
+                                          "edge"
+                                        ],
                                         "transform": [
                                           "trim"
                                         ],
-                                        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                        "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                       },
                                       {
                                         "title": "Browser surface",
@@ -9079,14 +9144,19 @@
                                       "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
                                       "anyOf": [
                                         {
-                                          "title": "Surface (by name)",
+                                          "title": "Surface (by browser engine)",
                                           "type": "string",
-                                          "minLength": 1,
-                                          "pattern": "\\S",
+                                          "enum": [
+                                            "chrome",
+                                            "firefox",
+                                            "safari",
+                                            "webkit",
+                                            "edge"
+                                          ],
                                           "transform": [
                                             "trim"
                                           ],
-                                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                         },
                                         {
                                           "title": "Browser surface",
@@ -9547,6 +9617,21 @@
                                                 "trim"
                                               ],
                                               "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                            },
+                                            "byEngineName": {
+                                              "title": "Surface (by browser engine)",
+                                              "type": "string",
+                                              "enum": [
+                                                "chrome",
+                                                "firefox",
+                                                "safari",
+                                                "webkit",
+                                                "edge"
+                                              ],
+                                              "transform": [
+                                                "trim"
+                                              ],
+                                              "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                             },
                                             "process": {
                                               "title": "Process surface",
@@ -10591,6 +10676,21 @@
                                                   "trim"
                                                 ],
                                                 "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                              },
+                                              "byEngineName": {
+                                                "title": "Surface (by browser engine)",
+                                                "type": "string",
+                                                "enum": [
+                                                  "chrome",
+                                                  "firefox",
+                                                  "safari",
+                                                  "webkit",
+                                                  "edge"
+                                                ],
+                                                "transform": [
+                                                  "trim"
+                                                ],
+                                                "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                               },
                                               "process": {
                                                 "title": "Process surface",
@@ -12513,14 +12613,19 @@
                           "description": "The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.",
                           "anyOf": [
                             {
-                              "title": "Surface (by name)",
+                              "title": "Surface (by browser engine)",
                               "type": "string",
-                              "minLength": 1,
-                              "pattern": "\\S",
+                              "enum": [
+                                "chrome",
+                                "firefox",
+                                "safari",
+                                "webkit",
+                                "edge"
+                              ],
                               "transform": [
                                 "trim"
                               ],
-                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                              "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                             },
                             {
                               "title": "Browser surface",
@@ -12985,6 +13090,32 @@
                         }
                       }
                     }
+                  ],
+                  "examples": [
+                    {
+                      "url": "https://www.google.com"
+                    },
+                    {
+                      "url": "/checkout",
+                      "origin": "https://my-app.com",
+                      "newTab": "cart"
+                    },
+                    {
+                      "url": "/admin",
+                      "origin": "https://my-app.com",
+                      "newWindow": {
+                        "name": "admin",
+                        "tab": "overview"
+                      }
+                    },
+                    {
+                      "url": "/orders",
+                      "surface": {
+                        "browser": "chrome",
+                        "window": "admin",
+                        "tab": "overview"
+                      }
+                    }
                   ]
                 }
               ],
@@ -13014,14 +13145,19 @@
                             "description": "The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.",
                             "anyOf": [
                               {
-                                "title": "Surface (by name)",
+                                "title": "Surface (by browser engine)",
                                 "type": "string",
-                                "minLength": 1,
-                                "pattern": "\\S",
+                                "enum": [
+                                  "chrome",
+                                  "firefox",
+                                  "safari",
+                                  "webkit",
+                                  "edge"
+                                ],
                                 "transform": [
                                   "trim"
                                 ],
-                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                               },
                               {
                                 "title": "Browser surface",
@@ -13484,6 +13620,32 @@
                               "newWindow"
                             ]
                           }
+                        }
+                      }
+                    ],
+                    "examples": [
+                      {
+                        "url": "https://www.google.com"
+                      },
+                      {
+                        "url": "/checkout",
+                        "origin": "https://my-app.com",
+                        "newTab": "cart"
+                      },
+                      {
+                        "url": "/admin",
+                        "origin": "https://my-app.com",
+                        "newWindow": {
+                          "name": "admin",
+                          "tab": "overview"
+                        }
+                      },
+                      {
+                        "url": "/orders",
+                        "surface": {
+                          "browser": "chrome",
+                          "window": "admin",
+                          "tab": "overview"
                         }
                       }
                     ]
@@ -19103,14 +19265,19 @@
                       "description": "The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.",
                       "anyOf": [
                         {
-                          "title": "Surface (by name)",
+                          "title": "Surface (by browser engine)",
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
                           "transform": [
                             "trim"
                           ],
-                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                         },
                         {
                           "title": "Browser surface",
@@ -19318,14 +19485,19 @@
                         "description": "The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.",
                         "anyOf": [
                           {
-                            "title": "Surface (by name)",
+                            "title": "Surface (by browser engine)",
                             "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
                             "transform": [
                               "trim"
                             ],
-                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                           },
                           {
                             "title": "Browser surface",
@@ -20732,6 +20904,21 @@
                                 ],
                                 "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                               },
+                              "byEngineName": {
+                                "title": "Surface (by browser engine)",
+                                "type": "string",
+                                "enum": [
+                                  "chrome",
+                                  "firefox",
+                                  "safari",
+                                  "webkit",
+                                  "edge"
+                                ],
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                              },
                               "process": {
                                 "title": "Process surface",
                                 "type": "object",
@@ -21775,6 +21962,21 @@
                                     "trim"
                                   ],
                                   "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                },
+                                "byEngineName": {
+                                  "title": "Surface (by browser engine)",
+                                  "type": "string",
+                                  "enum": [
+                                    "chrome",
+                                    "firefox",
+                                    "safari",
+                                    "webkit",
+                                    "edge"
+                                  ],
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                                 },
                                 "process": {
                                   "title": "Process surface",
@@ -23623,14 +23825,19 @@
                       "description": "The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward.",
                       "anyOf": [
                         {
-                          "title": "Surface (by name)",
+                          "title": "Surface (by browser engine)",
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
                           "transform": [
                             "trim"
                           ],
-                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                         },
                         {
                           "title": "Browser surface",
@@ -24018,14 +24225,19 @@
                         "description": "The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward.",
                         "anyOf": [
                           {
-                            "title": "Surface (by name)",
+                            "title": "Surface (by browser engine)",
                             "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
                             "transform": [
                               "trim"
                             ],
-                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                           },
                           {
                             "title": "Browser surface",
@@ -26750,14 +26962,19 @@
                       "description": "The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.",
                       "anyOf": [
                         {
-                          "title": "Surface (by name)",
+                          "title": "Surface (by browser engine)",
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
                           "transform": [
                             "trim"
                           ],
-                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                         },
                         {
                           "title": "Browser surface",
@@ -27002,14 +27219,19 @@
                         "description": "The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.",
                         "anyOf": [
                           {
-                            "title": "Surface (by name)",
+                            "title": "Surface (by browser engine)",
                             "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
                             "transform": [
                               "trim"
                             ],
-                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                           },
                           {
                             "title": "Browser surface",
@@ -29438,6 +29660,21 @@
                         ],
                         "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                       },
+                      "byEngineName": {
+                        "title": "Surface (by browser engine)",
+                        "type": "string",
+                        "enum": [
+                          "chrome",
+                          "firefox",
+                          "safari",
+                          "webkit",
+                          "edge"
+                        ],
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                      },
                       "process": {
                         "title": "Process surface",
                         "type": "object",
@@ -29850,6 +30087,21 @@
                             "trim"
                           ],
                           "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                        },
+                        "byEngineName": {
+                          "title": "Surface (by browser engine)",
+                          "type": "string",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                         },
                         "process": {
                           "title": "Process surface",
@@ -32251,14 +32503,19 @@
                   "description": "The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.",
                   "anyOf": [
                     {
-                      "title": "Surface (by name)",
+                      "title": "Surface (by browser engine)",
                       "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
+                      "enum": [
+                        "chrome",
+                        "firefox",
+                        "safari",
+                        "webkit",
+                        "edge"
+                      ],
                       "transform": [
                         "trim"
                       ],
-                      "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                      "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
                     },
                     {
                       "title": "Browser surface",

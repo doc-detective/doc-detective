@@ -25,7 +25,7 @@ engine | one of:<br/>- string<br/>- object([Recording engine (detailed)](/refere
 
 ```json
 {
-  "surface": "example",
+  "surface": "chrome",
   "path": "example",
   "directory": "example",
   "overwrite": "true",

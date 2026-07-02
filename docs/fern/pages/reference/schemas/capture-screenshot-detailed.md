@@ -26,7 +26,7 @@ sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegrat
 
 ```json
 {
-  "surface": "example",
+  "surface": "chrome",
   "path": "example",
   "directory": "example",
   "maxVariation": 0.05,

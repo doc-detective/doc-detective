@@ -35,7 +35,7 @@
                 "description": "The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.",
                 "anyOf": [
                   {
-                    "$ref": "surface_v3.schema.json#/components/schemas/byName"
+                    "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
                   },
                   {
                     "$ref": "surface_v3.schema.json#/components/schemas/browser"
@@ -367,6 +367,32 @@
                   "newWindow"
                 ]
               }
+            }
+          }
+        ],
+        "examples": [
+          {
+            "url": "https://www.google.com"
+          },
+          {
+            "url": "/checkout",
+            "origin": "https://my-app.com",
+            "newTab": "cart"
+          },
+          {
+            "url": "/admin",
+            "origin": "https://my-app.com",
+            "newWindow": {
+              "name": "admin",
+              "tab": "overview"
+            }
+          },
+          {
+            "url": "/orders",
+            "surface": {
+              "browser": "chrome",
+              "window": "admin",
+              "tab": "overview"
             }
           }
         ]

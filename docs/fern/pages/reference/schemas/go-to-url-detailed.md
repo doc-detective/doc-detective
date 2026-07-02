@@ -29,12 +29,36 @@ waitUntil | object | Optional. Configuration for waiting conditions after naviga
 
 ```json
 {
-  "surface": "example",
-  "newTab": true,
-  "newWindow": true,
-  "url": "example",
-  "origin": "example",
-  "params": {},
-  "timeout": 30000
+  "url": "https://www.google.com"
+}
+```
+
+```json
+{
+  "url": "/checkout",
+  "origin": "https://my-app.com",
+  "newTab": "cart"
+}
+```
+
+```json
+{
+  "url": "/admin",
+  "origin": "https://my-app.com",
+  "newWindow": {
+    "name": "admin",
+    "tab": "overview"
+  }
+}
+```
+
+```json
+{
+  "url": "/orders",
+  "surface": {
+    "browser": "chrome",
+    "window": "admin",
+    "tab": "overview"
+  }
 }
 ```

@@ -77,7 +77,7 @@
             "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
             "anyOf": [
               {
-                "$ref": "surface_v3.schema.json#/components/schemas/byName"
+                "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
               },
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/browser"

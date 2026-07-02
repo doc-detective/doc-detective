@@ -16,7 +16,7 @@ export type GoToURLDetailed = {
   /**
    * The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.
    */
-  surface?: SurfaceByName | BrowserSurface;
+  surface?: SurfaceByBrowserEngine | BrowserSurface;
   /**
    * Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.
    */
@@ -86,9 +86,9 @@ export type GoToURLDetailed = {
   NewTabConflictsWithASurfaceTabSelector &
   NewWindowConflictsWithASurfaceWindowOrTabSelector;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName = string;
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */

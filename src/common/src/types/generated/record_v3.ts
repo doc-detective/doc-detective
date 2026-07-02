@@ -13,9 +13,9 @@ export type Record = RecordSimple | RecordDetailed | RecordBoolean;
  */
 export type RecordSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName = string;
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -57,7 +57,7 @@ export interface RecordDetailed {
   /**
    * The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByName | BrowserSurface;
+  surface?: SurfaceByBrowserEngine | BrowserSurface;
   /**
    * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */

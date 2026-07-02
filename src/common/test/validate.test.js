@@ -3141,6 +3141,51 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
+      it("should reject a process-NAME string surface on browser-only steps", function () {
+        // Browser-only steps can never target a process, so the bare-string
+        // form is restricted to the engine enum — a process name like "web"
+        // must be rejected at validation time, not left to fail at runtime.
+        const surface = "web";
+        const steps = [
+          { click: { selector: "#a", surface } },
+          { find: { elementText: "Cart", surface } },
+          { dragAndDrop: { source: "#a", target: "#b", surface } },
+          { runBrowserScript: { script: "return 1;", surface } },
+          { screenshot: { path: "shot.png", surface } },
+          { record: { path: "rec.mp4", surface } },
+          { goTo: { url: "https://example.com", surface } },
+        ];
+        for (const step of steps) {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, JSON.stringify(step)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should still validate a process-NAME string surface on type/closeSurface (all kinds allowed)", function () {
+        const result1 = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: "web" } },
+        });
+        expect(result1.valid).to.be.true;
+        expect(result1.errors).to.equal("");
+        const result2 = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: "web" },
+        });
+        expect(result2.valid).to.be.true;
+        expect(result2.errors).to.equal("");
+      });
+
+      it("should reject an unknown engine keyword as a bare-string surface on browser-only steps", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { selector: "#a", surface: "opera" } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
       // --- goTo newTab / newWindow ---
 
       it("should validate every newTab shape", function () {

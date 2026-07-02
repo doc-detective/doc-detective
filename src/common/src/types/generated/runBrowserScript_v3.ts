@@ -13,9 +13,9 @@ export type RunBrowserScript = RunBrowserScriptSimple | RunBrowserScriptDetailed
  */
 export type RunBrowserScriptSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName = string;
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -45,7 +45,7 @@ export interface RunBrowserScriptDetailed {
   /**
    * The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByName | BrowserSurface;
+  surface?: SurfaceByBrowserEngine | BrowserSurface;
   /**
    * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */

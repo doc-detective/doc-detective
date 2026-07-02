@@ -198,7 +198,7 @@ export type GoToURLDetailed = {
   /**
    * The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.
    */
-  surface?: SurfaceByName | BrowserSurface;
+  surface?: SurfaceByBrowserEngine | BrowserSurface;
   /**
    * Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.
    */
@@ -268,9 +268,9 @@ export type GoToURLDetailed = {
   NewTabConflictsWithASurfaceTabSelector &
   NewWindowConflictsWithASurfaceWindowOrTabSelector;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName = string;
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -455,9 +455,9 @@ export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetaile
  */
 export type RunBrowserScriptSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName1 = string;
+export type SurfaceByBrowserEngine1 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -579,11 +579,11 @@ export type TypeKeysSimple1 = string | string[];
 /**
  * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
  */
-export type Surface = SurfaceByName2 | ProcessSurface | BrowserSurface2;
+export type Surface = SurfaceByName | ProcessSurface | BrowserSurface2;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
-export type SurfaceByName2 = string;
+export type SurfaceByName = string;
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -649,9 +649,9 @@ export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | Capture
  */
 export type ScreenshotSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName3 = string;
+export type SurfaceByBrowserEngine2 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -778,9 +778,9 @@ export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
  */
 export type RecordSimple = string;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName4 = string;
+export type SurfaceByBrowserEngine3 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -904,11 +904,11 @@ export type CloseSurface1 = Surface1 | [Surface2, ...Surface2[]];
 /**
  * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
  */
-export type Surface1 = SurfaceByName5 | ProcessSurface1 | BrowserSurface5;
+export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface5;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
-export type SurfaceByName5 = string;
+export type SurfaceByName1 = string;
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -936,11 +936,11 @@ export type ByName11 = string;
 /**
  * The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.
  */
-export type Surface2 = SurfaceByName6 | ProcessSurface2 | BrowserSurface6;
+export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface6;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
-export type SurfaceByName6 = string;
+export type SurfaceByName2 = string;
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -1048,9 +1048,9 @@ export type ElementDetailed1 = {
   [k: string]: unknown;
 };
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByName7 = string;
+export type SurfaceByBrowserEngine4 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -2603,7 +2603,7 @@ export interface RunBrowserScriptDetailed {
   /**
    * The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByName1 | BrowserSurface1;
+  surface?: SurfaceByBrowserEngine1 | BrowserSurface1;
   /**
    * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
@@ -3083,7 +3083,7 @@ export interface CaptureScreenshotDetailed {
   /**
    * The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByName3 | BrowserSurface3;
+  surface?: SurfaceByBrowserEngine2 | BrowserSurface3;
   path?: ScreenshotSimple1;
   /**
    * Directory of the PNG file. If the directory doesn't exist, creates the directory.
@@ -3476,7 +3476,7 @@ export interface RecordDetailed {
   /**
    * The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByName4 | BrowserSurface4;
+  surface?: SurfaceByBrowserEngine3 | BrowserSurface4;
   /**
    * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
@@ -4287,7 +4287,7 @@ export interface DragAndDrop1 {
   /**
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByName7 | BrowserSurface7;
+  surface?: SurfaceByBrowserEngine4 | BrowserSurface7;
   [k: string]: unknown;
 }
 export interface BrowserSurface7 {

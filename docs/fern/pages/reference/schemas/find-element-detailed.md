@@ -31,7 +31,7 @@ type | one of:<br/>- one of:<br/>- string<br/>- array of string<br/>- object([Ty
 
 ```json
 {
-  "surface": "example",
+  "surface": "chrome",
   "elementText": "example",
   "selector": "example",
   "elementId": "example",

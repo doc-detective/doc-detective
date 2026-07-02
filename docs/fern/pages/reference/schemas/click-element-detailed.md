@@ -30,7 +30,7 @@ elementAria | string | Optional. Computed accessible name of the element per ARI
 ```json
 {
   "button": "left",
-  "surface": "example",
+  "surface": "chrome",
   "elementText": "example",
   "selector": "example",
   "elementId": "example",
