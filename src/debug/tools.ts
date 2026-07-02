@@ -86,9 +86,16 @@ export async function probeTool(
     const text = (stdout.trim() ? stdout : stderr || "").trim();
     const firstLine = text.split("\n")[0] || "<unknown>";
     return { name, version: firstLine };
+    /* c8 ignore start - real subprocess-dependent: runWithTimeout()'s own
+     * Promise never rejects (every code path resolves via settle()), and
+     * envWithoutNodeModulesBin()/spawn() have no injectable seam at this call
+     * site, so forcing this catch would require spawn() to throw synchronously
+     * for a real command -- not reproducible offline without corrupting the
+     * host shell (ADR 01017). */
   } catch (err: any) {
     return { name, version: "<probe failed>", notes: err?.message };
   }
+  /* c8 ignore stop */
 }
 
 function runWithTimeout(
@@ -106,11 +113,19 @@ function runWithTimeout(
     const settle = (result: { stdout: string; stderr: string; exitCode: number; timedOut: boolean }) => {
       if (settled) return;
       settled = true;
+      /* c8 ignore start - structurally defensive: child is a real
+       * ChildProcess spawned successfully (if spawn() itself failed, control
+       * never reaches settle() with a live child to kill), and Node's
+       * ChildProcess#kill() does not throw for an already-exited or
+       * already-killed process -- it returns false instead. No signal-
+       * permission/platform quirk hermetically reproduces a throw here
+       * (ADR 01017). */
       try {
         child.kill();
       } catch {
         // Best-effort kill.
       }
+      /* c8 ignore stop */
       resolve(result);
     };
     const t = setTimeout(() => settle({ stdout, stderr, exitCode: -1, timedOut: true }), timeoutMs);
@@ -120,10 +135,17 @@ function runWithTimeout(
     child.stderr?.on("data", (c) => {
       stderr += c.toString();
     });
+    /* c8 ignore start - real subprocess-dependent: with shell:true, a spawn
+     * that resolves to a live child essentially never emits 'error' -- the
+     * shell itself reports "not found" via a normal non-zero exit (the
+     * exitCode!==0 branch above), not an 'error' event. Forcing this
+     * hermetically would require the shell binary itself to be unresolvable,
+     * which is not reproducible without corrupting the host (ADR 01017). */
     child.on("error", (err) => {
       clearTimeout(t);
       settle({ stdout, stderr: stderr + (err.message || ""), exitCode: -1, timedOut: false });
     });
+    /* c8 ignore stop */
     child.on("close", (code) => {
       clearTimeout(t);
       settle({ stdout, stderr, exitCode: code ?? -1, timedOut: false });
@@ -172,9 +194,15 @@ function probeFfmpeg(): ToolResult {
       version: `@ffmpeg-installer/ffmpeg ${pkg.version}`,
       notes: `installer package: ${path.dirname(pkgPath)}`,
     };
+    /* c8 ignore start - install-state-dependent: @ffmpeg-installer/ffmpeg is
+     * a real, always-installed dependency of this repo (npm ci installs it
+     * identically on every CI matrix cell), so require.resolve() cannot
+     * hermetically fail without corrupting a shared, real dependency
+     * (ADR 01017). */
   } catch {
     return { name: "ffmpeg", version: "<bundled installer not found>" };
   }
+  /* c8 ignore stop */
 }
 
 // Resolve appium the same way the runtime does — shim node_modules OR
@@ -184,9 +212,15 @@ function probeFfmpeg(): ToolResult {
 // executes an appium binary.
 function probeAppium(cacheDir?: string): ToolResult {
   const resolved = resolveHeavyDepPath("appium", { cacheDir });
+  /* c8 ignore start - install-state-dependent: appium is a real,
+   * always-installed shim dependency of this repo (resolveHeavyDepPath()
+   * checks the shim node_modules FIRST, before any cacheDir), so this
+   * branch cannot be forced without uninstalling a shared, real dependency
+   * (ADR 01017). */
   if (!resolved) {
     return { name: "appium", version: "<not installed>" };
   }
+  /* c8 ignore stop */
   const version = resolveHeavyDepVersion("appium", { cacheDir });
   return {
     name: "appium",

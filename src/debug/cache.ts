@@ -63,6 +63,11 @@ function nearestExistingPath(target: string): string {
     if (parent === current) return current;
     current = parent;
   }
+  /* c8 ignore next - defensive bound: reached only if 64 levels of
+   * path.dirname() ancestors all fail safeExists() AND never hit a
+   * filesystem root (whose dirname is itself, returning at the line above)
+   * -- not reproducible on a real filesystem, where the root always exists
+   * (ADR 01017). */
   return current;
 }
 
@@ -133,6 +138,15 @@ export function collectCacheStatus(config: any): CacheStatus {
     // done independently here (the appium collector calls it too) so each
     // collector is correct standalone and in any order — the second call in a
     // full dump is a cheap no-op, not an ordering dependency.
+    /* c8 ignore start - structurally dead by construction: setAppiumHome()'s
+     * only throw point is getRuntimeDir(ctx) -> getCacheDir(ctx) ->
+     * assertSafeRuntimePath(), called with the SAME ctx.cacheDir already
+     * validated (unthrown) by the getCacheDir/getRuntimeDir/getBrowsersDir
+     * calls a few lines above in this same outer try block -- so if ctx.cacheDir
+     * were invalid, the OUTER catch (below) would already have fired first.
+     * This inner catch, and the "unset" else-branch it guards, can never
+     * observe a genuine setAppiumHome() failure through this call site
+     * (ADR 01017). */
     try {
       setAppiumHome(ctx);
     } catch {
@@ -150,6 +164,7 @@ export function collectCacheStatus(config: any): CacheStatus {
         freeBytes: null,
       });
     }
+    /* c8 ignore stop */
   } catch (err: any) {
     return { entries, error: err?.message || String(err) };
   }
