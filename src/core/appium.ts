@@ -57,6 +57,15 @@ function setAppiumHome(ctx: { cacheDir?: string } = {}) {
     }
   }
 
+  /* c8 ignore start - legacy fallback (step 3), reached only when NEITHER
+   * appium-chromium-driver NOR appium-geckodriver resolves via
+   * resolveHeavyDepPath in step 2 above. Both are installed dependencies of
+   * this repo that shim-resolve first on every measured CI leg -- the
+   * cross-platform coverage union shows step 2's return (lines 49-57)
+   * covered and never reaches here -- so step 2 always returns before this
+   * fallback runs. It exists for driver-less installs and can't be exercised
+   * hermetically without uninstalling a real dependency the runner and the
+   * rest of the suite depend on (ADR 01017). */
   // 3. Legacy fallback: walk up from core's node_modules looking for appium.
   const corePath = path.join(__dirname, "../../node_modules");
   const pathArray = corePath.split("node_modules");
@@ -73,3 +82,4 @@ function setAppiumHome(ctx: { cacheDir?: string } = {}) {
   }
   process.env.APPIUM_HOME = appiumParentPath;
 }
+/* c8 ignore stop */
