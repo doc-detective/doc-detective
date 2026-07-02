@@ -49,3 +49,22 @@ describe("winCommandLine (CommandLineToArgvW escaping)", function () {
     assert.equal(winCommandLine("x", [""]), '"x" ""');
   });
 });
+
+describe("safeSpawn — synchronous spawn() throw", function () {
+  let safeSpawn;
+  before(async function () {
+    ({ safeSpawn } = await import("../dist/agents/spawn-helper.js"));
+  });
+
+  it("rejects (rather than throws/crashes) when node:child_process.spawn throws synchronously", async function () {
+    // A NUL byte in the command is one of the few inputs Node's spawn()
+    // validates and rejects *synchronously*, before any 'error' event fires
+    // — exercising safeSpawn's outer try/catch around the spawn() call
+    // itself (as opposed to the async child.on("error", ...) handler).
+    const NUL = String.fromCharCode(0);
+    await assert.rejects(
+      safeSpawn("a" + NUL + "b", ["--version"]),
+      /null bytes/i
+    );
+  });
+});

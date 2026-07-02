@@ -102,6 +102,29 @@ describe("fetchAgentToolsZip", function () {
       /outside|extraction|refus/i
     );
   });
+
+  it("extracts directory entries (entry.isDirectory branch) as empty dirs", async function () {
+    // adm-zip auto-creates parent directory entries for nested files, but we
+    // also add an explicit empty directory entry to force the isDirectory
+    // branch for a dir that has no files inside it.
+    const zip = new AdmZip();
+    const prefix = "agent-tools-main/";
+    zip.addFile(prefix + "skills/doc-detective-init/SKILL.md", Buffer.from("body"));
+    // Explicit empty directory entry (trailing slash, zero-length data).
+    zip.addFile(prefix + "skills/empty-dir/", Buffer.alloc(0));
+    const zipBuf = zip.toBuffer();
+
+    const result = await fetchAgentToolsZip("main", {
+      get: async () => ({ data: zipBuf }),
+    });
+    try {
+      const emptyDirPath = path.join(result.tempDir, "skills", "empty-dir");
+      assert.equal(fs.existsSync(emptyDirPath), true);
+      assert.equal(fs.statSync(emptyDirPath).isDirectory(), true);
+    } finally {
+      try { fs.rmSync(result.tempDir, { recursive: true, force: true }); } catch {}
+    }
+  });
 });
 
 describe("CodexAdapter — identity", function () {

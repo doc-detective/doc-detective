@@ -89,6 +89,15 @@ export async function fetchAgentToolsZip(
       }
       const resolvedDest = path.resolve(resolvedBase, rel);
       const relativeFromBase = path.relative(resolvedBase, resolvedDest);
+      /* c8 ignore start - defensive: on every platform this codebase targets,
+       * path.isAbsolute() in the first guard above already rejects any entry
+       * name whose resolved path could escape resolvedBase (verified for
+       * `\evil.txt`, UNC paths `\\server\share\...`, and `//server/share/...`
+       * — all report isAbsolute()===true on win32/posix), so no crafted
+       * entryName reaches this second check with relativeFromBase escaping.
+       * Kept as defense-in-depth for filesystem-level edge cases (e.g.
+       * symlink canonicalization) the first guard's string-only check can't
+       * see, per the comment above. */
       if (
         relativeFromBase.startsWith("..") ||
         path.isAbsolute(relativeFromBase)
@@ -97,6 +106,7 @@ export async function fetchAgentToolsZip(
           `Refusing to extract zip entry outside extraction root: ${entry.entryName}`
         );
       }
+      /* c8 ignore stop */
 
       if (entry.isDirectory) {
         fs.mkdirSync(resolvedDest, { recursive: true });

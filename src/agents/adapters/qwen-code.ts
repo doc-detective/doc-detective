@@ -38,6 +38,10 @@ export function defaultQwenCodeDeps(): QwenCodeDeps {
     existsSync: fs.existsSync,
     readFileSync: (p, enc = "utf8") => fs.readFileSync(p, enc),
     homedir: os.homedir,
+    /* c8 ignore start - real axios GET with no injectable seam at this exact
+     * closure (the seam is `deps.fetchLatestVersion` itself, which tests
+     * replace wholesale); exercising this body would require a real network
+     * call to raw.githubusercontent.com. */
     fetchLatestVersion: async () => {
       const response = await axios.get(LATEST_SKILL_URL, {
         timeout: 5000,
@@ -45,6 +49,7 @@ export function defaultQwenCodeDeps(): QwenCodeDeps {
       });
       return parseMetadataVersion(String(response?.data ?? ""));
     },
+    /* c8 ignore stop */
   };
 }
 

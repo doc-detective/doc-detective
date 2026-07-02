@@ -988,6 +988,103 @@ describe("runInstallAgents() orchestration", function () {
       `expected a no-agents log; got: ${JSON.stringify(logged)}`
     );
   });
+
+  it("throws when TTY is present, agents are detected, but no prompts implementation is supplied (agent picker)", async function () {
+    const cc = makeStubAdapter("claude", {
+      detection: { present: true, onPath: true, configPaths: {} },
+    });
+    await assert.rejects(
+      runInstallAgents(
+        { force: false, yes: false, "dry-run": false },
+        { adapters: [cc], isTTY: () => true }
+      ),
+      /No prompts implementation available.*--agent explicitly/
+    );
+  });
+
+  describe("resolveScope() — multi-scope intersection guards", function () {
+    // Two adapters that both support ["global", "project"] → intersection has
+    // length 2, forcing resolveScope() past the single-scope short-circuit
+    // and into the TTY/prompts branches.
+    function bothScopesAdapter(id) {
+      return makeStubAdapter(id, {});
+    }
+
+    it("throws in a non-TTY environment when no --scope is given and multiple scopes intersect", async function () {
+      const a = bothScopesAdapter("claude");
+      const b = bothScopesAdapter("codex");
+      await assert.rejects(
+        runInstallAgents(
+          { agent: ["claude", "codex"], force: false, yes: false, "dry-run": false },
+          { adapters: [a, b], isTTY: () => false }
+        ),
+        /Cannot prompt for scope in a non-TTY environment.*--scope project\|global/
+      );
+    });
+
+    it("throws when TTY is present but no prompts implementation is supplied", async function () {
+      const a = bothScopesAdapter("claude");
+      const b = bothScopesAdapter("codex");
+      await assert.rejects(
+        runInstallAgents(
+          { agent: ["claude", "codex"], force: false, yes: false, "dry-run": false },
+          { adapters: [a, b], isTTY: () => true }
+        ),
+        /No prompts implementation available.*--scope project\|global/
+      );
+    });
+
+    it("prompts pickScope when TTY + multiple scopes intersect and prompts are supplied", async function () {
+      const a = bothScopesAdapter("claude");
+      const b = bothScopesAdapter("codex");
+      let scopePromptCalledWith;
+      const reports = await runInstallAgents(
+        { agent: ["claude", "codex"], force: false, yes: false, "dry-run": false },
+        {
+          adapters: [a, b],
+          isTTY: () => true,
+          prompts: {
+            pickAgents: async () => {
+              throw new Error("should not prompt for agents — --agent was explicit");
+            },
+            pickScope: async (intersection) => {
+              scopePromptCalledWith = intersection;
+              return "project";
+            },
+          },
+        }
+      );
+      assert.deepEqual(scopePromptCalledWith.sort(), ["global", "project"]);
+      assert.equal(a.lastInstallOpts.scope, "project");
+      assert.equal(reports.length, 2);
+    });
+  });
+
+  describe("summarizeReport() — action-to-summary branches (via logger output)", function () {
+    const actions = [
+      ["updated", /updated/],
+      ["already-up-to-date", /already up to date/],
+      ["forced", /forced reinstall/],
+      ["some-future-action", /some-future-action/], // default branch
+    ];
+
+    for (const [action, expected] of actions) {
+      it(`logs the '${action}' summary line`, async function () {
+        const cc = makeStubAdapter("claude", {
+          report: { adapterId: "claude", scope: "project", action, installedVersion: "1.2.3" },
+        });
+        const logs = [];
+        await runInstallAgents(
+          { agent: ["claude"], scope: "project", force: false, yes: true, "dry-run": false },
+          { adapters: [cc], isTTY: () => false, logger: (m) => logs.push(m) }
+        );
+        assert.ok(
+          logs.some((l) => expected.test(l) && /1\.2\.3/.test(l)),
+          `expected a log line matching ${expected} with version 1.2.3; got: ${JSON.stringify(logs)}`
+        );
+      });
+    }
+  });
 });
 
 describe("install-agents end-to-end (compiled CLI, settings-file fallback)", function () {

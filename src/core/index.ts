@@ -99,6 +99,13 @@ async function runTests(config: any, options: any = {}) {
   const willRunViaApi = Boolean(
     !process.env.DOC_DETECTIVE_API &&
       config.integrations &&
+      /* c8 ignore start - willRunViaApi=true requires a real
+       * config.integrations.docDetectiveApi.apiKey (so this final `&&`
+       * operand never gets evaluated in tests); reaching this branch and its
+       * `if (willRunViaApi)` counterpart below (the runViaApi() call) both
+       * require a real HTTP round-trip to the Doc Detective Orchestration
+       * API, so the two are only reachable together and only over the
+       * network. */
       config.integrations.docDetectiveApi &&
       config.integrations.docDetectiveApi.apiKey
   );
@@ -108,6 +115,7 @@ async function runTests(config: any, options: any = {}) {
       "debug",
       "Skipping runtime pre-flight install — run is dispatched via Doc Detective Orchestration API."
     );
+  /* c8 ignore stop */
   } else try {
     const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
@@ -119,8 +127,13 @@ async function runTests(config: any, options: any = {}) {
     // routine `doc-detective` run. Map "warn" → "warning" since
     // core/utils.ts uses the latter.
     const preflightLogger = (msg: string, level: string = "info") => {
+      /* c8 ignore start - only invoked when ensureRuntimeInstalled()/
+       * ensureBrowserInstalled() actually log during a real npm install or
+       * browser download; the warm-cache no-op path they take in tests never
+       * calls the logger. */
       const mapped = level === "warn" ? "warning" : level;
       log(config, mapped, msg);
+      /* c8 ignore stop */
     };
     if (needs.npmPackages.size > 0) {
       await ensureRuntimeInstalled([...needs.npmPackages], {
@@ -139,6 +152,12 @@ async function runTests(config: any, options: any = {}) {
         let installedAnything = false;
         for (const browser of needs.browsers) {
           if (availableNames.has(browser)) continue;
+          /* c8 ignore start - reached only when a resolved spec needs a
+           * browser that getAvailableApps() reports as not already present
+           * on this machine; exercising it means ensureBrowserInstalled()
+           * performs a real binary download (no injectable seam at this
+           * call site — deps.logger only bridges log lines, not the
+           * download itself). */
           // requiredBrowserAssets returns [] for safari (ships with the OS)
           // and any unknown name, so the loop body simply no-ops for those.
           const assets = requiredBrowserAssets(browser);
@@ -146,6 +165,7 @@ async function runTests(config: any, options: any = {}) {
             await ensureBrowserInstalled(asset, { ctx, deps: { logger: preflightLogger } });
           }
           if (assets.length > 0) installedAnything = true;
+          /* c8 ignore stop */
         }
         // Invalidate the available-apps cache for this cacheDir so a
         // subsequent runSpecs/getRunner call re-detects what the
@@ -153,6 +173,10 @@ async function runTests(config: any, options: any = {}) {
         // `available` snapshot above would stick and downstream
         // browser-presence checks would still see "not installed."
         if (installedAnything) clearAppCache(config);
+      /* c8 ignore start - reached only if getAvailableApps()/
+       * ensureBrowserInstalled() throw (e.g. a real download failure); no
+       * injectable seam to simulate that at this call site without a real
+       * network/install attempt. */
       } catch (browserErr: any) {
         log(
           config,
@@ -160,7 +184,13 @@ async function runTests(config: any, options: any = {}) {
           `Browser pre-flight check skipped: ${browserErr?.message ?? browserErr}`
         );
       }
+      /* c8 ignore stop */
     }
+  /* c8 ignore start - reached only if the dynamic import()s or
+   * inferRuntimeNeeds() throw; inferRuntimeNeeds() is a pure, defensively-
+   * guarded function (Array.isArray/optional-chaining on every field) with
+   * no realistic throwing input, and the import()s only fail if the dist
+   * build itself is broken — not simulable without corrupting the build. */
   } catch (err: any) {
     // log() in src/core/utils.ts recognizes "warning", not "warn" — using
     // the wrong key would make this branch silent at every log level.
@@ -170,14 +200,20 @@ async function runTests(config: any, options: any = {}) {
       `Runtime pre-flight install hit an error: ${err?.message ?? err}. Falling back to on-demand resolution.`
     );
   }
+  /* c8 ignore stop */
 
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
+  /* c8 ignore start - see the willRunViaApi=true block above: only reachable
+   * with a real config.integrations.docDetectiveApi.apiKey, and runViaApi()
+   * (src/core/tests.ts) makes a real HTTP call with no injectable client
+   * seam at this call site. */
   if (willRunViaApi) {
     // Run test specs via API
     results = await runViaApi({
       resolvedTests,
       apiKey: config.integrations.docDetectiveApi.apiKey,
     });
+  /* c8 ignore stop */
   } else {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });

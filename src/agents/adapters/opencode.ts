@@ -50,6 +50,10 @@ export function defaultOpenCodeDeps(): OpenCodeDeps {
     rmSync: (p, opts) => { fs.rmSync(p, opts); },
     homedir: os.homedir,
     cwd: () => process.cwd(),
+    /* c8 ignore start - real axios GET with no injectable seam at this exact
+     * closure (the seam is `deps.fetchLatestVersion` itself, which tests
+     * replace wholesale); exercising this body would require a real network
+     * call to raw.githubusercontent.com. */
     fetchLatestVersion: async () => {
       const response = await axios.get(LATEST_SKILL_URL, {
         timeout: 5000,
@@ -57,6 +61,7 @@ export function defaultOpenCodeDeps(): OpenCodeDeps {
       });
       return parseMetadataVersion(String(response?.data ?? ""));
     },
+    /* c8 ignore stop */
     fetchZip: (ref) => fetchAgentToolsZip(ref),
   };
 }

@@ -59,6 +59,10 @@ export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
     renameSync: fs.renameSync,
     homedir: os.homedir,
     cwd: () => process.cwd(),
+    /* c8 ignore start - real axios GET with no injectable seam at this exact
+     * closure (the seam is `deps.fetchLatestVersion` itself, which tests
+     * replace wholesale); exercising this body would require a real network
+     * call to raw.githubusercontent.com. */
     fetchLatestVersion: async () => {
       const response = await axios.get(LATEST_PLUGIN_JSON_URL, {
         timeout: 5000,
@@ -67,6 +71,7 @@ export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
       const version = response?.data?.version;
       return typeof version === "string" ? version : undefined;
     },
+    /* c8 ignore stop */
   };
 }
 

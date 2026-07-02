@@ -147,6 +147,12 @@ async function runTestsHandler(args: any) {
   // DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 (set by the re-execed child to prevent
   // loops, and by Docker images), and process.env.CI (CI environments
   // should pin their version explicitly — surprise updates in CI are bad).
+  /* c8 ignore start - every hermetic test run sets CI=1 (or
+   * DOC_DETECTIVE_SKIP_AUTO_UPDATE=1) precisely so this block is skipped;
+   * entering it for real hits the npm registry via checkForUpdate()/
+   * selfUpdate() (src/runtime/selfUpdate.ts), which is a real network call
+   * with no seam exposed at this call site (this file never injects
+   * selfUpdate.ts's own `deps.http`/`deps.spawn`). */
   if (
     config.autoUpdate !== false &&
     !process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE &&
@@ -175,6 +181,7 @@ async function runTestsHandler(args: any) {
       log(`Self-update check skipped: ${String(err)}`, "debug", config);
     }
   }
+  /* c8 ignore stop */
 
   // Check for DOC_DETECTIVE_API environment variable
   const api = await getResolvedTestsFromEnv(config);
@@ -195,7 +202,11 @@ async function runTestsHandler(args: any) {
   }
 
   if (apiConfig) {
+    /* c8 ignore start - only reached when DOC_DETECTIVE_API is set;
+     * reportResults() (src/utils.ts) makes a real HTTP call to the
+     * orchestration API with no injectable client seam at this call site. */
     await reportResults({ apiConfig, results });
+    /* c8 ignore stop */
   } else {
     // Output results — config.reporters (populated from args.reporters by
     // setConfig) is the source of truth for which reporters run.

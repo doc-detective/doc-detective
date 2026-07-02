@@ -311,6 +311,79 @@ describe("core/index.ts — runTests offline branches", function () {
     assert.ok(result.resolvedTestsId, "expected the resolved-tests shape back");
     assert.equal(result.summary, undefined, "must not have executed");
   });
+
+  it("resolvedTests without an embedded config falls back to {} before merging the caller config", async function () {
+    // `resolvedTests.config` is absent (falsy) → exercises the `|| {}`
+    // fallback for the *first* spread operand at the resolvedTests-merge
+    // line in runTests().
+    const spec = path.join(tmpDir, "t2.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    const tampered = JSON.parse(JSON.stringify(seed));
+    delete tampered.config; // no embedded config at all
+
+    const result = await runTests(
+      { dryRun: true, logLevel: "silent", telemetry: { send: false } },
+      { resolvedTests: tampered }
+    );
+    assert.ok(result.resolvedTestsId, "expected the resolved-tests shape back");
+  });
+
+  it("a falsy caller config falls back to {} before merging over the embedded resolvedTests config", async function () {
+    // Caller passes `config` as `undefined` → exercises the `|| {}`
+    // fallback for the *second* spread operand (the caller-config side) at
+    // the same resolvedTests-merge line.
+    const spec = path.join(tmpDir, "t3.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    const tampered = JSON.parse(JSON.stringify(seed));
+    tampered.config.dryRun = true; // must survive since caller config is falsy
+
+    const result = await runTests(undefined, { resolvedTests: tampered });
+    assert.ok(result.resolvedTestsId, "expected the resolved-tests shape back");
+    assert.equal(result.config.dryRun, true, "embedded config should be preserved when caller config is falsy");
+  });
+
+  it("runs the JIT npm-package pre-flight (ensureRuntimeInstalled call site) for a screenshot-only spec", async function () {
+    // A bare `screenshot` step (no browser keys) makes inferRuntimeNeeds()
+    // report npmPackages = {sharp, pngjs, pixelmatch} with browsers empty —
+    // exercising core/index.ts's `needs.npmPackages.size > 0` JIT-install
+    // call site without ever entering the browser-install branch. sharp/
+    // pngjs/pixelmatch are already real dependencies of this repo, so
+    // ensureRuntimeInstalled() takes its fast shim-resolves-already no-op
+    // path — no real npm install, no network. The screenshot step itself
+    // then fails fast (no active surface/driver) rather than executing —
+    // that per-step failure is expected and not what this test asserts.
+    const spec = path.join(tmpDir, "shot.spec.json");
+    fs.writeFileSync(
+      spec,
+      JSON.stringify({
+        tests: [{ steps: [{ screenshot: { path: path.join(tmpDir, "out.png") } }] }],
+      })
+    );
+    const result = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "debug",
+      telemetry: { send: false },
+      reporters: [],
+    });
+    // The run must complete (pass or fail the screenshot step) rather than
+    // hang or throw — that's the behavior under test.
+    assert.ok(result && result.summary, "expected an executed-results summary");
+  });
 });
 
 // ---------------------------------------------------------------------------
