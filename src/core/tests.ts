@@ -152,6 +152,17 @@ function killTree(pid?: number, timeoutMs: number = 5000): Promise<void> {
       while (isPidAlive(pid) && Date.now() - start < timeoutMs) {
         await new Promise((r) => setTimeout(r, 50));
       }
+      // SIGTERM didn't finish the job within the timeout (e.g. a browser
+      // ignoring/slow to handle it) — escalate to SIGKILL as a last resort
+      // rather than silently giving up and reporting a false "torn down".
+      if (isPidAlive(pid)) {
+        try {
+          kill(pid, "SIGKILL", () => resolve());
+          return;
+        } catch {
+          // fall through to resolve below
+        }
+      }
       resolve();
     };
     try {
@@ -163,13 +174,16 @@ function killTree(pid?: number, timeoutMs: number = 5000): Promise<void> {
 }
 
 // Whether `pid` still refers to a live process. `process.kill(pid, 0)` sends
-// no signal — it just probes: it throws ESRCH once the pid no longer exists.
+// no signal — it just probes. It throws ESRCH once the pid no longer exists;
+// any other error (e.g. EPERM — the process exists but we lack permission to
+// signal it) means the process is still alive, just unsignalable, so treat
+// only ESRCH as "dead".
 function isPidAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error: any) {
+    return error?.code !== "ESRCH";
   }
 }
 
