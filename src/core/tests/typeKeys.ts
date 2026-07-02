@@ -5,7 +5,11 @@ import {
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
 import { waitForOutputMatch } from "../utils.js";
-import { parseSurfaceRef, switchToSurface } from "./browserSurface.js";
+import {
+  parseSurfaceRef,
+  reinterpretForSessions,
+  switchToSurface,
+} from "./browserSurface.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
 import {
   buildConditionContext,
@@ -359,8 +363,13 @@ async function typeKeys({
   // Process-surface branch: when `surface` targets a background process, send
   // the keystrokes to its stdin instead of the browser/active element. Runs
   // BEFORE the element/active-element path (which stays untouched). This path is
-  // webdriverio-free — it never loads the heavy browser dep.
-  const resolved = resolveSurface(step.type.surface);
+  // webdriverio-free — it never loads the heavy browser dep. A bare string is
+  // identity-only (Phase 4): when a browser session owns the name, it routes
+  // to the browser branch instead of the process lookup.
+  const resolved = reinterpretForSessions(
+    driver,
+    resolveSurface(step.type.surface)
+  );
   if (resolved.kind === "unsupported") {
     result.status = "FAIL";
     result.description = "surface kind not yet supported.";
@@ -379,8 +388,9 @@ async function typeKeys({
     return await typeToProcess({ step, name: resolved.name!, processRegistry });
   }
   if (resolved.kind === "browser") {
-    // Browser-surface branch (Phase 3): focus the requested window/tab, then
-    // fall through to the unchanged element/active-element typing path.
+    // Browser-surface branch (Phase 3/4): focus the requested session +
+    // window/tab, then fall through to the unchanged element/active-element
+    // typing path — against the resolved session's driver.
     const wu = step.type.waitUntil;
     if (wu && (wu.stdio !== undefined || wu.delayMs !== undefined)) {
       result.status = "FAIL";
@@ -394,6 +404,7 @@ async function typeKeys({
       result.description = switched.message;
       return result;
     }
+    driver = switched.driver ?? driver;
   }
 
   // Find element to type into if any criteria are specified

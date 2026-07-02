@@ -175,7 +175,8 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
-  // Multi-surface Phase 3: focus the window/tab to capture.
+  // Multi-surface Phase 3/4: focus the session + window/tab to capture. A
+  // cross-session reference resolves to that session's driver.
   if (
     typeof step.screenshot === "object" &&
     step.screenshot !== null &&
@@ -187,6 +188,7 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
       result.description = switched.message;
       return result;
     }
+    driver = switched.driver ?? driver;
   }
 
   // Convert boolean to string

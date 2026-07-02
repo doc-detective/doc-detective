@@ -351,14 +351,14 @@ describe("browserSurface: resolveWindowTarget", function () {
     assert.match(noWindow.message, /missing/);
   });
 
-  it("FAILs an engine mismatch with the active engine named", async function () {
+  it("FAILs an engine mismatch (no session registry) with goTo guidance", async function () {
     const driver = stubDriver({ engine: "chrome" });
     await syncHandles(driver);
     const res = await resolveWindowTarget(driver, parseSurfaceRef({ browser: "firefox", tab: -1 }));
     assert.equal(res.ok, false);
     assert.match(res.message, /firefox/);
     assert.match(res.message, /chrome/);
-    assert.match(res.message, /later phase/);
+    assert.match(res.message, /goTo/);
   });
 
   it("treats edge as chrome for the engine check (context transform parity)", async function () {
@@ -375,7 +375,7 @@ describe("browserSurface: resolveWindowTarget", function () {
     assert.equal(res.ok, true);
   });
 
-  it("FAILs a named browser surface as a later-phase feature", async function () {
+  it("FAILs an unopened named surface (no session registry) with goTo guidance", async function () {
     const driver = stubDriver();
     await syncHandles(driver);
     const res = await resolveWindowTarget(
@@ -383,7 +383,8 @@ describe("browserSurface: resolveWindowTarget", function () {
       parseSurfaceRef({ browser: "firefox", name: "secondary" })
     );
     assert.equal(res.ok, false);
-    assert.match(res.message, /later phase/);
+    assert.match(res.message, /secondary/);
+    assert.match(res.message, /goTo/);
   });
 
   it("resolves an engine-only surface to the current handle (no switch)", async function () {
@@ -493,23 +494,24 @@ describe("browserSurface: resolveCloseTargets", function () {
     assert.deepEqual(res.handles, []);
   });
 
-  it("FAILs a whole-browser close with later-phase guidance", async function () {
+  it("rejects a whole-browser close (session-level, not a window/tab close)", async function () {
+    // Whole-browser closes are resolved against the session registry by the
+    // closeSurface step; this helper only ever closes windows/tabs.
     const driver = stubDriver();
     await syncHandles(driver);
     for (const ref of [parseSurfaceRef("firefox"), parseSurfaceRef({ browser: "firefox" })]) {
       const res = await resolveCloseTargets(driver, ref);
       assert.equal(res.ok, false);
-      assert.match(res.message, /later phase/);
-      assert.match(res.message, /tab/);
+      assert.match(res.message, /session/);
     }
   });
 
-  it("FAILs an engine mismatch", async function () {
+  it("FAILs an engine mismatch (no session registry) with goTo guidance", async function () {
     const driver = stubDriver({ engine: "chrome" });
     await syncHandles(driver);
     const res = await resolveCloseTargets(driver, parseSurfaceRef({ browser: "firefox", tab: -1 }));
     assert.equal(res.ok, false);
-    assert.match(res.message, /not the active browser/);
+    assert.match(res.message, /is not open in this context/);
   });
 });
 

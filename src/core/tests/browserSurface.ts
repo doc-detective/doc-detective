@@ -1,11 +1,17 @@
 import { matchesExpectedOutput } from "../utils.js";
+import { normalizeEngine, resolveSessionForRef } from "./browserSessions.js";
 
 // Multi-surface Phase 3 (ADR 01016): windows & tabs in the active browser.
 // One WebDriver session, many flat W3C handles. This module owns the
-// per-context handle registry (`driver.state.surfaces`) and every selector
+// per-session handle registry (`driver.state.surfaces`) and every selector
 // resolution rule, so step actions only ever call switchToSurface /
 // resolveCloseTargets. The driver is injected, never imported — the module
 // stays webdriverio-free and unit-testable with a stub.
+//
+// Phase 4 (ADR 01019) adds the session level above this one: a browser
+// surface reference picks a SESSION first (via the context's session
+// registry, reached through `driver.state.sessionRegistry`), then resolves
+// windows/tabs inside it with the machinery here.
 
 // Declared before the export list so the binding exists when the list is
 // evaluated (a `const` isn't hoisted like a function declaration).
@@ -20,6 +26,7 @@ const RESERVED_ENGINE_KEYWORDS = new Set([
 export {
   RESERVED_ENGINE_KEYWORDS,
   parseSurfaceRef,
+  reinterpretForSessions,
   ensureSurfaceState,
   syncHandles,
   seedWindowLead,
@@ -30,14 +37,6 @@ export {
   closeHandle,
   resolveCloseTargets,
 };
-
-// context_v3 transforms edge → chrome before the runner sees it, so the
-// engine check must treat them as the same engine or `surface: "edge"`
-// would never match an edge context.
-function normalizeEngine(engine: string): string {
-  const e = engine.toLowerCase();
-  return e === "edge" ? "chrome" : e;
-}
 
 export type ParsedSurface =
   | { kind: "none" }
@@ -81,6 +80,21 @@ function parseSurfaceRef(surface: any): ParsedSurface {
   }
   // Any other object shape (app) is a future surface kind.
   return { kind: "unsupported" };
+}
+
+// Phase 4: a bare-string surface is identity-only — the kind resolves at
+// runtime. parseSurfaceRef defaults non-engine names to the process kind;
+// when the context's session registry owns the name, reinterpret it as that
+// browser surface. (Cross-kind name collisions are rejected at open time, so
+// registry-first is unambiguous.)
+function reinterpretForSessions(driver: any, ref: ParsedSurface): ParsedSurface {
+  if (
+    ref.kind === "process" &&
+    driver?.state?.sessionRegistry?.sessions?.has(ref.name)
+  ) {
+    return { kind: "browser", name: ref.name };
+  }
+  return ref;
 }
 
 export interface WindowEntry {
@@ -211,7 +225,7 @@ function registerOpenedHandle(
 }
 
 type Resolution =
-  | { ok: true; handle: string }
+  | { ok: true; handle: string; driver?: any }
   | { ok: false; message: string };
 
 function byOrder(a: WindowEntry, b: WindowEntry): number {
@@ -277,22 +291,42 @@ async function matchSelector(
   return null;
 }
 
-// Phase 3 gate: the surface must be (or omit) the context's active engine and
-// must not name a browser — both are multi-browser (Phase 4+) features. The
-// name check runs first because it is categorical (never supported in this
-// phase), so its message doesn't vary with which engine happens to be active.
-function checkPhase3Limits(
+// Single-session fallback: when no session registry exists (a driver the
+// runner didn't register, or a unit-test stub), a browser reference must
+// match the one live session — same engine, no name. With a registry, the
+// session level resolves these instead (resolveTargetDriver below).
+function checkSingleSessionTarget(
   driver: any,
   ref: Extract<ParsedSurface, { kind: "browser" }>
 ): string | null {
   if (ref.name) {
-    return `Named browser surfaces ("${ref.name}") land in a later phase. Omit "name" to target the active browser.`;
+    return `No browser surface named "${ref.name}" is open in this context. Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": { "browser": "${ref.engine}", "name": "${ref.name}" } } }).`;
   }
   const active = driver?.state?.engine;
   if (ref.engine && active && normalizeEngine(ref.engine) !== normalizeEngine(active)) {
-    return `"${ref.engine}" is not the active browser for this context (${active}). Targeting a different browser lands in a later phase.`;
+    return `"${ref.engine}" is not open in this context (active browser: ${active}). Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": "${ref.engine}" } }).`;
   }
   return null;
+}
+
+// Phase 4 session resolution: pick the SESSION a browser reference targets.
+// Routes through the context's session registry when the driver carries one;
+// falls back to the single-session engine/name check otherwise. `allowOpen`
+// (goTo only) lets an unresolved reference launch a new session.
+async function resolveTargetDriver(
+  driver: any,
+  ref: Extract<ParsedSurface, { kind: "browser" }>,
+  opts: SurfaceResolveOptions = {}
+): Promise<{ ok: true; driver: any } | { ok: false; message: string }> {
+  const registry = driver?.state?.sessionRegistry;
+  if (registry) {
+    return resolveSessionForRef(registry, ref, { allowOpen: opts.allowOpen });
+  }
+  const missingDriver = requireDriver(driver);
+  if (missingDriver) return { ok: false, message: missingDriver };
+  const check = checkSingleSessionTarget(driver, ref);
+  if (check) return { ok: false, message: check };
+  return { ok: true, driver };
 }
 
 // Guard for steps that can run in driverless contexts (type, closeSurface):
@@ -315,6 +349,9 @@ function requireDriver(driver: any): string | null {
 export interface SurfaceResolveOptions {
   maxWaitMs?: number;
   pollIntervalMs?: number;
+  // goTo only: let an unresolved browser reference launch a new session
+  // (Phase 4). Every other step requires the surface to already be open.
+  allowOpen?: boolean;
 }
 const DEFAULT_MAX_WAIT_MS = 2000;
 const DEFAULT_POLL_INTERVAL_MS = 150;
@@ -342,8 +379,12 @@ async function resolveWindowTarget(
   }
   const missingDriver = requireDriver(driver);
   if (missingDriver) return { ok: false, message: missingDriver };
-  const limit = checkPhase3Limits(driver, ref);
-  if (limit) return { ok: false, message: limit };
+  // Session-registry drivers arrive here already session-resolved (the ref
+  // picked THIS driver); without a registry the ref must match this session.
+  if (!driver?.state?.sessionRegistry) {
+    const check = checkSingleSessionTarget(driver, ref);
+    if (check) return { ok: false, message: check };
+  }
 
   const maxWaitMs = opts.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
   const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
@@ -409,22 +450,21 @@ async function resolveWindowTarget(
   }
 }
 
-// Resolve a raw `surface` value and focus the resulting tab. The one-call
-// entry point for step actions.
+// Resolve a raw `surface` value, pick the session it targets (Phase 4), and
+// focus the resulting tab. The one-call entry point for step actions. The
+// success result carries the resolved DRIVER — a cross-session reference
+// resolves to a different session's driver, and the caller must act on that
+// one from here on.
 async function switchToSurface(
   driver: any,
   surface: any,
   opts: SurfaceResolveOptions = {}
 ): Promise<Resolution> {
-  const ref = parseSurfaceRef(surface);
-  if (ref.kind === "browser") {
-    const missingDriver = requireDriver(driver);
-    if (missingDriver) return { ok: false, message: missingDriver };
-  }
+  const ref = reinterpretForSessions(driver, parseSurfaceRef(surface));
   if (ref.kind === "none") {
     const handle = await currentHandleSafe(driver);
     return handle
-      ? { ok: true, handle }
+      ? { ok: true, handle, driver }
       : { ok: false, message: "No open tabs to act on." };
   }
   if (ref.kind !== "browser") {
@@ -433,13 +473,18 @@ async function switchToSurface(
       message: `Surface ${JSON.stringify(surface)} is not a browser surface.`,
     };
   }
-  const resolved = await resolveWindowTarget(driver, ref, opts);
+  const session = await resolveTargetDriver(driver, ref, opts);
+  if (!session.ok) return session;
+  const target = session.driver;
+  const missingDriver = requireDriver(target);
+  if (missingDriver) return { ok: false, message: missingDriver };
+  const resolved = await resolveWindowTarget(target, ref, opts);
   if (!resolved.ok) return resolved;
-  const current = await currentHandleSafe(driver);
+  const current = await currentHandleSafe(target);
   if (current !== resolved.handle) {
-    await driver.switchToWindow(resolved.handle);
+    await target.switchToWindow(resolved.handle);
   }
-  return resolved;
+  return { ...resolved, driver: target };
 }
 
 // Close one handle, keep the registry pruned, and re-focus per the ADR rule:
@@ -464,7 +509,7 @@ async function closeHandle(
     return {
       ok: false,
       message:
-        "Refusing to close the last open tab — it would end the browser session. Close the whole browser with the run's teardown instead.",
+        "Refusing to close the last open tab — it would end the browser session. Close the whole browser instead (e.g. { \"closeSurface\": \"chrome\" } or the surface's name).",
     };
   }
 
@@ -491,13 +536,15 @@ async function closeHandle(
 }
 
 // Resolve a closeSurface browser reference to the ordered list of handles to
-// close (children before their window lead). A selector that matches nothing
-// resolves to an empty list — closing an absent surface is an idempotent
-// no-op, consistent with the process kind. A reference without window/tab
-// selectors means "close the whole browser", which is a multi-browser
-// (later-phase) operation. Selector resolution is bounded-retried the same
-// as any other surface reference (ADR 01017) — closing a tab shortly after
-// the page that opened it appears works without a manual `wait` first.
+// close (children before their window lead) WITHIN the given session. A
+// selector that matches nothing resolves to an empty list — closing an
+// absent surface is an idempotent no-op, consistent with the process kind.
+// A reference without window/tab selectors means "close the whole browser",
+// which is a SESSION-level close the closeSurface step performs against the
+// session registry before ever calling this helper. Selector resolution is
+// bounded-retried the same as any other surface reference (ADR 01017) —
+// closing a tab shortly after the page that opened it appears works without
+// a manual `wait` first.
 async function resolveCloseTargets(
   driver: any,
   ref: ParsedSurface,
@@ -510,13 +557,15 @@ async function resolveCloseTargets(
   }
   const missingDriver = requireDriver(driver);
   if (missingDriver) return { ok: false, message: missingDriver };
-  const limit = checkPhase3Limits(driver, ref);
-  if (limit) return { ok: false, message: limit };
+  if (!driver?.state?.sessionRegistry) {
+    const check = checkSingleSessionTarget(driver, ref);
+    if (check) return { ok: false, message: check };
+  }
   if (ref.window === undefined && ref.tab === undefined) {
     return {
       ok: false,
       message:
-        "Closing a whole browser surface lands in a later phase. Close a specific tab or window instead: { \"browser\": \"…\", \"tab\": … } or { \"browser\": \"…\", \"window\": … }.",
+        "Whole-browser closes are session-level: resolve them against the session registry (closeSession), not the window/tab close helper.",
     };
   }
 
