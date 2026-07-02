@@ -239,6 +239,34 @@
                 }
               }
             }
+          },
+          {
+            "title": "A browser-engine string surface takes browser readiness",
+            "if": {
+              "required": [
+                "surface",
+                "waitUntil"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "string",
+                  "enum": [
+                    "chrome",
+                    "firefox",
+                    "safari",
+                    "webkit",
+                    "edge"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "waitUntil": {
+                  "$ref": "waitUntil_v3.schema.json#/components/schemas/browser"
+                }
+              }
+            }
           }
         ]
       }

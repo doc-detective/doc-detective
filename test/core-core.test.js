@@ -2193,8 +2193,13 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       assert.equal(result.summary.steps.fail, 1);
-      const step = result.specs[0].tests[0].contexts[0].steps[0];
-      assert.equal(step.result, "FAIL");
+      // runOn lists three platforms, so three contexts exist but only the
+      // current runner's platform actually runs; the rest are SKIPPED. Find
+      // the failing step across all contexts rather than assuming an index.
+      const step = result.specs[0].tests[0].contexts
+        .flatMap((c) => c.steps || [])
+        .find((s) => s.result === "FAIL");
+      assert.ok(step, "expected a failing step");
       assert.match(step.resultDescription, /not the active browser/);
       assert.match(step.resultDescription, /firefox/);
     } finally {
@@ -2234,8 +2239,12 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       assert.equal(result.summary.steps.fail, 1);
-      const step = result.specs[0].tests[0].contexts[0].steps[1];
-      assert.equal(step.result, "FAIL");
+      // Three platform contexts exist but only the runner's platform runs;
+      // locate the failing step across all of them (see the note above).
+      const step = result.specs[0].tests[0].contexts
+        .flatMap((c) => c.steps || [])
+        .find((s) => s.result === "FAIL");
+      assert.ok(step, "expected a failing step");
       assert.match(step.resultDescription, /No tab matched/);
       assert.match(step.resultDescription, /missing-tab/);
     } finally {

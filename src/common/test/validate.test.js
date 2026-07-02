@@ -3302,6 +3302,65 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      it("should validate type + browser-engine STRING surface + browser waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "chrome",
+              waitUntil: { find: { selector: ".ready" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject type + browser-engine STRING surface + process waitUntil (stdio)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "chrome",
+              waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should still validate a process (non-engine) STRING surface with stdio waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "node",
+              waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should trim a criteria-object name selector the same as the by-name form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: {
+              selector: "#a",
+              surface: { browser: "chrome", tab: { name: " cart " } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.click.surface.tab.name).to.equal("cart");
+      });
+
       // --- closeSurface browser forms ---
 
       it("should validate closeSurface with a browser tab reference", function () {

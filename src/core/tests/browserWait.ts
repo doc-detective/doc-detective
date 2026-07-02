@@ -141,8 +141,10 @@ async function waitForDOMStable(driver: any, idleTime: any, timeout: any) {
         (window as any).__docDetectiveDOMMonitor.mutationCount++;
       });
 
-      // Observe all changes to the body and its descendants
-      observer.observe(document.body, {
+      // Observe all changes to the body and its descendants. Fall back to
+      // documentElement when body isn't attached yet (can happen immediately
+      // after navigation), so observe() never throws on a null target.
+      observer.observe(document.body ?? document.documentElement, {
         childList: true,
         subtree: true,
         attributes: true,

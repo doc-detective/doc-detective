@@ -22,6 +22,8 @@ export {
   parseSurfaceRef,
   ensureSurfaceState,
   syncHandles,
+  seedWindowLead,
+  deregisterHandle,
   registerOpenedHandle,
   resolveWindowTarget,
   switchToSurface,
@@ -132,6 +134,33 @@ async function syncHandles(driver: any): Promise<SurfaceState> {
     });
   }
   return state;
+}
+
+// Seed the currently focused content tab as an order-0 window lead if it is
+// not already registered. Pure registry op (no driver enumeration), so callers
+// that already hold the active handle — e.g. startRecording, which must
+// register the content tab as the lead BEFORE the internal recorder tab so a
+// record-first test doesn't leave the content tab non-lead — can use it
+// without a `getWindowHandles` round-trip.
+function seedWindowLead(driver: any, handle: string): WindowEntry {
+  const state = ensureSurfaceState(driver);
+  const existing = state.windows.find((w) => w.handle === handle);
+  if (existing) return existing;
+  const entry: WindowEntry = {
+    handle,
+    order: state.nextOrder++,
+    isWindowLead: true,
+  };
+  state.windows.push(entry);
+  return entry;
+}
+
+// Remove a handle from the registry. Pure registry op — used to drop a handle
+// we know has closed (e.g. an aborted recorder tab) without a live
+// enumeration, so it is safe to call with a minimal/stub driver.
+function deregisterHandle(driver: any, handle: string): void {
+  const state = ensureSurfaceState(driver);
+  state.windows = state.windows.filter((w) => w.handle !== handle);
 }
 
 // Register a handle we opened ourselves (goTo newTab/newWindow, the recorder

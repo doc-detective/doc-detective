@@ -94,6 +94,9 @@
                       "type": "string",
                       "minLength": 1,
                       "pattern": "\\S",
+                      "transform": [
+                        "trim"
+                      ],
                       "description": "Name assigned when the window/tab was opened."
                     },
                     "index": {
@@ -143,6 +146,9 @@
                       "type": "string",
                       "minLength": 1,
                       "pattern": "\\S",
+                      "transform": [
+                        "trim"
+                      ],
                       "description": "Name assigned when the window/tab was opened."
                     },
                     "index": {
@@ -254,6 +260,9 @@
                         "type": "string",
                         "minLength": 1,
                         "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
                         "description": "Name assigned when the window/tab was opened."
                       },
                       "index": {
@@ -303,6 +312,9 @@
                         "type": "string",
                         "minLength": 1,
                         "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
                         "description": "Name assigned when the window/tab was opened."
                       },
                       "index": {
@@ -353,6 +365,9 @@
                     "type": "string",
                     "minLength": 1,
                     "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ],
                     "description": "Name assigned when the window/tab was opened."
                   },
                   "index": {
@@ -492,6 +507,9 @@
                         "type": "string",
                         "minLength": 1,
                         "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
                         "description": "Name assigned when the window/tab was opened."
                       },
                       "index": {
@@ -541,6 +559,9 @@
                         "type": "string",
                         "minLength": 1,
                         "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
                         "description": "Name assigned when the window/tab was opened."
                       },
                       "index": {
@@ -652,6 +673,9 @@
                           "type": "string",
                           "minLength": 1,
                           "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
                           "description": "Name assigned when the window/tab was opened."
                         },
                         "index": {
@@ -701,6 +725,9 @@
                           "type": "string",
                           "minLength": 1,
                           "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
                           "description": "Name assigned when the window/tab was opened."
                         },
                         "index": {
@@ -751,6 +778,9 @@
                       "type": "string",
                       "minLength": 1,
                       "pattern": "\\S",
+                      "transform": [
+                        "trim"
+                      ],
                       "description": "Name assigned when the window/tab was opened."
                     },
                     "index": {

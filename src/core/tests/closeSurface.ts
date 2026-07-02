@@ -4,6 +4,7 @@ import {
   parseSurfaceRef,
   resolveCloseTargets,
   closeHandle,
+  syncHandles,
 } from "./browserSurface.js";
 import kill from "tree-kill";
 import fs from "node:fs";
@@ -92,6 +93,21 @@ async function closeSurface({
         // Idempotent: nothing matched the selector — a no-op, still PASS.
         absent.push(label);
         continue;
+      }
+      // Batch-level last-tab preflight: a window close resolves to several
+      // handles (its tabs, then the lead). Refuse the whole batch upfront if it
+      // would leave zero user tabs, so we never close some tabs and then FAIL
+      // on the last one with the session already mutated.
+      const state = await syncHandles(driver);
+      const closing = new Set(targets.handles);
+      const survivors = state.windows.filter(
+        (w) => !w.internal && !closing.has(w.handle)
+      );
+      if (survivors.length === 0) {
+        result.status = "FAIL";
+        result.description =
+          "Refusing to close the last open tab — it would end the browser session. Close the whole browser with the run's teardown instead.";
+        return result;
       }
       for (const handle of targets.handles) {
         const closedResult = await closeHandle(driver, handle);

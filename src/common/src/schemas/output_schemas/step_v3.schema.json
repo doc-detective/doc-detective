@@ -4102,6 +4102,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -4151,6 +4154,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -4368,6 +4374,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -4417,6 +4426,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -5581,6 +5593,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -5630,6 +5645,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -5848,6 +5866,9 @@
                                                   "type": "string",
                                                   "minLength": 1,
                                                   "pattern": "\\S",
+                                                  "transform": [
+                                                    "trim"
+                                                  ],
                                                   "description": "Name assigned when the window/tab was opened."
                                                 },
                                                 "index": {
@@ -5897,6 +5918,9 @@
                                                   "type": "string",
                                                   "minLength": 1,
                                                   "pattern": "\\S",
+                                                  "transform": [
+                                                    "trim"
+                                                  ],
                                                   "description": "Name assigned when the window/tab was opened."
                                                 },
                                                 "index": {
@@ -6114,6 +6138,9 @@
                                                     "type": "string",
                                                     "minLength": 1,
                                                     "pattern": "\\S",
+                                                    "transform": [
+                                                      "trim"
+                                                    ],
                                                     "description": "Name assigned when the window/tab was opened."
                                                   },
                                                   "index": {
@@ -6163,6 +6190,9 @@
                                                     "type": "string",
                                                     "minLength": 1,
                                                     "pattern": "\\S",
+                                                    "transform": [
+                                                      "trim"
+                                                    ],
                                                     "description": "Name assigned when the window/tab was opened."
                                                   },
                                                   "index": {
@@ -6421,6 +6451,9 @@
                                                       "type": "string",
                                                       "minLength": 1,
                                                       "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ],
                                                       "description": "Name assigned when the window/tab was opened."
                                                     },
                                                     "index": {
@@ -6470,6 +6503,9 @@
                                                       "type": "string",
                                                       "minLength": 1,
                                                       "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ],
                                                       "description": "Name assigned when the window/tab was opened."
                                                     },
                                                     "index": {
@@ -6581,6 +6617,9 @@
                                                         "type": "string",
                                                         "minLength": 1,
                                                         "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ],
                                                         "description": "Name assigned when the window/tab was opened."
                                                       },
                                                       "index": {
@@ -6630,6 +6669,9 @@
                                                         "type": "string",
                                                         "minLength": 1,
                                                         "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ],
                                                         "description": "Name assigned when the window/tab was opened."
                                                       },
                                                       "index": {
@@ -6680,6 +6722,9 @@
                                                     "type": "string",
                                                     "minLength": 1,
                                                     "pattern": "\\S",
+                                                    "transform": [
+                                                      "trim"
+                                                    ],
                                                     "description": "Name assigned when the window/tab was opened."
                                                   },
                                                   "index": {
@@ -7166,6 +7211,144 @@
                                       }
                                     }
                                   }
+                                },
+                                {
+                                  "title": "A browser-engine string surface takes browser readiness",
+                                  "if": {
+                                    "required": [
+                                      "surface",
+                                      "waitUntil"
+                                    ],
+                                    "properties": {
+                                      "surface": {
+                                        "type": "string",
+                                        "enum": [
+                                          "chrome",
+                                          "firefox",
+                                          "safari",
+                                          "webkit",
+                                          "edge"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "waitUntil": {
+                                        "title": "Browser readiness",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "minProperties": 1,
+                                        "properties": {
+                                          "networkIdleTime": {
+                                            "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                                            "type": "integer",
+                                            "minimum": 0
+                                          },
+                                          "domIdleTime": {
+                                            "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                                            "type": "integer",
+                                            "minimum": 0
+                                          },
+                                          "find": {
+                                            "type": "object",
+                                            "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                            "additionalProperties": false,
+                                            "anyOf": [
+                                              {
+                                                "required": [
+                                                  "selector"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "elementText"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "elementId"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "elementTestId"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "elementClass"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "elementAttribute"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "elementAria"
+                                                ]
+                                              }
+                                            ],
+                                            "properties": {
+                                              "selector": {
+                                                "type": "string",
+                                                "description": "CSS selector for the element to wait for."
+                                              },
+                                              "elementText": {
+                                                "type": "string",
+                                                "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "elementId": {
+                                                "type": "string",
+                                                "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "elementTestId": {
+                                                "type": "string",
+                                                "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "elementClass": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                ],
+                                                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                              },
+                                              "elementAttribute": {
+                                                "type": "object",
+                                                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                "additionalProperties": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    },
+                                                    {
+                                                      "type": "boolean"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "elementAria": {
+                                                "type": "string",
+                                                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
                                 }
                               ]
                             }
@@ -7312,6 +7495,9 @@
                                                         "type": "string",
                                                         "minLength": 1,
                                                         "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ],
                                                         "description": "Name assigned when the window/tab was opened."
                                                       },
                                                       "index": {
@@ -7361,6 +7547,9 @@
                                                         "type": "string",
                                                         "minLength": 1,
                                                         "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ],
                                                         "description": "Name assigned when the window/tab was opened."
                                                       },
                                                       "index": {
@@ -7472,6 +7661,9 @@
                                                           "type": "string",
                                                           "minLength": 1,
                                                           "pattern": "\\S",
+                                                          "transform": [
+                                                            "trim"
+                                                          ],
                                                           "description": "Name assigned when the window/tab was opened."
                                                         },
                                                         "index": {
@@ -7521,6 +7713,9 @@
                                                           "type": "string",
                                                           "minLength": 1,
                                                           "pattern": "\\S",
+                                                          "transform": [
+                                                            "trim"
+                                                          ],
                                                           "description": "Name assigned when the window/tab was opened."
                                                         },
                                                         "index": {
@@ -7571,6 +7766,9 @@
                                                       "type": "string",
                                                       "minLength": 1,
                                                       "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ],
                                                       "description": "Name assigned when the window/tab was opened."
                                                     },
                                                     "index": {
@@ -7936,6 +8134,144 @@
                                           "type": "object",
                                           "required": [
                                             "browser"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "then": {
+                                      "properties": {
+                                        "waitUntil": {
+                                          "title": "Browser readiness",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "minProperties": 1,
+                                          "properties": {
+                                            "networkIdleTime": {
+                                              "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            "domIdleTime": {
+                                              "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            "find": {
+                                              "type": "object",
+                                              "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                              "additionalProperties": false,
+                                              "anyOf": [
+                                                {
+                                                  "required": [
+                                                    "selector"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementText"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementId"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementTestId"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementClass"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementAttribute"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementAria"
+                                                  ]
+                                                }
+                                              ],
+                                              "properties": {
+                                                "selector": {
+                                                  "type": "string",
+                                                  "description": "CSS selector for the element to wait for."
+                                                },
+                                                "elementText": {
+                                                  "type": "string",
+                                                  "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementId": {
+                                                  "type": "string",
+                                                  "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementTestId": {
+                                                  "type": "string",
+                                                  "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementClass": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "array",
+                                                      "items": {
+                                                        "type": "string"
+                                                      }
+                                                    }
+                                                  ],
+                                                  "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                                },
+                                                "elementAttribute": {
+                                                  "type": "object",
+                                                  "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                  "additionalProperties": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      },
+                                                      {
+                                                        "type": "boolean"
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                "elementAria": {
+                                                  "type": "string",
+                                                  "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "title": "A browser-engine string surface takes browser readiness",
+                                    "if": {
+                                      "required": [
+                                        "surface",
+                                        "waitUntil"
+                                      ],
+                                      "properties": {
+                                        "surface": {
+                                          "type": "string",
+                                          "enum": [
+                                            "chrome",
+                                            "firefox",
+                                            "safari",
+                                            "webkit",
+                                            "edge"
                                           ]
                                         }
                                       }
@@ -8264,6 +8600,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -8313,6 +8652,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -8531,6 +8873,9 @@
                                                     "type": "string",
                                                     "minLength": 1,
                                                     "pattern": "\\S",
+                                                    "transform": [
+                                                      "trim"
+                                                    ],
                                                     "description": "Name assigned when the window/tab was opened."
                                                   },
                                                   "index": {
@@ -8580,6 +8925,9 @@
                                                     "type": "string",
                                                     "minLength": 1,
                                                     "pattern": "\\S",
+                                                    "transform": [
+                                                      "trim"
+                                                    ],
                                                     "description": "Name assigned when the window/tab was opened."
                                                   },
                                                   "index": {
@@ -8797,6 +9145,9 @@
                                                       "type": "string",
                                                       "minLength": 1,
                                                       "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ],
                                                       "description": "Name assigned when the window/tab was opened."
                                                     },
                                                     "index": {
@@ -8846,6 +9197,9 @@
                                                       "type": "string",
                                                       "minLength": 1,
                                                       "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ],
                                                       "description": "Name assigned when the window/tab was opened."
                                                     },
                                                     "index": {
@@ -9104,6 +9458,9 @@
                                                         "type": "string",
                                                         "minLength": 1,
                                                         "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ],
                                                         "description": "Name assigned when the window/tab was opened."
                                                       },
                                                       "index": {
@@ -9153,6 +9510,9 @@
                                                         "type": "string",
                                                         "minLength": 1,
                                                         "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ],
                                                         "description": "Name assigned when the window/tab was opened."
                                                       },
                                                       "index": {
@@ -9264,6 +9624,9 @@
                                                           "type": "string",
                                                           "minLength": 1,
                                                           "pattern": "\\S",
+                                                          "transform": [
+                                                            "trim"
+                                                          ],
                                                           "description": "Name assigned when the window/tab was opened."
                                                         },
                                                         "index": {
@@ -9313,6 +9676,9 @@
                                                           "type": "string",
                                                           "minLength": 1,
                                                           "pattern": "\\S",
+                                                          "transform": [
+                                                            "trim"
+                                                          ],
                                                           "description": "Name assigned when the window/tab was opened."
                                                         },
                                                         "index": {
@@ -9363,6 +9729,9 @@
                                                       "type": "string",
                                                       "minLength": 1,
                                                       "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ],
                                                       "description": "Name assigned when the window/tab was opened."
                                                     },
                                                     "index": {
@@ -9849,6 +10218,144 @@
                                         }
                                       }
                                     }
+                                  },
+                                  {
+                                    "title": "A browser-engine string surface takes browser readiness",
+                                    "if": {
+                                      "required": [
+                                        "surface",
+                                        "waitUntil"
+                                      ],
+                                      "properties": {
+                                        "surface": {
+                                          "type": "string",
+                                          "enum": [
+                                            "chrome",
+                                            "firefox",
+                                            "safari",
+                                            "webkit",
+                                            "edge"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "then": {
+                                      "properties": {
+                                        "waitUntil": {
+                                          "title": "Browser readiness",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "minProperties": 1,
+                                          "properties": {
+                                            "networkIdleTime": {
+                                              "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            "domIdleTime": {
+                                              "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                                              "type": "integer",
+                                              "minimum": 0
+                                            },
+                                            "find": {
+                                              "type": "object",
+                                              "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                              "additionalProperties": false,
+                                              "anyOf": [
+                                                {
+                                                  "required": [
+                                                    "selector"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementText"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementId"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementTestId"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementClass"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementAttribute"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "elementAria"
+                                                  ]
+                                                }
+                                              ],
+                                              "properties": {
+                                                "selector": {
+                                                  "type": "string",
+                                                  "description": "CSS selector for the element to wait for."
+                                                },
+                                                "elementText": {
+                                                  "type": "string",
+                                                  "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementId": {
+                                                  "type": "string",
+                                                  "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementTestId": {
+                                                  "type": "string",
+                                                  "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementClass": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "array",
+                                                      "items": {
+                                                        "type": "string"
+                                                      }
+                                                    }
+                                                  ],
+                                                  "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                                },
+                                                "elementAttribute": {
+                                                  "type": "object",
+                                                  "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                  "additionalProperties": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      },
+                                                      {
+                                                        "type": "boolean"
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                "elementAria": {
+                                                  "type": "string",
+                                                  "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
                                   }
                                 ]
                               }
@@ -9995,6 +10502,9 @@
                                                           "type": "string",
                                                           "minLength": 1,
                                                           "pattern": "\\S",
+                                                          "transform": [
+                                                            "trim"
+                                                          ],
                                                           "description": "Name assigned when the window/tab was opened."
                                                         },
                                                         "index": {
@@ -10044,6 +10554,9 @@
                                                           "type": "string",
                                                           "minLength": 1,
                                                           "pattern": "\\S",
+                                                          "transform": [
+                                                            "trim"
+                                                          ],
                                                           "description": "Name assigned when the window/tab was opened."
                                                         },
                                                         "index": {
@@ -10155,6 +10668,9 @@
                                                             "type": "string",
                                                             "minLength": 1,
                                                             "pattern": "\\S",
+                                                            "transform": [
+                                                              "trim"
+                                                            ],
                                                             "description": "Name assigned when the window/tab was opened."
                                                           },
                                                           "index": {
@@ -10204,6 +10720,9 @@
                                                             "type": "string",
                                                             "minLength": 1,
                                                             "pattern": "\\S",
+                                                            "transform": [
+                                                              "trim"
+                                                            ],
                                                             "description": "Name assigned when the window/tab was opened."
                                                           },
                                                           "index": {
@@ -10254,6 +10773,9 @@
                                                         "type": "string",
                                                         "minLength": 1,
                                                         "pattern": "\\S",
+                                                        "transform": [
+                                                          "trim"
+                                                        ],
                                                         "description": "Name assigned when the window/tab was opened."
                                                       },
                                                       "index": {
@@ -10619,6 +11141,144 @@
                                             "type": "object",
                                             "required": [
                                               "browser"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "then": {
+                                        "properties": {
+                                          "waitUntil": {
+                                            "title": "Browser readiness",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "minProperties": 1,
+                                            "properties": {
+                                              "networkIdleTime": {
+                                                "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                                                "type": "integer",
+                                                "minimum": 0
+                                              },
+                                              "domIdleTime": {
+                                                "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                                                "type": "integer",
+                                                "minimum": 0
+                                              },
+                                              "find": {
+                                                "type": "object",
+                                                "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                                "additionalProperties": false,
+                                                "anyOf": [
+                                                  {
+                                                    "required": [
+                                                      "selector"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "elementText"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "elementId"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "elementTestId"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "elementClass"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "elementAttribute"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "elementAria"
+                                                    ]
+                                                  }
+                                                ],
+                                                "properties": {
+                                                  "selector": {
+                                                    "type": "string",
+                                                    "description": "CSS selector for the element to wait for."
+                                                  },
+                                                  "elementText": {
+                                                    "type": "string",
+                                                    "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  },
+                                                  "elementId": {
+                                                    "type": "string",
+                                                    "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  },
+                                                  "elementTestId": {
+                                                    "type": "string",
+                                                    "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  },
+                                                  "elementClass": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "string"
+                                                        }
+                                                      }
+                                                    ],
+                                                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                                  },
+                                                  "elementAttribute": {
+                                                    "type": "object",
+                                                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                    "additionalProperties": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        },
+                                                        {
+                                                          "type": "boolean"
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "elementAria": {
+                                                    "type": "string",
+                                                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "title": "A browser-engine string surface takes browser readiness",
+                                      "if": {
+                                        "required": [
+                                          "surface",
+                                          "waitUntil"
+                                        ],
+                                        "properties": {
+                                          "surface": {
+                                            "type": "string",
+                                            "enum": [
+                                              "chrome",
+                                              "firefox",
+                                              "safari",
+                                              "webkit",
+                                              "edge"
                                             ]
                                           }
                                         }
@@ -11919,6 +12579,9 @@
                                           "type": "string",
                                           "minLength": 1,
                                           "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
                                           "description": "Name assigned when the window/tab was opened."
                                         },
                                         "index": {
@@ -11968,6 +12631,9 @@
                                           "type": "string",
                                           "minLength": 1,
                                           "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
                                           "description": "Name assigned when the window/tab was opened."
                                         },
                                         "index": {
@@ -12414,6 +13080,9 @@
                                             "type": "string",
                                             "minLength": 1,
                                             "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
                                             "description": "Name assigned when the window/tab was opened."
                                           },
                                           "index": {
@@ -12463,6 +13132,9 @@
                                             "type": "string",
                                             "minLength": 1,
                                             "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
                                             "description": "Name assigned when the window/tab was opened."
                                           },
                                           "index": {
@@ -18497,6 +19169,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -18546,6 +19221,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -18706,6 +19384,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -18755,6 +19436,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -19958,6 +20642,9 @@
                                           "type": "string",
                                           "minLength": 1,
                                           "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
                                           "description": "Name assigned when the window/tab was opened."
                                         },
                                         "index": {
@@ -20007,6 +20694,9 @@
                                           "type": "string",
                                           "minLength": 1,
                                           "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
                                           "description": "Name assigned when the window/tab was opened."
                                         },
                                         "index": {
@@ -20118,6 +20808,9 @@
                                             "type": "string",
                                             "minLength": 1,
                                             "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
                                             "description": "Name assigned when the window/tab was opened."
                                           },
                                           "index": {
@@ -20167,6 +20860,9 @@
                                             "type": "string",
                                             "minLength": 1,
                                             "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
                                             "description": "Name assigned when the window/tab was opened."
                                           },
                                           "index": {
@@ -20217,6 +20913,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -20703,6 +21402,144 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "title": "A browser-engine string surface takes browser readiness",
+                      "if": {
+                        "required": [
+                          "surface",
+                          "waitUntil"
+                        ],
+                        "properties": {
+                          "surface": {
+                            "type": "string",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "waitUntil": {
+                            "title": "Browser readiness",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "properties": {
+                              "networkIdleTime": {
+                                "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "domIdleTime": {
+                                "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "find": {
+                                "type": "object",
+                                "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                "additionalProperties": false,
+                                "anyOf": [
+                                  {
+                                    "required": [
+                                      "selector"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementText"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementId"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementTestId"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementClass"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementAttribute"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementAria"
+                                    ]
+                                  }
+                                ],
+                                "properties": {
+                                  "selector": {
+                                    "type": "string",
+                                    "description": "CSS selector for the element to wait for."
+                                  },
+                                  "elementText": {
+                                    "type": "string",
+                                    "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "elementId": {
+                                    "type": "string",
+                                    "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "elementTestId": {
+                                    "type": "string",
+                                    "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "elementClass": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    ],
+                                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                  },
+                                  "elementAttribute": {
+                                    "type": "object",
+                                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                    "additionalProperties": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "boolean"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "elementAria": {
+                                    "type": "string",
+                                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   ]
                 }
@@ -20849,6 +21686,9 @@
                                             "type": "string",
                                             "minLength": 1,
                                             "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
                                             "description": "Name assigned when the window/tab was opened."
                                           },
                                           "index": {
@@ -20898,6 +21738,9 @@
                                             "type": "string",
                                             "minLength": 1,
                                             "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
                                             "description": "Name assigned when the window/tab was opened."
                                           },
                                           "index": {
@@ -21009,6 +21852,9 @@
                                               "type": "string",
                                               "minLength": 1,
                                               "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ],
                                               "description": "Name assigned when the window/tab was opened."
                                             },
                                             "index": {
@@ -21058,6 +21904,9 @@
                                               "type": "string",
                                               "minLength": 1,
                                               "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ],
                                               "description": "Name assigned when the window/tab was opened."
                                             },
                                             "index": {
@@ -21108,6 +21957,9 @@
                                           "type": "string",
                                           "minLength": 1,
                                           "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
                                           "description": "Name assigned when the window/tab was opened."
                                         },
                                         "index": {
@@ -21473,6 +22325,144 @@
                               "type": "object",
                               "required": [
                                 "browser"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "waitUntil": {
+                              "title": "Browser readiness",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "minProperties": 1,
+                              "properties": {
+                                "networkIdleTime": {
+                                  "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds.",
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "domIdleTime": {
+                                  "description": "Wait for DOM mutations to stop for this duration in milliseconds.",
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "find": {
+                                  "type": "object",
+                                  "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                  "additionalProperties": false,
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "selector"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementText"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementTestId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementClass"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAttribute"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAria"
+                                      ]
+                                    }
+                                  ],
+                                  "properties": {
+                                    "selector": {
+                                      "type": "string",
+                                      "description": "CSS selector for the element to wait for."
+                                    },
+                                    "elementText": {
+                                      "type": "string",
+                                      "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementId": {
+                                      "type": "string",
+                                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementTestId": {
+                                      "type": "string",
+                                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementClass": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      ],
+                                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                    },
+                                    "elementAttribute": {
+                                      "type": "object",
+                                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                      "additionalProperties": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "boolean"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "elementAria": {
+                                      "type": "string",
+                                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "title": "A browser-engine string surface takes browser readiness",
+                        "if": {
+                          "required": [
+                            "surface",
+                            "waitUntil"
+                          ],
+                          "properties": {
+                            "surface": {
+                              "type": "string",
+                              "enum": [
+                                "chrome",
+                                "firefox",
+                                "safari",
+                                "webkit",
+                                "edge"
                               ]
                             }
                           }
@@ -22699,6 +23689,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -22748,6 +23741,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -23088,6 +24084,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -23137,6 +24136,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -25814,6 +26816,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -25863,6 +26868,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -26060,6 +27068,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -26109,6 +27120,9 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
                                         "description": "Name assigned when the window/tab was opened."
                                       },
                                       "index": {
@@ -28334,6 +29348,9 @@
                                   "type": "string",
                                   "minLength": 1,
                                   "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
                                   "description": "Name assigned when the window/tab was opened."
                                 },
                                 "index": {
@@ -28383,6 +29400,9 @@
                                   "type": "string",
                                   "minLength": 1,
                                   "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
                                   "description": "Name assigned when the window/tab was opened."
                                 },
                                 "index": {
@@ -28494,6 +29514,9 @@
                                     "type": "string",
                                     "minLength": 1,
                                     "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
                                     "description": "Name assigned when the window/tab was opened."
                                   },
                                   "index": {
@@ -28543,6 +29566,9 @@
                                     "type": "string",
                                     "minLength": 1,
                                     "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
                                     "description": "Name assigned when the window/tab was opened."
                                   },
                                   "index": {
@@ -28593,6 +29619,9 @@
                                 "type": "string",
                                 "minLength": 1,
                                 "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
                                 "description": "Name assigned when the window/tab was opened."
                               },
                               "index": {
@@ -28732,6 +29761,9 @@
                                     "type": "string",
                                     "minLength": 1,
                                     "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
                                     "description": "Name assigned when the window/tab was opened."
                                   },
                                   "index": {
@@ -28781,6 +29813,9 @@
                                     "type": "string",
                                     "minLength": 1,
                                     "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
                                     "description": "Name assigned when the window/tab was opened."
                                   },
                                   "index": {
@@ -28892,6 +29927,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -28941,6 +29979,9 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
                                       "description": "Name assigned when the window/tab was opened."
                                     },
                                     "index": {
@@ -28991,6 +30032,9 @@
                                   "type": "string",
                                   "minLength": 1,
                                   "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
                                   "description": "Name assigned when the window/tab was opened."
                                 },
                                 "index": {
@@ -31273,6 +32317,9 @@
                                   "type": "string",
                                   "minLength": 1,
                                   "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
                                   "description": "Name assigned when the window/tab was opened."
                                 },
                                 "index": {
@@ -31322,6 +32369,9 @@
                                   "type": "string",
                                   "minLength": 1,
                                   "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
                                   "description": "Name assigned when the window/tab was opened."
                                 },
                                 "index": {

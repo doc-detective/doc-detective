@@ -570,7 +570,8 @@ export type TypeKeysDetailed = {
 } & WaitUntilRequiresASurface &
   AProcessSurfaceForbidsElementTargeting &
   AProcessSurfaceTakesProcessReadiness &
-  ABrowserSurfaceTakesBrowserReadiness;
+  ABrowserSurfaceTakesBrowserReadiness &
+  ABrowserEngineStringSurfaceTakesBrowserReadiness;
 /**
  * Sequence of keys to enter.
  */
@@ -2924,6 +2925,9 @@ export interface AProcessSurfaceTakesProcessReadiness {
   [k: string]: unknown;
 }
 export interface ABrowserSurfaceTakesBrowserReadiness {
+  [k: string]: unknown;
+}
+export interface ABrowserEngineStringSurfaceTakesBrowserReadiness {
   [k: string]: unknown;
 }
 export interface Common9 {

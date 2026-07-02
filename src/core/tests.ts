@@ -2868,7 +2868,10 @@ async function runContext({
 
       // Multi-surface Phase 3: stash the engine the session actually runs so
       // browser `surface` references can be checked against it at step time.
-      if (driver?.state) {
+      // Initialize `state` if a step hasn't yet, so the engine is recorded even
+      // when the very first surfaced step is the one to read it.
+      if (driver) {
+        driver.state = driver.state ?? {};
         driver.state.engine = String(startedName).toLowerCase();
       }
 

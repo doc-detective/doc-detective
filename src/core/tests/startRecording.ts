@@ -4,7 +4,8 @@ import { instantiateCursor } from "./moveTo.js";
 import {
   switchToSurface,
   registerOpenedHandle,
-  syncHandles,
+  seedWindowLead,
+  deregisterHandle,
 } from "./browserSurface.js";
 import {
   resolveRecordPlan,
@@ -191,8 +192,12 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     await instantiateCursor(driver, { position: "center" });
     // Create new tab
     const recorderTab = await driver.createWindow("tab");
-    // Register the recorder tab as INTERNAL so window/tab selectors (index,
+    // Seed the content tab as the window lead FIRST so that, when `record` is
+    // the first surface-touching step, the internal recorder tab isn't
+    // mistaken for the lead (which would break `window` selectors). Then
+    // register the recorder tab as INTERNAL so window/tab selectors (index,
     // -1/newest, criteria) never see it (multi-surface Phase 3).
+    seedWindowLead(driver, originalTab);
     registerOpenedHandle(driver, { handle: recorderTab.handle, internal: true });
     // Switch to new tab
     await driver.switchToWindow(recorderTab.handle);
@@ -288,9 +293,10 @@ async function startRecording({ config, context, step, driver }: { config: any; 
       log(config, "error", result.description);
       await driver.closeWindow();
       await driver.switchToWindow(originalTab);
-      // Prune the aborted recorder tab from the window/tab registry (mirrors
-      // stopRecording's cleanup) so the registry never carries a dead handle.
-      await syncHandles(driver);
+      // Drop the aborted recorder tab from the window/tab registry so it never
+      // carries a dead handle. A direct deregister (not a live re-sync) keeps
+      // this webdriverio-shape-agnostic — the tab is known-closed.
+      deregisterHandle(driver, recorderTab.handle);
       await driver.execute((documentTitle: any) => {
         document.title = documentTitle;
       }, documentTitle);

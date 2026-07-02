@@ -3,6 +3,8 @@ import {
   parseSurfaceRef,
   ensureSurfaceState,
   syncHandles,
+  seedWindowLead,
+  deregisterHandle,
   registerOpenedHandle,
   resolveWindowTarget,
   switchToSurface,
@@ -180,6 +182,49 @@ describe("browserSurface: registry seeding and sync", function () {
         }),
       /admin/
     );
+  });
+
+  it("seedWindowLead registers an unseen handle as an order-0 lead, and is idempotent", function () {
+    const driver = stubDriver();
+    seedWindowLead(driver, "h0");
+    const state = ensureSurfaceState(driver);
+    assert.equal(state.windows.length, 1);
+    assert.deepEqual(
+      [state.windows[0].handle, state.windows[0].order, state.windows[0].isWindowLead],
+      ["h0", 0, true]
+    );
+    // A second call for the same handle is a no-op (no duplicate, no new order).
+    seedWindowLead(driver, "h0");
+    assert.equal(state.windows.length, 1);
+    assert.equal(state.nextOrder, 1);
+  });
+
+  it("keeps the content tab as the window lead when the recorder tab registers first-in-registry", function () {
+    // Reproduces the record-first ordering hazard: startRecording seeds the
+    // content tab as the lead BEFORE registering the internal recorder tab, so
+    // the recorder tab never usurps window-lead status.
+    const driver = stubDriver();
+    // Recorder flow: seed content tab, then register the internal recorder tab.
+    seedWindowLead(driver, "content");
+    registerOpenedHandle(driver, { handle: "recorder", internal: true });
+    const state = ensureSurfaceState(driver);
+    const content = state.windows.find((w) => w.handle === "content");
+    const recorder = state.windows.find((w) => w.handle === "recorder");
+    assert.equal(content.isWindowLead, true);
+    assert.equal(recorder.isWindowLead, false);
+    assert.equal(recorder.internal, true);
+  });
+
+  it("deregisterHandle drops a handle without touching the rest", function () {
+    const driver = stubDriver();
+    seedWindowLead(driver, "content");
+    registerOpenedHandle(driver, { handle: "recorder", internal: true });
+    deregisterHandle(driver, "recorder");
+    const state = ensureSurfaceState(driver);
+    assert.deepEqual(state.windows.map((w) => w.handle), ["content"]);
+    // Dropping an absent handle is a no-op.
+    deregisterHandle(driver, "never-there");
+    assert.deepEqual(state.windows.map((w) => w.handle), ["content"]);
   });
 });
 

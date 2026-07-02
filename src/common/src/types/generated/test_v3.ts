@@ -1201,7 +1201,8 @@ export type TypeKeysDetailed = {
 } & WaitUntilRequiresASurface &
   AProcessSurfaceForbidsElementTargeting &
   AProcessSurfaceTakesProcessReadiness &
-  ABrowserSurfaceTakesBrowserReadiness;
+  ABrowserSurfaceTakesBrowserReadiness &
+  ABrowserEngineStringSurfaceTakesBrowserReadiness;
 /**
  * Sequence of keys to enter.
  */
@@ -3421,7 +3422,8 @@ export type TypeKeysDetailed1 = {
 } & WaitUntilRequiresASurface1 &
   AProcessSurfaceForbidsElementTargeting1 &
   AProcessSurfaceTakesProcessReadiness1 &
-  ABrowserSurfaceTakesBrowserReadiness1;
+  ABrowserSurfaceTakesBrowserReadiness1 &
+  ABrowserEngineStringSurfaceTakesBrowserReadiness1;
 /**
  * Sequence of keys to enter.
  */
@@ -6470,6 +6472,9 @@ export interface AProcessSurfaceTakesProcessReadiness {
   [k: string]: unknown;
 }
 export interface ABrowserSurfaceTakesBrowserReadiness {
+  [k: string]: unknown;
+}
+export interface ABrowserEngineStringSurfaceTakesBrowserReadiness {
   [k: string]: unknown;
 }
 export interface Common9 {
@@ -10063,6 +10068,9 @@ export interface AProcessSurfaceTakesProcessReadiness1 {
   [k: string]: unknown;
 }
 export interface ABrowserSurfaceTakesBrowserReadiness1 {
+  [k: string]: unknown;
+}
+export interface ABrowserEngineStringSurfaceTakesBrowserReadiness1 {
   [k: string]: unknown;
 }
 export interface Common27 {
