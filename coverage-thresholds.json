@@ -2,8 +2,8 @@
   "description": "Coverage baseline thresholds for the root doc-detective package, measured as the CROSS-PLATFORM UNION of the full end-to-end test suite: every OS/node matrix cell collects raw V8 coverage (NODE_V8_COVERAGE) and the coverage-merge job re-roots and reports their union via c8, so OS-gated (Windows/macOS) branches count. These values should only increase, never decrease. 'tolerance' absorbs run-to-run wobble of the non-deterministic E2E union — observed up to ~0.4pp (mostly browser/driver-dependent functions), so it is set to 0.4 and the four values sit below the lowest observed run.",
   "lastUpdated": "2026-07-01",
   "tolerance": 0.4,
-  "lines": 92.5,
-  "statements": 92.5,
-  "functions": 94.3,
-  "branches": 86.5
+  "lines": 93.8,
+  "statements": 93.8,
+  "functions": 95,
+  "branches": 87.6
 }
