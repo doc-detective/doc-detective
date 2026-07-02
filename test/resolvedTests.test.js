@@ -1,11 +1,5 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { spawnCommand } from "../dist/utils.js";
 import assert from "node:assert/strict";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const artifactPath = path.resolve(__dirname, "./artifacts");
-const outputFile = path.resolve(`${artifactPath}/resolvedTestsResults.json`);
 
 // A DOC_DETECTIVE_API run never writes to `-o`/config.output — cli.ts routes
 // its results through reportResults() (a POST back to the orchestration
@@ -27,9 +21,19 @@ function extractResultsJson(stdout) {
   );
   let depth = 0;
   let jsonEnd = -1;
+  let inString = false;
+  let escaped = false;
   for (let i = jsonStart; i < stdout.length; i++) {
-    if (stdout[i] === "{") depth++;
-    else if (stdout[i] === "}") {
+    const char = stdout[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === "{") depth++;
+    else if (char === "}") {
       depth--;
       if (depth === 0) {
         jsonEnd = i;
@@ -61,9 +65,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfig);
 
     try {
-      const result = await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
-      );
+      const result = await spawnCommand("node ./bin/doc-detective.js");
 
       assert.equal(
         result.exitCode,
@@ -99,9 +101,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
     process.env.DOC_DETECTIVE_API = JSON.stringify(invalidApiConfig);
 
     try {
-      const result = await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
-      );
+      const result = await spawnCommand("node ./bin/doc-detective.js");
 
       // Should exit with non-zero code
       assert.notEqual(result.exitCode, 0);
@@ -127,9 +127,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfigBadToken);
 
     try {
-      const result = await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
-      );
+      const result = await spawnCommand("node ./bin/doc-detective.js");
 
       // Should exit with non-zero code due to 401 response
       assert.notEqual(result.exitCode, 0);
@@ -161,9 +159,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
     process.env.DOC_DETECTIVE_CONFIG = JSON.stringify(configOverride);
 
     try {
-      const result = await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
-      );
+      const result = await spawnCommand("node ./bin/doc-detective.js");
 
       assert.equal(
         result.exitCode,

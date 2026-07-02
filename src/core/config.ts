@@ -882,11 +882,8 @@ async function getAvailableApps({ config }: any) {
   }
 
   // Detect Safari
-  // config.environment is normally populated by setConfig() during local
-  // resolution. Tests resolved by the DOC_DETECTIVE_API orchestration path
-  // arrive with resolvedTests.config as-is, which never passes through
-  // setConfig() — fall back to a fresh detection instead of assuming it's
-  // there, so a pre-resolved config doesn't crash on the missing field.
+  // config.environment may be absent for a pre-resolved DOC_DETECTIVE_API
+  // config, which skips setConfig() — see ADR 01018.
   const currentPlatform = config?.environment?.platform ?? getEnvironment().platform;
   if (currentPlatform === "mac") {
     const safariVersion = await spawnCommand(
