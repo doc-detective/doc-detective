@@ -193,7 +193,7 @@ describe("goTo guards and top-level error handling", function () {
     const { driver, calls } = stubDriver();
     // Path without a leading slash and origin without a trailing slash:
     // exercises the "add the necessary slash" branch.
-    const result = await goTo({
+    await goTo({
       config: { origin: "https://my-app.com" },
       step: { goTo: { url: "dashboard" } },
       driver,
@@ -700,7 +700,7 @@ describe("goTo wait logic: network/DOM monitors + find (live execute)", function
     assert.equal(result.status, "PASS");
   });
 
-   it("Promise.allSettled failures: networkIdle rejects, domStable passes -> combined FAIL message reports both", async function () {
+  it("Promise.allSettled failures: networkIdle rejects, domStable passes -> combined FAIL message reports both", async function () {
     installBrowserStub({ ready: "complete" });
     const driver = makeLiveDriver();
     const result = await goTo({
