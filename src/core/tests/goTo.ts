@@ -208,6 +208,12 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       // 2, 3, & 4. Wait for network idle, DOM stable, and element in parallel
       const parallelChecks: Promise<void>[] = [];
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * networkIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so
+       * AJV's coerceTypes coerces an explicit step-level `null` to `0` during validate() before
+       * this code ever runs -- `step.goTo.waitUntil.networkIdleTime` can never actually be `null`
+       * here, only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.networkIdle &&
         step.goTo.waitUntil.networkIdleTime !== null
@@ -231,7 +237,14 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.networkIdle.passed = true;
         waitResults.networkIdle.message = "Network idle check skipped (null)";
       }
+      /* c8 ignore stop */
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * domIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so AJV's
+       * coerceTypes coerces an explicit step-level `null` to `0` during validate() before this
+       * code ever runs -- `step.goTo.waitUntil.domIdleTime` can never actually be `null` here,
+       * only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.domStable &&
         step.goTo.waitUntil.domIdleTime !== null
@@ -255,6 +268,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.domStable.passed = true;
         waitResults.domStable.message = "DOM stability check skipped (null)";
       }
+      /* c8 ignore stop */
 
       // Add element search to parallel checks
       if (waitConditions.elementFound && step.goTo.waitUntil.find) {
