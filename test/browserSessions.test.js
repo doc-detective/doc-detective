@@ -136,6 +136,29 @@ describe("browserSessions: registration", function () {
       /across kinds/
     );
   });
+
+  it("rejects naming a session after a foreign engine keyword", function () {
+    const { registry } = stubRegistry();
+    assert.throws(
+      () =>
+        registerSession(registry, {
+          name: "firefox",
+          engine: "chrome",
+          driver: stubDriver(),
+        }),
+      /engine keyword/
+    );
+  });
+
+  it("allows a session named after its own engine keyword (incl. edge≡chrome)", function () {
+    const { registry } = stubRegistry();
+    // Own engine keyword — the default-session case — is fine.
+    registerSession(registry, { name: "chrome", engine: "chrome", driver: stubDriver() });
+    // edge normalizes to chrome, so an edge alias for a chrome session is allowed.
+    registerSession(registry, { name: "edge", engine: "chrome", driver: stubDriver() });
+    assert.ok(lookupSessionByName(registry, "chrome"));
+    assert.ok(lookupSessionByName(registry, "edge"));
+  });
 });
 
 describe("browserSessions: resolveSessionForRef", function () {

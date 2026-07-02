@@ -24,6 +24,19 @@ export {
   activeDriver,
 };
 
+// Reserved browser engine keywords. A session may only be named after an
+// engine keyword that matches its OWN engine (the default session's name is
+// its engine), never a foreign one — otherwise `surface: "<engine>"` (which
+// prefers an exact name match) would resolve a differently-engined session
+// named after that keyword instead of a browser of that engine.
+const ENGINE_KEYWORDS = new Set([
+  "chrome",
+  "firefox",
+  "safari",
+  "webkit",
+  "edge",
+]);
+
 // context_v3 transforms edge → chrome before the runner sees it, so engine
 // comparisons must treat them as the same engine or `surface: "edge"` would
 // never match an edge context. (The raw engine name is still what gets
@@ -31,6 +44,24 @@ export {
 function normalizeEngine(engine: string): string {
   const e = String(engine).toLowerCase();
   return e === "edge" ? "chrome" : e;
+}
+
+// A session name that is a reserved engine keyword must match the session's
+// own engine. Returns an error message when it doesn't, else null.
+function engineKeywordNameConflict(
+  name: string,
+  engine: string
+): string | null {
+  const nameLower = name.toLowerCase();
+  if (
+    ENGINE_KEYWORDS.has(nameLower) &&
+    normalizeEngine(nameLower) !== normalizeEngine(engine)
+  ) {
+    return `"${name}" is a browser engine keyword, so it can't name a ${String(
+      engine
+    ).toLowerCase()} surface. Pick a non-engine name.`;
+  }
+  return null;
 }
 
 export interface BrowserSessionEntry {
@@ -102,6 +133,8 @@ function registerSession(
       `The surface name "${key}" is already in use by another surface (e.g. a background process). Surface names must be unique across kinds.`
     );
   }
+  const engineConflict = engineKeywordNameConflict(key, engine);
+  if (engineConflict) throw new Error(engineConflict);
   driver.state = driver.state ?? {};
   driver.state.engine = String(engine).toLowerCase();
   driver.state.sessionRegistry = registry;
@@ -212,6 +245,8 @@ async function resolveSessionForRef(
         message: `The surface name "${name}" is already in use by another surface (e.g. a background process). Choose a different name.`,
       };
     }
+    const engineConflict = engineKeywordNameConflict(name, ref.engine);
+    if (engineConflict) return { ok: false, message: engineConflict };
     let driver: any;
     try {
       driver = await registry.open(ref.engine);

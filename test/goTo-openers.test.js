@@ -422,6 +422,41 @@ describe("multi-browser sessions (Phase 4, step level)", function () {
     assert.equal(result.outputs.absentCount, 1);
   });
 
+  it("keeps the tab selector detail in the absent label for an unopened browser", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    stubRegistry(driver);
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { browser: "chrome", tab: "cart" } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.absentCount, 1);
+    assert.match(result.outputs.absent[0], /tab "cart"/);
+  });
+
+  it("goTo FAILs opening a session named after a foreign engine keyword", async function () {
+    // Default is chrome (named "chrome"); naming a new session "safari" (a
+    // foreign engine keyword) is rejected before any launch.
+    const driver = stubDriver({ engine: "chrome" });
+    const { registry, launches } = stubRegistry(driver, { engine: "chrome" });
+    const result = await goTo({
+      config: {},
+      step: {
+        goTo: {
+          url: "https://example.com",
+          surface: { browser: "chrome", name: "safari" },
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /engine keyword/);
+    // Nothing launched or registered.
+    assert.deepEqual(launches, []);
+    assert.equal(registry.sessions.size, 1);
+  });
+
   it("FAILs a whole-browser close whose engine conflicts with the name", async function () {
     const driver = stubDriver({ engine: "firefox" });
     const { registry } = stubRegistry(driver);

@@ -93,9 +93,17 @@ async function closeSurface({
           return result;
         }
         if (!found.entry) {
-          absent.push(
-            typeof item === "string" ? item : String(ref.name ?? ref.engine)
-          );
+          // The whole browser isn't open, so a window/tab close is an absent
+          // no-op. Keep the selector detail in the label so `outputs.absent`
+          // stays as informative as the session-open no-match path below.
+          const base = typeof item === "string" ? item : String(ref.name ?? ref.engine);
+          const detail =
+            ref.tab !== undefined
+              ? ` tab ${JSON.stringify(ref.tab)}`
+              : ref.window !== undefined
+                ? ` window ${JSON.stringify(ref.window)}`
+                : "";
+          absent.push(`${base}${detail}`);
           continue;
         }
         targetDriver = found.entry.driver;
