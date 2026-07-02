@@ -962,9 +962,10 @@ describe("stopRecording: guards + MediaRecorder", function () {
           targetPath: path.join(os.tmpdir(), "out.mp4"),
         },
       ];
+      const switchToWindow = sinon.spy();
       const driver = {
         state: { recordings },
-        async switchToWindow() {},
+        switchToWindow,
         async execute() {
           return true; // recorder exists; recorder.stop() is a no-op here.
         },
@@ -986,6 +987,8 @@ describe("stopRecording: guards + MediaRecorder", function () {
       assert.equal(result.status, "FAIL");
       assert.match(result.description, /download timed out/);
       assert.equal(recordings.length, 0);
+      // Focus is restored to the content tab, not left in the recorder tab.
+      assert(switchToWindow.calledWith("content-tab"));
     } finally {
       clock.restore();
     }
