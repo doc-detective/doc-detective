@@ -84,6 +84,7 @@ FFmpeg
 Xvfb
 untargeted
 closeSurface
+startSurface
 waitUntil
 httpGet
 delayMs

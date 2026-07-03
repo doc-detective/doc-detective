@@ -1,0 +1,226 @@
+---
+title: startSurface
+description: Launch a native desktop application as a surface that later steps can target.
+---
+
+
+The `startSurface` action launches a native desktop application and registers it as a surface, so later steps can target it with `surface`. Once an app surface is open, `find`, `click`, `type`, and `screenshot` steps can act on it, and `closeSurface` can close it.
+
+App surfaces are the third kind of surface, alongside background processes and browser windows and tabs. In this phase, `startSurface` supports **native Windows desktop apps only**. On macOS and Linux, Doc Detective skips the context with an actionable reason instead of failing, so cross-platform specs stay green (see [Platform support](#platform-support)).
+
+<Note>
+The Windows app driver (`appium-novawindows-driver`) is a heavy dependency that Doc Detective installs on demand the first time an app surface starts. To install it ahead of time, run `doc-detective install runtime appium-novawindows-driver`.
+</Note>
+
+## Descriptor
+
+Provide an object as the value for the `startSurface` key. Only `app` is required.
+
+- `app`: (Required) The application to launch. Doc Detective identifies the kind from the value's syntax, never from a separate type field:
+  - An **executable path**, such as `C:\Windows\System32\notepad.exe`.
+  - A **`.app` path** (macOS, later phase), such as `/Applications/Calculator.app`.
+  - A **bundle ID or package name**, such as `com.apple.TextEdit`.
+  - A **UWP AppUserModelID**, such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`.
+- `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`notepad.exe` becomes `notepad`), the final dot-segment of an ID (`com.apple.TextEdit` becomes `TextEdit`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`).
+- `args`: (Optional) An array of launch arguments to pass to the app.
+- `workingDirectory`: (Optional) The working directory for the launched app. Defaults to the run's working directory.
+- `waitUntil`: (Optional) A readiness condition that must hold before the surface is considered open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
+- `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`.
+- `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
+
+Opening two app surfaces with the same `name` in one context fails. Pass a distinct `name` when you launch more than one app.
+
+> For comprehensive options, see the [`startSurface`](/reference/schemas/startsurface) reference.
+
+## Target an app surface
+
+After `startSurface` registers an app, reference it from a later step with a `surface` object that names it:
+
+```json
+{
+  "surface": { "app": "notepad" }
+}
+```
+
+Doc Detective locates elements on an app surface through the platform's accessibility layer (UI Automation on Windows), so the element criteria you already use in the browser map onto native controls:
+
+- `elementText` matches a control's accessible name.
+- `elementId` and `elementTestId` match a control's automation ID.
+- `elementAria` matches a control's role, and its name when you provide one.
+
+For controls the semantic fields can't reach, `selector` accepts a native locator instead of a CSS selector:
+
+- An **XPath**, such as `//Button[@Name="Save"]`.
+- An **accessibility ID**, prefixed with `~`, such as `~SaveButton`.
+
+CSS selectors are browser-only and fail on app surfaces, as do the `elementClass` and `elementAttribute` fields. The error message names the supported alternatives.
+
+## Platform support
+
+`startSurface` launches native apps on Windows in this phase. On macOS and Linux, the app preflight skips the context with a reason rather than failing, which keeps a mixed-platform spec passing where it can't run.
+
+To make the skip explicit and avoid launching an app where it can't run, gate app tests to Windows with a [context](/docs/test-docs/platforms-and-browsers) that targets the `windows` platform:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["windows"]
+    }
+  ]
+}
+```
+
+You can also require the app's binary so the context skips cleanly on Windows editions that don't ship it, using the context [`requires`](/docs/test-docs/platforms-and-browsers) capability gate:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["windows"],
+      "requires": {
+        "files": ["C:\\Windows\\System32\\charmap.exe"]
+      }
+    }
+  ]
+}
+```
+
+## Reserved fields
+
+The descriptor validates a few fields that are reserved for later phases of the native app roadmap. Setting any of them today fails the step with a message that names the roadmap, rather than silently ignoring what you asked for:
+
+- `device`, `install`, and `activity` are reserved for the mobile phases.
+- `env` isn't supported by the Windows app driver, so set environment variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell) instead.
+
+## Wait for the app to be ready
+
+Launching an app returns before its window is interactive. Use `waitUntil` to hold the step until the app is ready, so the next step doesn't run against a window that hasn't drawn its controls yet:
+
+- `delayMs`: Wait at least this many milliseconds.
+- `find`: Wait until an element exists on the app surface, using the same criteria as a `find` step.
+
+`timeout` caps the combined launch-and-readiness wait. If the readiness element never appears before `timeout` elapses, the step fails and reports that the app launched but never became ready.
+
+## Close an app surface
+
+Close an app surface with [`closeSurface`](/docs/actions/closesurface), referencing it by name:
+
+```json
+{
+  "closeSurface": { "app": "notepad" }
+}
+```
+
+You don't have to close every app explicitly. Doc Detective closes any app surfaces that are still open when the run finishes.
+
+## Examples
+
+### Launch a Windows app by path
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["windows"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch Notepad.",
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\notepad.exe"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Launch an app and name the surface
+
+Set `name` when the default wouldn't be memorable, or when you launch more than one app.
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["windows"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch Calculator and name the surface.",
+          "startSurface": {
+            "app": "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
+            "name": "calc"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Wait for the app to be ready, then act on it
+
+This example launches Character Map, waits until its **Select** button exists, clicks it, types into the copy box with a native selector, and closes the surface.
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["windows"],
+          "requires": {
+            "files": ["C:\\Windows\\System32\\charmap.exe"]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch Character Map and wait until it's ready.",
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "waitUntil": {
+              "find": { "elementText": "Select" }
+            }
+          }
+        },
+        {
+          "description": "Click the Select button.",
+          "click": {
+            "elementText": "Select",
+            "surface": { "app": "charmap" }
+          }
+        },
+        {
+          "description": "Type into the copy box.",
+          "type": {
+            "keys": ["AB"],
+            "selector": "//Edit[@Name=\"Characters to copy :\"]",
+            "surface": { "app": "charmap" }
+          }
+        },
+        {
+          "description": "Capture the window.",
+          "screenshot": {
+            "path": "charmap.png",
+            "surface": { "app": "charmap" }
+          }
+        },
+        {
+          "description": "Close Character Map.",
+          "closeSurface": { "app": "charmap" }
+        }
+      ]
+    }
+  ]
+}
+```

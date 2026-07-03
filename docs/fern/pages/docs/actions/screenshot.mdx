@@ -22,7 +22,7 @@ You can specify the screenshot action in several ways:
     - `selector`: (Required in object) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text to further specify the element if the selector isn't unique.
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
-  - `surface`: (Optional) The browser window or tab to capture, for example `{ "browser": "chrome", "tab": "cart" }`. Omit to capture the active tab. The targeted tab stays focused afterward. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
+  - `surface`: (Optional) The browser window or tab to capture, for example `{ "browser": "chrome", "tab": "cart" }`, or the [native app surface](/docs/actions/startsurface) to capture, for example `{ "app": "notepad" }`. Omit to capture the active browser tab. The targeted browser tab stays focused afterward. App captures use the app's active window: `crop` and app `window` selectors aren't supported on app surfaces yet and fail with guidance. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows) and [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
 
 **Visual Regression Testing:** If `maxVariation` is set and a reference image exists at the target `path`, the action compares the new screenshot to the reference. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting.
 

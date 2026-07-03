@@ -180,6 +180,7 @@ cacheDir
 waitUntil
 sourceIntegration
 closeSurface
+startSurface
 integrationName
 fileId
 filePath
