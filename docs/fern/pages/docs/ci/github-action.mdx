@@ -45,10 +45,14 @@ By default, the action runs from the repository root and uses the config file Do
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `latest` | Doc Detective version to run—a version number or an npm tag such as `latest`. |
+| `version` | `latest` | Doc Detective version to run—a version number or an npm tag such as `latest`. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
+
+<Note>
+Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory—for example, a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package.
+</Note>
 
 ## Step 3: Fail the build when tests fail
 
