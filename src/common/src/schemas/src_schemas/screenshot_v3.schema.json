@@ -27,9 +27,11 @@
         ]
       },
       "object": {
-        "type": "object",
-        "additionalProperties": false,
+        "$comment": "Structured as allOf [shape, guard] — NOT a sibling allOf inside the object — because the TS type generator collapses an object schema that carries a sibling allOf into an index-signature placeholder, dropping every field from the public types (same wrapping pattern as type_v3's kind-shaped guards).",
         "allOf": [
+          {
+            "$ref": "#/components/schemas/objectShape"
+          },
           {
             "title": "App captures don't support crop yet",
             "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
@@ -55,6 +57,11 @@
             }
           }
         ],
+        "title": "Capture screenshot (detailed)"
+      },
+      "objectShape": {
+        "type": "object",
+        "additionalProperties": false,
         "properties": {
           "surface": {
             "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
@@ -114,7 +121,7 @@
             "$ref": "sourceIntegration_v3.schema.json#"
           }
         },
-        "title": "Capture screenshot (detailed)"
+        "title": "Capture screenshot fields"
       },
       "crop_element": {
         "title": "Crop by element (detailed)",

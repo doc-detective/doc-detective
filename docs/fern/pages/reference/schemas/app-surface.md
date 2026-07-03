@@ -12,6 +12,7 @@ description: "Reference for the `App surface` schema."
 - [Find element (detailed)](/reference/schemas/find-element-detailed)
 - [Type keys (detailed)](/reference/schemas/type-keys-detailed)
 - [Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)
+- [Capture screenshot fields](/reference/schemas/capture-screenshot-fields)
 - [closeSurface](/reference/schemas/closesurface)
 
 ## Fields

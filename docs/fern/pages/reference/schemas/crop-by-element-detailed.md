@@ -11,6 +11,7 @@ Crop the screenshot to a specific element.
 ## Referenced In
 
 - [Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)
+- [Capture screenshot fields](/reference/schemas/capture-screenshot-fields)
 
 ## Fields
 
