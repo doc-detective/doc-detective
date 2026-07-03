@@ -67,6 +67,13 @@ import { runCode } from "./tests/runCode.js";
 import { closeSurface } from "./tests/closeSurface.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
+import {
+  createSessionRegistry,
+  registerSession,
+  activeDriver,
+  sweepSessions,
+  type BrowserSessionRegistry,
+} from "./tests/browserSessions.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID, createHash } from "node:crypto";
@@ -117,6 +124,7 @@ export {
   resolveAutoRecord,
   buildAutoRecordStep,
   specIsRouted,
+  killTree,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -125,6 +133,71 @@ export {
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
+// Tree-kill a pid and resolve only once the target process is actually gone.
+// `tree-kill` is asynchronous (it shells out to `taskkill /T /F` on Windows,
+// or walks `ps`/sends signals on POSIX) — callers that fire it without
+// awaiting can move on (and the process can exit) before the tree is
+// actually gone, orphaning a still-running browser that the pid's Appium
+// server owned via its chromedriver/geckodriver child. Every place that
+// tears down an Appium server process must await this instead of calling
+// `kill()` bare.
+//
+// tree-kill's own completion callback isn't sufficient on its own: on
+// Windows it fires after `taskkill /T /F` (a forceful, synchronous
+// termination) exits, so the pid really is gone by then. On POSIX it fires
+// once the SIGTERM signal has been *sent* to every pid in the tree, not once
+// the OS has actually reaped them — a process can take a moment to exit
+// after receiving SIGTERM. So after tree-kill's callback, poll
+// `process.kill(pid, 0)` (which throws ESRCH once the pid no longer exists)
+// with a bounded timeout, rather than trusting the callback alone.
+function killTree(pid?: number, timeoutMs: number = 5000): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (!pid) return resolve();
+    const waitForExit = async () => {
+      const start = Date.now();
+      while (isPidAlive(pid) && Date.now() - start < timeoutMs) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      // SIGTERM didn't finish the job within the timeout (e.g. a browser
+      // ignoring/slow to handle it) — escalate to SIGKILL as a last resort
+      // rather than silently giving up and reporting a false "torn down".
+      if (isPidAlive(pid)) {
+        try {
+          kill(pid, "SIGKILL", () => resolve());
+          return;
+        } catch {
+          // fall through to resolve below
+        }
+      }
+      resolve();
+    };
+    try {
+      // Guard waitForExit(): it's async, so any future edit that lets it
+      // reject would otherwise become an unhandled rejection and leave the
+      // outer Promise pending forever, hanging teardown. Catch and resolve.
+      kill(pid, "SIGTERM", () => {
+        waitForExit().catch(() => resolve());
+      });
+    } catch {
+      resolve();
+    }
+  });
+}
+
+// Whether `pid` still refers to a live process. `process.kill(pid, 0)` sends
+// no signal — it just probes. It throws ESRCH once the pid no longer exists;
+// any other error (e.g. EPERM — the process exists but we lack permission to
+// signal it) means the process is still alive, just unsignalable, so treat
+// only ESRCH as "dead".
+function isPidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error: any) {
+    return error?.code !== "ESRCH";
+  }
+}
 
 /**
  * Stable identity for a "context combination" — the platform + browser pairing
@@ -1071,6 +1144,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const xvfbProcesses: any[] = [];
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
+
   if (driverJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     // Resolve appium's actual JS entrypoint via `require.resolve` (shim
@@ -1109,13 +1183,16 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         );
       }
     } catch (error) {
-      for (const server of appiumServers) {
-        try {
-          kill(server.process.pid);
-        } catch {
-          // best-effort
-        }
-      }
+      await Promise.all(
+        appiumServers.map((server) => {
+          log(
+            config,
+            "debug",
+            `Closing Appium server on port ${server.port} after startup failure`
+          );
+          return killTree(server.process?.pid);
+        })
+      );
       for (const xvfb of xvfbProcesses) {
         try {
           xvfb.kill();
@@ -1140,18 +1217,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // survive across specs/tests and are torn down once — by a closeSurface step
   // or the run-end sweep in the `finally` below.
   const processRegistry = new Map<string, any>();
-
-  // Tree-kill a pid and resolve when the kill has actually completed (callback
-  // form), so callers can await termination before exiting/returning.
-  const killTree = (pid?: number) =>
-    new Promise<void>((resolve) => {
-      if (!pid) return resolve();
-      try {
-        kill(pid, "SIGTERM", () => resolve());
-      } catch {
-        resolve();
-      }
-    });
 
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
@@ -1382,15 +1447,18 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // stop (via closeSurface) so they don't leak. Awaited so the trees are gone
     // before runSpecs returns.
     await killAllRegistered();
-    // Close every Appium server we started.
-    for (const server of appiumServers) {
-      log(config, "debug", `Closing Appium server on port ${server.port}`);
-      try {
-        kill(server.process.pid);
-      } catch {
-        // Process may already be terminated
-      }
-    }
+    // Close every Appium server we started. Awaited (via killTree) so each
+    // server's chromedriver/geckodriver child — and the browser it in turn
+    // owns — is actually gone before runSpecs returns. tree-kill is async
+    // (shells out to `taskkill /T /F` on Windows); firing it without
+    // awaiting let the run finish before the browser was really dead,
+    // orphaning it.
+    await Promise.all(
+      appiumServers.map((server) => {
+        log(config, "debug", `Closing Appium server on port ${server.port}`);
+        return killTree(server.process?.pid);
+      })
+    );
     // Tear down any Xvfb virtual displays started for recording.
     for (const xvfb of xvfbProcesses) {
       try {
@@ -2674,6 +2742,11 @@ async function runContext({
 
   let driver: any;
   let appiumPort: number | undefined;
+  // Multi-surface Phase 4 (ADR 01019): the context's browser-session registry.
+  // Holds every live session keyed by surface name (the default session
+  // registers under its engine name) plus the active-surface pointer. Created
+  // once the default driver starts; swept in the finally below.
+  let browserSessions: BrowserSessionRegistry | undefined;
   // Layer 5 bookkeeping: set when the context ran on a different engine than
   // requested, so the final result can be annotated — and downgraded PASS →
   // WARNING when an explicitly pinned engine was substituted.
@@ -2864,6 +2937,30 @@ async function runContext({
           used: startedName,
         };
         clog("warning", fellBackNote);
+      }
+
+      // Multi-surface Phase 4 (ADR 01019): register the default session in the
+      // context's session registry under its engine name, so it resolves like
+      // any named surface. The launcher closure lets goTo open ADDITIONAL
+      // sessions on this context's already-acquired Appium port, with the same
+      // capability path (and headed→headless fallback) the default used —
+      // exactly the requested engine, no cross-engine fallback: the author
+      // named it, so substituting silently would be wrong. registerSession
+      // stamps driver.state.engine and back-links driver.state.sessionRegistry.
+      if (driver) {
+        browserSessions = createSessionRegistry({
+          open: async (engine: string) => {
+            const res = await startDriverForBrowser(engine);
+            if (!res.ok) throw new Error(res.error);
+            return res.driver;
+          },
+          isNameTaken: (name: string) => !!processRegistry?.has(name),
+        });
+        registerSession(browserSessions, {
+          name: String(startedName).toLowerCase(),
+          engine: String(startedName).toLowerCase(),
+          driver,
+        });
       }
 
       if (
@@ -3117,12 +3214,19 @@ async function runContext({
 
       // Run the step once: execute it, normalize the result, and build the
       // step report. Used by the initial run and each retry attempt.
+      // Surface-less steps act on the ACTIVE browser surface (Phase 4) —
+      // re-resolved per attempt, since a step can change the active session.
+      // The `?? driver` fallback matters when every session has been explicitly
+      // closed: `driver` is then deleted, but it still carries
+      // `state.sessionRegistry`, so a later goTo can re-open a browser through
+      // it. Surface-less browser steps in that (pathological) state fail on the
+      // dead session — acceptable; the run closed its own browser mid-test.
       const runStepOnce = async () => {
         const r = await runStep({
           config: config,
           context: context,
           step: step,
-          driver: driver,
+          driver: activeDriver(browserSessions) ?? driver,
           metaValues: metaValues,
           options: {
             openApiDefinitions: context.openApi || [],
@@ -3206,15 +3310,16 @@ async function runContext({
       // Note: the filename derives from `stepIndex`, so a backward `goToStep`
       // re-visit of the same step overwrites the prior visit's image
       // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
+      const autoScreenshotDriver = activeDriver(browserSessions) ?? driver;
       if (
         autoScreenshotEnabled &&
-        driver &&
+        autoScreenshotDriver &&
         typeof step.screenshot === "undefined" &&
         isDriverRequired({ test: { steps: [step] } })
       ) {
         const capturedPath = await captureAutoScreenshot({
           config,
-          driver,
+          driver: autoScreenshotDriver,
           spec,
           test,
           context,
@@ -3278,7 +3383,10 @@ async function runContext({
     // Stop every recording still active at the end of the context (the
     // synthetic autoRecord capture plus any explicit record steps the author
     // didn't stop). Each produces an ordered stopRecord step report.
-    await stopAllRecordings({ config, context, driver, contextReport });
+    // Recordings live per session, so sweep every registered driver.
+    for (const d of sessionDrivers(browserSessions, driver)) {
+      await stopAllRecordings({ config, context, driver: d, contextReport });
+    }
   } finally {
     // Safety net: if the context threw before the normal sweep above, recordings
     // are still active. Stop them now — while the driver session is still alive
@@ -3290,13 +3398,21 @@ async function runContext({
       // On the normal path the step loop above already drained every recording,
       // so this is a no-op; it only does work when the context threw before the
       // in-loop sweep, finalizing recordings before deleteSession kills them.
-      await stopAllRecordings({ config, context, driver, contextReport });
+      for (const d of sessionDrivers(browserSessions, driver)) {
+        await stopAllRecordings({ config, context, driver: d, contextReport });
+      }
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
     }
-    // Close driver. In a finally so an unexpected throw can't leak a session
-    // while sibling contexts keep running.
-    if (driver) {
+    // Close every session still registered (the default driver registers at
+    // start, so the sweep covers it; sessions a closeSurface step already
+    // ended are gone from the registry). In a finally so an unexpected throw
+    // can't leak sessions while sibling contexts keep running.
+    if (browserSessions) {
+      await sweepSessions(browserSessions);
+    } else if (driver) {
+      // Registry creation is unconditional after a driver starts, so this
+      // fallback only runs if the start path threw between the two.
       try {
         await driver.deleteSession();
       } catch (error: any) {
@@ -3325,6 +3441,25 @@ async function runContext({
       : fellBackNote;
   }
   return contextReport;
+}
+
+// Every live session driver in the context, falling back to the lone default
+// driver when no registry exists (driver-start throw, or a driverless
+// context). Recording sweeps iterate this — recordings live per session.
+function sessionDrivers(
+  registry: BrowserSessionRegistry | undefined,
+  fallback: any
+): any[] {
+  // A live registry is the source of truth: its sessions are exactly the open
+  // drivers. An EMPTY-but-present registry means every session was explicitly
+  // closed (closeSurface, which refuses while a recording is active), so the
+  // default driver is already deleted AND no recording can be pending — return
+  // nothing rather than sweep a dead session. The fallback is only for a
+  // context that never built a registry (driverless, or a driver-start throw).
+  if (registry) {
+    return [...registry.sessions.values()].map((s) => s.driver);
+  }
+  return fallback ? [fallback] : [];
 }
 
 // Stop every recording still active on the driver, pushing an ordered
@@ -3465,7 +3600,7 @@ async function runStep({
       driver.state.recordings.push(handle);
     }
   } else if (typeof step.runCode !== "undefined") {
-    actionResult = await runCode({ config: config, step: step, processRegistry });
+    actionResult = await runCode({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.runBrowserScript !== "undefined") {
     actionResult = await runBrowserScript({
       config: config,
@@ -3473,9 +3608,9 @@ async function runStep({
       driver: driver,
     });
   } else if (typeof step.runShell !== "undefined") {
-    actionResult = await runShell({ config: config, step: step, processRegistry });
+    actionResult = await runShell({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.closeSurface !== "undefined") {
-    actionResult = await closeSurface({ config: config, step: step, processRegistry });
+    actionResult = await closeSurface({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
       config: config,
@@ -3589,12 +3724,10 @@ async function startAppiumServer(
   } catch (error) {
     // appiumIsReady threw or timed out — the spawned child is still alive and
     // would leak (orphan process, port still bound). Tear it down before
-    // propagating so subsequent runs don't trip on the stale state.
-    try {
-      if (proc && proc.pid) kill(proc.pid);
-    } catch {
-      // best-effort cleanup; the parent error is what matters
-    }
+    // propagating so subsequent runs don't trip on the stale state. Awaited
+    // so the process is confirmed gone before this function returns control
+    // to the caller.
+    await killTree(proc?.pid);
     throw error;
   }
   log(config, "debug", `Appium is ready on port ${port}.`);

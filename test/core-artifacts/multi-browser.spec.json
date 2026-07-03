@@ -1,0 +1,228 @@
+{
+  "specId": "multi-browser",
+  "description": "Exercises multiple concurrent browser surfaces (multi-surface Phase 4, ADR 01019) end-to-end: goTo as the only session opener (engine keyword auto-open and { browser, name } named-session open), selecting sessions by engine keyword and by name, re-selecting an existing session instead of opening a duplicate, active-follows-focus across sessions (surface-less steps act on the most recently focused session), windows/tabs INSIDE a named session (the Phase 3 selectors compose under Phase 4 sessions), `surface` on type/find/runBrowserScript/screenshot across sessions, whole-browser closeSurface (bare name, engine keyword, and { browser, name } forms) with focus fallback to the most recently focused survivor, and idempotent closes of already-closed and never-opened surfaces. Tests run in the default headless-firefox context; each test gets its own session set, torn down by the context sweep.",
+  "tests": [
+    {
+      "testId": "multi-browser-named-sessions",
+      "description": "Two concurrent sessions of the SAME engine: the default firefox surface (auto-named \"firefox\") plus a named second firefox session (\"admin\"), addressed by name, with tabs inside the named session, cross-session steps, and whole-browser closes.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "goTo with { browser, name } opens a SECOND firefox session and navigates it",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=admin1",
+            "surface": {
+              "browser": "firefox",
+              "name": "admin"
+            }
+          }
+        },
+        {
+          "description": "The named session is now the active surface (surface-less step)",
+          "find": {
+            "elementText": "PAGE admin1"
+          }
+        },
+        {
+          "description": "The engine keyword addresses the default session (exact-name match beats the engine fallback)",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": "firefox"
+          }
+        },
+        {
+          "description": "Select the named session again by name",
+          "find": {
+            "elementText": "PAGE admin1",
+            "surface": {
+              "browser": "firefox",
+              "name": "admin"
+            }
+          }
+        },
+        {
+          "description": "goTo re-selects the existing named session (no duplicate) and opens a tab INSIDE it",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=worklog",
+            "surface": {
+              "browser": "firefox",
+              "name": "admin"
+            },
+            "newTab": "worklog"
+          }
+        },
+        {
+          "description": "Phase 3 tab selectors compose with Phase 4 session names",
+          "find": {
+            "elementText": "PAGE worklog",
+            "surface": {
+              "browser": "firefox",
+              "name": "admin",
+              "tab": "worklog"
+            }
+          }
+        },
+        {
+          "description": "type into an element of the named session's tab, waiting on a find condition",
+          "type": {
+            "keys": [
+              "hello"
+            ],
+            "selector": "#echo-input",
+            "surface": {
+              "browser": "firefox",
+              "name": "admin",
+              "tab": "worklog"
+            },
+            "waitUntil": {
+              "find": {
+                "selector": "#echo-out",
+                "elementText": "hello"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "description": "runBrowserScript runs in the named session",
+          "runBrowserScript": {
+            "script": "return document.title;",
+            "output": "Child worklog",
+            "surface": {
+              "browser": "firefox",
+              "name": "admin"
+            }
+          }
+        },
+        {
+          "description": "screenshot captures the DEFAULT session while the named one is active",
+          "screenshot": {
+            "path": "multi-browser-default.png",
+            "overwrite": "true",
+            "surface": "firefox"
+          }
+        },
+        {
+          "description": "Tab addressing in the default session still works with two sessions open",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": {
+              "browser": "firefox",
+              "tab": 0
+            }
+          }
+        },
+        {
+          "description": "Close the whole named session by its BARE NAME (identity-only string)",
+          "closeSurface": "admin"
+        },
+        {
+          "description": "Active falls back to the most recently focused survivor (the default session)",
+          "find": {
+            "elementText": "MULTI-TAB HOME"
+          }
+        },
+        {
+          "description": "Re-closing the closed session is an idempotent PASS no-op",
+          "closeSurface": {
+            "browser": "firefox",
+            "name": "admin"
+          }
+        },
+        {
+          "description": "Closing a never-opened surface is an idempotent PASS no-op (array form)",
+          "closeSurface": [
+            {
+              "browser": "firefox",
+              "name": "never-opened"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "multi-browser-cross-engine",
+      "description": "Two engines at once: the default firefox surface plus a chrome session auto-opened by goTo's engine keyword; cross-engine addressing, typing, and whole-browser close by engine keyword with focus fallback.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "goTo with a bare engine keyword AUTO-OPENS the second browser",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=chrome1",
+            "surface": "chrome"
+          }
+        },
+        {
+          "description": "The new chrome session is the active surface",
+          "find": {
+            "elementText": "PAGE chrome1"
+          }
+        },
+        {
+          "description": "Hop back to firefox by engine keyword",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": "firefox"
+          }
+        },
+        {
+          "description": "type into the chrome session from a firefox-active state (object form)",
+          "type": {
+            "keys": [
+              "cross"
+            ],
+            "selector": "#echo-input",
+            "surface": {
+              "browser": "chrome"
+            },
+            "waitUntil": {
+              "find": {
+                "selector": "#echo-out",
+                "elementText": "cross"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "description": "screenshot captures the chrome session",
+          "screenshot": {
+            "path": "multi-browser-chrome.png",
+            "overwrite": "true",
+            "surface": "chrome"
+          }
+        },
+        {
+          "description": "goTo re-selects the running chrome session (no duplicate open)",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=chrome2",
+            "surface": "chrome"
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE chrome2"
+          }
+        },
+        {
+          "description": "Close the whole chrome browser by engine keyword",
+          "closeSurface": "chrome"
+        },
+        {
+          "description": "Active falls back to the surviving firefox session",
+          "find": {
+            "elementText": "MULTI-TAB HOME"
+          }
+        },
+        {
+          "description": "Re-closing chrome is an idempotent PASS no-op",
+          "closeSurface": "chrome"
+        }
+      ]
+    }
+  ]
+}

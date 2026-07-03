@@ -2168,15 +2168,21 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("type to a browser-engine surface (chrome) FAILs with 'surface kind not yet supported'", async () => {
-    // A reserved browser engine keyword is a future surface kind; Phase 1 must
-    // FAIL at runtime rather than mis-routing it to a process or element.
+  it("type to an UNOPENED browser surface FAILs pointing at goTo (Phase 4)", async () => {
+    // Phase 4 keys browser surfaces on the session registry; only goTo may
+    // open one. Pin the context to firefox so `surface: "chrome"` is
+    // deterministically unopened, and assert the loud FAIL with the
+    // open-it-with-goTo guidance.
     const t = {
       tests: [
         {
-          steps: [
-            { type: { keys: ["hello"], surface: "chrome" } },
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "firefox", headless: true }],
+            },
           ],
+          steps: [{ type: { keys: ["hello"], surface: "chrome" } }],
         },
       ],
     };
@@ -2187,9 +2193,94 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       assert.equal(result.summary.steps.fail, 1);
+      // runOn lists three platforms, so three contexts exist but only the
+      // current runner's platform actually runs; the rest are SKIPPED. Find
+      // the failing step across all contexts rather than assuming an index.
+      const step = result.specs[0].tests[0].contexts
+        .flatMap((c) => c.steps || [])
+        .find((s) => s.result === "FAIL");
+      assert.ok(step, "expected a failing step");
+      assert.match(step.resultDescription, /No browser surface named "chrome"/);
+      assert.match(step.resultDescription, /goTo/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("a tab selector that matches nothing FAILs naming the selector (Phase 3)", async () => {
+    // Acting on a missing tab is a targeting error and must name the selector
+    // so the author can see what didn't resolve. (Contrast closeSurface, where
+    // a no-match is an idempotent PASS no-op.)
+    const t = {
+      tests: [
+        {
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "firefox", headless: true }],
+            },
+          ],
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              find: {
+                elementText: "anything",
+                surface: { browser: "firefox", tab: "missing-tab" },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-find-missing-tab.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      // Three platform contexts exist but only the runner's platform runs;
+      // locate the failing step across all of them (see the note above).
+      const step = result.specs[0].tests[0].contexts
+        .flatMap((c) => c.steps || [])
+        .find((s) => s.result === "FAIL");
+      assert.ok(step, "expected a failing step");
+      assert.match(step.resultDescription, /No tab matched/);
+      assert.match(step.resultDescription, /missing-tab/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("type to an unopened NAMED browser surface FAILs pointing at goTo (Phase 4)", async () => {
+    // Named surfaces resolve against the session registry. A name nothing has
+    // opened is a targeting error naming the surface, with the
+    // open-it-with-goTo guidance — stable on any engine.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              type: {
+                keys: ["hello"],
+                surface: { browser: "firefox", name: "secondary" },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-named-surface.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
       const step = result.specs[0].tests[0].contexts[0].steps[0];
       assert.equal(step.result, "FAIL");
-      assert.match(step.resultDescription, /surface kind not yet supported/);
+      assert.match(step.resultDescription, /No browser surface named "secondary"/);
+      assert.match(step.resultDescription, /goTo/);
     } finally {
       fs.unlinkSync(tempFilePath);
     }

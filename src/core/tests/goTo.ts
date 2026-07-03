@@ -1,8 +1,28 @@
 import { validate } from "../../common/src/validate.js";
 import { isRelativeUrl, appendQueryParams } from "../utils.js";
 import { findElement } from "./findElement.js";
+import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
+import {
+  switchToSurface,
+  syncHandles,
+  registerOpenedHandle,
+  ensureSurfaceState,
+} from "./browserSurface.js";
 
 export { goTo };
+
+// Normalize the progressive newTab/newWindow forms to `null` (disabled) or an
+// object: `true` → {} (anonymous), `"name"` → { name }, object → itself.
+// `false` means explicitly disabled and normalizes to null like `undefined`.
+function normalizeOpener(value: any): { name?: string; tab?: string } | null {
+  if (value === undefined || value === null || value === false) return null;
+  if (value === true) return {};
+  if (typeof value === "string") {
+    const name = value.trim();
+    return name ? { name } : null;
+  }
+  return value;
+}
 
 // Open a URI in the browser
 async function goTo({ config, step, driver }: { config: any; step: any; driver: any }) {
@@ -77,12 +97,75 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     }
   }
 
-  // Fill in defaults for any missing properties
-  if (step.goTo.waitUntil.networkIdleTime === undefined) {
-    step.goTo.waitUntil.networkIdleTime = 500;
+  // Multi-surface Phase 3/4: focus the requested session + window/tab, and
+  // open a new tab/window when asked. goTo is the only step that opens
+  // USER-ADDRESSABLE windows/tabs (`record` opens an internal, non-addressable
+  // recorder tab) — and, per ADR 01019, the only step that opens browser
+  // SESSIONS: `allowOpen` lets an unresolved browser surface launch one.
+  const newTab = normalizeOpener(step.goTo.newTab);
+  const newWindow = normalizeOpener(step.goTo.newWindow);
+  if (step.goTo.surface !== undefined) {
+    // With an opener, the surface selects the WINDOW the new tab opens in;
+    // without one, it selects the tab to navigate.
+    const switched = await switchToSurface(driver, step.goTo.surface, {
+      allowOpen: true,
+    });
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
   }
-  if (step.goTo.waitUntil.domIdleTime === undefined) {
-    step.goTo.waitUntil.domIdleTime = 1000;
+  if (newTab || newWindow) {
+    try {
+      await syncHandles(driver);
+      // Pre-check name collisions before creating the window so a duplicate
+      // name doesn't leave an orphan tab behind.
+      const state = ensureSurfaceState(driver);
+      const wantedTabName = newTab?.name ?? newWindow?.tab;
+      const wantedWindowName = newWindow?.name;
+      if (wantedTabName && state.windows.some((w) => w.tabName === wantedTabName)) {
+        result.status = "FAIL";
+        result.description = `A tab named "${wantedTabName}" already exists in this browser. Tab names must be unique.`;
+        return result;
+      }
+      if (wantedWindowName && state.windows.some((w) => w.windowName === wantedWindowName)) {
+        result.status = "FAIL";
+        result.description = `A window named "${wantedWindowName}" already exists in this browser. Window names must be unique.`;
+        return result;
+      }
+      // Record the parent window (the current tab's window lead) for tabs we
+      // open, so `window`-scoped selectors can find them later. A page-opened
+      // current tab has no recorded parent — the new tab is then parentless too.
+      let parentWindow: string | undefined;
+      if (newTab) {
+        const current = await driver.getWindowHandle();
+        const entry = state.windows.find((w) => w.handle === current);
+        parentWindow = entry?.parentWindow ?? (entry?.isWindowLead ? entry.handle : undefined);
+      }
+      const created = await driver.createWindow(newTab ? "tab" : "window");
+      registerOpenedHandle(
+        driver,
+        newTab
+          ? {
+              handle: created.handle,
+              ...(newTab.name ? { tabName: newTab.name } : {}),
+              ...(parentWindow ? { parentWindow } : {}),
+            }
+          : {
+              handle: created.handle,
+              isWindowLead: true,
+              ...(newWindow!.name ? { windowName: newWindow!.name } : {}),
+              ...(newWindow!.tab ? { tabName: newWindow!.tab } : {}),
+            }
+      );
+      await driver.switchToWindow(created.handle);
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't open new ${newTab ? "tab" : "window"}: ${error.message}`;
+      return result;
+    }
   }
 
   // Run action
@@ -130,6 +213,12 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       // 2, 3, & 4. Wait for network idle, DOM stable, and element in parallel
       const parallelChecks: Promise<void>[] = [];
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * networkIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so
+       * AJV's coerceTypes coerces an explicit step-level `null` to `0` during validate() before
+       * this code ever runs -- `step.goTo.waitUntil.networkIdleTime` can never actually be `null`
+       * here, only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.networkIdle &&
         step.goTo.waitUntil.networkIdleTime !== null
@@ -153,7 +242,14 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.networkIdle.passed = true;
         waitResults.networkIdle.message = "Network idle check skipped (null)";
       }
+      /* c8 ignore stop */
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * domIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so AJV's
+       * coerceTypes coerces an explicit step-level `null` to `0` during validate() before this
+       * code ever runs -- `step.goTo.waitUntil.domIdleTime` can never actually be `null` here,
+       * only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.domStable &&
         step.goTo.waitUntil.domIdleTime !== null
@@ -177,6 +273,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.domStable.passed = true;
         waitResults.domStable.message = "DOM stability check skipped (null)";
       }
+      /* c8 ignore stop */
 
       // Add element search to parallel checks
       if (waitConditions.elementFound && step.goTo.waitUntil.find) {
@@ -229,14 +326,14 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
           })()
         );
       } else {
-waitResults.elementFound.passed = true;
+        waitResults.elementFound.passed = true;
         waitResults.elementFound.message = "Element search not requested";
       }
 
-        // Wait for all checks to complete
-        if (parallelChecks.length > 0) {
-          const results = await Promise.allSettled(parallelChecks);
-          // Check if any checks failed
+      // Wait for all checks to complete
+      if (parallelChecks.length > 0) {
+        const results = await Promise.allSettled(parallelChecks);
+        // Check if any checks failed
         const failures = results.filter((r) => r.status === "rejected");
         if (failures.length > 0) {
           // Throw the first error to trigger the catch block
@@ -295,226 +392,4 @@ waitResults.elementFound.passed = true;
 
   // PASS
   return result;
-}
-
-/**
- * Wait for network activity to be idle for a specified duration.
- * Uses a polling approach to check for network requests.
- */
-async function waitForNetworkIdle(driver: any, idleTime: any, timeout: any) {
-  const startTime = Date.now(); // Only for Node.js timeout tracking
-
-  // Initialize monitor with browser time only
-  await driver.execute(() => {
-    if (!(window as any).__docDetectiveNetworkMonitor) {
-      const originalFetch = window.fetch;
-      const originalXHROpen = XMLHttpRequest.prototype.open;
-
-      (window as any).__docDetectiveNetworkMonitor = {
-        lastRequestTime: Date.now(), // Use browser time
-        requestCount: 0,
-        startTime: Date.now(), // Track start in browser
-        originalFetch: originalFetch,
-        originalXHROpen: originalXHROpen,
-      };
-
-      window.fetch = function (...args: any[]) {
-        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = Date.now();
-        (window as any).__docDetectiveNetworkMonitor.requestCount++;
-        return originalFetch.apply(this, args as [RequestInfo | URL, RequestInit?]);
-      };
-
-      XMLHttpRequest.prototype.open = function (...args: any[]) {
-        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = Date.now();
-        (window as any).__docDetectiveNetworkMonitor.requestCount++;
-        return originalXHROpen.apply(this, args as [string, string | URL, boolean, (string | null)?, (string | null)?]);
-      };
-    }
-  });
-
-  // Fast path: check after 100ms
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  const initialCheck = await driver.execute(() => {
-    const monitor = (window as any).__docDetectiveNetworkMonitor;
-    const now = Date.now();
-    return {
-      idleFor: now - monitor.lastRequestTime,
-      requestCount: monitor.requestCount,
-    };
-  });
-
-  if (initialCheck.idleFor >= idleTime && initialCheck.requestCount === 0) {
-    // Clean up network monitor
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveNetworkMonitor) {
-        // Restore original methods if they were patched
-        if ((window as any).__docDetectiveNetworkMonitor.originalFetch) {
-          window.fetch = (window as any).__docDetectiveNetworkMonitor.originalFetch;
-        }
-        if ((window as any).__docDetectiveNetworkMonitor.originalXHROpen) {
-          XMLHttpRequest.prototype.open = (window as any).__docDetectiveNetworkMonitor.originalXHROpen;
-        }
-        delete (window as any).__docDetectiveNetworkMonitor;
-      }
-    });
-    return; // Fast path
-  }
-
-  // Poll with browser-based time checks
-  try {
-    while (true) {
-      if (Date.now() - startTime > timeout) {
-        // Clean up network monitor before throwing
-        await driver.execute(() => {
-          if ((window as any).__docDetectiveNetworkMonitor) {
-            // Restore original methods if they were patched
-            if ((window as any).__docDetectiveNetworkMonitor.originalFetch) {
-              window.fetch = (window as any).__docDetectiveNetworkMonitor.originalFetch;
-            }
-            if ((window as any).__docDetectiveNetworkMonitor.originalXHROpen) {
-              XMLHttpRequest.prototype.open = (window as any).__docDetectiveNetworkMonitor.originalXHROpen;
-            }
-            delete (window as any).__docDetectiveNetworkMonitor;
-          }
-        });
-        throw new Error("Network idle timeout exceeded");
-      }
-
-      const state = await driver.execute(() => {
-        const monitor = (window as any).__docDetectiveNetworkMonitor;
-        const now = Date.now();
-        return {
-          idleFor: now - monitor.lastRequestTime,
-          elapsedTotal: now - monitor.startTime,
-        };
-      });
-
-      if (state.idleFor >= idleTime) {
-        break; // Network idle achieved
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  } finally {
-    // Always clean up network monitor
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveNetworkMonitor) {
-        // Restore original methods if they were patched
-        if ((window as any).__docDetectiveNetworkMonitor.originalFetch) {
-          window.fetch = (window as any).__docDetectiveNetworkMonitor.originalFetch;
-        }
-        if ((window as any).__docDetectiveNetworkMonitor.originalXHROpen) {
-          XMLHttpRequest.prototype.open = (window as any).__docDetectiveNetworkMonitor.originalXHROpen;
-        }
-        delete (window as any).__docDetectiveNetworkMonitor;
-      }
-    });
-  }
-}
-
-/**
- * Wait for the DOM to stop mutating for a specified duration.
- * Uses MutationObserver to detect changes.
- */
-async function waitForDOMStable(driver: any, idleTime: any, timeout: any) {
-  const startTime = Date.now(); // Only for Node.js timeout tracking
-
-  // Initialize monitor with browser time only
-  await driver.execute(() => {
-    if (!(window as any).__docDetectiveDOMMonitor) {
-      (window as any).__docDetectiveDOMMonitor = {
-        lastMutationTime: Date.now(), // Use browser time
-        mutationCount: 0,
-        startTime: Date.now(), // Track start in browser
-        observer: null,
-      };
-
-      const observer = new MutationObserver(() => {
-        (window as any).__docDetectiveDOMMonitor.lastMutationTime = Date.now();
-        (window as any).__docDetectiveDOMMonitor.mutationCount++;
-      });
-
-      // Observe all changes to the body and its descendants
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        characterData: true,
-      });
-
-      (window as any).__docDetectiveDOMMonitor.observer = observer;
-    }
-  });
-
-  // Fast path: check after 100ms
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  const initialCheck = await driver.execute(() => {
-    const monitor = (window as any).__docDetectiveDOMMonitor;
-    const now = Date.now();
-    return {
-      idleFor: now - monitor.lastMutationTime,
-      mutationCount: monitor.mutationCount,
-    };
-  });
-
-  if (initialCheck.idleFor >= idleTime && initialCheck.mutationCount === 0) {
-    // Clean up observer
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveDOMMonitor?.observer) {
-        (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-        delete (window as any).__docDetectiveDOMMonitor;
-      }
-    });
-    return; // Fast path
-  }
-
-  // Poll with browser-based time checks
-  try {
-    while (true) {
-      if (Date.now() - startTime > timeout) {
-        // Clean up observer before throwing
-        await driver.execute(() => {
-          if ((window as any).__docDetectiveDOMMonitor?.observer) {
-            (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-            delete (window as any).__docDetectiveDOMMonitor;
-          }
-        });
-        throw new Error("DOM stability timeout exceeded");
-      }
-
-      const state = await driver.execute(() => {
-        const monitor = (window as any).__docDetectiveDOMMonitor;
-        const now = Date.now();
-        return {
-          idleFor: now - monitor.lastMutationTime,
-          elapsedTotal: now - monitor.startTime,
-          mutationCount: monitor.mutationCount,
-        };
-      });
-
-      if (state.idleFor >= idleTime) {
-        // Clean up observer before returning
-        await driver.execute(() => {
-          if ((window as any).__docDetectiveDOMMonitor?.observer) {
-            (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-            delete (window as any).__docDetectiveDOMMonitor;
-          }
-        });
-        break; // DOM stable achieved
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  } catch (error: any) {
-    // Clean up observer before re-throwing
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveDOMMonitor?.observer) {
-        (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-        delete (window as any).__docDetectiveDOMMonitor;
-      }
-    });
-    throw new Error(`DOM stability check failed: ${error.message}`, {
-      cause: error,
-    });
-  }
 }

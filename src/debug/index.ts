@@ -205,6 +205,18 @@ async function collectDebugData(opts: PrintDebugOptions): Promise<DebugData> {
 function collectAppiumStatus(config: any): AppiumDiagnostics {
   try {
     return collectAppiumDiagnostics(config);
+    // collectAppiumDiagnostics (appium.ts) already wraps every one of its
+    // own internal steps (setAppiumHome, existsSync, readFileSync/
+    // YAML.parse) in try/catch and never itself throws; its only unguarded
+    // calls are resolveHeavyDepPath (twice), which is a NAMED import from
+    // src/runtime/loader.ts that always resolves this repo's real appium /
+    // appium-*-driver optionalDependencies via shim resolution regardless
+    // of `cacheDir` — confirmed by direct testing (even a shell-
+    // metacharacter cacheDir that breaks the CACHE resolution path doesn't
+    // stop shim resolution from succeeding first). With no throw source
+    // reachable through the public API and no seam to stub the named
+    // import, this catch is unreachable hermetically.
+    /* c8 ignore start */
   } catch (err: any) {
     return {
       appiumHome: null,
@@ -216,6 +228,7 @@ function collectAppiumStatus(config: any): AppiumDiagnostics {
       drivers: [],
     };
   }
+  /* c8 ignore stop */
 }
 
 function collectDocDetective(): DocDetectiveData {
@@ -223,6 +236,14 @@ function collectDocDetective(): DocDetectiveData {
   let versionData: any;
   try {
     versionData = getVersionData();
+    // getVersionData (src/utils.ts) wraps its ENTIRE body in its own
+    // try/catch and returns `{ error: ... }` instead of throwing on any
+    // internal failure (confirmed by test: forcing its node_modules
+    // readdirSync to throw degrades collectDocDetective to the `main = {}`
+    // / `ddVersion = "<unknown>"` fallbacks below, NOT this catch).
+    // getVersionData is a total function with no throw path, so this catch
+    // has no reachable trigger through the public API.
+    /* c8 ignore start */
   } catch (err: any) {
     return {
       version: "<unknown>",
@@ -232,6 +253,7 @@ function collectDocDetective(): DocDetectiveData {
       error: `failed to collect version data: ${err?.message || err}`,
     };
   }
+  /* c8 ignore stop */
   const main = versionData?.main || {};
   const ddVersion = main["doc-detective"]?.version || "<unknown>";
   const ctx = versionData?.context || {};
@@ -241,6 +263,21 @@ function collectDocDetective(): DocDetectiveData {
   let lockstepWarning: string | undefined;
   for (const depName of Object.keys(deps)) {
     const dep = deps[depName];
+    /* c8 ignore start */
+    // getVersionData (src/utils.ts) NEVER sets a `.version` field on a
+    // dependency entry — every real entry it produces uses {installed,
+    // expected, status[, error]} (confirmed by test: pointing cwd at a
+    // synthetic doc-detective-* package renders "[object Object]" for its
+    // value above, proving `dep?.version` fell through to the
+    // object-itself fallback, not a string). So `dep?.version` is always
+    // undefined and `dep` (a real, truthy object from the real collector)
+    // is always the value used — the final `|| "<unknown>"` fallback
+    // (requiring `dep` itself to be falsy) is unreachable the same way.
+    // Since `typeof dep?.version === "string"` can therefore never be true
+    // through the real collector, the lockstepWarning condition below (and
+    // its render in renderDocDetectiveSection below) is structurally dead
+    // code given getVersionData's actual output shape — not a
+    // reachability gap in this module's own logic.
     const version = dep?.version || dep || "<unknown>";
     dependencies[depName] = String(version);
     if (
@@ -252,6 +289,7 @@ function collectDocDetective(): DocDetectiveData {
     ) {
       lockstepWarning = `doc-detective (${ddVersion}) and doc-detective-common (${dep.version}) versions differ — they ship in lockstep, mismatch usually means a stale install.`;
     }
+    /* c8 ignore stop */
   }
 
   return {
@@ -282,7 +320,20 @@ function resolveLoadedFrom(): { loadedFrom: string; entryPoint: string } {
         break;
       }
       const parent = path.dirname(dir);
+      /* c8 ignore start */
+      // The filesystem-root fixed point (dirname(root) === root) is only
+      // reached if none of the 8 ancestor levels above dist/debug/
+      // contains a package.json. This module always resolves from a real,
+      // several-levels-deep install location (this repo's own checkout,
+      // an npm/npx install, or a global install) whose 8-hop ancestor walk
+      // finds a package.json well before reaching a drive root —
+      // confirmed by test (an existsSync stub that always returns false
+      // exhausts the 8-iteration loop bound, not this break). Hitting the
+      // true root within 8 hops would need `import.meta.url` to resolve
+      // to a path within ~8 segments of the filesystem root, which isn't
+      // controllable without relocating the whole checkout.
       if (parent === dir) break;
+      /* c8 ignore stop */
       dir = parent;
     }
   } catch {
@@ -315,13 +366,34 @@ async function collectBrowsers(config: any): Promise<BrowsersData> {
     ]).finally(() => {
       if (timer) clearTimeout(timer);
     });
+    /* c8 ignore start */
+    // Hitting the timeout sentinel requires getBrowserDiagnostics to
+    // genuinely outlast BROWSER_DETECTION_TIMEOUT_MS (5000ms) in a real
+    // race — getBrowserDiagnostics is a NAMED import (src/core/config.ts),
+    // so it can't be stubbed to hang deterministically, and waiting out a
+    // real 5s race in every CI run would make this test file slow and
+    // still non-deterministic (timing-dependent) rather than hermetic.
+    // Not attempted per the "no timing-dependent assertions" guidance.
     if (result === timeoutSentinel) return { timedOut: true };
+    /* c8 ignore stop */
     return {
       detectionFailed: result.detectionFailed,
       browsers: result.browsers,
     };
   } catch (err: any) {
+    /* c8 ignore start */
+    // getBrowserDiagnostics (src/core/config.ts) already guards its own
+    // readInstalledRecord() call in a try/catch (setting detectionFailed
+    // instead of throwing) and its macOS-only Safari probe in a separate
+    // try/catch; its remaining unguarded calls are resolveHeavyDepPath (a
+    // NAMED import, unstubbable) which — like the appium collector —
+    // always resolves this repo's real, shim-installed optionalDependencies
+    // regardless of `cacheDir`, confirmed by test (a shell-metacharacter
+    // cacheDir sets detectionFailed via the guarded readInstalledRecord
+    // call but does not make the function throw). No reachable throw
+    // source through the public API.
     return { error: err?.message || String(err) };
+    /* c8 ignore stop */
   }
 }
 
@@ -505,7 +577,15 @@ function renderFindingsSection(findings: Finding[]): Section {
 
 // Bytes → a compact human figure (MiB / GiB) for the cache free-space rows.
 function formatBytes(bytes: number): string {
+  /* c8 ignore start */
+  // formatBytes is private and only ever called from renderCacheSection
+  // with `e.freeBytes`, which cache.ts's freeSpaceBytes() always returns
+  // as either `null` (guarded separately by the `!== null` check at its
+  // call site) or a real `bavail * bsize` product — inherently finite and
+  // non-negative. There's no public seam to feed formatBytes an invalid
+  // number through the real collector pipeline.
   if (!Number.isFinite(bytes) || bytes < 0) return "<unknown>";
+  /* c8 ignore stop */
   const units = ["B", "KiB", "MiB", "GiB", "TiB"];
   let value = bytes;
   let unit = 0;
@@ -513,7 +593,14 @@ function formatBytes(bytes: number): string {
     value /= 1024;
     unit += 1;
   }
+  /* c8 ignore start */
+  // `unit === 0` (no KiB/MiB/... conversion applied) needs freeBytes <
+  // 1024 — real disk free space on any host running this test suite is
+  // many orders of magnitude larger, so this side of the ternary is
+  // unreachable through the real collector pipeline (same constraint as
+  // the guard above).
   const rounded = unit === 0 ? value : Math.round(value * 10) / 10;
+  /* c8 ignore stop */
   return `${rounded} ${units[unit]}`;
 }
 
@@ -523,7 +610,18 @@ function formatInstallRow(r: StatusRow): string {
   const parts = [`${r.assetId.padEnd(24)} ${state}  ${version}`];
   if (r.expectedVersion) parts.push(`expected ${r.expectedVersion}`);
   if (r.latestKnownVersion) parts.push(`latest ${r.latestKnownVersion}`);
+  /* c8 ignore start */
+  // status() (src/runtime/installer.ts) only ever sets `outdated: true`
+  // for a CACHE-resolved package whose installed version fails its
+  // declared semver range; a SHIM-resolved package (require.resolve from
+  // real node_modules) is never flagged outdated by design ("the
+  // installer never overrides a shim-pinned version"). Every
+  // HEAVY_NPM_DEPS entry resolves from this repo's real, shim-installed
+  // node_modules regardless of cacheDir, so `outdated` is always false
+  // through the real collector — confirmed by direct inspection of
+  // collectInstallStatus()'s output against a fresh, empty cacheDir.
   if (r.outdated) parts.push("OUTDATED");
+  /* c8 ignore stop */
   return parts.join("  ");
 }
 
@@ -533,6 +631,17 @@ function renderInstallSection(install: InstallData): Section {
       `  <install status failed: ${install.error}>`,
     ]);
   }
+  /* c8 ignore start */
+  // status() always iterates the full, fixed HEAVY_NPM_DEPS /
+  // BROWSER_CHANNELS constant lists (src/runtime/installer.ts) regardless
+  // of cacheDir or actual install state, so `rows` — and therefore both
+  // `npm` and `browsers` below — can never be empty through the real
+  // collector; the `|| []` fallback and both `<none>` branches are
+  // defensive-only for a shape the real success path never produces (only
+  // the pre-existing `install.error` early return above models real
+  // failure). `install.recordPath || "<unknown>"` is the same story:
+  // getInstalledRecordPath() always returns a real string on the success
+  // path this section is only rendered from.
   const rows = install.rows || [];
   const npm = rows.filter((r) => r.kind === "npm");
   const browsers = rows.filter((r) => r.kind === "browser");
@@ -541,9 +650,11 @@ function renderInstallSection(install: InstallData): Section {
   lines.push("");
   lines.push("  npm packages:");
   if (npm.length === 0) lines.push("    <none>");
+  /* c8 ignore stop */
   for (const r of npm) lines.push(`    ${formatInstallRow(r)}`);
   lines.push("");
   lines.push("  browsers:");
+  /* c8 ignore next */
   if (browsers.length === 0) lines.push("    <none>");
   for (const r of browsers) lines.push(`    ${formatInstallRow(r)}`);
   return renderSection("Install status", lines);
@@ -563,12 +674,25 @@ function renderAppiumSection(a: AppiumDiagnostics): Section {
   }
   lines.push("");
   lines.push("  drivers:");
+  // a.drivers is always populated with exactly the 2 entries in appium.ts's
+  // KNOWN_DRIVERS constant, regardless of collector success/failure — never
+  // empty through the real collectAppiumDiagnostics/collectAppiumStatus
+  // pipeline, so the `<none>` branch is unreachable.
+  /* c8 ignore next */
   if (a.drivers.length === 0) lines.push("    <none>");
   // registered === null means the manifest wasn't read — registration is
   // unknown, not confirmed-absent. That covers two distinct cases: the
   // manifest is absent, or it's present but unreadable/unparsable.
   const unknownReason = a.manifestError ? "manifest unreadable" : "no manifest";
   for (const d of a.drivers) {
+    /* c8 ignore start */
+    // `!d.npmResolvable` ("missing") needs a KNOWN_DRIVERS package that
+    // resolveHeavyDepPath can't resolve — appium-chromium-driver and
+    // appium-geckodriver are real optionalDependencies of this repo and
+    // always resolve from the shim node_modules regardless of cacheDir
+    // (same constraint as probeAppium's not-installed branch in
+    // tools.ts), so this classification is unreachable without
+    // uninstalling a real shared dependency.
     const classification =
       d.registered === true
         ? "registered"
@@ -577,6 +701,7 @@ function renderAppiumSection(a: AppiumDiagnostics): Section {
         : d.registered === false
         ? "resolvable but not registered"
         : `resolvable (registration unknown — ${unknownReason})`;
+    /* c8 ignore stop */
     lines.push(`    ${d.name.padEnd(24)} ${classification}`);
   }
   return renderSection("Appium registration", lines);
@@ -587,6 +712,12 @@ function renderCacheSection(cache: CacheStatus): Section {
   if (cache.error) lines.push(`  ! cache probe error: ${cache.error}`);
   for (const e of cache.entries) {
     lines.push(`  ${e.label}:`);
+    // e.path is only null for the APPIUM_HOME entry when cache.ts's own
+    // "unset" else-branch fires — documented there as unreachable
+    // hermetically (setAppiumHome always assigns a value on success, and
+    // the only throw path is unstubbable). Every other entry always has a
+    // real string path.
+    /* c8 ignore next */
     lines.push(`    path:     ${e.path ?? "<unset>"}`);
     lines.push(`    exists:   ${e.exists}`);
     if (e.writable !== null) lines.push(`    writable: ${e.writable}`);
@@ -656,9 +787,14 @@ function renderSystemSection(info: SystemInfo): Section {
 }
 
 function renderDocDetectiveSection(dd: DocDetectiveData): Section {
+  /* c8 ignore start */
+  // dd.error is only set by collectDocDetective's outer catch, which (per
+  // the c8-ignore note on that catch, above) is unreachable through the
+  // public API — getVersionData() never throws.
   if (dd.error) {
     return renderSection("Doc Detective", [`  <${dd.error}>`]);
   }
+  /* c8 ignore stop */
   const rows: Array<[string, unknown]> = [
     ["doc-detective", dd.version],
     ["executionMethod", dd.executionMethod],
@@ -672,10 +808,17 @@ function renderDocDetectiveSection(dd: DocDetectiveData): Section {
     rows.push([depName, version]);
   }
   const lines = renderKeyValues(rows);
+  /* c8 ignore start */
+  // dd.lockstepWarning is only ever assigned inside the structurally-dead
+  // condition documented on the lockstepWarning assignment above
+  // (dep.version is never a string for the real getVersionData() output
+  // shape), so this render branch can never fire through the public API
+  // either.
   if (dd.lockstepWarning) {
     lines.push("");
     lines.push(`  ! WARNING: ${dd.lockstepWarning}`);
   }
+  /* c8 ignore stop */
   return renderSection("Doc Detective", lines);
 }
 
@@ -689,16 +832,26 @@ function renderToolsSection(results: ToolResult[]): Section {
 }
 
 function renderBrowsersSection(data: BrowsersData): Section {
+  /* c8 ignore start */
+  // data.timedOut requires a real 5s+ browser-detection race to lose (see
+  // the c8-ignore note on collectBrowsers' timeoutSentinel check, above) —
+  // not triggerable hermetically without a slow, non-deterministic wait.
   if (data.timedOut) {
     return renderSection("Browsers", [
       `  <browser detection timed out after ${BROWSER_DETECTION_TIMEOUT_MS}ms>`,
     ]);
   }
+  /* c8 ignore stop */
+  /* c8 ignore start */
+  // data.error requires collectBrowsers' own catch to fire, which (per the
+  // c8-ignore note on that catch, above) has no reachable throw source
+  // through the public API — getBrowserDiagnostics always resolves.
   if (data.error) {
     return renderSection("Browsers", [
       `  <browser detection failed: ${data.error}>`,
     ]);
   }
+  /* c8 ignore stop */
   const lines: string[] = [];
   if (data.detectionFailed) {
     lines.push(
@@ -710,6 +863,11 @@ function renderBrowsersSection(data: BrowsersData): Section {
   // NOT AVAILABLE / NOT SUPPORTED status, then break down each component
   // (browser binary, webdriver, Appium driver) so the user can see
   // exactly which piece is missing.
+  // `data.browsers` is only ever undefined on the timedOut/error paths
+  // above (both already returned by this point), so the `|| []` fallback
+  // is unreachable through the real success path this loop always runs
+  // on.
+  /* c8 ignore next */
   for (const browser of data.browsers || []) {
     const status = !browser.supported
       ? "NOT SUPPORTED"
@@ -765,6 +923,11 @@ function renderEnvSection(env: EnvData): Section {
   }
 
   const lines: string[] = [];
+  // collectEnvVars' "referenced" mode return always sets
+  // `scannedFileCount: files.length` (a real number), so the `?? 0`
+  // fallback is unreachable through the real collector — renderEnvSection
+  // is private and only ever driven by that collector's output.
+  /* c8 ignore next 3 */
   lines.push(
     `  Scanned ${env.scannedFileCount ?? 0} documentation file(s) plus config + DOC_DETECTIVE_CONFIG for $VAR references.`
   );

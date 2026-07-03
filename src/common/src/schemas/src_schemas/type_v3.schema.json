@@ -49,22 +49,15 @@
                 "$ref": "surface_v3.schema.json#"
               },
               "waitUntil": {
-                "type": "object",
-                "additionalProperties": false,
-                "minProperties": 1,
-                "description": "After sending the keys, wait until the process surface is ready. Only valid with a process `surface`.",
-                "properties": {
-                  "stdio": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Wait until combined stdout+stderr matches. Substring, or /regex/."
+                "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.",
+                "anyOf": [
+                  {
+                    "$ref": "waitUntil_v3.schema.json#/components/schemas/process"
                   },
-                  "delayMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Fixed delay (ms)."
+                  {
+                    "$ref": "waitUntil_v3.schema.json#/components/schemas/browser"
                   }
-                }
+                ]
               },
               "timeout": {
                 "type": "integer",
@@ -124,31 +117,154 @@
                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
               }
             },
-            "required": ["keys"],
+            "required": [
+              "keys"
+            ],
             "additionalProperties": false
           },
           {
             "title": "waitUntil requires a surface",
-            "if": { "required": ["waitUntil"] },
-            "then": { "required": ["surface"] }
+            "if": {
+              "required": [
+                "waitUntil"
+              ]
+            },
+            "then": {
+              "required": [
+                "surface"
+              ]
+            }
           },
           {
             "title": "A process surface forbids element targeting",
             "if": {
-              "required": ["surface"],
-              "properties": { "surface": { "type": "object", "required": ["process"] } }
+              "required": [
+                "surface"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "object",
+                  "required": [
+                    "process"
+                  ]
+                }
+              }
             },
             "then": {
               "not": {
                 "anyOf": [
-                  { "required": ["selector"] },
-                  { "required": ["elementText"] },
-                  { "required": ["elementId"] },
-                  { "required": ["elementTestId"] },
-                  { "required": ["elementClass"] },
-                  { "required": ["elementAttribute"] },
-                  { "required": ["elementAria"] }
+                  {
+                    "required": [
+                      "selector"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementText"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementId"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementTestId"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementClass"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementAttribute"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementAria"
+                    ]
+                  }
                 ]
+              }
+            }
+          },
+          {
+            "title": "A process surface takes process readiness",
+            "if": {
+              "required": [
+                "surface",
+                "waitUntil"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "object",
+                  "required": [
+                    "process"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "waitUntil": {
+                  "$ref": "waitUntil_v3.schema.json#/components/schemas/process"
+                }
+              }
+            }
+          },
+          {
+            "title": "A browser surface takes browser readiness",
+            "if": {
+              "required": [
+                "surface",
+                "waitUntil"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "object",
+                  "required": [
+                    "browser"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "waitUntil": {
+                  "$ref": "waitUntil_v3.schema.json#/components/schemas/browser"
+                }
+              }
+            }
+          },
+          {
+            "title": "A browser-engine string surface takes browser readiness",
+            "if": {
+              "required": [
+                "surface",
+                "waitUntil"
+              ],
+              "properties": {
+                "surface": {
+                  "type": "string",
+                  "enum": [
+                    "chrome",
+                    "firefox",
+                    "safari",
+                    "webkit",
+                    "edge"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "waitUntil": {
+                  "$ref": "waitUntil_v3.schema.json#/components/schemas/browser"
+                }
               }
             }
           }
@@ -158,27 +274,64 @@
   },
   "examples": [
     "kittens",
-    ["$ENTER$"],
-    ["kittens", "$ENTER$"],
+    [
+      "$ENTER$"
+    ],
+    [
+      "kittens",
+      "$ENTER$"
+    ],
     {
       "keys": "kittens"
     },
     {
-      "keys": ["$ENTER$"]
+      "keys": [
+        "$ENTER$"
+      ]
     },
     {
-      "keys": ["kittens", "$ENTER$"],
+      "keys": [
+        "kittens",
+        "$ENTER$"
+      ],
       "inputDelay": 500
     },
     {
-      "keys": ["2+2", "$ENTER$"],
+      "keys": [
+        "2+2",
+        "$ENTER$"
+      ],
       "surface": "node",
-      "waitUntil": { "stdio": "/^4$/" },
+      "waitUntil": {
+        "stdio": "/^4$/"
+      },
       "timeout": 5000
     },
     {
-      "keys": ["$CTRL$", "c"],
-      "surface": { "process": "node" }
+      "keys": [
+        "$CTRL$",
+        "c"
+      ],
+      "surface": {
+        "process": "node"
+      }
+    },
+    {
+      "keys": [
+        "kittens",
+        "$ENTER$"
+      ],
+      "selector": "#search",
+      "surface": {
+        "browser": "chrome",
+        "tab": "cart"
+      },
+      "waitUntil": {
+        "find": {
+          "selector": ".results"
+        }
+      },
+      "timeout": 10000
     }
   ]
 }

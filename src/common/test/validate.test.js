@@ -2897,13 +2897,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a browser surface object (no branch yet)", function () {
+      it("should validate a browser surface object (Phase 3 branch)", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: { type: { keys: ["x"], surface: { browser: "chrome" } } },
         });
-        expect(result.valid).to.be.false;
-        expect(result.errors).to.be.a("string");
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
       });
 
       it("should reject a process surface with an extra key", function () {
@@ -2961,6 +2961,573 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
               surface: { process: "node" },
               selector: "#q",
             },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("browser surfaces (Phase 3): window/tab targeting", function () {
+      // --- surface browser branch shapes ---
+
+      it("should validate a full browser surface (engine + window + tab)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: {
+              selector: "#checkout",
+              surface: { browser: "chrome", window: "main", tab: "cart" },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate tab selection by index and negative index", function () {
+        for (const tab of [0, 2, -1, -2]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              find: { elementText: "Order", surface: { browser: "firefox", tab } },
+            },
+          });
+          expect(result.valid, `tab: ${tab}`).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate tab/window selection by criteria object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: {
+              elementText: "Order #",
+              surface: {
+                browser: "chrome",
+                window: { name: "admin" },
+                tab: { title: "/Cart/", url: "/checkout/", index: 1 },
+              },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a browser surface with a name (multi-browser targeting)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: { selector: "#a", surface: { browser: "chrome", name: "secondary" } },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an unknown browser engine", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { selector: "#a", surface: { browser: "opera" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a browser surface with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: { selector: "#a", surface: { browser: "chrome", bogus: 1 } },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty tab selector object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: { selector: "#a", surface: { browser: "chrome", tab: {} } },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a tab selector object with unknown keys", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: { selector: "#a", surface: { browser: "chrome", tab: { handle: "x" } } },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("coerces a non-integer tab index to a name string (coerceTypes)", function () {
+        // Ajv runs with coerceTypes: true, so 1.5 can't be rejected while the
+        // by-name string branch exists — it coerces to the name "1.5", which
+        // resolves (and cleanly no-matches) at runtime like any other name.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: { selector: "#a", surface: { browser: "chrome", tab: 1.5 } },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.click.surface.tab).to.equal("1.5");
+      });
+
+      // --- per-step wiring (allowed kinds only) ---
+
+      it("should validate surface (string form) on every browser-targeting step", function () {
+        const steps = [
+          { click: { selector: "#a", surface: "chrome" } },
+          { find: { elementText: "Cart", surface: "chrome" } },
+          {
+            dragAndDrop: { source: "#a", target: "#b", surface: "chrome" },
+          },
+          { runBrowserScript: { script: "return 1;", surface: "chrome" } },
+          { screenshot: { path: "shot.png", surface: "chrome" } },
+          { record: { path: "rec.mp4", surface: "chrome" } },
+          { goTo: { url: "https://example.com", surface: "chrome" } },
+        ];
+        for (const step of steps) {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, JSON.stringify(step)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate surface (browser object form) on every browser-targeting step", function () {
+        const surface = { browser: "chrome", tab: "cart" };
+        const steps = [
+          { click: { selector: "#a", surface } },
+          { find: { elementText: "Cart", surface } },
+          { dragAndDrop: { source: "#a", target: "#b", surface } },
+          { runBrowserScript: { script: "return 1;", surface } },
+          { screenshot: { path: "shot.png", surface } },
+          { record: { path: "rec.mp4", surface } },
+          { goTo: { url: "https://example.com", surface } },
+          { type: { keys: ["hi"], selector: "#q", surface } },
+        ];
+        for (const step of steps) {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, JSON.stringify(step)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject a process surface on browser-only steps", function () {
+        const surface = { process: "web" };
+        const steps = [
+          { click: { selector: "#a", surface } },
+          { find: { elementText: "Cart", surface } },
+          { dragAndDrop: { source: "#a", target: "#b", surface } },
+          { runBrowserScript: { script: "return 1;", surface } },
+          { screenshot: { path: "shot.png", surface } },
+          { record: { path: "rec.mp4", surface } },
+          { goTo: { url: "https://example.com", surface } },
+        ];
+        for (const step of steps) {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, JSON.stringify(step)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject a process-NAME string surface on browser-only steps", function () {
+        // Browser-only steps can never target a process, so the bare-string
+        // form is restricted to the engine enum — a process name like "web"
+        // must be rejected at validation time, not left to fail at runtime.
+        const surface = "web";
+        const steps = [
+          { click: { selector: "#a", surface } },
+          { find: { elementText: "Cart", surface } },
+          { dragAndDrop: { source: "#a", target: "#b", surface } },
+          { runBrowserScript: { script: "return 1;", surface } },
+          { screenshot: { path: "shot.png", surface } },
+          { record: { path: "rec.mp4", surface } },
+          { goTo: { url: "https://example.com", surface } },
+        ];
+        for (const step of steps) {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, JSON.stringify(step)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should still validate a process-NAME string surface on type/closeSurface (all kinds allowed)", function () {
+        const result1 = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: ["x"], surface: "web" } },
+        });
+        expect(result1.valid).to.be.true;
+        expect(result1.errors).to.equal("");
+        const result2 = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: "web" },
+        });
+        expect(result2.valid).to.be.true;
+        expect(result2.errors).to.equal("");
+      });
+
+      it("should reject an unknown engine keyword as a bare-string surface on browser-only steps", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { selector: "#a", surface: "opera" } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      // --- goTo newTab / newWindow ---
+
+      it("should validate every newTab shape", function () {
+        for (const newTab of [true, false, "cart", { name: "cart" }]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { goTo: { url: "https://example.com", newTab } },
+          });
+          expect(result.valid, JSON.stringify(newTab)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate every newWindow shape", function () {
+        for (const newWindow of [
+          true,
+          false,
+          "admin",
+          { name: "admin" },
+          { name: "admin", tab: "overview" },
+          { tab: "overview" },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { goTo: { url: "https://example.com", newWindow } },
+          });
+          expect(result.valid, JSON.stringify(newWindow)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate newTab combined with a surface window selector", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: {
+              url: "/checkout",
+              surface: { browser: "chrome", window: "main" },
+              newTab: "cart",
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject newTab and newWindow together", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com", newTab: "a", newWindow: "b" },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject newTab combined with a surface tab selector", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: {
+              url: "/checkout",
+              surface: { browser: "chrome", tab: "cart" },
+              newTab: true,
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject newWindow combined with a surface window or tab selector", function () {
+        for (const surface of [
+          { browser: "chrome", window: "main" },
+          { browser: "chrome", tab: "cart" },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              goTo: { url: "/admin", surface, newWindow: true },
+            },
+          });
+          expect(result.valid, JSON.stringify(surface)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject a whitespace-only newTab name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { goTo: { url: "https://example.com", newTab: "   " } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject unknown keys inside newTab/newWindow objects", function () {
+        for (const goTo of [
+          { url: "https://example.com", newTab: { name: "a", bogus: 1 } },
+          { url: "https://example.com", newWindow: { name: "a", bogus: 1 } },
+        ]) {
+          const result = validate({ schemaKey: "step_v3", object: { goTo } });
+          expect(result.valid, JSON.stringify(goTo)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      // --- type readiness with a browser surface ---
+
+      it("should validate type + browser surface + browser waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["hello", "$ENTER$"],
+              selector: "#q",
+              surface: { browser: "chrome", tab: "cart" },
+              waitUntil: {
+                networkIdleTime: 500,
+                domIdleTime: 1000,
+                find: { selector: ".result" },
+              },
+              timeout: 10000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject type + browser surface + process waitUntil (stdio)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: { browser: "chrome" },
+              waitUntil: { stdio: "/4/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject type + process surface + browser waitUntil (find)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: { process: "node" },
+              waitUntil: { find: { selector: ".ready" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should validate type + browser-engine STRING surface + browser waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "chrome",
+              waitUntil: { find: { selector: ".ready" } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject type + browser-engine STRING surface + process waitUntil (stdio)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "chrome",
+              waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should still validate a process (non-engine) STRING surface with stdio waitUntil", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["x"],
+              surface: "node",
+              waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should trim a criteria-object name selector the same as the by-name form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: {
+              selector: "#a",
+              surface: { browser: "chrome", tab: { name: " cart " } },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.click.surface.tab.name).to.equal("cart");
+      });
+
+      // --- closeSurface browser forms ---
+
+      it("should validate closeSurface with a browser tab reference", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: { browser: "chrome", tab: "cart" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate closeSurface with a browser window reference", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { closeSurface: { browser: "chrome", window: "admin" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a mixed closeSurface array (process + browser tab)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            closeSurface: [
+              "web",
+              { process: "api" },
+              { browser: "chrome", tab: -1 },
+            ],
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject a closeSurface browser object with an extra key", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            closeSurface: { browser: "chrome", tab: "cart", bogus: true },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("browser surfaces (Phase 4): multiple browsers", function () {
+      // Phase 4 activates shapes Phase 3 shipped schema-side but gated at
+      // runtime (ADR 01019). These pins keep the multi-browser forms valid.
+
+      it("should validate goTo opening a second engine by bare keyword", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: { url: "https://example.com/admin", surface: "firefox" },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate goTo opening a named browser surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: {
+              url: "https://example.com",
+              surface: { browser: "chrome", name: "shopper" },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a named browser surface with window/tab selectors", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["hi"],
+              selector: "#q",
+              surface: { browser: "chrome", name: "shopper", window: "main", tab: -1 },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate whole-browser closeSurface forms", function () {
+        for (const closeSurface of [
+          "chrome",
+          { browser: "firefox" },
+          { browser: "chrome", name: "shopper" },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { closeSurface },
+          });
+          expect(result.valid, JSON.stringify(closeSurface)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate a closeSurface array mixing whole browsers and a process", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            closeSurface: ["chrome", { browser: "firefox", name: "admin" }, { process: "api" }],
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject a named browser surface with an empty name", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            click: { selector: "#a", surface: { browser: "chrome", name: "  " } },
           },
         });
         expect(result.valid).to.be.false;

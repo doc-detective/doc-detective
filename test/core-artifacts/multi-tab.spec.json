@@ -1,0 +1,523 @@
+{
+  "specId": "multi-tab",
+  "description": "Exercises browser multi-tab and multi-window targeting (multi-surface Phase 3) end-to-end: every goTo newTab/newWindow shape (true | name | object | false), tab and window selection by name, index, -1/newest, and {title,url,index} criteria (with /regex/), page-opened tabs (target=_blank and window.open) addressed by url/title/index with no manual wait (the bounded discovery retry from ADR 01017 covers the tab's own load time), `surface` on find/click/dragAndDrop/type/runBrowserScript/screenshot/goTo, type's browser readiness waitUntil (find + domIdleTime/networkIdleTime), active-follows-focus semantics, and closeSurface tab/window forms including idempotent re-close and never-matched selectors. Tests run in the default headless-firefox context; each test gets its own session, so tab state never leaks across tests. The recording-interplay permutation (recorder tab must be invisible to selectors) is gated to headed Chrome on Windows/macOS like recording.spec.json.",
+  "tests": [
+    {
+      "testId": "multi-tab-newtab-forms",
+      "description": "Every newTab shape, tab addressing by name/index/newest/criteria, name survival across navigation, and closeSurface tab forms.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "newTab: true opens an anonymous tab and focuses it",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=anon1",
+            "newTab": true
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE anon1"
+          }
+        },
+        {
+          "description": "newTab: \"name\" (string form)",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=alpha",
+            "newTab": "alpha"
+          }
+        },
+        {
+          "description": "newTab: { name } (object form)",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=beta",
+            "newTab": {
+              "name": "beta"
+            }
+          }
+        },
+        {
+          "description": "Address the initial tab by index 0",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": {
+              "browser": "firefox",
+              "tab": 0
+            }
+          }
+        },
+        {
+          "description": "Address a tab by its assigned name",
+          "find": {
+            "elementText": "PAGE alpha",
+            "surface": {
+              "browser": "firefox",
+              "tab": "alpha"
+            }
+          }
+        },
+        {
+          "description": "-1 selects the newest tab",
+          "find": {
+            "elementText": "PAGE beta",
+            "surface": {
+              "browser": "firefox",
+              "tab": -1
+            }
+          }
+        },
+        {
+          "description": "Address a tab by title /regex/ criteria",
+          "find": {
+            "elementText": "PAGE alpha",
+            "surface": {
+              "browser": "firefox",
+              "tab": {
+                "title": "/Child alpha/"
+              }
+            }
+          }
+        },
+        {
+          "description": "Address a tab by url substring criteria",
+          "find": {
+            "elementText": "PAGE anon1",
+            "surface": {
+              "browser": "firefox",
+              "tab": {
+                "url": "page=anon1"
+              }
+            }
+          }
+        },
+        {
+          "description": "Criteria-object index form",
+          "find": {
+            "elementText": "PAGE beta",
+            "surface": {
+              "browser": "firefox",
+              "tab": {
+                "index": -1
+              }
+            }
+          }
+        },
+        {
+          "description": "newTab: false is a plain navigation of the active tab (beta)",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=replaced",
+            "newTab": false
+          }
+        },
+        {
+          "description": "Tab names survive navigation",
+          "find": {
+            "elementText": "PAGE replaced",
+            "surface": {
+              "browser": "firefox",
+              "tab": "beta"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "browser": "firefox",
+            "tab": "alpha"
+          }
+        },
+        {
+          "description": "Re-closing a closed tab is an idempotent PASS no-op",
+          "closeSurface": {
+            "browser": "firefox",
+            "tab": "alpha"
+          }
+        },
+        {
+          "description": "Closing a never-opened tab is an idempotent PASS no-op",
+          "closeSurface": {
+            "browser": "firefox",
+            "tab": "never-opened"
+          }
+        },
+        {
+          "description": "Closing a non-active tab keeps the active tab focused",
+          "find": {
+            "elementText": "PAGE replaced"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "multi-tab-newwindow-forms",
+      "description": "Every newWindow shape, window addressing by name/index/newest, goTo into an existing window, and closeSurface window form.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "newWindow: true opens an anonymous window and focuses it",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=w1",
+            "newWindow": true
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE w1"
+          }
+        },
+        {
+          "description": "newWindow: \"name\" (string form)",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=w2",
+            "newWindow": "admin"
+          }
+        },
+        {
+          "description": "newWindow: { name, tab } names the window and its first tab",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=w3",
+            "newWindow": {
+              "name": "ops",
+              "tab": "overview"
+            }
+          }
+        },
+        {
+          "description": "Address a window by name (no tab selector → its lead tab)",
+          "find": {
+            "elementText": "PAGE w3",
+            "surface": {
+              "browser": "firefox",
+              "window": "ops"
+            }
+          }
+        },
+        {
+          "description": "The window's first tab is addressable by its tab name",
+          "find": {
+            "elementText": "PAGE w3",
+            "surface": {
+              "browser": "firefox",
+              "tab": "overview"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE w2",
+            "surface": {
+              "browser": "firefox",
+              "window": "admin"
+            }
+          }
+        },
+        {
+          "description": "Window index 0 is the initial window",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": {
+              "browser": "firefox",
+              "window": 0
+            }
+          }
+        },
+        {
+          "description": "Window -1 is the newest window",
+          "find": {
+            "elementText": "PAGE w3",
+            "surface": {
+              "browser": "firefox",
+              "window": -1
+            }
+          }
+        },
+        {
+          "description": "goTo navigates an EXISTING window when surface names one",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=w2b",
+            "surface": {
+              "browser": "firefox",
+              "window": "admin"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE w2b"
+          }
+        },
+        {
+          "description": "Close a whole window by name",
+          "closeSurface": {
+            "browser": "firefox",
+            "window": "admin"
+          }
+        },
+        {
+          "description": "Closing the active window focuses the newest remaining tab",
+          "find": {
+            "elementText": "PAGE w3"
+          }
+        },
+        {
+          "description": "Re-closing a closed window is an idempotent PASS no-op",
+          "closeSurface": {
+            "browser": "firefox",
+            "window": "admin"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "multi-tab-page-opened",
+      "description": "Tabs the PAGE opens (target=_blank link, window.open) are addressable by url/title criteria and index even though they have no assigned name or parent window. No manual wait is needed before addressing them: a selector that doesn't match yet is retried for up to 2 seconds (ADR 01017), covering the moment between the click and the new tab finishing its own navigation.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "A target=_blank link opens a tab the runner didn't create",
+          "click": {
+            "elementText": "Open child in new tab"
+          }
+        },
+        {
+          "description": "Address the page-opened tab by url criteria, with no manual wait first — the built-in discovery retry covers the tab's own load time",
+          "find": {
+            "elementText": "PAGE linked",
+            "surface": {
+              "browser": "firefox",
+              "tab": {
+                "url": "page=linked"
+              }
+            }
+          }
+        },
+        {
+          "description": "Return to the home tab by index",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": {
+              "browser": "firefox",
+              "tab": 0
+            }
+          }
+        },
+        {
+          "description": "window.open also lands as an addressable tab",
+          "click": {
+            "elementText": "Open child via window.open"
+          }
+        },
+        {
+          "description": "Address the window.open tab by title /regex/, again with no manual wait",
+          "find": {
+            "elementText": "PAGE opened",
+            "surface": {
+              "browser": "firefox",
+              "tab": {
+                "title": "/Child opened/"
+              }
+            }
+          }
+        },
+        {
+          "description": "-1 (newest) resolves to the most recently seen page-opened tab",
+          "find": {
+            "elementText": "PAGE opened",
+            "surface": {
+              "browser": "firefox",
+              "tab": -1
+            }
+          }
+        },
+        {
+          "description": "Page-opened tabs close via criteria selectors too",
+          "closeSurface": {
+            "browser": "firefox",
+            "tab": {
+              "url": "page=linked"
+            }
+          }
+        },
+        {
+          "description": "Closing a non-active tab keeps focus where it was",
+          "find": {
+            "elementText": "PAGE opened"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "multi-tab-surface-steps",
+      "description": "`surface` on each wired step: dragAndDrop in a named tab, type with browser readiness (find + domIdleTime/networkIdleTime), runBrowserScript, screenshot, and the bare engine-keyword surface (acts on the active tab).",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/drag-drop-test.html",
+            "newTab": "board"
+          }
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=work",
+            "newTab": "work"
+          }
+        },
+        {
+          "description": "dragAndDrop targets elements in the named tab",
+          "dragAndDrop": {
+            "source": "Table",
+            "target": ".drop-zone[data-drop='zone1']",
+            "surface": {
+              "browser": "firefox",
+              "tab": "board"
+            }
+          }
+        },
+        {
+          "description": "type into an element of a named tab, waiting on a find condition",
+          "type": {
+            "keys": [
+              "hello"
+            ],
+            "selector": "#echo-input",
+            "surface": {
+              "browser": "firefox",
+              "tab": "work"
+            },
+            "waitUntil": {
+              "find": {
+                "selector": "#echo-out",
+                "elementText": "hello"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "description": "type readiness: DOM-stable + network-idle probes",
+          "type": {
+            "keys": [
+              "!"
+            ],
+            "selector": "#echo-input",
+            "surface": {
+              "browser": "firefox",
+              "tab": "work"
+            },
+            "waitUntil": {
+              "domIdleTime": 200,
+              "networkIdleTime": 200
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "description": "runBrowserScript runs in the named tab",
+          "runBrowserScript": {
+            "script": "return document.title;",
+            "output": "Child work",
+            "surface": {
+              "browser": "firefox",
+              "tab": "work"
+            }
+          }
+        },
+        {
+          "description": "screenshot captures the named tab",
+          "screenshot": {
+            "path": "multi-tab-board.png",
+            "overwrite": "true",
+            "surface": {
+              "browser": "firefox",
+              "tab": "board"
+            }
+          }
+        },
+        {
+          "description": "A bare engine-keyword surface targets the active tab (board, left focused by the screenshot)",
+          "find": {
+            "selector": ".drop-zone",
+            "surface": "firefox"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "multi-tab-recording-interplay",
+      "description": "The recorder tab (browser recording engine) is INTERNAL: index/-1 selectors never see it, and stopRecord returns focus to the tab that was focused. Gated to headed Chrome on Windows/macOS like recording.spec.json.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=user2",
+            "newTab": "user2"
+          }
+        },
+        {
+          "record": {
+            "path": "multi-tab-recording.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "-1 resolves to the newest USER tab, not the recorder tab",
+          "find": {
+            "elementText": "PAGE user2",
+            "surface": {
+              "browser": "chrome",
+              "tab": -1
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": {
+              "browser": "chrome",
+              "tab": 0
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE user2",
+            "surface": {
+              "browser": "chrome",
+              "tab": "user2"
+            }
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "description": "stopRecord restores the previously focused tab",
+          "find": {
+            "elementText": "PAGE user2"
+          }
+        }
+      ]
+    }
+  ]
+}

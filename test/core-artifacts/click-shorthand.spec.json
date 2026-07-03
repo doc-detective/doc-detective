@@ -1,0 +1,47 @@
+{
+  "specId": "clickStringShorthand",
+  "tests": [
+    {
+      "testId": "click-string-shorthand-permutations",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        },
+        {
+          "stepId": "click-shorthand-by-text",
+          "click": "Reveal by text"
+        },
+        {
+          "stepId": "assert-text-click-side-effect",
+          "find": "Text click landed"
+        },
+        {
+          "stepId": "click-shorthand-by-selector",
+          "click": "#reveal-by-selector"
+        },
+        {
+          "stepId": "assert-selector-click-side-effect",
+          "find": "Selector click landed"
+        },
+        {
+          "stepId": "click-shorthand-by-regex",
+          "click": "/Reveal via regex/"
+        },
+        {
+          "stepId": "assert-regex-click-side-effect",
+          "find": "Regex click landed"
+        },
+        {
+          "stepId": "click-object-form-parity",
+          "click": {
+            "elementText": "Reveal by object"
+          }
+        },
+        {
+          "stepId": "assert-object-click-side-effect",
+          "find": "Object click landed"
+        }
+      ]
+    }
+  ]
+}

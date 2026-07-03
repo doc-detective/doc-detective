@@ -962,12 +962,22 @@ describe("stopRecording: guards + MediaRecorder", function () {
           targetPath: path.join(os.tmpdir(), "out.mp4"),
         },
       ];
+      const switchToWindow = sinon.spy();
       const driver = {
         state: { recordings },
-        async switchToWindow() {},
+        switchToWindow,
         async execute() {
           return true; // recorder exists; recorder.stop() is a no-op here.
         },
+        // On timeout, stopRecording now closes the recorder tab and restores
+        // focus (so later steps don't run in it), which needs these methods.
+        async getWindowHandle() {
+          return "content-tab";
+        },
+        async getWindowHandles() {
+          return ["rec-tab", "content-tab"];
+        },
+        async closeWindow() {},
       };
       const promise = stopRecording({ config, step: { stopRecord: true }, driver });
       // waitForStableFile polls every 500ms for maxSeconds*2 (=120) iterations.
@@ -977,6 +987,8 @@ describe("stopRecording: guards + MediaRecorder", function () {
       assert.equal(result.status, "FAIL");
       assert.match(result.description, /download timed out/);
       assert.equal(recordings.length, 0);
+      // Focus is restored to the content tab, not left in the recorder tab.
+      assert(switchToWindow.calledWith("content-tab"));
     } finally {
       clock.restore();
     }

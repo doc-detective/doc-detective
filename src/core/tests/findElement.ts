@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { switchToSurface } from "./browserSurface.js";
 import {
   findElementByShorthand,
   findElementByCriteria,
@@ -60,6 +61,20 @@ async function findElement({ config, step, driver, click }: { config: any; step:
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
+  // Multi-surface Phase 3/4: focus the requested session + window/tab first.
+  // The surface stays active afterward (active = most recently focused).
+  // click delegates here, so its `surface` rides along in the constructed
+  // find step. A cross-session reference resolves to that session's driver.
+  if (typeof step.find === "object" && step.find.surface !== undefined) {
+    const switched = await switchToSurface(driver, step.find.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
+  }
+
   // Handle combo selector/text string
   if (typeof step.find === "string") {
     const { element, foundBy } = await findElementByShorthand({
@@ -70,7 +85,22 @@ async function findElement({ config, step, driver, click }: { config: any; step:
       result.description += ` Found element by ${foundBy}.`;
       result.outputs = await setElementOutputs({ element });
       result.outputs.found = true;
-      return await finalizeFound({ result });
+      await finalizeFound({ result });
+      // Shorthand carries no sub-effect fields, so button defaults to left.
+      if (click) {
+        try {
+          await element.click({ button: "left" });
+          result.description += " Clicked element.";
+        } catch (error: any) {
+          result.status = "FAIL";
+          result.description += ` Couldn't click element. Error: ${error.message}`;
+          return result;
+        }
+      }
+      if (isRecordingActive(driver)) {
+        await wait({ config: config, step: { wait: 2000 }, driver: driver });
+      }
+      return result;
     } else {
       // No matching elements: expose found=false and still evaluate so the
       // existence assertion FAILs (don't early-return before the spec).

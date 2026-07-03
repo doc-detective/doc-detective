@@ -18,6 +18,160 @@
       ],
       "additionalProperties": false,
       "properties": {
+        "surface": {
+          "description": "The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.",
+          "anyOf": [
+            {
+              "title": "Surface (by browser engine)",
+              "type": "string",
+              "enum": [
+                "chrome",
+                "firefox",
+                "safari",
+                "webkit",
+                "edge"
+              ],
+              "transform": [
+                "trim"
+              ],
+              "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+            },
+            {
+              "title": "Browser surface",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "browser"
+              ],
+              "properties": {
+                "browser": {
+                  "type": "string",
+                  "enum": [
+                    "chrome",
+                    "firefox",
+                    "safari",
+                    "webkit",
+                    "edge"
+                  ],
+                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "transform": [
+                    "trim"
+                  ],
+                  "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                },
+                "window": {
+                  "description": "Which window to act on. Omit to use the active window.",
+                  "title": "Window/tab selector",
+                  "anyOf": [
+                    {
+                      "title": "By index",
+                      "type": "integer",
+                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                    },
+                    {
+                      "title": "By name",
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S",
+                      "transform": [
+                        "trim"
+                      ],
+                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                    },
+                    {
+                      "title": "By criteria",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "minProperties": 1,
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Name assigned when the window/tab was opened."
+                        },
+                        "index": {
+                          "type": "integer",
+                          "description": "Index in creation order. Negative counts from the end."
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Page title to match. Substring, or /regex/."
+                        },
+                        "url": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Page URL to match. Substring, or /regex/."
+                        }
+                      }
+                    }
+                  ]
+                },
+                "tab": {
+                  "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                  "title": "Window/tab selector",
+                  "anyOf": [
+                    {
+                      "title": "By index",
+                      "type": "integer",
+                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                    },
+                    {
+                      "title": "By name",
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S",
+                      "transform": [
+                        "trim"
+                      ],
+                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                    },
+                    {
+                      "title": "By criteria",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "minProperties": 1,
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S",
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Name assigned when the window/tab was opened."
+                        },
+                        "index": {
+                          "type": "integer",
+                          "description": "Index in creation order. Negative counts from the end."
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Page title to match. Substring, or /regex/."
+                        },
+                        "url": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Page URL to match. Substring, or /regex/."
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
         "script": {
           "type": "string",
           "description": "JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on)."
@@ -84,6 +238,160 @@
         ],
         "additionalProperties": false,
         "properties": {
+          "surface": {
+            "description": "The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.",
+            "anyOf": [
+              {
+                "title": "Surface (by browser engine)",
+                "type": "string",
+                "enum": [
+                  "chrome",
+                  "firefox",
+                  "safari",
+                  "webkit",
+                  "edge"
+                ],
+                "transform": [
+                  "trim"
+                ],
+                "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+              },
+              {
+                "title": "Browser surface",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "browser"
+                ],
+                "properties": {
+                  "browser": {
+                    "type": "string",
+                    "enum": [
+                      "chrome",
+                      "firefox",
+                      "safari",
+                      "webkit",
+                      "edge"
+                    ],
+                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ],
+                    "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                  },
+                  "window": {
+                    "description": "Which window to act on. Omit to use the active window.",
+                    "title": "Window/tab selector",
+                    "anyOf": [
+                      {
+                        "title": "By index",
+                        "type": "integer",
+                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                      },
+                      {
+                        "title": "By name",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                      },
+                      {
+                        "title": "By criteria",
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name assigned when the window/tab was opened."
+                          },
+                          "index": {
+                            "type": "integer",
+                            "description": "Index in creation order. Negative counts from the end."
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Page title to match. Substring, or /regex/."
+                          },
+                          "url": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Page URL to match. Substring, or /regex/."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "tab": {
+                    "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                    "title": "Window/tab selector",
+                    "anyOf": [
+                      {
+                        "title": "By index",
+                        "type": "integer",
+                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                      },
+                      {
+                        "title": "By name",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                      },
+                      {
+                        "title": "By criteria",
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name assigned when the window/tab was opened."
+                          },
+                          "index": {
+                            "type": "integer",
+                            "description": "Index in creation order. Negative counts from the end."
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Page title to match. Substring, or /regex/."
+                          },
+                          "url": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Page URL to match. Substring, or /regex/."
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
           "script": {
             "type": "string",
             "description": "JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on)."

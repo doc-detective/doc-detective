@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
+import { switchToSurface } from "./browserSurface.js";
 import {
   log,
   fetchFile,
@@ -173,6 +174,22 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
+
+  // Multi-surface Phase 3/4: focus the session + window/tab to capture. A
+  // cross-session reference resolves to that session's driver.
+  if (
+    typeof step.screenshot === "object" &&
+    step.screenshot !== null &&
+    step.screenshot.surface !== undefined
+  ) {
+    const switched = await switchToSurface(driver, step.screenshot.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
+  }
 
   // Convert boolean to string
   if (typeof step.screenshot === "boolean") {

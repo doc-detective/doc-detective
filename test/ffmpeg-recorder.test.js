@@ -1,4 +1,6 @@
 import { expect } from "chai";
+import os from "node:os";
+import path from "node:path";
 import {
   resolveRecordPlan,
   coerceRecordContextBrowser,
@@ -20,6 +22,10 @@ import {
   stopRecordTargetName,
   selectRecordingToStop,
   detectRecordingNameConflict,
+  getFfmpegPath,
+  detectMacScreenIndex,
+  detectX11ScreenSize,
+  startXvfb,
 } from "../dist/core/tests/ffmpegRecorder.js";
 
 describe("ffmpegRecorder", function () {
@@ -353,6 +359,25 @@ describe("ffmpegRecorder", function () {
         },
       };
       expect(jobIsFfmpegRecording(sequential)).to.equal(false);
+    });
+
+    it("does not count sequential ANONYMOUS browser recordings as ffmpeg (untargeted stopRecord LIFO pop)", function () {
+      // Anonymous records (no `name`) paired with an untargeted stopRecord
+      // (`true`) exercise the LIFO-pop branch (as opposed to the by-name
+      // splice branch already covered by the targeted "sequential" test
+      // above).
+      const sequentialAnonymous = {
+        context: {
+          browser: { name: "chrome", headless: false },
+          steps: [
+            { record: { engine: "browser" } },
+            { stopRecord: true },
+            { record: { engine: "browser" } },
+            { stopRecord: true },
+          ],
+        },
+      };
+      expect(jobIsFfmpegRecording(sequentialAnonymous)).to.equal(false);
     });
   });
 
@@ -745,6 +770,125 @@ describe("ffmpegRecorder", function () {
     it("returns false for a binary that does not exist", async function () {
       const ok = await checkSystemBinary("definitely-not-a-real-binary-xyz");
       expect(ok).to.equal(false);
+    });
+
+    it("returns false when spawn() throws synchronously (invalid binary name)", async function () {
+      // A null byte in the command name makes Node's spawn() throw
+      // synchronously (ERR_INVALID_ARG_VALUE) rather than emit an async
+      // 'error' event -- exercising the try/catch's catch block, distinct
+      // from the async ENOENT path covered above.
+      const ok = await checkSystemBinary("bad\0name");
+      expect(ok).to.equal(false);
+    });
+  });
+
+  describe("getFfmpegPath", function () {
+    it("resolves the real @ffmpeg-installer/ffmpeg binary path installed in node_modules", async function () {
+      // @ffmpeg-installer/ffmpeg is a real dependency of this repo (installed
+      // by `npm ci`), so this hermetically exercises loadHeavyDep's shim
+      // resolution + the CJS/ESM .path extraction -- no process is spawned,
+      // only the installed package's metadata is read.
+      const p = await getFfmpegPath();
+      expect(p).to.be.a("string");
+      expect(p.length).to.be.greaterThan(0);
+    });
+  });
+
+  describe("detectMacScreenIndex", function () {
+    this.timeout(10000);
+
+    it("resolves via the real spawn+close path when the binary launches (path is a real executable)", async function () {
+      // detectMacScreenIndex's args are hardcoded, so we can't make a real
+      // ffmpeg print a matching "Capture screen" line -- but pointing
+      // ffmpegPath at the real Node binary spawns successfully, emits some
+      // stderr, and closes quickly, exercising the full spawn/stderr/close
+      // wiring (parseMacScreenIndex's regex logic is separately unit-tested
+      // above). A `null` result here is expected (Node's own error output
+      // won't match the ffmpeg-specific pattern) -- what matters is that it
+      // resolves fast via the close handler, not the 5s timeout.
+      const start = Date.now();
+      const result = await detectMacScreenIndex(process.execPath);
+      expect(Date.now() - start).to.be.lessThan(4000);
+      expect(result === null || typeof result === "string").to.equal(true);
+    });
+
+    it("resolves null when the binary does not exist (ENOENT -> proc.on('error'))", async function () {
+      const start = Date.now();
+      const result = await detectMacScreenIndex(
+        path.join(os.tmpdir(), "dd-definitely-not-a-real-ffmpeg-binary")
+      );
+      expect(Date.now() - start).to.be.lessThan(4000);
+      expect(result).to.equal(null);
+    });
+
+    it("resolves null when spawn() throws synchronously (null byte in ffmpegPath)", async function () {
+      // A null byte in the executable path makes Node's spawn() throw
+      // synchronously rather than emit an async 'error' event, exercising
+      // the outer try/catch's catch block (distinct from the async ENOENT
+      // path above).
+      const start = Date.now();
+      const result = await detectMacScreenIndex("bad\0path");
+      expect(Date.now() - start).to.be.lessThan(500);
+      expect(result).to.equal(null);
+    });
+  });
+
+  describe("detectX11ScreenSize", function () {
+    it("resolves null when xdpyinfo is unavailable, without a display override", async function () {
+      // xdpyinfo is not present on this (or most CI) machines, so this
+      // exercises the real spawn -> ENOENT -> proc.on('error') -> done(null)
+      // path, using process.env directly (no `display` argument).
+      const start = Date.now();
+      const result = await detectX11ScreenSize();
+      expect(Date.now() - start).to.be.lessThan(4000);
+      expect(result).to.equal(null);
+    });
+
+    it("resolves null when xdpyinfo is unavailable, with a display override (env spread + DISPLAY branch)", async function () {
+      const start = Date.now();
+      const result = await detectX11ScreenSize(":42");
+      expect(Date.now() - start).to.be.lessThan(4000);
+      expect(result).to.equal(null);
+    });
+
+    it("resolves null when spawn() throws synchronously (null byte in the DISPLAY env value)", async function () {
+      // A null byte in an env var value makes Node's spawn() throw
+      // synchronously ("must be a string without null bytes"), exercising
+      // the outer try/catch's catch block -- distinct from the async ENOENT
+      // path above.
+      const start = Date.now();
+      const result = await detectX11ScreenSize("bad\0display");
+      expect(Date.now() - start).to.be.lessThan(500);
+      expect(result).to.equal(null);
+    });
+  });
+
+  describe("startXvfb", function () {
+    this.timeout(10000);
+
+    it("throws when the Xvfb binary does not exist (ENOENT surfaces via the spawnErr poll check)", async function () {
+      // This asserts the spawnErr throw branch by relying on `Xvfb` being
+      // ABSENT from PATH: spawn() then emits an async 'error' event, the
+      // readiness-poll loop picks up `spawnErr` on its next iteration, and
+      // re-throws it. That absence holds on macOS/Windows CI (Xvfb is a
+      // Linux-only package), which cover this branch in the cross-platform
+      // coverage union. It does NOT hold on the Linux legs, where
+      // `install all` provisions a real Xvfb and startXvfb would instead
+      // succeed (or time out) -- so skip there rather than assert a throw
+      // that can't happen. startXvfb hardcodes the "Xvfb" binary with no
+      // injection seam, so pointing it at a guaranteed-missing binary isn't
+      // possible without a source change; the union already covers the line.
+      if (process.platform === "linux") this.skip();
+      const start = Date.now();
+      let threw = null;
+      try {
+        await startXvfb(xvfbDisplay(97));
+      } catch (e) {
+        threw = e;
+      }
+      expect(Date.now() - start).to.be.lessThan(4000);
+      expect(threw).to.not.equal(null);
+      expect(threw.message).to.match(/ENOENT|spawn/i);
     });
   });
 });

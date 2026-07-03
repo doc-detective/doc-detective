@@ -2,6 +2,12 @@ import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
+  switchToSurface,
+  registerOpenedHandle,
+  seedWindowLead,
+  deregisterHandle,
+} from "./browserSurface.js";
+import {
   resolveRecordPlan,
   safeContextId,
   browserCaptureTitle,
@@ -41,6 +47,23 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     result.status = "SKIPPED";
     result.description = "Recording is disabled (record: false).";
     return result;
+  }
+
+  // Multi-surface Phase 3/4: focus the session + window/tab to record. A
+  // cross-session reference resolves to that session's driver — the recording
+  // (and its recorder tab) then lives entirely in that session.
+  if (
+    typeof step.record === "object" &&
+    step.record !== null &&
+    step.record.surface !== undefined
+  ) {
+    const switched = await switchToSurface(driver, step.record.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
   }
 
   // Convert boolean to string
@@ -172,6 +195,13 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     await instantiateCursor(driver, { position: "center" });
     // Create new tab
     const recorderTab = await driver.createWindow("tab");
+    // Seed the content tab as the window lead FIRST so that, when `record` is
+    // the first surface-touching step, the internal recorder tab isn't
+    // mistaken for the lead (which would break `window` selectors). Then
+    // register the recorder tab as INTERNAL so window/tab selectors (index,
+    // -1/newest, criteria) never see it (multi-surface Phase 3).
+    seedWindowLead(driver, originalTab);
+    registerOpenedHandle(driver, { handle: recorderTab.handle, internal: true });
     // Switch to new tab
     await driver.switchToWindow(recorderTab.handle);
     await driver.url("chrome://new-tab-page");
@@ -266,6 +296,10 @@ async function startRecording({ config, context, step, driver }: { config: any; 
       log(config, "error", result.description);
       await driver.closeWindow();
       await driver.switchToWindow(originalTab);
+      // Drop the aborted recorder tab from the window/tab registry so it never
+      // carries a dead handle. A direct deregister (not a live re-sync) keeps
+      // this webdriverio-shape-agnostic — the tab is known-closed.
+      deregisterHandle(driver, recorderTab.handle);
       await driver.execute((documentTitle: any) => {
         document.title = documentTitle;
       }, documentTitle);
