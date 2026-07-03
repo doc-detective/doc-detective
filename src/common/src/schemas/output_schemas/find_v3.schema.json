@@ -85,7 +85,7 @@
                     "webkit",
                     "edge"
                   ],
-                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                  "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                 },
                 "name": {
                   "type": "string",
@@ -94,7 +94,7 @@
                   "transform": [
                     "trim"
                   ],
-                  "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                  "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                 },
                 "window": {
                   "description": "Which window to act on. Omit to use the active window.",
@@ -363,7 +363,7 @@
                                 "webkit",
                                 "edge"
                               ],
-                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                              "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                             },
                             "name": {
                               "type": "string",
@@ -372,7 +372,7 @@
                               "transform": [
                                 "trim"
                               ],
-                              "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                              "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                             },
                             "window": {
                               "description": "Which window to act on. Omit to use the active window.",
@@ -640,7 +640,7 @@
                                   "webkit",
                                   "edge"
                                 ],
-                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                               },
                               "name": {
                                 "type": "string",
@@ -649,7 +649,7 @@
                                 "transform": [
                                   "trim"
                                 ],
-                                "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                               },
                               "window": {
                                 "description": "Which window to act on. Omit to use the active window.",
@@ -905,7 +905,7 @@
                         "surface": {
                           "$schema": "http://json-schema.org/draft-07/schema#",
                           "title": "surface",
-                          "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
+                          "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
                           "anyOf": [
                             {
                               "title": "Surface (by name)",
@@ -953,7 +953,7 @@
                                     "webkit",
                                     "edge"
                                   ],
-                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                  "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                 },
                                 "name": {
                                   "type": "string",
@@ -962,7 +962,7 @@
                                   "transform": [
                                     "trim"
                                   ],
-                                  "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                  "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                 },
                                 "window": {
                                   "description": "Which window to act on. Omit to use the active window.",
@@ -1069,6 +1069,72 @@
                                   ]
                                 }
                               }
+                            },
+                            {
+                              "title": "App surface",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "app"
+                              ],
+                              "properties": {
+                                "app": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                },
+                                "window": {
+                                  "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                  "title": "App window selector",
+                                  "anyOf": [
+                                    {
+                                      "title": "By index",
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                    },
+                                    {
+                                      "title": "By name",
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                    },
+                                    {
+                                      "title": "By criteria",
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "minProperties": 1,
+                                      "properties": {
+                                        "name": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
+                                          "description": "Assigned window name."
+                                        },
+                                        "index": {
+                                          "type": "integer",
+                                          "description": "Index in creation order. Negative counts from the end."
+                                        },
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Window title to match. Substring, or /regex/."
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
                             }
                           ],
                           "components": {
@@ -1134,7 +1200,7 @@
                                       "webkit",
                                       "edge"
                                     ],
-                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                    "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                   },
                                   "name": {
                                     "type": "string",
@@ -1143,7 +1209,7 @@
                                     "transform": [
                                       "trim"
                                     ],
-                                    "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                    "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                   },
                                   "window": {
                                     "description": "Which window to act on. Omit to use the active window.",
@@ -1251,6 +1317,119 @@
                                   }
                                 }
                               },
+                              "app": {
+                                "title": "App surface",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "app"
+                                ],
+                                "properties": {
+                                  "app": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                  },
+                                  "window": {
+                                    "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                    "title": "App window selector",
+                                    "anyOf": [
+                                      {
+                                        "title": "By index",
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                      },
+                                      {
+                                        "title": "By name",
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                      },
+                                      {
+                                        "title": "By criteria",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "minProperties": 1,
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Assigned window name."
+                                          },
+                                          "index": {
+                                            "type": "integer",
+                                            "description": "Index in creation order. Negative counts from the end."
+                                          },
+                                          "title": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Window title to match. Substring, or /regex/."
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              "appWindowSelector": {
+                                "title": "App window selector",
+                                "description": "Same grammar as the browser window selector, minus `url` (meaningless for native windows).",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Window title to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
                               "windowOrTabSelector": {
                                 "title": "Window/tab selector",
                                 "anyOf": [
@@ -1326,13 +1505,18 @@
                               }
                             },
                             {
-                              "browser": "chrome",
-                              "name": "shopper"
+                              "app": "notepad"
+                            },
+                            {
+                              "app": "notepad",
+                              "window": {
+                                "title": "/Find/"
+                              }
                             }
                           ]
                         },
                         "waitUntil": {
-                          "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.",
+                          "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, an app surface accepts `delayMs`/`find`. No condition applies by default.",
                           "anyOf": [
                             {
                               "title": "Process readiness",
@@ -1369,8 +1553,118 @@
                                   "minimum": 0
                                 },
                                 "find": {
+                                  "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                  "additionalProperties": false,
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "selector"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementText"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementTestId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementClass"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAttribute"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAria"
+                                      ]
+                                    }
+                                  ],
+                                  "properties": {
+                                    "selector": {
+                                      "type": "string",
+                                      "description": "CSS selector for the element to wait for."
+                                    },
+                                    "elementText": {
+                                      "type": "string",
+                                      "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementId": {
+                                      "type": "string",
+                                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementTestId": {
+                                      "type": "string",
+                                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementClass": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      ],
+                                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                    },
+                                    "elementAttribute": {
+                                      "type": "object",
+                                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                      "additionalProperties": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "boolean"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "elementAria": {
+                                      "type": "string",
+                                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "title": "App readiness",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "minProperties": 1,
+                              "properties": {
+                                "delayMs": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "description": "Fixed delay (ms)."
+                                },
+                                "find": {
+                                  "title": "Element criteria",
+                                  "type": "object",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -1674,8 +1968,139 @@
                                 "minimum": 0
                               },
                               "find": {
+                                "title": "Element criteria",
                                 "type": "object",
-                                "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                "additionalProperties": false,
+                                "anyOf": [
+                                  {
+                                    "required": [
+                                      "selector"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementText"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementId"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementTestId"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementClass"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementAttribute"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "elementAria"
+                                    ]
+                                  }
+                                ],
+                                "properties": {
+                                  "selector": {
+                                    "type": "string",
+                                    "description": "CSS selector for the element to wait for."
+                                  },
+                                  "elementText": {
+                                    "type": "string",
+                                    "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "elementId": {
+                                    "type": "string",
+                                    "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "elementTestId": {
+                                    "type": "string",
+                                    "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "elementClass": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    ],
+                                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                  },
+                                  "elementAttribute": {
+                                    "type": "object",
+                                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                    "additionalProperties": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "boolean"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "elementAria": {
+                                    "type": "string",
+                                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "title": "An app surface takes app readiness",
+                      "if": {
+                        "required": [
+                          "surface",
+                          "waitUntil"
+                        ],
+                        "properties": {
+                          "surface": {
+                            "type": "object",
+                            "required": [
+                              "app"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "waitUntil": {
+                            "title": "App readiness",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "properties": {
+                              "delayMs": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Fixed delay (ms)."
+                              },
+                              "find": {
+                                "title": "Element criteria",
+                                "type": "object",
+                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                 "additionalProperties": false,
                                 "anyOf": [
                                   {
@@ -1812,8 +2237,9 @@
                                 "minimum": 0
                               },
                               "find": {
+                                "title": "Element criteria",
                                 "type": "object",
-                                "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                 "additionalProperties": false,
                                 "anyOf": [
                                   {
@@ -1968,7 +2394,7 @@
                           "surface": {
                             "$schema": "http://json-schema.org/draft-07/schema#",
                             "title": "surface",
-                            "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
+                            "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
                             "anyOf": [
                               {
                                 "title": "Surface (by name)",
@@ -2016,7 +2442,7 @@
                                       "webkit",
                                       "edge"
                                     ],
-                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                    "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                   },
                                   "name": {
                                     "type": "string",
@@ -2025,7 +2451,7 @@
                                     "transform": [
                                       "trim"
                                     ],
-                                    "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                    "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                   },
                                   "window": {
                                     "description": "Which window to act on. Omit to use the active window.",
@@ -2132,6 +2558,72 @@
                                     ]
                                   }
                                 }
+                              },
+                              {
+                                "title": "App surface",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "app"
+                                ],
+                                "properties": {
+                                  "app": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                  },
+                                  "window": {
+                                    "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                    "title": "App window selector",
+                                    "anyOf": [
+                                      {
+                                        "title": "By index",
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                      },
+                                      {
+                                        "title": "By name",
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                      },
+                                      {
+                                        "title": "By criteria",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "minProperties": 1,
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Assigned window name."
+                                          },
+                                          "index": {
+                                            "type": "integer",
+                                            "description": "Index in creation order. Negative counts from the end."
+                                          },
+                                          "title": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Window title to match. Substring, or /regex/."
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
                               }
                             ],
                             "components": {
@@ -2197,7 +2689,7 @@
                                         "webkit",
                                         "edge"
                                       ],
-                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                      "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                     },
                                     "name": {
                                       "type": "string",
@@ -2206,7 +2698,7 @@
                                       "transform": [
                                         "trim"
                                       ],
-                                      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                      "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                     },
                                     "window": {
                                       "description": "Which window to act on. Omit to use the active window.",
@@ -2314,6 +2806,119 @@
                                     }
                                   }
                                 },
+                                "app": {
+                                  "title": "App surface",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "app"
+                                  ],
+                                  "properties": {
+                                    "app": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                    },
+                                    "window": {
+                                      "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                      "title": "App window selector",
+                                      "anyOf": [
+                                        {
+                                          "title": "By index",
+                                          "type": "integer",
+                                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                        },
+                                        {
+                                          "title": "By name",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
+                                          "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                        },
+                                        {
+                                          "title": "By criteria",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "minProperties": 1,
+                                          "properties": {
+                                            "name": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ],
+                                              "description": "Assigned window name."
+                                            },
+                                            "index": {
+                                              "type": "integer",
+                                              "description": "Index in creation order. Negative counts from the end."
+                                            },
+                                            "title": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Window title to match. Substring, or /regex/."
+                                            }
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "appWindowSelector": {
+                                  "title": "App window selector",
+                                  "description": "Same grammar as the browser window selector, minus `url` (meaningless for native windows).",
+                                  "anyOf": [
+                                    {
+                                      "title": "By index",
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                    },
+                                    {
+                                      "title": "By name",
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                    },
+                                    {
+                                      "title": "By criteria",
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "minProperties": 1,
+                                      "properties": {
+                                        "name": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
+                                          "description": "Assigned window name."
+                                        },
+                                        "index": {
+                                          "type": "integer",
+                                          "description": "Index in creation order. Negative counts from the end."
+                                        },
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Window title to match. Substring, or /regex/."
+                                        }
+                                      }
+                                    }
+                                  ]
+                                },
                                 "windowOrTabSelector": {
                                   "title": "Window/tab selector",
                                   "anyOf": [
@@ -2389,13 +2994,18 @@
                                 }
                               },
                               {
-                                "browser": "chrome",
-                                "name": "shopper"
+                                "app": "notepad"
+                              },
+                              {
+                                "app": "notepad",
+                                "window": {
+                                  "title": "/Find/"
+                                }
                               }
                             ]
                           },
                           "waitUntil": {
-                            "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.",
+                            "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, an app surface accepts `delayMs`/`find`. No condition applies by default.",
                             "anyOf": [
                               {
                                 "title": "Process readiness",
@@ -2432,8 +3042,118 @@
                                     "minimum": 0
                                   },
                                   "find": {
+                                    "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                    "additionalProperties": false,
+                                    "anyOf": [
+                                      {
+                                        "required": [
+                                          "selector"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementText"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementId"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementTestId"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementClass"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementAttribute"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementAria"
+                                        ]
+                                      }
+                                    ],
+                                    "properties": {
+                                      "selector": {
+                                        "type": "string",
+                                        "description": "CSS selector for the element to wait for."
+                                      },
+                                      "elementText": {
+                                        "type": "string",
+                                        "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementId": {
+                                        "type": "string",
+                                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementTestId": {
+                                        "type": "string",
+                                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementClass": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        ],
+                                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                      },
+                                      "elementAttribute": {
+                                        "type": "object",
+                                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                        "additionalProperties": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "number"
+                                            },
+                                            {
+                                              "type": "boolean"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "elementAria": {
+                                        "type": "string",
+                                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "title": "App readiness",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                  "delayMs": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Fixed delay (ms)."
+                                  },
+                                  "find": {
+                                    "title": "Element criteria",
+                                    "type": "object",
+                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -2737,8 +3457,139 @@
                                   "minimum": 0
                                 },
                                 "find": {
+                                  "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                  "additionalProperties": false,
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "selector"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementText"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementTestId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementClass"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAttribute"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAria"
+                                      ]
+                                    }
+                                  ],
+                                  "properties": {
+                                    "selector": {
+                                      "type": "string",
+                                      "description": "CSS selector for the element to wait for."
+                                    },
+                                    "elementText": {
+                                      "type": "string",
+                                      "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementId": {
+                                      "type": "string",
+                                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementTestId": {
+                                      "type": "string",
+                                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementClass": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      ],
+                                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                    },
+                                    "elementAttribute": {
+                                      "type": "object",
+                                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                      "additionalProperties": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "boolean"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "elementAria": {
+                                      "type": "string",
+                                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "title": "An app surface takes app readiness",
+                        "if": {
+                          "required": [
+                            "surface",
+                            "waitUntil"
+                          ],
+                          "properties": {
+                            "surface": {
+                              "type": "object",
+                              "required": [
+                                "app"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "waitUntil": {
+                              "title": "App readiness",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "minProperties": 1,
+                              "properties": {
+                                "delayMs": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "description": "Fixed delay (ms)."
+                                },
+                                "find": {
+                                  "title": "Element criteria",
+                                  "type": "object",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -2875,8 +3726,9 @@
                                   "minimum": 0
                                 },
                                 "find": {
+                                  "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -3145,7 +3997,7 @@
                       "webkit",
                       "edge"
                     ],
-                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                    "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                   },
                   "name": {
                     "type": "string",
@@ -3154,7 +4006,7 @@
                     "transform": [
                       "trim"
                     ],
-                    "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                    "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                   },
                   "window": {
                     "description": "Which window to act on. Omit to use the active window.",
@@ -3423,7 +4275,7 @@
                                   "webkit",
                                   "edge"
                                 ],
-                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                               },
                               "name": {
                                 "type": "string",
@@ -3432,7 +4284,7 @@
                                 "transform": [
                                   "trim"
                                 ],
-                                "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                               },
                               "window": {
                                 "description": "Which window to act on. Omit to use the active window.",
@@ -3700,7 +4552,7 @@
                                     "webkit",
                                     "edge"
                                   ],
-                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                  "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                 },
                                 "name": {
                                   "type": "string",
@@ -3709,7 +4561,7 @@
                                   "transform": [
                                     "trim"
                                   ],
-                                  "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                  "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                 },
                                 "window": {
                                   "description": "Which window to act on. Omit to use the active window.",
@@ -3965,7 +4817,7 @@
                           "surface": {
                             "$schema": "http://json-schema.org/draft-07/schema#",
                             "title": "surface",
-                            "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
+                            "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
                             "anyOf": [
                               {
                                 "title": "Surface (by name)",
@@ -4013,7 +4865,7 @@
                                       "webkit",
                                       "edge"
                                     ],
-                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                    "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                   },
                                   "name": {
                                     "type": "string",
@@ -4022,7 +4874,7 @@
                                     "transform": [
                                       "trim"
                                     ],
-                                    "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                    "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                   },
                                   "window": {
                                     "description": "Which window to act on. Omit to use the active window.",
@@ -4129,6 +4981,72 @@
                                     ]
                                   }
                                 }
+                              },
+                              {
+                                "title": "App surface",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "app"
+                                ],
+                                "properties": {
+                                  "app": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                  },
+                                  "window": {
+                                    "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                    "title": "App window selector",
+                                    "anyOf": [
+                                      {
+                                        "title": "By index",
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                      },
+                                      {
+                                        "title": "By name",
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                      },
+                                      {
+                                        "title": "By criteria",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "minProperties": 1,
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Assigned window name."
+                                          },
+                                          "index": {
+                                            "type": "integer",
+                                            "description": "Index in creation order. Negative counts from the end."
+                                          },
+                                          "title": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Window title to match. Substring, or /regex/."
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
                               }
                             ],
                             "components": {
@@ -4194,7 +5112,7 @@
                                         "webkit",
                                         "edge"
                                       ],
-                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                      "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                     },
                                     "name": {
                                       "type": "string",
@@ -4203,7 +5121,7 @@
                                       "transform": [
                                         "trim"
                                       ],
-                                      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                      "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                     },
                                     "window": {
                                       "description": "Which window to act on. Omit to use the active window.",
@@ -4311,6 +5229,119 @@
                                     }
                                   }
                                 },
+                                "app": {
+                                  "title": "App surface",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "app"
+                                  ],
+                                  "properties": {
+                                    "app": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                    },
+                                    "window": {
+                                      "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                      "title": "App window selector",
+                                      "anyOf": [
+                                        {
+                                          "title": "By index",
+                                          "type": "integer",
+                                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                        },
+                                        {
+                                          "title": "By name",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
+                                          "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                        },
+                                        {
+                                          "title": "By criteria",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "minProperties": 1,
+                                          "properties": {
+                                            "name": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ],
+                                              "description": "Assigned window name."
+                                            },
+                                            "index": {
+                                              "type": "integer",
+                                              "description": "Index in creation order. Negative counts from the end."
+                                            },
+                                            "title": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Window title to match. Substring, or /regex/."
+                                            }
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "appWindowSelector": {
+                                  "title": "App window selector",
+                                  "description": "Same grammar as the browser window selector, minus `url` (meaningless for native windows).",
+                                  "anyOf": [
+                                    {
+                                      "title": "By index",
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                    },
+                                    {
+                                      "title": "By name",
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                    },
+                                    {
+                                      "title": "By criteria",
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "minProperties": 1,
+                                      "properties": {
+                                        "name": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
+                                          "description": "Assigned window name."
+                                        },
+                                        "index": {
+                                          "type": "integer",
+                                          "description": "Index in creation order. Negative counts from the end."
+                                        },
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Window title to match. Substring, or /regex/."
+                                        }
+                                      }
+                                    }
+                                  ]
+                                },
                                 "windowOrTabSelector": {
                                   "title": "Window/tab selector",
                                   "anyOf": [
@@ -4386,13 +5417,18 @@
                                 }
                               },
                               {
-                                "browser": "chrome",
-                                "name": "shopper"
+                                "app": "notepad"
+                              },
+                              {
+                                "app": "notepad",
+                                "window": {
+                                  "title": "/Find/"
+                                }
                               }
                             ]
                           },
                           "waitUntil": {
-                            "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.",
+                            "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, an app surface accepts `delayMs`/`find`. No condition applies by default.",
                             "anyOf": [
                               {
                                 "title": "Process readiness",
@@ -4429,8 +5465,118 @@
                                     "minimum": 0
                                   },
                                   "find": {
+                                    "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                    "additionalProperties": false,
+                                    "anyOf": [
+                                      {
+                                        "required": [
+                                          "selector"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementText"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementId"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementTestId"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementClass"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementAttribute"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementAria"
+                                        ]
+                                      }
+                                    ],
+                                    "properties": {
+                                      "selector": {
+                                        "type": "string",
+                                        "description": "CSS selector for the element to wait for."
+                                      },
+                                      "elementText": {
+                                        "type": "string",
+                                        "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementId": {
+                                        "type": "string",
+                                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementTestId": {
+                                        "type": "string",
+                                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementClass": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        ],
+                                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                      },
+                                      "elementAttribute": {
+                                        "type": "object",
+                                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                        "additionalProperties": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "number"
+                                            },
+                                            {
+                                              "type": "boolean"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "elementAria": {
+                                        "type": "string",
+                                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "title": "App readiness",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                  "delayMs": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Fixed delay (ms)."
+                                  },
+                                  "find": {
+                                    "title": "Element criteria",
+                                    "type": "object",
+                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -4734,8 +5880,139 @@
                                   "minimum": 0
                                 },
                                 "find": {
+                                  "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                  "additionalProperties": false,
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "selector"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementText"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementTestId"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementClass"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAttribute"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "elementAria"
+                                      ]
+                                    }
+                                  ],
+                                  "properties": {
+                                    "selector": {
+                                      "type": "string",
+                                      "description": "CSS selector for the element to wait for."
+                                    },
+                                    "elementText": {
+                                      "type": "string",
+                                      "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementId": {
+                                      "type": "string",
+                                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementTestId": {
+                                      "type": "string",
+                                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementClass": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      ],
+                                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                    },
+                                    "elementAttribute": {
+                                      "type": "object",
+                                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                      "additionalProperties": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "boolean"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "elementAria": {
+                                      "type": "string",
+                                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "title": "An app surface takes app readiness",
+                        "if": {
+                          "required": [
+                            "surface",
+                            "waitUntil"
+                          ],
+                          "properties": {
+                            "surface": {
+                              "type": "object",
+                              "required": [
+                                "app"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "waitUntil": {
+                              "title": "App readiness",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "minProperties": 1,
+                              "properties": {
+                                "delayMs": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "description": "Fixed delay (ms)."
+                                },
+                                "find": {
+                                  "title": "Element criteria",
+                                  "type": "object",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -4872,8 +6149,9 @@
                                   "minimum": 0
                                 },
                                 "find": {
+                                  "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -5028,7 +6306,7 @@
                             "surface": {
                               "$schema": "http://json-schema.org/draft-07/schema#",
                               "title": "surface",
-                              "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
+                              "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
                               "anyOf": [
                                 {
                                   "title": "Surface (by name)",
@@ -5076,7 +6354,7 @@
                                         "webkit",
                                         "edge"
                                       ],
-                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                      "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                     },
                                     "name": {
                                       "type": "string",
@@ -5085,7 +6363,7 @@
                                       "transform": [
                                         "trim"
                                       ],
-                                      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                      "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                     },
                                     "window": {
                                       "description": "Which window to act on. Omit to use the active window.",
@@ -5192,6 +6470,72 @@
                                       ]
                                     }
                                   }
+                                },
+                                {
+                                  "title": "App surface",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "app"
+                                  ],
+                                  "properties": {
+                                    "app": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                    },
+                                    "window": {
+                                      "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                      "title": "App window selector",
+                                      "anyOf": [
+                                        {
+                                          "title": "By index",
+                                          "type": "integer",
+                                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                        },
+                                        {
+                                          "title": "By name",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
+                                          "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                        },
+                                        {
+                                          "title": "By criteria",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "minProperties": 1,
+                                          "properties": {
+                                            "name": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ],
+                                              "description": "Assigned window name."
+                                            },
+                                            "index": {
+                                              "type": "integer",
+                                              "description": "Index in creation order. Negative counts from the end."
+                                            },
+                                            "title": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Window title to match. Substring, or /regex/."
+                                            }
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
                                 }
                               ],
                               "components": {
@@ -5257,7 +6601,7 @@
                                           "webkit",
                                           "edge"
                                         ],
-                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                        "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
                                       },
                                       "name": {
                                         "type": "string",
@@ -5266,7 +6610,7 @@
                                         "transform": [
                                           "trim"
                                         ],
-                                        "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                                        "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
                                       },
                                       "window": {
                                         "description": "Which window to act on. Omit to use the active window.",
@@ -5374,6 +6718,119 @@
                                       }
                                     }
                                   },
+                                  "app": {
+                                    "title": "App surface",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "app"
+                                    ],
+                                    "properties": {
+                                      "app": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                      },
+                                      "window": {
+                                        "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                        "title": "App window selector",
+                                        "anyOf": [
+                                          {
+                                            "title": "By index",
+                                            "type": "integer",
+                                            "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                          },
+                                          {
+                                            "title": "By name",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                          },
+                                          {
+                                            "title": "By criteria",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "minProperties": 1,
+                                            "properties": {
+                                              "name": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "pattern": "\\S",
+                                                "transform": [
+                                                  "trim"
+                                                ],
+                                                "description": "Assigned window name."
+                                              },
+                                              "index": {
+                                                "type": "integer",
+                                                "description": "Index in creation order. Negative counts from the end."
+                                              },
+                                              "title": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Window title to match. Substring, or /regex/."
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "appWindowSelector": {
+                                    "title": "App window selector",
+                                    "description": "Same grammar as the browser window selector, minus `url` (meaningless for native windows).",
+                                    "anyOf": [
+                                      {
+                                        "title": "By index",
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                      },
+                                      {
+                                        "title": "By name",
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                      },
+                                      {
+                                        "title": "By criteria",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "minProperties": 1,
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Assigned window name."
+                                          },
+                                          "index": {
+                                            "type": "integer",
+                                            "description": "Index in creation order. Negative counts from the end."
+                                          },
+                                          "title": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Window title to match. Substring, or /regex/."
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
                                   "windowOrTabSelector": {
                                     "title": "Window/tab selector",
                                     "anyOf": [
@@ -5449,13 +6906,18 @@
                                   }
                                 },
                                 {
-                                  "browser": "chrome",
-                                  "name": "shopper"
+                                  "app": "notepad"
+                                },
+                                {
+                                  "app": "notepad",
+                                  "window": {
+                                    "title": "/Find/"
+                                  }
                                 }
                               ]
                             },
                             "waitUntil": {
-                              "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`. No condition applies by default.",
+                              "description": "After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, an app surface accepts `delayMs`/`find`. No condition applies by default.",
                               "anyOf": [
                                 {
                                   "title": "Process readiness",
@@ -5492,8 +6954,118 @@
                                       "minimum": 0
                                     },
                                     "find": {
+                                      "title": "Element criteria",
                                       "type": "object",
-                                      "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                      "additionalProperties": false,
+                                      "anyOf": [
+                                        {
+                                          "required": [
+                                            "selector"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "elementText"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "elementId"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "elementTestId"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "elementClass"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "elementAttribute"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "elementAria"
+                                          ]
+                                        }
+                                      ],
+                                      "properties": {
+                                        "selector": {
+                                          "type": "string",
+                                          "description": "CSS selector for the element to wait for."
+                                        },
+                                        "elementText": {
+                                          "type": "string",
+                                          "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "elementId": {
+                                          "type": "string",
+                                          "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "elementTestId": {
+                                          "type": "string",
+                                          "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "elementClass": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          ],
+                                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                        },
+                                        "elementAttribute": {
+                                          "type": "object",
+                                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                          "additionalProperties": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "number"
+                                              },
+                                              {
+                                                "type": "boolean"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "elementAria": {
+                                          "type": "string",
+                                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "title": "App readiness",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "delayMs": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "description": "Fixed delay (ms)."
+                                    },
+                                    "find": {
+                                      "title": "Element criteria",
+                                      "type": "object",
+                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                       "additionalProperties": false,
                                       "anyOf": [
                                         {
@@ -5797,8 +7369,139 @@
                                     "minimum": 0
                                   },
                                   "find": {
+                                    "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
+                                    "additionalProperties": false,
+                                    "anyOf": [
+                                      {
+                                        "required": [
+                                          "selector"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementText"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementId"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementTestId"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementClass"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementAttribute"
+                                        ]
+                                      },
+                                      {
+                                        "required": [
+                                          "elementAria"
+                                        ]
+                                      }
+                                    ],
+                                    "properties": {
+                                      "selector": {
+                                        "type": "string",
+                                        "description": "CSS selector for the element to wait for."
+                                      },
+                                      "elementText": {
+                                        "type": "string",
+                                        "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementId": {
+                                        "type": "string",
+                                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementTestId": {
+                                        "type": "string",
+                                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementClass": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        ],
+                                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                                      },
+                                      "elementAttribute": {
+                                        "type": "object",
+                                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                        "additionalProperties": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "number"
+                                            },
+                                            {
+                                              "type": "boolean"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "elementAria": {
+                                        "type": "string",
+                                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "title": "An app surface takes app readiness",
+                          "if": {
+                            "required": [
+                              "surface",
+                              "waitUntil"
+                            ],
+                            "properties": {
+                              "surface": {
+                                "type": "object",
+                                "required": [
+                                  "app"
+                                ]
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "waitUntil": {
+                                "title": "App readiness",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                  "delayMs": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Fixed delay (ms)."
+                                  },
+                                  "find": {
+                                    "title": "Element criteria",
+                                    "type": "object",
+                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -5935,8 +7638,9 @@
                                     "minimum": 0
                                   },
                                   "find": {
+                                    "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present in the DOM. At least one finding field must be specified.",
+                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {

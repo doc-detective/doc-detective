@@ -3074,6 +3074,215 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("native app surfaces (phase A1): startSurface + app surface branch", function () {
+      // --- startSurface: the app opener ---
+
+      it("should validate a minimal startSurface (app path only)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "C:\\Windows\\System32\\notepad.exe" },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a full desktop startSurface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "/Applications/Calculator.app",
+              name: "calc",
+              args: ["--reset"],
+              workingDirectory: "./sandbox",
+              env: { LOG_LEVEL: "debug" },
+              driverOptions: { "appium:newCommandTimeout": 300 },
+              waitUntil: { delayMs: 500, find: { elementText: "Ready" } },
+              timeout: 30000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate the reserved mobile fields (install/activity/device object)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.myapp",
+              install: "./build/MyApp.apk",
+              activity: ".MainActivity",
+              device: {
+                platform: "android",
+                name: "Pixel_7",
+                osVersion: "14",
+                headless: true,
+              },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a device string reference and the reserved device fields", function () {
+        const byRef = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "com.example.chat", device: "second-phone" },
+          },
+        });
+        expect(byRef.valid).to.be.true;
+
+        const reserved = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.myapp",
+              device: {
+                platform: "ios",
+                name: "iPhone 15",
+                orientation: "landscape",
+                type: "device",
+                udid: "00008110-001234567890ABCD",
+                provider: { browserstack: { app: "bs://abc123" } },
+              },
+            },
+          },
+        });
+        expect(reserved.valid).to.be.true;
+        expect(reserved.errors).to.equal("");
+      });
+
+      it("should reject a startSurface without app", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { startSurface: { name: "calc" } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject an empty app identifier", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { startSurface: { app: " " } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a device without platform", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "com.example.app", device: { name: "Pixel_7" } },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a desktop OS as a device platform", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { platform: "windows" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject unknown startSurface fields", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "notepad.exe", automationName: "NovaWindows" },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a startSurface waitUntil.find with no finding fields", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "notepad.exe", waitUntil: { find: {} } },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // --- surface: the app reference branch ---
+
+      it("should validate an app surface reference with window selectors", function () {
+        for (const window of [undefined, "main", -1, { title: "/Find/" }]) {
+          const surface =
+            window === undefined ? { app: "notepad" } : { app: "notepad", window };
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { closeSurface: surface },
+          });
+          expect(result.valid, JSON.stringify(surface)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject a url criterion on an app window selector", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            closeSurface: { app: "notepad", window: { url: "/x/" } },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a tab selector on an app surface (apps have windows, no tabs)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            closeSurface: { app: "notepad", tab: "cart" },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate type to an app surface with app readiness", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["hello"],
+              surface: { app: "notepad" },
+              waitUntil: { delayMs: 250 },
+              timeout: 5000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject process readiness (stdio) on an app surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["hello"],
+              surface: { app: "notepad" },
+              waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+    });
+
     describe("browser surfaces (Phase 3): window/tab targeting", function () {
       // --- surface browser branch shapes ---
 

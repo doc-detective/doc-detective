@@ -50,6 +50,7 @@ async function dereferenceSchemas() {
     "screenshot_v3.schema.json",
     "sourceIntegration_v3.schema.json",
     "spec_v3.schema.json",
+    "startSurface_v3.schema.json",
     "step_v3.schema.json",
     "stopRecord_v3.schema.json",
     "surface_v3.schema.json",

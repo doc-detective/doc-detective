@@ -456,6 +456,23 @@
           "$ref": "#/components/schemas/common"
         },
         {
+          "type": "object",
+          "required": ["startSurface"],
+          "properties": {
+            "startSurface": {
+              "$ref": "startSurface_v3.schema.json#"
+            }
+          },
+          "title": "startSurface"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
           "title": "loadVariables",
           "type": "object",
           "required": ["loadVariables"],
