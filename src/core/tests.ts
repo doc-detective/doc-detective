@@ -3901,7 +3901,11 @@ async function startAppiumServer(
   // must be homed where the lazily-installed native driver lives).
   const env =
     display || extraEnv
-      ? { ...process.env, ...(display ? { DISPLAY: display } : {}), ...extraEnv }
+      ? {
+          ...process.env,
+          ...(display ? { DISPLAY: display } : {}),
+          ...(extraEnv ?? {}),
+        }
       : process.env;
   const proc: any = spawn(
     process.execPath,

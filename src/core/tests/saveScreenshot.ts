@@ -222,6 +222,17 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     }
   }
 
+  // In an app-only context (no browser driver), a screenshot step that omits
+  // `surface` has nothing to capture — fail with the fix named instead of a
+  // TypeError on the missing driver. Checked BEFORE the path/crop handling
+  // below, which dereferences `driver` for crop geometry.
+  if (!captureDriver) {
+    result.status = "FAIL";
+    result.description =
+      'No browser session is running in this context to capture. Target an app surface explicitly (e.g. "surface": { "app": "…" }).';
+    return result;
+  }
+
   // Convert boolean to string
   if (typeof step.screenshot === "boolean") {
     step.screenshot = { path: `${step.stepId}.png` };
@@ -463,16 +474,6 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
 
     // Wait for scroll to complete
     await driver.pause(100);
-  }
-
-  // In an app-only context (no browser driver), a screenshot step that omits
-  // `surface` has nothing to capture — fail with the fix named instead of a
-  // TypeError on the missing driver.
-  if (!captureDriver) {
-    result.status = "FAIL";
-    result.description =
-      'No browser session is running in this context to capture. Target an app surface explicitly (e.g. "surface": { "app": "…" }).';
-    return result;
   }
 
   // Hide the synthetic cursor during capture so it isn't baked into the image,

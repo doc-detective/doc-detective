@@ -261,6 +261,23 @@ describe("saveScreenshot app-surface branch", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /No browser session/);
     assert.match(result.description, /"app"/);
+
+    // Same guard must fire BEFORE the crop path dereferences the missing
+    // browser driver for element geometry.
+    const withCrop = await saveScreenshot({
+      config: {},
+      step: {
+        screenshot: {
+          path: path.join(dir, "c.png"),
+          overwrite: "true",
+          crop: "#header",
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(withCrop.status, "FAIL");
+    assert.match(withCrop.description, /No browser session/);
   });
 });
 
