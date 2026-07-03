@@ -89,6 +89,38 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("An app-driver test on a non-Windows host SKIPs via the app preflight with gating guidance", async function () {
+    // Covers runContext's app-surface preflight block (native app phase A1).
+    // Windows hosts would attempt a REAL driver install here, and launching
+    // native sessions inside the mocha process is exactly the interaction
+    // #501 tracks — so this asserts the SKIP leg on the platforms where the
+    // preflight gates, and the fixture matrix's apps group covers the
+    // Windows launch out-of-process.
+    if (process.platform === "win32") this.skip();
+    const appTest = {
+      tests: [
+        {
+          testId: "app-preflight",
+          steps: [{ startSurface: { app: "/usr/bin/never-launched" } }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-app-preflight-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(appTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /Windows only in this phase/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [

@@ -5,6 +5,8 @@
 // fs, no env.
 import assert from "node:assert/strict";
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 import {
   classifyAppIdentifier,
   defaultAppSurfaceName,
@@ -20,6 +22,7 @@ import {
   findAppElement,
   closeAppSurface,
   teardownAppSession,
+  invalidateStaleAppiumManifest,
 } from "../dist/core/tests/appSurface.js";
 
 describe("classifyAppIdentifier", function () {
@@ -238,6 +241,40 @@ describe("buildAppLocator", function () {
   });
 });
 
+describe("invalidateStaleAppiumManifest", function () {
+  const manifestDir = (home) =>
+    path.join(home, "node_modules", ".cache", "appium");
+
+  it("deletes a manifest that predates the driver so Appium rescans", function () {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"));
+    fs.mkdirSync(manifestDir(home), { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir(home), "extensions.yaml"),
+      "drivers:\n  chromium: {}\n"
+    );
+    invalidateStaleAppiumManifest(home);
+    assert.equal(fs.existsSync(manifestDir(home)), false);
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("keeps a manifest that already lists the driver, and no-ops when absent", function () {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"));
+    fs.mkdirSync(manifestDir(home), { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir(home), "extensions.yaml"),
+      "drivers:\n  novawindows:\n    pkgName: appium-novawindows-driver\n"
+    );
+    invalidateStaleAppiumManifest(home);
+    assert.equal(fs.existsSync(manifestDir(home)), true);
+    fs.rmSync(home, { recursive: true, force: true });
+
+    // Absent manifest: nothing to do, nothing thrown.
+    invalidateStaleAppiumManifest(
+      fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"))
+    );
+  });
+});
+
 describe("appSurfacePreflight", function () {
   it("skips non-Windows platforms with gating guidance", async function () {
     const outcome = await appSurfacePreflight({
@@ -411,6 +448,61 @@ describe("startAppSurface", function () {
     assert.equal(result.status, "PASS");
     assert.deepEqual(handle.crop, { x: 10, y: 20, w: 800, h: 600 });
     assert.equal(handle.pendingAppWindowCrop, false);
+  });
+
+  it("waits for element readiness, and tears the session down when readiness never comes", async function () {
+    // Readiness success: waitUntil.find resolves -> surface registers.
+    const readyDriver = {
+      async deleteSession() {},
+      $: async () => ({ async waitForExist() {} }),
+    };
+    const okSession = preflighted();
+    const ok = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "C:\\x\\app.exe",
+          waitUntil: { delayMs: 1, find: { elementText: "Ready" } },
+          timeout: 50,
+        },
+      },
+      appSession: okSession,
+      platform: "windows",
+      serverDeps: okServerDeps(readyDriver),
+    });
+    assert.equal(ok.status, "PASS");
+    assert.equal(okSession.surfaces.size, 1);
+
+    // Readiness failure: the launched session is deleted and the step FAILs.
+    let deleted = 0;
+    const neverReady = {
+      async deleteSession() {
+        deleted++;
+      },
+      $: async () => ({
+        async waitForExist() {
+          throw new Error("nope");
+        },
+      }),
+    };
+    const failSession = preflighted();
+    const fail = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "C:\\x\\app.exe",
+          waitUntil: { find: { elementText: "Ready" } },
+          timeout: 10,
+        },
+      },
+      appSession: failSession,
+      platform: "windows",
+      serverDeps: okServerDeps(neverReady),
+    });
+    assert.equal(fail.status, "FAIL");
+    assert.match(fail.description, /never became ready/);
+    assert.equal(deleted, 1);
+    assert.equal(failSession.surfaces.size, 0);
   });
 
   it("fails cleanly when the session can't start", async function () {

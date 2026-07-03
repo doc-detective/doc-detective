@@ -37,6 +37,9 @@ export {
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
+  // Exported as a test seam: the manifest-staleness rules are load-bearing
+  // (a stale manifest makes the lazily-installed driver invisible to Appium).
+  invalidateStaleAppiumManifest,
 };
 export type { AppSessionState, AppSurfaceEntry };
 
