@@ -5,7 +5,9 @@ import {
   getDriverCapabilities,
   combinationKey,
   warmUpDecision,
+  contextRequirementsSkipMessage,
 } from "../dist/core/tests.js";
+import { resolveContexts } from "../dist/core/resolveTests.js";
 
 // A step that requires a browser driver, and one that doesn't.
 const driverStep = { goTo: "https://example.com" };
@@ -138,6 +140,110 @@ describe("isSupportedContext", function () {
       isSupportedContext({ context, apps, platform: "linux" }),
       false
     );
+  });
+});
+
+describe("resolveContexts with platform-less runOn entries", function () {
+  // A `requires`-only runOn entry is legal (context_v3 has no required
+  // fields): it must expand without crashing, leaving `platform`/`browser`
+  // unset so runContext fills them at run time — the same semantics as a
+  // test with no runOn at all.
+  it("expands a requires-only entry for a non-driver test", function () {
+    const contexts = resolveContexts({
+      contexts: [{ requires: "node" }],
+      test: { testId: "t", steps: [nonDriverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 1);
+    assert.equal(contexts[0].platform, undefined);
+    assert.equal(contexts[0].requires, "node");
+  });
+
+  it("expands a requires-only entry for a driver test without a browser (runtime default fills it)", function () {
+    const contexts = resolveContexts({
+      contexts: [{ requires: "node" }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 1);
+    assert.equal(contexts[0].browser, undefined);
+    assert.equal(contexts[0].requires, "node");
+  });
+
+  it("carries requires onto each platform-expanded static context", function () {
+    const contexts = resolveContexts({
+      contexts: [{ platforms: ["linux", "windows"], requires: ["node"] }],
+      test: { testId: "t", steps: [nonDriverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 2);
+    for (const context of contexts) {
+      assert.deepEqual(context.requires, ["node"]);
+    }
+    assert.deepEqual(
+      contexts.map((c) => c.platform),
+      ["linux", "windows"]
+    );
+  });
+});
+
+describe("contextRequirementsSkipMessage", function () {
+  // Deps that report nothing available / everything available.
+  const nothing = {
+    commandExists: () => false,
+    existsSync: () => false,
+    env: {},
+  };
+  const everything = {
+    commandExists: () => true,
+    existsSync: () => true,
+    env: { API_TOKEN: "set" },
+  };
+
+  it("returns null when the context has no requires", function () {
+    assert.equal(
+      contextRequirementsSkipMessage({ context: { platform: "linux" } }),
+      null
+    );
+  });
+
+  it("returns null when every requirement is met", function () {
+    assert.equal(
+      contextRequirementsSkipMessage({
+        context: {
+          platform: "linux",
+          requires: { commands: ["node"], env: ["API_TOKEN"] },
+        },
+        deps: everything,
+      }),
+      null
+    );
+  });
+
+  it("names each unmet requirement in the skip message", function () {
+    const message = contextRequirementsSkipMessage({
+      context: {
+        platform: "windows",
+        requires: {
+          commands: ["adb"],
+          files: ["$HOME/.config/app.toml"],
+          env: ["API_TOKEN"],
+        },
+      },
+      deps: nothing,
+    });
+    assert.ok(message.startsWith("Skipping context on 'windows'"));
+    assert.match(message, /command "adb"/);
+    assert.match(message, /file "\$HOME\/\.config\/app\.toml"/);
+    assert.match(message, /environment variable "API_TOKEN"/);
+  });
+
+  it("handles the string shorthand as a required command", function () {
+    const message = contextRequirementsSkipMessage({
+      context: { platform: "mac", requires: "claude" },
+      deps: nothing,
+    });
+    assert.match(message, /command "claude"/);
   });
 });
 

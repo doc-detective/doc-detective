@@ -29,6 +29,7 @@ import {
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
+  evaluateContextRequirements,
 } from "../dist/core/utils.js";
 
 describe("core/utils coverage", function () {
@@ -538,6 +539,158 @@ describe("core/utils coverage", function () {
       // run the real Linux spawnCommand path and break hermeticity on CI.
       if (process.platform !== "win32") this.skip();
       assert.equal(await inContainer(), false);
+    });
+  });
+
+  describe("evaluateContextRequirements", function () {
+    // Fully-injected deps so nothing touches the real PATH/fs/env.
+    const deps = ({ commands = [], files = [], env = {} } = {}) => ({
+      commandExists: (cmd) => commands.includes(cmd),
+      existsSync: (p) => files.includes(p),
+      env,
+    });
+
+    it("is met when requires is absent", function () {
+      assert.deepEqual(evaluateContextRequirements({ requires: undefined }), {
+        met: true,
+        missing: [],
+      });
+      assert.deepEqual(evaluateContextRequirements({ requires: null }), {
+        met: true,
+        missing: [],
+      });
+    });
+
+    it("treats a string as a required command", function () {
+      const ok = evaluateContextRequirements({
+        requires: "node",
+        deps: deps({ commands: ["node"] }),
+      });
+      assert.deepEqual(ok, { met: true, missing: [] });
+
+      const miss = evaluateContextRequirements({
+        requires: "definitely-not-a-command",
+        deps: deps(),
+      });
+      assert.equal(miss.met, false);
+      assert.equal(miss.missing.length, 1);
+      assert.match(miss.missing[0], /command/);
+      assert.match(miss.missing[0], /definitely-not-a-command/);
+    });
+
+    it("ANDs an array of required commands", function () {
+      const result = evaluateContextRequirements({
+        requires: ["node", "ffmpeg"],
+        deps: deps({ commands: ["node"] }),
+      });
+      assert.equal(result.met, false);
+      assert.equal(result.missing.length, 1);
+      assert.match(result.missing[0], /ffmpeg/);
+    });
+
+    it("checks commands, files, and env in the object form", function () {
+      const result = evaluateContextRequirements({
+        requires: {
+          commands: ["adb"],
+          files: ["/opt/app.toml"],
+          env: ["API_TOKEN"],
+        },
+        deps: deps({
+          commands: ["adb"],
+          files: ["/opt/app.toml"],
+          env: { API_TOKEN: "secret" },
+        }),
+      });
+      assert.deepEqual(result, { met: true, missing: [] });
+    });
+
+    it("reports every unmet requirement, not just the first", function () {
+      const result = evaluateContextRequirements({
+        requires: { commands: ["adb"], files: ["/nope"], env: ["MISSING"] },
+        deps: deps(),
+      });
+      assert.equal(result.met, false);
+      assert.equal(result.missing.length, 3);
+      assert.match(result.missing[0], /adb/);
+      assert.match(result.missing[1], /\/nope/);
+      assert.match(result.missing[2], /MISSING/);
+    });
+
+    it("treats an empty env var value as unmet", function () {
+      const result = evaluateContextRequirements({
+        requires: { env: ["EMPTY"] },
+        deps: deps({ env: { EMPTY: "" } }),
+      });
+      assert.equal(result.met, false);
+      assert.match(result.missing[0], /EMPTY/);
+    });
+
+    it("expands $VAR in file entries against the injected env", function () {
+      const seen = [];
+      const result = evaluateContextRequirements({
+        requires: { files: ["$CONFIG_DIR/app.toml"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: (p) => {
+            seen.push(p);
+            return p === "/etc/myapp/app.toml";
+          },
+          env: { CONFIG_DIR: "/etc/myapp" },
+        },
+      });
+      assert.deepEqual(seen, ["/etc/myapp/app.toml"]);
+      assert.equal(result.met, true);
+    });
+
+    it("falls back $HOME to USERPROFILE when HOME is unset", function () {
+      const seen = [];
+      evaluateContextRequirements({
+        requires: { files: ["$HOME/app.toml"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: (p) => {
+            seen.push(p);
+            return true;
+          },
+          env: { USERPROFILE: "C:\\Users\\tester" },
+        },
+      });
+      assert.deepEqual(seen, ["C:\\Users\\tester/app.toml"]);
+    });
+
+    it("leaves an unexpandable $VAR literal (so the file check fails loudly)", function () {
+      const seen = [];
+      const result = evaluateContextRequirements({
+        requires: { files: ["$NOT_SET/app.toml"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: (p) => {
+            seen.push(p);
+            return false;
+          },
+          env: {},
+        },
+      });
+      assert.deepEqual(seen, ["$NOT_SET/app.toml"]);
+      assert.equal(result.met, false);
+    });
+
+    it("drops whitespace-only and non-string entries (defense-in-depth)", function () {
+      const result = evaluateContextRequirements({
+        requires: { commands: ["  ", 42], env: [""] },
+        deps: deps(),
+      });
+      assert.deepEqual(result, { met: true, missing: [] });
+    });
+
+    it("resolves a real command on the PATH with default deps", function () {
+      // `node` is running this test, so it must be resolvable on the PATH.
+      const ok = evaluateContextRequirements({ requires: "node" });
+      assert.deepEqual(ok, { met: true, missing: [] });
+      const miss = evaluateContextRequirements({
+        requires: "doc-detective-no-such-binary-xyz",
+      });
+      assert.equal(miss.met, false);
     });
   });
 

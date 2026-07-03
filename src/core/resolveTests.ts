@@ -77,13 +77,23 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     const carry = { ...context };
     delete carry.platforms;
     delete carry.browsers;
-    context.platforms.forEach((platform: any) => {
+    // An entry may omit `platforms` (e.g. a `requires`-only gate) and, for
+    // driver tests, `browsers`. Expand those with an undefined slot so the
+    // static context carries no platform/browser key — runContext fills the
+    // current platform and default browser at run time, exactly as it does
+    // for a test with no runOn at all.
+    const platformsToExpand = context.platforms ?? [undefined];
+    const browsersToExpand = context.browsers ?? [undefined];
+    platformsToExpand.forEach((platform: any) => {
       if (!browserRequired) {
-        const staticContext = { ...carry, platform };
+        const staticContext = { ...carry };
+        if (platform !== undefined) staticContext.platform = platform;
         staticContexts.push(staticContext);
       } else {
-        context.browsers.forEach((browser: any) => {
-          const staticContext = { ...carry, platform, browser };
+        browsersToExpand.forEach((browser: any) => {
+          const staticContext = { ...carry };
+          if (platform !== undefined) staticContext.platform = platform;
+          if (browser !== undefined) staticContext.browser = browser;
           staticContexts.push(staticContext);
         });
       }

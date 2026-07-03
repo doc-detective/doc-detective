@@ -43,6 +43,48 @@ describe("Run tests successfully", function () {
     });
   });
 
+  it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
+    // Two tests: one gated on a command that cannot exist (context must land
+    // SKIPPED with a reason naming the missing command — never FAIL), and one
+    // gated on `node` (must actually run and PASS, proving the gate doesn't
+    // over-skip). Non-driver steps only, so this is hermetic on every OS.
+    const requiresTest = {
+      tests: [
+        {
+          testId: "gate-unmet",
+          runOn: [{ requires: "doc-detective-no-such-binary-xyz" }],
+          steps: [{ runShell: "echo should-never-run" }],
+        },
+        {
+          testId: "gate-met",
+          runOn: [{ requires: "node" }],
+          steps: [{ runShell: "echo ran" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-requires-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(requiresTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    try {
+      const result = await runTests(config);
+      const tests = result.specs[0].tests;
+      const unmet = tests.find((t) => t.testId === "gate-unmet");
+      const met = tests.find((t) => t.testId === "gate-met");
+
+      for (const ctx of unmet.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /unmet requirements/);
+        assert.match(ctx.resultDescription, /doc-detective-no-such-binary-xyz/);
+      }
+      assert.equal(unmet.result, "SKIPPED");
+
+      assert.equal(met.result, "PASS");
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [

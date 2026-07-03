@@ -46,6 +46,7 @@ export {
   rollUpResults,
   rollUpAssertions,
   createAppiumPool,
+  evaluateContextRequirements,
 };
 
 export type { BackgroundProcess };
@@ -1132,6 +1133,113 @@ async function log(config: any, level: string, message?: any) {
       console.log(JSON.stringify(message, null, 2));
     }
   }
+}
+
+// --- context `requires` gate ---------------------------------------------
+// Evaluates a context's `requires` capability gate (context_v3.requires):
+// `"node"` → `["node","ffmpeg"]` → `{ commands, files, env }`. All entries are
+// AND-ed; any miss marks the context SKIPPED (same non-failing outcome as a
+// `platforms` mismatch). Deps are injectable so tests never touch the real
+// PATH/fs/env.
+
+type RequirementDeps = {
+  env?: Record<string, string | undefined>;
+  existsSync?: (candidate: string) => boolean;
+  commandExists?: (command: string) => boolean;
+};
+
+// Trim and drop empty/non-string entries — defense-in-depth mirroring the
+// multi-value flag convention; AJV enforces the same shape for schema users.
+function cleanRequirementList(list: any): string[] {
+  const asArray = Array.isArray(list)
+    ? list
+    : typeof list === "string"
+      ? [list]
+      : [];
+  return asArray
+    .filter((entry: any) => typeof entry === "string")
+    .map((entry: string) => entry.trim())
+    .filter((entry: string) => entry.length > 0);
+}
+
+// Expand $VAR tokens against an injected env. `$HOME` falls back to
+// `USERPROFILE` (Windows shells often set only the latter). Unknown variables
+// stay literal so the file check fails visibly rather than silently matching.
+function expandRequirementPath(
+  entry: string,
+  env: Record<string, string | undefined>
+): string {
+  return entry.replace(/\$[A-Za-z0-9_]+/g, (token) => {
+    const name = token.substring(1);
+    const value =
+      env[name] ?? (name === "HOME" ? env.USERPROFILE : undefined);
+    return value !== undefined && value !== "" ? value : token;
+  });
+}
+
+// Cross-platform "is this command on the PATH" without spawning a shell.
+// Honors PATHEXT on Windows (e.g. `adb` → `adb.exe`); an entry containing a
+// path separator is checked directly instead of scanned for.
+function commandOnPath(
+  command: string,
+  env: Record<string, string | undefined>,
+  existsSync: (candidate: string) => boolean
+): boolean {
+  const hasSeparator = command.includes("/") || command.includes("\\");
+  const pathValue = env.PATH ?? env.Path ?? "";
+  const directories = hasSeparator
+    ? [""]
+    : pathValue.split(path.delimiter).filter(Boolean);
+  const extensions =
+    process.platform === "win32"
+      ? ["", ...(env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)]
+      : [""];
+  for (const directory of directories) {
+    const base = hasSeparator ? command : path.join(directory, command);
+    for (const extension of extensions) {
+      if (existsSync(base + extension)) return true;
+    }
+  }
+  return false;
+}
+
+function evaluateContextRequirements({
+  requires,
+  deps = {},
+}: {
+  requires: any;
+  deps?: RequirementDeps;
+}): { met: boolean; missing: string[] } {
+  const env = deps.env ?? (process.env as Record<string, string | undefined>);
+  const existsSync = deps.existsSync ?? fs.existsSync;
+  const commandExists =
+    deps.commandExists ??
+    ((command: string) => commandOnPath(command, env, existsSync));
+
+  const isObjectForm =
+    requires &&
+    typeof requires === "object" &&
+    !Array.isArray(requires);
+  const commands = cleanRequirementList(
+    isObjectForm ? requires.commands : requires
+  );
+  const files = cleanRequirementList(isObjectForm ? requires.files : []);
+  const envVars = cleanRequirementList(isObjectForm ? requires.env : []);
+
+  const missing: string[] = [];
+  for (const command of commands) {
+    if (!commandExists(command)) missing.push(`command "${command}"`);
+  }
+  for (const file of files) {
+    if (!existsSync(expandRequirementPath(file, env)))
+      missing.push(`file "${file}"`);
+  }
+  for (const name of envVars) {
+    const value = env[name];
+    if (value === undefined || value === "")
+      missing.push(`environment variable "${name}"`);
+  }
+  return { met: missing.length === 0, missing };
 }
 
 function replaceEnvs(stringOrObject: any): any {

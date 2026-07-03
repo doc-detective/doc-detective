@@ -213,6 +213,63 @@
         "explicit",
         "off"
       ]
+    },
+    "requires": {
+      "description": "Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.",
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "commands": {
+              "description": "Commands that must be resolvable on the PATH.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "minItems": 1
+            },
+            "files": {
+              "description": "Files that must exist. Entries support `$VAR` and `$HOME` expansion.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "minItems": 1
+            },
+            "env": {
+              "description": "Environment variables that must be set to a non-empty value.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "minItems": 1
+            }
+          },
+          "title": "Requirements"
+        }
+      ]
     }
   },
   "components": {
@@ -224,6 +281,11 @@
           "mac",
           "windows"
         ]
+      },
+      "requirement": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
       },
       "browserName": {
         "type": "string",

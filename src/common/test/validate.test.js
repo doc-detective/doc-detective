@@ -1299,6 +1299,112 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("context_v3 requires", function () {
+      it("should validate a context_v3 object with a string requirement", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"], requires: "node" },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires).to.equal("node");
+      });
+
+      it("should validate a context_v3 object with an array of requirements", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"], requires: ["node", "ffmpeg"] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires).to.deep.equal(["node", "ffmpeg"]);
+      });
+
+      it("should validate a context_v3 object with a full requires object", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: {
+            platforms: ["windows", "mac", "linux"],
+            requires: {
+              commands: ["node", "ffmpeg"],
+              files: ["$HOME/.config/app.toml"],
+              env: ["API_TOKEN"],
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires.commands).to.deep.equal(["node", "ffmpeg"]);
+        expect(result.object.requires.files).to.deep.equal(["$HOME/.config/app.toml"]);
+        expect(result.object.requires.env).to.deep.equal(["API_TOKEN"]);
+      });
+
+      it("should validate a requires object with a single category", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: { env: ["ANTHROPIC_API_KEY"] } },
+        });
+        expect(result.valid).to.be.true;
+      });
+
+      it("should reject an empty or whitespace-only requires string", function () {
+        for (const requires of ["", "   "]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { requires },
+          });
+          expect(result.valid, `requires: ${JSON.stringify(requires)}`).to.be
+            .false;
+        }
+      });
+
+      it("should reject an empty requires array", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: [] },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a requires array with an empty entry", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: ["node", " "] },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject an empty requires object", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: {} },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a requires object with unknown categories", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: { binaries: ["node"] } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a requires object whose category is not an array of strings", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: { commands: "node" } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should coerce a numeric requires value to a string (validator-wide coerceTypes policy)", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: 42 },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires).to.equal("42");
+      });
+    });
+
     describe("context_v3 transformations", function () {
       it("should transform context_v2 to context_v3", function () {
         const result = transformToSchemaKey({

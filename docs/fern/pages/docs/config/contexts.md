@@ -235,6 +235,46 @@ This context targets Windows or Linux:
 }
 ```
 
+## Requirements (`requires`)
+
+Use `requires` to gate a context on host capabilities beyond the operating system: commands on the PATH, files on disk, or environment variables. If any requirement is unmet, the context is skipped — the same non-failing outcome as a `platforms` mismatch — with a message naming each missing requirement.
+
+`requires` accepts three shapes:
+
+- A string names one required command:
+
+  ```json
+  {
+    "platforms": ["windows", "mac", "linux"],
+    "requires": "node"
+  }
+  ```
+
+- An array names several required commands (all must be present):
+
+  ```json
+  {
+    "requires": ["node", "ffmpeg"]
+  }
+  ```
+
+- An object checks commands, files, and environment variables. File paths support `$VAR` expansion, and `$HOME` falls back to `USERPROFILE` on Windows. Environment variables must be set to a non-empty value.
+
+  ```json
+  {
+    "platforms": ["mac", "linux"],
+    "requires": {
+      "commands": ["claude"],
+      "files": ["$HOME/.config/app.toml"],
+      "env": ["ANTHROPIC_API_KEY"]
+    }
+  }
+  ```
+
+All entries are combined with AND. A context can consist of only a `requires` gate — with `platforms` omitted, it runs on the current platform whenever the requirements are met.
+
+You don't need `requires` for browsers or drivers: Doc Detective's own preflight detects, installs, and repairs those automatically.
+
 ## Examples
 
 ### Basic Contexts

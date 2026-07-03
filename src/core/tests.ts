@@ -31,6 +31,7 @@ import {
   getRunOutputDir,
   runArchivesArtifacts,
   sanitizeFilesystemName,
+  evaluateContextRequirements,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -120,6 +121,7 @@ export {
   resolveBrowserFallbackPolicy,
   shouldRepairBeforeFallback,
   isSupportedContext,
+  contextRequirementsSkipMessage,
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
@@ -419,6 +421,28 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   }
   // Return boolean
   return Boolean(isSupportedApp && isSupportedPlatform);
+}
+
+// Evaluate a context's `requires` capability gate. Returns null when the gate
+// is absent or fully met; otherwise a skip message naming every unmet
+// requirement, so the context lands as SKIPPED (the same non-failing outcome
+// as a `platforms` mismatch). `deps` is passed through to
+// evaluateContextRequirements for hermetic tests.
+function contextRequirementsSkipMessage({
+  context,
+  deps,
+}: {
+  context: any;
+  deps?: any;
+}): string | null {
+  if (context?.requires === undefined || context?.requires === null)
+    return null;
+  const { met, missing } = evaluateContextRequirements({
+    requires: context.requires,
+    deps,
+  });
+  if (met) return null;
+  return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
 }
 
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
@@ -2604,6 +2628,20 @@ async function runContext({
   metaValues.specs[spec.specId].tests[test.testId].contexts[
     context.contextId
   ] ??= { steps: {} };
+
+  // `requires` capability gate: any unmet requirement skips the context with a
+  // message naming what's missing. Evaluated only on the platform the context
+  // targets — a different-platform context keeps its platform skip reason, and
+  // requirements are host facts that would be meaningless to probe elsewhere.
+  if (context.platform === platform) {
+    const requirementsSkip = contextRequirementsSkipMessage({ context });
+    if (requirementsSkip) {
+      clog("warning", requirementsSkip);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = requirementsSkip;
+      return contextReport;
+    }
+  }
 
   // If a driver is required but no browser could be resolved (e.g.
   // getDefaultBrowser found nothing installed, or the context supplied a
