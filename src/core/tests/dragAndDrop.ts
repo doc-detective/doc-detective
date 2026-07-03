@@ -101,7 +101,9 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
-  // Multi-surface Phase 3: focus the window/tab the source and target live in.
+  // Multi-surface Phase 3/4: focus the session + window/tab the source and
+  // target live in. A cross-session reference resolves to that session's
+  // driver.
   if (step.dragAndDrop.surface !== undefined) {
     const switched = await switchToSurface(driver, step.dragAndDrop.surface);
     if (!switched.ok) {
@@ -109,6 +111,7 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
       result.description = switched.message;
       return result;
     }
+    driver = switched.driver ?? driver;
   }
 
   // Set default duration if not provided

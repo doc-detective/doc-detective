@@ -395,10 +395,24 @@ driver**, which is the natural seam.
   `waitUntil` (`networkIdleTime`/`domIdleTime`/`find`); `closeSurface` closes
   tabs/windows idempotently. Engine mismatch, browser `name`, and whole-browser
   close FAIL loudly with "lands in a later phase" guidance.
-- **Phase 4 — multiple browser surfaces at once.** Registry holds several driver
-  sessions keyed by surface name; `surface:{browser:engine,name}` opens/selects
-  additional browsers; `runOn.browsers` reinterpreted as the default surface (+ the
-  matrix caveat documented). Still only the installed browser drivers.
+- **Phase 4 — multiple browser surfaces at once.** ✅ **Shipped** (ADR 01019).
+  A context-scoped session registry holds several driver sessions keyed by
+  surface name (the default browser registers under its engine name);
+  `surface:{browser:engine,name}` (and the bare engine keyword) selects — and,
+  on **goTo only**, opens — additional browsers on the context's
+  already-acquired Appium port, inheriting the context's headless-ness.
+  Active surface = most recently opened or focused, across sessions.
+  `closeSurface` closes whole browsers (bare name / engine / `{browser,name}`),
+  idempotently, with focus falling back to the most recently focused survivor;
+  it refuses while a recording is active on the session. Phase 3's engine
+  mismatch / `name` / whole-browser-close FAILs became working behavior;
+  unopened references on non-goTo steps FAIL pointing at goTo.
+  `runOn.browsers` reinterpreted as the default surface (+ the matrix caveat
+  documented). Still only the installed browser drivers. Same-engine
+  multi-session recording caveat: ffmpeg window capture can't disambiguate two
+  same-engine sessions' identically-titled windows — record before opening a
+  same-engine twin, or use the browser (MediaRecorder) engine, which is
+  per-session.
 
 ### Block C — additions
 

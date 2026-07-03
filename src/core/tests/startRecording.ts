@@ -49,7 +49,9 @@ async function startRecording({ config, context, step, driver }: { config: any; 
     return result;
   }
 
-  // Multi-surface Phase 3: focus the window/tab to record.
+  // Multi-surface Phase 3/4: focus the session + window/tab to record. A
+  // cross-session reference resolves to that session's driver — the recording
+  // (and its recorder tab) then lives entirely in that session.
   if (
     typeof step.record === "object" &&
     step.record !== null &&
@@ -61,6 +63,7 @@ async function startRecording({ config, context, step, driver }: { config: any; 
       result.description = switched.message;
       return result;
     }
+    driver = switched.driver ?? driver;
   }
 
   // Convert boolean to string
